@@ -14,7 +14,7 @@ export default async function QRCodePage() {
   const [{ data: personalCard }, plan] = await Promise.all([
     supabase
       .from('cards')
-      .select('id, slug, name, profile_image_url, color_theme')
+      .select('id, slug, name, profile_image_url, company_logo_url, color_theme')
       .eq('user_id', user.id)
       .eq('is_primary', true)
       .single(),
@@ -35,7 +35,7 @@ export default async function QRCodePage() {
   const { data: teamCards } = org
     ? await admin
         .from('team_cards')
-        .select('id, slug, name, profile_image_url, color_theme')
+        .select('id, slug, name, profile_image_url, company_logo_url, color_theme')
         .eq('organization_id', org.id)
         .eq('is_active', true)
         .order('name')
