@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing card reference' }, { status: 400 })
     }
 
-    const supabase = await createClient()
+    const supabase = await createClient() as any
 
     const { error } = await supabase
       .from('contacts')

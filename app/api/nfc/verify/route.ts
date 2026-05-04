@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/nfc?status=failed`)
     }
 
-    const supabase = await createClient()
+    const supabase = await createClient() as any
 
     await supabase
       .from('nfc_orders')

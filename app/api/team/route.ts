@@ -8,7 +8,7 @@ function generateSlug(name: string, suffix: string) {
 
 // POST /api/team — create org or add card or init payment
 export async function POST(request: Request) {
-  const supabase = await createClient()
+  const supabase = await createClient() as any
   // Admin client bypasses RLS for ownership checks
   const admin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

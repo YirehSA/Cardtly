@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     }
 
     const event = JSON.parse(body)
-    const supabase = await createClient()
+    const supabase = await createClient() as any
 
     console.log('Paystack webhook event:', event.event)
 

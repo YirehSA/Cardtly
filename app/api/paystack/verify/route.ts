@@ -37,7 +37,7 @@ export async function GET(request: Request) {
       periodEnd.setFullYear(periodEnd.getFullYear() + 1)
     }
 
-    const supabase = await createClient()
+    const supabase = await createClient() as any
 
     // Upsert subscription record
     const { error } = await supabase
