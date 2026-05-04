@@ -49,7 +49,6 @@ export default function CardEditor({ card, plan, userId }: Props) {
     linkedin_url:      card?.linkedin_url || '',
     twitter_url:       card?.twitter_url || '',
     instagram_url:     card?.instagram_url || '',
-    facebook_url:      card?.facebook_url || '',
     profile_image_url: card?.profile_image_url || '',
     company_logo_url:  card?.company_logo_url || '',
     image_1_url:       card?.image_1_url || '',
@@ -58,11 +57,6 @@ export default function CardEditor({ card, plan, userId }: Props) {
     image_4_url:       card?.image_4_url || '',
     image_5_url:       card?.image_5_url || '',
     certifications:    card?.certifications || '',
-    image_1_link:      card?.image_1_link || '',
-    image_2_link:      card?.image_2_link || '',
-    image_3_link:      card?.image_3_link || '',
-    image_4_link:      card?.image_4_link || '',
-    image_5_link:      card?.image_5_link || '',
     link_1_title:      card?.link_1_title || '',
     link_1_url:        card?.link_1_url || '',
     link_2_title:      card?.link_2_title || '',
@@ -78,6 +72,25 @@ export default function CardEditor({ card, plan, userId }: Props) {
   const update = useCallback((field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }))
   }, [])
+
+  async function saveSlug() {
+    if (!slug || slug.length < 3) { setSlugError('Min 3 characters'); return }
+    setSlugSaving(true)
+    setSlugError('')
+    const res = await fetch('/api/slug', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug, card_id: card?.id }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      setSlugError(data.error || 'Failed to update')
+    } else {
+      setSlugSuccess(true)
+      setTimeout(() => setSlugSuccess(false), 3000)
+    }
+    setSlugSaving(false)
+  }
 
   async function save() {
     if (!card) return
@@ -100,6 +113,10 @@ export default function CardEditor({ card, plan, userId }: Props) {
   }
 
   const cardUrl = card?.slug ? `/card/${card.slug}` : null
+  const [slug, setSlug] = useState(card?.slug || '')
+  const [slugSaving, setSlugSaving] = useState(false)
+  const [slugError, setSlugError] = useState('')
+  const [slugSuccess, setSlugSuccess] = useState(false)
 
   return (
     <div className="flex flex-col xl:flex-row gap-6 max-w-7xl mx-auto">
@@ -113,8 +130,25 @@ export default function CardEditor({ card, plan, userId }: Props) {
                 cardtly.com{cardUrl} <ExternalLink className="w-3 h-3" />
               </a>
             )}
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <div className="flex items-center px-2 py-1.5 rounded-l-lg border border-r-0 border-border bg-muted text-xs text-muted-foreground whitespace-nowrap">
+                cardtly.com/card/
+              </div>
+              <input
+                value={slug}
+                onChange={e => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setSlugError(''); setSlugSuccess(false) }}
+                placeholder="yireh-your-name"
+                className="px-3 py-1.5 rounded-r-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring transition w-44"
+              />
+              <button onClick={saveSlug} disabled={slugSaving || !slug || slug === card?.slug}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
+                style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                {slugSaving ? '...' : slugSuccess ? '✓ Saved' : 'Update URL'}
+              </button>
+              {slugError && <span className="text-xs text-destructive">{slugError}</span>}
+            </div>
           </div>
-          <button onClick={save} disabled={saving} className="flex items-center gap-2 bg-foreground text-background px-4 py-2 rounded-lg text-sm font-semibold hover:bg-foreground/90 transition disabled:opacity-50">
+          <button onClick={save} disabled={saving} className="flex items-center gap-2 text-white px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90 disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
             <Save className="w-4 h-4" />
             {saving ? 'Saving...' : 'Save'}
           </button>
@@ -186,26 +220,16 @@ export default function CardEditor({ card, plan, userId }: Props) {
             <ProField label="Instagram URL" pro={pro}>
               <Input type="url" value={form.instagram_url} onChange={e => update('instagram_url', e.target.value)} placeholder="https://instagram.com/you" disabled={!pro} />
             </ProField>
-            <ProField label="Facebook URL" pro={pro}>
-              <Input type="url" value={form.facebook_url} onChange={e => update('facebook_url', e.target.value)} placeholder="https://facebook.com/yourpage" disabled={!pro} />
-            </ProField>
           </>)}
 
           {activeTab === 'links' && (
             pro ? (
-              <div className="space-y-5">
+              <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">Add up to 5 custom links to your card.</p>
                 {[1,2,3,4,5].map(i => (
-                  <div key={i} className="rounded-xl border border-border p-4 space-y-2.5 bg-muted/30">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Link {i}</p>
-                    <div>
-                      <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Label</label>
-                      <Input value={form[`link_${i}_title` as keyof typeof form]} onChange={e => update(`link_${i}_title`, e.target.value)} placeholder="e.g. Our Website" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium mb-1.5 text-muted-foreground">URL</label>
-                      <Input type="url" value={form[`link_${i}_url` as keyof typeof form]} onChange={e => update(`link_${i}_url`, e.target.value)} placeholder="https://..." />
-                    </div>
+                  <div key={i} className="flex gap-3">
+                    <Input value={form[`link_${i}_title` as keyof typeof form]} onChange={e => update(`link_${i}_title`, e.target.value)} placeholder="Label" className="w-2/5" />
+                    <Input value={form[`link_${i}_url` as keyof typeof form]} onChange={e => update(`link_${i}_url`, e.target.value)} placeholder="https://..." className="flex-1" />
                   </div>
                 ))}
               </div>
@@ -223,16 +247,9 @@ export default function CardEditor({ card, plan, userId }: Props) {
                 <div>
                   <label className="block text-sm font-medium mb-1">Gallery Images</label>
                   <p className="text-xs text-muted-foreground mb-3">Up to 5 images shown on your card</p>
-                  <div className="grid grid-cols-1 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     {[1,2,3,4,5].map(i => (
-                      <div key={i} className="rounded-xl border border-border p-3 space-y-2 bg-muted/20">
-                        <p className="text-xs font-semibold text-muted-foreground">Image {i}</p>
-                        <ImageUploader value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" />
-                        <div>
-                          <label className="block text-xs font-medium mb-1 text-muted-foreground">Link (optional)</label>
-                          <Input type="url" value={form[`image_${i}_link` as keyof typeof form] || ''} onChange={e => update(`image_${i}_link`, e.target.value)} placeholder="https://... (tap image to open)" />
-                        </div>
-                      </div>
+                      <ImageUploader key={i} value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" label={`Image ${i}`} />
                     ))}
                   </div>
                 </div>
