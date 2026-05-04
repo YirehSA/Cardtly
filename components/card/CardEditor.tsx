@@ -1,0 +1,289 @@
+'use client'
+
+import { useState, useCallback } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { Card, UserPlan } from '@/types/database'
+import { isPro } from '@/lib/plan'
+import { CardDesign, DEFAULT_DESIGN, parseDesign, serializeDesign } from '@/types/design'
+import { toast } from 'sonner'
+import TemplatedCardPreview from './TemplatedCardPreview'
+import DesignPanel from './DesignPanel'
+import ProGate from './ProGate'
+import ImageUploader from './ImageUploader'
+import { Save, ExternalLink, Lock, User, Phone, Link2, Image, Palette } from 'lucide-react'
+
+interface Props {
+  card: Card | null
+  plan: UserPlan
+  userId: string
+}
+
+type TabId = 'basic' | 'contact' | 'links' | 'media' | 'design'
+
+const TABS: { id: TabId; label: string; icon: React.ReactNode; proOnly?: boolean }[] = [
+  { id: 'basic',   label: 'Profile', icon: <User className="w-4 h-4" /> },
+  { id: 'contact', label: 'Contact', icon: <Phone className="w-4 h-4" /> },
+  { id: 'links',   label: 'Links',   icon: <Link2 className="w-4 h-4" />,   proOnly: true },
+  { id: 'media',   label: 'Media',   icon: <Image className="w-4 h-4" />,   proOnly: true },
+  { id: 'design',  label: 'Design',  icon: <Palette className="w-4 h-4" />, proOnly: true },
+]
+
+export default function CardEditor({ card, plan, userId }: Props) {
+  const supabase = createClient()
+  const pro = isPro(plan)
+  const [saving, setSaving] = useState(false)
+  const [activeTab, setActiveTab] = useState<TabId>('basic')
+  const [design, setDesign] = useState<CardDesign>(() => parseDesign(card?.color_theme || null))
+
+  const [form, setForm] = useState({
+    name:              card?.name || '',
+    title:             card?.title || '',
+    company:           card?.company || '',
+    bio:               card?.bio || '',
+    email:             card?.email || '',
+    phone:             card?.phone || '',
+    work_phone:        card?.work_phone || '',
+    whatsapp:          card?.whatsapp || '',
+    address:           card?.address || '',
+    website:           card?.website || '',
+    linkedin_url:      card?.linkedin_url || '',
+    twitter_url:       card?.twitter_url || '',
+    instagram_url:     card?.instagram_url || '',
+    profile_image_url: card?.profile_image_url || '',
+    company_logo_url:  card?.company_logo_url || '',
+    image_1_url:       card?.image_1_url || '',
+    image_2_url:       card?.image_2_url || '',
+    image_3_url:       card?.image_3_url || '',
+    image_4_url:       card?.image_4_url || '',
+    image_5_url:       card?.image_5_url || '',
+    certifications:    card?.certifications || '',
+    link_1_title:      card?.link_1_title || '',
+    link_1_url:        card?.link_1_url || '',
+    link_2_title:      card?.link_2_title || '',
+    link_2_url:        card?.link_2_url || '',
+    link_3_title:      card?.link_3_title || '',
+    link_3_url:        card?.link_3_url || '',
+    link_4_title:      card?.link_4_title || '',
+    link_4_url:        card?.link_4_url || '',
+    link_5_title:      card?.link_5_title || '',
+    link_5_url:        card?.link_5_url || '',
+  })
+
+  const update = useCallback((field: string, value: string) => {
+    setForm(prev => ({ ...prev, [field]: value }))
+  }, [])
+
+  async function save() {
+    if (!card) return
+    setSaving(true)
+
+    // All design settings (including bold controls) live in color_theme JSON
+    // Never send design-only fields as DB columns
+    const { error } = await supabase
+      .from('cards')
+      .update({
+        ...form,
+        color_theme: serializeDesign(design),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', card.id)
+
+    if (error) toast.error('Failed to save: ' + error.message)
+    else toast.success('Card saved')
+    setSaving(false)
+  }
+
+  const cardUrl = card?.slug ? `/card/${card.slug}` : null
+
+  return (
+    <div className="flex flex-col xl:flex-row gap-6 max-w-7xl mx-auto">
+      <div className="flex-1 min-w-0">
+
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="font-display text-xl font-bold">My Card</h1>
+            {cardUrl && (
+              <a href={cardUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-0.5">
+                cardtly.com{cardUrl} <ExternalLink className="w-3 h-3" />
+              </a>
+            )}
+          </div>
+          <button onClick={save} disabled={saving} className="flex items-center gap-2 bg-foreground text-background px-4 py-2 rounded-lg text-sm font-semibold hover:bg-foreground/90 transition disabled:opacity-50">
+            <Save className="w-4 h-4" />
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+
+        <div className="flex gap-1 bg-muted p-1 rounded-xl mb-6 overflow-x-auto">
+          {TABS.map(tab => {
+            const locked = tab.proOnly && !pro
+            return (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap flex-1 justify-center ${activeTab === tab.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} ${locked ? 'opacity-60' : ''}`}>
+                {tab.icon}{tab.label}
+                {locked && <Lock className="w-3 h-3" />}
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
+
+          {activeTab === 'basic' && (<>
+            <div>
+              <label className="block text-sm font-medium mb-2">Profile Photo</label>
+              <ImageUploader value={form.profile_image_url} onChange={url => update('profile_image_url', url)} bucket="card-images" userId={userId} shape="circle" />
+            </div>
+            <Field label="Full name" required>
+              <Input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Andre Nel" />
+            </Field>
+            <ProField label="Job title" pro={pro}>
+              <Input value={form.title} onChange={e => update('title', e.target.value)} placeholder="Founder & CEO" disabled={!pro} />
+            </ProField>
+            <Field label="Company">
+              <Input value={form.company} onChange={e => update('company', e.target.value)} placeholder="Yireh Business Solutions" />
+            </Field>
+            <ProField label="Bio" pro={pro}>
+              <textarea value={form.bio} onChange={e => update('bio', e.target.value)} placeholder="Tell people about yourself..." disabled={!pro} rows={4}
+                className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition resize-none disabled:opacity-50 disabled:cursor-not-allowed" />
+            </ProField>
+            <ProField label="Certifications / Tags" pro={pro} hint="Comma separated e.g. Web Design, SEO, Marketing">
+              <Input value={form.certifications} onChange={e => update('certifications', e.target.value)} placeholder="Web Design, SEO, Digital Marketing" disabled={!pro} />
+            </ProField>
+          </>)}
+
+          {activeTab === 'contact' && (<>
+            <Field label="Email" required>
+              <Input type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="you@company.com" />
+            </Field>
+            <Field label="Phone">
+              <Input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="+27 82 000 0000" />
+            </Field>
+            <ProField label="Work phone" pro={pro}>
+              <Input type="tel" value={form.work_phone} onChange={e => update('work_phone', e.target.value)} placeholder="+27 11 000 0000" disabled={!pro} />
+            </ProField>
+            <ProField label="WhatsApp" pro={pro}>
+              <Input type="tel" value={form.whatsapp} onChange={e => update('whatsapp', e.target.value)} placeholder="+27 82 000 0000" disabled={!pro} />
+            </ProField>
+            <ProField label="Address" pro={pro}>
+              <Input value={form.address} onChange={e => update('address', e.target.value)} placeholder="Johannesburg, South Africa" disabled={!pro} />
+            </ProField>
+            <ProField label="Website" pro={pro}>
+              <Input type="url" value={form.website} onChange={e => update('website', e.target.value)} placeholder="https://yoursite.com" disabled={!pro} />
+            </ProField>
+            <ProField label="LinkedIn URL" pro={pro}>
+              <Input type="url" value={form.linkedin_url} onChange={e => update('linkedin_url', e.target.value)} placeholder="https://linkedin.com/in/you" disabled={!pro} />
+            </ProField>
+            <ProField label="Twitter / X URL" pro={pro}>
+              <Input type="url" value={form.twitter_url} onChange={e => update('twitter_url', e.target.value)} placeholder="https://twitter.com/you" disabled={!pro} />
+            </ProField>
+            <ProField label="Instagram URL" pro={pro}>
+              <Input type="url" value={form.instagram_url} onChange={e => update('instagram_url', e.target.value)} placeholder="https://instagram.com/you" disabled={!pro} />
+            </ProField>
+          </>)}
+
+          {activeTab === 'links' && (
+            pro ? (
+              <div className="space-y-5">
+                <p className="text-sm text-muted-foreground">Add up to 5 custom links to your card.</p>
+                {[1,2,3,4,5].map(i => (
+                  <div key={i} className="rounded-xl border border-border p-4 space-y-2.5 bg-muted/30">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Link {i}</p>
+                    <div>
+                      <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Label</label>
+                      <Input value={form[`link_${i}_title` as keyof typeof form]} onChange={e => update(`link_${i}_title`, e.target.value)} placeholder="e.g. My Portfolio" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1.5 text-muted-foreground">URL</label>
+                      <Input type="url" value={form[`link_${i}_url` as keyof typeof form]} onChange={e => update(`link_${i}_url`, e.target.value)} placeholder="https://..." />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : <ProGate feature="Custom links" />
+          )}
+
+          {activeTab === 'media' && (
+            pro ? (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Company Logo</label>
+                  <p className="text-xs text-muted-foreground mb-3">Resize and position it in the Design tab</p>
+                  <ImageUploader value={form.company_logo_url} onChange={url => update('company_logo_url', url)} bucket="company-logos" userId={userId} shape="square" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Gallery Images</label>
+                  <p className="text-xs text-muted-foreground mb-3">Up to 5 images shown on your card</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[1,2,3,4,5].map(i => (
+                      <ImageUploader key={i} value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" label={`Image ${i}`} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : <ProGate feature="Gallery and media" />
+          )}
+
+          {activeTab === 'design' && (
+            pro
+              ? <DesignPanel design={design} onChange={setDesign} isPro={pro} />
+              : <ProGate feature="Card design customisation" />
+          )}
+        </div>
+
+        <div className="mt-4 flex justify-end">
+          <button onClick={save} disabled={saving} className="flex items-center gap-2 bg-foreground text-background px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-foreground/90 transition disabled:opacity-50">
+            <Save className="w-4 h-4" />
+            {saving ? 'Saving...' : 'Save changes'}
+          </button>
+        </div>
+      </div>
+
+      {/* Live preview */}
+      <div className="xl:w-80 xl:flex-shrink-0">
+        <div className="sticky top-6">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Live Preview</p>
+          <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-800" style={{ maxHeight: '82vh', overflowY: 'auto' }}>
+            <TemplatedCardPreview form={form} isPro={pro} design={design} />
+          </div>
+          {cardUrl && (
+            <a href={cardUrl} target="_blank" rel="noopener noreferrer" className="mt-3 flex items-center justify-center gap-2 w-full border border-border rounded-xl py-2.5 text-sm font-medium hover:bg-muted transition">
+              <ExternalLink className="w-4 h-4" />View live card
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Field({ label, children, required, hint }: { label: string; children: React.ReactNode; required?: boolean; hint?: string }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-1.5">
+        {label}{required && <span className="text-destructive ml-1">*</span>}
+      </label>
+      {hint && <p className="text-xs text-muted-foreground mb-1.5">{hint}</p>}
+      {children}
+    </div>
+  )
+}
+
+function ProField({ label, children, pro, hint }: { label: string; children: React.ReactNode; pro: boolean; hint?: string }) {
+  return (
+    <div className={pro ? '' : 'opacity-60'}>
+      <label className="block text-sm font-medium mb-1.5 flex items-center gap-1.5">
+        {label}
+        {!pro && <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-normal flex items-center gap-1"><Lock className="w-2.5 h-2.5" />Pro</span>}
+      </label>
+      {hint && <p className="text-xs text-muted-foreground mb-1.5">{hint}</p>}
+      {children}
+    </div>
+  )
+}
+
+function Input({ className = '', ...props }: React.InputHTMLAttributes<HTMLInputElement> & { className?: string }) {
+  return (
+    <input className={`w-full px-4 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition disabled:opacity-50 disabled:cursor-not-allowed ${className}`} {...props} />
+  )
+}

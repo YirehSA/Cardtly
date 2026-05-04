@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ── Light mode ─────────────────────────────────────────────────────────── */
+  :root {
+    --background:       28 20% 97%;       /* warm cream */
+    --foreground:       220 25% 10%;      /* near-black with blue tint */
+    --card:             0 0% 100%;
+    --card-foreground:  220 25% 10%;
+    --border:           220 15% 88%;
+    --input:            220 15% 88%;
+    --ring:             220 80% 55%;
+    --muted:            220 15% 93%;
+    --muted-foreground: 220 12% 48%;
+    --accent:           220 80% 55%;      /* electric blue */
+    --accent-foreground:0 0% 100%;
+    --primary:          220 80% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary:        220 15% 93%;
+    --secondary-foreground: 220 25% 10%;
+    --destructive:      0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --radius:           0.75rem;
+
+    /* Custom tokens */
+    --sidebar-bg:       220 30% 12%;
+    --sidebar-fg:       220 15% 75%;
+    --sidebar-active:   0 0% 100%;
+    --sidebar-accent:   220 80% 55%;
+    --sidebar-border:   220 25% 18%;
+    --sidebar-width:    240px;
+
+    --grain-opacity:    0.025;
+    --glow-color:       rgba(59, 130, 246, 0.12);
+  }
+
+  /* ── Dark mode ──────────────────────────────────────────────────────────── */
+  .dark {
+    --background:       222 30% 8%;       /* deep navy */
+    --foreground:       210 20% 92%;
+    --card:             222 28% 11%;
+    --card-foreground:  210 20% 92%;
+    --border:           222 22% 18%;
+    --input:            222 22% 18%;
+    --ring:             217 91% 60%;
+    --muted:            222 25% 15%;
+    --muted-foreground: 218 15% 52%;
+    --accent:           217 91% 60%;
+    --accent-foreground:0 0% 100%;
+    --primary:          217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary:        222 25% 15%;
+    --secondary-foreground: 210 20% 92%;
+    --destructive:      0 63% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --sidebar-bg:       222 32% 6%;
+    --sidebar-fg:       218 15% 55%;
+    --sidebar-active:   210 20% 92%;
+    --sidebar-accent:   217 91% 60%;
+    --sidebar-border:   222 22% 13%;
+
+    --grain-opacity:    0.04;
+    --glow-color:       rgba(59, 130, 246, 0.08);
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Grain texture overlay on body */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: var(--grain-opacity);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size: 128px 128px;
+  }
+}
+
+@layer utilities {
+  /* Scrollbar styling */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 99px;
+  }
+
+  /* Geometric accent line */
+  .accent-line {
+    background: linear-gradient(90deg, hsl(var(--accent)), transparent);
+    height: 1px;
+  }
+
+  /* Glow effect */
+  .glow {
+    box-shadow: 0 0 40px var(--glow-color);
+  }
+
+  /* Glass card */
+  .glass {
+    background: hsl(var(--card) / 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--border) / 0.6);
+  }
+}

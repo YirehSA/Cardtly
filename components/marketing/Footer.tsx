@@ -1,0 +1,77 @@
+import Link from 'next/link'
+
+export default function Footer() {
+  return (
+    <footer style={{ background: '#000', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="max-w-7xl mx-auto px-6 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+          {/* Brand */}
+          <div className="md:col-span-2">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm"
+                style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                C
+              </div>
+              <span className="font-black text-lg tracking-tight"
+                style={{ background: 'linear-gradient(90deg, #00d4ff, #7c3aed, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                Cardtly
+              </span>
+            </div>
+            <p className="text-sm leading-relaxed max-w-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              Your digital business card. Share who you are with a tap, a scan, or a link. For everyone.
+            </p>
+          </div>
+
+          {/* Product */}
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Product</p>
+            <div className="space-y-2.5">
+              {[
+                { href: '/how-it-works', label: 'How it works' },
+                { href: '/pricing',       label: 'Pricing' },
+                { href: '/nfc',           label: 'NFC Cards 🇿🇦' },
+                { href: '/signup',        label: 'Get started' },
+                { href: '/login',         label: 'Sign in' },
+              ].map(({ href, label }) => (
+                <Link key={href} href={href}
+                  className="block text-sm transition hover:text-white"
+                  style={{ color: 'rgba(255,255,255,0.45)' }}>
+                  {label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Company */}
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Company</p>
+            <div className="space-y-2.5">
+              {[
+                { href: '/about',   label: 'About us' },
+                { href: '/contact', label: 'Contact' },
+                { href: '/privacy', label: 'Privacy policy' },
+                { href: '/terms',   label: 'Terms of service' },
+              ].map(({ href, label }) => (
+                <Link key={href} href={href}
+                  className="block text-sm transition hover:text-white"
+                  style={{ color: 'rgba(255,255,255,0.45)' }}>
+                  {label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+            © {new Date().getFullYear()} Cardtly. All rights reserved.
+          </p>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            Made in South Africa 🇿🇦
+          </p>
+        </div>
+      </div>
+    </footer>
+  )
+}
