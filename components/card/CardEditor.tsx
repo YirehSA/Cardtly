@@ -73,6 +73,25 @@ export default function CardEditor({ card, plan, userId }: Props) {
     setForm(prev => ({ ...prev, [field]: value }))
   }, [])
 
+  async function saveSlug() {
+    if (!slug || slug.length < 3) { setSlugError('Min 3 characters'); return }
+    setSlugSaving(true)
+    setSlugError('')
+    const res = await fetch('/api/slug', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug, card_id: card?.id }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      setSlugError(data.error || 'Failed to update')
+    } else {
+      setSlugSuccess(true)
+      setTimeout(() => setSlugSuccess(false), 3000)
+    }
+    setSlugSaving(false)
+  }
+
   async function save() {
     if (!card) return
     setSaving(true)
@@ -94,6 +113,10 @@ export default function CardEditor({ card, plan, userId }: Props) {
   }
 
   const cardUrl = card?.slug ? `/card/${card.slug}` : null
+  const [slug, setSlug] = useState(card?.slug || '')
+  const [slugSaving, setSlugSaving] = useState(false)
+  const [slugError, setSlugError] = useState('')
+  const [slugSuccess, setSlugSuccess] = useState(false)
 
   return (
     <div className="flex flex-col xl:flex-row gap-6 max-w-7xl mx-auto">
@@ -107,8 +130,25 @@ export default function CardEditor({ card, plan, userId }: Props) {
                 cardtly.com{cardUrl} <ExternalLink className="w-3 h-3" />
               </a>
             )}
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <div className="flex items-center px-2 py-1.5 rounded-l-lg border border-r-0 border-border bg-muted text-xs text-muted-foreground whitespace-nowrap">
+                cardtly.com/card/
+              </div>
+              <input
+                value={slug}
+                onChange={e => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setSlugError(''); setSlugSuccess(false) }}
+                placeholder="yireh-your-name"
+                className="px-3 py-1.5 rounded-r-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring transition w-44"
+              />
+              <button onClick={saveSlug} disabled={slugSaving || !slug || slug === card?.slug}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
+                style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                {slugSaving ? '...' : slugSuccess ? '✓ Saved' : 'Update URL'}
+              </button>
+              {slugError && <span className="text-xs text-destructive">{slugError}</span>}
+            </div>
           </div>
-          <button onClick={save} disabled={saving} className="flex items-center gap-2 bg-foreground text-background px-4 py-2 rounded-lg text-sm font-semibold hover:bg-foreground/90 transition disabled:opacity-50">
+          <button onClick={save} disabled={saving} className="flex items-center gap-2 text-white px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90 disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
             <Save className="w-4 h-4" />
             {saving ? 'Saving...' : 'Save'}
           </button>
@@ -184,19 +224,12 @@ export default function CardEditor({ card, plan, userId }: Props) {
 
           {activeTab === 'links' && (
             pro ? (
-              <div className="space-y-5">
+              <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">Add up to 5 custom links to your card.</p>
                 {[1,2,3,4,5].map(i => (
-                  <div key={i} className="rounded-xl border border-border p-4 space-y-2.5 bg-muted/30">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Link {i}</p>
-                    <div>
-                      <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Label</label>
-                      <Input value={form[`link_${i}_title` as keyof typeof form]} onChange={e => update(`link_${i}_title`, e.target.value)} placeholder="e.g. My Portfolio" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium mb-1.5 text-muted-foreground">URL</label>
-                      <Input type="url" value={form[`link_${i}_url` as keyof typeof form]} onChange={e => update(`link_${i}_url`, e.target.value)} placeholder="https://..." />
-                    </div>
+                  <div key={i} className="flex gap-3">
+                    <Input value={form[`link_${i}_title` as keyof typeof form]} onChange={e => update(`link_${i}_title`, e.target.value)} placeholder="Label" className="w-2/5" />
+                    <Input value={form[`link_${i}_url` as keyof typeof form]} onChange={e => update(`link_${i}_url`, e.target.value)} placeholder="https://..." className="flex-1" />
                   </div>
                 ))}
               </div>
