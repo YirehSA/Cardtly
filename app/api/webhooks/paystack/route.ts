@@ -43,7 +43,7 @@ export async function POST(request: Request) {
           periodEnd.setFullYear(periodEnd.getFullYear() + 1)
         }
 
-        await supabase.from('whop_subscriptions').upsert({
+        await (supabase.from('whop_subscriptions') as any).upsert({
           user_id: userId,
           email: customer.email,
           plan_id: `paystack_${plan}`,

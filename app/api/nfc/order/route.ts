@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     }
 
     // Save pending order to Supabase
-    await supabase.from('nfc_orders').insert({
+    await (supabase.from('nfc_orders') as any).insert({
       user_id: user.id,
       card_id,
       color,

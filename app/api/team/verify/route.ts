@@ -32,14 +32,14 @@ export async function GET(request: Request) {
     if (extraSeats) {
       // Adding seats to existing org
       const { data: org } = await supabase.from('organizations').select('max_seats').eq('id', orgId).single()
-      await supabase.from('organizations').update({
+      await (supabase.from('organizations') as any).update({
         max_seats: (org?.max_seats || 0) + parseInt(extraSeats),
         period_end: periodEnd.toISOString(),
         updated_at: new Date().toISOString(),
       }).eq('id', orgId)
     } else {
       // New org activation
-      await supabase.from('organizations').update({
+      await (supabase.from('organizations') as any).update({
         business_plan_active: true,
         whop_membership_id: reference,
         updated_at: new Date().toISOString(),

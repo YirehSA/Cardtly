@@ -129,7 +129,7 @@ export async function POST(request: Request) {
     const { data: org } = await admin.from('organizations').select('id').eq('id', org_id).eq('admin_user_id', user.id).single()
     if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
 
-    const { error } = await supabase.from('team_cards').update({ ...fields, updated_at: new Date().toISOString() }).eq('id', card_id).eq('organization_id', org_id)
+    const { error } = await (supabase.from('team_cards') as any).update({ ...fields, updated_at: new Date().toISOString() }).eq('id', card_id).eq('organization_id', org_id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ success: true })
   }
@@ -140,7 +140,7 @@ export async function POST(request: Request) {
     const { data: org } = await admin.from('organizations').select('id').eq('id', org_id).eq('admin_user_id', user.id).single()
     if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
 
-    const { error } = await supabase.from('team_cards').delete().eq('id', card_id).eq('organization_id', org_id)
+    const { error } = await (supabase.from('team_cards') as any).delete().eq('id', card_id).eq('organization_id', org_id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ success: true })
   }
