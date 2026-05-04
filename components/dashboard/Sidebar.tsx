@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useTheme } from './ThemeProvider'
 import {
   CreditCard, BarChart2, Mail, Monitor, Users,
-  Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi
+  Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi, Building2
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -19,6 +19,7 @@ const NAV = [
   { href: '/dashboard/email-signature', label: 'Email Signature', icon: Mail },
   { href: '/dashboard/virtual-bg',  label: 'Virtual BG',  icon: Monitor },
   { href: '/dashboard/nfc',         label: 'NFC Cards',   icon: Wifi },
+  { href: '/dashboard/team',        label: 'Team Cards',  icon: Building2 },
   { href: '/dashboard/settings',    label: 'Settings',    icon: Settings },
 ]
 
@@ -53,17 +54,14 @@ export default function Sidebar({ isPro, userName, userEmail }: SidebarProps) {
       }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-5" style={{ borderBottom: '1px solid hsl(var(--sidebar-border))' }}>
-        <img
-          src="/logo.png"
-          alt="Cardtly"
-          className="h-8 w-auto object-contain"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none'
-            e.currentTarget.nextElementSibling?.removeAttribute('style')
-          }}
-        />
-        <span className="font-black text-base tracking-tight sr-only" style={{ color: 'hsl(var(--sidebar-active))' }}>
+      <div className="flex items-center gap-3 px-6 py-6" style={{ borderBottom: '1px solid hsl(var(--sidebar-border))' }}>
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-sm"
+          style={{ background: 'hsl(var(--sidebar-accent))' }}
+        >
+          C
+        </div>
+        <span className="font-black text-base tracking-tight" style={{ color: 'hsl(var(--sidebar-active))' }}>
           Cardtly
         </span>
         {isPro && (

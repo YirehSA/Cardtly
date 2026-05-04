@@ -67,6 +67,10 @@ export default function TeamCardEditor({ card, org, userId }: Props) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('basic')
+  const [slug, setSlug] = useState(card.slug || '')
+  const [slugSaving, setSlugSaving] = useState(false)
+  const [slugError, setSlugError] = useState('')
+  const [slugSuccess, setSlugSuccess] = useState(false)
   const [design, setDesign] = useState<CardDesign>(() => parseDesign(card.color_theme))
 
   const [form, setForm] = useState({
@@ -101,6 +105,26 @@ export default function TeamCardEditor({ card, org, userId }: Props) {
   const update = useCallback((field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }))
   }, [])
+
+  async function saveSlug() {
+    if (!slug || slug.length < 3) { setSlugError('Must be at least 3 characters'); return }
+    setSlugSaving(true)
+    setSlugError('')
+    const res = await fetch('/api/team/slug', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug, team_card_id: card.id, org_id: org.id }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      setSlugError(data.error || 'Failed to update URL')
+    } else {
+      setSlugSuccess(true)
+      toast.success('Card URL updated')
+      setTimeout(() => setSlugSuccess(false), 3000)
+    }
+    setSlugSaving(false)
+  }
 
   async function save() {
     setSaving(true)
