@@ -80,24 +80,25 @@ export async function GET(
           }}
         />
 
-        {/* Main content */}
+        {/* Main content — square layout, photo top center */}
         <div
           style={{
             display: 'flex',
             flex: 1,
+            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'flex-start',
-            padding: '40px 60px 40px 50px',
-            gap: 48,
+            justifyContent: 'center',
+            padding: '40px 40px 20px',
+            gap: 20,
           }}
         >
-          {/* Avatar — far left for WhatsApp thumbnail */}
+          {/* Avatar — large and centered */}
           <div style={{ display: 'flex', flexShrink: 0 }}>
             {photo ? (
               <img
                 src={photo}
-                width={200}
-                height={200}
+                width={220}
+                height={220}
                 style={{
                   borderRadius: '50%',
                   objectFit: 'cover',
@@ -108,16 +109,15 @@ export async function GET(
               <div
                 style={{
                   display: 'flex',
-                  width: 180,
-                  height: 180,
+                  width: 220,
+                  height: 220,
                   borderRadius: '50%',
                   background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 72,
+                  fontSize: 90,
                   color: 'white',
                   fontWeight: 'bold',
-                  border: '4px solid rgba(0,212,255,0.4)',
                 }}
               >
                 {name[0]?.toUpperCase() || 'C'}
@@ -126,155 +126,36 @@ export async function GET(
           </div>
 
           {/* Text info */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10,
-              flex: 1,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                fontSize: 58,
-                fontWeight: 'bold',
-                color: 'white',
-                lineHeight: 1.1,
-                letterSpacing: '-1px',
-              }}
-            >
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', fontSize: 44, fontWeight: 'bold', color: 'white', lineHeight: 1.1, letterSpacing: '-1px', textAlign: 'center' }}>
               {name}
             </div>
-
             {title ? (
-              <div
-                style={{
-                  display: 'flex',
-                  fontSize: 30,
-                  fontWeight: 600,
-                  color: '#00d4ff',
-                  lineHeight: 1.2,
-                }}
-              >
+              <div style={{ display: 'flex', fontSize: 22, fontWeight: 600, color: '#00d4ff', textAlign: 'center' }}>
                 {title}
               </div>
             ) : null}
-
             {company ? (
-              <div
-                style={{
-                  display: 'flex',
-                  fontSize: 26,
-                  color: 'rgba(255,255,255,0.5)',
-                  lineHeight: 1.2,
-                }}
-              >
+              <div style={{ display: 'flex', fontSize: 20, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
                 {company}
               </div>
             ) : null}
-
-            {/* Gradient divider */}
-            <div
-              style={{
-                display: 'flex',
-                height: 3,
-                width: 120,
-                background: 'linear-gradient(90deg, #00d4ff, #7c3aed, #ec4899)',
-                borderRadius: 2,
-                marginTop: 8,
-              }}
-            />
-
-            <div
-              style={{
-                display: 'flex',
-                fontSize: 20,
-                color: 'rgba(255,255,255,0.3)',
-                marginTop: 4,
-              }}
-            >
-              {`cardtly.com/card/${slug}`}
-            </div>
+            <div style={{ display: 'flex', height: 3, width: 80, background: 'linear-gradient(90deg, #00d4ff, #7c3aed, #ec4899)', borderRadius: 2, marginTop: 4 }} />
           </div>
 
-          {/* Company logo if available */}
+          {/* Logo if available */}
           {logo ? (
-            <div
-              style={{
-                display: 'flex',
-                flexShrink: 0,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <img
-                src={logo}
-                height={80}
-                style={{ objectFit: 'contain', maxWidth: 160, opacity: 0.9 }}
-              />
-            </div>
+            <img src={logo} height={50} style={{ objectFit: 'contain', maxWidth: 140, opacity: 0.9 }} />
           ) : null}
         </div>
 
-        {/* Bottom bar */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '20px 80px',
-            borderTop: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          {/* Cardtly wordmark */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 18,
-                fontWeight: 'bold',
-                color: 'white',
-              }}
-            >
-              C
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                fontSize: 22,
-                fontWeight: 'bold',
-                color: 'rgba(255,255,255,0.5)',
-              }}
-            >
-              Cardtly
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              fontSize: 18,
-              color: 'rgba(255,255,255,0.25)',
-            }}
-          >
-            Digital Business Card
-          </div>
+        {/* Bottom bar — compact for square */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', borderTop: '1px solid rgba(255,255,255,0.06)', gap: 8 }}>
+          <div style={{ display: 'flex', width: 24, height: 24, borderRadius: 7, background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 'bold', color: 'white' }}>C</div>
+          <div style={{ display: 'flex', fontSize: 16, fontWeight: 'bold', color: 'rgba(255,255,255,0.4)' }}>cardtly.com/card/{slug}</div>
         </div>
       </div>
     ),
-    { width: 1200, height: 630 }
+    { width: 630, height: 630 }
   )
 }
