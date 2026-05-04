@@ -7,33 +7,19 @@ import { Download, Share2, Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
-interface CardOption {
-  id: string
-  slug: string
-  name: string
-  profile_image_url: string | null
-  color_theme: string | null
-  _label?: string
-}
-
 interface Props {
-  cards: CardOption[]
-  defaultCardId: string
+  card: {
+    slug: string
+    name: string
+    profile_image_url: string | null
+    company_logo_url: string | null
+    color_theme: string | null
+  }
   plan: UserPlan
 }
 
-const THEME_COLORS: Record<string, string> = {
-  blue: '#3b82f6',
-  purple: '#8b5cf6',
-  green: '#22c55e',
-  red: '#ef4444',
-  orange: '#f97316',
-  pink: '#ec4899',
-  teal: '#14b8a6',
-  gray: '#374151',
-}
-
-const CARDTLY_LOGO_COLOR = '#3b82f6'
+type LogoChoice = 'cardtly' | 'own' | 'none'
+type LogoShape = 'circle' | 'square' | 'rectangle'
 
 export default function QRPage({ cards, defaultCardId, plan }: Props) {
   const [selectedId, setSelectedId] = useState(defaultCardId)
@@ -41,73 +27,158 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [copied, setCopied] = useState(false)
   const [qrReady, setQrReady] = useState(false)
+  const [logoChoice, setLogoChoice] = useState<LogoChoice>('cardtly')
+  const [logoShape, setLogoShape] = useState<LogoShape>('square')
+  const [generating, setGenerating] = useState(false)
   const pro = isPro(plan)
+  const hasOwnLogo = !!card.company_logo_url
 
   const cardUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://cardtly.com'}/card/${card.slug}`
-  const accentColor = THEME_COLORS[card.color_theme || 'blue'] || THEME_COLORS.blue
 
+  // Regenerate QR whenever logo choice changes
   useEffect(() => {
-    generateQR()
-  }, [card.slug])
+    generateQR(logoChoice, logoShape)
+  }, [card.slug, logoChoice, logoShape])
 
-  async function generateQR() {
+  async function generateQR(choice: LogoChoice, shape: LogoShape = 'square') {
     const canvas = canvasRef.current
     if (!canvas) return
+    setGenerating(true)
+    setQrReady(false)
 
-    // Dynamically import qrcode to avoid SSR issues
     const QRCode = (await import('qrcode')).default
 
-    const size = 400
+    const size = 800
     canvas.width = size
     canvas.height = size
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Generate QR to a temporary canvas first
+    // Generate base QR
     const tempCanvas = document.createElement('canvas')
     await QRCode.toCanvas(tempCanvas, cardUrl, {
       width: size,
       margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#ffffff',
-      },
+      color: { dark: '#000000', light: '#ffffff' },
     })
-
-    // Draw QR onto main canvas
     ctx.drawImage(tempCanvas, 0, 0)
 
-    // Draw center logo circle (Cardtly branding — always shown on free)
     const centerX = size / 2
     const centerY = size / 2
-    const logoRadius = 32
+    const logoRadius = 68
 
-    // White circle background
-    ctx.beginPath()
-    ctx.arc(centerX, centerY, logoRadius + 4, 0, Math.PI * 2)
-    ctx.fillStyle = '#ffffff'
-    ctx.fill()
+    if (choice === 'none') {
+      // No centre logo — just the plain QR
+      setQrReady(true)
+      setGenerating(false)
+      return
+    }
 
-    // Coloured circle
-    ctx.beginPath()
-    ctx.arc(centerX, centerY, logoRadius, 0, Math.PI * 2)
-    ctx.fillStyle = CARDTLY_LOGO_COLOR
-    ctx.fill()
+    if (choice === 'own' && card.company_logo_url) {
+      try {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve()
+          img.onerror = () => reject()
+          img.src = card.company_logo_url!
+        })
 
-    // "C" letter for Cardtly
-    ctx.fillStyle = '#ffffff'
-    ctx.font = `bold ${logoRadius}px system-ui`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText('C', centerX, centerY + 2)
+        const padding = 10
+        if (shape === 'circle') {
+          const r = logoRadius + padding
+          // White circle bg
+          ctx.beginPath()
+          ctx.arc(centerX, centerY, r + 6, 0, Math.PI * 2)
+          ctx.fillStyle = '#ffffff'
+          ctx.fill()
+          // Clip to circle and draw logo
+          const logoSize = r * 1.7
+          ctx.save()
+          ctx.beginPath()
+          ctx.arc(centerX, centerY, r, 0, Math.PI * 2)
+          ctx.clip()
+          ctx.drawImage(img, centerX - logoSize / 2, centerY - logoSize / 2, logoSize, logoSize)
+          ctx.restore()
+        } else if (shape === 'square') {
+          const s = (logoRadius + padding) * 2
+          const x = centerX - s / 2
+          const y = centerY - s / 2
+          // White rounded square bg
+          const r = 12
+          ctx.beginPath()
+          ctx.moveTo(x - 6 + r, y - 6)
+          ctx.lineTo(x - 6 + s + 12 - r, y - 6)
+          ctx.quadraticCurveTo(x - 6 + s + 12, y - 6, x - 6 + s + 12, y - 6 + r)
+          ctx.lineTo(x - 6 + s + 12, y - 6 + s + 12 - r)
+          ctx.quadraticCurveTo(x - 6 + s + 12, y - 6 + s + 12, x - 6 + s + 12 - r, y - 6 + s + 12)
+          ctx.lineTo(x - 6 + r, y - 6 + s + 12)
+          ctx.quadraticCurveTo(x - 6, y - 6 + s + 12, x - 6, y - 6 + s + 12 - r)
+          ctx.lineTo(x - 6, y - 6 + r)
+          ctx.quadraticCurveTo(x - 6, y - 6, x - 6 + r, y - 6)
+          ctx.closePath()
+          ctx.fillStyle = '#ffffff'
+          ctx.fill()
+          // Draw logo inside square
+          ctx.drawImage(img, x, y, s, s)
+        } else {
+          // Rectangle — wider than tall
+          const w = (logoRadius + padding) * 3
+          const h = (logoRadius + padding) * 1.5
+          const x = centerX - w / 2
+          const y = centerY - h / 2
+          const r = 10
+          ctx.beginPath()
+          ctx.moveTo(x - 6 + r, y - 6)
+          ctx.lineTo(x - 6 + w + 12 - r, y - 6)
+          ctx.quadraticCurveTo(x - 6 + w + 12, y - 6, x - 6 + w + 12, y - 6 + r)
+          ctx.lineTo(x - 6 + w + 12, y - 6 + h + 12 - r)
+          ctx.quadraticCurveTo(x - 6 + w + 12, y - 6 + h + 12, x - 6 + w + 12 - r, y - 6 + h + 12)
+          ctx.lineTo(x - 6 + r, y - 6 + h + 12)
+          ctx.quadraticCurveTo(x - 6, y - 6 + h + 12, x - 6, y - 6 + h + 12 - r)
+          ctx.lineTo(x - 6, y - 6 + r)
+          ctx.quadraticCurveTo(x - 6, y - 6, x - 6 + r, y - 6)
+          ctx.closePath()
+          ctx.fillStyle = '#ffffff'
+          ctx.fill()
+          ctx.drawImage(img, x, y, w, h)
+        }
+      } catch {
+        drawCardtlyLogo(ctx, centerX, centerY, logoRadius)
+      }
+    } else {
+      // Cardtly "C" logo
+      drawCardtlyLogo(ctx, centerX, centerY, logoRadius)
+    }
 
     setQrReady(true)
+    setGenerating(false)
+  }
+
+  function drawCardtlyLogo(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+    // White background circle
+    ctx.beginPath()
+    ctx.arc(cx, cy, r + 6, 0, Math.PI * 2)
+    ctx.fillStyle = '#ffffff'
+    ctx.fill()
+
+    // Blue circle
+    ctx.beginPath()
+    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+    ctx.fillStyle = '#3b82f6'
+    ctx.fill()
+
+    // "C" letter
+    ctx.fillStyle = '#ffffff'
+    ctx.font = `bold ${Math.round(r * 1.1)}px system-ui, Arial`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('C', cx, cy + 2)
   }
 
   function downloadQR() {
     const canvas = canvasRef.current
     if (!canvas) return
-
     const link = document.createElement('a')
     link.download = `${card.name.replace(/\s+/g, '-')}-qr.png`
     link.href = canvas.toDataURL('image/png')
@@ -115,12 +186,10 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
     toast.success('QR code downloaded')
   }
 
-  function downloadSVGFrame() {
-    // Download a print-ready version with card URL below
+  function downloadPrintCard() {
     const canvas = canvasRef.current
     if (!canvas) return
     const dataUrl = canvas.toDataURL('image/png')
-
     const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="500" height="580">
   <rect width="500" height="580" rx="20" fill="white" stroke="#e5e7eb" stroke-width="2"/>
@@ -129,7 +198,6 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
   <text x="250" y="508" font-family="system-ui" font-size="20" font-weight="bold" fill="#111827" text-anchor="middle">${card.name}</text>
   <text x="250" y="535" font-family="system-ui" font-size="13" fill="#9ca3af" text-anchor="middle">cardtly.com/card/${card.slug}</text>
 </svg>`
-
     const blob = new Blob([svg], { type: 'image/svg+xml' })
     const link = document.createElement('a')
     link.download = `${card.name.replace(/\s+/g, '-')}-qr-card.svg`
@@ -159,6 +227,19 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-fade-in">
+      {cards.length > 1 && (
+        <div className="flex items-center gap-3 flex-wrap">
+          <label className="text-sm font-medium text-muted-foreground">Card:</label>
+          <select
+            value={selectedId}
+            onChange={e => setSelectedId(e.target.value)}
+            className="px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition min-w-[200px]">
+            {cards.map(c => (
+              <option key={c.id} value={c.id}>{c._label || c.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
       <div>
         <h1 className="font-display text-2xl font-bold">QR Code</h1>
         <p className="text-muted-foreground text-sm mt-1">
@@ -168,12 +249,17 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
 
       {/* QR display */}
       <div className="bg-card border border-border rounded-2xl p-8 flex flex-col items-center gap-6">
-        <div className="bg-white p-4 rounded-2xl shadow-sm">
+        <div className="bg-white p-4 rounded-2xl shadow-sm relative">
           <canvas
             ref={canvasRef}
-            className="w-64 h-64"
-            style={{ imageRendering: 'pixelated' }}
+            className="w-72 h-72"
+            style={{ opacity: generating ? 0.5 : 1, transition: 'opacity 0.2s' }}
           />
+          {generating && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
         </div>
 
         {/* Card URL */}
@@ -181,6 +267,68 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
           <p className="text-sm font-medium">{card.name}</p>
           <p className="text-xs text-muted-foreground mt-0.5">cardtly.com/card/{card.slug}</p>
         </div>
+
+        {/* Logo choice */}
+        <div className="w-full">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 text-center">
+            Centre logo
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => setLogoChoice('cardtly')}
+              className={`py-2.5 px-3 rounded-xl border-2 text-xs font-medium transition text-center ${logoChoice === 'cardtly' ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}
+            >
+              Cardtly logo
+            </button>
+            <button
+              onClick={() => {
+                if (!pro) {
+                  toast.error('Upgrade to Pro to use your own logo')
+                  return
+                }
+                if (!hasOwnLogo) {
+                  toast.error('Upload a company logo in the Media tab first')
+                  return
+                }
+                setLogoChoice('own')
+              }}
+              className={`py-2.5 px-3 rounded-xl border-2 text-xs font-medium transition text-center relative ${logoChoice === 'own' ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'} ${!pro || !hasOwnLogo ? 'opacity-50' : ''}`}
+            >
+              My logo
+              {!pro && <span className="block text-xs font-normal text-muted-foreground">Pro</span>}
+              {pro && !hasOwnLogo && <span className="block text-xs font-normal text-muted-foreground">No logo</span>}
+            </button>
+            <button
+              onClick={() => setLogoChoice('none')}
+              className={`py-2.5 px-3 rounded-xl border-2 text-xs font-medium transition text-center ${logoChoice === 'none' ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}
+            >
+              No logo
+            </button>
+          </div>
+        </div>
+
+        {/* Logo shape — only shown when own logo is selected */}
+        {logoChoice === 'own' && pro && hasOwnLogo && (
+          <div className="w-full">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 text-center">
+              Logo shape
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { id: 'rectangle' as LogoShape, label: 'Rectangle', desc: 'Best for wide logos' },
+                { id: 'square'    as LogoShape, label: 'Square',    desc: 'Equal sides' },
+                { id: 'circle'    as LogoShape, label: 'Circle',    desc: 'Round crop' },
+              ]).map(({ id, label, desc }) => (
+                <button key={id}
+                  onClick={() => setLogoShape(id)}
+                  className={`py-2.5 px-3 rounded-xl border-2 text-xs font-medium transition text-center ${logoShape === id ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
+                  {label}
+                  <span className="block text-xs font-normal text-muted-foreground mt-0.5">{desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex flex-wrap gap-3 justify-center">
@@ -192,16 +340,14 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
             <Download className="w-4 h-4" />
             Download PNG
           </button>
-
           <button
-            onClick={downloadSVGFrame}
+            onClick={downloadPrintCard}
             disabled={!qrReady}
             className="flex items-center gap-2 border border-border px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-muted transition disabled:opacity-50"
           >
             <Download className="w-4 h-4" />
             Print card
           </button>
-
           <button
             onClick={copyLink}
             className="flex items-center gap-2 border border-border px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-muted transition"
@@ -209,7 +355,6 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
             {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
             Copy link
           </button>
-
           <button
             onClick={shareCard}
             className="flex items-center gap-2 border border-border px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-muted transition"
@@ -220,39 +365,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
         </div>
       </div>
 
-      {/* Info cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-semibold text-sm mb-1">Free QR code</h3>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Your QR code includes the Cardtly logo in the centre. It is fully functional and can be printed, shared digitally, or added to email signatures.
-          </p>
-        </div>
-
-        {!pro ? (
-          <div className="bg-foreground text-background rounded-xl p-5">
-            <h3 className="font-semibold text-sm mb-1">Pro: Custom logo in QR</h3>
-            <p className="text-xs text-background/70 leading-relaxed mb-3">
-              Replace the Cardtly logo with your own company logo in the centre of the QR code.
-            </p>
-            <Link
-              href="/dashboard/upgrade"
-              className="text-xs font-semibold bg-background text-foreground px-3 py-1.5 rounded-lg hover:bg-background/90 transition inline-block"
-            >
-              Upgrade to Pro
-            </Link>
-          </div>
-        ) : (
-          <div className="bg-card border border-border rounded-xl p-5">
-            <h3 className="font-semibold text-sm mb-1">Pro: Custom logo active</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Your company logo appears in the centre of your QR code. Update it in the Media tab of your card editor.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Usage tips */}
+      {/* Tips */}
       <div className="bg-card border border-border rounded-xl p-5">
         <h3 className="font-semibold text-sm mb-3">Where to use your QR code</h3>
         <ul className="space-y-2">
