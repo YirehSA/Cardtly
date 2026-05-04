@@ -546,7 +546,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
           <Avatar {...shared} size={60} rounded="full" extraStyle={{ border: '3px solid rgba(255,255,255,0.3)' }} />
           <div style={{ width: '60%', height: 1, backgroundColor: 'rgba(255,255,255,0.3)' }} />
           {card.company_logo_url && design.logoPosition !== 'hidden' && (
-            <img src={card.company_logo_url} style={{ width: 50, height: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)', opacity: 0.85 }} />
+            <img src={card.company_logo_url} style={{ width: 80, height: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)', opacity: 0.85 }} />
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 8 }}>
             {card.phone && <Phone style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.8)' }} />}
