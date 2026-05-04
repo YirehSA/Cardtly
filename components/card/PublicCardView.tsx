@@ -277,6 +277,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
     card.linkedin_url && { platform: 'LinkedIn', url: card.linkedin_url, icon: <Linkedin className="w-4 h-4" /> },
     card.twitter_url && { platform: 'Twitter / X', url: card.twitter_url, icon: <Twitter className="w-4 h-4" /> },
     card.instagram_url && { platform: 'Instagram', url: card.instagram_url, icon: <Instagram className="w-4 h-4" /> },
+    (card as any).facebook_url && { platform: 'Facebook', url: (card as any).facebook_url, icon: <span style={{ fontWeight: 'bold', fontSize: 14 }}>f</span> },
   ].filter(Boolean) as { platform: string; url: string; icon: React.ReactNode }[] : []
 
   async function handleShare() {
