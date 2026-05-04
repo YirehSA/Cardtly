@@ -110,7 +110,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Main content grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
 
         {/* Card preview */}
         <div className="lg:col-span-2">
@@ -165,8 +165,8 @@ export default async function DashboardPage() {
             const locked = pro && !isPro
             return (
               <Link key={href} href={locked ? '/dashboard/settings' : href}
-                className="flex items-center gap-4 p-4 rounded-2xl border border-border bg-card hover:border-foreground/20 hover:shadow-md transition-all group">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                className="flex items-center gap-3 p-3.5 rounded-2xl border border-border bg-card hover:border-foreground/20 hover:shadow-md transition-all group">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ background: accentHex + '18', color: accentHex }}>
                   <Icon className="w-4 h-4" />
                 </div>
