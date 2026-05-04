@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useTheme } from './ThemeProvider'
 import {
   CreditCard, BarChart2, Mail, Monitor, Users,
-  Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi, Building2
+  Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi, Building2, Menu, X
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -30,6 +31,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isPro, userName, userEmail }: SidebarProps) {
+  const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
   const { theme, toggle } = useTheme()
   const router = useRouter()
@@ -45,17 +47,50 @@ export default function Sidebar({ isPro, userName, userEmail }: SidebarProps) {
     : '?'
 
   return (
-    <aside
-      className="fixed top-0 left-0 h-screen flex flex-col z-40 transition-all duration-300"
-      style={{
-        width: 'var(--sidebar-width)',
+    <>
+      {/* Mobile hamburger */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="fixed top-4 left-4 z-50 lg:hidden w-10 h-10 rounded-xl flex items-center justify-center bg-card border border-border"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      {/* Overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`fixed top-0 left-0 h-screen flex flex-col z-50 transition-transform duration-300 lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        style={{
+          width: 'var(--sidebar-width)',
         background: 'hsl(var(--sidebar-bg))',
         borderRight: '1px solid hsl(var(--sidebar-border))',
       }}
     >
+      {/* Close button mobile only */}
+      <button
+        onClick={() => setMobileOpen(false)}
+        className="absolute top-3 right-3 lg:hidden w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition"
+      >
+        <X className="w-4 h-4" />
+      </button>
+
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-6" style={{ borderBottom: '1px solid hsl(var(--sidebar-border))' }}>
-        <img src="/logo.png" alt="Cardtly" className="h-8 w-auto object-contain" />
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-sm"
+          style={{ background: 'hsl(var(--sidebar-accent))' }}
+        >
+          C
+        </div>
+        <span className="font-black text-base tracking-tight" style={{ color: 'hsl(var(--sidebar-active))' }}>
+          Cardtly
+        </span>
         {isPro && (
           <span
             className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
@@ -142,5 +177,6 @@ export default function Sidebar({ isPro, userName, userEmail }: SidebarProps) {
         </div>
       </div>
     </aside>
+    </>
   )
 }
