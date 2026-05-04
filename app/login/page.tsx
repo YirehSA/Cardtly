@@ -58,7 +58,7 @@ function LoginForm() {
       <div>
         <label className="block text-sm font-medium mb-2 text-white/70">Email</label>
         <input id="email" type="email" autoComplete="email"
-          className={inputClass} placeholder="you@company.com" {...register('email')} />
+          className={inputClass} placeholder="you@company.com" style={{ color: 'white', backgroundColor: 'rgba(255,255,255,0.08)' }} {...register('email')} />
         {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
       </div>
 
@@ -70,7 +70,7 @@ function LoginForm() {
           </Link>
         </div>
         <input id="password" type="password" autoComplete="current-password"
-          className={inputClass} placeholder="••••••••" {...register('password')} />
+          className={inputClass} placeholder="••••••••" style={{ color: 'white', backgroundColor: 'rgba(255,255,255,0.08)' }} {...register('password')} />
         {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
       </div>
 
