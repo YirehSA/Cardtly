@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
 import { parseDesign, getAccentHex } from '@/types/design'
 import Link from 'next/link'
+import CopyLinkButton from '@/components/dashboard/CopyLinkButton'
 import {
   CreditCard, BarChart2, Eye, Users, ArrowUpRight,
   QrCode, Mail, Monitor, Sparkles, ChevronRight
@@ -142,13 +143,16 @@ export default async function DashboardPage() {
                 </div>
               </div>
 
-              {/* Card URL */}
+              {/* Card URL + Copy */}
               {card?.slug && (
-                <a href={`/card/${card.slug}`} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition">
-                  cardtly.com/card/{card.slug}
-                  <ArrowUpRight className="w-3 h-3" />
-                </a>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <a href={`/card/${card.slug}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition">
+                    cardtly.com/card/{card.slug}
+                    <ArrowUpRight className="w-3 h-3" />
+                  </a>
+                  <CopyLinkButton slug={card.slug} />
+                </div>
               )}
             </div>
           </div>

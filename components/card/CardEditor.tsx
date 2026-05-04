@@ -10,7 +10,7 @@ import TemplatedCardPreview from './TemplatedCardPreview'
 import DesignPanel from './DesignPanel'
 import ProGate from './ProGate'
 import ImageUploader from './ImageUploader'
-import { Save, ExternalLink, Lock, User, Phone, Link2, Image, Palette } from 'lucide-react'
+import { Save, ExternalLink, Lock, User, Phone, Link2, Image, Palette, Copy, Check } from 'lucide-react'
 
 interface Props {
   card: Card | null
@@ -119,6 +119,13 @@ export default function CardEditor({ card, plan, userId }: Props) {
   }
 
   const cardUrl = card?.slug ? `/card/${card.slug}` : null
+  const [copied, setCopied] = useState(false)
+  function copyLink() {
+    if (!card?.slug) return
+    navigator.clipboard.writeText(`https://cardtly.com/card/${card.slug}`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
   const [slug, setSlug] = useState(card?.slug || '')
   const [slugSaving, setSlugSaving] = useState(false)
   const [slugError, setSlugError] = useState('')
@@ -132,9 +139,14 @@ export default function CardEditor({ card, plan, userId }: Props) {
           <div>
             <h1 className="font-display text-xl font-bold">My Card</h1>
             {cardUrl && (
-              <a href={cardUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-0.5">
-                cardtly.com{cardUrl} <ExternalLink className="w-3 h-3" />
-              </a>
+              <div className="flex items-center gap-2 flex-wrap">
+                <a href={cardUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+                  cardtly.com{cardUrl} <ExternalLink className="w-3 h-3" />
+                </a>
+                <button onClick={copyLink} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border border-border text-muted-foreground hover:text-foreground transition">
+                  {copied ? <><Check className="w-3 h-3 text-green-500" />Copied!</> : <><Copy className="w-3 h-3" />Copy</>}
+                </button>
+              </div>
             )}
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <div className="flex items-center px-2 py-1.5 rounded-l-lg border border-r-0 border-border bg-muted text-xs text-muted-foreground whitespace-nowrap">
