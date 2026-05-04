@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { UserPlan } from '@/types/database'
 import { toast } from 'sonner'
@@ -30,29 +30,9 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
 ]
 
 export default function SettingsTabs({ user, profile, plan, subscription, card }: Props & { card?: Props['card'] }) {
-  const [mounted, setMounted] = useState(false)
   const [tab, setTab] = useState<Tab>('profile')
   const supabase = createClient()
   const router = useRouter()
-
-  useEffect(() => setMounted(true), [])
-
-  if (!mounted) return (
-    <div className="max-w-3xl mx-auto space-y-8">
-      <div>
-        <h1 className="font-display text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground text-sm mt-1">Manage your account and preferences</p>
-      </div>
-      <div className="h-12 bg-muted rounded-xl animate-pulse" />
-      <div className="bg-card border border-border rounded-2xl p-6">
-        <div className="space-y-4">
-          <div className="h-6 bg-muted rounded w-1/3 animate-pulse" />
-          <div className="h-10 bg-muted rounded-lg animate-pulse" />
-          <div className="h-10 bg-muted rounded-lg animate-pulse" />
-        </div>
-      </div>
-    </div>
-  )
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -73,7 +53,7 @@ export default function SettingsTabs({ user, profile, plan, subscription, card }
 
       {/* Tab content */}
       <div className="bg-card border border-border rounded-2xl p-6">
-        {tab === 'profile' && <ProfileTab user={user} profile={profile} card={card} supabase={supabase} />}
+        {tab === 'profile' && <ProfileTab user={user} profile={profile} supabase={supabase} />}
         {tab === 'security' && <SecurityTab user={user} supabase={supabase} />}
         {tab === 'billing' && <BillingTab plan={plan} subscription={subscription} />}
         {tab === 'danger' && <DangerTab user={user} supabase={supabase} router={router} />}
@@ -165,7 +145,7 @@ function ProfileTab({ user, profile, card, supabase }: { user: Props['user']; pr
                 className="flex-1 px-4 py-2.5 rounded-r-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
               />
               <button onClick={saveSlug} disabled={slugSaving || !slug || slug === card.slug}
-                className="px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-foreground hover:bg-foreground/90 transition disabled:opacity-50 whitespace-nowrap">
+                className="px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap" style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
                 {slugSaving ? 'Saving...' : slugSuccess ? '✓ Saved' : 'Update'}
               </button>
             </div>

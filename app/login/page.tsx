@@ -8,13 +8,22 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { ArrowRight, Wifi } from 'lucide-react'
 
 const schema = z.object({
-  email: z.string().email('Enter a valid email'),
+  email:    z.string().email('Enter a valid email'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 })
 
 type FormData = z.infer<typeof schema>
+
+const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
+const gradText: React.CSSProperties = {
+  background: grad,
+  WebkitBackgroundClip: 'text',
+  WebkitTextFillColor: 'transparent',
+  backgroundClip: 'text',
+}
 
 function LoginForm() {
   const router = useRouter()
@@ -33,64 +42,42 @@ function LoginForm() {
       email: data.email,
       password: data.password,
     })
-
     if (error) {
       toast.error(error.message)
       setLoading(false)
       return
     }
-
     router.push(redirectTo)
     router.refresh()
   }
 
+  const inputClass = "w-full px-4 py-3 rounded-xl border border-white/10 bg-white/05 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-white/30 focus:bg-white/08 transition"
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-1.5" htmlFor="email">
-          Email
-        </label>
-        <input
-          id="email"
-          type="email"
-          autoComplete="email"
-          className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
-          placeholder="you@example.com"
-          {...register('email')}
-        />
-        {errors.email && (
-          <p className="text-destructive text-xs mt-1">{errors.email.message}</p>
-        )}
+        <label className="block text-sm font-medium mb-2 text-white/70">Email</label>
+        <input id="email" type="email" autoComplete="email"
+          className={inputClass} placeholder="you@company.com" {...register('email')} />
+        {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <label className="block text-sm font-medium" htmlFor="password">
-            Password
-          </label>
-          <Link href="/forgot-password" className="text-xs text-muted-foreground hover:text-foreground transition">
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-medium text-white/70">Password</label>
+          <Link href="/forgot-password" className="text-xs hover:text-white transition" style={{ color: '#00d4ff' }}>
             Forgot password?
           </Link>
         </div>
-        <input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
-          placeholder="••••••••"
-          {...register('password')}
-        />
-        {errors.password && (
-          <p className="text-destructive text-xs mt-1">{errors.password.message}</p>
-        )}
+        <input id="password" type="password" autoComplete="current-password"
+          className={inputClass} placeholder="••••••••" {...register('password')} />
+        {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
       </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-foreground text-background py-2.5 rounded-lg text-sm font-semibold hover:bg-foreground/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {loading ? 'Signing in...' : 'Sign in'}
+      <button type="submit" disabled={loading}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50 mt-2"
+        style={{ background: grad, boxShadow: '0 8px 32px rgba(124,58,237,0.35)' }}>
+        {loading ? 'Signing in...' : <><span>Sign in</span><ArrowRight className="w-4 h-4" /></>}
       </button>
     </form>
   )
@@ -98,43 +85,79 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen flex" style={{ background: '#050510' }}>
       {/* Left — branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-foreground text-background flex-col justify-between p-12">
-        <div>
-          <span className="font-display text-2xl font-bold tracking-tight">Cardtly</span>
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
+        style={{ background: 'rgba(255,255,255,0.02)', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+
+        {/* Background glows */}
+        <div className="absolute top-0 left-0 w-96 h-96 rounded-full blur-[120px] pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(0,212,255,0.12) 0%, transparent 70%)' }} />
+        <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full blur-[100px] pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.1) 0%, transparent 70%)' }} />
+
+        <div className="relative">
+          <img src="/logo.png" alt="Cardtly" className="h-10 w-auto object-contain" />
         </div>
-        <div>
-          <blockquote className="text-3xl font-display font-semibold leading-tight mb-6">
-            Your card.<br />Your identity.<br />Always on.
-          </blockquote>
-          <p className="text-background/60 text-sm">
-            Thousands of professionals share their details with Cardtly every day.
+
+        <div className="relative space-y-8">
+          <div>
+            <h2 className="text-4xl font-black tracking-tight text-white leading-tight mb-4">
+              Your card.<br />Your identity.<br />
+              <span style={gradText}>Always on.</span>
+            </h2>
+            <p style={{ color: 'rgba(255,255,255,0.45)' }} className="text-base leading-relaxed">
+              Share your details with a tap, a scan, or a link. No paper needed.
+            </p>
+          </div>
+
+          {/* Feature list */}
+          <div className="space-y-3">
+            {[
+              { icon: '🪪', text: 'Digital business card with your own URL' },
+              { icon: '📊', text: 'See who viewed your card and when' },
+              { icon: '✉️', text: 'Email signature generated instantly' },
+              { icon: <Wifi className="w-4 h-4" style={{ color: '#00d4ff' }} />, text: 'NFC cards — tap to share in person' },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                <span className="text-base">{item.icon}</span>
+                {item.text}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative">
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            © {new Date().getFullYear()} Cardtly · Made in South Africa 🇿🇦
           </p>
-        </div>
-        <div className="text-background/40 text-xs">
-          © {new Date().getFullYear()} Cardtly
         </div>
       </div>
 
       {/* Right — form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-sm">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full blur-[120px] pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%)' }} />
+
+        <div className="w-full max-w-sm relative">
+          {/* Mobile logo */}
           <div className="lg:hidden mb-10">
-            <span className="font-display text-2xl font-bold tracking-tight">Cardtly</span>
+            <img src="/logo.png" alt="Cardtly" className="h-9 w-auto object-contain" />
           </div>
 
-          <h1 className="font-display text-3xl font-bold mb-2">Welcome back</h1>
-          <p className="text-muted-foreground mb-8">Sign in to your account</p>
+          <div className="mb-8">
+            <h1 className="text-3xl font-black text-white tracking-tight mb-2">Welcome back</h1>
+            <p style={{ color: 'rgba(255,255,255,0.4)' }} className="text-sm">Sign in to your Cardtly account</p>
+          </div>
 
-          <Suspense fallback={<div className="h-40 animate-pulse bg-muted rounded-lg" />}>
+          <Suspense fallback={<div className="h-40 animate-pulse rounded-xl" style={{ background: 'rgba(255,255,255,0.05)' }} />}>
             <LoginForm />
           </Suspense>
 
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className="text-foreground font-medium hover:underline">
-              Sign up free
+          <p className="text-center text-sm mt-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            No account yet?{' '}
+            <Link href="/signup" className="font-semibold hover:opacity-80 transition" style={{ color: '#00d4ff' }}>
+              Create one free
             </Link>
           </p>
         </div>
