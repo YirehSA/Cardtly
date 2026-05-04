@@ -5,7 +5,8 @@ import TeamCardEditor from '@/components/team/TeamCardEditor'
 
 export const metadata = { title: 'Edit Team Card' }
 
-export default async function TeamCardPage({ params }: { params: { id: string } }) {
+export default async function TeamCardPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -15,16 +16,14 @@ export default async function TeamCardPage({ params }: { params: { id: string } 
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // Verify the card belongs to an org owned by this user
   const { data: card } = await admin
     .from('team_cards')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (!card) notFound()
 
-  // Verify org ownership
   const { data: org } = await admin
     .from('organizations')
     .select('id, name, admin_user_id')
