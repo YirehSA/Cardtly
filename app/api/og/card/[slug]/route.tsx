@@ -86,22 +86,22 @@ export async function GET(
             display: 'flex',
             flex: 1,
             alignItems: 'center',
-            justifyContent: 'center',
-            padding: '60px 80px',
-            gap: 56,
+            justifyContent: 'flex-start',
+            padding: '40px 60px 40px 50px',
+            gap: 48,
           }}
         >
-          {/* Avatar */}
+          {/* Avatar — far left for WhatsApp thumbnail */}
           <div style={{ display: 'flex', flexShrink: 0 }}>
             {photo ? (
               <img
                 src={photo}
-                width={180}
-                height={180}
+                width={200}
+                height={200}
                 style={{
                   borderRadius: '50%',
                   objectFit: 'cover',
-                  border: '4px solid rgba(0,212,255,0.5)',
+                  border: '5px solid rgba(0,212,255,0.6)',
                 }}
               />
             ) : (
