@@ -67,10 +67,6 @@ export default function TeamCardEditor({ card, org, userId }: Props) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('basic')
-  const [slug, setSlug] = useState(card.slug || '')
-  const [slugSaving, setSlugSaving] = useState(false)
-  const [slugError, setSlugError] = useState('')
-  const [slugSuccess, setSlugSuccess] = useState(false)
   const [design, setDesign] = useState<CardDesign>(() => parseDesign(card.color_theme))
 
   const [form, setForm] = useState({
@@ -87,6 +83,7 @@ export default function TeamCardEditor({ card, org, userId }: Props) {
     linkedin_url:      card.linkedin_url || '',
     twitter_url:       card.twitter_url || '',
     instagram_url:     card.instagram_url || '',
+    facebook_url:      (card as any).facebook_url || '',
     profile_image_url: card.profile_image_url || '',
     company_logo_url:  card.company_logo_url || '',
     image_1_url:       card.image_1_url || '',
@@ -105,45 +102,6 @@ export default function TeamCardEditor({ card, org, userId }: Props) {
   const update = useCallback((field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }))
   }, [])
-
-  async function saveSlug() {
-    if (!slug || slug.length < 3) { setSlugError('Must be at least 3 characters'); return }
-    setSlugSaving(true)
-    setSlugError('')
-    const res = await fetch('/api/team/slug', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug, team_card_id: card.id, org_id: org.id }),
-    })
-    const data = await res.json()
-    if (!res.ok) {
-      setSlugError(data.error || 'Failed to update URL')
-    } else {
-      setSlugSuccess(true)
-      toast.success('Card URL updated')
-      setTimeout(() => setSlugSuccess(false), 3000)
-    }
-    setSlugSaving(false)
-  }
-
-  async function saveSlug() {
-    if (!slug || slug.length < 3) { setSlugError('Must be at least 3 characters'); return }
-    setSlugSaving(true)
-    setSlugError('')
-    const res = await fetch('/api/team/slug', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug, team_card_id: card.id, org_id: org.id }),
-    })
-    const data = await res.json()
-    if (!res.ok) {
-      setSlugError(data.error || 'Failed to update URL')
-    } else {
-      setSlugSuccess(true)
-      setTimeout(() => setSlugSuccess(false), 3000)
-    }
-    setSlugSaving(false)
-  }
 
   async function save() {
     setSaving(true)
@@ -184,23 +142,6 @@ export default function TeamCardEditor({ card, org, userId }: Props) {
                   cardtly.com{cardUrl} <ExternalLink className="w-3 h-3" />
                 </a>
               )}
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <div className="flex items-center px-2 py-1.5 rounded-l-lg border border-r-0 border-border bg-muted text-xs text-muted-foreground whitespace-nowrap">
-                  cardtly.com/card/
-                </div>
-                <input
-                  value={slug}
-                  onChange={e => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setSlugError(''); setSlugSuccess(false) }}
-                  placeholder="yireh-member-name"
-                  className="px-3 py-1.5 rounded-r-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring transition w-44"
-                />
-                <button onClick={saveSlug} disabled={slugSaving || !slug || slug === card.slug}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
-                  style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-                  {slugSaving ? '...' : slugSuccess ? '✓ Saved' : 'Update URL'}
-                </button>
-                {slugError && <span className="text-xs text-destructive">{slugError}</span>}
-              </div>
             </div>
           </div>
           <button onClick={save} disabled={saving}
@@ -278,6 +219,9 @@ export default function TeamCardEditor({ card, org, userId }: Props) {
               </Field>
               <Field label="Instagram URL">
                 <Input type="url" value={form.instagram_url} onChange={e => update('instagram_url', e.target.value)} placeholder="https://instagram.com/jane" />
+              </Field>
+              <Field label="Facebook URL">
+                <Input type="url" value={(form as any).facebook_url || ''} onChange={e => update('facebook_url', e.target.value)} placeholder="https://facebook.com/yourpage" />
               </Field>
             </>
           )}
