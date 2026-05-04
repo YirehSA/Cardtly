@@ -10,31 +10,25 @@ const REASONS: Record<string, string> = {
   server_error: 'An unexpected error occurred. Please try again.',
 }
 
-export default function UpgradeCancelPage({
+export default async function UpgradeCancelPage({
   searchParams,
 }: {
-  searchParams: { reason?: string }
+  searchParams: Promise<{ reason?: string }>
 }) {
-  const reason = searchParams.reason
+  const { reason } = await searchParams
   const message = reason ? REASONS[reason] : 'You cancelled the payment. No charge was made.'
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6"
-      style={{ background: '#000' }}>
+    <div className="min-h-screen flex items-center justify-center px-6" style={{ background: '#000' }}>
       <div className="max-w-md w-full text-center">
         <div className="w-20 h-20 rounded-3xl mx-auto mb-6 flex items-center justify-center"
           style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
           <XCircle className="w-10 h-10" style={{ color: '#ef4444' }} />
         </div>
-
         <h1 className="text-3xl font-black tracking-tight mb-3 text-white">
           {reason ? 'Payment failed' : 'Payment cancelled'}
         </h1>
-
-        <p className="text-base mb-8" style={{ color: 'rgba(255,255,255,0.5)' }}>
-          {message}
-        </p>
-
+        <p className="text-base mb-8" style={{ color: 'rgba(255,255,255,0.5)' }}>{message}</p>
         <div className="flex flex-col gap-3">
           <Link href="/dashboard/upgrade"
             className="flex items-center justify-center gap-2 py-4 rounded-2xl text-base font-bold text-white transition hover:opacity-90"
@@ -47,7 +41,6 @@ export default function UpgradeCancelPage({
             <ArrowLeft className="w-4 h-4" />Back to dashboard
           </Link>
         </div>
-
         {reason === 'db_error' && (
           <p className="mt-6 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
             If you were charged, please contact{' '}

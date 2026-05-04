@@ -1,29 +1,23 @@
 import { redirect } from 'next/navigation'
 
-// Paystack redirects back with ?reference=xxx&trxref=xxx
-// We pick that up here and call our verify API, then redirect to success or cancel
 export default async function VerifyPage({
   searchParams,
 }: {
-  searchParams: { reference?: string; trxref?: string; plan?: string; user_id?: string }
+  searchParams: Promise<{ reference?: string; trxref?: string; plan?: string; user_id?: string }>
 }) {
-  const reference = searchParams.reference || searchParams.trxref
-  const plan = searchParams.plan || 'monthly'
-  const userId = searchParams.user_id
+  const { reference, trxref, plan, user_id } = await searchParams
+  const ref = reference || trxref
+  const billingPlan = plan || 'monthly'
 
-  if (!reference || !userId) {
+  if (!ref || !user_id) {
     redirect('/upgrade/cancel?reason=missing_params')
   }
 
-  // Verify directly in the server component
   try {
-    const response = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
-      headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-      },
+    const response = await fetch(`https://api.paystack.co/transaction/verify/${ref}`, {
+      headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
       cache: 'no-store',
     })
-
     const data = await response.json()
 
     if (!data.status || data.data.status !== 'success') {
@@ -31,41 +25,38 @@ export default async function VerifyPage({
     }
 
     const transaction = data.data
-
-    // Calculate period end
     const now = new Date()
     const periodEnd = new Date(now)
-    if (plan === 'yearly') {
+
+    if (billingPlan === 'yearly') {
       periodEnd.setFullYear(periodEnd.getFullYear() + 1)
     } else {
       periodEnd.setMonth(periodEnd.getMonth() + 1)
     }
 
-    // Activate subscription via supabase
     const { createClient } = await import('@/lib/supabase/server')
     const supabase = await createClient()
 
     await supabase.from('whop_subscriptions').upsert({
-      user_id: userId,
+      user_id,
       email: transaction.customer.email,
-      plan_id: `paystack_${plan}`,
+      plan_id: `paystack_${billingPlan}`,
       subscription_tier: 'pro',
-      billing_cycle: plan,
+      billing_cycle: billingPlan,
       status: 'active',
-      receipt_id: reference,
-      membership_id: reference,
+      receipt_id: ref,
+      membership_id: ref,
       metadata: {
-        paystack_reference: reference,
+        paystack_reference: ref,
         amount: transaction.amount,
         currency: transaction.currency,
         period_end: periodEnd.toISOString(),
         paid_at: transaction.paid_at,
-        channel: transaction.channel,
       },
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' })
 
-    redirect(`/upgrade/success?plan=${plan}`)
+    redirect(`/upgrade/success?plan=${billingPlan}`)
   } catch {
     redirect('/upgrade/cancel?reason=server_error')
   }
