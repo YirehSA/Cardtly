@@ -49,13 +49,19 @@ export default function CardEditor({ card, plan, userId }: Props) {
     linkedin_url:      card?.linkedin_url || '',
     twitter_url:       card?.twitter_url || '',
     instagram_url:     card?.instagram_url || '',
+    facebook_url:      card?.facebook_url || '',
     profile_image_url: card?.profile_image_url || '',
     company_logo_url:  card?.company_logo_url || '',
     image_1_url:       card?.image_1_url || '',
+    image_1_link:      card?.image_1_link || '',
     image_2_url:       card?.image_2_url || '',
+    image_2_link:      card?.image_2_link || '',
     image_3_url:       card?.image_3_url || '',
+    image_3_link:      card?.image_3_link || '',
     image_4_url:       card?.image_4_url || '',
+    image_4_link:      card?.image_4_link || '',
     image_5_url:       card?.image_5_url || '',
+    image_5_link:      card?.image_5_link || '',
     certifications:    card?.certifications || '',
     link_1_title:      card?.link_1_title || '',
     link_1_url:        card?.link_1_url || '',
@@ -220,6 +226,9 @@ export default function CardEditor({ card, plan, userId }: Props) {
             <ProField label="Instagram URL" pro={pro}>
               <Input type="url" value={form.instagram_url} onChange={e => update('instagram_url', e.target.value)} placeholder="https://instagram.com/you" disabled={!pro} />
             </ProField>
+            <ProField label="Facebook URL" pro={pro}>
+              <Input type="url" value={form.facebook_url} onChange={e => update('facebook_url', e.target.value)} placeholder="https://facebook.com/yourpage" disabled={!pro} />
+            </ProField>
           </>)}
 
           {activeTab === 'links' && (
@@ -227,9 +236,16 @@ export default function CardEditor({ card, plan, userId }: Props) {
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">Add up to 5 custom links to your card.</p>
                 {[1,2,3,4,5].map(i => (
-                  <div key={i} className="flex gap-3">
-                    <Input value={form[`link_${i}_title` as keyof typeof form]} onChange={e => update(`link_${i}_title`, e.target.value)} placeholder="Label" className="w-2/5" />
-                    <Input value={form[`link_${i}_url` as keyof typeof form]} onChange={e => update(`link_${i}_url`, e.target.value)} placeholder="https://..." className="flex-1" />
+                  <div key={i} className="rounded-xl border border-border p-4 space-y-2.5 bg-muted/30">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Link {i}</p>
+                    <div>
+                      <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Label</label>
+                      <Input value={form[`link_${i}_title` as keyof typeof form]} onChange={e => update(`link_${i}_title`, e.target.value)} placeholder="e.g. Our Website" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1.5 text-muted-foreground">URL</label>
+                      <Input type="url" value={form[`link_${i}_url` as keyof typeof form]} onChange={e => update(`link_${i}_url`, e.target.value)} placeholder="https://..." />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -247,9 +263,16 @@ export default function CardEditor({ card, plan, userId }: Props) {
                 <div>
                   <label className="block text-sm font-medium mb-1">Gallery Images</label>
                   <p className="text-xs text-muted-foreground mb-3">Up to 5 images shown on your card</p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-4">
                     {[1,2,3,4,5].map(i => (
-                      <ImageUploader key={i} value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" label={`Image ${i}`} />
+                      <div key={i} className="rounded-xl border border-border p-3 space-y-2 bg-muted/20">
+                        <p className="text-xs font-semibold text-muted-foreground">Image {i}</p>
+                        <ImageUploader value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" />
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-muted-foreground">Link (optional)</label>
+                          <Input type="url" value={(form as any)[`image_${i}_link`] || ''} onChange={e => update(`image_${i}_link`, e.target.value)} placeholder="https://... (tap image to open)" />
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
