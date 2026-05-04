@@ -71,10 +71,6 @@ export default function TeamCardEditor({ card, org, userId }: Props) {
   const [slugSaving, setSlugSaving] = useState(false)
   const [slugError, setSlugError] = useState('')
   const [slugSuccess, setSlugSuccess] = useState(false)
-  const [slug, setSlug] = useState(card.slug || '')
-  const [slugSaving, setSlugSaving] = useState(false)
-  const [slugError, setSlugError] = useState('')
-  const [slugSuccess, setSlugSuccess] = useState(false)
   const [design, setDesign] = useState<CardDesign>(() => parseDesign(card.color_theme))
 
   const [form, setForm] = useState({
