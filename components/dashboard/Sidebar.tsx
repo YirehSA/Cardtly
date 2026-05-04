@@ -109,6 +109,7 @@ export default function Sidebar({ isPro, userName, userEmail }: SidebarProps) {
             <Link
               key={href}
               href={href}
+	      onClick={() => setMobileOpen(false)}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group relative"
               style={{
                 color: active ? 'hsl(var(--sidebar-active))' : 'hsl(var(--sidebar-fg))',
