@@ -45,7 +45,7 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
 
-    await supabase.from('card_events').insert({
+    await (supabase.from('card_events') as any).insert({
       card_id,
       event_type,
       link_title: link_title || null,
