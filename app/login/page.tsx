@@ -51,7 +51,7 @@ function LoginForm() {
     router.refresh()
   }
 
-  const inputClass = "w-full px-4 py-3 rounded-xl border border-white/10 bg-white/05 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-white/30 focus:bg-white/08 transition"
+  const inputClass = "w-full px-4 py-3 rounded-xl border border-white/10 bg-white/08 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-white/30 focus:bg-white/12 transition"
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
