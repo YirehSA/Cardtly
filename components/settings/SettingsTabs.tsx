@@ -73,7 +73,7 @@ export default function SettingsTabs({ user, profile, plan, subscription, card }
 
       {/* Tab content */}
       <div className="bg-card border border-border rounded-2xl p-6">
-        {tab === 'profile' && <ProfileTab user={user} profile={profile} supabase={supabase} />}
+        {tab === 'profile' && <ProfileTab user={user} profile={profile} card={card} supabase={supabase} />}
         {tab === 'security' && <SecurityTab user={user} supabase={supabase} />}
         {tab === 'billing' && <BillingTab plan={plan} subscription={subscription} />}
         {tab === 'danger' && <DangerTab user={user} supabase={supabase} router={router} />}
