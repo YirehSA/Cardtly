@@ -7,6 +7,14 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 const ADMIN_EMAIL = 'info@yireh.co.za'
 const FROM_EMAIL = 'noreply@cardtly.com'
 
+function buildOrderRow(line: any): string {
+  const name = line.nameOnCard || ''
+  const title = line.titleOnCard ? ' — ' + line.titleOnCard : ''
+  const color = (line.color || 'black').charAt(0).toUpperCase() + (line.color || 'black').slice(1)
+  const qty = String(line.quantity || 1)
+  return '<tr style="border-bottom:1px solid #eee;"><td style="padding:8px 0;">' + name + title + '</td><td style="padding:8px 0;text-align:center;">' + color + '</td><td style="padding:8px 0;text-align:right;">' + qty + '</td></tr>'
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -14,13 +22,7 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json()
-    const {
-      address, city, province,
-      postal_code, postalCode,
-      color, nameOnCard, titleOnCard,
-      quantity = 1, card_id, card_slug,
-      cards: multiCards,
-    } = body
+    const { address, city, province, postal_code, postalCode, color, nameOnCard, titleOnCard, quantity = 1, card_id, card_slug, cards: multiCards } = body
 
     const shippingPostal = postal_code || postalCode
 
@@ -34,8 +36,8 @@ export async function POST(request: Request) {
     ) as any
 
     const orderLines = multiCards || [{ color, nameOnCard, titleOnCard, quantity, card_id, card_slug }]
-    const orderDate = new Date().toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })
     const totalCards = orderLines.reduce((sum: number, l: any) => sum + (l.quantity || 1), 0)
+    const orderDate = new Date().toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })
 
     for (const line of orderLines) {
       if (!line.nameOnCard) continue
@@ -56,68 +58,24 @@ export async function POST(request: Request) {
       })
     }
 
-    const orderSummaryHtml = orderLines.map((line: any) => \`
-      <tr style="border-bottom: 1px solid #eee;">
-        <td style="padding: 8px 0;">\${line.nameOnCard}\${line.titleOnCard ? \` — \${line.titleOnCard}\` : ''}</td>
-        <td style="padding: 8px 0; text-align: center; text-transform: capitalize;">\${line.color || 'black'}</td>
-        <td style="padding: 8px 0; text-align: right;">\${line.quantity || 1}</td>
-      </tr>
-    \`).join('')
+    const tableHeader = '<table style="width:100%;border-collapse:collapse;font-size:14px;"><thead><tr style="border-bottom:2px solid #ddd;"><th style="padding:8px 0;text-align:left;">Name</th><th style="padding:8px 0;text-align:center;">Colour</th><th style="padding:8px 0;text-align:right;">Qty</th></tr></thead><tbody>'
+    const orderRows = orderLines.map(buildOrderRow).join('')
+    const orderTable = tableHeader + orderRows + '</tbody></table>'
+    const shipTo = address + ', ' + city + ', ' + province + ' ' + shippingPostal
+    const cardCount = String(totalCards) + ' card' + (totalCards !== 1 ? 's' : '')
 
     await resend.emails.send({
       from: FROM_EMAIL,
       to: ADMIN_EMAIL,
-      subject: \`New NFC Card Order — \${user.email} (\${totalCards} card\${totalCards !== 1 ? 's' : ''})\`,
-      html: \`
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899); padding: 24px; border-radius: 12px 12px 0 0;">
-            <h1 style="color: white; margin: 0;">New NFC Card Order</h1>
-            <p style="color: rgba(255,255,255,0.8); margin: 4px 0 0;">\${orderDate}</p>
-          </div>
-          <div style="background: #f8f8f8; padding: 24px; border-radius: 0 0 12px 12px; border: 1px solid #e5e5e5; border-top: none;">
-            <p style="font-size: 14px;"><strong>Customer:</strong> \${user.email}</p>
-            <h2 style="font-size: 16px; margin: 16px 0 12px;">Cards Ordered</h2>
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-              <thead><tr style="border-bottom: 2px solid #ddd;">
-                <th style="padding: 8px 0; text-align: left;">Name / Title</th>
-                <th style="padding: 8px 0; text-align: center;">Colour</th>
-                <th style="padding: 8px 0; text-align: right;">Qty</th>
-              </tr></thead>
-              <tbody>\${orderSummaryHtml}</tbody>
-            </table>
-            <p style="font-size: 14px; margin: 16px 0 0;"><strong>Ship to:</strong> \${address}, \${city}, \${province} \${shippingPostal}</p>
-            <div style="margin-top: 24px; padding: 16px; background: #fff3cd; border-radius: 8px; border: 1px solid #ffc107;">
-              <p style="margin: 0; font-size: 14px; font-weight: 600;">Action: Send invoice to \${user.email}</p>
-            </div>
-          </div>
-        </div>
-      \`,
+      subject: 'New NFC Order — ' + user.email + ' (' + cardCount + ')',
+      html: '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;"><div style="background:linear-gradient(135deg,#00d4ff,#7c3aed,#ec4899);padding:24px;border-radius:12px 12px 0 0;"><h1 style="color:white;margin:0;">New NFC Card Order</h1><p style="color:rgba(255,255,255,0.8);margin:4px 0 0;">' + orderDate + '</p></div><div style="background:#f8f8f8;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;"><p><strong>Customer:</strong> ' + user.email + '</p>' + orderTable + '<p style="margin-top:16px;"><strong>Ship to:</strong> ' + shipTo + '</p><div style="margin-top:20px;padding:16px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;"><strong>Send invoice to ' + user.email + '</strong></div></div></div>',
     })
 
     await resend.emails.send({
       from: FROM_EMAIL,
       to: user.email!,
-      subject: \`Your Cardtly NFC Card Order (\${totalCards} card\${totalCards !== 1 ? 's' : ''})\`,
-      html: \`
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899); padding: 24px; border-radius: 12px 12px 0 0;">
-            <h1 style="color: white; margin: 0;">Order Received!</h1>
-          </div>
-          <div style="background: #f8f8f8; padding: 24px; border-radius: 0 0 12px 12px; border: 1px solid #e5e5e5; border-top: none;">
-            <p style="font-size: 14px;">We received your order for <strong>\${totalCards} NFC card\${totalCards !== 1 ? 's' : ''}</strong>. We will send an invoice to <strong>\${user.email}</strong> shortly.</p>
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 16px;">
-              <thead><tr style="border-bottom: 2px solid #ddd;">
-                <th style="padding: 8px 0; text-align: left;">Name / Title</th>
-                <th style="padding: 8px 0; text-align: center;">Colour</th>
-                <th style="padding: 8px 0; text-align: right;">Qty</th>
-              </tr></thead>
-              <tbody>\${orderSummaryHtml}</tbody>
-            </table>
-            <p style="font-size: 14px; margin: 16px 0 0;"><strong>Deliver to:</strong> \${address}, \${city}, \${province} \${shippingPostal}</p>
-            <p style="font-size: 12px; color: #999; margin-top: 24px; text-align: center;">Cardtly · cardtly.com</p>
-          </div>
-        </div>
-      \`,
+      subject: 'Your Cardtly NFC Order (' + cardCount + ')',
+      html: '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;"><div style="background:linear-gradient(135deg,#00d4ff,#7c3aed,#ec4899);padding:24px;border-radius:12px 12px 0 0;"><h1 style="color:white;margin:0;">Order Received!</h1></div><div style="background:#f8f8f8;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;"><p>We received your order for <strong>' + cardCount + '</strong>. We will send an invoice shortly.</p>' + orderTable + '<p style="margin-top:16px;"><strong>Deliver to:</strong> ' + shipTo + '</p><p style="font-size:12px;color:#999;margin-top:24px;text-align:center;">Cardtly · cardtly.com</p></div></div>',
     })
 
     return NextResponse.json({ success: true })
