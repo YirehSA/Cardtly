@@ -94,7 +94,7 @@ function AllContacts({ card, isPro, accentHex, bg, cardEffect, socialLinks }: Pi
       {isPro && card.whatsapp && <ContactBtn icon={<MessageCircle className="w-4 h-4" />} label={card.whatsapp} sublabel="WhatsApp" href={`https://wa.me/${card.whatsapp.replace(/\D/g, '')}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
       {card.email && <ContactBtn icon={<Mail className="w-4 h-4" />} label={card.email} href={`mailto:${card.email}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
       {isPro && card.address && <ContactBtn icon={<MapPin className="w-4 h-4" />} label={card.address} href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
-      {isPro && card.website && <ContactBtn icon={<Globe className="w-4 h-4" />} label={card.website.replace(/^https?:\/\//, '')} href={card.website.startsWith('http') ? card.website : `https://${card.website}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
+      {card.website && <ContactBtn icon={<Globe className="w-4 h-4" />} label={card.website.replace(/^https?:\/\//, '')} href={card.website.startsWith('http') ? card.website : `https://${card.website}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
       {socialLinks.map(s => <ContactBtn key={s.platform} icon={s.icon} label={`${s.platform} Profile`} href={s.url} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />)}
     </div>
   )
@@ -316,7 +316,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
               {isPro && card.title && <p className="font-medium mt-1" style={{ color: accentHex }}>{card.title}</p>}
               {card.company && <p className="text-sm mt-0.5" style={{ color: bg.subtext }}>{card.company}</p>}
               <div className="mt-2"><LogoZone {...shared} /></div>
-              {isPro && card.bio && <p className="text-sm mt-4 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
+              {card.bio && <p className="text-sm mt-4 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
             </div>
             <AllContacts {...shared} socialLinks={socialLinks} />
             <BottomSection {...bottomProps} />
@@ -346,7 +346,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
           </div>
           <div className="w-10 h-1 rounded-full mb-4" style={{ backgroundColor: accentHex }} />
           <LogoZone {...shared} />
-          {isPro && card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
+          {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
           <AllContacts {...shared} socialLinks={socialLinks} />
           <BottomSection {...bottomProps} />
         </div>
@@ -385,7 +385,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
           </div>
           <div className="px-6 py-6">
             <LogoZone {...shared} />
-            {isPro && card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
+            {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
             <AllContacts {...shared} socialLinks={socialLinks} />
             <BottomSection {...bottomProps} />
           </div>
@@ -416,12 +416,12 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
             </div>
           </div>
           <LogoZone {...shared} />
-          {isPro && card.bio && <p style={{ fontSize: 13, color: muted, lineHeight: 1.8, marginBottom: 20, fontStyle: 'italic', borderLeft: `2px solid ${accentHex}`, paddingLeft: 14 }}>{card.bio}</p>}
+          {card.bio && <p style={{ fontSize: 13, color: muted, lineHeight: 1.8, marginBottom: 20, fontStyle: 'italic', borderLeft: `2px solid ${accentHex}`, paddingLeft: 14 }}>{card.bio}</p>}
           <div className="space-y-4 mb-8">
             {[
               card.phone && { icon: <Phone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
               card.email && { icon: <Mail className="w-4 h-4" />, label: card.email, href: `mailto:${card.email}` },
-              isPro && card.website && { icon: <Globe className="w-4 h-4" />, label: card.website.replace(/^https?:\/\//, ''), href: card.website },
+              card.website && { icon: <Globe className="w-4 h-4" />, label: card.website.replace(/^https?:\/\//, ''), href: card.website },
               ...links.map(l => ({ icon: <ExternalLink className="w-4 h-4" />, label: l.title, href: l.url.startsWith('http') ? l.url : `https://${l.url}` })),
             ].filter(Boolean).map((item: any, i) => (
               <a key={i} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: 14, paddingBottom: 14, borderBottom: `1px solid ${lineColor}`, textDecoration: 'none' }}>
@@ -461,7 +461,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
           </div>
           <div className="px-6 py-6">
             <LogoZone {...shared} />
-            {isPro && card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: '#71717a' }}>{card.bio}</p>}
+            {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: '#71717a' }}>{card.bio}</p>}
             <AllContacts {...shared} socialLinks={socialLinks} />
             <BottomSection {...bottomProps} />
           </div>
@@ -492,7 +492,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
           {isPro && card.title && <p className="font-semibold mt-1" style={{ color: accentHex }}>{card.title}</p>}
           {card.company && <p className="text-sm mt-0.5" style={{ color: bg.subtext }}>{card.company}</p>}
           <LogoZone {...shared} />
-          {isPro && card.bio && <p className="text-sm mt-2 mb-6 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
+          {card.bio && <p className="text-sm mt-2 mb-6 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
           <AllContacts {...shared} socialLinks={socialLinks} />
           <BottomSection {...bottomProps} />
         </div>
@@ -529,7 +529,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
           </div>
           <div className="px-6 py-4 pb-10">
             <LogoZone {...shared} />
-            {isPro && card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
+            {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
             <AllContacts {...shared} socialLinks={socialLinks} />
             <BottomSection {...bottomProps} />
           </div>
@@ -555,7 +555,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 8 }}>
             {card.phone && <Phone style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.8)' }} />}
             {card.email && <Mail style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.8)' }} />}
-            {isPro && card.website && <Globe style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.8)' }} />}
+            {card.website && <Globe style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.8)' }} />}
           </div>
           <button onClick={handleShare} style={{ marginTop: 'auto' }}>
             <Share2 style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.6)' }} />
@@ -567,7 +567,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
           {card.company && <p style={{ margin: '0 0 16px', fontSize: 13, color: bg.subtext }}>{card.company}</p>}
           <div style={{ width: 32, height: 3, backgroundColor: accentHex, marginBottom: 12, borderRadius: 2 }} />
           <LogoZone {...shared} />
-          {isPro && card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
+          {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
           <AllContacts {...shared} socialLinks={socialLinks} />
           <BottomSection {...bottomProps} />
         </div>
@@ -599,12 +599,12 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
           </div>
           <div style={{ height: 1, background: `linear-gradient(90deg, ${accentHex}, transparent)`, marginBottom: 16, boxShadow: `0 0 6px ${accentHex}` }} />
           <LogoZone {...shared} />
-          {isPro && card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: '#6060a0' }}>{card.bio}</p>}
+          {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: '#6060a0' }}>{card.bio}</p>}
           <div className="space-y-3">
             {[
               card.phone && { icon: <Phone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
               card.email && { icon: <Mail className="w-4 h-4" />, label: card.email, href: `mailto:${card.email}` },
-              isPro && card.website && { icon: <Globe className="w-4 h-4" />, label: card.website.replace(/^https?:\/\//, ''), href: card.website },
+              card.website && { icon: <Globe className="w-4 h-4" />, label: card.website.replace(/^https?:\/\//, ''), href: card.website },
               ...links.map(l => ({ icon: <ExternalLink className="w-4 h-4" />, label: l.title, href: l.url.startsWith('http') ? l.url : `https://${l.url}` })),
             ].filter(Boolean).map((item: any, i) => (
               <a key={i} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: 14, backgroundColor: accentHex + '0d', borderRadius: 10, padding: '12px 16px', border: `1px solid ${accentHex}33`, textDecoration: 'none' }}>
