@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const reference = searchParams.get('reference') || searchParams.get('trxref')
   const orgId = searchParams.get('org_id')
   const userId = searchParams.get('user_id')
-  const newSeatCount = searchParams.get('new_seat_count')
+  const extraSeats = searchParams.get('extra_seats')
 
   if (!reference || !orgId || !userId) {
     return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/team?status=error`)
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     const periodEnd = new Date()
     periodEnd.setMonth(periodEnd.getMonth() + 1)
 
-    if (newSeatCount) {
+    if (extraSeats) {
       // Adding seats to existing org
       const { data: org } = await supabase.from('organizations').select('max_seats').eq('id', orgId).single()
       await (supabase.from('organizations') as any).update({

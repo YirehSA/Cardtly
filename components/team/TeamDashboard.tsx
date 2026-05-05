@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import {
   Users, Plus, Edit2, Trash2, ExternalLink, Loader2,
-  CreditCard, ChevronDown, ChevronUp, Check, Building2, X
+  CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail
 } from 'lucide-react'
 
 interface TeamCard {
@@ -61,7 +61,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
   // Add seats
   const [showAddSeats, setShowAddSeats] = useState(false)
-  const [selectedTier, setSelectedTier] = useState(5)
+  const [extraSeats, setExtraSeats] = useState(1)
 
   useEffect(() => {
     if (status === 'success') toast.success('Payment confirmed! Your team plan is active.')
@@ -139,7 +139,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   // Add seats
   async function handleAddSeats() {
     setLoading(true)
-    const data = await api({ action: 'add_seats', org_id: org!.id, new_seat_count: selectedTier })
+    const data = await api({ action: 'add_seats', org_id: org!.id, extra_seats: extraSeats })
     if (data.authorization_url) {
       window.location.href = data.authorization_url
     } else {
@@ -263,6 +263,12 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
             <Plus className="w-4 h-4" />Add seats
             {showAddSeats ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </button>
+
+          {/* Team contacts */}
+          <Link href="/dashboard/team/contacts"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
+            <Mail className="w-4 h-4" />Contacts
+          </Link>
 
           {/* Add card */}
           {(seatsAvailable > 0 || seatsTotal === 0) && (

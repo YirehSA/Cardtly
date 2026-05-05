@@ -153,14 +153,15 @@ export async function POST(request: Request) {
 
   // ── Add seats (upgrade) ────────────────────────────────────────────────────
   if (action === 'add_seats') {
-    const { org_id, new_seat_count } = body
+    const { org_id, extra_seats } = body
     const { data: org } = await admin.from('organizations').select('*').eq('id', org_id).eq('admin_user_id', user.id).single()
     if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
 
-    const planCode = getPlanCode(new_seat_count)
-    if (!planCode) return NextResponse.json({ error: 'Invalid seat count' }, { status: 400 })
+    const newTotal = (org.max_seats || 0) + extra_seats
+    const planCode = getPlanCode(newTotal)
+    if (!planCode) return NextResponse.json({ error: 'Seat count exceeds maximum of 50' }, { status: 400 })
 
-    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/team/verify?org_id=${org_id}&user_id=${user.id}&new_seat_count=${new_seat_count}`
+    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/team/verify?org_id=${org_id}&user_id=${user.id}&extra_seats=${extra_seats}`
 
     const res = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
@@ -169,7 +170,7 @@ export async function POST(request: Request) {
         email: user.email,
         plan: planCode,
         callback_url: callbackUrl,
-        metadata: { org_id, user_id: user.id, new_seat_count, action: 'add_seats' },
+        metadata: { org_id, user_id: user.id, extra_seats, action: 'add_seats' },
       }),
     })
 
