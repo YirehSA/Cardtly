@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import {
   Users, Plus, Edit2, Trash2, ExternalLink, Loader2,
-  CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail
+  CreditCard, ChevronDown, ChevronUp, Check, Building2, X
 } from 'lucide-react'
 
 interface TeamCard {
@@ -61,7 +61,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
   // Add seats
   const [showAddSeats, setShowAddSeats] = useState(false)
-  const [extraSeats, setExtraSeats] = useState(1)
+  const [selectedTier, setSelectedTier] = useState(5)
 
   useEffect(() => {
     if (status === 'success') toast.success('Payment confirmed! Your team plan is active.')
@@ -139,7 +139,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   // Add seats
   async function handleAddSeats() {
     setLoading(true)
-    const data = await api({ action: 'add_seats', org_id: org!.id, extra_seats: extraSeats })
+    const data = await api({ action: 'add_seats', org_id: org!.id, new_seat_count: selectedTier })
     if (data.authorization_url) {
       window.location.href = data.authorization_url
     } else {
@@ -264,12 +264,6 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
             {showAddSeats ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </button>
 
-          {/* Team contacts */}
-          <Link href="/dashboard/team/contacts"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
-            <Mail className="w-4 h-4" />Contacts
-          </Link>
-
           {/* Add card */}
           {(seatsAvailable > 0 || seatsTotal === 0) && (
             <button onClick={() => setShowAddCard(p => !p)}
@@ -283,24 +277,36 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
       {/* Add seats panel */}
       {showAddSeats && (
         <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
-          <p className="font-semibold text-sm">Add more seats</p>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <button onClick={() => setExtraSeats(Math.max(1, extraSeats - 1))}
-                className="w-9 h-9 rounded-lg border border-border flex items-center justify-center hover:bg-muted transition font-bold">−</button>
-              <span className="text-xl font-black w-10 text-center">{extraSeats}</span>
-              <button onClick={() => setExtraSeats(extraSeats + 1)}
-                className="w-9 h-9 rounded-lg border border-border flex items-center justify-center hover:bg-muted transition font-bold">+</button>
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold">{extraSeats} additional card{extraSeats !== 1 ? 's' : ''}</p>
-              <p className="text-xs text-muted-foreground">R{extraSeats * 65}/month added to your plan</p>
-            </div>
+          <p className="font-semibold text-sm">Upgrade seat plan</p>
+          <div className="flex items-center gap-4 flex-wrap">
+            <select
+              value={selectedTier}
+              onChange={e => setSelectedTier(Number(e.target.value))}
+              className="px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition flex-1 min-w-[200px]">
+              {[
+                { seats: 5,  price: 325 },
+                { seats: 10, price: 650 },
+                { seats: 15, price: 975 },
+                { seats: 20, price: 1300 },
+                { seats: 25, price: 1625 },
+                { seats: 30, price: 1950 },
+                { seats: 40, price: 2600 },
+                { seats: 50, price: 3250 },
+              ].filter(t => t.seats > seatsTotal).map(t => (
+                <option key={t.seats} value={t.seats}>
+                  {t.seats} seats — R{t.price}/month
+                </option>
+              ))}
+            </select>
             <button onClick={handleAddSeats} disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Pay & add'}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
+              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Upgrade plan'}
             </button>
           </div>
+          <p className="text-xs text-muted-foreground">
+            Switching to a higher seat tier replaces your current plan with the new monthly amount.
+          </p>
         </div>
       )}
 
