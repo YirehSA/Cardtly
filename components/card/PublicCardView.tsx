@@ -107,7 +107,7 @@ interface BottomProps {
   isTeamCard?: boolean
   links: { index: number; title: string; url: string }[]
   certifications: string[]
-  galleryImages: string[]
+  galleryImages: { url: string; link?: string }[]
   accentHex: string
   bg: Shared['bg']
   cardEffect: Shared['cardEffect']
@@ -179,9 +179,9 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
         <div className="mt-8">
           <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Gallery</p>
           <div className="grid grid-cols-2 gap-2">
-            {galleryImages.map((url, i) => (
-              <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                <img src={url} alt={`Gallery ${i + 1}`} className="w-full aspect-video object-cover rounded-xl hover:opacity-80 transition" />
+            {galleryImages.map((item, i) => (
+              <a key={i} href={item.link || item.url} target="_blank" rel="noopener noreferrer">
+                <img src={item.url} alt={`Gallery ${i + 1}`} className="w-full aspect-video object-cover rounded-xl hover:opacity-80 transition" />
               </a>
             ))}
           </div>
@@ -270,9 +270,12 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
     ? card.certifications.split(',').map(c => c.trim()).filter(Boolean)
     : []
   const galleryImages = isPro ? [
-    card.image_1_url, card.image_2_url, card.image_3_url,
-    card.image_4_url, card.image_5_url,
-  ].filter(Boolean) as string[] : []
+    { url: card.image_1_url, link: (card as any).image_1_link },
+    { url: card.image_2_url, link: (card as any).image_2_link },
+    { url: card.image_3_url, link: (card as any).image_3_link },
+    { url: card.image_4_url, link: (card as any).image_4_link },
+    { url: card.image_5_url, link: (card as any).image_5_link },
+  ].filter(item => item.url) as { url: string; link?: string }[] : []
   const socialLinks = isPro ? [
     card.linkedin_url && { platform: 'LinkedIn', url: card.linkedin_url, icon: <Linkedin className="w-4 h-4" /> },
     card.twitter_url && { platform: 'Twitter / X', url: card.twitter_url, icon: <Twitter className="w-4 h-4" /> },
