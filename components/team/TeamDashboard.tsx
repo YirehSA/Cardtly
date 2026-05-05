@@ -61,7 +61,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
   // Add seats
   const [showAddSeats, setShowAddSeats] = useState(false)
-  const [selectedTier, setSelectedTier] = useState(5)
+  const [selectedTier, setSelectedTier] = useState(0)
 
   useEffect(() => {
     if (status === 'success') toast.success('Payment confirmed! Your team plan is active.')
@@ -138,6 +138,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
   // Add seats
   async function handleAddSeats() {
+    if (!selectedTier) { toast.error('Please select a seat plan'); return }
     setLoading(true)
     const data = await api({ action: 'add_seats', org_id: org!.id, new_seat_count: selectedTier })
     if (data.authorization_url) {
@@ -283,6 +284,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
               value={selectedTier}
               onChange={e => setSelectedTier(Number(e.target.value))}
               className="px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition flex-1 min-w-[200px]">
+              <option value={0}>Select a plan...</option>
               {[
                 { seats: 5,  price: 325 },
                 { seats: 10, price: 650 },
