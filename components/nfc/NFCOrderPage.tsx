@@ -27,10 +27,19 @@ interface Order {
   shipping_city: string
 }
 
+interface TeamCard {
+  id: string
+  name: string
+  title: string | null
+  company: string | null
+  slug: string | null
+}
+
 interface Props {
   card: Card | null
   user: { id: string; email: string }
   previousOrders: Order[]
+  teamCards?: TeamCard[]
 }
 
 type Color = 'black' | 'white'
@@ -42,14 +51,15 @@ const SA_PROVINCES = [
 ]
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending_payment: { label: 'Awaiting payment',  color: '#f59e0b' },
+  pending_invoice: { label: 'Invoice pending',   color: '#f59e0b' },
+  pending_payment: { label: 'Awaiting payment',  color: '#f97316' },
   paid:            { label: 'Order received',    color: '#3b82f6' },
   in_production:   { label: 'In production',     color: '#8b5cf6' },
   shipped:         { label: 'Shipped',           color: '#06b6d4' },
   delivered:       { label: 'Delivered',         color: '#10b981' },
 }
 
-export default function NFCOrderPage({ card, user, previousOrders }: Props) {
+export default function NFCOrderPage({ card, user, previousOrders, teamCards = [] }: Props) {
   const searchParams = useSearchParams()
   const paymentStatus = searchParams.get('status')
 
@@ -58,8 +68,15 @@ export default function NFCOrderPage({ card, user, previousOrders }: Props) {
 
   const [step, setStep] = useState<Step>('design')
   const [color, setColor] = useState<Color>('black')
-  const [nameOnCard, setNameOnCard] = useState(card?.name || '')
-  const [titleOnCard, setTitleOnCard] = useState(card?.title || '')
+  const [quantity, setQuantity] = useState(1)
+  const [selectedCardId, setSelectedCardId] = useState<string>(card?.id || '')
+  const allCards = [
+    ...(card ? [{ id: card.id, name: card.name, title: card.title, company: card.company, slug: card.slug }] : []),
+    ...teamCards,
+  ]
+  const selectedCard = allCards.find(c => c.id === selectedCardId) || allCards[0]
+  const [nameOnCard, setNameOnCard] = useState(selectedCard?.name || '')
+  const [titleOnCard, setTitleOnCard] = useState(selectedCard?.title || '')
   const [address, setAddress] = useState('')
   const [city, setCity] = useState('')
   const [province, setProvince] = useState('')
@@ -403,16 +420,12 @@ export default function NFCOrderPage({ card, user, previousOrders }: Props) {
 
               <div className="border-t border-border pt-4 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">NFC card</span>
-                  <span>R150.00</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Shipping</span>
-                  <span>R90.00</span>
+                  <span className="text-muted-foreground">Quantity</span>
+                  <span>{quantity} card{quantity !== 1 ? 's' : ''}</span>
                 </div>
                 <div className="flex justify-between font-bold text-base border-t border-border pt-2 mt-2">
                   <span>Total</span>
-                  <span>R240.00</span>
+                  <span>Invoice to follow</span>
                 </div>
               </div>
 
@@ -425,13 +438,13 @@ export default function NFCOrderPage({ card, user, previousOrders }: Props) {
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
                   style={{ background: accentHex }}>
                   {loading
-                    ? <><Loader2 className="w-4 h-4 animate-spin" />Redirecting...</>
-                    : 'Pay R240'}
+                    ? <><Loader2 className="w-4 h-4 animate-spin" />Placing order...</>
+                    : 'Place order'}
                 </button>
               </div>
 
               <p className="text-xs text-center text-muted-foreground">
-                🔒 Secure payment via Paystack · Delivered within 5–7 business days
+                📧 We will send you an invoice · Delivered within 5–7 business days after payment
               </p>
             </div>
           )}

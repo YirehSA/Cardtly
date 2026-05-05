@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
 import NFCOrderPage from '@/components/nfc/NFCOrderPage'
@@ -10,6 +11,11 @@ export default async function NFCPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  ) as any
 
   const [plan, { data: card }, { data: orders }] = await Promise.all([
     getUserPlan(user.id),
@@ -36,11 +42,28 @@ export default async function NFCPage() {
     )
   }
 
+  // Get team cards if user is org admin
+  const { data: org } = await admin
+    .from('organizations')
+    .select('id')
+    .eq('admin_user_id', user.id)
+    .single()
+
+  const { data: teamCards } = org
+    ? await admin
+        .from('team_cards')
+        .select('id, name, title, company, slug')
+        .eq('organization_id', org.id)
+        .eq('is_active', true)
+        .order('name')
+    : { data: [] }
+
   return (
     <NFCOrderPage
       card={card}
       user={{ id: user.id, email: user.email || '' }}
       previousOrders={orders || []}
+      teamCards={teamCards || []}
     />
   )
 }
