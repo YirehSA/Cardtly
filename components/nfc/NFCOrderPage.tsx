@@ -182,25 +182,28 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           color,
-          name: nameOnCard,
-          title: titleOnCard,
+          nameOnCard,
+          titleOnCard,
           address,
           city,
           province,
           postal_code: postalCode,
-          card_id: card?.id,
+          quantity,
+          card_id: selectedCard?.id,
+          card_slug: selectedCard?.slug,
         }),
       })
 
       const data = await res.json()
 
-      if (!res.ok || !data.authorization_url) {
+      if (!res.ok) {
         toast.error(data.error || 'Something went wrong. Please try again.')
         setLoading(false)
         return
       }
 
-      window.location.href = data.authorization_url
+      toast.success('Order placed! We will send you an invoice shortly.')
+      window.location.reload()
     } catch {
       toast.error('Something went wrong. Please try again.')
       setLoading(false)
