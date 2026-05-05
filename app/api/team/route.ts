@@ -18,9 +18,25 @@ const TEAM_PLANS: Record<number, string> = {
   50: 'PLN_eqcge3ycapqbaow',
 }
 
+// Seat tier amounts in kobo (R65 per seat)
+const TEAM_AMOUNTS: Record<number, number> = {
+  5:  32500,
+  10: 65000,
+  15: 97500,
+  20: 130000,
+  25: 162500,
+  30: 195000,
+  40: 260000,
+  50: 325000,
+}
+
 // Find plan code for exact seat tier
 function getPlanCode(seats: number): string | null {
   return TEAM_PLANS[seats] || null
+}
+
+function getPlanAmount(seats: number): number {
+  return TEAM_AMOUNTS[seats] || 0
 }
 
 export async function POST(request: Request) {
@@ -63,6 +79,7 @@ export async function POST(request: Request) {
       headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email: user.email,
+        amount: getPlanAmount(seat_count),
         plan: planCode,
         callback_url: callbackUrl,
         metadata: { org_id: org.id, user_id: user.id, seat_count, action: 'team_subscription' },
@@ -165,6 +182,7 @@ export async function POST(request: Request) {
       headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email: user.email,
+        amount: getPlanAmount(new_seat_count),
         plan: planCode,
         callback_url: callbackUrl,
         metadata: { org_id, user_id: user.id, new_seat_count, action: 'add_seats' },

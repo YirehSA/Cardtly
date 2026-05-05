@@ -7,6 +7,11 @@ const PLANS = {
   yearly:  'PLN_knxb0ve4dn1h6uk',
 }
 
+const AMOUNTS = {
+  monthly: 6500,   // R65 in kobo
+  yearly:  60000,  // R600 in kobo
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -30,6 +35,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         email: user.email,
+        amount: AMOUNTS[plan as keyof typeof AMOUNTS],
         plan: planCode,
         callback_url: callbackUrl,
         metadata: {
