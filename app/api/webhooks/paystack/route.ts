@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 
 export async function POST(request: Request) {
@@ -19,105 +19,72 @@ export async function POST(request: Request) {
     }
 
     const event = JSON.parse(body)
-    const supabase = await createClient() as any
-
     console.log('Paystack webhook event:', event.event)
 
-    switch (event.event) {
+    const admin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    ) as any
 
-      // Successful charge — activate or renew subscription
-      case 'charge.success': {
-        const { customer, reference, metadata, amount, paid_at } = event.data
-        const userId = metadata?.user_id
-        const plan = metadata?.plan || 'monthly'
+    // Successful charge — keep Pro active
+    if (event.event === 'charge.success') {
+      const { customer, metadata, subscription_code, amount, paid_at } = event.data
+      const userId = metadata?.user_id
 
-        if (!userId) {
-          console.error('No user_id in charge.success metadata')
-          break
-        }
-
-        const periodEnd = new Date()
-        if (plan === 'monthly') {
-          periodEnd.setMonth(periodEnd.getMonth() + 1)
-        } else {
-          periodEnd.setFullYear(periodEnd.getFullYear() + 1)
-        }
-
-        await (supabase.from('whop_subscriptions') as any).upsert({
+      if (userId) {
+        await admin.from('whop_subscriptions').upsert({
           user_id: userId,
           email: customer.email,
-          plan_id: `paystack_${plan}`,
+          plan_id: `paystack_${metadata?.plan || 'monthly'}`,
           subscription_tier: 'pro',
-          billing_cycle: plan,
+          billing_cycle: metadata?.plan || 'monthly',
           status: 'active',
-          receipt_id: reference,
-          membership_id: reference,
+          membership_id: subscription_code || event.data.reference,
+          receipt_id: event.data.reference,
           metadata: {
-            paystack_reference: reference,
+            paystack_subscription_code: subscription_code,
             amount,
-            period_end: periodEnd.toISOString(),
             paid_at,
           },
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' })
-
-        break
       }
+    }
 
-      // Subscription cancelled — keep Pro until period end
-      case 'subscription.disable':
-      case 'subscription.not_renew': {
-        const { customer, metadata } = event.data
-        const userId = metadata?.user_id
+    // Subscription disabled — cancel Pro
+    if (event.event === 'subscription.disabled') {
+      const { customer } = event.data
 
-        if (!userId) break
+      const { data: sub } = await admin
+        .from('whop_subscriptions')
+        .select('user_id')
+        .eq('email', customer.email)
+        .single()
 
-        // Mark as cancelled but keep status active until period_end
-        // The metadata already has period_end from the last successful charge
-        await supabase
-          .from('whop_subscriptions')
-          .update({
-            status: 'cancelled',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', userId)
-
-        break
+      if (sub) {
+        await admin.from('whop_subscriptions').update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString(),
+        }).eq('user_id', sub.user_id)
       }
+    }
 
-      // Invoice failed — payment couldn't renew
-      case 'invoice.payment_failed': {
-        const { customer, metadata } = event.data
-        const userId = metadata?.user_id
+    // Subscription not renewing
+    if (event.event === 'invoice.payment_failed') {
+      const { customer } = event.data
 
-        if (!userId) break
+      const { data: sub } = await admin
+        .from('whop_subscriptions')
+        .select('user_id')
+        .eq('email', customer.email)
+        .single()
 
-        // Check if period_end has passed — if so, downgrade
-        const { data: sub } = await supabase
-          .from('whop_subscriptions')
-          .select('metadata')
-          .eq('user_id', userId)
-          .single()
-
-        if (sub?.metadata?.period_end) {
-          const periodEnd = new Date(sub.metadata.period_end)
-          if (new Date() > periodEnd) {
-            await supabase
-              .from('whop_subscriptions')
-              .update({
-                status: 'expired',
-                subscription_tier: 'free',
-                updated_at: new Date().toISOString(),
-              })
-              .eq('user_id', userId)
-          }
-        }
-
-        break
+      if (sub) {
+        await admin.from('whop_subscriptions').update({
+          status: 'past_due',
+          updated_at: new Date().toISOString(),
+        }).eq('user_id', sub.user_id)
       }
-
-      default:
-        console.log('Unhandled Paystack event:', event.event)
     }
 
     return NextResponse.json({ received: true })

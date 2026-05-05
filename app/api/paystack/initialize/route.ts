@@ -1,14 +1,17 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+// Paystack Plan Codes
+const PLANS = {
+  monthly: 'PLN_lkf7hy3v4mp8w3u',
+  yearly:  'PLN_knxb0ve4dn1h6uk',
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { plan } = await request.json()
 
@@ -16,8 +19,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
     }
 
-    const amount = plan === 'monthly' ? 6500 : 60000 // Paystack uses kobo (cents) — R65 = 6500, R600 = 60000
-
+    const planCode = PLANS[plan as keyof typeof PLANS]
     const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/upgrade/verify?plan=${plan}&user_id=${user.id}`
 
     const response = await fetch('https://api.paystack.co/transaction/initialize', {
@@ -28,29 +30,23 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         email: user.email,
-        amount,
-        currency: 'ZAR',
+        plan: planCode,
         callback_url: callbackUrl,
         metadata: {
           user_id: user.id,
           plan,
-          cancel_action: `${process.env.NEXT_PUBLIC_APP_URL}/upgrade/cancel`,
+          action: 'pro_subscription',
         },
-        channels: ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'],
       }),
     })
 
     const data = await response.json()
 
     if (!data.status) {
-      console.error('Paystack init error:', data)
       return NextResponse.json({ error: data.message || 'Payment initialization failed' }, { status: 500 })
     }
 
-    return NextResponse.json({
-      authorization_url: data.data.authorization_url,
-      reference: data.data.reference,
-    })
+    return NextResponse.json({ authorization_url: data.data.authorization_url })
   } catch (error) {
     console.error('Paystack initialize error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
