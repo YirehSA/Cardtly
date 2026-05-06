@@ -61,6 +61,7 @@ export interface Database {
           image_3_url: string | null
           image_4_url: string | null
           image_5_url: string | null
+          image_6_url: string | null
           // Custom links (flat, max 14)
           link_1_title: string | null
           link_1_url: string | null

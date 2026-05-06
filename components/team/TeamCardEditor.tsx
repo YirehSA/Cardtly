@@ -34,6 +34,7 @@ interface TeamCard {
   image_3_url: string | null
   image_4_url: string | null
   image_5_url: string | null
+  image_6_url: string | null
   certifications: string | null
   color_theme: string | null
   slug: string | null
@@ -107,6 +108,8 @@ export default function TeamCardEditor({ card, org, userId }: Props) {
     image_4_link:      (card as any).image_4_link || '',
     image_5_url:       card.image_5_url || '',
     image_5_link:      (card as any).image_5_link || '',
+    image_6_url:       card.image_6_url || '',
+    image_6_link:      (card as any).image_6_link || '',
     certifications:    card.certifications || '',
     link_1_title:      card.link_1_title || '', link_1_url: card.link_1_url || '',
     link_2_title:      card.link_2_title || '', link_2_url: card.link_2_url || '',
@@ -305,9 +308,9 @@ export default function TeamCardEditor({ card, org, userId }: Props) {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Gallery Images</label>
-                <p className="text-xs text-muted-foreground mb-3">Up to 5 images shown on the card</p>
+                <p className="text-xs text-muted-foreground mb-3">Up to 6 images shown on the card</p>
                 <div className="grid grid-cols-1 gap-4">
-                  {[1,2,3,4,5].map(i => (
+                  {[1,2,3,4,5,6].map(i => (
                     <div key={i} className="rounded-xl border border-border p-3 space-y-2 bg-muted/20">
                       <p className="text-xs font-semibold text-muted-foreground">Image {i}</p>
                       <ImageUploader value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" />

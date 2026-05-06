@@ -29,6 +29,7 @@ export default function PublicCard({ card, isPro }: Props) {
     card.image_3_url,
     card.image_4_url,
     card.image_5_url,
+    (card as any).image_6_url,
   ].filter(Boolean) as string[] : []
 
   return (
