@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { parseDesign, getAccentHex } from '@/types/design'
 import { toast } from 'sonner'
-import { Package, CreditCard, MapPin, CheckCircle, Loader2, ChevronRight, Wifi } from 'lucide-react'
+import { Package, CreditCard, MapPin, CheckCircle, Loader2, ChevronRight, Wifi, Trash2, ChevronDown } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 
 interface Card {
@@ -25,6 +25,7 @@ interface Order {
   status: string
   created_at: string
   shipping_city: string
+  quantity: number
 }
 
 interface TeamCard {
@@ -67,21 +68,71 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
   const accentHex = design ? getAccentHex(design) : '#3b82f6'
 
   const [step, setStep] = useState<Step>('design')
-  const [color, setColor] = useState<Color>('black')
-  const [quantity, setQuantity] = useState(1)
-  const [selectedCardId, setSelectedCardId] = useState<string>(card?.id || '')
+
+  // Build the master list of cards available for ordering (personal first, then team)
   const allCards = [
-    ...(card ? [{ id: card.id, name: card.name, title: card.title, company: card.company, slug: card.slug }] : []),
-    ...teamCards,
+    ...(card ? [{ id: card.id, name: card.name, title: card.title, company: card.company, slug: card.slug, isPersonal: true }] : []),
+    ...teamCards.map(tc => ({ ...tc, isPersonal: false })),
   ]
-  const selectedCard = allCards.find(c => c.id === selectedCardId) || allCards[0]
-  const [nameOnCard, setNameOnCard] = useState(selectedCard?.name || '')
-  const [titleOnCard, setTitleOnCard] = useState(selectedCard?.title || '')
+
+  // Each card gets a "line" record. included=false means it's not part of this order.
+  type Line = {
+    cardId: string
+    name: string
+    title: string
+    color: Color
+    quantity: number
+    included: boolean
+  }
+
+  const [lines, setLines] = useState<Line[]>(() =>
+    allCards.map((c, idx) => ({
+      cardId: c.id,
+      name: c.name || '',
+      title: c.title || '',
+      color: 'black',
+      quantity: 1,
+      included: idx === 0, // default: just the first card (personal)
+    }))
+  )
+
+  const includedLines = lines.filter(l => l.included)
+  const totalQty = includedLines.reduce((s, l) => s + l.quantity, 0)
+
+  function updateLine(cardId: string, patch: Partial<Line>) {
+    setLines(ls => ls.map(l => l.cardId === cardId ? { ...l, ...patch } : l))
+  }
+
+  function applyColorToAll(c: Color) {
+    setLines(ls => ls.map(l => l.included ? { ...l, color: c } : l))
+  }
+
+  // Preview the first included line (for the card preview area)
+  const previewLine = includedLines[0] || lines[0]
+  const previewCard = allCards.find(c => c.id === previewLine?.cardId) || allCards[0]
+  const color = previewLine?.color || 'black'
+  const nameOnCard = previewLine?.name || ''
+  const titleOnCard = previewLine?.title || ''
+
   const [address, setAddress] = useState('')
   const [city, setCity] = useState('')
   const [province, setProvince] = useState('')
   const [postalCode, setPostalCode] = useState('')
   const [loading, setLoading] = useState(false)
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null)
+
+  async function cancelOrderGroup(items: Order[]) {
+    if (!confirm(`Cancel this order? This will remove ${items.length} pending line${items.length !== 1 ? 's' : ''}.`)) return
+    try {
+      await Promise.all(items.map(item =>
+        fetch(`/api/nfc/order/${item.id}`, { method: 'DELETE' })
+      ))
+      toast.success('Order cancelled')
+      window.location.reload()
+    } catch {
+      toast.error('Could not cancel order')
+    }
+  }
 
   useEffect(() => {
     if (paymentStatus === 'success') toast.success('Payment received! Your NFC card order is confirmed.')
@@ -89,7 +140,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
     if (paymentStatus === 'error') toast.error('Something went wrong. Contact support if you were charged.')
   }, [paymentStatus])
 
-  const cardUrl = card?.slug ? `cardtly.com/card/${card.slug}` : 'cardtly.com/card/yourname'
+  const cardUrl = previewCard?.slug ? `cardtly.com/card/${previewCard.slug}` : 'cardtly.com/card/yourname'
 
   // ── Card preview (front) ────────────────────────────────────────────────────
   function CardFront() {
@@ -177,20 +228,27 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
   async function handleOrder() {
     setLoading(true)
     try {
+      const cardsPayload = includedLines.map(l => {
+        const c = allCards.find(ac => ac.id === l.cardId)
+        return {
+          card_id: l.cardId,
+          card_slug: c?.slug || null,
+          color: l.color,
+          nameOnCard: l.name,
+          titleOnCard: l.title,
+          quantity: l.quantity,
+        }
+      })
+
       const res = await fetch('/api/nfc/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          color,
-          nameOnCard,
-          titleOnCard,
           address,
           city,
           province,
           postal_code: postalCode,
-          quantity,
-          card_id: selectedCard?.id,
-          card_slug: selectedCard?.slug,
+          cards: cardsPayload,
         }),
       })
 
@@ -239,26 +297,74 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
         <div className="bg-card border border-border rounded-2xl p-5">
           <p className="text-sm font-semibold mb-3">Your orders</p>
           <div className="space-y-2">
-            {previousOrders.map(order => {
-              const s = STATUS_LABELS[order.status] || { label: order.status, color: '#6b7280' }
-              return (
-                <div key={order.id} className="flex items-center justify-between gap-4 py-2 border-b border-border last:border-0">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${order.color === 'black' ? 'bg-gray-900 text-white' : 'bg-white text-gray-900 border border-gray-200'}`}>
-                      {order.color === 'black' ? '⬛' : '⬜'}
+            {(() => {
+              // Group orders that were placed together (same minute, same city)
+              const groups: { key: string; items: Order[] }[] = []
+              previousOrders.forEach(o => {
+                const minute = new Date(o.created_at).toISOString().slice(0, 16)
+                const key = minute + '|' + o.shipping_city
+                const existing = groups.find(g => g.key === key)
+                if (existing) existing.items.push(o)
+                else groups.push({ key, items: [o] })
+              })
+
+              return groups.map(group => {
+                const first = group.items[0]
+                const totalCards = group.items.reduce((s, o) => s + (o.quantity || 1), 0)
+                const s = STATUS_LABELS[first.status] || { label: first.status, color: '#6b7280' }
+                const isPending = first.status === 'pending_invoice'
+                const isExpanded = expandedOrderId === group.key
+                const summary = group.items.length === 1
+                  ? first.name_on_card
+                  : group.items.length + ' people · ' + totalCards + ' cards'
+
+                return (
+                  <div key={group.key} className="border-b border-border last:border-0">
+                    <div className="flex items-center justify-between gap-4 py-2">
+                      <button onClick={() => setExpandedOrderId(isExpanded ? null : group.key)}
+                        className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition">
+                        <div className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-bold ${first.color === 'black' ? 'bg-gray-900 text-white' : 'bg-white text-gray-900 border border-gray-200'}`}>
+                          {first.color === 'black' ? '⬛' : '⬜'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{summary}</p>
+                          <p className="text-xs text-muted-foreground">{first.shipping_city} · {new Date(first.created_at).toLocaleDateString('en-ZA')}</p>
+                        </div>
+                        {group.items.length > 1 && (
+                          <ChevronDown className={`w-4 h-4 text-muted-foreground transition ${isExpanded ? 'rotate-180' : ''}`} />
+                        )}
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap"
+                          style={{ background: s.color + '18', color: s.color }}>
+                          {s.label}
+                        </span>
+                        {isPending && (
+                          <button onClick={() => cancelOrderGroup(group.items)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition"
+                            title="Cancel order">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">{order.name_on_card}</p>
-                      <p className="text-xs text-muted-foreground">{order.shipping_city} · {new Date(order.created_at).toLocaleDateString('en-ZA')}</p>
-                    </div>
+
+                    {isExpanded && group.items.length > 1 && (
+                      <div className="ml-11 pb-3 space-y-1.5">
+                        {group.items.map(item => (
+                          <div key={item.id} className="flex items-center gap-2 text-xs py-1">
+                            <div className={`w-4 h-4 rounded flex-shrink-0 ${item.color === 'black' ? 'bg-gray-900' : 'bg-white border border-gray-300'}`} />
+                            <span className="font-medium">{item.name_on_card}</span>
+                            {item.title_on_card && <span className="text-muted-foreground">· {item.title_on_card}</span>}
+                            <span className="ml-auto text-muted-foreground">x{item.quantity || 1}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full"
-                    style={{ background: s.color + '18', color: s.color }}>
-                    {s.label}
-                  </span>
-                </div>
-              )
-            })}
+                )
+              })
+            })()}
           </div>
         </div>
       )}
@@ -268,17 +374,11 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
 
         {/* Left — preview */}
         <div className="space-y-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Card preview</p>
-
-          {/* Colour picker */}
-          <div className="flex gap-3 mb-4">
-            {(['black', 'white'] as Color[]).map(c => (
-              <button key={c} onClick={() => setColor(c)}
-                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 text-sm font-medium transition ${color === c ? 'border-blue-500' : 'border-border hover:border-foreground/20'}`}>
-                <div className={`w-5 h-5 rounded-full border ${c === 'white' ? 'bg-white border-gray-300' : 'bg-gray-950 border-gray-700'}`} />
-                {c.charAt(0).toUpperCase() + c.slice(1)}
-              </button>
-            ))}
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Card preview</p>
+            {includedLines.length > 1 && (
+              <p className="text-xs text-muted-foreground">Showing {previewCard?.name?.split(' ')[0] || 'first card'} (1 of {includedLines.length})</p>
+            )}
           </div>
 
           {/* Front */}
@@ -324,22 +424,108 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
           {/* Step 1 — Design details */}
           {step === 'design' && (
             <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
-              <h2 className="font-semibold">Card details</h2>
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Full name (printed on card)</label>
-                <input value={nameOnCard} onChange={e => setNameOnCard(e.target.value)}
-                  placeholder="Your full name" className={inputClass} />
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold">Who needs an NFC card?</h2>
+                {includedLines.length > 0 && (
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full" style={{ background: accentHex + '18', color: accentHex }}>
+                    {includedLines.length} selected · {totalQty} card{totalQty !== 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Job title (optional)</label>
-                <input value={titleOnCard} onChange={e => setTitleOnCard(e.target.value)}
-                  placeholder="e.g. Founder & CEO" className={inputClass} />
+
+              {allCards.length > 1 && includedLines.length > 0 && (
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground">Apply colour to all:</span>
+                  <button onClick={() => applyColorToAll('black')}
+                    className="px-2.5 py-1 rounded-md border border-border hover:bg-muted transition flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-gray-950 border border-gray-700" />Black
+                  </button>
+                  <button onClick={() => applyColorToAll('white')}
+                    className="px-2.5 py-1 rounded-md border border-border hover:bg-muted transition flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-white border border-gray-300" />White
+                  </button>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {lines.map(line => {
+                  const c = allCards.find(ac => ac.id === line.cardId)
+                  if (!c) return null
+                  return (
+                    <div key={line.cardId} className={`rounded-xl border transition ${line.included ? 'border-blue-500 bg-blue-500/5' : 'border-border'}`}>
+                      <label className="flex items-center gap-3 p-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={line.included}
+                          onChange={e => updateLine(line.cardId, { included: e.target.checked })}
+                          className="w-4 h-4 accent-blue-500"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium truncate">{c.name}</p>
+                            {c.isPersonal && (
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">You</span>
+                            )}
+                          </div>
+                          {c.title && <p className="text-xs text-muted-foreground truncate">{c.title}</p>}
+                        </div>
+                      </label>
+
+                      {line.included && (
+                        <div className="px-3 pb-3 space-y-3 border-t border-border/50 pt-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Name on card</label>
+                              <input value={line.name} onChange={e => updateLine(line.cardId, { name: e.target.value })}
+                                placeholder="Full name" className={inputClass + ' text-xs'} />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Job title</label>
+                              <input value={line.title} onChange={e => updateLine(line.cardId, { title: e.target.value })}
+                                placeholder="Optional" className={inputClass + ' text-xs'} />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-1.5">
+                              <button onClick={() => updateLine(line.cardId, { color: 'black' })}
+                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border-2 text-xs font-medium transition ${line.color === 'black' ? 'border-blue-500' : 'border-border'}`}>
+                                <div className="w-3 h-3 rounded-full bg-gray-950 border border-gray-700" />Black
+                              </button>
+                              <button onClick={() => updateLine(line.cardId, { color: 'white' })}
+                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border-2 text-xs font-medium transition ${line.color === 'white' ? 'border-blue-500' : 'border-border'}`}>
+                                <div className="w-3 h-3 rounded-full bg-white border border-gray-300" />White
+                              </button>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">Qty</span>
+                              <div className="flex items-center border border-border rounded-lg overflow-hidden">
+                                <button onClick={() => updateLine(line.cardId, { quantity: Math.max(1, line.quantity - 1) })}
+                                  className="px-2.5 py-1 text-sm hover:bg-muted transition">−</button>
+                                <span className="px-3 text-sm font-medium min-w-[2rem] text-center">{line.quantity}</span>
+                                <button onClick={() => updateLine(line.cardId, { quantity: line.quantity + 1 })}
+                                  className="px-2.5 py-1 text-sm hover:bg-muted transition">+</button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
+
+              {allCards.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No cards available. Create a card first.</p>
+              )}
+
               <div className="p-3 rounded-xl text-xs" style={{ background: accentHex + '10', color: accentHex }}>
-                The back of your card will have your QR code linking to{' '}
-                <span className="font-bold">{cardUrl}</span>
+                Each card's back will have a QR code linking to that person's Cardtly page.
               </div>
-              <button onClick={() => setStep('shipping')} disabled={!nameOnCard}
+
+              <button onClick={() => setStep('shipping')}
+                disabled={includedLines.length === 0 || includedLines.some(l => !l.name.trim())}
                 className="w-full py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-40"
                 style={{ background: accentHex }}>
                 Continue to shipping
@@ -399,22 +585,26 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
                 <CreditCard className="w-4 h-4" />Order summary
               </h2>
 
-              {/* Order details */}
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Card colour</span>
-                  <span className="font-medium capitalize">{color}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Name on card</span>
-                  <span className="font-medium">{nameOnCard}</span>
-                </div>
-                {titleOnCard && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Job title</span>
-                    <span className="font-medium">{titleOnCard}</span>
-                  </div>
-                )}
+              {/* Line items */}
+              <div className="space-y-2">
+                {includedLines.map(line => {
+                  const c = allCards.find(ac => ac.id === line.cardId)
+                  return (
+                    <div key={line.cardId} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
+                      <div className={`w-7 h-7 rounded flex-shrink-0 flex items-center justify-center text-[10px] font-bold ${line.color === 'black' ? 'bg-gray-900 text-white' : 'bg-white text-gray-900 border border-gray-200'}`}>
+                        {line.color === 'black' ? '⬛' : '⬜'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{line.name}</p>
+                        {line.title && <p className="text-xs text-muted-foreground truncate">{line.title}</p>}
+                      </div>
+                      <span className="text-xs font-medium text-muted-foreground">x{line.quantity}</span>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="space-y-2 text-sm pt-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Deliver to</span>
                   <span className="font-medium text-right">{address}, {city}, {province}</span>
@@ -423,8 +613,8 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
 
               <div className="border-t border-border pt-4 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Quantity</span>
-                  <span>{quantity} card{quantity !== 1 ? 's' : ''}</span>
+                  <span className="text-muted-foreground">Total cards</span>
+                  <span>{totalQty} card{totalQty !== 1 ? 's' : ''}</span>
                 </div>
                 <div className="flex justify-between font-bold text-base border-t border-border pt-2 mt-2">
                   <span>Total</span>
@@ -447,7 +637,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
               </div>
 
               <p className="text-xs text-center text-muted-foreground">
-                📧 We will send you an invoice · Delivered within 5–7 business days after payment
+                📧 We will send you an invoice · Delivered within 5-7 business days after payment
               </p>
             </div>
           )}
