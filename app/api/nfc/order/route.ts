@@ -5,7 +5,7 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const ADMIN_EMAIL = 'info@yireh.co.za'
-const FROM_EMAIL = 'onboarding@resend.dev'
+const FROM_EMAIL = 'noreply@cardtly.com'
 
 function buildOrderRow(line: any): string {
   const name = line.nameOnCard || ''
