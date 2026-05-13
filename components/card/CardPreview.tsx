@@ -11,6 +11,18 @@ const THEME_COLORS: Record<string, string> = {
   gray: '#374151',
 }
 
+function getReadableTextOn(hex: string): string {
+  const h = hex.replace('#', '')
+  if (h.length !== 3 && h.length !== 6) return '#ffffff'
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h
+  const r = parseInt(full.slice(0, 2), 16) / 255
+  const g = parseInt(full.slice(2, 4), 16) / 255
+  const b = parseInt(full.slice(4, 6), 16) / 255
+  const toLin = (c: number) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+  const L = 0.2126 * toLin(r) + 0.7152 * toLin(g) + 0.0722 * toLin(b)
+  return L > 0.55 ? '#0a0a0a' : '#ffffff'
+}
+
 interface PreviewForm {
   name: string
   title: string
@@ -167,8 +179,8 @@ export default function CardPreview({ form, isPro }: Props) {
 
         {/* Save contact button */}
         <button
-          className="mt-5 w-full py-2.5 rounded-xl text-sm font-semibold text-white transition"
-          style={{ backgroundColor: accentColor }}
+          className="mt-5 w-full py-2.5 rounded-xl text-sm font-semibold transition"
+          style={{ backgroundColor: accentColor, color: getReadableTextOn(accentColor) }}
         >
           Save Contact
         </button>

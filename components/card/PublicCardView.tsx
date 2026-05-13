@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Card, extractLinks } from '@/types/database'
-import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getCardStyleEffect, TEXT_POSITION_TEMPLATES } from '@/types/design'
+import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, getCardStyleEffect, TEXT_POSITION_TEMPLATES } from '@/types/design'
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
@@ -190,8 +190,8 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
 
       <div className="mt-8 flex gap-3">
         <a href={`/api/vcf/${card.slug}`} download={`${card.name}.vcf`}
-          className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm text-white hover:opacity-90 transition"
-          style={{ backgroundColor: accentHex }}>
+          className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm hover:opacity-90 transition"
+          style={{ backgroundColor: accentHex, color: getReadableTextOn(accentHex) }}>
           <Download className="w-4 h-4" />Save Contact
         </a>
         <button onClick={handleShare}
@@ -275,7 +275,6 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
     { url: card.image_3_url, link: (card as any).image_3_link },
     { url: card.image_4_url, link: (card as any).image_4_link },
     { url: card.image_5_url, link: (card as any).image_5_link },
-    { url: (card as any).image_6_url, link: (card as any).image_6_link },
   ].filter(item => item.url) as { url: string; link?: string }[] : []
   const socialLinks = isPro ? [
     card.linkedin_url && { platform: 'LinkedIn', url: card.linkedin_url, icon: <Linkedin className="w-4 h-4" /> },

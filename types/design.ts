@@ -61,6 +61,20 @@ export function getAccentHex(design: CardDesign): string {
   return ACCENT_COLORS[design.accentColor as Exclude<AccentColor, 'custom'>]?.hex ?? '#3b82f6'
 }
 
+// Return black or white depending on which has better contrast against the given hex.
+// Uses the WCAG relative luminance formula.
+export function getReadableTextOn(hex: string): string {
+  const h = hex.replace('#', '')
+  if (h.length !== 3 && h.length !== 6) return '#ffffff'
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h
+  const r = parseInt(full.slice(0, 2), 16) / 255
+  const g = parseInt(full.slice(2, 4), 16) / 255
+  const b = parseInt(full.slice(4, 6), 16) / 255
+  const toLin = (c: number) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+  const L = 0.2126 * toLin(r) + 0.7152 * toLin(g) + 0.0722 * toLin(b)
+  return L > 0.55 ? '#0a0a0a' : '#ffffff'
+}
+
 export const FONTS: Record<FontId, { label: string; heading: string; body: string; sample: string }> = {
   sans:    { label: 'Clean',    heading: 'Inter, system-ui, sans-serif',      body: 'Inter, system-ui, sans-serif',      sample: 'Aa' },
   serif:   { label: 'Classic',  heading: 'Georgia, "Times New Roman", serif', body: 'Georgia, serif',                    sample: 'Aa' },
