@@ -241,7 +241,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
             ))}
           </div>
           <Certs />
-          <div style={{ marginTop: 12, padding: '10px 0', textAlign: 'center', fontSize: 11, fontWeight: 700, color: accentHex, border: `1px solid ${accentHex}`, letterSpacing: '0.1em', textTransform: 'uppercase' as any,
+          <div style={{ marginTop: 12, padding: '10px 0', textAlign: 'center', fontSize: 11, fontWeight: 700, color: design.buttonTextColor || accentHex, backgroundColor: design.buttonBgColor || 'transparent', border: `1px solid ${design.buttonBorderColor || accentHex}`, letterSpacing: '0.1em', textTransform: 'uppercase' as any,
             boxShadow: design.cardStyle === 'glass' ? `0 0 8px ${accentHex}44` : undefined }}>SAVE CONTACT</div>
         </div>
       </div>
@@ -427,7 +427,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
             ))}
           </div>
           <Certs />
-          <div style={{ marginTop: 12, padding: '10px 0', borderRadius: 8, textAlign: 'center', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: accentHex, border: `1px solid ${accentHex}`, boxShadow: neonBorder, fontFamily: font.heading, textTransform: 'uppercase' as any }}>SAVE CONTACT</div>
+          <div style={{ marginTop: 12, padding: '10px 0', borderRadius: 8, textAlign: 'center', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: design.buttonTextColor || accentHex, backgroundColor: design.buttonBgColor || 'transparent', border: `1px solid ${design.buttonBorderColor || accentHex}`, boxShadow: neonBorder, fontFamily: font.heading, textTransform: 'uppercase' as any }}>SAVE CONTACT</div>
         </div>
       </div>
     )
