@@ -4,6 +4,7 @@ import { useState } from 'react'
 import {
   TEMPLATES, ACCENT_COLORS, FONTS, CardDesign, TEXT_POSITION_TEMPLATES,
   AccentColor, FontId, LogoPosition, CardStyle, BgMode, getAccentHex,
+  getButtonBg, getButtonText,
 } from '@/types/design'
 import { Check, Lock, Sun, Moon, AlignLeft, AlignCenter, AlignRight, EyeOff, Pipette } from 'lucide-react'
 import Link from 'next/link'
@@ -150,6 +151,92 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
         <div className="flex items-center gap-2 mt-2">
           <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: currentAccentHex }} />
           <span className="text-xs text-muted-foreground font-mono">{currentAccentHex}</span>
+        </div>
+      </div>
+
+      {/* Save Contact button colours */}
+      <div>
+        <label className="block text-sm font-semibold mb-1">Save Contact button</label>
+        <p className="text-xs text-muted-foreground mb-3">Leave any field blank to use the automatic colour.</p>
+
+        <div className="space-y-2">
+          {/* Background */}
+          <div className="flex items-center gap-3 p-2.5 rounded-xl border border-border">
+            <input
+              type="color"
+              value={design.buttonBgColor || currentAccentHex}
+              onChange={e => update({ buttonBgColor: e.target.value })}
+              className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent flex-shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium">Background</p>
+              <p className="text-xs text-muted-foreground font-mono truncate">
+                {design.buttonBgColor || 'Auto (matches accent)'}
+              </p>
+            </div>
+            {design.buttonBgColor && (
+              <button onClick={() => update({ buttonBgColor: undefined })}
+                className="text-xs text-muted-foreground hover:text-foreground underline">
+                Reset
+              </button>
+            )}
+          </div>
+
+          {/* Text */}
+          <div className="flex items-center gap-3 p-2.5 rounded-xl border border-border">
+            <input
+              type="color"
+              value={design.buttonTextColor || '#ffffff'}
+              onChange={e => update({ buttonTextColor: e.target.value })}
+              className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent flex-shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium">Text</p>
+              <p className="text-xs text-muted-foreground font-mono truncate">
+                {design.buttonTextColor || 'Auto (readable contrast)'}
+              </p>
+            </div>
+            {design.buttonTextColor && (
+              <button onClick={() => update({ buttonTextColor: undefined })}
+                className="text-xs text-muted-foreground hover:text-foreground underline">
+                Reset
+              </button>
+            )}
+          </div>
+
+          {/* Border */}
+          <div className="flex items-center gap-3 p-2.5 rounded-xl border border-border">
+            <input
+              type="color"
+              value={design.buttonBorderColor || currentAccentHex}
+              onChange={e => update({ buttonBorderColor: e.target.value })}
+              className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent flex-shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium">Border</p>
+              <p className="text-xs text-muted-foreground font-mono truncate">
+                {design.buttonBorderColor || 'No border'}
+              </p>
+            </div>
+            {design.buttonBorderColor && (
+              <button onClick={() => update({ buttonBorderColor: undefined })}
+                className="text-xs text-muted-foreground hover:text-foreground underline">
+                Reset
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Preview */}
+        <div className="mt-3 p-3 rounded-xl bg-muted/40 flex items-center justify-center">
+          <div className="px-5 py-2.5 rounded-xl text-sm font-semibold"
+            style={{
+              backgroundColor: getButtonBg(design),
+              color: getButtonText(design),
+              border: design.buttonBorderColor ? `2px solid ${design.buttonBorderColor}` : 'none',
+            }}>
+            Save Contact
+          </div>
         </div>
       </div>
 

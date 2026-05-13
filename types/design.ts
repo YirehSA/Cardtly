@@ -24,6 +24,10 @@ export interface CardDesign {
   // Bold hero image controls
   boldImageZoom: number
   boldImagePosition: 'top' | 'center' | 'bottom'
+  // Save Contact button overrides (optional, blank = auto)
+  buttonBgColor?: string
+  buttonTextColor?: string
+  buttonBorderColor?: string
 }
 
 export const DEFAULT_DESIGN: CardDesign = {
@@ -40,6 +44,9 @@ export const DEFAULT_DESIGN: CardDesign = {
   textY: 0,
   boldImageZoom: 100,
   boldImagePosition: 'center',
+  buttonBgColor: undefined,
+  buttonTextColor: undefined,
+  buttonBorderColor: undefined,
 }
 
 export const ACCENT_COLORS: Record<Exclude<AccentColor, 'custom'>, { label: string; hex: string }> = {
@@ -73,6 +80,23 @@ export function getReadableTextOn(hex: string): string {
   const toLin = (c: number) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
   const L = 0.2126 * toLin(r) + 0.7152 * toLin(g) + 0.0722 * toLin(b)
   return L > 0.55 ? '#0a0a0a' : '#ffffff'
+}
+
+// Resolve the Save Contact button background. Falls back to accent if not set.
+export function getButtonBg(design: CardDesign): string {
+  if (design.buttonBgColor) return design.buttonBgColor
+  return getAccentHex(design)
+}
+
+// Resolve the button text colour. Falls back to readable text on the resolved background.
+export function getButtonText(design: CardDesign): string {
+  if (design.buttonTextColor) return design.buttonTextColor
+  return getReadableTextOn(getButtonBg(design))
+}
+
+// Resolve the button border colour. Returns null if not set (no border).
+export function getButtonBorder(design: CardDesign): string | null {
+  return design.buttonBorderColor || null
 }
 
 export const FONTS: Record<FontId, { label: string; heading: string; body: string; sample: string }> = {

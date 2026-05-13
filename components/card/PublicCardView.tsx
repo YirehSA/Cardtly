@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Card, extractLinks } from '@/types/database'
-import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, getCardStyleEffect, TEXT_POSITION_TEMPLATES } from '@/types/design'
+import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, TEXT_POSITION_TEMPLATES } from '@/types/design'
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
@@ -109,12 +109,15 @@ interface BottomProps {
   certifications: string[]
   galleryImages: { url: string; link?: string }[]
   accentHex: string
+  buttonBg: string
+  buttonText: string
+  buttonBorder: string | null
   bg: Shared['bg']
   cardEffect: Shared['cardEffect']
   handleShare: () => void
 }
 
-function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, bg, cardEffect, handleShare }: BottomProps) {
+function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, buttonBg, buttonText, buttonBorder, bg, cardEffect, handleShare }: BottomProps) {
   const [showContactForm, setShowContactForm] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -191,7 +194,11 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
       <div className="mt-8 flex gap-3">
         <a href={`/api/vcf/${card.slug}`} download={`${card.name}.vcf`}
           className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm hover:opacity-90 transition"
-          style={{ backgroundColor: accentHex, color: getReadableTextOn(accentHex) }}>
+          style={{
+            backgroundColor: buttonBg,
+            color: buttonText,
+            border: buttonBorder ? `2px solid ${buttonBorder}` : 'none',
+          }}>
           <Download className="w-4 h-4" />Save Contact
         </a>
         <button onClick={handleShare}
@@ -259,6 +266,9 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
   const font = FONTS[design.fontId]
   const bg = getBgColors(design.bgMode, design.templateId)
   const accentHex = getAccentHex(design)
+  const buttonBg = getButtonBg(design)
+  const buttonText = getButtonText(design)
+  const buttonBorder = getButtonBorder(design)
   const cardEffect = getCardStyleEffect(design.cardStyle, accentHex, bg.page)
   const textNudge = TEXT_POSITION_TEMPLATES.includes(design.templateId)
     ? { transform: `translate(${design.textX ?? 0}px, ${design.textY ?? 0}px)` }
@@ -295,7 +305,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
 
   // Shared prop bundles
   const shared: Shared = { card, isPro, accentHex, bg, font, cardEffect, design }
-  const bottomProps: BottomProps = { card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, bg, cardEffect, handleShare }
+  const bottomProps: BottomProps = { card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, buttonBg, buttonText, buttonBorder, bg, cardEffect, handleShare }
 
   const pageStyle: React.CSSProperties = { minHeight: '100vh', backgroundColor: bg.page, color: bg.text, fontFamily: font.body }
 

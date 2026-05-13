@@ -2,7 +2,8 @@
 
 import {
   CardDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight,
-  getAccentHex, getReadableTextOn, getCardStyleEffect, TEXT_POSITION_TEMPLATES
+  getAccentHex, getReadableTextOn, getButtonBg, getButtonText, getButtonBorder,
+  getCardStyleEffect, TEXT_POSITION_TEMPLATES
 } from '@/types/design'
 import { Phone, Mail, Globe, MessageCircle, ExternalLink, ChevronRight } from 'lucide-react'
 
@@ -19,6 +20,9 @@ interface Props { form: PreviewData; isPro: boolean; design: CardDesign }
 
 export default function TemplatedCardPreview({ form, isPro, design }: Props) {
   const accentHex = getAccentHex(design)
+  const buttonBg = getButtonBg(design)
+  const buttonText = getButtonText(design)
+  const buttonBorder = getButtonBorder(design)
   const font = FONTS[design.fontId]
   const bg = getBgColors(design.bgMode, design.templateId)
   const isLight = design.bgMode === 'light'
@@ -94,11 +98,13 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
       <div style={{
         marginTop: 12, padding: '10px 0', borderRadius: 12, textAlign: 'center',
         fontSize: 12, fontWeight: 700, fontFamily: font.heading,
-        color: outline ? accentHex : getReadableTextOn(accentHex),
-        backgroundColor: outline ? 'transparent' : accentHex,
-        border: outline ? `2px solid ${accentHex}` : 'none',
+        color: outline ? accentHex : buttonText,
+        backgroundColor: outline ? 'transparent' : buttonBg,
+        border: outline
+          ? `2px solid ${accentHex}`
+          : (buttonBorder ? `2px solid ${buttonBorder}` : 'none'),
         background: !outline && design.cardStyle === 'gradient'
-          ? `linear-gradient(135deg, ${accentHex}, ${accentHex}bb)`
+          ? `linear-gradient(135deg, ${buttonBg}, ${buttonBg}bb)`
           : undefined,
         boxShadow: design.cardStyle === 'glass' ? `0 0 12px ${accentHex}44` : undefined,
       }}>
@@ -295,8 +301,9 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           <LogoZone />
           {isPro && form.bio && <p style={{ fontSize: 11, color: bg.subtext, lineHeight: 1.5, marginBottom: 10 }}>{form.bio}</p>}
           <ContactList /><Certs />
-          <div style={{ marginTop: 12, padding: '10px 0', borderRadius: 12, textAlign: 'center', fontSize: 12, fontWeight: 700, color: getReadableTextOn(accentHex),
-            background: `linear-gradient(135deg, ${accentHex}, ${accentHex}aa)`,
+          <div style={{ marginTop: 12, padding: '10px 0', borderRadius: 12, textAlign: 'center', fontSize: 12, fontWeight: 700, color: buttonText,
+            background: `linear-gradient(135deg, ${buttonBg}, ${buttonBg}aa)`,
+            border: buttonBorder ? `2px solid ${buttonBorder}` : 'none',
             boxShadow: design.cardStyle === 'glass' ? `0 0 12px ${accentHex}66` : undefined }}>Save Contact</div>
         </div>
       </div>
@@ -372,7 +379,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
             {links.map(l => <span key={l.title} style={{ fontSize: 10, color: accentHex }}>{l.title}</span>)}
           </div>
           <Certs />
-          <div style={{ marginTop: 10, padding: '8px 0', borderRadius: 8, textAlign: 'center', fontSize: 11, fontWeight: 700, color: getReadableTextOn(accentHex), backgroundColor: accentHex }}>Save Contact</div>
+          <div style={{ marginTop: 10, padding: '8px 0', borderRadius: 8, textAlign: 'center', fontSize: 11, fontWeight: 700, color: buttonText, backgroundColor: buttonBg, border: buttonBorder ? `2px solid ${buttonBorder}` : 'none' }}>Save Contact</div>
         </div>
       </div>
     )
