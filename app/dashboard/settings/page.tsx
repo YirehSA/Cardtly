@@ -13,8 +13,8 @@ export default async function SettingsPage() {
   const plan = await getUserPlan(user.id)
 
   const [{ data: profile }, { data: card }] = await Promise.all([
-    supabase.from('profiles').select('name, avatar_url').eq('id', user.id).single(),
-    supabase.from('cards').select('id, slug').eq('user_id', user.id).eq('is_primary', true).single(),
+    supabase.from('profiles').select('name').eq('user_id', user.id).maybeSingle(),
+    supabase.from('cards').select('id, slug, name').eq('user_id', user.id).eq('is_primary', true).single(),
   ])
 
   const { data: sub } = await supabase
@@ -28,7 +28,7 @@ export default async function SettingsPage() {
   return (
     <SettingsTabs
       user={{ id: user.id, email: user.email || '' }}
-      profile={{ fullName: profile?.name || '' }}
+      profile={{ fullName: profile?.name || (card as any)?.name || '' }}
       plan={plan}
       subscription={sub || null}
       card={card || null}

@@ -14,7 +14,7 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [plan, { data: card }, { data: profile }] = await Promise.all([
+  const [plan, { data: card }] = await Promise.all([
     getUserPlan(user.id),
     supabase
       .from('cards')
@@ -22,7 +22,6 @@ export default async function DashboardPage() {
       .eq('user_id', user.id)
       .eq('is_primary', true)
       .single(),
-    supabase.from('profiles').select('full_name').eq('id', user.id).single(),
   ])
 
   const isPro = plan.tier === 'pro' && plan.isActive
@@ -44,7 +43,7 @@ export default async function DashboardPage() {
 
   const design = card ? parseDesign(card.color_theme) : null
   const accentHex = design ? getAccentHex(design) : '#3b82f6'
-  const firstName = (profile?.full_name || card?.name || 'there').split(' ')[0]
+  const firstName = (card?.name || 'there').split(' ')[0]
 
   const QUICK_ACTIONS = [
     { href: '/dashboard/card',        label: 'Edit Card',       icon: CreditCard, desc: 'Update your info & design' },

@@ -9,9 +9,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [plan, { data: profile }] = await Promise.all([
+  const [plan, { data: card }] = await Promise.all([
     getUserPlan(user.id),
-    supabase.from('profiles').select('name').eq('id', user.id).single(),
+    supabase.from('cards').select('name').eq('user_id', user.id).maybeSingle(),
   ])
 
   const isPro = plan.tier === 'pro' && plan.isActive
@@ -21,7 +21,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="min-h-screen bg-background">
         <Sidebar
           isPro={isPro}
-          userName={profile?.name || ''}
+          userName={card?.name || ''}
           userEmail={user.email || ''}
         />
         <main className="min-h-screen transition-all duration-300 lg:[padding-left:var(--sidebar-width)]">
