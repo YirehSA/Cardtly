@@ -82,15 +82,11 @@ export default function Sidebar({ isPro, userName, userEmail }: SidebarProps) {
 
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-6" style={{ borderBottom: '1px solid hsl(var(--sidebar-border))' }}>
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-sm"
-          style={{ background: 'hsl(var(--sidebar-accent))' }}
-        >
-          C
-        </div>
-        <span className="font-black text-base tracking-tight" style={{ color: 'hsl(var(--sidebar-active))' }}>
-          Cardtly
-        </span>
+        <img
+          src="/cardtly-logo.png"
+          alt="Cardtly"
+          className="h-8 w-auto"
+        />
         {isPro && (
           <span
             className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
