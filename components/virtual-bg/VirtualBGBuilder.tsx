@@ -472,8 +472,10 @@ export default function VirtualBGBuilder({ cards, defaultCardId }: Props) {
                   <button
                     onClick={() => !disabled && set(!enabled)}
                     disabled={disabled}
-                    className={`relative flex-shrink-0 w-10 h-5 rounded-full transition-colors ${enabled && !disabled ? 'bg-blue-500' : 'bg-muted'}`}>
-                    <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${enabled && !disabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    role="switch"
+                    aria-checked={enabled}
+                    className={`relative flex-shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors ${enabled && !disabled ? 'bg-blue-500' : 'bg-muted'} ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${enabled && !disabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
                   </button>
                 </div>
               ))}
