@@ -48,14 +48,15 @@ function LogoZone({ card, design, accentHex }: Pick<Shared, 'card' | 'design' | 
 function Avatar({ card, bg, accentHex, font, design, size = 112, rounded = 'full', extraStyle = {} }: Pick<Shared, 'card' | 'bg' | 'accentHex' | 'font' | 'design'> & {
   size?: number; rounded?: string; extraStyle?: React.CSSProperties
 }) {
+  const scaledSize = calcPhotoSize(size, design)
   const borderRadius = rounded === 'full' ? '50%' : rounded === 'xl' ? 18 : 12
   const baseStyle: React.CSSProperties = {
-    width: size, height: size, objectFit: 'cover', flexShrink: 0,
+    width: scaledSize, height: scaledSize, objectFit: 'cover', flexShrink: 0,
     borderRadius, border: `4px solid ${bg.page}`, ...extraStyle,
   }
   if (card.profile_image_url) return <img src={card.profile_image_url} style={baseStyle} />
   return (
-    <div style={{ ...baseStyle, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.36, fontWeight: 700, fontFamily: font.heading }}>
+    <div style={{ ...baseStyle, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: scaledSize * 0.36, fontWeight: 700, fontFamily: font.heading }}>
       {card.name?.[0]?.toUpperCase()}
     </div>
   )
@@ -491,11 +492,16 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
         <div className="max-w-md mx-auto px-6 py-8 relative">
           <div className="mb-5" style={{ position: 'relative', zIndex: 2 }}>
             <div style={{ display: 'inline-block', padding: 4, borderRadius: '50%', background: `linear-gradient(135deg, ${accentHex}, ${accentHex}55)` }}>
-              <div style={{ borderRadius: '50%', overflow: 'hidden', width: 96, height: 96, border: `4px solid ${bg.page}` }}>
-                {card.profile_image_url
-                  ? <img src={card.profile_image_url} style={{ width: 96, height: 96, objectFit: 'cover' }} />
-                  : <div style={{ width: 96, height: 96, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, fontWeight: 700 }}>{card.name?.[0]?.toUpperCase()}</div>}
-              </div>
+              {(() => {
+                const photoSize = calcPhotoSize(96, design)
+                return (
+                  <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, border: `4px solid ${bg.page}` }}>
+                    {card.profile_image_url
+                      ? <img src={card.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
+                      : <div style={{ width: photoSize, height: photoSize, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.33, fontWeight: 700 }}>{card.name?.[0]?.toUpperCase()}</div>}
+                  </div>
+                )
+              })()}
             </div>
           </div>
           <h1 className="text-2xl font-bold leading-tight" style={{ fontFamily: font.heading }}>{card.name}</h1>
@@ -595,11 +601,16 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
         <div className="max-w-md mx-auto px-6 py-8">
           <div className="flex items-center gap-4 mb-4" style={{ position: 'relative', zIndex: 2 }}>
             <div style={{ borderRadius: '50%', padding: 3, background: `linear-gradient(135deg, ${accentHex}, ${accentHex}44)`, boxShadow: glow, flexShrink: 0 }}>
-              <div style={{ borderRadius: '50%', overflow: 'hidden', width: 80, height: 80, backgroundColor: '#0a0a1a' }}>
-                {card.profile_image_url
-                  ? <img src={card.profile_image_url} style={{ width: 80, height: 80, objectFit: 'cover' }} />
-                  : <div style={{ width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: accentHex }}>{card.name?.[0]?.toUpperCase()}</div>}
-              </div>
+              {(() => {
+                const photoSize = calcPhotoSize(80, design)
+                return (
+                  <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, backgroundColor: '#0a0a1a' }}>
+                    {card.profile_image_url
+                      ? <img src={card.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
+                      : <div style={{ width: photoSize, height: photoSize, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700, color: accentHex }}>{card.name?.[0]?.toUpperCase()}</div>}
+                  </div>
+                )
+              })()}
             </div>
             <div className="flex-1 min-w-0" style={textNudge}>
               <h1 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700, fontFamily: font.heading, color: '#e8e8ff' }}>{card.name}</h1>
