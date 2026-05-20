@@ -22,6 +22,32 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Android App Links: claim cardtly.com URLs so taps on NFC
+                 tags, deep links, and shared links open the Cardtly app
+                 instead of the browser. autoVerify=true makes Android
+                 verify against the assetlinks.json hosted at
+                 https://cardtly.com/.well-known/assetlinks.json on first
+                 install. If verification fails, Android falls back to
+                 the chooser dialog. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="cardtly.com" />
+                <data android:host="www.cardtly.com" />
+            </intent-filter>
+
+            <!-- NFC tag dispatch: when an NDEF tag with a cardtly.com URL
+                 is tapped while the app is installed, deliver the tag's
+                 URL directly to MainActivity rather than the browser. -->
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="https" android:host="cardtly.com" />
+                <data android:scheme="https" android:host="www.cardtly.com" />
+            </intent-filter>
+
         </activity>
 
         <provider
