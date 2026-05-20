@@ -36,7 +36,9 @@ const config: CapacitorConfig = {
   },
   android: {
     allowMixedContent: false,
-    captureInput: true,
+    // captureInput intentionally omitted (default false). When true, the
+    // native Activity consumes touch events instead of forwarding them
+    // to the WebView, which makes the entire app unresponsive to taps.
     // Enable Chrome remote DevTools against the WebView for debugging.
     // Safe to leave on for early releases; flip to false before final
     // Play Store production builds.
