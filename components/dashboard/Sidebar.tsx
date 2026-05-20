@@ -85,7 +85,7 @@ export default function Sidebar({ isPro, userName, userEmail }: SidebarProps) {
         <img
           src="/cardtly-logo.png"
           alt="Cardtly"
-          className="h-12 w-auto"
+          className="h-14 w-auto"
         />
         {isPro && (
           <span
