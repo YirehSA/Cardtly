@@ -11,6 +11,7 @@ import DesignPanel from './DesignPanel'
 import ProGate from './ProGate'
 import ImageUploader from './ImageUploader'
 import { Save, ExternalLink, Lock, User, Phone, Link2, Image, Palette, Copy, Check } from 'lucide-react'
+import { isNativeApp } from '@/lib/capacitor'
 
 interface Props {
   card: Card | null
@@ -142,7 +143,10 @@ export default function CardEditor({ card, plan, userId }: Props) {
             <h1 className="font-display text-xl font-bold">My Card</h1>
             {cardUrl && (
               <div className="flex items-center gap-2 flex-wrap">
-                <a href={cardUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+                <a
+                  href={cardUrl}
+                  {...(isNativeApp() ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
                   cardtly.com{cardUrl} <ExternalLink className="w-3 h-3" />
                 </a>
                 <button onClick={copyLink} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border border-border text-muted-foreground hover:text-foreground transition">
@@ -317,7 +321,10 @@ export default function CardEditor({ card, plan, userId }: Props) {
             <TemplatedCardPreview form={form} isPro={pro} design={design} />
           </div>
           {cardUrl && (
-            <a href={cardUrl} target="_blank" rel="noopener noreferrer" className="mt-3 flex items-center justify-center gap-2 w-full border border-border rounded-xl py-2.5 text-sm font-medium hover:bg-muted transition">
+            <a
+              href={cardUrl}
+              {...(isNativeApp() ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+              className="mt-3 flex items-center justify-center gap-2 w-full border border-border rounded-xl py-2.5 text-sm font-medium hover:bg-muted transition">
               <ExternalLink className="w-4 h-4" />View live card
             </a>
           )}
