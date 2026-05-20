@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
 import NFCOrderPage from '@/components/nfc/NFCOrderPage'
+import NFCWriteCard from '@/components/nfc/NFCWriteCard'
 import ProGate from '@/components/card/ProGate'
 
 export const metadata = { title: 'NFC Cards' }
@@ -58,12 +59,20 @@ export default async function NFCPage() {
         .order('name')
     : { data: [] }
 
+  const cardUrl = (card as any)?.slug
+    ? `https://cardtly.com/${(card as any).slug}`
+    : 'https://cardtly.com'
+  const cardName = (card as any)?.name || ''
+
   return (
-    <NFCOrderPage
-      card={card}
-      user={{ id: user.id, email: user.email || '' }}
-      previousOrders={orders || []}
-      teamCards={teamCards || []}
-    />
+    <>
+      <NFCWriteCard cardUrl={cardUrl} cardName={cardName} />
+      <NFCOrderPage
+        card={card}
+        user={{ id: user.id, email: user.email || '' }}
+        previousOrders={orders || []}
+        teamCards={teamCards || []}
+      />
+    </>
   )
 }
