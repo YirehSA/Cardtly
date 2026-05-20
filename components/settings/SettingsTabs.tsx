@@ -361,11 +361,20 @@ function DangerTab({ user, supabase, router }: { user: Props['user']; supabase: 
       return
     }
     setDeleting(true)
-    // Sign out first, then the account would need a server action to fully delete
-    // For now sign out and show a message — full deletion requires admin API
-    await supabase.auth.signOut()
-    toast.success('Signed out. Contact support to fully delete your account.')
-    router.push('/')
+    try {
+      const res = await fetch('/api/account/delete', { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || 'Deletion failed')
+      }
+      await supabase.auth.signOut()
+      toast.success('Your account and all associated data have been deleted.')
+      router.push('/')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Could not delete account. Please try again or email andre@cardtly.com.'
+      toast.error(message)
+      setDeleting(false)
+    }
   }
 
   return (
