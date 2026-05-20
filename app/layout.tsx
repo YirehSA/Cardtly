@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Plus_Jakarta_Sans, Syne } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'sonner'
+import CapacitorBackButton from '@/components/CapacitorBackButton'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans antialiased bg-background text-foreground">
         {children}
         <Toaster position="top-right" richColors />
+        <CapacitorBackButton />
       </body>
     </html>
   )
