@@ -38,4 +38,15 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Contacts plugin: needed for the Save Contact button to write the
+         card directly to the user's phone address book. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+
+    <!-- NFC plugin: needed to read and write Cardtly NFC tags. Marked as
+         optional so the app still installs on devices without NFC hardware
+         (cardtly.com browsing still works without it). -->
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-feature android:name="android.hardware.nfc" android:required="false" />
 </manifest>

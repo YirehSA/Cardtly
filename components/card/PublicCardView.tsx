@@ -9,6 +9,7 @@ import {
   Instagram, Linkedin, Twitter
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
 
 interface Props {
   card: Card & { _team_card_id?: string }
@@ -193,7 +194,33 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
       )}
 
       <div className="mt-8 flex gap-3">
-        <a href={`/api/vcf/${card.slug}`} download={`${card.name}.vcf`}
+        <button onClick={async (e) => {
+          // In the Cardtly Android app: use the native Contacts API to add
+          // directly to the device address book. On the web: fall through to
+          // the vCard download href.
+          if (isNativeApp()) {
+            e.preventDefault()
+            try {
+              await saveContactNative({
+                name: card.name,
+                title: card.title,
+                company: card.company,
+                email: card.email,
+                phone: card.phone,
+                whatsapp: card.whatsapp,
+                website: card.website,
+                address: card.address,
+              })
+              toast.success('Saved to contacts')
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : 'Could not save contact'
+              toast.error(msg)
+            }
+            return
+          }
+          // Web fallback: navigate to the vCard download endpoint
+          window.location.href = `/api/vcf/${card.slug}`
+        }}
           className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm hover:opacity-90 transition"
           style={{
             backgroundColor: buttonBg,
@@ -201,7 +228,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
             border: buttonBorder ? `2px solid ${buttonBorder}` : 'none',
           }}>
           <Download className="w-4 h-4" />Save Contact
-        </a>
+        </button>
         <button onClick={handleShare}
           className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl font-semibold text-sm hover:opacity-80 transition"
           style={{ border: `1px solid ${bg.border}`, color: bg.text }}>
@@ -296,11 +323,15 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
 
   async function handleShare() {
     const url = window.location.href
-    if (navigator.share) {
-      await navigator.share({ title: `${card.name} — Digital Business Card`, url })
-    } else {
-      await navigator.clipboard.writeText(url)
-      toast.success('Link copied')
+    const title = `${card.name} - Digital Business Card`
+    try {
+      await shareNative({ title, url, dialogTitle: 'Share card' })
+      if (!isNativeApp() && !('share' in navigator)) {
+        toast.success('Link copied')
+      }
+    } catch (err) {
+      console.warn('Share failed', err)
+      toast.error('Could not share')
     }
   }
 
