@@ -75,4 +75,10 @@
          (cardtly.com browsing still works without it). -->
     <uses-permission android:name="android.permission.NFC" />
     <uses-feature android:name="android.hardware.nfc" android:required="false" />
+
+    <!-- Biometric plugin: USE_BIOMETRIC is the modern Android 9+ permission;
+         USE_FINGERPRINT is the legacy fallback so older devices still work.
+         Both are non-dangerous and don't trigger runtime permission prompts. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
 </manifest>

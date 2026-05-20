@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { disableBiometric } from '@/lib/biometric'
 
 const NAV = [
   { href: '/dashboard',             label: 'Overview',    icon: Home },
@@ -38,6 +39,9 @@ export default function Sidebar({ isPro, userName, userEmail }: SidebarProps) {
   const supabase = createClient()
 
   async function signOut() {
+    // Clear any stored biometric credentials so the next user on this
+    // device can't accidentally biometric-restore the previous session.
+    try { await disableBiometric() } catch {}
     await supabase.auth.signOut()
     router.push('/login')
   }
