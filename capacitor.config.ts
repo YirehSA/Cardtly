@@ -16,14 +16,31 @@ const config: CapacitorConfig = {
   appName: 'Cardtly',
   webDir: 'public',
   server: {
-    url: 'https://cardtly.com',
+    // Use the canonical URL Vercel serves so we avoid the cardtly.com to
+    // www.cardtly.com redirect entirely. Capacitor's bridge survives the
+    // initial load cleaner this way.
+    url: 'https://www.cardtly.com',
     cleartext: false,
-    androidScheme: 'https',
+    // androidScheme intentionally omitted — only needed for local-bundle
+    // builds. With server.url set, leaving this default avoids confusing
+    // Capacitor about whether to load local content at https://localhost
+    // versus the remote URL.
+    allowNavigation: [
+      'cardtly.com',
+      'www.cardtly.com',
+      '*.cardtly.com',
+      '*.supabase.co',
+      '*.paystack.com',
+      'checkout.paystack.com',
+    ],
   },
   android: {
     allowMixedContent: false,
     captureInput: true,
-    webContentsDebuggingEnabled: false,
+    // Enable Chrome remote DevTools against the WebView for debugging.
+    // Safe to leave on for early releases; flip to false before final
+    // Play Store production builds.
+    webContentsDebuggingEnabled: true,
   },
   plugins: {
     // NFC, Contacts, Share plugins added in the next task
