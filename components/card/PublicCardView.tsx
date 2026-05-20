@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
+import InAppBackButton from '@/components/InAppBackButton'
 
 interface Props {
   card: Card & { _team_card_id?: string }
@@ -344,6 +345,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
   if (design.templateId === 'classic') {
     return (
       <div style={pageStyle}>
+        <InAppBackButton bgMode={design.bgMode} />
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
@@ -372,6 +374,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
     return (
       <div style={pageStyle}>
         <div style={{ height: 6, background: `linear-gradient(90deg, ${accentHex}, ${accentHex}44)` }} />
+        <InAppBackButton bgMode={design.bgMode} />
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
@@ -405,6 +408,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
         : accentHex
     return (
       <div style={pageStyle}>
+        <InAppBackButton bgMode={design.bgMode} />
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
           <Share2 className="w-4 h-4 text-white" />
         </button>
@@ -443,6 +447,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
     const lineColor = isLight ? '#d4cdc4' : '#2a2a2a'
     return (
       <div style={{ ...pageStyle, backgroundColor: cream }}>
+        <InAppBackButton bgMode={design.bgMode} />
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)' }}>
           <Share2 className="w-4 h-4" style={{ color: ink }} />
         </button>
@@ -481,6 +486,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
   if (design.templateId === 'executive') {
     return (
       <div style={{ ...pageStyle, backgroundColor: '#09090b' }}>
+        <InAppBackButton bgMode={design.bgMode} />
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
           <Share2 className="w-4 h-4 text-white" />
         </button>
@@ -517,6 +523,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
       <div style={{ ...pageStyle, overflow: 'hidden', position: 'relative' }}>
         <div style={{ position: 'fixed', top: -80, right: -80, width: 300, height: 300, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}44 0%, transparent 70%)`, pointerEvents: 'none' }} />
         <div style={{ position: 'fixed', bottom: -60, left: -60, width: 200, height: 200, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}33 0%, transparent 70%)`, pointerEvents: 'none' }} />
+        <InAppBackButton bgMode={design.bgMode} />
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
@@ -555,6 +562,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
         : `linear-gradient(135deg, ${accentHex}44 0%, ${bg.page} 100%)`
     return (
       <div style={pageStyle}>
+        <InAppBackButton bgMode={design.bgMode} />
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
@@ -593,6 +601,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
         : accentHex
     return (
       <div style={{ ...pageStyle, display: 'flex', minHeight: '100vh' }}>
+        <InAppBackButton bgMode={design.bgMode} />
         <div style={{ width: 80, flexShrink: 0, background: sidebarBg, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 8px', gap: 16, position: 'fixed', top: 0, bottom: 0, left: 0 }}>
           <Avatar {...shared} size={60} rounded="full" extraStyle={{ border: '3px solid rgba(255,255,255,0.3)' }} />
           <div style={{ width: '60%', height: 1, backgroundColor: 'rgba(255,255,255,0.3)' }} />
@@ -626,6 +635,7 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
     const glow = `0 0 12px ${accentHex}66`
     return (
       <div style={{ ...pageStyle, backgroundColor: '#050510' }}>
+        <InAppBackButton bgMode={design.bgMode} />
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ border: `1px solid ${accentHex}44`, backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <Share2 className="w-4 h-4" style={{ color: accentHex }} />
         </button>
