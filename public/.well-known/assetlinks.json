@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "com.cardtly.app",
       "sha256_cert_fingerprints": [
-        "F6:2A:C7:35:40:7D:6E:AD:77:E4:3F:C5:4A:4C:4E:DB:E2:E8:3C:50:D2:13:A5:FC:B2:FB:77:AB:18:26:A6:BB"
+        "F6:2A:C7:35:40:7D:6E:AD:77:E4:3F:C5:4A:4C:4E:DB:E2:E8:3C:50:D2:13:A5:FC:B2:FB:77:AB:18:26:A6:BB",
+        "96:9A:FD:34:89:A8:6A:62:D6:F4:DD:68:8A:6B:BF:49:22:FD:A3:57:01:DF:33:03:2F:30:9A:17:F8:00:5D:8D"
       ]
     }
   }
