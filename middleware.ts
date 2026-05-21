@@ -55,5 +55,16 @@ export const config = {
     '/dashboard/:path*',
     '/login',
     '/signup',
+    // Refresh the Supabase session on authenticated API routes so
+    // long-running tabs don't hit "Unauthorized" when their access
+    // token quietly expires. Public endpoints (og, track-signup,
+    // bookings/request) are listed by negation pattern below.
+    '/api/team/:path*',
+    '/api/admin/:path*',
+    '/api/account/:path*',
+    '/api/slug/:path*',
+    '/api/heartbeat/:path*',
+    '/api/ai/:path*',
+    '/api/nfc/:path*',
   ],
 }
