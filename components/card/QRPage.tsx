@@ -1,39 +1,82 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { UserPlan } from '@/types/database'
 import { isPro } from '@/lib/plan'
 import { Download, Share2, Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
+interface CardOption {
+  id: string
+  slug: string
+  name: string
+  profile_image_url?: string | null
+  company_logo_url?: string | null
+  color_theme?: string | null
+  _label?: string
+}
+
 interface Props {
-  card: {
-    slug: string
-    name: string
-    profile_image_url: string | null
-    company_logo_url: string | null
-    color_theme: string | null
-  }
+  cards: CardOption[]
+  defaultCardId: string
   plan: UserPlan
 }
 
 type LogoChoice = 'cardtly' | 'own' | 'none'
 type LogoShape = 'circle' | 'square' | 'rectangle'
 
+const STORAGE_KEY = 'cardtly:qr-prefs'
+
+interface QrPrefs {
+  selectedId?: string
+  logoChoice?: LogoChoice
+  logoShape?: LogoShape
+}
+
+function loadPrefs(): QrPrefs {
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+function savePrefs(p: QrPrefs) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(p))
+  } catch {}
+}
+
 export default function QRPage({ cards, defaultCardId, plan }: Props) {
-  const [selectedId, setSelectedId] = useState(defaultCardId)
+  // Restore the last-used card + logo choice + shape from localStorage so
+  // returning to the QR page picks up where the user left off. Falls
+  // back to defaults if no prefs are stored yet or the saved card ID
+  // is no longer valid (e.g. card was deleted).
+  const initial = useMemo(() => loadPrefs(), [])
+  const [selectedId, setSelectedId] = useState(() => {
+    if (initial.selectedId && cards.find(c => c.id === initial.selectedId)) return initial.selectedId
+    return defaultCardId
+  })
   const card = cards.find(c => c.id === selectedId) || cards[0]
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [copied, setCopied] = useState(false)
   const [qrReady, setQrReady] = useState(false)
-  const [logoChoice, setLogoChoice] = useState<LogoChoice>('cardtly')
-  const [logoShape, setLogoShape] = useState<LogoShape>('square')
+  const [logoChoice, setLogoChoice] = useState<LogoChoice>(initial.logoChoice || 'cardtly')
+  const [logoShape, setLogoShape] = useState<LogoShape>(initial.logoShape || 'square')
   const [generating, setGenerating] = useState(false)
   const pro = isPro(plan)
   const hasOwnLogo = !!card.company_logo_url
 
   const cardUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://cardtly.com'}/card/${card.slug}`
+
+  // Persist prefs to localStorage whenever any of the saved fields change
+  useEffect(() => {
+    savePrefs({ selectedId, logoChoice, logoShape })
+  }, [selectedId, logoChoice, logoShape])
 
   // Regenerate QR whenever logo choice changes
   useEffect(() => {
@@ -214,15 +257,44 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
   }
 
   async function shareCard() {
-    if (navigator.share) {
-      await navigator.share({
-        title: `${card.name} — Digital Business Card`,
-        text: `Connect with ${card.name} on Cardtly`,
-        url: cardUrl,
-      })
-    } else {
-      copyLink()
+    const canvas = canvasRef.current
+    const title = `${card.name} - Digital Business Card`
+    const text = `Connect with ${card.name} on Cardtly`
+
+    // Try to share the QR image itself first. Most modern mobile
+    // browsers and the Cardtly Android app's WebView support Web Share
+    // API Level 2 which accepts a `files` array. WhatsApp, Messages,
+    // Gmail etc. show the image alongside the link.
+    if (canvas && typeof navigator !== 'undefined' && 'canShare' in navigator) {
+      try {
+        const blob = await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob((b) => resolve(b), 'image/png')
+        })
+        if (blob) {
+          const file = new File([blob], `${card.name.replace(/\s+/g, '-')}-qr.png`, { type: 'image/png' })
+          const sharePayload = { title, text, url: cardUrl, files: [file] }
+          // canShare returns true only when files are actually shareable
+          // on this device. If false, fall through to URL-only.
+          if ((navigator as Navigator & { canShare?: (d: ShareData & { files?: File[] }) => boolean }).canShare?.(sharePayload)) {
+            await navigator.share(sharePayload)
+            return
+          }
+        }
+      } catch (err) {
+        // Sharing failed or was cancelled. Fall through to URL-only.
+        console.warn('Image share failed, falling back to URL', err)
+      }
     }
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ title, text, url: cardUrl })
+        return
+      } catch {
+        // User cancelled, do nothing
+      }
+    }
+    copyLink()
   }
 
   return (

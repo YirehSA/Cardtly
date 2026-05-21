@@ -64,7 +64,7 @@ export default async function NFCPage() {
     <>
       <NFCWriteCard cardUrl={cardUrl} cardName={cardName} />
       <NFCOrderPage
-        card={card}
+        card={card as any}
         user={{ id: user.id, email: user.email || '' }}
         previousOrders={orders || []}
         teamCards={teamCards || []}

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { RotateCw, QrCode } from 'lucide-react'
 import QRCode from 'qrcode'
 import TemplatedCardPreview from './TemplatedCardPreview'
+import Tilt from '../Tilt'
 import { CardDesign, getAccentHex } from '@/types/design'
 
 interface PreviewData {
@@ -56,7 +57,7 @@ export default function FlippableCardPreview({ form, isPro, design, cardUrl }: P
   }, [cardUrl])
 
   return (
-    <div className={`flip-card relative ${flipped ? 'flipped' : ''}`} style={{ minHeight: 500 }}>
+    <Tilt max={flipped ? 0 : 6} shine={!flipped} className={`flip-card relative ${flipped ? 'flipped' : ''}`}>
       <div className="flip-card-inner" style={{ minHeight: 500 }}>
         {/* Front */}
         <div className="flip-card-face rounded-2xl overflow-hidden shadow-2xl border border-gray-800"
@@ -97,6 +98,6 @@ export default function FlippableCardPreview({ form, isPro, design, cardUrl }: P
         style={{ background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.15)' }}>
         <RotateCw className="w-4 h-4 text-white" />
       </button>
-    </div>
+    </Tilt>
   )
 }

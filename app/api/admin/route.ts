@@ -206,5 +206,33 @@ export async function POST(request: Request) {
     }
   }
 
+  // Post or update the single active announcement banner shown to all
+  // logged-in users on the dashboard. Sets is_active=false on every
+  // existing row first so only one is shown at a time.
+  if (action === 'post_announcement') {
+    const { message, link_url, link_text, variant } = body
+    if (!message || typeof message !== 'string') {
+      return NextResponse.json({ error: 'message required' }, { status: 400 })
+    }
+    await admin.from('app_announcements').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000')
+    const { error: insertError } = await admin.from('app_announcements').insert({
+      message,
+      link_url: link_url || null,
+      link_text: link_text || null,
+      variant: variant || 'info',
+      is_active: true,
+    })
+    if (insertError) {
+      return NextResponse.json({ error: insertError.message }, { status: 500 })
+    }
+    return NextResponse.json({ success: true })
+  }
+
+  // Clear the active announcement so no banner shows
+  if (action === 'clear_announcement') {
+    await admin.from('app_announcements').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000')
+    return NextResponse.json({ success: true })
+  }
+
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
 }

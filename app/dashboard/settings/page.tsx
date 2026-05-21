@@ -38,7 +38,7 @@ export default async function SettingsPage() {
       profile={{ fullName: profile?.name || (card as any)?.name || '' }}
       plan={plan}
       subscription={sub || null}
-      card={card || null}
+      card={(card as any) || null}
     />
   )
 }

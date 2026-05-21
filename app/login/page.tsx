@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import { ArrowRight, Wifi, Fingerprint, Eye, EyeOff } from 'lucide-react'
+import { ArrowRight, Wifi, Fingerprint, Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import { getBiometricStatus, hasBiometricEnabled, signInWithBiometric, enableBiometric } from '@/lib/biometric'
 
 const schema = z.object({
@@ -36,6 +36,8 @@ function LoginForm() {
   const [showBiometricButton, setShowBiometricButton] = useState(false)
   const [biometricBusy, setBiometricBusy] = useState(false)
   const [postLoginPrompt, setPostLoginPrompt] = useState<{ email: string; refreshToken: string } | null>(null)
+  const [magicMode, setMagicMode] = useState(false)
+  const [magicSent, setMagicSent] = useState<string | null>(null)
   const supabase = createClient()
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
@@ -82,7 +84,26 @@ function LoginForm() {
     }
   }
 
+  async function sendMagicLink(email: string) {
+    setLoading(true)
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+    })
+    if (error) {
+      toast.error(error.message)
+      setLoading(false)
+      return
+    }
+    setMagicSent(email)
+    setLoading(false)
+  }
+
   async function onSubmit(data: FormData) {
+    if (magicMode) {
+      await sendMagicLink(data.email)
+      return
+    }
     setLoading(true)
     const { data: authData, error } = await supabase.auth.signInWithPassword({
       email: data.email,
@@ -127,6 +148,28 @@ function LoginForm() {
   }
 
   const inputClass = "w-full px-4 py-3 rounded-xl border border-white/10 bg-white/08 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-white/30 focus:bg-white/12 transition"
+
+  // Magic link sent confirmation
+  if (magicSent) {
+    return (
+      <div className="space-y-6 text-center">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
+          style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(124,58,237,0.2))' }}>
+          <Mail className="w-8 h-8" style={{ color: '#00d4ff' }} />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-white mb-2">Check your email</h2>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            We sent a magic link to <span className="font-semibold text-white">{magicSent}</span>. Click it to sign in instantly.
+          </p>
+        </div>
+        <button onClick={() => { setMagicSent(null); setMagicMode(false) }}
+          className="text-sm font-medium text-white/60 hover:text-white transition">
+          Use a different email
+        </button>
+      </div>
+    )
+  }
 
   // Post-login prompt asking the user to enable biometric login
   if (postLoginPrompt) {
@@ -185,6 +228,7 @@ function LoginForm() {
         {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
       </div>
 
+      {!magicMode && (
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="block text-sm font-medium text-white/70">Password</label>
@@ -203,11 +247,25 @@ function LoginForm() {
         </div>
         {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
       </div>
+      )}
 
       <button type="submit" disabled={loading}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50 mt-2"
         style={{ background: grad, boxShadow: '0 8px 32px rgba(124,58,237,0.35)' }}>
-        {loading ? 'Signing in...' : <><span>Sign in</span><ArrowRight className="w-4 h-4" /></>}
+        {loading
+          ? (magicMode ? 'Sending link...' : 'Signing in...')
+          : (
+            <>
+              <span>{magicMode ? 'Send magic link' : 'Sign in'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
+      </button>
+
+      <button type="button" onClick={() => setMagicMode(m => !m)}
+        className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-medium text-white/50 hover:text-white transition">
+        {magicMode ? <Lock className="w-3.5 h-3.5" /> : <Mail className="w-3.5 h-3.5" />}
+        {magicMode ? 'Use password instead' : 'Email me a magic link instead'}
       </button>
     </form>
   )

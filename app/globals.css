@@ -208,4 +208,15 @@
   .theme-transition * {
     transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease;
   }
+
+  /* Page-level fade-in used when navigating between dashboard routes.
+     Subtler than .animate-fade-up so it doesn't feel disruptive on
+     every click. */
+  @keyframes fade-in-page {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in-page {
+    animation: fade-in-page 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
 }

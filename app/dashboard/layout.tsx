@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
 import { ThemeProvider } from '@/components/dashboard/ThemeProvider'
 import Sidebar from '@/components/dashboard/Sidebar'
+import CommandPalette from '@/components/CommandPalette'
+import AnnouncementBanner from '@/components/AnnouncementBanner'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -26,9 +28,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
         />
         <main className="min-h-screen transition-all duration-300 lg:[padding-left:var(--sidebar-width)]">
           <div className="max-w-6xl mx-auto px-4 sm:px-8 pt-16 lg:pt-10 pb-10">
-            {children}
+            <AnnouncementBanner />
+            <div className="animate-fade-in-page">
+              {children}
+            </div>
           </div>
         </main>
+        <CommandPalette />
       </div>
     </ThemeProvider>
   )

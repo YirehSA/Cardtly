@@ -40,6 +40,14 @@ export default async function AdminPage() {
     admin.from('profiles').select('user_id, signup_country, signup_country_code, signup_city, signup_region, signup_ip'),
   ])
 
+  const { data: activeAnnouncement } = await admin
+    .from('app_announcements')
+    .select('id, message, link_url, link_text, variant, created_at')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
   const users = authUsers?.users || []
   const subMap = Object.fromEntries((subscriptions || []).map((s: any) => [s.user_id, s]))
   const orgMap = Object.fromEntries((orgs || []).map((o: any) => [o.admin_user_id, o]))
@@ -79,6 +87,7 @@ export default async function AdminPage() {
       orgs={orgs || []}
       nfcOrders={nfcOrders || []}
       stats={stats}
+      announcement={activeAnnouncement || null}
     />
   )
 }

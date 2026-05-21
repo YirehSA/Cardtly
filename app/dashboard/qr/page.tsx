@@ -61,8 +61,8 @@ export default async function QRCodePage() {
 
   return (
     <QRPage
-      cards={allCards}
-      defaultCardId={personalCard?.id || allCards[0].id}
+      cards={allCards as any}
+      defaultCardId={(personalCard?.id as string) || (allCards[0] as any).id}
       plan={plan}
     />
   )

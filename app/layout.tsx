@@ -34,7 +34,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${jakarta.variable} ${syne.variable} dark`} suppressHydrationWarning>
       <body className="font-sans antialiased bg-background text-foreground">
         {children}
-        <Toaster position="top-right" richColors />
+        <Toaster
+          position="top-right"
+          richColors
+          closeButton
+          expand
+          duration={3500}
+          toastOptions={{
+            style: {
+              borderRadius: '12px',
+              border: '1px solid hsl(var(--border))',
+              boxShadow: '0 10px 30px -10px rgba(0,0,0,0.3)',
+            },
+          }}
+        />
         <CapacitorBackButton />
         <CapacitorDeepLinks />
         <CapacitorSessionRefresh />

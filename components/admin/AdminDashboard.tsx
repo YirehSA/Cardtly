@@ -62,12 +62,22 @@ interface Stats {
   totalContacts: number
 }
 
+interface Announcement {
+  id: string
+  message: string
+  link_url: string | null
+  link_text: string | null
+  variant: 'info' | 'success' | 'warning'
+  created_at: string
+}
+
 interface Props {
   users: User[]
   cards: Card[]
   orgs: any[]
   nfcOrders: NfcOrder[]
   stats: Stats
+  announcement: Announcement | null
 }
 
 type Tab = 'overview' | 'users' | 'cards' | 'nfc'
@@ -85,8 +95,13 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: '#ef4444',
 }
 
-export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats }: Props) {
+export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats, announcement }: Props) {
   const [tab, setTab] = useState<Tab>('overview')
+  const [annMessage, setAnnMessage] = useState(announcement?.message || '')
+  const [annLinkUrl, setAnnLinkUrl] = useState(announcement?.link_url || '')
+  const [annLinkText, setAnnLinkText] = useState(announcement?.link_text || '')
+  const [annVariant, setAnnVariant] = useState<'info' | 'success' | 'warning'>(announcement?.variant || 'info')
+  const [annActive, setAnnActive] = useState(!!announcement)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState<string | null>(null)
   const [expandedUser, setExpandedUser] = useState<string | null>(null)
@@ -155,6 +170,41 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats }:
       toast.success(`Password reset link sent to ${user.email}`)
     } else {
       toast.error(data.error || 'Could not send reset')
+    }
+    setLoading(null)
+  }
+
+  async function postAnnouncement() {
+    if (!annMessage.trim()) {
+      toast.error('Enter a message first')
+      return
+    }
+    setLoading('announce')
+    const data = await api({
+      action: 'post_announcement',
+      message: annMessage.trim(),
+      link_url: annLinkUrl.trim() || null,
+      link_text: annLinkText.trim() || null,
+      variant: annVariant,
+    })
+    if (data.success) {
+      setAnnActive(true)
+      toast.success('Announcement posted to all users')
+    } else {
+      toast.error(data.error || 'Could not post')
+    }
+    setLoading(null)
+  }
+
+  async function clearAnnouncement() {
+    setLoading('announce-clear')
+    const data = await api({ action: 'clear_announcement' })
+    if (data.success) {
+      setAnnActive(false)
+      setAnnMessage('')
+      setAnnLinkUrl('')
+      setAnnLinkText('')
+      toast.success('Announcement cleared')
     }
     setLoading(null)
   }
@@ -243,6 +293,64 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats }:
         {/* Overview */}
         {tab === 'overview' && (
           <div className="space-y-6">
+
+            {/* Announcement composer */}
+            <div className="rounded-2xl border p-5"
+              style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm font-semibold text-white">Site-wide announcement</p>
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    {annActive ? 'Currently shown to all logged-in users' : 'Nothing active. Post a message to show a banner on every dashboard.'}
+                  </p>
+                </div>
+                {annActive && (
+                  <button onClick={clearAnnouncement} disabled={loading === 'announce-clear'}
+                    className="text-xs px-3 py-1.5 rounded-lg transition hover:opacity-80 disabled:opacity-50"
+                    style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>
+                    {loading === 'announce-clear' ? 'Clearing...' : 'Clear'}
+                  </button>
+                )}
+              </div>
+              <div className="space-y-3">
+                <input value={annMessage}
+                  onChange={e => setAnnMessage(e.target.value)}
+                  placeholder="What do you want to tell everyone?"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input value={annLinkUrl}
+                    onChange={e => setAnnLinkUrl(e.target.value)}
+                    placeholder="Optional link URL (e.g. /upgrade)"
+                    className="px-3 py-2.5 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                  <input value={annLinkText}
+                    onChange={e => setAnnLinkText(e.target.value)}
+                    placeholder="Optional link text (e.g. Learn more)"
+                    className="px-3 py-2.5 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                </div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Style:</span>
+                  {(['info', 'success', 'warning'] as const).map(v => (
+                    <button key={v} onClick={() => setAnnVariant(v)}
+                      className={`text-xs px-3 py-1.5 rounded-lg transition ${annVariant === v ? 'ring-1 ring-white/30' : ''}`}
+                      style={{
+                        background: v === 'info' ? 'rgba(0,212,255,0.15)' : v === 'success' ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.15)',
+                        color: v === 'info' ? '#00d4ff' : v === 'success' ? '#22c55e' : '#fbbf24',
+                      }}>
+                      {v.charAt(0).toUpperCase() + v.slice(1)}
+                    </button>
+                  ))}
+                  <button onClick={postAnnouncement} disabled={loading === 'announce' || !annMessage.trim()}
+                    className="ml-auto text-xs font-bold px-4 py-1.5 rounded-lg text-white transition hover:opacity-90 disabled:opacity-50"
+                    style={{ background: grad }}>
+                    {loading === 'announce' ? 'Posting...' : annActive ? 'Update banner' : 'Post banner'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {[
                 { label: 'Total users',   value: stats.totalUsers,    icon: Users },
