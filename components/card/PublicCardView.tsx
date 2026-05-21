@@ -11,11 +11,14 @@ import {
 import { toast } from 'sonner'
 import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
 import InAppBackButton from '@/components/InAppBackButton'
+import AvailabilityBadge from './AvailabilityBadge'
+import BookingModal from './BookingModal'
 
 interface Props {
   card: Card & { _team_card_id?: string }
   isPro: boolean
   isTeamCard?: boolean
+  lastActiveAt?: string | null
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -120,6 +123,33 @@ interface BottomProps {
   handleShare: () => void
 }
 
+// Helper that renders the Book a Meeting button. Encapsulates the modal
+// state so the BottomSection JSX stays clean.
+function BookingTrigger({ card, accentHex, buttonBg, buttonText, buttonBorder }: { card: Card; accentHex: string; buttonBg: string; buttonText: string; buttonBorder: string | null }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button onClick={() => setOpen(true)}
+        className="mt-6 w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm hover:opacity-90 transition"
+        style={{
+          backgroundColor: 'transparent',
+          color: accentHex,
+          border: `1.5px solid ${accentHex}`,
+        }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+        Book a meeting
+      </button>
+      <BookingModal
+        open={open}
+        onClose={() => setOpen(false)}
+        cardId={card.id}
+        cardName={card.name || ''}
+        accentHex={accentHex}
+      />
+    </>
+  )
+}
+
 function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, buttonBg, buttonText, buttonBorder, bg, cardEffect, handleShare }: BottomProps) {
   const [showContactForm, setShowContactForm] = useState(false)
   const [name, setName] = useState('')
@@ -194,6 +224,9 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
         </div>
       )}
 
+      {isPro && (
+        <BookingTrigger card={card} accentHex={accentHex} buttonBg={buttonBg} buttonText={buttonText} buttonBorder={buttonBorder} />
+      )}
       <div className="mt-8 flex gap-3">
         <button onClick={async (e) => {
           // In the Cardtly Android app: use the native Contacts API to add
@@ -290,7 +323,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
 // Main component — only computes values and renders layout
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
+export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }: Props) {
   const design = parseDesign(card.color_theme)
   const font = FONTS[design.fontId]
   const bg = getBgColors(design.bgMode, design.templateId)
@@ -342,10 +375,21 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
 
   const pageStyle: React.CSSProperties = { minHeight: '100vh', backgroundColor: bg.page, color: bg.text, fontFamily: font.body }
 
+  // Floating availability badge (Online now / Active 2h ago). Rendered
+  // fixed at top-center over every template so it doesn't conflict
+  // with template-specific layouts. Hidden entirely when there's no
+  // last_active_at timestamp.
+  const floatingBadge = lastActiveAt ? (
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40">
+      <AvailabilityBadge lastActiveAt={lastActiveAt} textColor={bg.text} />
+    </div>
+  ) : null
+
   if (design.templateId === 'classic') {
     return (
-      <div style={pageStyle}>
+      <div style={pageStyle} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
+        {floatingBadge}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
@@ -372,9 +416,10 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
 
   if (design.templateId === 'modern') {
     return (
-      <div style={pageStyle}>
+      <div style={pageStyle} className="animate-fade-up">
         <div style={{ height: 6, background: `linear-gradient(90deg, ${accentHex}, ${accentHex}44)` }} />
         <InAppBackButton bgMode={design.bgMode} />
+        {floatingBadge}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
@@ -407,8 +452,9 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
         ? `linear-gradient(135deg, ${accentHex}cc 0%, ${accentHex}66 100%)`
         : accentHex
     return (
-      <div style={pageStyle}>
+      <div style={pageStyle} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
+        {floatingBadge}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
           <Share2 className="w-4 h-4 text-white" />
         </button>
@@ -446,8 +492,9 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
     const muted = isLight ? '#8a7f72' : '#6a6560'
     const lineColor = isLight ? '#d4cdc4' : '#2a2a2a'
     return (
-      <div style={{ ...pageStyle, backgroundColor: cream }}>
+      <div style={{ ...pageStyle, backgroundColor: cream }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
+        {floatingBadge}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)' }}>
           <Share2 className="w-4 h-4" style={{ color: ink }} />
         </button>
@@ -485,8 +532,9 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
 
   if (design.templateId === 'executive') {
     return (
-      <div style={{ ...pageStyle, backgroundColor: '#09090b' }}>
+      <div style={{ ...pageStyle, backgroundColor: '#09090b' }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
+        {floatingBadge}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
           <Share2 className="w-4 h-4 text-white" />
         </button>
@@ -520,10 +568,11 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
 
   if (design.templateId === 'creative') {
     return (
-      <div style={{ ...pageStyle, overflow: 'hidden', position: 'relative' }}>
+      <div style={{ ...pageStyle, overflow: 'hidden', position: 'relative' }} className="animate-fade-up">
         <div style={{ position: 'fixed', top: -80, right: -80, width: 300, height: 300, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}44 0%, transparent 70%)`, pointerEvents: 'none' }} />
         <div style={{ position: 'fixed', bottom: -60, left: -60, width: 200, height: 200, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}33 0%, transparent 70%)`, pointerEvents: 'none' }} />
         <InAppBackButton bgMode={design.bgMode} />
+        {floatingBadge}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
@@ -561,8 +610,9 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
         ? `linear-gradient(135deg, ${accentHex}44 0%, ${accentHex}11 100%)`
         : `linear-gradient(135deg, ${accentHex}44 0%, ${bg.page} 100%)`
     return (
-      <div style={pageStyle}>
+      <div style={pageStyle} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
+        {floatingBadge}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
@@ -600,8 +650,9 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
         ? `linear-gradient(180deg, ${accentHex}cc 0%, ${accentHex}88 100%)`
         : accentHex
     return (
-      <div style={{ ...pageStyle, display: 'flex', minHeight: '100vh' }}>
+      <div style={{ ...pageStyle, display: 'flex', minHeight: '100vh' }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
+        {floatingBadge}
         <div style={{ width: 80, flexShrink: 0, background: sidebarBg, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 8px', gap: 16, position: 'fixed', top: 0, bottom: 0, left: 0 }}>
           <Avatar {...shared} size={60} rounded="full" extraStyle={{ border: '3px solid rgba(255,255,255,0.3)' }} />
           <div style={{ width: '60%', height: 1, backgroundColor: 'rgba(255,255,255,0.3)' }} />
@@ -634,8 +685,9 @@ export default function PublicCardView({ card, isPro, isTeamCard }: Props) {
   if (design.templateId === 'neon') {
     const glow = `0 0 12px ${accentHex}66`
     return (
-      <div style={{ ...pageStyle, backgroundColor: '#050510' }}>
+      <div style={{ ...pageStyle, backgroundColor: '#050510' }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
+        {floatingBadge}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ border: `1px solid ${accentHex}44`, backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <Share2 className="w-4 h-4" style={{ color: accentHex }} />
         </button>

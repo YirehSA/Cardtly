@@ -11,7 +11,8 @@ import FlippableCardPreview from './FlippableCardPreview'
 import DesignPanel from './DesignPanel'
 import ProGate from './ProGate'
 import ImageUploader from './ImageUploader'
-import { Save, ExternalLink, Lock, User, Phone, Link2, Image, Palette, Copy, Check } from 'lucide-react'
+import { Save, ExternalLink, Lock, User, Phone, Link2, Image, Palette, Copy, Check, Sparkles } from 'lucide-react'
+import AIBioModal from './AIBioModal'
 import { isNativeApp } from '@/lib/capacitor'
 import { celebrateFirstSave, hasCelebratedFirstSave, markFirstSaveCelebrated } from '@/lib/celebrate'
 
@@ -36,6 +37,7 @@ export default function CardEditor({ card, plan, userId }: Props) {
   const pro = isPro(plan)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('basic')
+  const [aiBioOpen, setAiBioOpen] = useState(false)
   const [design, setDesign] = useState<CardDesign>(() => parseDesign(card?.color_theme || null))
 
   const [form, setForm] = useState({
@@ -212,7 +214,7 @@ export default function CardEditor({ card, plan, userId }: Props) {
           {activeTab === 'basic' && (<>
             <div>
               <label className="block text-sm font-medium mb-2">Profile Photo</label>
-              <ImageUploader value={form.profile_image_url} onChange={url => update('profile_image_url', url)} bucket="card-images" userId={userId} shape="circle" />
+              <ImageUploader value={form.profile_image_url} onChange={url => update('profile_image_url', url)} bucket="card-images" userId={userId} shape="circle" allowBackgroundRemoval={pro} />
             </div>
             <Field label="Full name" required>
               <Input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Andre Nel" />
@@ -224,8 +226,18 @@ export default function CardEditor({ card, plan, userId }: Props) {
               <Input value={form.company} onChange={e => update('company', e.target.value)} placeholder="Yireh Business Solutions" />
             </Field>
             <ProField label="Bio" pro={pro}>
-              <textarea value={form.bio} onChange={e => update('bio', e.target.value)} placeholder="Tell people about yourself..." disabled={!pro} rows={4}
-                className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition resize-none disabled:opacity-50 disabled:cursor-not-allowed" />
+              <div className="relative">
+                <textarea value={form.bio} onChange={e => update('bio', e.target.value)} placeholder="Tell people about yourself..." disabled={!pro} rows={4}
+                  className="w-full px-4 py-2.5 pr-32 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition resize-none disabled:opacity-50 disabled:cursor-not-allowed" />
+                {pro && (
+                  <button type="button" onClick={() => setAiBioOpen(true)}
+                    className="absolute top-2 right-2 flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-white transition hover:opacity-90"
+                    style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                    <Sparkles className="w-3 h-3" />
+                    Write with AI
+                  </button>
+                )}
+              </div>
             </ProField>
             <ProField label="Certifications / Tags" pro={pro} hint="Comma separated e.g. Web Design, SEO, Marketing">
               <Input value={form.certifications} onChange={e => update('certifications', e.target.value)} placeholder="Web Design, SEO, Digital Marketing" disabled={!pro} />
@@ -337,6 +349,12 @@ export default function CardEditor({ card, plan, userId }: Props) {
             <p className="text-xs text-muted-foreground italic">Tap the arrow to flip</p>
           </div>
           <FlippableCardPreview form={form} isPro={pro} design={design} cardUrl={cardUrl} />
+          <AIBioModal
+            open={aiBioOpen}
+            onClose={() => setAiBioOpen(false)}
+            onAccept={(bio) => update('bio', bio)}
+            initial={{ role: form.title, company: form.company, bio: form.bio }}
+          />
           {cardUrl && (
             <a
               href={cardUrl}

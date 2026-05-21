@@ -74,20 +74,28 @@ export default async function PublicCardPage({ params }: Props) {
     .single()
 
   if (card) {
-    const { data: sub } = await supabase
-      .from('whop_subscriptions')
-      .select('subscription_tier, status')
-      .eq('user_id', card.user_id)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
+    const [{ data: sub }, { data: profile }] = await Promise.all([
+      supabase
+        .from('whop_subscriptions')
+        .select('subscription_tier, status')
+        .eq('user_id', (card as any).user_id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('profiles')
+        .select('last_active_at')
+        .eq('user_id', (card as any).user_id)
+        .maybeSingle(),
+    ])
 
-    const isPro = sub?.subscription_tier === 'pro' && sub?.status === 'active'
+    const isPro = (sub as any)?.subscription_tier === 'pro' && (sub as any)?.status === 'active'
+    const lastActiveAt = (profile as any)?.last_active_at || null
 
     return (
-      <CardTracker cardId={card.id}>
-        <PublicCardView card={card} isPro={isPro} />
+      <CardTracker cardId={(card as any).id}>
+        <PublicCardView card={card as any} isPro={isPro} lastActiveAt={lastActiveAt} />
       </CardTracker>
     )
   }

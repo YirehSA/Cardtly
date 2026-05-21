@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/dashboard/ThemeProvider'
 import Sidebar from '@/components/dashboard/Sidebar'
 import CommandPalette from '@/components/CommandPalette'
 import AnnouncementBanner from '@/components/AnnouncementBanner'
+import HeartbeatPing from '@/components/dashboard/HeartbeatPing'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -35,6 +36,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         </main>
         <CommandPalette />
+        <HeartbeatPing />
       </div>
     </ThemeProvider>
   )

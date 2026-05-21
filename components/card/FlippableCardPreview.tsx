@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { RotateCw, QrCode } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { RotateCw, QrCode, Repeat2 } from 'lucide-react'
 import QRCode from 'qrcode'
 import TemplatedCardPreview from './TemplatedCardPreview'
 import Tilt from '../Tilt'
@@ -43,7 +43,15 @@ interface Props {
 export default function FlippableCardPreview({ form, isPro, design, cardUrl }: Props) {
   const [flipped, setFlipped] = useState(false)
   const [qrSvg, setQrSvg] = useState<string>('')
+  const [spinning, setSpinning] = useState(false)
+  const innerRef = useRef<HTMLDivElement>(null)
   const accent = getAccentHex(design)
+
+  function spin() {
+    if (spinning) return
+    setSpinning(true)
+    setTimeout(() => setSpinning(false), 1200)
+  }
 
   useEffect(() => {
     if (!cardUrl) return
@@ -57,8 +65,11 @@ export default function FlippableCardPreview({ form, isPro, design, cardUrl }: P
   }, [cardUrl])
 
   return (
-    <Tilt max={flipped ? 0 : 6} shine={!flipped} className={`flip-card relative ${flipped ? 'flipped' : ''}`}>
-      <div className="flip-card-inner" style={{ minHeight: 500 }}>
+    <Tilt max={flipped || spinning ? 0 : 6} shine={!flipped && !spinning} className={`flip-card relative ${flipped ? 'flipped' : ''}`}>
+      <div
+        ref={innerRef}
+        className={`flip-card-inner ${spinning ? 'animate-card-spin' : ''}`}
+        style={{ minHeight: 500 }}>
         {/* Front */}
         <div className="flip-card-face rounded-2xl overflow-hidden shadow-2xl border border-gray-800"
           style={{ maxHeight: '82vh', overflowY: flipped ? 'hidden' : 'auto' }}>
@@ -88,6 +99,17 @@ export default function FlippableCardPreview({ form, isPro, design, cardUrl }: P
           )}
         </div>
       </div>
+
+      {/* Spin button - dramatic 360 rotation */}
+      <button
+        type="button"
+        onClick={spin}
+        aria-label="Spin card"
+        disabled={spinning}
+        className="absolute top-3 right-14 z-20 w-9 h-9 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95 backdrop-blur-md shadow-lg disabled:opacity-50"
+        style={{ background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.15)' }}>
+        <Repeat2 className="w-4 h-4 text-white" />
+      </button>
 
       {/* Flip toggle button */}
       <button
