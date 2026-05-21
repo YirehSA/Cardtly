@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { Mail, ArrowLeft } from 'lucide-react'
 
 const schema = z.object({
   name:     z.string().min(2, 'Enter your full name'),
@@ -62,6 +63,8 @@ export default function SignupPage() {
     resolver: zodResolver(schema),
   })
 
+  const [confirmEmail, setConfirmEmail] = useState<string | null>(null)
+
   async function onSubmit(data: FormData) {
     setLoading(true)
 
@@ -98,9 +101,18 @@ export default function SignupPage() {
       color_theme: 'blue',
     })
 
-    toast.success('Account created! Welcome to Cardtly.')
-    router.push('/dashboard')
-    router.refresh()
+    // If Supabase returned a session, email confirmation is off and we
+    // can take the user straight in. Otherwise the user must confirm
+    // their email first, so show the "check your inbox" screen rather
+    // than redirecting to a dashboard they can't access yet.
+    if (authData.session) {
+      toast.success('Account created! Welcome to Cardtly.')
+      router.push('/dashboard')
+      router.refresh()
+    } else {
+      setConfirmEmail(data.email)
+      setLoading(false)
+    }
   }
 
   const inputClass = "w-full px-4 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
@@ -142,6 +154,37 @@ export default function SignupPage() {
             <span className="font-display text-2xl font-bold tracking-tight">Cardtly</span>
           </div>
 
+          {confirmEmail ? (
+            <div className="space-y-6">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.15), rgba(124,58,237,0.15))' }}>
+                <Mail className="w-8 h-8 text-foreground" />
+              </div>
+              <div>
+                <h1 className="font-display text-3xl font-bold mb-2">Check your email</h1>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  We sent a confirmation link to <span className="font-semibold text-foreground">{confirmEmail}</span>. Click it to activate your Cardtly account.
+                </p>
+              </div>
+              <div className="rounded-xl p-4 border border-border bg-muted/30 space-y-2 text-sm">
+                <p className="font-medium">Not seeing it?</p>
+                <ul className="text-muted-foreground space-y-1 list-disc pl-5">
+                  <li>Check your spam folder</li>
+                  <li>Confirm <span className="font-mono text-xs">{confirmEmail}</span> is spelled correctly</li>
+                  <li>The link can take a minute to arrive</li>
+                </ul>
+              </div>
+              <button onClick={() => setConfirmEmail(null)}
+                className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition">
+                <ArrowLeft className="w-4 h-4" />
+                Use a different email
+              </button>
+              <p className="text-sm text-muted-foreground">
+                Already confirmed? <Link href="/login" className="text-foreground font-medium hover:underline">Sign in</Link>
+              </p>
+            </div>
+          ) : (
+          <>
           <h1 className="font-display text-3xl font-bold mb-2">Create your card</h1>
           <p className="text-muted-foreground mb-8">Free to start, no credit card required</p>
 
@@ -236,6 +279,8 @@ export default function SignupPage() {
               Sign in
             </Link>
           </p>
+          </>
+          )}
         </div>
       </div>
     </div>
