@@ -14,9 +14,23 @@ interface User {
   created_at: string
   last_sign_in_at?: string | null
   email_confirmed?: boolean
+  signup_country?: string | null
+  signup_country_code?: string | null
+  signup_city?: string | null
+  signup_region?: string | null
   isPro: boolean
   subscription: any
   org: any
+}
+
+// Convert a 2-letter country code to its flag emoji
+function countryFlag(code?: string | null): string {
+  if (!code || code.length !== 2) return ''
+  const A = 0x1F1E6
+  return String.fromCodePoint(
+    A + code.toUpperCase().charCodeAt(0) - 'A'.charCodeAt(0),
+    A + code.toUpperCase().charCodeAt(1) - 'A'.charCodeAt(0),
+  )
 }
 
 interface Card {
@@ -298,10 +312,22 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats }:
                         {user.email[0].toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm text-white truncate">{user.email}</p>
-                        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                          Joined {new Date(user.created_at).toLocaleDateString('en-ZA')}
-                          {user.org && ` · Team: ${user.org.name} (${user.org.max_seats} seats)`}
+                        <p className="text-sm text-white truncate flex items-center gap-2">
+                          {user.email}
+                          {user.signup_country_code && (
+                            <span title={`${user.signup_city ? user.signup_city + ', ' : ''}${user.signup_country}`}>
+                              {countryFlag(user.signup_country_code)}
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-xs flex items-center gap-2 flex-wrap" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                          <span>Joined {new Date(user.created_at).toLocaleDateString('en-ZA')}</span>
+                          {(user.signup_city || user.signup_country) && (
+                            <span>
+                              · {[user.signup_city, user.signup_region, user.signup_country].filter(Boolean).join(', ')}
+                            </span>
+                          )}
+                          {user.org && <span>· Team: {user.org.name} ({user.org.max_seats} seats)</span>}
                         </p>
                       </div>
                     </div>

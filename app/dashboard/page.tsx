@@ -5,6 +5,7 @@ import { getPrimaryCard } from '@/lib/card-server'
 import { parseDesign, getAccentHex } from '@/types/design'
 import Link from 'next/link'
 import CopyLinkButton from '@/components/dashboard/CopyLinkButton'
+import AnimatedCounter from '@/components/dashboard/AnimatedCounter'
 import {
   CreditCard, BarChart2, Eye, Users, ArrowUpRight,
   QrCode, Mail, Monitor, Sparkles, ChevronRight
@@ -88,25 +89,27 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-up">
         {[
-          { label: 'Total views', value: card?.view_count ?? 0, icon: Eye, color: accentHex },
-          { label: 'This month', value: viewsThisMonth ?? 0, icon: BarChart2, color: '#10b981' },
-          { label: 'Contacts', value: contactCount ?? 0, icon: Users, color: '#f59e0b' },
+          { label: 'Total views', value: card?.view_count ?? 0, icon: Eye, color: accentHex, isText: false },
+          { label: 'This month', value: viewsThisMonth ?? 0, icon: BarChart2, color: '#10b981', isText: false },
+          { label: 'Contacts', value: contactCount ?? 0, icon: Users, color: '#f59e0b', isText: false },
           { label: 'Plan', value: isPro ? 'Pro' : 'Free', icon: Sparkles, color: '#8b5cf6', isText: true },
         ].map(({ label, value, icon: Icon, color, isText }) => (
           <div key={label}
-            className="rounded-2xl p-5 border border-border bg-card transition-all hover:shadow-lg group"
+            className="rounded-2xl p-5 border border-border bg-card lift group cursor-default"
             style={{ boxShadow: `inset 0 1px 0 hsl(var(--card-foreground) / 0.04)` }}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
                 <p className={`mt-2 font-black tracking-tight ${isText ? 'text-2xl' : 'text-3xl'}`}
                   style={{ color }}>
-                  {isText ? value : value.toLocaleString()}
+                  {isText
+                    ? value
+                    : <AnimatedCounter to={value as number} />}
                 </p>
               </div>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
                 style={{ background: color + '18' }}>
                 <Icon className="w-4 h-4" style={{ color }} />
               </div>

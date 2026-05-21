@@ -109,13 +109,21 @@ export default function Sidebar({ isPro, userName, userEmail }: SidebarProps) {
             <Link
               key={href}
               href={href}
-	      onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group relative"
-              style={{
-                color: active ? 'hsl(var(--sidebar-active))' : 'hsl(var(--sidebar-fg))',
-                background: active ? 'hsl(var(--sidebar-accent) / 0.15)' : 'transparent',
-              }}
+              prefetch={true}
+              onClick={() => setMobileOpen(false)}
+              className="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden"
+              data-active={active}
             >
+              {/* Animated background highlight */}
+              <span
+                className="sidebar-link-bg absolute inset-0 rounded-xl transition-opacity duration-200 pointer-events-none"
+                style={{
+                  background: active
+                    ? 'hsl(var(--sidebar-accent) / 0.15)'
+                    : 'hsl(var(--sidebar-accent) / 0.08)',
+                  opacity: active ? 1 : 0,
+                }}
+              />
               {active && (
                 <span
                   className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
@@ -123,10 +131,15 @@ export default function Sidebar({ isPro, userName, userEmail }: SidebarProps) {
                 />
               )}
               <Icon
-                className="w-4 h-4 flex-shrink-0 transition-transform group-hover:scale-110"
+                className="w-4 h-4 flex-shrink-0 transition-all duration-200 group-hover:scale-110 group-hover:rotate-3 relative z-10"
                 style={{ color: active ? 'hsl(var(--sidebar-accent))' : 'hsl(var(--sidebar-fg))' }}
               />
-              {label}
+              <span
+                className="relative z-10 transition-transform duration-200 group-hover:translate-x-0.5"
+                style={{ color: active ? 'hsl(var(--sidebar-active))' : 'hsl(var(--sidebar-fg))' }}
+              >
+                {label}
+              </span>
             </Link>
           )
         })}

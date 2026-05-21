@@ -101,6 +101,14 @@ export default function SignupPage() {
       color_theme: 'blue',
     })
 
+    // Best-effort: capture sign-up IP + country so the admin panel can
+    // show where each user came from. Fire and forget; never block.
+    fetch('/api/track-signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId }),
+    }).catch(() => {})
+
     // If Supabase returned a session, email confirmation is off and we
     // can take the user straight in. Otherwise the user must confirm
     // their email first, so show the "check your inbox" screen rather

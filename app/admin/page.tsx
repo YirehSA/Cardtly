@@ -29,6 +29,7 @@ export default async function AdminPage() {
     { data: orgs },
     { data: nfcOrders },
     { data: contacts },
+    { data: profiles },
   ] = await Promise.all([
     admin.auth.admin.listUsers({ perPage: 1000 }),
     admin.from('whop_subscriptions').select('*').order('created_at', { ascending: false }),
@@ -36,22 +37,31 @@ export default async function AdminPage() {
     admin.from('organizations').select('*').order('created_at', { ascending: false }),
     admin.from('nfc_orders').select('*').order('created_at', { ascending: false }),
     admin.from('contacts').select('id, created_at').order('created_at', { ascending: false }),
+    admin.from('profiles').select('user_id, signup_country, signup_country_code, signup_city, signup_region, signup_ip'),
   ])
 
   const users = authUsers?.users || []
   const subMap = Object.fromEntries((subscriptions || []).map((s: any) => [s.user_id, s]))
   const orgMap = Object.fromEntries((orgs || []).map((o: any) => [o.admin_user_id, o]))
+  const profileMap = Object.fromEntries((profiles || []).map((p: any) => [p.user_id, p]))
 
-  const enrichedUsers = users.map((u: any) => ({
-    id: u.id,
-    email: u.email,
-    created_at: u.created_at,
-    last_sign_in_at: u.last_sign_in_at || null,
-    email_confirmed: !!u.email_confirmed_at,
-    subscription: subMap[u.id] || null,
-    org: orgMap[u.id] || null,
-    isPro: subMap[u.id]?.status === 'active' && subMap[u.id]?.subscription_tier === 'pro',
-  }))
+  const enrichedUsers = users.map((u: any) => {
+    const p = profileMap[u.id] || {}
+    return {
+      id: u.id,
+      email: u.email,
+      created_at: u.created_at,
+      last_sign_in_at: u.last_sign_in_at || null,
+      email_confirmed: !!u.email_confirmed_at,
+      signup_country: p.signup_country || null,
+      signup_country_code: p.signup_country_code || null,
+      signup_city: p.signup_city || null,
+      signup_region: p.signup_region || null,
+      subscription: subMap[u.id] || null,
+      org: orgMap[u.id] || null,
+      isPro: subMap[u.id]?.status === 'active' && subMap[u.id]?.subscription_tier === 'pro',
+    }
+  })
 
   const stats = {
     totalUsers: users.length,
