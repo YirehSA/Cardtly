@@ -7,11 +7,13 @@ import { isPro } from '@/lib/plan'
 import { CardDesign, DEFAULT_DESIGN, parseDesign, serializeDesign } from '@/types/design'
 import { toast } from 'sonner'
 import TemplatedCardPreview from './TemplatedCardPreview'
+import FlippableCardPreview from './FlippableCardPreview'
 import DesignPanel from './DesignPanel'
 import ProGate from './ProGate'
 import ImageUploader from './ImageUploader'
 import { Save, ExternalLink, Lock, User, Phone, Link2, Image, Palette, Copy, Check } from 'lucide-react'
 import { isNativeApp } from '@/lib/capacitor'
+import { celebrateFirstSave, hasCelebratedFirstSave, markFirstSaveCelebrated } from '@/lib/celebrate'
 
 interface Props {
   card: Card | null
@@ -111,6 +113,7 @@ export default function CardEditor({ card, plan, userId }: Props) {
       return
     }
     setSaving(true)
+    const isFirst = !hasCelebratedFirstSave()
 
     // All design settings (including bold controls) live in color_theme JSON
     // Never send design-only fields as DB columns
@@ -124,7 +127,13 @@ export default function CardEditor({ card, plan, userId }: Props) {
       .eq('id', card.id)
 
     if (error) toast.error('Failed to save: ' + error.message)
-    else toast.success('Card saved')
+    else {
+      toast.success(isFirst ? 'Your card is live! 🎉' : 'Card saved')
+      if (isFirst) {
+        markFirstSaveCelebrated()
+        celebrateFirstSave()
+      }
+    }
     setSaving(false)
   }
 
@@ -323,10 +332,11 @@ export default function CardEditor({ card, plan, userId }: Props) {
       {/* Live preview */}
       <div className="xl:w-80 xl:flex-shrink-0">
         <div className="sticky top-6">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Live Preview</p>
-          <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-800" style={{ maxHeight: '82vh', overflowY: 'auto' }}>
-            <TemplatedCardPreview form={form} isPro={pro} design={design} />
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Live Preview</p>
+            <p className="text-xs text-muted-foreground italic">Tap the arrow to flip</p>
           </div>
+          <FlippableCardPreview form={form} isPro={pro} design={design} cardUrl={cardUrl} />
           {cardUrl && (
             <a
               href={cardUrl}

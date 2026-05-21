@@ -21,9 +21,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   function toggle() {
     const next = theme === 'dark' ? 'light' : 'dark'
+    // Add a transient transition class so background, border, and text
+    // colors fade smoothly during the swap, then remove it so per-
+    // element transitions can resume normal timing.
+    document.documentElement.classList.add('theme-transition')
     setTheme(next)
     localStorage.setItem('cardtly-theme', next)
     document.documentElement.classList.toggle('dark', next === 'dark')
+    window.setTimeout(() => {
+      document.documentElement.classList.remove('theme-transition')
+    }, 600)
   }
 
   return (

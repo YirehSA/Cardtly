@@ -261,6 +261,46 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats }:
               ))}
             </div>
 
+            {/* Country breakdown - top 10 countries by signups */}
+            {(() => {
+              const counts: Record<string, { country: string; code: string; count: number }> = {}
+              localUsers.forEach(u => {
+                if (!u.signup_country || !u.signup_country_code) return
+                const key = u.signup_country_code
+                if (!counts[key]) counts[key] = { country: u.signup_country, code: u.signup_country_code, count: 0 }
+                counts[key].count += 1
+              })
+              const sorted = Object.values(counts).sort((a, b) => b.count - a.count).slice(0, 10)
+              const totalWithLocation = sorted.reduce((sum, c) => sum + c.count, 0)
+              const unknownCount = localUsers.length - totalWithLocation
+              if (sorted.length === 0) return null
+              return (
+                <div className="rounded-2xl border p-5"
+                  style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
+                  <p className="text-sm font-semibold text-white mb-4">Signups by country</p>
+                  <div className="space-y-2">
+                    {sorted.map(c => {
+                      const pct = totalWithLocation > 0 ? Math.round((c.count / localUsers.length) * 100) : 0
+                      return (
+                        <div key={c.code} className="flex items-center gap-3">
+                          <span className="text-base flex-shrink-0">{countryFlag(c.code)}</span>
+                          <span className="text-sm text-white flex-shrink-0 w-32 truncate">{c.country}</span>
+                          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                            <div className="h-full transition-all"
+                              style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #00d4ff, #7c3aed)' }} />
+                          </div>
+                          <span className="text-xs text-white/60 flex-shrink-0 w-12 text-right">{c.count}</span>
+                        </div>
+                      )
+                    })}
+                    {unknownCount > 0 && (
+                      <p className="text-xs text-white/30 pt-2">{unknownCount} user{unknownCount !== 1 ? 's' : ''} with no location data (signed up before tracking, or geo lookup failed)</p>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
+
             {/* Recent users */}
             <div className="rounded-2xl border p-5"
               style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>

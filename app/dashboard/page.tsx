@@ -6,6 +6,7 @@ import { parseDesign, getAccentHex } from '@/types/design'
 import Link from 'next/link'
 import CopyLinkButton from '@/components/dashboard/CopyLinkButton'
 import AnimatedCounter from '@/components/dashboard/AnimatedCounter'
+import OnboardingTour from '@/components/dashboard/OnboardingTour'
 import {
   CreditCard, BarChart2, Eye, Users, ArrowUpRight,
   QrCode, Mail, Monitor, Sparkles, ChevronRight
@@ -64,6 +65,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-10 animate-fade-in">
+      <OnboardingTour />
 
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">

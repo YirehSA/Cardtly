@@ -133,9 +133,15 @@ export default function NFCWriteCard({ cardUrl, cardName }: Props) {
               </>
             ) : (
               <>
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse"
-                  style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(124,58,237,0.2))' }}>
-                  <Wifi className="w-8 h-8" style={{ color: '#00d4ff' }} />
+                <div className="relative w-24 h-24 flex items-center justify-center mx-auto mb-4">
+                  {/* Concentric pulsing rings simulate the radiating NFC field */}
+                  <span className="nfc-pulse-ring absolute inset-0 rounded-full" style={{ animationDelay: '0s' }} />
+                  <span className="nfc-pulse-ring absolute inset-0 rounded-full" style={{ animationDelay: '0.6s' }} />
+                  <span className="nfc-pulse-ring absolute inset-0 rounded-full" style={{ animationDelay: '1.2s' }} />
+                  <div className="relative w-16 h-16 rounded-full flex items-center justify-center"
+                    style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.25), rgba(124,58,237,0.25))' }}>
+                    <Wifi className="w-8 h-8" style={{ color: '#00d4ff' }} />
+                  </div>
                 </div>
                 <h3 className="text-xl font-bold mb-2">Hold a tag near your phone</h3>
                 <p className="text-sm text-muted-foreground mb-2">

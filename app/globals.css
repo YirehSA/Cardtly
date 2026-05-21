@@ -165,4 +165,47 @@
     transform: translateY(-2px);
     box-shadow: 0 10px 30px -10px hsl(var(--accent) / 0.18);
   }
+
+  /* Pulsing wave rings for the NFC "tap a tag" modal. Three rings
+     stagger their start so the effect feels like radiating waves. */
+  @keyframes nfc-pulse {
+    0%   { transform: scale(0.6); opacity: 0.7; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+  .nfc-pulse-ring {
+    background: radial-gradient(circle, rgba(0,212,255,0.4) 0%, transparent 70%);
+    border: 1px solid rgba(0,212,255,0.4);
+    animation: nfc-pulse 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  }
+
+  /* Card flip in the editor preview. Container handles perspective so
+     the inner faces can rotate in 3D space. */
+  .flip-card {
+    perspective: 1200px;
+  }
+  .flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+  }
+  .flip-card.flipped .flip-card-inner {
+    transform: rotateY(180deg);
+  }
+  .flip-card-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .flip-card-back {
+    transform: rotateY(180deg);
+  }
+
+  /* Smooth theme color transitions when toggling light/dark mode */
+  .theme-transition,
+  .theme-transition * {
+    transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease;
+  }
 }

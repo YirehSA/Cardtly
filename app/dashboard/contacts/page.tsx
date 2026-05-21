@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
 import { getPrimaryCard } from '@/lib/card-server'
 import ProGate from '@/components/card/ProGate'
+import EmptyState from '@/components/EmptyState'
 import { Users, Mail, Phone, MessageSquare, Calendar } from 'lucide-react'
 
 interface CardSummary {
@@ -72,16 +73,13 @@ export default async function ContactsPage() {
       </div>
 
       {rows.length === 0 ? (
-        /* Empty state */
-        <div className="bg-card border border-border rounded-2xl p-16 text-center">
-          <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Users className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <h2 className="font-semibold text-lg mb-2">No contacts yet</h2>
-          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-            When someone fills in the "Share your info" form on your card, they will appear here.
-          </p>
-        </div>
+        <EmptyState
+          icon={Users}
+          title="No contacts yet"
+          description="When someone taps Save Contact or fills in the lead form on your card, they show up here. Share your card to start collecting them."
+          action={{ label: 'View my card', href: '/dashboard/card' }}
+          accent="#f59e0b"
+        />
       ) : (
         /* Contact cards */
         <div className="space-y-3">
