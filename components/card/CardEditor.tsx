@@ -84,12 +84,16 @@ export default function CardEditor({ card, plan, userId }: Props) {
 
   async function saveSlug() {
     if (!slug || slug.length < 3) { setSlugError('Min 3 characters'); return }
+    if (!card?.id) {
+      setSlugError('Your card is still loading. Refresh and try again.')
+      return
+    }
     setSlugSaving(true)
     setSlugError('')
     const res = await fetch('/api/slug', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug, card_id: card?.id }),
+      body: JSON.stringify({ slug, card_id: card.id }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -102,7 +106,10 @@ export default function CardEditor({ card, plan, userId }: Props) {
   }
 
   async function save() {
-    if (!card) return
+    if (!card?.id) {
+      toast.error('Your card is still loading. Refresh and try again.')
+      return
+    }
     setSaving(true)
 
     // All design settings (including bold controls) live in color_theme JSON

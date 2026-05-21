@@ -24,13 +24,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Slug must be at least 3 characters' }, { status: 400 })
     }
 
+    // card_id must be a real UUID, not undefined or empty. Postgres will
+    // throw "invalid input syntax for type uuid: 'undefined'" if we pass
+    // anything else through to the .neq() / .eq() filters below.
+    const isUuid = typeof card_id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(card_id)
+    if (!isUuid) {
+      return NextResponse.json(
+        { error: 'Your card is still loading. Refresh and try again.' },
+        { status: 400 }
+      )
+    }
+
     // Check it's not taken by another card
     const { data: existing } = await supabase
       .from('cards')
       .select('id')
       .eq('slug', slug)
       .neq('id', card_id)
-      .single()
+      .maybeSingle()
 
     if (existing) {
       return NextResponse.json({ error: 'That URL is already taken. Try another.' }, { status: 409 })
@@ -41,7 +52,7 @@ export async function POST(request: Request) {
       .from('team_cards')
       .select('id')
       .eq('slug', slug)
-      .single()
+      .maybeSingle()
 
     if (existingTeam) {
       return NextResponse.json({ error: 'That URL is already taken. Try another.' }, { status: 409 })
@@ -52,7 +63,7 @@ export async function POST(request: Request) {
       .from('cards')
       .select('slug')
       .eq('id', card_id)
-      .single()
+      .maybeSingle()
 
     // Insert redirect from old slug
     if (currentCard?.slug && currentCard.slug !== slug) {
