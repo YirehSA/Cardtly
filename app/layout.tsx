@@ -3,6 +3,8 @@ import { Plus_Jakarta_Sans, Syne } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'sonner'
 import CapacitorBackButton from '@/components/CapacitorBackButton'
+import CapacitorDeepLinks from '@/components/CapacitorDeepLinks'
+import CapacitorSessionRefresh from '@/components/CapacitorSessionRefresh'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -34,6 +36,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <Toaster position="top-right" richColors />
         <CapacitorBackButton />
+        <CapacitorDeepLinks />
+        <CapacitorSessionRefresh />
       </body>
     </html>
   )

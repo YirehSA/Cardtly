@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import {
   Users, CreditCard, BarChart2, Package, Loader2,
   Search, Check, X, ChevronDown, ChevronUp, Building2,
-  Wifi, MessageSquare, Shield
+  Wifi, MessageSquare, Shield, Trash2
 } from 'lucide-react'
 
 interface User {
@@ -105,6 +105,26 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats }:
       setLocalUsers(prev => prev.map(u => u.id === user.id ? { ...u, isPro: false } : u))
       toast.success(`Pro deactivated for ${user.email}`)
     } else toast.error(data.error)
+    setLoading(null)
+  }
+
+  async function deleteUser(user: User) {
+    const confirmText = `delete ${user.email}`
+    const entered = prompt(
+      `This permanently deletes the user, all their cards, contacts, subscriptions, NFC orders, and teams. There is no undo.\n\nType "${confirmText}" to confirm:`
+    )
+    if (entered !== confirmText) {
+      if (entered !== null) toast.error('Confirmation did not match. Nothing was deleted.')
+      return
+    }
+    setLoading(`del-${user.id}`)
+    const data = await api({ action: 'delete_user', user_id: user.id })
+    if (data.success) {
+      setLocalUsers(prev => prev.filter(u => u.id !== user.id))
+      toast.success(`Deleted ${user.email}`)
+    } else {
+      toast.error(data.error || 'Deletion failed')
+    }
     setLoading(null)
   }
 
@@ -275,6 +295,15 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats }:
                           Activate Pro
                         </button>
                       )}
+
+                      <button onClick={() => deleteUser(user)}
+                        disabled={loading === `del-${user.id}`}
+                        title="Delete user and all their data"
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition hover:opacity-80 disabled:opacity-50"
+                        style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>
+                        {loading === `del-${user.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                        Delete
+                      </button>
 
                       <button onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
                         className="p-1.5 rounded-lg transition hover:bg-white/05"

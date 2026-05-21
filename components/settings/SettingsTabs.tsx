@@ -43,11 +43,12 @@ export default function SettingsTabs({ user, profile, plan, subscription, card }
         <p className="text-muted-foreground text-sm mt-1">Manage your account and preferences</p>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex gap-1 bg-muted p-1 rounded-xl overflow-x-auto">
+      {/* Tab bar — 2 columns on mobile so every tab including Danger is
+          visible without scrolling, 4 columns on desktop. */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-muted p-1 rounded-xl">
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap flex-1 justify-center ${tab === t.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition justify-center ${tab === t.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
             {t.icon}{t.label}
           </button>
         ))}

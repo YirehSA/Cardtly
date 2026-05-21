@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import { ArrowRight, Wifi, Fingerprint } from 'lucide-react'
+import { ArrowRight, Wifi, Fingerprint, Eye, EyeOff } from 'lucide-react'
 import { getBiometricStatus, hasBiometricEnabled, signInWithBiometric, enableBiometric } from '@/lib/biometric'
 
 const schema = z.object({
@@ -31,6 +31,7 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo') || '/dashboard'
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [biometricLabel, setBiometricLabel] = useState<string>('')
   const [showBiometricButton, setShowBiometricButton] = useState(false)
   const [biometricBusy, setBiometricBusy] = useState(false)
@@ -191,8 +192,15 @@ function LoginForm() {
             Forgot password?
           </Link>
         </div>
-        <input id="password" type="password" autoComplete="current-password"
-          className={inputClass} placeholder="••••••••" style={{ color: 'white', backgroundColor: 'rgba(255,255,255,0.08)' }} {...register('password')} />
+        <div className="relative">
+          <input id="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password"
+            className={inputClass + ' pr-11'} placeholder="••••••••" style={{ color: 'white', backgroundColor: 'rgba(255,255,255,0.08)' }} {...register('password')} />
+          <button type="button" onClick={() => setShowPassword(p => !p)}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition">
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        </div>
         {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
       </div>
 

@@ -98,20 +98,41 @@ export async function signInWithBiometric(): Promise<BiometricSignInResult> {
   if (!isNativeApp() || !hasBiometricEnabled()) {
     return { ok: false, reason: 'not-enabled' }
   }
-  try {
-    const { NativeBiometric } = await import('capacitor-native-biometric')
-    await NativeBiometric.verifyIdentity({
-      reason: 'Sign in to Cardtly',
-      title: 'Cardtly',
-      subtitle: 'Verify it is you',
-      description: '',
-      negativeButtonText: 'Cancel',
-      maxAttempts: 3,
-    })
-    const creds = await NativeBiometric.getCredentials({ server: SERVER_KEY })
-    return { ok: true, email: creds.username, refreshToken: creds.password }
-  } catch (err: unknown) {
-    const reason = err instanceof Error ? err.message : 'biometric-failed'
-    return { ok: false, reason }
+  // Helper that tries the biometric flow once. Returns ok:false on
+  // failure so the caller can decide whether to surface an error or
+  // retry. We retry once internally on transient failures (sensor
+  // glitched, prompt dismissed during fingerprint registration scan,
+  // race with the keystore unlock) before giving up.
+  const tryOnce = async (): Promise<BiometricSignInResult> => {
+    try {
+      const { NativeBiometric } = await import('capacitor-native-biometric')
+      await NativeBiometric.verifyIdentity({
+        reason: 'Sign in to Cardtly',
+        title: 'Cardtly',
+        subtitle: 'Verify it is you',
+        description: '',
+        negativeButtonText: 'Cancel',
+        maxAttempts: 5,
+      })
+      const creds = await NativeBiometric.getCredentials({ server: SERVER_KEY })
+      return { ok: true, email: creds.username, refreshToken: creds.password }
+    } catch (err: unknown) {
+      const reason = err instanceof Error ? err.message : 'biometric-failed'
+      return { ok: false, reason }
+    }
   }
+
+  const first = await tryOnce()
+  if (first.ok) return first
+
+  // Auto-retry once after a short delay. Plugin sometimes throws on
+  // the very first attempt of a session because the Android Keystore
+  // hasn't woken up yet; the second attempt is almost always clean.
+  // We skip retry only when the user explicitly cancelled, to avoid
+  // re-prompting after a deliberate dismiss.
+  const looksCancelled = /cancel|user.cancelled|10\b|13\b/i.test(first.reason || '')
+  if (looksCancelled) return first
+
+  await new Promise((resolve) => setTimeout(resolve, 250))
+  return tryOnce()
 }
