@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
+import { getPrimaryCard } from '@/lib/card-server'
 import { parseDesign, getAccentHex } from '@/types/design'
 import Link from 'next/link'
 import CopyLinkButton from '@/components/dashboard/CopyLinkButton'
@@ -9,19 +10,25 @@ import {
   QrCode, Mail, Monitor, Sparkles, ChevronRight
 } from 'lucide-react'
 
+interface CardSummary {
+  id: string
+  name: string | null
+  title: string | null
+  company: string | null
+  slug: string | null
+  view_count: number | null
+  color_theme: string | null
+  profile_image_url: string | null
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [plan, { data: card }] = await Promise.all([
+  const [plan, card] = await Promise.all([
     getUserPlan(user.id),
-    supabase
-      .from('cards')
-      .select('id, name, title, company, slug, view_count, color_theme, profile_image_url')
-      .eq('user_id', user.id)
-      .eq('is_primary', true)
-      .single(),
+    getPrimaryCard<CardSummary>(user.id, 'id, name, title, company, slug, view_count, color_theme, profile_image_url'),
   ])
 
   const isPro = plan.tier === 'pro' && plan.isActive

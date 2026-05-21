@@ -1,8 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
+import { getPrimaryCard } from '@/lib/card-server'
 import ProGate from '@/components/card/ProGate'
 import { Users, Mail, Phone, MessageSquare, Calendar } from 'lucide-react'
+
+interface CardSummary {
+  id: string
+  name: string | null
+  slug: string | null
+}
 
 export const metadata = { title: 'Contacts' }
 
@@ -11,13 +18,8 @@ export default async function ContactsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: card }, plan] = await Promise.all([
-    supabase
-      .from('cards')
-      .select('id, name, slug')
-      .eq('user_id', user.id)
-      .eq('is_primary', true)
-      .single(),
+  const [card, plan] = await Promise.all([
+    getPrimaryCard<CardSummary>(user.id, 'id, name, slug'),
     getUserPlan(user.id),
   ])
 

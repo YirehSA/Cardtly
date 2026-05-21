@@ -1,8 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/plan-server'
+import { getPrimaryCard } from '@/lib/card-server'
 import { redirect } from 'next/navigation'
 import QRPage from '@/components/card/QRPage'
+
+interface CardSummary {
+  id: string
+  slug: string | null
+  name: string | null
+  profile_image_url: string | null
+  company_logo_url: string | null
+  color_theme: string | null
+}
 
 export const metadata = { title: 'QR Code' }
 
@@ -11,13 +21,8 @@ export default async function QRCodePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: personalCard }, plan] = await Promise.all([
-    supabase
-      .from('cards')
-      .select('id, slug, name, profile_image_url, company_logo_url, color_theme')
-      .eq('user_id', user.id)
-      .eq('is_primary', true)
-      .single(),
+  const [personalCard, plan] = await Promise.all([
+    getPrimaryCard<CardSummary>(user.id, 'id, slug, name, profile_image_url, company_logo_url, color_theme'),
     getUserPlan(user.id),
   ])
 

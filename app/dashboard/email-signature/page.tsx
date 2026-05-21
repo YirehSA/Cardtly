@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
+import { getPrimaryCard } from '@/lib/card-server'
 import EmailSignatureBuilder from '@/components/email-signature/EmailSignatureBuilder'
 import ProGate from '@/components/card/ProGate'
 
@@ -12,14 +13,9 @@ export default async function EmailSignaturePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [plan, { data: personalCard }] = await Promise.all([
+  const [plan, personalCard] = await Promise.all([
     getUserPlan(user.id),
-    supabase
-      .from('cards')
-      .select('id, name, title, company, email, phone, website, linkedin_url, twitter_url, instagram_url, profile_image_url, company_logo_url, color_theme, slug')
-      .eq('user_id', user.id)
-      .eq('is_primary', true)
-      .single(),
+    getPrimaryCard<Record<string, any>>(user.id, 'id, name, title, company, email, phone, website, linkedin_url, twitter_url, instagram_url, profile_image_url, company_logo_url, color_theme, slug'),
   ])
 
   const isPro = plan.tier === 'pro' && plan.isActive

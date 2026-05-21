@@ -1,7 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
+import { getPrimaryCard } from '@/lib/card-server'
 import SettingsTabs from '@/components/settings/SettingsTabs'
+
+interface CardSummary {
+  id: string
+  slug: string | null
+  name: string | null
+}
 
 export const metadata = { title: 'Settings' }
 
@@ -12,9 +19,9 @@ export default async function SettingsPage() {
 
   const plan = await getUserPlan(user.id)
 
-  const [{ data: profile }, { data: card }] = await Promise.all([
+  const [{ data: profile }, card] = await Promise.all([
     supabase.from('profiles').select('name').eq('user_id', user.id).maybeSingle(),
-    supabase.from('cards').select('id, slug, name').eq('user_id', user.id).eq('is_primary', true).single(),
+    getPrimaryCard<CardSummary>(user.id, 'id, slug, name'),
   ])
 
   const { data: sub } = await supabase
@@ -23,7 +30,7 @@ export default async function SettingsPage() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
 
   return (
     <SettingsTabs

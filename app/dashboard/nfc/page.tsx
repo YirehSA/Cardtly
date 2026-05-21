@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
+import { getPrimaryCard } from '@/lib/card-server'
 import NFCOrderPage from '@/components/nfc/NFCOrderPage'
 import NFCWriteCard from '@/components/nfc/NFCWriteCard'
 import ProGate from '@/components/card/ProGate'
@@ -18,14 +19,9 @@ export default async function NFCPage() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
 
-  const [plan, { data: card }, { data: orders }] = await Promise.all([
+  const [plan, card, { data: orders }] = await Promise.all([
     getUserPlan(user.id),
-    supabase
-      .from('cards')
-      .select('id, name, title, company, slug, profile_image_url, company_logo_url, color_theme')
-      .eq('user_id', user.id)
-      .eq('is_primary', true)
-      .single(),
+    getPrimaryCard(user.id, 'id, name, title, company, slug, profile_image_url, company_logo_url, color_theme'),
     supabase
       .from('nfc_orders')
       .select('*')
