@@ -339,23 +339,21 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats }:
                         </button>
                       )}
 
+                      <button onClick={() => resendConfirmation(user)}
+                        disabled={loading === `confirm-${user.id}`}
+                        title={user.email_confirmed ? 'Send a fresh confirmation email (Supabase may reject for already-confirmed users)' : 'Resend the email-confirmation link to this user'}
+                        className="p-1.5 rounded-lg transition hover:bg-white/10 disabled:opacity-50"
+                        style={{ color: '#00d4ff' }}>
+                        {loading === `confirm-${user.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                      </button>
                       {user.email_confirmed === false && (
-                        <>
-                          <button onClick={() => resendConfirmation(user)}
-                            disabled={loading === `confirm-${user.id}`}
-                            title="Resend the email-confirmation link to this user"
-                            className="p-1.5 rounded-lg transition hover:bg-white/10 disabled:opacity-50"
-                            style={{ color: '#00d4ff' }}>
-                            {loading === `confirm-${user.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                          </button>
-                          <button onClick={() => forceConfirm(user)}
-                            disabled={loading === `forceconfirm-${user.id}`}
-                            title="Force-confirm email without making them click the link"
-                            className="p-1.5 rounded-lg transition hover:bg-white/10 disabled:opacity-50"
-                            style={{ color: '#22c55e' }}>
-                            {loading === `forceconfirm-${user.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <MailCheck className="w-4 h-4" />}
-                          </button>
-                        </>
+                        <button onClick={() => forceConfirm(user)}
+                          disabled={loading === `forceconfirm-${user.id}`}
+                          title="Force-confirm email without making them click the link"
+                          className="p-1.5 rounded-lg transition hover:bg-white/10 disabled:opacity-50"
+                          style={{ color: '#22c55e' }}>
+                          {loading === `forceconfirm-${user.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <MailCheck className="w-4 h-4" />}
+                        </button>
                       )}
 
                       <button onClick={() => sendPasswordReset(user)}

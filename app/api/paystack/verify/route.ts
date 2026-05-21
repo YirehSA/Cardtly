@@ -22,9 +22,14 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/upgrade/cancel?reason=payment_failed`)
     }
 
-    const supabase = await createClient()
+    const supabase = await createClient() as any
 
-    await (supabase.from('whop_subscriptions') as any).upsert({
+    // Delete any existing subscription row for this user, then insert
+    // the fresh one. Avoids the .upsert({...}, { onConflict: 'user_id' })
+    // path because whop_subscriptions has no unique constraint on
+    // user_id, which caused upserts to fail silently on existing rows.
+    await supabase.from('whop_subscriptions').delete().eq('user_id', userId)
+    await supabase.from('whop_subscriptions').insert({
       user_id: userId,
       email: data.data.customer.email,
       plan_id: `paystack_${plan}`,
@@ -33,6 +38,7 @@ export async function GET(request: Request) {
       status: 'active',
       receipt_id: reference,
       membership_id: data.data.subscription_code || reference,
+      seats: 1,
       metadata: {
         paystack_reference: reference,
         paystack_subscription_code: data.data.subscription_code,
@@ -40,8 +46,7 @@ export async function GET(request: Request) {
         currency: data.data.currency,
         paid_at: data.data.paid_at,
       },
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' })
+    })
 
     return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/upgrade/success?plan=${plan}`)
   } catch (error) {

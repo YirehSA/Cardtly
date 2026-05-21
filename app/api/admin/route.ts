@@ -19,28 +19,58 @@ export async function POST(request: Request) {
   const body = await request.json()
   const { action } = body
 
-  // Activate Pro for a user
+  // Activate Pro for a user. Uses delete-then-insert because the
+  // whop_subscriptions table has no unique constraint on user_id, so
+  // .upsert({...}, { onConflict: 'user_id' }) fails silently. The two
+  // statements below give us an idempotent "set this user to Pro"
+  // operation that works whether they had a previous subscription row
+  // (free, cancelled, expired) or none at all.
   if (action === 'activate_pro') {
     const { user_id, email } = body
-    await admin.from('whop_subscriptions').upsert({
-      user_id,
-      email,
-      plan_id: 'pro_admin',
-      subscription_tier: 'pro',
-      status: 'active',
-      billing_cycle: 'monthly',
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' })
+    if (!user_id) {
+      return NextResponse.json({ error: 'user_id required' }, { status: 400 })
+    }
+    const { error: deleteError } = await admin
+      .from('whop_subscriptions')
+      .delete()
+      .eq('user_id', user_id)
+    if (deleteError) {
+      console.error('activate_pro delete error:', deleteError)
+    }
+    const { error: insertError } = await admin
+      .from('whop_subscriptions')
+      .insert({
+        user_id,
+        email,
+        plan_id: 'pro_admin',
+        subscription_tier: 'pro',
+        status: 'active',
+        billing_cycle: 'monthly',
+        seats: 1,
+        metadata: { comped: true, reason: 'admin_activated' },
+      })
+    if (insertError) {
+      console.error('activate_pro insert error:', insertError)
+      return NextResponse.json({ error: insertError.message }, { status: 500 })
+    }
     return NextResponse.json({ success: true })
   }
 
-  // Deactivate Pro
+  // Deactivate Pro. Plain UPDATE works because we're matching by
+  // user_id, not relying on an upsert conflict path.
   if (action === 'deactivate_pro') {
     const { user_id } = body
-    await admin.from('whop_subscriptions').update({
+    if (!user_id) {
+      return NextResponse.json({ error: 'user_id required' }, { status: 400 })
+    }
+    const { error } = await admin.from('whop_subscriptions').update({
       status: 'cancelled',
       updated_at: new Date().toISOString(),
     }).eq('user_id', user_id)
+    if (error) {
+      console.error('deactivate_pro error:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
     return NextResponse.json({ success: true })
   }
 
