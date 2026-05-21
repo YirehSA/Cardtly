@@ -9,28 +9,33 @@ export async function GET(
 ) {
   const { slug } = await params
 
+  // Use the service-role client so the OG image route can see team
+  // cards regardless of RLS policy. The image we render is intended
+  // to be public anyway, so bypassing RLS for the lookup is safe.
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  // Check personal cards first
-  let card = null
+  // Check personal cards first, then fall through to team cards.
+  // maybeSingle so a missing row doesn't throw - we just try the
+  // other table.
+  let card: { name?: string | null; title?: string | null; company?: string | null; profile_image_url?: string | null; company_logo_url?: string | null; color_theme?: string | null } | null = null
+
   const { data: personalCard } = await supabase
     .from('cards')
     .select('name, title, company, profile_image_url, company_logo_url, color_theme')
     .eq('slug', slug)
-    .single()
+    .maybeSingle()
 
   if (personalCard) {
     card = personalCard
   } else {
-    // Check team cards
     const { data: teamCard } = await supabase
       .from('team_cards')
       .select('name, title, company, profile_image_url, company_logo_url, color_theme')
       .eq('slug', slug)
-      .single()
+      .maybeSingle()
     if (teamCard) card = teamCard
   }
 

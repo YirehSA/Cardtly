@@ -65,6 +65,7 @@ export default function FlippableCardPreview({ form, isPro, design, cardUrl }: P
   }, [cardUrl])
 
   return (
+    <div className="relative">
     <Tilt max={flipped || spinning ? 0 : 6} shine={!flipped && !spinning} className={`flip-card relative ${flipped ? 'flipped' : ''}`}>
       <div
         ref={innerRef}
@@ -100,26 +101,31 @@ export default function FlippableCardPreview({ form, isPro, design, cardUrl }: P
         </div>
       </div>
 
-      {/* Spin button - dramatic 360 rotation */}
+    </Tilt>
+
+    {/* Control buttons rendered OUTSIDE the Tilt wrapper so they stay
+        anchored to the card frame instead of moving with the tilt
+        transform. That's what was eating the clicks before - the
+        tilt was nudging the click target out from under the cursor. */}
+    <div className="absolute top-3 right-3 z-30 flex items-center gap-2 pointer-events-none">
       <button
         type="button"
         onClick={spin}
         aria-label="Spin card"
         disabled={spinning}
-        className="absolute top-3 right-14 z-20 w-9 h-9 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95 backdrop-blur-md shadow-lg disabled:opacity-50"
+        className="pointer-events-auto w-9 h-9 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95 backdrop-blur-md shadow-lg disabled:opacity-50"
         style={{ background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.15)' }}>
         <Repeat2 className="w-4 h-4 text-white" />
       </button>
-
-      {/* Flip toggle button */}
       <button
         type="button"
         onClick={() => setFlipped(f => !f)}
         aria-label={flipped ? 'Show card front' : 'Show QR on back'}
-        className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95 backdrop-blur-md shadow-lg"
+        className="pointer-events-auto w-9 h-9 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95 backdrop-blur-md shadow-lg"
         style={{ background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.15)' }}>
         <RotateCw className="w-4 h-4 text-white" />
       </button>
-    </Tilt>
+    </div>
+    </div>
   )
 }
