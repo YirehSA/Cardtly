@@ -83,6 +83,55 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true })
   }
 
+  // Resend the email-confirmation link to a user who never confirmed.
+  // Uses Supabase's built-in resend, which respects whatever Custom SMTP
+  // is configured at the project level (Resend, in our case).
+  if (action === 'resend_confirmation') {
+    const { email } = body
+    if (!email) {
+      return NextResponse.json({ error: 'email required' }, { status: 400 })
+    }
+    const { error } = await admin.auth.resend({ type: 'signup', email })
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json({ success: true })
+  }
+
+  // Force-confirm a user's email without them clicking the link. For
+  // support cases where the email won't arrive (forwarder broken,
+  // typo, etc.). They can still log in with their existing password.
+  if (action === 'force_confirm') {
+    const { user_id } = body
+    if (!user_id) {
+      return NextResponse.json({ error: 'user_id required' }, { status: 400 })
+    }
+    const { error } = await admin.auth.admin.updateUserById(user_id, {
+      email_confirm: true,
+    })
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json({ success: true })
+  }
+
+  // Trigger a password-reset email to a user. The link Supabase sends
+  // points back to /reset-password on cardtly.com where the user picks
+  // a new password.
+  if (action === 'send_password_reset') {
+    const { email } = body
+    if (!email) {
+      return NextResponse.json({ error: 'email required' }, { status: 400 })
+    }
+    const { error } = await admin.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com'}/reset-password`,
+    })
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json({ success: true })
+  }
+
   // Hard-delete a user and every record we own about them. Mirrors the
   // self-service /api/account/delete route but is initiated by the
   // admin, not the user themselves. Cannot delete the admin's own

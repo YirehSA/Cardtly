@@ -5,13 +5,15 @@ import { toast } from 'sonner'
 import {
   Users, CreditCard, BarChart2, Package, Loader2,
   Search, Check, X, ChevronDown, ChevronUp, Building2,
-  Wifi, MessageSquare, Shield, Trash2
+  Wifi, MessageSquare, Shield, Trash2, Mail, KeyRound, MailCheck
 } from 'lucide-react'
 
 interface User {
   id: string
   email: string
   created_at: string
+  last_sign_in_at?: string | null
+  email_confirmed?: boolean
   isPro: boolean
   subscription: any
   org: any
@@ -105,6 +107,41 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats }:
       setLocalUsers(prev => prev.map(u => u.id === user.id ? { ...u, isPro: false } : u))
       toast.success(`Pro deactivated for ${user.email}`)
     } else toast.error(data.error)
+    setLoading(null)
+  }
+
+  async function resendConfirmation(user: User) {
+    setLoading(`confirm-${user.id}`)
+    const data = await api({ action: 'resend_confirmation', email: user.email })
+    if (data.success) {
+      toast.success(`Confirmation email resent to ${user.email}`)
+    } else {
+      toast.error(data.error || 'Could not resend')
+    }
+    setLoading(null)
+  }
+
+  async function forceConfirm(user: User) {
+    if (!confirm(`Mark ${user.email} as email-confirmed without them clicking a link?`)) return
+    setLoading(`forceconfirm-${user.id}`)
+    const data = await api({ action: 'force_confirm', user_id: user.id })
+    if (data.success) {
+      setLocalUsers(prev => prev.map(u => u.id === user.id ? { ...u, email_confirmed: true } : u))
+      toast.success(`${user.email} email confirmed`)
+    } else {
+      toast.error(data.error || 'Could not confirm')
+    }
+    setLoading(null)
+  }
+
+  async function sendPasswordReset(user: User) {
+    setLoading(`reset-${user.id}`)
+    const data = await api({ action: 'send_password_reset', email: user.email })
+    if (data.success) {
+      toast.success(`Password reset link sent to ${user.email}`)
+    } else {
+      toast.error(data.error || 'Could not send reset')
+    }
     setLoading(null)
   }
 
@@ -270,6 +307,12 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats }:
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                      {user.email_confirmed === false && (
+                        <span className="text-xs px-2 py-1 rounded-full font-semibold"
+                          title="User has not confirmed their email yet"
+                          style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24' }}>Unconfirmed</span>
+                      )}
+
                       {user.isPro ? (
                         <span className="text-xs px-2 py-1 rounded-full font-semibold"
                           style={{ background: 'rgba(0,212,255,0.15)', color: '#00d4ff' }}>Pro</span>
@@ -296,13 +339,39 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats }:
                         </button>
                       )}
 
+                      {user.email_confirmed === false && (
+                        <>
+                          <button onClick={() => resendConfirmation(user)}
+                            disabled={loading === `confirm-${user.id}`}
+                            title="Resend the email-confirmation link to this user"
+                            className="p-1.5 rounded-lg transition hover:bg-white/10 disabled:opacity-50"
+                            style={{ color: '#00d4ff' }}>
+                            {loading === `confirm-${user.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                          </button>
+                          <button onClick={() => forceConfirm(user)}
+                            disabled={loading === `forceconfirm-${user.id}`}
+                            title="Force-confirm email without making them click the link"
+                            className="p-1.5 rounded-lg transition hover:bg-white/10 disabled:opacity-50"
+                            style={{ color: '#22c55e' }}>
+                            {loading === `forceconfirm-${user.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <MailCheck className="w-4 h-4" />}
+                          </button>
+                        </>
+                      )}
+
+                      <button onClick={() => sendPasswordReset(user)}
+                        disabled={loading === `reset-${user.id}`}
+                        title="Send a password reset link to this user"
+                        className="p-1.5 rounded-lg transition hover:bg-white/10 disabled:opacity-50"
+                        style={{ color: '#fbbf24' }}>
+                        {loading === `reset-${user.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                      </button>
+
                       <button onClick={() => deleteUser(user)}
                         disabled={loading === `del-${user.id}`}
                         title="Delete user and all their data"
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition hover:opacity-80 disabled:opacity-50"
-                        style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>
-                        {loading === `del-${user.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                        Delete
+                        className="p-1.5 rounded-lg transition hover:bg-white/10 disabled:opacity-50"
+                        style={{ color: '#f87171' }}>
+                        {loading === `del-${user.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                       </button>
 
                       <button onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}

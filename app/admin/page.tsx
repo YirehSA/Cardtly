@@ -46,6 +46,8 @@ export default async function AdminPage() {
     id: u.id,
     email: u.email,
     created_at: u.created_at,
+    last_sign_in_at: u.last_sign_in_at || null,
+    email_confirmed: !!u.email_confirmed_at,
     subscription: subMap[u.id] || null,
     org: orgMap[u.id] || null,
     isPro: subMap[u.id]?.status === 'active' && subMap[u.id]?.subscription_tier === 'pro',
