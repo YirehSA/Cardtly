@@ -303,8 +303,10 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
                 <p className="font-semibold text-foreground mb-1">Outlook</p>
                 <ol className="space-y-1 list-decimal list-inside">
                   <li>Download the HTML file</li>
+                  <li>Open the downloaded file in your browser</li>
+                  <li>Press Ctrl+A to select all, then Ctrl+C to copy</li>
                   <li>Open Outlook → File → Options → Mail → Signatures</li>
-                  <li>Create new → paste or import the HTML</li>
+                  <li>Create new → paste (Ctrl+V)</li>
                   <li>Set as default and save</li>
                 </ol>
               </div>
