@@ -571,92 +571,106 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
   }
 
   if (design.templateId === 'executive') {
-    // Redesigned: magazine-style hero with bold diagonal accent shapes,
-    // big uppercase name, a red title bar with chevron cuts, label/value
-    // contact rows, and a "Connect With Me" circular social row.
-    // Accent colour drives the red - users who pick a different accent get
-    // a colour-shifted magazine layout (blue, green, etc.).
-    const pageBg = isLight ? '#f5f5f5' : '#161618'
-    const ink = isLight ? '#0f172a' : '#ffffff'
-    const muted = isLight ? '#64748b' : 'rgba(255,255,255,0.6)'
-    const rowBg = isLight ? '#ffffff' : '#1f1f23'
-    const rowBorder = isLight ? '#e2e8f0' : 'rgba(255,255,255,0.06)'
-    const parts = (card.name || 'Your Name').split(' ')
-    const firstName = parts[0]
-    const lastName = parts.slice(1).join(' ')
-    const ContactRow = ({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: string; href: string }) => (
+    // Cinematic editorial cover. Full-bleed hero photo with a soft vignette,
+    // magazine masthead at top, big name + accent rule + spaced-caps title
+    // at the bottom of the hero. A glass card overlaps the bottom of the hero
+    // and floats above the page, holding the bio and contact grid. Accent
+    // colour drives the rails, dividers, icon tiles, and CTA highlights.
+    const pageBg  = isLight ? '#fafafa' : '#000000'
+    const ink     = isLight ? '#0f172a' : '#ffffff'
+    const muted   = isLight ? '#64748b' : 'rgba(255,255,255,0.6)'
+    const glassBg = isLight ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.04)'
+    const glassBorder = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'
+    const tileBg  = isLight ? '#ffffff' : 'rgba(255,255,255,0.04)'
+    const ContactTile = ({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: string; href: string }) => (
       <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
-        style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', backgroundColor: rowBg, border: `1px solid ${rowBorder}`, borderRadius: 12, textDecoration: 'none' }}>
-        <div style={{ width: 38, height: 38, borderRadius: '50%', backgroundColor: accentHex, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: accentHex, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</p>
-          <p style={{ margin: 0, fontSize: 14, color: ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</p>
-        </div>
+        style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 16, backgroundColor: tileBg, border: `1px solid ${glassBorder}`, borderRadius: 16, textDecoration: 'none', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+        className="transition hover:scale-[1.02] active:scale-[0.98]">
+        <div style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 2 }}>{icon}</div>
+        <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: accentHex, textTransform: 'uppercase', letterSpacing: '0.18em' }}>{label}</p>
+        <p style={{ margin: 0, fontSize: 13, color: ink, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</p>
       </a>
     )
     return (
-      <div style={{ ...pageStyle, backgroundColor: pageBg }} className="animate-fade-up">
+      <div style={{ ...pageStyle, backgroundColor: pageBg, position: 'relative', overflow: 'hidden' }} className="animate-fade-up">
+        {/* Soft accent bloom at the top to add visual depth */}
+        <div style={{ position: 'absolute', top: -180, left: '50%', transform: 'translateX(-50%)', width: '140%', height: 600, background: `radial-gradient(ellipse at center, ${accentHex}28 0%, transparent 65%)`, pointerEvents: 'none' }} />
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
-        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
+        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: ink }} />
         </button>
-        <div className="max-w-md mx-auto">
-          {/* Hero with photo + diagonal accent overlays */}
-          <div style={{ position: 'relative', width: '100%', height: 360, overflow: 'hidden' }}>
+        <div className="max-w-md mx-auto relative">
+          {/* Full-bleed cinematic hero */}
+          <div style={{ position: 'relative', width: '100%', height: 540, overflow: 'hidden' }}>
             {card.profile_image_url
               ? <img src={card.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
-              : <div style={{ width: '100%', height: '100%', backgroundColor: accentHex + '33', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 80, fontWeight: 800, color: accentHex }}>{card.name?.[0]?.toUpperCase()}</div>}
-            {/* Red triangle top-right corner */}
-            <div style={{ position: 'absolute', top: 0, right: 0, width: 140, height: 140, background: accentHex, clipPath: 'polygon(100% 0, 100% 100%, 0 0)' }} />
-            {/* Red diagonal stripe along the bottom edge of the photo */}
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, background: accentHex, clipPath: 'polygon(0 100%, 100% 0, 100% 100%)' }} />
-            {/* Fade to page background at the very bottom */}
-            <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(180deg, transparent 55%, ${pageBg} 100%)`, pointerEvents: 'none' }} />
-          </div>
-          {/* Name: stacked uppercase, first name on top */}
-          <div style={{ padding: '0 24px', marginTop: -8, position: 'relative', zIndex: 2 }}>
-            <h1 style={{ margin: 0, fontSize: 44, fontWeight: 900, color: ink, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 0.95, fontFamily: font.heading }}>{firstName}</h1>
-            {lastName && <h1 style={{ margin: 0, fontSize: 44, fontWeight: 900, color: ink, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 0.95, fontFamily: font.heading }}>{lastName}</h1>}
-          </div>
-          {/* Red title bar with diagonal chevron cuts on both ends */}
-          {isPro && card.title && (
-            <div style={{ position: 'relative', margin: '20px 0 24px', height: 50 }}>
-              <div style={{ position: 'absolute', inset: 0, background: accentHex, clipPath: 'polygon(6% 0, 100% 0, 94% 100%, 0 100%)' }} />
-              <p style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0, fontSize: 14, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.18em' }}>{card.title}</p>
+              : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${accentHex} 0%, ${accentHex}66 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 160, fontWeight: 800, color: '#ffffff' }}>{card.name?.[0]?.toUpperCase()}</div>}
+            {/* Vignette: darken top a touch, fade hard to page bg at the bottom */}
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, transparent 22%, transparent 48%, rgba(0,0,0,0.95) 100%)' }} />
+            {/* Magazine masthead */}
+            <div style={{ position: 'absolute', top: 28, left: 24, right: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6))' }} />
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.35em' }}>Executive Profile</p>
+              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, rgba(255,255,255,0.6), transparent)' }} />
             </div>
-          )}
-          <div style={{ padding: '0 24px 24px' }}>
+            {/* Bottom overlay: name + accent rule + title + company */}
+            <div style={{ position: 'absolute', bottom: 44, left: 24, right: 24 }}>
+              <h1 style={{ margin: '0 0 14px', fontSize: 48, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.025em', lineHeight: 0.96, fontFamily: font.heading, textShadow: '0 4px 24px rgba(0,0,0,0.6)' }}>{card.name}</h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <div style={{ width: 42, height: 3, background: accentHex, boxShadow: `0 0 16px ${accentHex}aa` }} />
+                {isPro && card.title && <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.28em' }}>{card.title}</p>}
+              </div>
+              {card.company && <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.7)', fontStyle: 'italic', letterSpacing: '0.02em' }}>{card.company}</p>}
+            </div>
+          </div>
+          {/* Glass card overlapping bottom of hero */}
+          <div style={{ position: 'relative', marginTop: -36, marginLeft: 16, marginRight: 16, padding: '28px 22px', backgroundColor: glassBg, backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: `1px solid ${glassBorder}`, borderRadius: 28, boxShadow: '0 24px 70px rgba(0,0,0,0.5)', zIndex: 2 }}>
             <LogoZone {...shared} />
-            {card.company && <p style={{ margin: '0 0 16px', fontSize: 13, color: muted, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600 }}>{card.company}</p>}
-            {card.bio && <p style={{ fontSize: 13, color: muted, lineHeight: 1.7, margin: '0 0 24px', textAlign: 'center' }}>{card.bio}</p>}
-            {/* Contact rows */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-              {card.phone && <ContactRow icon={<Phone className="w-4 h-4" />} label="Phone" value={card.phone} href={`tel:${card.phone}`} />}
-              {isPro && card.work_phone && <ContactRow icon={<Phone className="w-4 h-4" />} label="Work" value={card.work_phone} href={`tel:${card.work_phone}`} />}
-              {isPro && card.whatsapp && <ContactRow icon={<MessageCircle className="w-4 h-4" />} label="WhatsApp" value={card.whatsapp} href={`https://wa.me/${card.whatsapp.replace(/\D/g, '')}`} />}
-              {card.email && <ContactRow icon={<Mail className="w-4 h-4" />} label="Email" value={card.email} href={`mailto:${card.email}`} />}
-              {isPro && card.address && <ContactRow icon={<MapPin className="w-4 h-4" />} label="Location" value={card.address} href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`} />}
-              {card.website && <ContactRow icon={<Globe className="w-4 h-4" />} label="Website" value={card.website.replace(/^https?:\/\//, '')} href={card.website.startsWith('http') ? card.website : `https://${card.website}`} />}
-            </div>
-            {/* Connect With Me - circular social icons in accent colour */}
-            {socialLinks.length > 0 && (
-              <div style={{ textAlign: 'center', marginTop: 8, marginBottom: 8 }}>
-                <p style={{ margin: '0 0 14px', fontSize: 12, fontWeight: 800, color: ink, textTransform: 'uppercase', letterSpacing: '0.18em' }}>Connect With Me</p>
-                <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 12 }}>
-                  {socialLinks.map(s => (
-                    <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
-                      aria-label={s.platform}
-                      className="w-11 h-11 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95"
-                      style={{ backgroundColor: accentHex, color: '#ffffff' }}>
-                      {s.icon}
-                    </a>
-                  ))}
-                </div>
+            {card.bio && (
+              <div style={{ position: 'relative', padding: '8px 12px', textAlign: 'center' }}>
+                <span style={{ position: 'absolute', top: -10, left: 0, fontSize: 56, color: accentHex, fontFamily: 'Georgia, serif', lineHeight: 1, opacity: 0.5 }}>&ldquo;</span>
+                <p style={{ margin: 0, fontSize: 14, color: muted, lineHeight: 1.75, fontStyle: 'italic' }}>{card.bio}</p>
+                <span style={{ position: 'absolute', bottom: -28, right: 0, fontSize: 56, color: accentHex, fontFamily: 'Georgia, serif', lineHeight: 1, opacity: 0.5 }}>&rdquo;</span>
               </div>
             )}
+          </div>
+          {/* Contact grid */}
+          <div style={{ padding: '28px 16px 0' }}>
+            <p style={{ margin: '0 0 16px', fontSize: 10, fontWeight: 800, color: ink, textTransform: 'uppercase', letterSpacing: '0.3em', textAlign: 'center' }}>Get In Touch</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {card.phone && <ContactTile icon={<Phone className="w-4 h-4" />} label="Call" value={card.phone} href={`tel:${card.phone}`} />}
+              {card.email && <ContactTile icon={<Mail className="w-4 h-4" />} label="Email" value={card.email} href={`mailto:${card.email}`} />}
+              {isPro && card.whatsapp && <ContactTile icon={<MessageCircle className="w-4 h-4" />} label="WhatsApp" value={card.whatsapp} href={`https://wa.me/${card.whatsapp.replace(/\D/g, '')}`} />}
+              {isPro && card.address && <ContactTile icon={<MapPin className="w-4 h-4" />} label="Visit" value={card.address} href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`} />}
+              {isPro && card.work_phone && <ContactTile icon={<Phone className="w-4 h-4" />} label="Work" value={card.work_phone} href={`tel:${card.work_phone}`} />}
+              {card.website && <ContactTile icon={<Globe className="w-4 h-4" />} label="Website" value={card.website.replace(/^https?:\/\//, '')} href={card.website.startsWith('http') ? card.website : `https://${card.website}`} />}
+            </div>
+          </div>
+          {/* Connect section with glass-square social icons */}
+          {socialLinks.length > 0 && (
+            <div style={{ padding: '32px 16px 0', textAlign: 'center' }}>
+              <p style={{ margin: '0 0 16px', fontSize: 10, fontWeight: 800, color: ink, textTransform: 'uppercase', letterSpacing: '0.3em' }}>Connect</p>
+              <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 12 }}>
+                {socialLinks.map(s => (
+                  <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
+                    aria-label={s.platform}
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center transition hover:scale-110 active:scale-95"
+                    style={{ backgroundColor: tileBg, color: accentHex, border: `1px solid ${glassBorder}`, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+                    {s.icon}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+          <div style={{ padding: '0 16px 24px' }}>
             <BottomSection {...bottomProps} />
-            <p style={{ textAlign: 'center', fontSize: 12, color: muted, marginTop: 28, letterSpacing: '0.05em', fontWeight: 600 }}>cardtly.com/{card.slug}</p>
+          </div>
+          {/* Footer */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, paddingBottom: 28 }}>
+            <div style={{ width: 24, height: 1, background: accentHex }} />
+            <p style={{ margin: 0, fontSize: 12, color: muted, letterSpacing: '0.15em', fontWeight: 700, textTransform: 'uppercase' }}>cardtly.com/{card.slug}</p>
+            <div style={{ width: 24, height: 1, background: accentHex }} />
           </div>
         </div>
       </div>
