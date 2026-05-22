@@ -207,42 +207,56 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
   }
 
   // ── 4. MINIMAL ────────────────────────────────────────────────────────────
+  // Redesigned: vibrant action-card layout matching PublicCardView.
   if (design.templateId === 'minimal') {
-    const cream = isLight ? '#faf7f2' : '#0e0e0e'
-    const ink = isLight ? '#1a1a1a' : '#f0ede8'
-    const muted = isLight ? '#8a7f72' : '#6a6560'
-    const lineColor = isLight ? '#d4cdc4' : '#2a2a2a'
+    const pageBg = isLight ? '#ffffff' : '#0a0e1a'
+    const ink = isLight ? '#0f172a' : '#ffffff'
+    const muted = isLight ? '#64748b' : 'rgba(255,255,255,0.55)'
+    const ICON_COLORS = {
+      phone:    '#22c55e',
+      email:    '#06b6d4',
+      linkedin: '#0a66c2',
+      website:  '#a855f7',
+    }
+    const Circle = ({ color, children }: { color: string; children: React.ReactNode }) => (
+      <div style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: color, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 12px ${color}55` }}>
+        {children}
+      </div>
+    )
+    const hasLinkedin = isPro && !!(form as any).linkedin_url
     return (
-      <div style={{ ...pageStyle, backgroundColor: cream }}>
-        <div style={{ padding: '20px 18px' }}>
-          <h2 style={{ margin: 0, fontSize: 26, fontWeight: 900, fontFamily: 'Georgia, serif', color: ink, lineHeight: 1, letterSpacing: '-0.03em' }}>{(form.name || 'Your Name').split(' ')[0]}</h2>
-          <h2 style={{ margin: '0 0 10px', fontSize: 26, fontWeight: 900, fontFamily: 'Georgia, serif', color: accentHex, lineHeight: 1, letterSpacing: '-0.03em' }}>{(form.name || '').split(' ').slice(1).join(' ') || 'Name'}</h2>
-          <div style={{ height: 1, backgroundColor: lineColor, marginBottom: 10 }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-            <Avatar base={56} />
-            <div>
-              {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 700, color: accentHex, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{form.title}</p>}
-              {form.company && <p style={{ margin: 0, fontSize: 11, color: muted, fontStyle: 'italic' }}>{form.company}</p>}
+      <div style={{ ...pageStyle, backgroundColor: pageBg }}>
+        <div style={{ padding: '20px 18px', textAlign: 'center' }}>
+          {/* Glowing accent ring around the photo */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+            <div style={{ padding: 3, borderRadius: '50%', background: `linear-gradient(135deg, ${accentHex}, ${accentHex}88)`, boxShadow: `0 0 20px ${accentHex}66` }}>
+              <div style={{ borderRadius: '50%', overflow: 'hidden', border: `2px solid ${pageBg}` }}>
+                <Avatar base={68} />
+              </div>
             </div>
           </div>
-          <LogoZone />
-          {isPro && form.bio && <p style={{ fontSize: 11, color: muted, lineHeight: 1.8, marginBottom: 12, fontStyle: 'italic', borderLeft: `2px solid ${accentHex}`, paddingLeft: 10 }}>{form.bio}</p>}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-            {[
-              form.phone && { icon: <Phone style={{ width: 11, height: 11 }} />, label: form.phone },
-              form.email && { icon: <Mail style={{ width: 11, height: 11 }} />, label: form.email },
-              form.website && { icon: <Globe style={{ width: 11, height: 11 }} />, label: form.website.replace(/^https?:\/\//, '') },
-              ...links.map(l => ({ icon: <ExternalLink style={{ width: 11, height: 11 }} />, label: l.title })),
-            ].filter(Boolean).map((item: any, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 8, borderBottom: `1px solid ${lineColor}` }}>
-                <span style={{ color: accentHex }}>{item.icon}</span>
-                <span style={{ fontSize: 11, color: ink }}>{item.label}</span>
-              </div>
-            ))}
+          <h2 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 800, color: ink, fontFamily: font.heading, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{form.name || 'Your Name'}</h2>
+          {isPro && form.title && <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: accentHex }}>{form.title}</p>}
+          {form.company && <p style={{ margin: '3px 0 0', fontSize: 10, color: muted }}>{form.company}</p>}
+          <div style={{ marginTop: 8 }}><LogoZone /></div>
+          {isPro && form.bio && <p style={{ fontSize: 10, color: muted, lineHeight: 1.5, margin: '8px 0 0' }}>{form.bio}</p>}
+          {/* 4 vibrant circular quick-actions */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 10, margin: '14px 0 12px' }}>
+            {form.phone && <Circle color={ICON_COLORS.phone}><Phone style={{ width: 14, height: 14 }} /></Circle>}
+            {form.email && <Circle color={ICON_COLORS.email}><Mail style={{ width: 14, height: 14 }} /></Circle>}
+            {hasLinkedin && <Circle color={ICON_COLORS.linkedin}><ExternalLink style={{ width: 14, height: 14 }} /></Circle>}
+            {form.website && <Circle color={ICON_COLORS.website}><Globe style={{ width: 14, height: 14 }} /></Circle>}
           </div>
           <Certs />
-          <div style={{ marginTop: 12, padding: '10px 0', textAlign: 'center', fontSize: 11, fontWeight: 700, color: design.buttonTextColor || accentHex, backgroundColor: design.buttonBgColor || 'transparent', border: `1px solid ${design.buttonBorderColor || accentHex}`, letterSpacing: '0.1em', textTransform: 'uppercase' as any,
-            boxShadow: design.cardStyle === 'glass' ? `0 0 8px ${accentHex}44` : undefined }}>SAVE CONTACT</div>
+          {/* Save Contact action button */}
+          <div style={{ marginTop: 10, padding: '10px 0', textAlign: 'center', fontSize: 11, fontWeight: 700,
+            color: design.buttonTextColor || '#ffffff',
+            backgroundColor: design.buttonBgColor || accentHex,
+            border: design.buttonBorderColor ? `1px solid ${design.buttonBorderColor}` : 'none',
+            borderRadius: 12, letterSpacing: '0.05em',
+            boxShadow: design.cardStyle === 'glass' ? `0 0 8px ${accentHex}44` : `0 4px 14px ${accentHex}55` }}>Save Contact</div>
+          {/* URL footer */}
+          <p style={{ marginTop: 12, fontSize: 9, color: muted, letterSpacing: '0.05em' }}>cardtly.com/your-card</p>
         </div>
       </div>
     )
