@@ -640,12 +640,17 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           <div style={{ padding: '28px 16px 0' }}>
             <p style={{ margin: '0 0 16px', fontSize: 10, fontWeight: 800, color: ink, textTransform: 'uppercase', letterSpacing: '0.3em', textAlign: 'center' }}>Get In Touch</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {/* Order is tuned so the grid fills neatly: Call | Email on
+                  row 1, then WhatsApp | Website pair on row 2, Work alone
+                  or paired with another short field, then Visit takes a
+                  full-width row at the bottom because the address is
+                  always too long for a 2-column tile. */}
               {card.phone && <ContactTile icon={<Phone className="w-4 h-4" />} label="Call" value={card.phone} href={`tel:${card.phone}`} />}
               {card.email && <ContactTile icon={<Mail className="w-4 h-4" />} label="Email" value={card.email} href={`mailto:${card.email}`} />}
               {isPro && card.whatsapp && <ContactTile icon={<MessageCircle className="w-4 h-4" />} label="WhatsApp" value={card.whatsapp} href={`https://wa.me/${card.whatsapp.replace(/\D/g, '')}`} />}
-              {isPro && card.address && <ContactTile icon={<MapPin className="w-4 h-4" />} label="Visit" value={card.address} href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`} span />}
-              {isPro && card.work_phone && <ContactTile icon={<Phone className="w-4 h-4" />} label="Work" value={card.work_phone} href={`tel:${card.work_phone}`} />}
               {card.website && <ContactTile icon={<Globe className="w-4 h-4" />} label="Website" value={card.website.replace(/^https?:\/\//, '')} href={card.website.startsWith('http') ? card.website : `https://${card.website}`} />}
+              {isPro && card.work_phone && <ContactTile icon={<Phone className="w-4 h-4" />} label="Work" value={card.work_phone} href={`tel:${card.work_phone}`} />}
+              {isPro && card.address && <ContactTile icon={<MapPin className="w-4 h-4" />} label="Visit" value={card.address} href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`} span />}
             </div>
           </div>
           {/* Connect section with glass-square social icons */}
