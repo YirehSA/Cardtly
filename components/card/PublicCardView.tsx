@@ -352,7 +352,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
     card.linkedin_url && { platform: 'LinkedIn', url: card.linkedin_url, icon: <Linkedin className="w-4 h-4" /> },
     card.twitter_url && { platform: 'Twitter / X', url: card.twitter_url, icon: <Twitter className="w-4 h-4" /> },
     card.instagram_url && { platform: 'Instagram', url: card.instagram_url, icon: <Instagram className="w-4 h-4" /> },
-    (card as any).facebook_url && { platform: 'Facebook', url: (card as any).facebook_url, icon: <span style={{ fontWeight: 'bold', fontSize: 14 }}>f</span> },
+    (card as any).facebook_url && { platform: 'Facebook', url: (card as any).facebook_url, icon: <Facebook className="w-4 h-4" /> },
   ].filter(Boolean) as { platform: string; url: string; icon: React.ReactNode }[] : []
 
   async function handleShare() {
@@ -582,13 +582,13 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
     const glassBg = isLight ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.04)'
     const glassBorder = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'
     const tileBg  = isLight ? '#ffffff' : 'rgba(255,255,255,0.04)'
-    const ContactTile = ({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: string; href: string }) => (
+    const ContactTile = ({ icon, label, value, href, span }: { icon: React.ReactNode; label: string; value: string; href: string; span?: boolean }) => (
       <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
-        style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 16, backgroundColor: tileBg, border: `1px solid ${glassBorder}`, borderRadius: 16, textDecoration: 'none', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+        style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 16, backgroundColor: tileBg, border: `1px solid ${glassBorder}`, borderRadius: 16, textDecoration: 'none', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', gridColumn: span ? '1 / -1' : undefined }}
         className="transition hover:scale-[1.02] active:scale-[0.98]">
         <div style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 2 }}>{icon}</div>
         <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: accentHex, textTransform: 'uppercase', letterSpacing: '0.18em' }}>{label}</p>
-        <p style={{ margin: 0, fontSize: 13, color: ink, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</p>
+        <p style={{ margin: 0, fontSize: 13, color: ink, fontWeight: 600, wordBreak: 'break-word', lineHeight: 1.35 }}>{value}</p>
       </a>
     )
     return (
@@ -601,27 +601,28 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           <Share2 className="w-4 h-4" style={{ color: ink }} />
         </button>
         <div className="max-w-md mx-auto relative">
-          {/* Full-bleed cinematic hero */}
-          <div style={{ position: 'relative', width: '100%', height: 540, overflow: 'hidden' }}>
+          {/* Cinematic hero - tightened from 540 to 400px so it doesn't
+              dominate small phone screens */}
+          <div style={{ position: 'relative', width: '100%', height: 400, overflow: 'hidden' }}>
             {card.profile_image_url
               ? <img src={card.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
-              : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${accentHex} 0%, ${accentHex}66 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 160, fontWeight: 800, color: '#ffffff' }}>{card.name?.[0]?.toUpperCase()}</div>}
-            {/* Vignette: darken top a touch, fade hard to page bg at the bottom */}
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, transparent 22%, transparent 48%, rgba(0,0,0,0.95) 100%)' }} />
+              : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${accentHex} 0%, ${accentHex}66 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 140, fontWeight: 800, color: '#ffffff' }}>{card.name?.[0]?.toUpperCase()}</div>}
+            {/* Vignette */}
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, transparent 22%, transparent 45%, rgba(0,0,0,0.95) 100%)' }} />
             {/* Magazine masthead */}
-            <div style={{ position: 'absolute', top: 28, left: 24, right: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+            <div style={{ position: 'absolute', top: 22, left: 24, right: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
               <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6))' }} />
               <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.35em' }}>Executive Profile</p>
               <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, rgba(255,255,255,0.6), transparent)' }} />
             </div>
-            {/* Bottom overlay: name + accent rule + title + company */}
-            <div style={{ position: 'absolute', bottom: 44, left: 24, right: 24 }}>
-              <h1 style={{ margin: '0 0 14px', fontSize: 48, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.025em', lineHeight: 0.96, fontFamily: font.heading, textShadow: '0 4px 24px rgba(0,0,0,0.6)' }}>{card.name}</h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                <div style={{ width: 42, height: 3, background: accentHex, boxShadow: `0 0 16px ${accentHex}aa` }} />
-                {isPro && card.title && <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.28em' }}>{card.title}</p>}
+            {/* Bottom overlay */}
+            <div style={{ position: 'absolute', bottom: 32, left: 24, right: 24 }}>
+              <h1 style={{ margin: '0 0 12px', fontSize: 40, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.025em', lineHeight: 0.96, fontFamily: font.heading, textShadow: '0 4px 24px rgba(0,0,0,0.6)' }}>{card.name}</h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                <div style={{ width: 36, height: 3, background: accentHex, boxShadow: `0 0 16px ${accentHex}aa` }} />
+                {isPro && card.title && <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.28em' }}>{card.title}</p>}
               </div>
-              {card.company && <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.7)', fontStyle: 'italic', letterSpacing: '0.02em' }}>{card.company}</p>}
+              {card.company && <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.7)', fontStyle: 'italic', letterSpacing: '0.02em' }}>{card.company}</p>}
             </div>
           </div>
           {/* Glass card overlapping bottom of hero */}
@@ -642,7 +643,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               {card.phone && <ContactTile icon={<Phone className="w-4 h-4" />} label="Call" value={card.phone} href={`tel:${card.phone}`} />}
               {card.email && <ContactTile icon={<Mail className="w-4 h-4" />} label="Email" value={card.email} href={`mailto:${card.email}`} />}
               {isPro && card.whatsapp && <ContactTile icon={<MessageCircle className="w-4 h-4" />} label="WhatsApp" value={card.whatsapp} href={`https://wa.me/${card.whatsapp.replace(/\D/g, '')}`} />}
-              {isPro && card.address && <ContactTile icon={<MapPin className="w-4 h-4" />} label="Visit" value={card.address} href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`} />}
+              {isPro && card.address && <ContactTile icon={<MapPin className="w-4 h-4" />} label="Visit" value={card.address} href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`} span />}
               {isPro && card.work_phone && <ContactTile icon={<Phone className="w-4 h-4" />} label="Work" value={card.work_phone} href={`tel:${card.work_phone}`} />}
               {card.website && <ContactTile icon={<Globe className="w-4 h-4" />} label="Website" value={card.website.replace(/^https?:\/\//, '')} href={card.website.startsWith('http') ? card.website : `https://${card.website}`} />}
             </div>

@@ -304,8 +304,8 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
       <div style={{ ...pageStyle, backgroundColor: pageBg, position: 'relative', overflow: 'hidden' }}>
         {/* Accent bloom */}
         <div style={{ position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)', width: '140%', height: 220, background: `radial-gradient(ellipse at center, ${accentHex}30 0%, transparent 65%)`, pointerEvents: 'none' }} />
-        {/* Cinematic hero */}
-        <div style={{ position: 'relative', width: '100%', height: 230, overflow: 'hidden' }}>
+        {/* Cinematic hero - tighter so it doesn't dominate */}
+        <div style={{ position: 'relative', width: '100%', height: 175, overflow: 'hidden' }}>
           {form.profile_image_url
             ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
             : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${accentHex}, ${accentHex}66)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 60, fontWeight: 800, color: '#ffffff' }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
