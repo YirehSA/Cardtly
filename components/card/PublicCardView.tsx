@@ -6,7 +6,7 @@ import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAcce
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
-  Instagram, Linkedin, Twitter
+  Instagram, Linkedin, Twitter, Facebook
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
@@ -506,6 +506,8 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
       email:    '#ef4444',  // red
       linkedin: '#3b82f6',  // blue
       website:  '#a855f7',  // purple
+      twitter:  '#1f2937',  // dark slate (X brand modern look, visible on black bg)
+      facebook: '#1877f2',  // facebook brand blue
     }
     type CircleProps = { href: string; color: string; icon: React.ReactNode; label: string }
     const Circle = ({ href, color, icon, label }: CircleProps) => (
@@ -543,12 +545,16 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           {isPro && card.title && <p style={{ margin: 0, fontSize: 15, fontWeight: 500, color: titleColor, textAlign: 'center' }}>{card.title}</p>}
           {card.company && <p style={{ margin: '4px 0 0', fontSize: 14, color: muted, textAlign: 'center' }}>{card.company}</p>}
           {card.bio && <p style={{ fontSize: 13, color: muted, textAlign: 'center', lineHeight: 1.6, margin: '12px 0 0' }}>{card.bio}</p>}
-          {/* 4 vibrant circular quick-actions */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 18, margin: '28px 0 32px' }}>
+          {/* Up to 6 vibrant circular quick-actions (phone, email, linkedin,
+              website, twitter/X, facebook). Wraps to a second row on narrow
+              phones when 5+ are filled in. */}
+          <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 14, margin: '28px 0 32px' }}>
             {card.phone && <Circle href={`tel:${card.phone}`} color={ICON_COLORS.phone} label="Call" icon={<Phone className="w-6 h-6" />} />}
             {card.email && <Circle href={`mailto:${card.email}`} color={ICON_COLORS.email} label="Email" icon={<Mail className="w-6 h-6" />} />}
             {isPro && (card as any).linkedin_url && <Circle href={(card as any).linkedin_url} color={ICON_COLORS.linkedin} label="LinkedIn" icon={<Linkedin className="w-6 h-6" />} />}
             {card.website && <Circle href={card.website.startsWith('http') ? card.website : `https://${card.website}`} color={ICON_COLORS.website} label="Website" icon={<Globe className="w-6 h-6" />} />}
+            {isPro && (card as any).twitter_url && <Circle href={(card as any).twitter_url} color={ICON_COLORS.twitter} label="X / Twitter" icon={<Twitter className="w-6 h-6" />} />}
+            {isPro && (card as any).facebook_url && <Circle href={(card as any).facebook_url} color={ICON_COLORS.facebook} label="Facebook" icon={<Facebook className="w-6 h-6" />} />}
           </div>
           {/* Pro extras that don't fit in the circle row */}
           <div className="space-y-2.5">

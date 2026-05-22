@@ -5,7 +5,7 @@ import {
   getAccentHex, getReadableTextOn, getButtonBg, getButtonText, getButtonBorder,
   getCardStyleEffect, TEXT_POSITION_TEMPLATES
 } from '@/types/design'
-import { Phone, Mail, Globe, MessageCircle, ExternalLink, ChevronRight } from 'lucide-react'
+import { Phone, Mail, Globe, MessageCircle, ExternalLink, ChevronRight, Twitter, Facebook } from 'lucide-react'
 
 interface PreviewData {
   name: string; title: string; company: string; bio: string
@@ -222,6 +222,8 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
       email:    '#ef4444',
       linkedin: '#3b82f6',
       website:  '#a855f7',
+      twitter:  '#1f2937',
+      facebook: '#1877f2',
     }
     const Circle = ({ color, children }: { color: string; children: React.ReactNode }) => (
       <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: color, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 6px 16px ${color}77` }}>
@@ -229,6 +231,8 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
       </div>
     )
     const hasLinkedin = isPro && !!(form as any).linkedin_url
+    const hasTwitter  = isPro && !!(form as any).twitter_url
+    const hasFacebook = isPro && !!(form as any).facebook_url
     return (
       <div style={{ ...pageStyle, backgroundColor: pageBg }}>
         <div style={{ padding: '20px 18px', textAlign: 'center' }}>
@@ -251,12 +255,14 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           {isPro && form.title && <p style={{ margin: 0, fontSize: 11, fontWeight: 500, color: titleColor }}>{form.title}</p>}
           {form.company && <p style={{ margin: '3px 0 0', fontSize: 10, color: muted }}>{form.company}</p>}
           {isPro && form.bio && <p style={{ fontSize: 10, color: muted, lineHeight: 1.5, margin: '8px 0 0' }}>{form.bio}</p>}
-          {/* 4 vibrant circular quick-actions */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, margin: '16px 0 14px' }}>
+          {/* Up to 6 vibrant circular quick-actions; wraps on narrow widths */}
+          <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8, margin: '16px 0 14px' }}>
             {form.phone && <Circle color={ICON_COLORS.phone}><Phone style={{ width: 16, height: 16 }} /></Circle>}
             {form.email && <Circle color={ICON_COLORS.email}><Mail style={{ width: 16, height: 16 }} /></Circle>}
             {hasLinkedin && <Circle color={ICON_COLORS.linkedin}><ExternalLink style={{ width: 16, height: 16 }} /></Circle>}
             {form.website && <Circle color={ICON_COLORS.website}><Globe style={{ width: 16, height: 16 }} /></Circle>}
+            {hasTwitter && <Circle color={ICON_COLORS.twitter}><Twitter style={{ width: 16, height: 16 }} /></Circle>}
+            {hasFacebook && <Circle color={ICON_COLORS.facebook}><Facebook style={{ width: 16, height: 16 }} /></Circle>}
           </div>
           <Certs />
           {/* Save Contact action button */}
