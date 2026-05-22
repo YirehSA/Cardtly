@@ -619,7 +619,15 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               design panel - 380px is the 100% baseline. */}
           <div style={{ position: 'relative', width: '100%', height: Math.round(380 * ((design.profilePhotoSize ?? 100) / 100)), overflow: 'hidden' }}>
             {card.profile_image_url
-              ? <img src={card.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', transform: `scale(${(design.boldImageZoom ?? 100) / 100})`, transformOrigin: 'center', transition: 'transform 0.3s ease' }} />
+              ? <>
+                  {/* Blurred photo fills the letterbox area so the whole
+                      portrait is visible (object-fit: contain) without ugly
+                      black bars on the sides. */}
+                  <img src={card.profile_image_url} aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', filter: 'blur(40px) brightness(0.55) saturate(1.1)', transform: 'scale(1.15)' }} />
+                  {/* Foreground: full photo, contained so nothing is
+                      cropped. boldImageZoom slider applies on top. */}
+                  <img src={card.profile_image_url} style={{ position: 'relative', width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', transform: `scale(${(design.boldImageZoom ?? 100) / 100})`, transformOrigin: 'center', transition: 'transform 0.3s ease' }} />
+                </>
               : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${accentHex} 0%, ${accentHex}66 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 130, fontWeight: 800, color: '#ffffff' }}>{card.name?.[0]?.toUpperCase()}</div>}
             {/* Bottom-only vignette so the name overlay reads */}
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.95) 100%)' }} />

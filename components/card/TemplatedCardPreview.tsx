@@ -307,7 +307,12 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         {/* Cinematic hero - height scales with profilePhotoSize slider */}
         <div style={{ position: 'relative', width: '100%', height: Math.round(175 * ((design.profilePhotoSize ?? 100) / 100)), overflow: 'hidden' }}>
           {form.profile_image_url
-            ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', transform: `scale(${(design.boldImageZoom ?? 100) / 100})`, transformOrigin: 'center' }} />
+            ? <>
+                {/* Blurred fill so the contained foreground photo doesn't
+                    have black side-bars when aspect ratios differ. */}
+                <img src={form.profile_image_url} aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(20px) brightness(0.55)', transform: 'scale(1.15)' }} />
+                <img src={form.profile_image_url} style={{ position: 'relative', width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', transform: `scale(${(design.boldImageZoom ?? 100) / 100})`, transformOrigin: 'center' }} />
+              </>
             : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${accentHex}, ${accentHex}66)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 60, fontWeight: 800, color: '#ffffff' }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
           {/* Vignette */}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 22%, transparent 48%, rgba(0,0,0,0.95) 100%)' }} />
