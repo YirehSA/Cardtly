@@ -267,6 +267,23 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
         </div>
       </div>
 
+      {/* Hero photo zoom - sits right below the profile photo size so the
+          frame + zoom controls are grouped together. Shown for templates
+          with a full-bleed hero image (Bold, Executive). */}
+      {(design.templateId === 'bold' || design.templateId === 'executive') && (
+        <div>
+          <label className="block text-sm font-semibold mb-1">Photo zoom</label>
+          <p className="text-xs text-muted-foreground mb-2">Zooms the photo inside the frame above.</p>
+          <input type="range" min="70" max="160" step="4"
+            value={design.boldImageZoom ?? 100}
+            onChange={e => update({ boldImageZoom: parseInt(e.target.value) })}
+            className="w-full accent-blue-500" />
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <span>Zoom out</span><span>{design.boldImageZoom ?? 100}%</span><span>Zoom in</span>
+          </div>
+        </div>
+      )}
+
       {/* Logo position */}
       <div>
         <label className="block text-sm font-semibold mb-1">Logo position</label>
@@ -334,23 +351,6 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
         </div>
       )}
 
-      {/* Hero photo zoom - shown for templates with a full-bleed hero image */}
-      {(design.templateId === 'bold' || design.templateId === 'executive') && (
-        <div className="border-t border-border pt-6 space-y-5">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Hero photo zoom</p>
-          <div>
-            <label className="block text-sm font-medium mb-1">Photo zoom</label>
-            <p className="text-xs text-muted-foreground mb-2">Zooms the photo inside the frame. Use the Profile photo size slider above to change the frame itself.</p>
-            <input type="range" min="70" max="160" step="4"
-              value={design.boldImageZoom ?? 100}
-              onChange={e => update({ boldImageZoom: parseInt(e.target.value) })}
-              className="w-full accent-blue-500" />
-            <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              <span>Zoom out</span><span>{design.boldImageZoom ?? 100}%</span><span>Zoom in</span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
