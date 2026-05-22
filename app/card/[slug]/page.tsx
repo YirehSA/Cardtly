@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       siteName: 'Cardtly',
       images: [{
         url: ogImageUrl,
-        width: 1200,
+        width: 630,
         height: 630,
         alt: `${card.name} — Digital Business Card`,
       }],

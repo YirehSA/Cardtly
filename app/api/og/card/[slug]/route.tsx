@@ -19,24 +19,30 @@ export async function GET(
 
   // Check personal cards first, then fall through to team cards.
   // maybeSingle so a missing row doesn't throw - we just try the
-  // other table.
+  // other table. Wrapped in try/catch so a transient Supabase blip
+  // still returns a valid (generic) OG image rather than 500ing,
+  // which WhatsApp would cache as "no image" for days.
   let card: { name?: string | null; title?: string | null; company?: string | null; profile_image_url?: string | null; company_logo_url?: string | null; color_theme?: string | null } | null = null
 
-  const { data: personalCard } = await supabase
-    .from('cards')
-    .select('name, title, company, profile_image_url, company_logo_url, color_theme')
-    .eq('slug', slug)
-    .maybeSingle()
-
-  if (personalCard) {
-    card = personalCard
-  } else {
-    const { data: teamCard } = await supabase
-      .from('team_cards')
+  try {
+    const { data: personalCard } = await supabase
+      .from('cards')
       .select('name, title, company, profile_image_url, company_logo_url, color_theme')
       .eq('slug', slug)
       .maybeSingle()
-    if (teamCard) card = teamCard
+
+    if (personalCard) {
+      card = personalCard
+    } else {
+      const { data: teamCard } = await supabase
+        .from('team_cards')
+        .select('name, title, company, profile_image_url, company_logo_url, color_theme')
+        .eq('slug', slug)
+        .maybeSingle()
+      if (teamCard) card = teamCard
+    }
+  } catch {
+    // fall through and render generic Cardtly OG image
   }
 
   const name    = card?.name    || 'Cardtly'
@@ -161,6 +167,15 @@ export async function GET(
         </div>
       </div>
     ),
-    { width: 630, height: 630 }
+    {
+      width: 630,
+      height: 630,
+      headers: {
+        // Let CDN serve cached image but allow background revalidation.
+        // Avoids WhatsApp/Telegram getting a slow first response that
+        // sometimes times out and gets cached as "no image".
+        'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
+      },
+    }
   )
 }
