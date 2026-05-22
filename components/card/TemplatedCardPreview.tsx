@@ -87,7 +87,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         {form.phone && <Row icon={<Phone style={{ width: 12, height: 12 }} />} label={form.phone} />}
         {form.email && <Row icon={<Mail style={{ width: 12, height: 12 }} />} label={form.email} />}
         {isPro && form.whatsapp && <Row icon={<MessageCircle style={{ width: 12, height: 12 }} />} label={form.whatsapp} sublabel="WhatsApp" />}
-        {isPro && form.website && <Row icon={<Globe style={{ width: 12, height: 12 }} />} label={form.website.replace(/^https?:\/\//, '')} />}
+        {form.website && <Row icon={<Globe style={{ width: 12, height: 12 }} />} label={form.website.replace(/^https?:\/\//, '')} />}
         {links.map(l => <Row key={l.title} icon={<ExternalLink style={{ width: 12, height: 12 }} />} label={l.title} />)}
       </div>
     )
@@ -231,7 +231,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
             {[
               form.phone && { icon: <Phone style={{ width: 11, height: 11 }} />, label: form.phone },
               form.email && { icon: <Mail style={{ width: 11, height: 11 }} />, label: form.email },
-              isPro && form.website && { icon: <Globe style={{ width: 11, height: 11 }} />, label: form.website.replace(/^https?:\/\//, '') },
+              form.website && { icon: <Globe style={{ width: 11, height: 11 }} />, label: form.website.replace(/^https?:\/\//, '') },
               ...links.map(l => ({ icon: <ExternalLink style={{ width: 11, height: 11 }} />, label: l.title })),
             ].filter(Boolean).map((item: any, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 8, borderBottom: `1px solid ${lineColor}` }}>
@@ -361,7 +361,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 4 }}>
             {form.phone && <Phone style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.8)' }} />}
             {form.email && <Mail style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.8)' }} />}
-            {isPro && form.website && <Globe style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.8)' }} />}
+            {form.website && <Globe style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.8)' }} />}
           </div>
         </div>
         <div style={{ flex: 1, padding: '16px 14px', display: 'flex', flexDirection: 'column' }}>
@@ -375,7 +375,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
             {form.phone && <span style={{ fontSize: 10, color: bg.text }}>{form.phone}</span>}
             {form.email && <span style={{ fontSize: 10, color: bg.text }}>{form.email}</span>}
-            {isPro && form.website && <span style={{ fontSize: 10, color: bg.text }}>{form.website.replace(/^https?:\/\//, '')}</span>}
+            {form.website && <span style={{ fontSize: 10, color: bg.text }}>{form.website.replace(/^https?:\/\//, '')}</span>}
             {links.map(l => <span key={l.title} style={{ fontSize: 10, color: accentHex }}>{l.title}</span>)}
           </div>
           <Certs />
@@ -417,7 +417,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
             {[
               form.phone && { icon: <Phone style={{ width: 11, height: 11 }} />, label: form.phone },
               form.email && { icon: <Mail style={{ width: 11, height: 11 }} />, label: form.email },
-              isPro && form.website && { icon: <Globe style={{ width: 11, height: 11 }} />, label: form.website.replace(/^https?:\/\//, '') },
+              form.website && { icon: <Globe style={{ width: 11, height: 11 }} />, label: form.website.replace(/^https?:\/\//, '') },
               ...links.map(l => ({ icon: <ExternalLink style={{ width: 11, height: 11 }} />, label: l.title })),
             ].filter(Boolean).map((item: any, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, backgroundColor: accentHex + '0d', borderRadius: 8, padding: '7px 10px', border: `1px solid ${accentHex}33` }}>

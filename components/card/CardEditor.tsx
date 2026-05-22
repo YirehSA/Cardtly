@@ -196,12 +196,12 @@ export default function CardEditor({ card, plan, userId }: Props) {
           </button>
         </div>
 
-        <div className="flex gap-1 bg-muted p-1 rounded-xl mb-6 overflow-x-auto">
+        <div className="flex flex-wrap gap-1 bg-muted p-1 rounded-xl mb-6">
           {TABS.map(tab => {
             const locked = tab.proOnly && !pro
             return (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap flex-1 justify-center ${activeTab === tab.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} ${locked ? 'opacity-60' : ''}`}>
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap flex-1 min-w-[120px] justify-center ${activeTab === tab.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} ${locked ? 'opacity-60' : ''}`}>
                 {tab.icon}{tab.label}
                 {locked && <Lock className="w-3 h-3" />}
               </button>
@@ -260,9 +260,9 @@ export default function CardEditor({ card, plan, userId }: Props) {
             <ProField label="Address" pro={pro}>
               <Input value={form.address} onChange={e => update('address', e.target.value)} placeholder="Johannesburg, South Africa" disabled={!pro} />
             </ProField>
-            <ProField label="Website" pro={pro}>
-              <Input type="url" value={form.website} onChange={e => update('website', e.target.value)} placeholder="https://yoursite.com" disabled={!pro} />
-            </ProField>
+            <Field label="Website">
+              <Input type="url" value={form.website} onChange={e => update('website', e.target.value)} placeholder="https://yoursite.com" />
+            </Field>
             <ProField label="LinkedIn URL" pro={pro}>
               <Input type="url" value={form.linkedin_url} onChange={e => update('linkedin_url', e.target.value)} placeholder="https://linkedin.com/in/you" disabled={!pro} />
             </ProField>
