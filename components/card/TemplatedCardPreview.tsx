@@ -245,7 +245,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           {/* Photo with neon-blue → purple → pink gradient ring. Inner wrap
               gets pageBg so transparent-bg PNGs show the page through. */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-            <div style={{ padding: 3, borderRadius: '50%', background: RING_GRADIENT, boxShadow: '0 0 20px rgba(0,212,255,0.45), 0 0 32px rgba(236,72,153,0.3)' }}>
+            <div style={{ padding: 3, borderRadius: '50%', background: RING_GRADIENT, boxShadow: '0 0 8px rgba(0,212,255,0.22), 0 0 12px rgba(236,72,153,0.16)' }}>
               <div style={{ borderRadius: '50%', overflow: 'hidden', border: `2px solid ${pageBg}`, backgroundColor: pageBg }}>
                 <Avatar base={76} />
               </div>

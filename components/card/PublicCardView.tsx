@@ -537,7 +537,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               gets backgroundColor: pageBg so transparent PNGs (bg-removed
               photos) show the page background through, not the gradient. */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-            <div style={{ padding: 4, borderRadius: '50%', background: RING_GRADIENT, boxShadow: '0 0 40px rgba(0, 212, 255, 0.4), 0 0 60px rgba(236, 72, 153, 0.3)' }}>
+            <div style={{ padding: 4, borderRadius: '50%', background: RING_GRADIENT, boxShadow: '0 0 12px rgba(0, 212, 255, 0.22), 0 0 18px rgba(236, 72, 153, 0.16)' }}>
               <Avatar {...shared} size={140} rounded="full" extraStyle={{ border: `3px solid ${pageBg}`, backgroundColor: pageBg }} />
             </div>
           </div>
