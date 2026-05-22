@@ -26,13 +26,17 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     ) as any
 
-    // Successful charge — keep Pro active
+    // Successful charge - keep Pro active. Delete-then-insert because
+    // whop_subscriptions has no unique constraint on user_id, so the
+    // upsert(..., { onConflict: 'user_id' }) form errors out and
+    // silently leaves the user on Free.
     if (event.event === 'charge.success') {
       const { customer, metadata, subscription_code, amount, paid_at } = event.data
       const userId = metadata?.user_id
 
       if (userId) {
-        await admin.from('whop_subscriptions').upsert({
+        await admin.from('whop_subscriptions').delete().eq('user_id', userId)
+        await admin.from('whop_subscriptions').insert({
           user_id: userId,
           email: customer.email,
           plan_id: `paystack_${metadata?.plan || 'monthly'}`,
@@ -41,13 +45,13 @@ export async function POST(request: Request) {
           status: 'active',
           membership_id: subscription_code || event.data.reference,
           receipt_id: event.data.reference,
+          seats: 1,
           metadata: {
             paystack_subscription_code: subscription_code,
             amount,
             paid_at,
           },
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' })
+        })
       }
     }
 

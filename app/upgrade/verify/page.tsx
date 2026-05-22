@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 
 export default async function VerifyPage({
   searchParams,
@@ -13,6 +14,13 @@ export default async function VerifyPage({
     redirect('/upgrade/cancel?reason=missing_params')
   }
 
+  // next/navigation's redirect() works by throwing a special error. If
+  // the redirect() call is wrapped in a try/catch, the success redirect
+  // gets caught and the user lands on /upgrade/cancel even though the
+  // payment succeeded and the row was written. Do the verify + write
+  // OUTSIDE the try, fall through to a top-level redirect, and only
+  // catch the actual fetch/db errors.
+  let verified = false
   try {
     const response = await fetch(`https://api.paystack.co/transaction/verify/${ref}`, {
       headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
@@ -34,10 +42,19 @@ export default async function VerifyPage({
       periodEnd.setMonth(periodEnd.getMonth() + 1)
     }
 
-    const { createClient } = await import('@/lib/supabase/server')
-    const supabase = await createClient()
+    // Service-role client - whop_subscriptions RLS blocks user-scoped
+    // inserts, and only the server should be flipping users to Pro.
+    const admin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    ) as any
 
-    await supabase.from('whop_subscriptions').upsert({
+    // Delete-then-insert instead of upsert. whop_subscriptions has no
+    // unique constraint on user_id, so .upsert({...}, { onConflict:
+    // 'user_id' }) throws "no unique constraint matching the ON
+    // CONFLICT specification" and silently leaves the user on Free.
+    await admin.from('whop_subscriptions').delete().eq('user_id', user_id)
+    await admin.from('whop_subscriptions').insert({
       user_id,
       email: transaction.customer.email,
       plan_id: `paystack_${billingPlan}`,
@@ -45,19 +62,31 @@ export default async function VerifyPage({
       billing_cycle: billingPlan,
       status: 'active',
       receipt_id: ref,
-      membership_id: ref,
+      membership_id: transaction.subscription_code || ref,
+      seats: 1,
       metadata: {
         paystack_reference: ref,
+        paystack_subscription_code: transaction.subscription_code,
         amount: transaction.amount,
         currency: transaction.currency,
         period_end: periodEnd.toISOString(),
         paid_at: transaction.paid_at,
       },
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' })
+    })
 
-    redirect(`/upgrade/success?plan=${billingPlan}`)
-  } catch {
+    verified = true
+  } catch (err) {
+    // NEXT_REDIRECT is the internal exception next/navigation throws to
+    // trigger the redirect - rethrow it so the redirect actually happens.
+    if (err && typeof err === 'object' && 'digest' in err && typeof (err as { digest: unknown }).digest === 'string' && (err as { digest: string }).digest.startsWith('NEXT_REDIRECT')) {
+      throw err
+    }
+    console.error('Paystack verify page error:', err)
     redirect('/upgrade/cancel?reason=server_error')
   }
+
+  if (verified) {
+    redirect(`/upgrade/success?plan=${billingPlan}`)
+  }
+  redirect('/upgrade/cancel?reason=server_error')
 }
