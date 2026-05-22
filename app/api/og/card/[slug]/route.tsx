@@ -3,6 +3,35 @@ import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'edge'
 
+// Satori (the engine inside ImageResponse) has unreliable WebP support
+// in the edge runtime - it crashes silently and returns 0 bytes when
+// given a .webp source. We fetch images ourselves, convert to a base64
+// data URL, and skip WebP entirely so the route always returns a valid
+// image even if the user uploaded a webp profile photo.
+async function fetchImageAsDataUrl(url: string | null): Promise<string | null> {
+  if (!url) return null
+  try {
+    const res = await fetch(url, {
+      headers: { Accept: 'image/png,image/jpeg,image/*' },
+      signal: AbortSignal.timeout(3000),
+    })
+    if (!res.ok) return null
+    const contentType = (res.headers.get('content-type') || '').toLowerCase()
+    // Skip formats Satori chokes on. Force PNG/JPEG/GIF only.
+    if (!contentType.startsWith('image/')) return null
+    if (contentType.includes('webp') || contentType.includes('avif') || contentType.includes('heic')) return null
+    const buf = await res.arrayBuffer()
+    if (buf.byteLength > 2_500_000) return null
+    const bytes = new Uint8Array(buf)
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+    const b64 = btoa(binary)
+    return `data:${contentType.split(';')[0]};base64,${b64}`
+  } catch {
+    return null
+  }
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ slug: string }> }
@@ -48,8 +77,13 @@ export async function GET(
   const name    = card?.name    || 'Cardtly'
   const title   = card?.title   || ''
   const company = card?.company || ''
-  const photo   = card?.profile_image_url || null
-  const logo    = card?.company_logo_url  || null
+
+  // Pre-fetch images in parallel and bake them in as data URLs so
+  // Satori doesn't have to fetch them itself (and choke on webp).
+  const [photo, logo] = await Promise.all([
+    fetchImageAsDataUrl(card?.profile_image_url || null),
+    fetchImageAsDataUrl(card?.company_logo_url || null),
+  ])
 
   return new ImageResponse(
     (
