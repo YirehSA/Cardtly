@@ -613,11 +613,11 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
             </div>
           </div>
           {/* Cinematic photo - now lives below the header band. Object
-              position centred (instead of top-anchored) so portrait
-              headshots are framed naturally without hard cropping the
-              forehead. Vignette only at the bottom now since the top
-              edge is clean. */}
-          <div style={{ position: 'relative', width: '100%', height: 380, overflow: 'hidden' }}>
+              position centred so portrait headshots are framed naturally.
+              Height scales with the design.profilePhotoSize slider
+              (60-160%) so the user can tune the hero size from the
+              design panel - 380px is the 100% baseline. */}
+          <div style={{ position: 'relative', width: '100%', height: Math.round(380 * ((design.profilePhotoSize ?? 100) / 100)), overflow: 'hidden' }}>
             {card.profile_image_url
               ? <img src={card.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
               : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${accentHex} 0%, ${accentHex}66 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 130, fontWeight: 800, color: '#ffffff' }}>{card.name?.[0]?.toUpperCase()}</div>}

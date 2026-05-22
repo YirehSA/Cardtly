@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { RotateCw, QrCode, Repeat2 } from 'lucide-react'
 import QRCode from 'qrcode'
 import TemplatedCardPreview from './TemplatedCardPreview'
-import Tilt from '../Tilt'
 import { CardDesign, getAccentHex } from '@/types/design'
 
 interface PreviewData {
@@ -66,7 +65,9 @@ export default function FlippableCardPreview({ form, isPro, design, cardUrl }: P
 
   return (
     <div className="relative">
-    <Tilt max={flipped || spinning ? 0 : 6} shine={!flipped && !spinning} className={`flip-card relative ${flipped ? 'flipped' : ''}`}>
+    {/* Tilt wrapper removed - the parallax hover effect was hijacking
+        the pointer and breaking scroll on the live preview card */}
+    <div className={`flip-card relative ${flipped ? 'flipped' : ''}`}>
       <div
         ref={innerRef}
         className={`flip-card-inner ${spinning ? 'animate-card-spin' : ''}`}
@@ -101,7 +102,7 @@ export default function FlippableCardPreview({ form, isPro, design, cardUrl }: P
         </div>
       </div>
 
-    </Tilt>
+    </div>
 
     {/* Control buttons rendered OUTSIDE the Tilt wrapper so they stay
         anchored to the card frame instead of moving with the tilt
