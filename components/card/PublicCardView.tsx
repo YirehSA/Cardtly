@@ -601,23 +601,25 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           <Share2 className="w-4 h-4" style={{ color: ink }} />
         </button>
         <div className="max-w-md mx-auto relative">
-          {/* Cinematic hero - tightened from 540 to 400px so it doesn't
-              dominate small phone screens */}
-          <div style={{ position: 'relative', width: '100%', height: 400, overflow: 'hidden' }}>
+          {/* Cinematic hero - tighter still (340px) so the photo doesn't
+              dominate. Masthead pushed down to clear the fixed "Online now"
+              floating badge at the top. */}
+          <div style={{ position: 'relative', width: '100%', height: 340, overflow: 'hidden' }}>
             {card.profile_image_url
               ? <img src={card.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
-              : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${accentHex} 0%, ${accentHex}66 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 140, fontWeight: 800, color: '#ffffff' }}>{card.name?.[0]?.toUpperCase()}</div>}
+              : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${accentHex} 0%, ${accentHex}66 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 120, fontWeight: 800, color: '#ffffff' }}>{card.name?.[0]?.toUpperCase()}</div>}
             {/* Vignette */}
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, transparent 22%, transparent 45%, rgba(0,0,0,0.95) 100%)' }} />
-            {/* Magazine masthead */}
-            <div style={{ position: 'absolute', top: 22, left: 24, right: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+            {/* Magazine masthead - below the floating availability badge */}
+            <div style={{ position: 'absolute', top: 56, left: 24, right: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
               <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6))' }} />
               <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.35em' }}>Executive Profile</p>
               <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, rgba(255,255,255,0.6), transparent)' }} />
             </div>
-            {/* Bottom overlay */}
-            <div style={{ position: 'absolute', bottom: 32, left: 24, right: 24 }}>
-              <h1 style={{ margin: '0 0 12px', fontSize: 40, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.025em', lineHeight: 0.96, fontFamily: font.heading, textShadow: '0 4px 24px rgba(0,0,0,0.6)' }}>{card.name}</h1>
+            {/* Bottom overlay - extra bottom padding so the company text
+                doesn't sit on the edge of the glass card below */}
+            <div style={{ position: 'absolute', bottom: 48, left: 24, right: 24 }}>
+              <h1 style={{ margin: '0 0 12px', fontSize: 36, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.025em', lineHeight: 0.96, fontFamily: font.heading, textShadow: '0 4px 24px rgba(0,0,0,0.6)' }}>{card.name}</h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                 <div style={{ width: 36, height: 3, background: accentHex, boxShadow: `0 0 16px ${accentHex}aa` }} />
                 {isPro && card.title && <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.28em' }}>{card.title}</p>}
@@ -625,8 +627,9 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               {card.company && <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.7)', fontStyle: 'italic', letterSpacing: '0.02em' }}>{card.company}</p>}
             </div>
           </div>
-          {/* Glass card overlapping bottom of hero */}
-          <div style={{ position: 'relative', marginTop: -36, marginLeft: 16, marginRight: 16, padding: '28px 22px', backgroundColor: glassBg, backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: `1px solid ${glassBorder}`, borderRadius: 28, boxShadow: '0 24px 70px rgba(0,0,0,0.5)', zIndex: 2 }}>
+          {/* Glass card - reduced overlap from -36 to -20 so there's clear
+              breathing room between the company text and the card edge */}
+          <div style={{ position: 'relative', marginTop: -20, marginLeft: 16, marginRight: 16, padding: '28px 22px', backgroundColor: glassBg, backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: `1px solid ${glassBorder}`, borderRadius: 28, boxShadow: '0 24px 70px rgba(0,0,0,0.5)', zIndex: 2 }}>
             <LogoZone {...shared} />
             {card.bio && (
               <div style={{ position: 'relative', padding: '8px 12px', textAlign: 'center' }}>
