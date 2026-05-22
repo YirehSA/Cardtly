@@ -280,30 +280,77 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
   }
 
   // ── 5. EXECUTIVE ─────────────────────────────────────────────────────────
+  // Magazine-style hero with diagonal accent overlays, stacked uppercase
+  // name, red chevron title bar, and a compact contact stack.
   if (design.templateId === 'executive') {
-    return (
-      <div style={{ ...pageStyle, backgroundColor: '#09090b' }}>
-        <div style={{ display: 'flex', minHeight: 160 }}>
-          <div style={{ width: '45%', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
-            {form.profile_image_url
-              ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', position: 'absolute', inset: 0 }} />
-              : <div style={{ width: '100%', height: '100%', backgroundColor: accentHex + '33', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, fontWeight: 700, color: accentHex, position: 'absolute', inset: 0 }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, transparent 60%, #09090b 100%)' }} />
-          </div>
-          <div style={{ flex: 1, padding: '16px 14px 16px 10px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <div style={textNudge}>
-              <h2 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 800, fontFamily: font.heading, color: '#fafafa', lineHeight: 1.2 }}>{form.name || 'Your Name'}</h2>
-              {isPro && form.title && <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 600, color: accentHex, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{form.title}</p>}
-              {form.company && <p style={{ margin: '0 0 6px', fontSize: 10, color: '#71717a' }}>{form.company}</p>}
-            </div>
-            <div style={{ width: '100%', height: 1, background: `linear-gradient(90deg, ${accentHex}, transparent)`,
-              boxShadow: design.cardStyle === 'glass' ? `0 0 6px ${accentHex}` : undefined }} />
-          </div>
+    const pageBg = isLight ? '#f5f5f5' : '#161618'
+    const ink = isLight ? '#0f172a' : '#ffffff'
+    const muted = isLight ? '#64748b' : 'rgba(255,255,255,0.6)'
+    const rowBg = isLight ? '#ffffff' : '#1f1f23'
+    const rowBorder = isLight ? '#e2e8f0' : 'rgba(255,255,255,0.06)'
+    const parts = (form.name || 'Your Name').split(' ')
+    const firstName = parts[0]
+    const lastName = parts.slice(1).join(' ')
+    const Row = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', backgroundColor: rowBg, border: `1px solid ${rowBorder}`, borderRadius: 8 }}>
+        <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: accentHex, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: 7, fontWeight: 700, color: accentHex, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</p>
+          <p style={{ margin: 0, fontSize: 9, color: ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</p>
         </div>
-        <div style={{ padding: '12px 14px 16px', background: design.cardStyle === 'gradient' ? `linear-gradient(180deg, ${accentHex}11 0%, transparent 60%)` : undefined }}>
+      </div>
+    )
+    const hasTwitter  = isPro && !!(form as any).twitter_url
+    const hasFacebook = isPro && !!(form as any).facebook_url
+    const hasLinkedin = isPro && !!(form as any).linkedin_url
+    return (
+      <div style={{ ...pageStyle, backgroundColor: pageBg }}>
+        {/* Hero with photo + diagonal accents */}
+        <div style={{ position: 'relative', width: '100%', height: 170, overflow: 'hidden' }}>
+          {form.profile_image_url
+            ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
+            : <div style={{ width: '100%', height: '100%', backgroundColor: accentHex + '33', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, fontWeight: 700, color: accentHex }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
+          {/* Red triangle top-right */}
+          <div style={{ position: 'absolute', top: 0, right: 0, width: 70, height: 70, background: accentHex, clipPath: 'polygon(100% 0, 100% 100%, 0 0)' }} />
+          {/* Red diagonal stripe at bottom */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 32, background: accentHex, clipPath: 'polygon(0 100%, 100% 0, 100% 100%)' }} />
+          <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(180deg, transparent 60%, ${pageBg} 100%)` }} />
+        </div>
+        {/* Name stacked uppercase */}
+        <div style={{ padding: '0 14px', marginTop: -4, position: 'relative', zIndex: 2 }}>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: ink, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 0.95, fontFamily: font.heading }}>{firstName}</h2>
+          {lastName && <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: ink, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 0.95, fontFamily: font.heading }}>{lastName}</h2>}
+        </div>
+        {/* Red title bar with chevron cuts */}
+        {isPro && form.title && (
+          <div style={{ position: 'relative', margin: '10px 0 12px', height: 26 }}>
+            <div style={{ position: 'absolute', inset: 0, background: accentHex, clipPath: 'polygon(6% 0, 100% 0, 94% 100%, 0 100%)' }} />
+            <p style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0, fontSize: 9, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.18em' }}>{form.title}</p>
+          </div>
+        )}
+        <div style={{ padding: '4px 14px 14px' }}>
           <LogoZone />
-          {isPro && form.bio && <p style={{ fontSize: 11, color: '#71717a', lineHeight: 1.6, marginBottom: 12 }}>{form.bio}</p>}
-          <ContactList /><Certs /><SaveBtn label="SAVE CONTACT" />
+          {form.company && <p style={{ margin: '0 0 8px', fontSize: 9, color: muted, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600 }}>{form.company}</p>}
+          {isPro && form.bio && <p style={{ fontSize: 9, color: muted, lineHeight: 1.6, margin: '0 0 12px', textAlign: 'center' }}>{form.bio}</p>}
+          {/* Contact rows */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+            {form.phone && <Row icon={<Phone style={{ width: 10, height: 10 }} />} label="Phone" value={form.phone} />}
+            {form.email && <Row icon={<Mail style={{ width: 10, height: 10 }} />} label="Email" value={form.email} />}
+            {form.website && <Row icon={<Globe style={{ width: 10, height: 10 }} />} label="Website" value={form.website.replace(/^https?:\/\//, '')} />}
+          </div>
+          {/* Connect With Me */}
+          {(hasLinkedin || hasTwitter || hasFacebook) && (
+            <div style={{ textAlign: 'center', marginTop: 6 }}>
+              <p style={{ margin: '0 0 6px', fontSize: 8, fontWeight: 800, color: ink, textTransform: 'uppercase', letterSpacing: '0.18em' }}>Connect With Me</p>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+                {hasLinkedin && <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: accentHex, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ExternalLink style={{ width: 10, height: 10 }} /></div>}
+                {hasTwitter && <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: accentHex, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Twitter style={{ width: 10, height: 10 }} /></div>}
+                {hasFacebook && <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: accentHex, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Facebook style={{ width: 10, height: 10 }} /></div>}
+              </div>
+            </div>
+          )}
+          <Certs />
+          <SaveBtn label="SAVE CONTACT" />
         </div>
       </div>
     )

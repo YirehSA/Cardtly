@@ -121,7 +121,7 @@ export const TEMPLATES: TemplateConfig[] = [
   { id: 'modern',    name: 'Modern',    description: 'Left-aligned, bold typography',       proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-slate-900 to-slate-800' },
   { id: 'bold',      name: 'Bold',      description: 'Split hero — photo left, name right', proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-indigo-900 to-purple-900' },
   { id: 'minimal',   name: 'Minimal',   description: 'Vibrant icons on pure black or white', proOnly: true, defaultBgMode: 'dark',  previewGradient: 'from-black to-purple-950' },
-  { id: 'executive', name: 'Executive', description: 'Large photo left, name right',        proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-zinc-950 to-zinc-900' },
+  { id: 'executive', name: 'Executive', description: 'Magazine hero with bold diagonals',   proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-zinc-950 to-red-950' },
   { id: 'creative',  name: 'Creative',  description: 'Radial glow, accent avatar ring',     proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-violet-950 to-fuchsia-950' },
   { id: 'wave',      name: 'Wave',      description: 'Two-column hero with SVG wave',       proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-cyan-900 to-gray-900' },
   { id: 'split',     name: 'Split',     description: 'Accent sidebar, content right',       proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-blue-900 to-gray-900' },
