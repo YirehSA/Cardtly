@@ -497,8 +497,10 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
     const ink = isLight ? '#0f172a' : '#ffffff'
     const muted = isLight ? '#64748b' : 'rgba(255,255,255,0.55)'
     const titleColor = isLight ? '#475569' : 'rgba(255,255,255,0.85)'
-    const RING_GRADIENT = 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)'
-    const URL_GRADIENT = 'linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899)'
+    // Neon blue → purple → pink, matching the design reference. Goes
+    // top-left to bottom-right so the blue starts at the top of the ring.
+    const RING_GRADIENT = 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 50%, #ec4899 100%)'
+    const URL_GRADIENT  = 'linear-gradient(90deg, #00d4ff, #8b5cf6, #ec4899)'
     const ICON_COLORS = {
       phone:    '#22c55e',  // green
       email:    '#ef4444',  // red
@@ -529,10 +531,12 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               <img src={card.company_logo_url} style={{ height: calcLogoHeight(48, design), width: 'auto', objectFit: 'contain', maxWidth: 220 }} />
             </div>
           )}
-          {/* Photo with pink-purple-blue gradient ring */}
+          {/* Photo with neon-blue → purple → pink gradient ring. Avatar
+              gets backgroundColor: pageBg so transparent PNGs (bg-removed
+              photos) show the page background through, not the gradient. */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-            <div style={{ padding: 4, borderRadius: '50%', background: RING_GRADIENT, boxShadow: '0 0 40px rgba(236, 72, 153, 0.45), 0 0 60px rgba(139, 92, 246, 0.35)' }}>
-              <Avatar {...shared} size={140} rounded="full" extraStyle={{ border: `3px solid ${pageBg}` }} />
+            <div style={{ padding: 4, borderRadius: '50%', background: RING_GRADIENT, boxShadow: '0 0 40px rgba(0, 212, 255, 0.4), 0 0 60px rgba(236, 72, 153, 0.3)' }}>
+              <Avatar {...shared} size={140} rounded="full" extraStyle={{ border: `3px solid ${pageBg}`, backgroundColor: pageBg }} />
             </div>
           </div>
           <h1 style={{ margin: '0 0 6px', fontSize: 30, fontWeight: 800, color: ink, textAlign: 'center', fontFamily: font.heading, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{card.name}</h1>

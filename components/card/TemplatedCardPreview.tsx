@@ -215,8 +215,8 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
     const ink = isLight ? '#0f172a' : '#ffffff'
     const muted = isLight ? '#64748b' : 'rgba(255,255,255,0.55)'
     const titleColor = isLight ? '#475569' : 'rgba(255,255,255,0.85)'
-    const RING_GRADIENT = 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)'
-    const URL_GRADIENT = 'linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899)'
+    const RING_GRADIENT = 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 50%, #ec4899 100%)'
+    const URL_GRADIENT  = 'linear-gradient(90deg, #00d4ff, #8b5cf6, #ec4899)'
     const ICON_COLORS = {
       phone:    '#22c55e',
       email:    '#ef4444',
@@ -238,10 +238,11 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
               <img src={form.company_logo_url} style={{ height: 24, width: 'auto', objectFit: 'contain', maxWidth: 140 }} />
             </div>
           )}
-          {/* Photo with pink-purple-blue gradient ring */}
+          {/* Photo with neon-blue → purple → pink gradient ring. Inner wrap
+              gets pageBg so transparent-bg PNGs show the page through. */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-            <div style={{ padding: 3, borderRadius: '50%', background: RING_GRADIENT, boxShadow: '0 0 20px rgba(236,72,153,0.5), 0 0 32px rgba(139,92,246,0.35)' }}>
-              <div style={{ borderRadius: '50%', overflow: 'hidden', border: `2px solid ${pageBg}` }}>
+            <div style={{ padding: 3, borderRadius: '50%', background: RING_GRADIENT, boxShadow: '0 0 20px rgba(0,212,255,0.45), 0 0 32px rgba(236,72,153,0.3)' }}>
+              <div style={{ borderRadius: '50%', overflow: 'hidden', border: `2px solid ${pageBg}`, backgroundColor: pageBg }}>
                 <Avatar base={76} />
               </div>
             </div>
