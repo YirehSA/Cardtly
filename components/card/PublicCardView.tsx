@@ -487,25 +487,30 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
   }
 
   if (design.templateId === 'minimal') {
-    // Redesigned: vibrant action-card layout. Dark navy hero with a glowing
-    // accent ring around the avatar, four colour-coded circular quick-action
-    // buttons (phone/email/linkedin/website), and the standard BottomSection
-    // for everything else (custom links, booking, save contact, share).
-    const pageBg = isLight ? '#ffffff' : '#0a0e1a'
+    // Vibrant action-card layout. Pure black or white background, pink-purple
+    // gradient ring around the avatar (fixed, not accent-driven), company logo
+    // forced to top-centre above the photo, four fixed-colour circular
+    // quick-action buttons (green/red/blue/purple), and a gradient cardtly.com
+    // footer. Other templates still honour the accent colour; Minimal uses a
+    // signature palette so the look matches the design reference exactly.
+    const pageBg = isLight ? '#ffffff' : '#000000'
     const ink = isLight ? '#0f172a' : '#ffffff'
     const muted = isLight ? '#64748b' : 'rgba(255,255,255,0.55)'
+    const titleColor = isLight ? '#475569' : 'rgba(255,255,255,0.85)'
+    const RING_GRADIENT = 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)'
+    const URL_GRADIENT = 'linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899)'
     const ICON_COLORS = {
-      phone:    '#22c55e',
-      email:    '#06b6d4',
-      linkedin: '#0a66c2',
-      website:  '#a855f7',
+      phone:    '#22c55e',  // green
+      email:    '#ef4444',  // red
+      linkedin: '#3b82f6',  // blue
+      website:  '#a855f7',  // purple
     }
     type CircleProps = { href: string; color: string; icon: React.ReactNode; label: string }
     const Circle = ({ href, color, icon, label }: CircleProps) => (
       <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
         aria-label={label}
-        className="w-12 h-12 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95"
-        style={{ backgroundColor: color, color: '#ffffff', boxShadow: `0 6px 18px ${color}55` }}>
+        className="w-14 h-14 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95"
+        style={{ backgroundColor: color, color: '#ffffff', boxShadow: `0 8px 24px ${color}88` }}>
         {icon}
       </a>
     )
@@ -517,23 +522,29 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           <Share2 className="w-4 h-4" style={{ color: ink }} />
         </button>
         <div className="max-w-md mx-auto px-6 py-10">
-          {/* Glowing accent ring around the photo */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-            <div style={{ padding: 4, borderRadius: '50%', background: `linear-gradient(135deg, ${accentHex}, ${accentHex}88)`, boxShadow: `0 0 32px ${accentHex}66` }}>
-              <Avatar {...shared} size={120} rounded="full" extraStyle={{ border: `3px solid ${pageBg}` }} />
+          {/* Company logo forced to top-centre above the photo. Overrides
+              design.logoPosition for this template only. */}
+          {card.company_logo_url && design.logoPosition !== 'hidden' && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+              <img src={card.company_logo_url} style={{ height: calcLogoHeight(48, design), width: 'auto', objectFit: 'contain', maxWidth: 220 }} />
+            </div>
+          )}
+          {/* Photo with pink-purple-blue gradient ring */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+            <div style={{ padding: 4, borderRadius: '50%', background: RING_GRADIENT, boxShadow: '0 0 40px rgba(236, 72, 153, 0.45), 0 0 60px rgba(139, 92, 246, 0.35)' }}>
+              <Avatar {...shared} size={140} rounded="full" extraStyle={{ border: `3px solid ${pageBg}` }} />
             </div>
           </div>
           <h1 style={{ margin: '0 0 6px', fontSize: 30, fontWeight: 800, color: ink, textAlign: 'center', fontFamily: font.heading, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{card.name}</h1>
-          {isPro && card.title && <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: accentHex, textAlign: 'center' }}>{card.title}</p>}
-          {card.company && <p style={{ margin: '4px 0 0', fontSize: 13, color: muted, textAlign: 'center' }}>{card.company}</p>}
-          <div style={{ marginTop: 16 }}><LogoZone {...shared} /></div>
+          {isPro && card.title && <p style={{ margin: 0, fontSize: 15, fontWeight: 500, color: titleColor, textAlign: 'center' }}>{card.title}</p>}
+          {card.company && <p style={{ margin: '4px 0 0', fontSize: 14, color: muted, textAlign: 'center' }}>{card.company}</p>}
           {card.bio && <p style={{ fontSize: 13, color: muted, textAlign: 'center', lineHeight: 1.6, margin: '12px 0 0' }}>{card.bio}</p>}
           {/* 4 vibrant circular quick-actions */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, margin: '24px 0 28px' }}>
-            {card.phone && <Circle href={`tel:${card.phone}`} color={ICON_COLORS.phone} label="Call" icon={<Phone className="w-5 h-5" />} />}
-            {card.email && <Circle href={`mailto:${card.email}`} color={ICON_COLORS.email} label="Email" icon={<Mail className="w-5 h-5" />} />}
-            {isPro && (card as any).linkedin_url && <Circle href={(card as any).linkedin_url} color={ICON_COLORS.linkedin} label="LinkedIn" icon={<Linkedin className="w-5 h-5" />} />}
-            {card.website && <Circle href={card.website.startsWith('http') ? card.website : `https://${card.website}`} color={ICON_COLORS.website} label="Website" icon={<Globe className="w-5 h-5" />} />}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 18, margin: '28px 0 32px' }}>
+            {card.phone && <Circle href={`tel:${card.phone}`} color={ICON_COLORS.phone} label="Call" icon={<Phone className="w-6 h-6" />} />}
+            {card.email && <Circle href={`mailto:${card.email}`} color={ICON_COLORS.email} label="Email" icon={<Mail className="w-6 h-6" />} />}
+            {isPro && (card as any).linkedin_url && <Circle href={(card as any).linkedin_url} color={ICON_COLORS.linkedin} label="LinkedIn" icon={<Linkedin className="w-6 h-6" />} />}
+            {card.website && <Circle href={card.website.startsWith('http') ? card.website : `https://${card.website}`} color={ICON_COLORS.website} label="Website" icon={<Globe className="w-6 h-6" />} />}
           </div>
           {/* Pro extras that don't fit in the circle row */}
           <div className="space-y-2.5">
@@ -542,8 +553,8 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
             {isPro && card.address && <ContactBtn icon={<MapPin className="w-4 h-4" />} label={card.address} href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
           </div>
           <BottomSection {...bottomProps} />
-          {/* URL footer */}
-          <p style={{ textAlign: 'center', fontSize: 12, color: muted, marginTop: 32, letterSpacing: '0.02em' }}>cardtly.com/{card.slug}</p>
+          {/* URL footer in gradient */}
+          <p style={{ textAlign: 'center', fontSize: 14, marginTop: 32, letterSpacing: '0.02em', fontWeight: 600, background: URL_GRADIENT, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>cardtly.com/{card.slug}</p>
         </div>
       </div>
     )

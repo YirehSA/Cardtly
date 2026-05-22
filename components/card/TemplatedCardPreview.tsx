@@ -207,19 +207,24 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
   }
 
   // ── 4. MINIMAL ────────────────────────────────────────────────────────────
-  // Redesigned: vibrant action-card layout matching PublicCardView.
+  // Vibrant action-card layout matching PublicCardView: pure black/white,
+  // pink-purple-blue gradient ring, company logo forced to top-centre, four
+  // fixed-colour quick-action circles, gradient URL footer.
   if (design.templateId === 'minimal') {
-    const pageBg = isLight ? '#ffffff' : '#0a0e1a'
+    const pageBg = isLight ? '#ffffff' : '#000000'
     const ink = isLight ? '#0f172a' : '#ffffff'
     const muted = isLight ? '#64748b' : 'rgba(255,255,255,0.55)'
+    const titleColor = isLight ? '#475569' : 'rgba(255,255,255,0.85)'
+    const RING_GRADIENT = 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)'
+    const URL_GRADIENT = 'linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899)'
     const ICON_COLORS = {
       phone:    '#22c55e',
-      email:    '#06b6d4',
-      linkedin: '#0a66c2',
+      email:    '#ef4444',
+      linkedin: '#3b82f6',
       website:  '#a855f7',
     }
     const Circle = ({ color, children }: { color: string; children: React.ReactNode }) => (
-      <div style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: color, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 12px ${color}55` }}>
+      <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: color, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 6px 16px ${color}77` }}>
         {children}
       </div>
     )
@@ -227,25 +232,30 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
     return (
       <div style={{ ...pageStyle, backgroundColor: pageBg }}>
         <div style={{ padding: '20px 18px', textAlign: 'center' }}>
-          {/* Glowing accent ring around the photo */}
+          {/* Company logo forced to top centre, above the photo */}
+          {form.company_logo_url && design.logoPosition !== 'hidden' && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+              <img src={form.company_logo_url} style={{ height: 24, width: 'auto', objectFit: 'contain', maxWidth: 140 }} />
+            </div>
+          )}
+          {/* Photo with pink-purple-blue gradient ring */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-            <div style={{ padding: 3, borderRadius: '50%', background: `linear-gradient(135deg, ${accentHex}, ${accentHex}88)`, boxShadow: `0 0 20px ${accentHex}66` }}>
+            <div style={{ padding: 3, borderRadius: '50%', background: RING_GRADIENT, boxShadow: '0 0 20px rgba(236,72,153,0.5), 0 0 32px rgba(139,92,246,0.35)' }}>
               <div style={{ borderRadius: '50%', overflow: 'hidden', border: `2px solid ${pageBg}` }}>
-                <Avatar base={68} />
+                <Avatar base={76} />
               </div>
             </div>
           </div>
           <h2 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 800, color: ink, fontFamily: font.heading, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{form.name || 'Your Name'}</h2>
-          {isPro && form.title && <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: accentHex }}>{form.title}</p>}
+          {isPro && form.title && <p style={{ margin: 0, fontSize: 11, fontWeight: 500, color: titleColor }}>{form.title}</p>}
           {form.company && <p style={{ margin: '3px 0 0', fontSize: 10, color: muted }}>{form.company}</p>}
-          <div style={{ marginTop: 8 }}><LogoZone /></div>
           {isPro && form.bio && <p style={{ fontSize: 10, color: muted, lineHeight: 1.5, margin: '8px 0 0' }}>{form.bio}</p>}
           {/* 4 vibrant circular quick-actions */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 10, margin: '14px 0 12px' }}>
-            {form.phone && <Circle color={ICON_COLORS.phone}><Phone style={{ width: 14, height: 14 }} /></Circle>}
-            {form.email && <Circle color={ICON_COLORS.email}><Mail style={{ width: 14, height: 14 }} /></Circle>}
-            {hasLinkedin && <Circle color={ICON_COLORS.linkedin}><ExternalLink style={{ width: 14, height: 14 }} /></Circle>}
-            {form.website && <Circle color={ICON_COLORS.website}><Globe style={{ width: 14, height: 14 }} /></Circle>}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, margin: '16px 0 14px' }}>
+            {form.phone && <Circle color={ICON_COLORS.phone}><Phone style={{ width: 16, height: 16 }} /></Circle>}
+            {form.email && <Circle color={ICON_COLORS.email}><Mail style={{ width: 16, height: 16 }} /></Circle>}
+            {hasLinkedin && <Circle color={ICON_COLORS.linkedin}><ExternalLink style={{ width: 16, height: 16 }} /></Circle>}
+            {form.website && <Circle color={ICON_COLORS.website}><Globe style={{ width: 16, height: 16 }} /></Circle>}
           </div>
           <Certs />
           {/* Save Contact action button */}
@@ -255,8 +265,8 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
             border: design.buttonBorderColor ? `1px solid ${design.buttonBorderColor}` : 'none',
             borderRadius: 12, letterSpacing: '0.05em',
             boxShadow: design.cardStyle === 'glass' ? `0 0 8px ${accentHex}44` : `0 4px 14px ${accentHex}55` }}>Save Contact</div>
-          {/* URL footer */}
-          <p style={{ marginTop: 12, fontSize: 9, color: muted, letterSpacing: '0.05em' }}>cardtly.com/your-card</p>
+          {/* URL footer in gradient */}
+          <p style={{ marginTop: 12, fontSize: 10, letterSpacing: '0.05em', fontWeight: 600, background: URL_GRADIENT, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>cardtly.com/your-card</p>
         </div>
       </div>
     )
