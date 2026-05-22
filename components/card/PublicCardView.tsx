@@ -601,23 +601,29 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           <Share2 className="w-4 h-4" style={{ color: ink }} />
         </button>
         <div className="max-w-md mx-auto relative">
-          {/* Cinematic hero - tighter still (340px) so the photo doesn't
-              dominate. Masthead pushed down to clear the fixed "Online now"
-              floating badge at the top. */}
-          <div style={{ position: 'relative', width: '100%', height: 340, overflow: 'hidden' }}>
-            {card.profile_image_url
-              ? <img src={card.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
-              : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${accentHex} 0%, ${accentHex}66 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 120, fontWeight: 800, color: '#ffffff' }}>{card.name?.[0]?.toUpperCase()}</div>}
-            {/* Vignette */}
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, transparent 22%, transparent 45%, rgba(0,0,0,0.95) 100%)' }} />
-            {/* Magazine masthead - below the floating availability badge */}
-            <div style={{ position: 'absolute', top: 56, left: 24, right: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
-              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6))' }} />
-              <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.35em' }}>Executive Profile</p>
-              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, rgba(255,255,255,0.6), transparent)' }} />
+          {/* Dedicated header band ABOVE the photo. paddingTop reserves
+              space for the fixed "Online now" availability badge that
+              floats at top-4. Masthead "EXECUTIVE PROFILE" sits cleanly
+              below the badge with no overlap. */}
+          <div style={{ paddingTop: 60, paddingBottom: 16, paddingLeft: 24, paddingRight: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+              <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, transparent, ${accentHex})` }} />
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: ink, textTransform: 'uppercase', letterSpacing: '0.35em' }}>Executive Profile</p>
+              <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${accentHex}, transparent)` }} />
             </div>
-            {/* Bottom overlay - extra bottom padding so the company text
-                doesn't sit on the edge of the glass card below */}
+          </div>
+          {/* Cinematic photo - now lives below the header band. Object
+              position centred (instead of top-anchored) so portrait
+              headshots are framed naturally without hard cropping the
+              forehead. Vignette only at the bottom now since the top
+              edge is clean. */}
+          <div style={{ position: 'relative', width: '100%', height: 380, overflow: 'hidden' }}>
+            {card.profile_image_url
+              ? <img src={card.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
+              : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${accentHex} 0%, ${accentHex}66 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 130, fontWeight: 800, color: '#ffffff' }}>{card.name?.[0]?.toUpperCase()}</div>}
+            {/* Bottom-only vignette so the name overlay reads */}
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.95) 100%)' }} />
+            {/* Name + accent rule + title + company at the bottom */}
             <div style={{ position: 'absolute', bottom: 48, left: 24, right: 24 }}>
               <h1 style={{ margin: '0 0 12px', fontSize: 36, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.025em', lineHeight: 0.96, fontFamily: font.heading, textShadow: '0 4px 24px rgba(0,0,0,0.6)' }}>{card.name}</h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
