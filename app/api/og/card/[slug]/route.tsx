@@ -5,19 +5,29 @@ export const runtime = 'edge'
 
 // Satori (the engine inside ImageResponse) has unreliable WebP support
 // in the edge runtime - it crashes silently and returns 0 bytes when
-// given a .webp source. We fetch images ourselves, convert to a base64
-// data URL, and skip WebP entirely so the route always returns a valid
-// image even if the user uploaded a webp profile photo.
-async function fetchImageAsDataUrl(url: string | null): Promise<string | null> {
-  if (!url) return null
+// given a .webp source. We fetch images ourselves and bake them in as
+// base64 data URLs. For Supabase-hosted webp/avif we try the storage
+// render endpoint first, which can transcode to jpeg via the Accept
+// header; if that fails or the transforms feature isn't enabled, we
+// fall back to the raw URL and finally to skipping the image so the
+// route still returns a valid response with the initials avatar.
+function supabaseTransformCandidate(url: string): string | null {
+  if (!url.includes('/storage/v1/object/public/')) return null
+  const u = new URL(url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/'))
+  if (!u.searchParams.has('width')) u.searchParams.set('width', '440')
+  if (!u.searchParams.has('height')) u.searchParams.set('height', '440')
+  if (!u.searchParams.has('quality')) u.searchParams.set('quality', '85')
+  return u.toString()
+}
+
+async function tryFetchAsDataUrl(url: string): Promise<string | null> {
   try {
     const res = await fetch(url, {
-      headers: { Accept: 'image/png,image/jpeg,image/*' },
+      headers: { Accept: 'image/jpeg,image/png,image/gif' },
       signal: AbortSignal.timeout(3000),
     })
     if (!res.ok) return null
     const contentType = (res.headers.get('content-type') || '').toLowerCase()
-    // Skip formats Satori chokes on. Force PNG/JPEG/GIF only.
     if (!contentType.startsWith('image/')) return null
     if (contentType.includes('webp') || contentType.includes('avif') || contentType.includes('heic')) return null
     const buf = await res.arrayBuffer()
@@ -30,6 +40,16 @@ async function fetchImageAsDataUrl(url: string | null): Promise<string | null> {
   } catch {
     return null
   }
+}
+
+async function fetchImageAsDataUrl(url: string | null): Promise<string | null> {
+  if (!url) return null
+  const transform = supabaseTransformCandidate(url)
+  if (transform) {
+    const viaTransform = await tryFetchAsDataUrl(transform)
+    if (viaTransform) return viaTransform
+  }
+  return await tryFetchAsDataUrl(url)
 }
 
 export async function GET(
