@@ -910,14 +910,23 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               (positioned absolutely below) can straddle the boundary. The
               SVG overlay at the bottom cuts a moon-shaped curve into the
               bottom edge so the black isn't a flat rectangle. */}
-          {/* Black header: SVG shape with the curve starting and ending
-              at the TOP CORNERS of the container, dipping deep through
-              the middle so the photo nests inside the dip. No side edges
-              - the curve runs corner-to-corner along the top, like the
-              user's pencil annotation. */}
+          {/* Black header shape - matches the photographer reference:
+              full top edge, LONG left edge that extends all the way down
+              to wrap the left side of the photo, SHORT right edge, and a
+              smooth curve from upper-right down to lower-left that
+              sweeps under the photo's right and bottom. */}
           <div style={{ position: 'relative', height: 400 }}>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', zIndex: 0 }}>
-              <path d="M 0 0 L 100 0 Q 50 150 0 0 Z" fill={black} />
+              {/*  M 0 0       top-left
+                   L 100 0     across the top edge to top-right
+                   L 100 22    down the SHORT right edge
+                   Q 50 70 0 95   curve from (100, 22) through control
+                                  (50, 70) down to lower-left (0, 95).
+                                  Control point well below the straight
+                                  line bows the curve outward to wrap
+                                  around the photo's bottom-right.
+                   Z           close back up the LONG left edge to (0, 0) */}
+              <path d="M 0 0 L 100 0 L 100 22 Q 50 70 0 95 Z" fill={black} />
             </svg>
             {/* Logo + COMPANY NAME on top of the black shape */}
             <div style={{ position: 'relative', padding: '50px 20px 0', zIndex: 2 }}>
