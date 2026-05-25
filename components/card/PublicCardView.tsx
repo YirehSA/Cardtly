@@ -910,24 +910,26 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               (positioned absolutely below) can straddle the boundary. The
               SVG overlay at the bottom cuts a moon-shaped curve into the
               bottom edge so the black isn't a flat rectangle. */}
-          {/* Black header shape - SYMMETRIC smile curve. Both side edges
-              are short, the curve dips deep through the middle where the
-              photo sits. The black wraps the top and upper half of the
-              photo on both sides, with the photo's bottom hanging below
-              the curve into the light area. */}
+          {/* Black header shape - LONG side edges, curve dips almost to
+              the bottom of the photo wrapping it nearly entirely. Only
+              the bottom edge of the photo extends below the curve. */}
           <div style={{ position: 'relative', height: 400 }}>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', zIndex: 0 }}>
               {/*  M 0 0           top-left corner
                    L 100 0         flat top edge to top-right corner
-                   L 100 30        SHORT right edge (30% down)
-                   Q 50 110 0 30   curve from upper-right (100, 30)
-                                   through control (50, 110) - way below
-                                   the SVG bounds, which makes the curve
-                                   dip DEEP through the middle - back up
-                                   to upper-left (0, 30). Same height on
-                                   both ends so the shape is symmetric.
-                   Z               close back up the SHORT left edge */}
-              <path d="M 0 0 L 100 0 L 100 30 Q 50 110 0 30 Z" fill={black} />
+                   L 100 65        LONG right edge - black extends down
+                                   65% of container before the curve
+                                   starts. Wraps the right side of the
+                                   photo all the way to its bottom area.
+                   Q 50 115 0 65   curve from upper-right (100, 65)
+                                   through deep control (50, 115) back
+                                   up to (0, 65) on the left. Both ends
+                                   at the same height so the shape is
+                                   symmetric. Control well below bounds
+                                   makes the dip reach the photo's
+                                   bottom edge area.
+                   Z               close back up the LONG left edge */}
+              <path d="M 0 0 L 100 0 L 100 65 Q 50 115 0 65 Z" fill={black} />
             </svg>
             {/* Logo + COMPANY NAME on top of the black shape */}
             <div style={{ position: 'relative', padding: '50px 20px 0', zIndex: 2 }}>
