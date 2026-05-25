@@ -910,29 +910,34 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               (positioned absolutely below) can straddle the boundary. The
               SVG overlay at the bottom cuts a moon-shaped curve into the
               bottom edge so the black isn't a flat rectangle. */}
-          <div style={{ backgroundColor: black, paddingTop: 50, paddingBottom: 90, paddingLeft: 20, paddingRight: 20, position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              {card.company_logo_url ? (
-                <img src={card.company_logo_url} style={{ height: 60, maxWidth: 140, objectFit: 'contain', flexShrink: 0 }} />
-              ) : (
-                <div style={{ width: 76, height: 76, border: '2px dashed rgba(255,255,255,0.3)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 600, textAlign: 'center', lineHeight: 1.2 }}>
-                  Your<br />Logo
-                </div>
-              )}
-              {card.company && <p style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.04em', wordBreak: 'break-word', flex: 1, lineHeight: 1.1 }}>{card.company}</p>}
-            </div>
-            {/* INVERTED curved bottom: light-area fill eats into the black
-                from the bottom-LEFT this time, leaving more black on the
-                bottom-RIGHT. Big dramatic Bezier dip. SVG height bumped to
-                110 with a deeper viewBox so the curve has real sweep.
-                Z-index 1 so the absolute photo (z-index 10) sits above. */}
-            <svg viewBox="0 0 100 50" preserveAspectRatio="none" style={{ position: 'absolute', bottom: -1, left: 0, width: '100%', height: 110, pointerEvents: 'none', zIndex: 1 }}>
-              <path d="M 0 50 L 0 0 Q 55 0 100 40 L 100 50 Z" fill={lightArea} />
+          {/* Black header: drawn as a single SVG shape rather than a
+              rectangular div with an overlay. The shape has a flat top
+              edge across the full width, short side edges, and a deep
+              SMILE curve at the bottom that dips down through the middle
+              so the photo sits naturally inside the dip. */}
+          <div style={{ position: 'relative', height: 280 }}>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', zIndex: 0 }}>
+              <path d="M 0 0 L 100 0 L 100 25 Q 50 110 0 60 Z" fill={black} />
             </svg>
+            {/* Logo + COMPANY NAME on top of the black shape */}
+            <div style={{ position: 'relative', padding: '50px 20px 0', zIndex: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                {card.company_logo_url ? (
+                  <img src={card.company_logo_url} style={{ height: 60, maxWidth: 140, objectFit: 'contain', flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 76, height: 76, border: '2px dashed rgba(255,255,255,0.3)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 600, textAlign: 'center', lineHeight: 1.2 }}>
+                    Your<br />Logo
+                  </div>
+                )}
+                {card.company && <p style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.04em', wordBreak: 'break-word', flex: 1, lineHeight: 1.1 }}>{card.company}</p>}
+              </div>
+            </div>
           </div>
-          {/* Photo - absolute, straddles the black/light boundary. Moved
-              up to track the now-shorter black band above. */}
-          <div style={{ position: 'absolute', top: 105, left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
+          {/* Photo - absolute, sits inside the dip of the smile-curve.
+              Top adjusted so the photo's centre lands where the curve
+              dips lowest, giving the "wrapped by black" look from the
+              user's annotated reference. */}
+          <div style={{ position: 'absolute', top: 140, left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
             <div style={{ width: 220, height: 220, borderRadius: '50%', overflow: 'hidden', border: `5px solid #ffffff`, boxShadow: '0 12px 36px rgba(0,0,0,0.55)' }}>
               {card.profile_image_url
                 ? <img src={card.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -942,7 +947,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           {/* Name + designation - top padding leaves room for the
               overlapping photo above. Bio renders AFTER the action arc
               below, not here. */}
-          <div style={{ backgroundColor: lightArea, paddingTop: 135, paddingBottom: 0, paddingLeft: 20, paddingRight: 20, textAlign: 'center' }}>
+          <div style={{ backgroundColor: lightArea, paddingTop: 110, paddingBottom: 0, paddingLeft: 20, paddingRight: 20, textAlign: 'center' }}>
             <h1 style={{ margin: '0 0 8px', fontSize: 40, fontWeight: 900, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.0, fontFamily: font.heading }}>{card.name}</h1>
             {isPro && card.title && <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.22em' }}>{card.title}</p>}
           </div>
