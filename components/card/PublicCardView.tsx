@@ -931,7 +931,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           {/* Name + designation - top padding leaves room for the
               overlapping photo above. Bio renders AFTER the action arc
               below, not here. */}
-          <div style={{ backgroundColor: lightArea, paddingTop: 130, paddingBottom: 24, paddingLeft: 20, paddingRight: 20, textAlign: 'center' }}>
+          <div style={{ backgroundColor: lightArea, paddingTop: 130, paddingBottom: 0, paddingLeft: 20, paddingRight: 20, textAlign: 'center' }}>
             <h1 style={{ margin: '0 0 8px', fontSize: 40, fontWeight: 900, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.0, fontFamily: font.heading }}>{card.name}</h1>
             {isPro && card.title && <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.22em' }}>{card.title}</p>}
           </div>
@@ -940,15 +940,16 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               naturally on or beside that curve - bottom-left CORNER to
               top-right CORNER like the user's annotated reference. */}
           {(() => {
-            const STUDIO_H = 400
-            const CIRCLE = 56            // diameter (w-14)
+            const STUDIO_H = 500            // taller so the curve has dramatic vertical sweep
+            const CIRCLE = 56               // diameter (w-14)
             // Shared Bezier (percentages of the container, 0-1).
             //   P0 (start) - bottom-left CORNER of the container
-            //   P1 (control) - bows the curve outward toward the upper-left
-            //                  so the wedge edge swoops, not a straight line
+            //   P1 (control) - bows the curve hard toward the upper-left
+            //                  so it swoops up and over instead of going
+            //                  diagonally straight
             //   P2 (end) - top-right CORNER of the container
             const P0 = { x: 0.00, y: 1.00 }
-            const P1 = { x: 0.22, y: 0.30 }
+            const P1 = { x: 0.10, y: 0.10 }
             const P2 = { x: 1.00, y: 0.00 }
             const bezier = (t: number, p0: number, p1: number, p2: number) => {
               const u = 1 - t
@@ -979,9 +980,41 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
             const wedgePath = `M ${P0.x * 100} ${P0.y * 100} Q ${P1.x * 100} ${P1.y * 100} ${P2.x * 100} ${P2.y * 100} L 100 100 Z`
             return (
               <div style={{ position: 'relative', backgroundColor: lightArea, height: STUDIO_H, overflow: 'hidden' }}>
-                {/* Orange wedge with CURVED left edge via SVG path */}
+                {/* Coloured wedge - linear gradient (brighter top-left to
+                    darker bottom-right) plus a soft radial highlight in the
+                    upper area plus a few decorative dots. Stops the wedge
+                    reading as a flat boring block. */}
                 <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}>
-                  <path d={wedgePath} fill={accentHex} />
+                  <defs>
+                    {/* Brighter top-left to slightly transparent bottom-right
+                        so the accent gets natural depth */}
+                    <linearGradient id="studioWedgeFill" x1="20%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor={accentHex} stopOpacity="1" />
+                      <stop offset="100%" stopColor={accentHex} stopOpacity="0.75" />
+                    </linearGradient>
+                    {/* A black-to-transparent overlay deepens the bottom-right
+                        corner for dimensional shading */}
+                    <linearGradient id="studioWedgeShade" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="black" stopOpacity="0" />
+                      <stop offset="100%" stopColor="black" stopOpacity="0.18" />
+                    </linearGradient>
+                    {/* Bright spot near the top of the curve */}
+                    <radialGradient id="studioWedgeShine" cx="55%" cy="20%" r="40%">
+                      <stop offset="0%" stopColor="white" stopOpacity="0.22" />
+                      <stop offset="100%" stopColor="white" stopOpacity="0" />
+                    </radialGradient>
+                  </defs>
+                  <path d={wedgePath} fill="url(#studioWedgeFill)" />
+                  <path d={wedgePath} fill="url(#studioWedgeShade)" />
+                  <path d={wedgePath} fill="url(#studioWedgeShine)" />
+                  {/* Decorative dots scattered in the wedge for interest.
+                      Sized in viewBox units so they scale with the card. */}
+                  <circle cx="90" cy="14" r="1.6" fill="white" opacity="0.45" />
+                  <circle cx="78" cy="36" r="1.0" fill="white" opacity="0.4" />
+                  <circle cx="92" cy="58" r="1.3" fill="white" opacity="0.3" />
+                  <circle cx="83" cy="78" r="0.9" fill="white" opacity="0.5" />
+                  <circle cx="70" cy="62" r="0.7" fill="white" opacity="0.35" />
+                  <circle cx="95" cy="38" r="0.6" fill="white" opacity="0.4" />
                 </svg>
                 {/* Call pill: anchored top-left, off the arc */}
                 {card.phone && (
