@@ -935,17 +935,33 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
             <h1 style={{ margin: '0 0 8px', fontSize: 40, fontWeight: 900, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.0, fontFamily: font.heading }}>{card.name}</h1>
             {isPro && card.title && <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.22em' }}>{card.title}</p>}
           </div>
-          {/* Orange diagonal section. Action circles are distributed
-              dynamically along a Bezier half-moon curve so they trace
-              the path no matter how many social fields are filled. */}
+          {/* Orange section with a CURVED left edge (SVG path), and action
+              circles distributed along the SAME Bezier so the icons sit
+              naturally on or beside that curve - bottom-left to top-right
+              like the reference image. */}
           {(() => {
             const STUDIO_H = 400
-            const DIAG_TOP_X_PCT = 0.45  // top vertex of the orange wedge
             const CIRCLE = 56            // diameter (w-14)
-            // Build the list of social actions. Order matters: the FIRST
-            // item lands at the bottom-left of the arc and the LAST item
-            // lands at the top-right. Website starts (bottom-left, WWW
-            // slot) and WhatsApp ends (top-right, the yellow standout).
+            // Shared Bezier (percentages of the container, 0-1). The SVG
+            // wedge path traces this curve as its LEFT edge, and the icon
+            // arc samples points along the same Bezier - so the icons
+            // appear to ride on the orange's left edge.
+            //   P0 (start) - bottom-left corner of the container
+            //   P1 (control) - bows the curve outward to the LEFT
+            //   P2 (end) - top vertex of the wedge, ~45% across
+            const P0 = { x: 0.00, y: 1.00 }
+            const P1 = { x: 0.05, y: 0.42 }
+            const P2 = { x: 0.45, y: 0.00 }
+            const bezier = (t: number, p0: number, p1: number, p2: number) => {
+              const u = 1 - t
+              return u * u * p0 + 2 * u * t * p1 + t * t * p2
+            }
+            // Icons span the middle portion of the curve so they don't
+            // hit the container corners.
+            const T_START = 0.16
+            const T_END = 0.90
+            // Build the list of social actions. FIRST = bottom-left of arc
+            // (Website / WWW), LAST = top-right (WhatsApp yellow standout).
             const actions: { color: string; href: string; icon: React.ReactNode; label: string; iconColor?: string }[] = [
               card.website ? { color: STUDIO_COLORS.website, href: card.website.startsWith('http') ? card.website : `https://${card.website}`, icon: <Globe className="w-6 h-6" />, label: 'Website', iconColor: darkInk } : null,
               card.email ? { color: STUDIO_COLORS.email, href: `mailto:${card.email}`, icon: <Mail className="w-6 h-6" />, label: 'Email' } : null,
@@ -956,23 +972,14 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               isPro && card.whatsapp ? { color: STUDIO_COLORS.whatsapp, href: `https://wa.me/${card.whatsapp.replace(/\D/g, '')}`, icon: <MessageCircle className="w-6 h-6" />, label: 'WhatsApp' } : null,
             ].filter(Boolean) as { color: string; href: string; icon: React.ReactNode; label: string; iconColor?: string }[]
             const n = actions.length
-            // Quadratic Bezier curve going BOTTOM-LEFT to TOP-RIGHT, bowing
-            // outward to the LEFT (away from the orange wedge) so each
-            // circle sits cleanly on or just inside the diagonal edge.
-            //   P0 (start) - bottom-left of the container
-            //   P1 (control) - bows left toward the white area
-            //   P2 (end) - top-right, just inside the wedge vertex
-            const P0 = { x: 0.16, y: 0.78 }
-            const P1 = { x: 0.06, y: 0.42 }
-            const P2 = { x: 0.42, y: 0.10 }
-            const bezier = (t: number, p0: number, p1: number, p2: number) => {
-              const u = 1 - t
-              return u * u * p0 + 2 * u * t * p1 + t * t * p2
-            }
+            // Wedge SVG path uses 0-100 viewBox coordinates
+            const wedgePath = `M ${P0.x * 100} ${P0.y * 100} Q ${P1.x * 100} ${P1.y * 100} ${P2.x * 100} ${P2.y * 100} L 100 ${P2.y * 100} L 100 100 Z`
             return (
               <div style={{ position: 'relative', backgroundColor: lightArea, height: STUDIO_H, overflow: 'hidden' }}>
-                {/* Orange diagonal fill - bottom-right wedge */}
-                <div style={{ position: 'absolute', inset: 0, background: accentHex, clipPath: `polygon(${DIAG_TOP_X_PCT * 100}% 0, 100% 0, 100% 100%, 0 100%)` }} />
+                {/* Orange wedge with CURVED left edge via SVG path */}
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}>
+                  <path d={wedgePath} fill={accentHex} />
+                </svg>
                 {/* Call pill: anchored top-left, off the arc */}
                 {card.phone && (
                   <a href={`tel:${card.phone}`}
@@ -981,9 +988,10 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
                     <Phone className="w-5 h-5" style={{ color: darkInk }} />
                   </a>
                 )}
-                {/* Social circles strung along the Bezier half-moon */}
+                {/* Social circles strung along the SAME Bezier, sampling
+                    the middle portion so they ride the curve cleanly. */}
                 {actions.map((item, i) => {
-                  const t = n === 1 ? 0.5 : i / (n - 1)
+                  const t = n === 1 ? 0.5 : T_START + (i / (n - 1)) * (T_END - T_START)
                   const xPct = bezier(t, P0.x, P1.x, P2.x)
                   const yPct = bezier(t, P0.y, P1.y, P2.y)
                   return (
