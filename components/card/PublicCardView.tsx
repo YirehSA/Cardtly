@@ -905,18 +905,16 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           <Share2 className="w-4 h-4" style={{ color: darkInk }} />
         </button>
         <div className="max-w-md mx-auto" style={{ backgroundColor: lightArea, position: 'relative' }}>
-          {/* Black top band: logo box on the left, COMPANY NAME on the
-              right. Extends down so the photo (positioned absolutely
-              below) can straddle the boundary with the light area. */}
+          {/* Black top band: logo (transparent, no white box) on the left,
+              COMPANY NAME on the right. Extends down so the photo
+              (positioned absolutely below) can straddle the boundary. */}
           <div style={{ backgroundColor: black, paddingTop: 60, paddingBottom: 130, paddingLeft: 20, paddingRight: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               {card.company_logo_url ? (
-                <div style={{ width: 76, height: 76, backgroundColor: '#ffffff', borderRadius: 10, padding: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <img src={card.company_logo_url} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                </div>
+                <img src={card.company_logo_url} style={{ height: 60, maxWidth: 140, objectFit: 'contain', flexShrink: 0 }} />
               ) : (
-                <div style={{ width: 76, height: 76, backgroundColor: '#ffffff', borderRadius: 10, padding: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: darkInk, fontSize: 11, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>
-                  Your<br />Logo<br />Here
+                <div style={{ width: 76, height: 76, border: '2px dashed rgba(255,255,255,0.3)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 600, textAlign: 'center', lineHeight: 1.2 }}>
+                  Your<br />Logo
                 </div>
               )}
               {card.company && <p style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.04em', wordBreak: 'break-word', flex: 1, lineHeight: 1.1 }}>{card.company}</p>}
@@ -937,40 +935,70 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
             {isPro && card.title && <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.22em' }}>{card.title}</p>}
             {card.bio && <p style={{ margin: '14px 0 0', fontSize: 13, color: '#525252', lineHeight: 1.6, fontStyle: 'italic' }}>{card.bio}</p>}
           </div>
-          {/* Orange diagonal section with floating action buttons in an arc
-              and a services bullet list overlaid on the orange. Fixed
-              height so absolute-positioned circles land predictably. */}
-          <div style={{ position: 'relative', backgroundColor: lightArea, height: 360, overflow: 'hidden' }}>
-            {/* Orange diagonal fill - bottom-right wedge */}
-            <div style={{ position: 'absolute', inset: 0, background: accentHex, clipPath: 'polygon(45% 0, 100% 0, 100% 100%, 0 100%)' }} />
-            {/* Subtle wavy seam between light area and orange */}
-            <svg viewBox="0 0 100 6" preserveAspectRatio="none" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 18, pointerEvents: 'none' }}>
-              <path d="M 0 0 Q 25 8, 50 3 T 100 5 L 100 0 Z" fill={lightArea} />
-            </svg>
-            {/* Action buttons - absolute positioned to mimic the reference's scattered arc */}
-            {card.phone && (
-              <a href={`tel:${card.phone}`}
-                style={{ position: 'absolute', top: 24, left: 20, display: 'flex', alignItems: 'center', gap: 10, padding: '14px 28px', background: 'linear-gradient(180deg, #fafafa 0%, #c4c4c4 100%)', borderRadius: 999, boxShadow: '0 6px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.8)', textDecoration: 'none', zIndex: 4 }}>
-                <span style={{ fontSize: 18, fontWeight: 800, color: darkInk, letterSpacing: '0.02em' }}>Call</span>
-                <Phone className="w-5 h-5" style={{ color: darkInk }} />
-              </a>
-            )}
-            {isPro && card.whatsapp && <div style={{ position: 'absolute', top: 28, left: '52%', zIndex: 5 }}><Circle href={`https://wa.me/${card.whatsapp.replace(/\D/g, '')}`} color={STUDIO_COLORS.whatsapp} label="WhatsApp" icon={<MessageCircle className="w-6 h-6" />} /></div>}
-            {isPro && (card as any).linkedin_url && <div style={{ position: 'absolute', top: 18, right: 20, zIndex: 4 }}><Circle href={(card as any).linkedin_url} color={STUDIO_COLORS.linkedin} label="LinkedIn" icon={<Linkedin className="w-6 h-6" />} /></div>}
-            {isPro && (card as any).twitter_url && <div style={{ position: 'absolute', top: 88, left: '40%', zIndex: 4 }}><Circle href={(card as any).twitter_url} color={STUDIO_COLORS.twitter} label="Twitter / X" icon={<Twitter className="w-6 h-6" />} /></div>}
-            {isPro && (card as any).instagram_url && <div style={{ position: 'absolute', top: 150, left: '28%', zIndex: 4 }}><Circle href={(card as any).instagram_url} color={STUDIO_COLORS.instagram} label="Instagram" icon={<Instagram className="w-6 h-6" />} /></div>}
-            {isPro && (card as any).facebook_url && <div style={{ position: 'absolute', top: 92, left: 20, zIndex: 4 }}><Circle href={(card as any).facebook_url} color={STUDIO_COLORS.facebook} label="Facebook" icon={<Facebook className="w-6 h-6" />} /></div>}
-            {card.email && <div style={{ position: 'absolute', top: 210, left: 26, zIndex: 4 }}><Circle href={`mailto:${card.email}`} color={STUDIO_COLORS.email} label="Email" icon={<Mail className="w-6 h-6" />} /></div>}
-            {card.website && <div style={{ position: 'absolute', bottom: 18, left: 14, zIndex: 4 }}><Circle href={card.website.startsWith('http') ? card.website : `https://${card.website}`} color={STUDIO_COLORS.website} label="Website" iconColor={darkInk} icon={<Globe className="w-6 h-6" />} /></div>}
-            {/* Services bullet list - over the orange */}
-            {certifications.length > 0 && (
-              <ul style={{ position: 'absolute', bottom: 28, right: 20, margin: 0, padding: 0, listStyle: 'none', textAlign: 'right', maxWidth: '50%', zIndex: 3 }}>
-                {certifications.slice(0, 6).map(cert => (
-                  <li key={cert} style={{ fontSize: 16, color: '#ffffff', fontWeight: 600, marginBottom: 4, lineHeight: 1.25 }}>• {cert}</li>
-                ))}
-              </ul>
-            )}
-          </div>
+          {/* Orange diagonal section. Action circles are distributed
+              dynamically along the diagonal edge of the orange wedge so
+              they always trace the path no matter how many social fields
+              are filled. */}
+          {(() => {
+            const STUDIO_H = 360
+            const DIAG_TOP_X_PCT = 0.45  // matches clip-path top point
+            const CIRCLE = 56            // diameter (w-14)
+            // Build the list of social actions in display order.
+            const actions: { color: string; href: string; icon: React.ReactNode; label: string; iconColor?: string }[] = [
+              isPro && card.whatsapp ? { color: STUDIO_COLORS.whatsapp, href: `https://wa.me/${card.whatsapp.replace(/\D/g, '')}`, icon: <MessageCircle className="w-6 h-6" />, label: 'WhatsApp' } : null,
+              isPro && (card as any).twitter_url ? { color: STUDIO_COLORS.twitter, href: (card as any).twitter_url, icon: <Twitter className="w-6 h-6" />, label: 'Twitter / X' } : null,
+              isPro && (card as any).instagram_url ? { color: STUDIO_COLORS.instagram, href: (card as any).instagram_url, icon: <Instagram className="w-6 h-6" />, label: 'Instagram' } : null,
+              isPro && (card as any).facebook_url ? { color: STUDIO_COLORS.facebook, href: (card as any).facebook_url, icon: <Facebook className="w-6 h-6" />, label: 'Facebook' } : null,
+              isPro && (card as any).linkedin_url ? { color: STUDIO_COLORS.linkedin, href: (card as any).linkedin_url, icon: <Linkedin className="w-6 h-6" />, label: 'LinkedIn' } : null,
+              card.email ? { color: STUDIO_COLORS.email, href: `mailto:${card.email}`, icon: <Mail className="w-6 h-6" />, label: 'Email' } : null,
+              card.website ? { color: STUDIO_COLORS.website, href: card.website.startsWith('http') ? card.website : `https://${card.website}`, icon: <Globe className="w-6 h-6" />, label: 'Website', iconColor: darkInk } : null,
+            ].filter(Boolean) as { color: string; href: string; icon: React.ReactNode; label: string; iconColor?: string }[]
+            // Distribute along the diagonal: top of diagonal is at
+            // x = 45% of container width, bottom is at x = 0. We sit the
+            // CIRCLE so it straddles the diagonal line.
+            const n = actions.length
+            return (
+              <div style={{ position: 'relative', backgroundColor: lightArea, height: STUDIO_H, overflow: 'hidden' }}>
+                {/* Orange diagonal fill - bottom-right wedge */}
+                <div style={{ position: 'absolute', inset: 0, background: accentHex, clipPath: `polygon(${DIAG_TOP_X_PCT * 100}% 0, 100% 0, 100% 100%, 0 100%)` }} />
+                {/* Call pill: anchored top-left, not on the diagonal */}
+                {card.phone && (
+                  <a href={`tel:${card.phone}`}
+                    style={{ position: 'absolute', top: 24, left: 20, display: 'flex', alignItems: 'center', gap: 10, padding: '14px 28px', background: 'linear-gradient(180deg, #fafafa 0%, #c4c4c4 100%)', borderRadius: 999, boxShadow: '0 6px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.8)', textDecoration: 'none', zIndex: 5 }}>
+                    <span style={{ fontSize: 18, fontWeight: 800, color: darkInk, letterSpacing: '0.02em' }}>Call</span>
+                    <Phone className="w-5 h-5" style={{ color: darkInk }} />
+                  </a>
+                )}
+                {/* Social circles strung along the diagonal */}
+                {actions.map((item, i) => {
+                  // Distribute evenly from the top of the diagonal to the bottom-left corner
+                  const t = n === 1 ? 0.5 : i / (n - 1)
+                  // y in percentage of container height (margin top + bottom)
+                  const yPct = 0.08 + t * 0.82
+                  // x along the diagonal at this y: percentage of width
+                  const xPct = DIAG_TOP_X_PCT * (1 - yPct)
+                  return (
+                    <div key={item.label}
+                      style={{ position: 'absolute', top: `calc(${yPct * 100}% - ${CIRCLE / 2}px)`, left: `calc(${xPct * 100}% - ${CIRCLE / 2}px)`, zIndex: 4 }}>
+                      <Circle href={item.href} color={item.color} label={item.label} icon={item.icon} iconColor={item.iconColor} />
+                    </div>
+                  )
+                })}
+                {/* Services bullet list - inline-block trick: outer div
+                    right-anchors, inner ul keeps bullets aligned via
+                    text-align: left */}
+                {certifications.length > 0 && (
+                  <div style={{ position: 'absolute', bottom: 28, right: 20, textAlign: 'right', maxWidth: '55%', zIndex: 3 }}>
+                    <ul style={{ display: 'inline-block', textAlign: 'left', margin: 0, padding: 0, listStyle: 'none' }}>
+                      {certifications.slice(0, 6).map(cert => (
+                        <li key={cert} style={{ fontSize: 16, color: '#ffffff', fontWeight: 600, marginBottom: 4, lineHeight: 1.3 }}>• {cert}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
           {/* Footer with custom links / save contact / share / contact form */}
           <div style={{ backgroundColor: lightArea, padding: '8px 20px 24px' }}>
             <BottomSection {...bottomProps} />
