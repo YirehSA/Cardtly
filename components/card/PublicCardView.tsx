@@ -936,12 +936,11 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
             {card.bio && <p style={{ margin: '14px 0 0', fontSize: 13, color: '#525252', lineHeight: 1.6, fontStyle: 'italic' }}>{card.bio}</p>}
           </div>
           {/* Orange diagonal section. Action circles are distributed
-              dynamically along the diagonal edge of the orange wedge so
-              they always trace the path no matter how many social fields
-              are filled. */}
+              dynamically along a Bezier half-moon curve so they trace
+              the path no matter how many social fields are filled. */}
           {(() => {
-            const STUDIO_H = 360
-            const DIAG_TOP_X_PCT = 0.45  // matches clip-path top point
+            const STUDIO_H = 400
+            const DIAG_TOP_X_PCT = 0.45  // top vertex of the orange wedge
             const CIRCLE = 56            // diameter (w-14)
             // Build the list of social actions in display order.
             const actions: { color: string; href: string; icon: React.ReactNode; label: string; iconColor?: string }[] = [
@@ -953,15 +952,26 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               card.email ? { color: STUDIO_COLORS.email, href: `mailto:${card.email}`, icon: <Mail className="w-6 h-6" />, label: 'Email' } : null,
               card.website ? { color: STUDIO_COLORS.website, href: card.website.startsWith('http') ? card.website : `https://${card.website}`, icon: <Globe className="w-6 h-6" />, label: 'Website', iconColor: darkInk } : null,
             ].filter(Boolean) as { color: string; href: string; icon: React.ReactNode; label: string; iconColor?: string }[]
-            // Distribute along the diagonal: top of diagonal is at
-            // x = 45% of container width, bottom is at x = 0. We sit the
-            // CIRCLE so it straddles the diagonal line.
             const n = actions.length
+            // Quadratic Bezier curve that traces a half-moon arc:
+            //   P0 (start) - top middle, just inside the orange wedge
+            //   P1 (control) - bows OUT into the orange so the arc curves
+            //   P2 (end) - bottom-left of the container, well clear of edges
+            // All values are percentages of the container size. The end
+            // point is pulled in from 0% / 100% so the last circle isn't
+            // clipped by the container's left or bottom edge.
+            const P0 = { x: 0.42, y: 0.10 }
+            const P1 = { x: 0.55, y: 0.45 }
+            const P2 = { x: 0.14, y: 0.78 }
+            const bezier = (t: number, p0: number, p1: number, p2: number) => {
+              const u = 1 - t
+              return u * u * p0 + 2 * u * t * p1 + t * t * p2
+            }
             return (
               <div style={{ position: 'relative', backgroundColor: lightArea, height: STUDIO_H, overflow: 'hidden' }}>
                 {/* Orange diagonal fill - bottom-right wedge */}
                 <div style={{ position: 'absolute', inset: 0, background: accentHex, clipPath: `polygon(${DIAG_TOP_X_PCT * 100}% 0, 100% 0, 100% 100%, 0 100%)` }} />
-                {/* Call pill: anchored top-left, not on the diagonal */}
+                {/* Call pill: anchored top-left, off the arc */}
                 {card.phone && (
                   <a href={`tel:${card.phone}`}
                     style={{ position: 'absolute', top: 24, left: 20, display: 'flex', alignItems: 'center', gap: 10, padding: '14px 28px', background: 'linear-gradient(180deg, #fafafa 0%, #c4c4c4 100%)', borderRadius: 999, boxShadow: '0 6px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.8)', textDecoration: 'none', zIndex: 5 }}>
@@ -969,14 +979,11 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
                     <Phone className="w-5 h-5" style={{ color: darkInk }} />
                   </a>
                 )}
-                {/* Social circles strung along the diagonal */}
+                {/* Social circles strung along the Bezier half-moon */}
                 {actions.map((item, i) => {
-                  // Distribute evenly from the top of the diagonal to the bottom-left corner
                   const t = n === 1 ? 0.5 : i / (n - 1)
-                  // y in percentage of container height (margin top + bottom)
-                  const yPct = 0.08 + t * 0.82
-                  // x along the diagonal at this y: percentage of width
-                  const xPct = DIAG_TOP_X_PCT * (1 - yPct)
+                  const xPct = bezier(t, P0.x, P1.x, P2.x)
+                  const yPct = bezier(t, P0.y, P1.y, P2.y)
                   return (
                     <div key={item.label}
                       style={{ position: 'absolute', top: `calc(${yPct * 100}% - ${CIRCLE / 2}px)`, left: `calc(${xPct * 100}% - ${CIRCLE / 2}px)`, zIndex: 4 }}>
