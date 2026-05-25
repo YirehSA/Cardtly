@@ -867,5 +867,222 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
     )
   }
 
+  // ── 10. STUDIO ────────────────────────────────────────────────────────────
+  // Black header band + large circular photo + curved white middle + accent
+  // diagonal at the bottom. Floating arc of social action circles. Inspired
+  // by photographer / creative-service business card layouts.
+  if (design.templateId === 'studio') {
+    const black = '#000000'
+    const lightArea = '#f5f5f5'
+    const darkInk = '#0a0a0a'
+    type CircleProps = { href: string; color: string; icon: React.ReactNode; label: string }
+    const Circle = ({ href, color, icon, label }: CircleProps) => (
+      <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel={href.startsWith('http') ? 'noopener noreferrer' : undefined} aria-label={label}
+        className="w-12 h-12 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95"
+        style={{ backgroundColor: color, color: '#ffffff', boxShadow: `0 4px 14px rgba(0,0,0,0.4)`, flexShrink: 0 }}>
+        {icon}
+      </a>
+    )
+    return (
+      <div style={{ ...pageStyle, backgroundColor: lightArea }} className="animate-fade-up">
+        <InAppBackButton bgMode={design.bgMode} />
+        {floatingBadge}
+        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <Share2 className="w-4 h-4 text-white" />
+        </button>
+        <div className="max-w-md mx-auto" style={{ backgroundColor: lightArea }}>
+          {/* Black top band: logo left, company name right */}
+          <div style={{ backgroundColor: black, padding: '60px 20px 30px', display: 'flex', alignItems: 'center', gap: 16 }}>
+            {card.company_logo_url ? (
+              <div style={{ width: 64, height: 64, backgroundColor: '#ffffff', borderRadius: 10, padding: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <img src={card.company_logo_url} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              </div>
+            ) : (
+              <div style={{ width: 64, height: 64, backgroundColor: accentHex, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 28, fontWeight: 800, color: '#fff' }}>{(card.company || card.name || 'C')[0].toUpperCase()}</div>
+            )}
+            {card.company && <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', wordBreak: 'break-word', flex: 1 }}>{card.company}</p>}
+          </div>
+          {/* Black photo section with large circular avatar */}
+          <div style={{ backgroundColor: black, padding: '10px 20px 40px', display: 'flex', justifyContent: 'center' }}>
+            <div style={{ width: 200, height: 200, borderRadius: '50%', overflow: 'hidden', border: `4px solid #ffffff`, boxShadow: '0 12px 32px rgba(0,0,0,0.6)' }}>
+              {card.profile_image_url
+                ? <img src={card.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <div style={{ width: '100%', height: '100%', backgroundColor: accentHex + '44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 80, fontWeight: 800, color: accentHex }}>{card.name?.[0]?.toUpperCase()}</div>}
+            </div>
+          </div>
+          {/* SVG wave divider between black and light area */}
+          <svg viewBox="0 0 100 8" preserveAspectRatio="none" style={{ display: 'block', width: '100%', height: 32, marginTop: -1 }}>
+            <path d="M 0 8 L 0 4 Q 25 -1, 50 3 T 100 4 L 100 8 Z" fill={lightArea} />
+          </svg>
+          {/* Name + designation centred */}
+          <div style={{ backgroundColor: lightArea, padding: '0 20px 24px', textAlign: 'center' }}>
+            <h1 style={{ margin: '0 0 8px', fontSize: 36, fontWeight: 900, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.05, fontFamily: font.heading }}>{card.name}</h1>
+            {isPro && card.title && <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.18em' }}>{card.title}</p>}
+            {card.bio && <p style={{ margin: '12px 0 0', fontSize: 13, color: '#525252', lineHeight: 1.6 }}>{card.bio}</p>}
+          </div>
+          {/* Accent diagonal slice + floating action row */}
+          <div style={{ position: 'relative', backgroundColor: lightArea, padding: '20px 20px 32px', overflow: 'hidden' }}>
+            {/* Diagonal accent fill bottom-right */}
+            <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, background: accentHex, clipPath: 'polygon(55% 0, 100% 0, 100% 100%, 0 100%)' }} />
+            {/* Content on top */}
+            <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {/* Call pill + social circles */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                {card.phone && (
+                  <a href={`tel:${card.phone}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 22px', background: 'linear-gradient(180deg, #f5f5f5 0%, #d4d4d4 100%)', borderRadius: 999, boxShadow: '0 2px 10px rgba(0,0,0,0.25)', textDecoration: 'none', flexShrink: 0 }}>
+                    <Phone className="w-4 h-4" style={{ color: darkInk }} />
+                    <span style={{ fontSize: 15, fontWeight: 700, color: darkInk }}>Call</span>
+                  </a>
+                )}
+                {card.email && <Circle href={`mailto:${card.email}`} color="#374151" label="Email" icon={<Mail className="w-5 h-5" />} />}
+                {card.website && <Circle href={card.website.startsWith('http') ? card.website : `https://${card.website}`} color="#374151" label="Website" icon={<Globe className="w-5 h-5" />} />}
+                {isPro && card.whatsapp && <Circle href={`https://wa.me/${card.whatsapp.replace(/\D/g, '')}`} color="#22c55e" label="WhatsApp" icon={<MessageCircle className="w-5 h-5" />} />}
+                {socialLinks.map(s => <Circle key={s.platform} href={s.url} color="#1f2937" label={s.platform} icon={s.icon} />)}
+              </div>
+              {/* Certifications / services bullet list - right-aligned on the orange slice */}
+              {certifications.length > 0 && (
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none', textAlign: 'right' }}>
+                  {certifications.map(cert => (
+                    <li key={cert} style={{ fontSize: 14, color: '#ffffff', fontWeight: 600, marginBottom: 4 }}>• {cert}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+          <div style={{ backgroundColor: lightArea, padding: '8px 20px 24px' }}>
+            <BottomSection {...bottomProps} />
+            <p style={{ textAlign: 'center', fontSize: 11, color: '#737373', marginTop: 16, letterSpacing: '0.05em' }}>cardtly.com/{card.slug}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── 11. FROST ─────────────────────────────────────────────────────────────
+  // Soft pastel mesh gradient background + a single floating glassmorphic
+  // card containing everything. Heavy backdrop-blur, light-mode dominant.
+  if (design.templateId === 'frost') {
+    return (
+      <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, #fef3c7 0%, #fce7f3 25%, #e0e7ff 60%, #ccfbf1 100%)' }} className="animate-fade-up">
+        {/* Decorative gradient blobs for the mesh-y feel */}
+        <div style={{ position: 'absolute', top: -120, right: -80, width: 320, height: 320, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}55 0%, transparent 70%)`, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: -100, left: -80, width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.4) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <InAppBackButton bgMode={design.bgMode} />
+        {floatingBadge}
+        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md" style={{ backgroundColor: 'rgba(255,255,255,0.5)' }}>
+          <Share2 className="w-4 h-4" style={{ color: '#0f172a' }} />
+        </button>
+        <div className="max-w-md mx-auto px-5 py-12 relative" style={{ zIndex: 1 }}>
+          {/* Single big glass card */}
+          <div style={{ backgroundColor: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)', border: '1px solid rgba(255,255,255,0.6)', borderRadius: 32, padding: '36px 28px', boxShadow: '0 32px 80px rgba(0,0,0,0.12)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+              <Avatar {...shared} size={120} rounded="full" extraStyle={{ border: '4px solid rgba(255,255,255,0.9)', boxShadow: '0 12px 28px rgba(0,0,0,0.15)' }} />
+            </div>
+            <h1 style={{ margin: '0 0 4px', fontSize: 28, fontWeight: 800, color: '#0f172a', textAlign: 'center', fontFamily: font.heading, letterSpacing: '-0.01em' }}>{card.name}</h1>
+            {isPro && card.title && <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: accentHex, textAlign: 'center' }}>{card.title}</p>}
+            {card.company && <p style={{ margin: '4px 0 16px', fontSize: 13, color: '#64748b', textAlign: 'center' }}>{card.company}</p>}
+            <LogoZone {...shared} />
+            {card.bio && <p style={{ fontSize: 13, color: '#475569', textAlign: 'center', lineHeight: 1.65, margin: '0 0 20px' }}>{card.bio}</p>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                card.phone && { icon: <Phone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
+                card.email && { icon: <Mail className="w-4 h-4" />, label: card.email, href: `mailto:${card.email}` },
+                isPro && card.whatsapp && { icon: <MessageCircle className="w-4 h-4" />, label: card.whatsapp, href: `https://wa.me/${card.whatsapp.replace(/\D/g, '')}` },
+                isPro && card.address && { icon: <MapPin className="w-4 h-4" />, label: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}` },
+                card.website && { icon: <Globe className="w-4 h-4" />, label: card.website.replace(/^https?:\/\//, ''), href: card.website.startsWith('http') ? card.website : `https://${card.website}` },
+              ].filter(Boolean).map((item: any, i) => (
+                <a key={i} href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 14, textDecoration: 'none' }}>
+                  <span style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{item.icon}</span>
+                  <span style={{ fontSize: 13, color: '#0f172a', fontWeight: 500, wordBreak: 'break-word' }}>{item.label}</span>
+                </a>
+              ))}
+            </div>
+            {socialLinks.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 20 }}>
+                {socialLinks.map(s => (
+                  <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
+                    className="w-10 h-10 rounded-full flex items-center justify-center transition hover:scale-110"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.7)', color: accentHex, border: '1px solid rgba(255,255,255,0.6)' }}>
+                    {s.icon}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="mt-6">
+            <BottomSection {...bottomProps} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── 12. EDITORIAL ─────────────────────────────────────────────────────────
+  // Serif typography on warm paper bg. Newspaper-style: massive name, drop
+  // capital lead, classical contact list with rules.
+  if (design.templateId === 'editorial') {
+    const paper = '#fafaf9'
+    const ink = '#1c1917'
+    const rule = '#a8a29e'
+    const muted = '#78716c'
+    return (
+      <div style={{ ...pageStyle, backgroundColor: paper }} className="animate-fade-up">
+        <InAppBackButton bgMode={design.bgMode} />
+        {floatingBadge}
+        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(28,25,23,0.08)' }}>
+          <Share2 className="w-4 h-4" style={{ color: ink }} />
+        </button>
+        <div className="max-w-md mx-auto px-6 py-12">
+          {/* Masthead */}
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.4em', fontFamily: 'Georgia, serif' }}>The Profile</p>
+            <div style={{ width: '100%', borderTop: `2px solid ${ink}`, marginTop: 8 }} />
+            <div style={{ width: '100%', borderTop: `1px solid ${ink}`, marginTop: 2 }} />
+          </div>
+          {/* Name in giant serif */}
+          <h1 style={{ margin: '0 0 8px', fontSize: 52, fontWeight: 900, color: ink, fontFamily: 'Georgia, "Times New Roman", serif', lineHeight: 0.95, letterSpacing: '-0.02em', textAlign: 'center' }}>{card.name}</h1>
+          {isPro && card.title && <p style={{ margin: 0, fontSize: 16, color: muted, textAlign: 'center', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>{card.title}</p>}
+          {card.company && <p style={{ margin: '4px 0 0', fontSize: 13, color: muted, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 600 }}>{card.company}</p>}
+          <div style={{ width: 60, borderTop: `2px solid ${accentHex}`, margin: '24px auto' }} />
+          {/* Centered portrait with serif rule */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+            <Avatar {...shared} size={140} rounded="full" extraStyle={{ border: `1px solid ${rule}`, boxShadow: '0 1px 0 #fff, 0 8px 24px rgba(0,0,0,0.1)' }} />
+          </div>
+          <LogoZone {...shared} />
+          {/* Bio as a leading paragraph with drop-cap first letter */}
+          {card.bio && (
+            <p style={{ fontSize: 15, color: '#3c2c20', lineHeight: 1.75, margin: '0 0 28px', fontFamily: 'Georgia, serif', textAlign: 'justify' }}>
+              <span style={{ float: 'left', fontSize: 56, fontFamily: 'Georgia, serif', fontWeight: 900, lineHeight: 0.85, marginRight: 8, marginTop: 6, color: accentHex }}>{card.bio.charAt(0)}</span>
+              {card.bio.slice(1)}
+            </p>
+          )}
+          {/* Contact list with classical rules */}
+          <div style={{ borderTop: `1px solid ${rule}`, paddingTop: 16 }}>
+            <p style={{ margin: '0 0 12px', fontSize: 10, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.3em' }}>Correspondence</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {[
+                card.phone && { label: 'Telephone', value: card.phone, href: `tel:${card.phone}` },
+                card.email && { label: 'Electronic mail', value: card.email, href: `mailto:${card.email}` },
+                isPro && card.whatsapp && { label: 'WhatsApp', value: card.whatsapp, href: `https://wa.me/${card.whatsapp.replace(/\D/g, '')}` },
+                isPro && card.address && { label: 'Address', value: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}` },
+                card.website && { label: 'Web', value: card.website.replace(/^https?:\/\//, ''), href: card.website.startsWith('http') ? card.website : `https://${card.website}` },
+              ].filter(Boolean).map((item: any, i) => (
+                <a key={i} href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 14, padding: '14px 0', borderBottom: `1px solid ${rule}`, textDecoration: 'none' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.15em', fontFamily: 'Georgia, serif', flexShrink: 0 }}>{item.label}</span>
+                  <span style={{ fontSize: 14, color: ink, fontFamily: 'Georgia, serif', textAlign: 'right', wordBreak: 'break-word' }}>{item.value}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+          <BottomSection {...bottomProps} />
+          <div style={{ width: 60, borderTop: `2px solid ${accentHex}`, margin: '32px auto 8px' }} />
+          <p style={{ textAlign: 'center', fontSize: 11, color: muted, fontFamily: 'Georgia, serif', letterSpacing: '0.15em', textTransform: 'uppercase' }}>cardtly.com/{card.slug}</p>
+        </div>
+      </div>
+    )
+  }
+
   return null
 }

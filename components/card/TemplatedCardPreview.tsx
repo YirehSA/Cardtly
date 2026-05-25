@@ -520,5 +520,113 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
     )
   }
 
+  // ── 10. STUDIO ────────────────────────────────────────────────────────────
+  if (design.templateId === 'studio') {
+    const black = '#000'
+    const lightArea = '#f5f5f5'
+    const Mini = ({ color, children }: { color: string; children: React.ReactNode }) => (
+      <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>{children}</div>
+    )
+    return (
+      <div style={{ ...pageStyle, backgroundColor: lightArea }}>
+        {/* Black top band */}
+        <div style={{ backgroundColor: black, padding: '14px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          {form.company_logo_url ? (
+            <div style={{ width: 28, height: 28, backgroundColor: '#fff', borderRadius: 5, padding: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <img src={form.company_logo_url} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            </div>
+          ) : (
+            <div style={{ width: 28, height: 28, backgroundColor: accentHex, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 800, color: '#fff' }}>{(form.company || form.name || 'C')[0].toUpperCase()}</div>
+          )}
+          {form.company && <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1, wordBreak: 'break-word' }}>{form.company}</p>}
+        </div>
+        {/* Photo on black */}
+        <div style={{ backgroundColor: black, padding: '4px 12px 20px', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: 92, height: 92, borderRadius: '50%', overflow: 'hidden', border: '2px solid #fff', boxShadow: '0 6px 14px rgba(0,0,0,0.5)' }}>
+            <Avatar base={88} />
+          </div>
+        </div>
+        {/* Wave divider */}
+        <svg viewBox="0 0 100 6" preserveAspectRatio="none" style={{ display: 'block', width: '100%', height: 18, marginTop: -1 }}>
+          <path d="M 0 6 L 0 3 Q 25 0, 50 2.5 T 100 3 L 100 6 Z" fill={lightArea} />
+        </svg>
+        {/* Name + designation */}
+        <div style={{ padding: '0 14px 12px', textAlign: 'center', backgroundColor: lightArea }}>
+          <h2 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 900, color: '#0a0a0a', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.05, fontFamily: font.heading }}>{form.name || 'Your Name'}</h2>
+          {isPro && form.title && <p style={{ margin: 0, fontSize: 8, fontWeight: 700, color: '#0a0a0a', textTransform: 'uppercase', letterSpacing: '0.18em' }}>{form.title}</p>}
+        </div>
+        {/* Accent diagonal section */}
+        <div style={{ position: 'relative', backgroundColor: lightArea, padding: '10px 12px 16px', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', inset: 0, background: accentHex, clipPath: 'polygon(55% 0, 100% 0, 100% 100%, 0 100%)' }} />
+          <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+            {form.phone && <div style={{ padding: '6px 12px', background: 'linear-gradient(180deg, #f5f5f5, #d4d4d4)', borderRadius: 999, fontSize: 9, fontWeight: 700, color: '#0a0a0a', flexShrink: 0 }}>Call</div>}
+            {form.email && <Mini color="#374151"><Mail style={{ width: 11, height: 11 }} /></Mini>}
+            {form.website && <Mini color="#374151"><Globe style={{ width: 11, height: 11 }} /></Mini>}
+            {isPro && form.whatsapp && <Mini color="#22c55e"><MessageCircle style={{ width: 11, height: 11 }} /></Mini>}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── 11. FROST ─────────────────────────────────────────────────────────────
+  if (design.templateId === 'frost') {
+    return (
+      <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, #fef3c7 0%, #fce7f3 25%, #e0e7ff 60%, #ccfbf1 100%)' }}>
+        <div style={{ position: 'absolute', top: -40, right: -30, width: 120, height: 120, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}55 0%, transparent 70%)` }} />
+        <div style={{ position: 'absolute', bottom: -30, left: -30, width: 100, height: 100, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.4) 0%, transparent 70%)' }} />
+        <div style={{ position: 'relative', padding: '16px 14px', zIndex: 1 }}>
+          <div style={{ backgroundColor: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.6)', borderRadius: 18, padding: '16px 12px', boxShadow: '0 12px 32px rgba(0,0,0,0.12)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+              <div style={{ borderRadius: '50%', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.9)' }}>
+                <Avatar base={64} />
+              </div>
+            </div>
+            <h2 style={{ margin: '0 0 3px', fontSize: 15, fontWeight: 800, color: '#0f172a', textAlign: 'center', fontFamily: font.heading }}>{form.name || 'Your Name'}</h2>
+            {isPro && form.title && <p style={{ margin: 0, fontSize: 9, fontWeight: 600, color: accentHex, textAlign: 'center' }}>{form.title}</p>}
+            {form.company && <p style={{ margin: '3px 0 8px', fontSize: 8, color: '#64748b', textAlign: 'center' }}>{form.company}</p>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {form.phone && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Phone style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: 8, color: '#0f172a' }}>{form.phone}</span></div>}
+              {form.email && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Mail style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: 8, color: '#0f172a' }}>{form.email}</span></div>}
+              {form.website && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Globe style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: 8, color: '#0f172a' }}>{form.website.replace(/^https?:\/\//, '')}</span></div>}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── 12. EDITORIAL ─────────────────────────────────────────────────────────
+  if (design.templateId === 'editorial') {
+    const paper = '#fafaf9'
+    const ink = '#1c1917'
+    const rule = '#a8a29e'
+    const muted = '#78716c'
+    return (
+      <div style={{ ...pageStyle, backgroundColor: paper, padding: '18px 16px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 10 }}>
+          <p style={{ margin: 0, fontSize: 6, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.4em', fontFamily: 'Georgia, serif' }}>The Profile</p>
+          <div style={{ width: '100%', borderTop: `1.5px solid ${ink}`, marginTop: 4 }} />
+          <div style={{ width: '100%', borderTop: `0.5px solid ${ink}`, marginTop: 2 }} />
+        </div>
+        <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900, color: ink, fontFamily: 'Georgia, "Times New Roman", serif', lineHeight: 0.95, letterSpacing: '-0.02em', textAlign: 'center' }}>{form.name || 'Your Name'}</h2>
+        {isPro && form.title && <p style={{ margin: 0, fontSize: 9, color: muted, textAlign: 'center', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>{form.title}</p>}
+        {form.company && <p style={{ margin: '2px 0 0', fontSize: 7, color: muted, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 600 }}>{form.company}</p>}
+        <div style={{ width: 28, borderTop: `1.5px solid ${accentHex}`, margin: '10px auto' }} />
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+          <div style={{ borderRadius: '50%', overflow: 'hidden', border: `1px solid ${rule}` }}>
+            <Avatar base={64} />
+          </div>
+        </div>
+        <div style={{ borderTop: `1px solid ${rule}`, paddingTop: 8 }}>
+          <p style={{ margin: '0 0 5px', fontSize: 6, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.3em' }}>Correspondence</p>
+          {form.phone && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: `1px solid ${rule}`, fontFamily: 'Georgia, serif' }}><span style={{ fontSize: 7, color: muted, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Tel</span><span style={{ fontSize: 9, color: ink }}>{form.phone}</span></div>}
+          {form.email && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: `1px solid ${rule}`, fontFamily: 'Georgia, serif' }}><span style={{ fontSize: 7, color: muted, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Email</span><span style={{ fontSize: 9, color: ink }}>{form.email}</span></div>}
+          {form.website && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: `1px solid ${rule}`, fontFamily: 'Georgia, serif' }}><span style={{ fontSize: 7, color: muted, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Web</span><span style={{ fontSize: 9, color: ink }}>{form.website.replace(/^https?:\/\//, '')}</span></div>}
+        </div>
+      </div>
+    )
+  }
+
   return null
 }

@@ -1,4 +1,4 @@
-export type TemplateId = 'classic' | 'modern' | 'bold' | 'minimal' | 'executive' | 'creative' | 'wave' | 'split' | 'neon'
+export type TemplateId = 'classic' | 'modern' | 'bold' | 'minimal' | 'executive' | 'creative' | 'wave' | 'split' | 'neon' | 'studio' | 'frost' | 'editorial'
 export type FontId = 'sans' | 'serif' | 'modern' | 'rounded' | 'mono'
 export type AccentColor = 'blue' | 'purple' | 'green' | 'red' | 'orange' | 'pink' | 'teal' | 'gold' | 'custom'
 export type LogoPosition = 'left' | 'center' | 'right' | 'hidden'
@@ -126,6 +126,9 @@ export const TEMPLATES: TemplateConfig[] = [
   { id: 'wave',      name: 'Wave',      description: 'Two-column hero with SVG wave',       proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-cyan-900 to-gray-900' },
   { id: 'split',     name: 'Split',     description: 'Accent sidebar, content right',       proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-blue-900 to-gray-900' },
   { id: 'neon',      name: 'Neon',      description: 'Glowing borders, dark cyberpunk',     proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-gray-950 to-purple-950' },
+  { id: 'studio',    name: 'Studio',    description: 'Bold black header, curved accent bottom', proOnly: true, defaultBgMode: 'dark', previewGradient: 'from-black to-amber-900' },
+  { id: 'frost',     name: 'Frost',     description: 'Glassmorphism on a soft gradient mesh',    proOnly: true, defaultBgMode: 'light', previewGradient: 'from-sky-200 to-violet-200' },
+  { id: 'editorial', name: 'Editorial', description: 'Serif newspaper layout, traditional feel',  proOnly: true, defaultBgMode: 'light', previewGradient: 'from-stone-100 to-amber-50' },
 ]
 
 // Card style visual effects — returns CSS properties to apply
@@ -173,6 +176,9 @@ export function getBgColors(mode: BgMode, templateId: TemplateId): {
     wave:      { page: '#030712', card: '#111827', surface: '#1f2937', text: '#f9fafb', subtext: '#9ca3af', border: '#374151' },
     split:     { page: '#0f172a', card: '#1e293b', surface: '#334155', text: '#f1f5f9', subtext: '#94a3b8', border: '#475569' },
     neon:      { page: '#050510', card: '#0a0a1a', surface: '#10102a', text: '#e0e0ff', subtext: '#6060a0', border: '#1a1a3a' },
+    studio:    { page: '#000000', card: '#f5f5f5', surface: '#ffffff', text: '#0a0a0a', subtext: '#525252', border: '#e5e5e5' },
+    frost:     { page: '#f8fafc', card: 'rgba(255,255,255,0.6)', surface: 'rgba(255,255,255,0.4)', text: '#0f172a', subtext: '#64748b', border: 'rgba(255,255,255,0.4)' },
+    editorial: { page: '#fafaf9', card: '#ffffff', surface: '#f5f5f4', text: '#1c1917', subtext: '#78716c', border: '#e7e5e4' },
   }
   return dark[templateId] || dark.classic
 }
