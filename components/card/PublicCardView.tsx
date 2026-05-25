@@ -937,29 +937,29 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           </div>
           {/* Orange section with a CURVED left edge (SVG path), and action
               circles distributed along the SAME Bezier so the icons sit
-              naturally on or beside that curve - bottom-left to top-right
-              like the reference image. */}
+              naturally on or beside that curve - bottom-left CORNER to
+              top-right CORNER like the user's annotated reference. */}
           {(() => {
             const STUDIO_H = 400
             const CIRCLE = 56            // diameter (w-14)
-            // Shared Bezier (percentages of the container, 0-1). The SVG
-            // wedge path traces this curve as its LEFT edge, and the icon
-            // arc samples points along the same Bezier - so the icons
-            // appear to ride on the orange's left edge.
-            //   P0 (start) - bottom-left corner of the container
-            //   P1 (control) - bows the curve outward to the LEFT
-            //   P2 (end) - top vertex of the wedge, ~45% across
+            // Shared Bezier (percentages of the container, 0-1).
+            //   P0 (start) - bottom-left CORNER of the container
+            //   P1 (control) - bows the curve outward toward the upper-left
+            //                  so the wedge edge swoops, not a straight line
+            //   P2 (end) - top-right CORNER of the container
             const P0 = { x: 0.00, y: 1.00 }
-            const P1 = { x: 0.05, y: 0.42 }
-            const P2 = { x: 0.45, y: 0.00 }
+            const P1 = { x: 0.22, y: 0.30 }
+            const P2 = { x: 1.00, y: 0.00 }
             const bezier = (t: number, p0: number, p1: number, p2: number) => {
               const u = 1 - t
               return u * u * p0 + 2 * u * t * p1 + t * t * p2
             }
-            // Icons span the middle portion of the curve so they don't
-            // hit the container corners.
-            const T_START = 0.16
-            const T_END = 0.90
+            // Icons span the middle portion of the curve - far enough in
+            // from the corners that the circles don't get clipped, but
+            // close enough that the chain still reads as "bottom-left to
+            // top-right" the way the user wants.
+            const T_START = 0.12
+            const T_END = 0.88
             // Build the list of social actions. FIRST = bottom-left of arc
             // (Website / WWW), LAST = top-right (WhatsApp yellow standout).
             const actions: { color: string; href: string; icon: React.ReactNode; label: string; iconColor?: string }[] = [
@@ -972,8 +972,11 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               isPro && card.whatsapp ? { color: STUDIO_COLORS.whatsapp, href: `https://wa.me/${card.whatsapp.replace(/\D/g, '')}`, icon: <MessageCircle className="w-6 h-6" />, label: 'WhatsApp' } : null,
             ].filter(Boolean) as { color: string; href: string; icon: React.ReactNode; label: string; iconColor?: string }[]
             const n = actions.length
-            // Wedge SVG path uses 0-100 viewBox coordinates
-            const wedgePath = `M ${P0.x * 100} ${P0.y * 100} Q ${P1.x * 100} ${P1.y * 100} ${P2.x * 100} ${P2.y * 100} L 100 ${P2.y * 100} L 100 100 Z`
+            // Wedge SVG path uses 0-100 viewBox coordinates. The curve
+            // is the left edge of the orange. After the curve ends at the
+            // top-right corner, we drop down the right side and across the
+            // bottom to close the shape.
+            const wedgePath = `M ${P0.x * 100} ${P0.y * 100} Q ${P1.x * 100} ${P1.y * 100} ${P2.x * 100} ${P2.y * 100} L 100 100 Z`
             return (
               <div style={{ position: 'relative', backgroundColor: lightArea, height: STUDIO_H, overflow: 'hidden' }}>
                 {/* Orange wedge with CURVED left edge via SVG path */}
