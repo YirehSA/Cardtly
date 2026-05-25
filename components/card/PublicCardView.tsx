@@ -929,11 +929,11 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
             </div>
           </div>
           {/* Name + designation - top padding leaves room for the
-              overlapping photo above */}
+              overlapping photo above. Bio renders AFTER the action arc
+              below, not here. */}
           <div style={{ backgroundColor: lightArea, paddingTop: 130, paddingBottom: 24, paddingLeft: 20, paddingRight: 20, textAlign: 'center' }}>
             <h1 style={{ margin: '0 0 8px', fontSize: 40, fontWeight: 900, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.0, fontFamily: font.heading }}>{card.name}</h1>
             {isPro && card.title && <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.22em' }}>{card.title}</p>}
-            {card.bio && <p style={{ margin: '14px 0 0', fontSize: 13, color: '#525252', lineHeight: 1.6, fontStyle: 'italic' }}>{card.bio}</p>}
           </div>
           {/* Orange diagonal section. Action circles are distributed
               dynamically along a Bezier half-moon curve so they trace
@@ -942,27 +942,29 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
             const STUDIO_H = 400
             const DIAG_TOP_X_PCT = 0.45  // top vertex of the orange wedge
             const CIRCLE = 56            // diameter (w-14)
-            // Build the list of social actions in display order.
+            // Build the list of social actions. Order matters: the FIRST
+            // item lands at the bottom-left of the arc and the LAST item
+            // lands at the top-right. Website starts (bottom-left, WWW
+            // slot) and WhatsApp ends (top-right, the yellow standout).
             const actions: { color: string; href: string; icon: React.ReactNode; label: string; iconColor?: string }[] = [
-              isPro && card.whatsapp ? { color: STUDIO_COLORS.whatsapp, href: `https://wa.me/${card.whatsapp.replace(/\D/g, '')}`, icon: <MessageCircle className="w-6 h-6" />, label: 'WhatsApp' } : null,
-              isPro && (card as any).twitter_url ? { color: STUDIO_COLORS.twitter, href: (card as any).twitter_url, icon: <Twitter className="w-6 h-6" />, label: 'Twitter / X' } : null,
-              isPro && (card as any).instagram_url ? { color: STUDIO_COLORS.instagram, href: (card as any).instagram_url, icon: <Instagram className="w-6 h-6" />, label: 'Instagram' } : null,
+              card.website ? { color: STUDIO_COLORS.website, href: card.website.startsWith('http') ? card.website : `https://${card.website}`, icon: <Globe className="w-6 h-6" />, label: 'Website', iconColor: darkInk } : null,
+              card.email ? { color: STUDIO_COLORS.email, href: `mailto:${card.email}`, icon: <Mail className="w-6 h-6" />, label: 'Email' } : null,
               isPro && (card as any).facebook_url ? { color: STUDIO_COLORS.facebook, href: (card as any).facebook_url, icon: <Facebook className="w-6 h-6" />, label: 'Facebook' } : null,
               isPro && (card as any).linkedin_url ? { color: STUDIO_COLORS.linkedin, href: (card as any).linkedin_url, icon: <Linkedin className="w-6 h-6" />, label: 'LinkedIn' } : null,
-              card.email ? { color: STUDIO_COLORS.email, href: `mailto:${card.email}`, icon: <Mail className="w-6 h-6" />, label: 'Email' } : null,
-              card.website ? { color: STUDIO_COLORS.website, href: card.website.startsWith('http') ? card.website : `https://${card.website}`, icon: <Globe className="w-6 h-6" />, label: 'Website', iconColor: darkInk } : null,
+              isPro && (card as any).instagram_url ? { color: STUDIO_COLORS.instagram, href: (card as any).instagram_url, icon: <Instagram className="w-6 h-6" />, label: 'Instagram' } : null,
+              isPro && (card as any).twitter_url ? { color: STUDIO_COLORS.twitter, href: (card as any).twitter_url, icon: <Twitter className="w-6 h-6" />, label: 'Twitter / X' } : null,
+              isPro && card.whatsapp ? { color: STUDIO_COLORS.whatsapp, href: `https://wa.me/${card.whatsapp.replace(/\D/g, '')}`, icon: <MessageCircle className="w-6 h-6" />, label: 'WhatsApp' } : null,
             ].filter(Boolean) as { color: string; href: string; icon: React.ReactNode; label: string; iconColor?: string }[]
             const n = actions.length
-            // Quadratic Bezier curve that traces a half-moon arc:
-            //   P0 (start) - top middle, just inside the orange wedge
-            //   P1 (control) - bows OUT into the orange so the arc curves
-            //   P2 (end) - bottom-left of the container, well clear of edges
-            // All values are percentages of the container size. The end
-            // point is pulled in from 0% / 100% so the last circle isn't
-            // clipped by the container's left or bottom edge.
-            const P0 = { x: 0.42, y: 0.10 }
-            const P1 = { x: 0.55, y: 0.45 }
-            const P2 = { x: 0.14, y: 0.78 }
+            // Quadratic Bezier curve going BOTTOM-LEFT to TOP-RIGHT, bowing
+            // outward to the LEFT (away from the orange wedge) so each
+            // circle sits cleanly on or just inside the diagonal edge.
+            //   P0 (start) - bottom-left of the container
+            //   P1 (control) - bows left toward the white area
+            //   P2 (end) - top-right, just inside the wedge vertex
+            const P0 = { x: 0.16, y: 0.78 }
+            const P1 = { x: 0.06, y: 0.42 }
+            const P2 = { x: 0.42, y: 0.10 }
             const bezier = (t: number, p0: number, p1: number, p2: number) => {
               const u = 1 - t
               return u * u * p0 + 2 * u * t * p1 + t * t * p2
@@ -1006,6 +1008,12 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               </div>
             )
           })()}
+          {/* Bio sits BELOW the action arc as per the reference image */}
+          {card.bio && (
+            <div style={{ backgroundColor: lightArea, padding: '24px 24px 8px', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: 14, color: '#525252', lineHeight: 1.7, fontStyle: 'italic' }}>{card.bio}</p>
+            </div>
+          )}
           {/* Footer with custom links / save contact / share / contact form */}
           <div style={{ backgroundColor: lightArea, padding: '8px 20px 24px' }}>
             <BottomSection {...bottomProps} />
