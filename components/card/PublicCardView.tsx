@@ -892,7 +892,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
     type CircleProps = { href: string; color: string; icon: React.ReactNode; label: string; iconColor?: string }
     const Circle = ({ href, color, icon, label, iconColor }: CircleProps) => (
       <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel={href.startsWith('http') ? 'noopener noreferrer' : undefined} aria-label={label}
-        className="w-14 h-14 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95"
+        className="w-12 h-12 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95"
         style={{ backgroundColor: color, color: iconColor || '#ffffff', boxShadow: `0 6px 18px rgba(0,0,0,0.35), inset 0 -2px 6px rgba(0,0,0,0.2)`, flexShrink: 0 }}>
         {icon}
       </a>
@@ -907,8 +907,10 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
         <div className="max-w-md mx-auto" style={{ backgroundColor: lightArea, position: 'relative' }}>
           {/* Black top band: logo (transparent, no white box) on the left,
               COMPANY NAME on the right. Extends down so the photo
-              (positioned absolutely below) can straddle the boundary. */}
-          <div style={{ backgroundColor: black, paddingTop: 60, paddingBottom: 130, paddingLeft: 20, paddingRight: 20 }}>
+              (positioned absolutely below) can straddle the boundary. The
+              SVG overlay at the bottom cuts a moon-shaped curve into the
+              bottom edge so the black isn't a flat rectangle. */}
+          <div style={{ backgroundColor: black, paddingTop: 60, paddingBottom: 130, paddingLeft: 20, paddingRight: 20, position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               {card.company_logo_url ? (
                 <img src={card.company_logo_url} style={{ height: 60, maxWidth: 140, objectFit: 'contain', flexShrink: 0 }} />
@@ -919,6 +921,13 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               )}
               {card.company && <p style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.04em', wordBreak: 'break-word', flex: 1, lineHeight: 1.1 }}>{card.company}</p>}
             </div>
+            {/* Curved bottom cut. Light-area fill eats into the black from
+                the bottom-right, leaving more black on the bottom-LEFT
+                (the moon-shape side). Z-index 1 so the absolute photo
+                (z-index 10) still sits above this overlay. */}
+            <svg viewBox="0 0 100 30" preserveAspectRatio="none" style={{ position: 'absolute', bottom: -1, left: 0, width: '100%', height: 50, pointerEvents: 'none', zIndex: 1 }}>
+              <path d="M 0 30 L 0 24 Q 45 0 100 0 L 100 30 Z" fill={lightArea} />
+            </svg>
           </div>
           {/* Photo - absolute, straddles the black/light boundary */}
           <div style={{ position: 'absolute', top: 145, left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
@@ -940,16 +949,14 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               naturally on or beside that curve - bottom-left CORNER to
               top-right CORNER like the user's annotated reference. */}
           {(() => {
-            const STUDIO_H = 500            // taller so the curve has dramatic vertical sweep
-            const CIRCLE = 56               // diameter (w-14)
+            const STUDIO_H = 250            // halved from 500 per user feedback
+            const CIRCLE = 48               // a touch smaller so icons fit the shorter wedge
             // Shared Bezier (percentages of the container, 0-1).
-            //   P0 (start) - bottom-left CORNER of the container
-            //   P1 (control) - bows the curve hard toward the upper-left
-            //                  so it swoops up and over instead of going
-            //                  diagonally straight
-            //   P2 (end) - top-right CORNER of the container
+            //   P0 (start) - bottom-left CORNER
+            //   P1 (control) - gentler bow now that the container is short
+            //   P2 (end) - top-right CORNER
             const P0 = { x: 0.00, y: 1.00 }
-            const P1 = { x: 0.10, y: 0.10 }
+            const P1 = { x: 0.22, y: 0.32 }
             const P2 = { x: 1.00, y: 0.00 }
             const bezier = (t: number, p0: number, p1: number, p2: number) => {
               const u = 1 - t
