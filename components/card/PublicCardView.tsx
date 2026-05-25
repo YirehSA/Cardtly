@@ -910,7 +910,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               (positioned absolutely below) can straddle the boundary. The
               SVG overlay at the bottom cuts a moon-shaped curve into the
               bottom edge so the black isn't a flat rectangle. */}
-          <div style={{ backgroundColor: black, paddingTop: 60, paddingBottom: 130, paddingLeft: 20, paddingRight: 20, position: 'relative' }}>
+          <div style={{ backgroundColor: black, paddingTop: 50, paddingBottom: 90, paddingLeft: 20, paddingRight: 20, position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               {card.company_logo_url ? (
                 <img src={card.company_logo_url} style={{ height: 60, maxWidth: 140, objectFit: 'contain', flexShrink: 0 }} />
@@ -921,16 +921,18 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               )}
               {card.company && <p style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.04em', wordBreak: 'break-word', flex: 1, lineHeight: 1.1 }}>{card.company}</p>}
             </div>
-            {/* Curved bottom cut. Light-area fill eats into the black from
-                the bottom-right, leaving more black on the bottom-LEFT
-                (the moon-shape side). Z-index 1 so the absolute photo
-                (z-index 10) still sits above this overlay. */}
-            <svg viewBox="0 0 100 30" preserveAspectRatio="none" style={{ position: 'absolute', bottom: -1, left: 0, width: '100%', height: 50, pointerEvents: 'none', zIndex: 1 }}>
-              <path d="M 0 30 L 0 24 Q 45 0 100 0 L 100 30 Z" fill={lightArea} />
+            {/* INVERTED curved bottom: light-area fill eats into the black
+                from the bottom-LEFT this time, leaving more black on the
+                bottom-RIGHT. Big dramatic Bezier dip. SVG height bumped to
+                110 with a deeper viewBox so the curve has real sweep.
+                Z-index 1 so the absolute photo (z-index 10) sits above. */}
+            <svg viewBox="0 0 100 50" preserveAspectRatio="none" style={{ position: 'absolute', bottom: -1, left: 0, width: '100%', height: 110, pointerEvents: 'none', zIndex: 1 }}>
+              <path d="M 0 50 L 0 0 Q 55 0 100 40 L 100 50 Z" fill={lightArea} />
             </svg>
           </div>
-          {/* Photo - absolute, straddles the black/light boundary */}
-          <div style={{ position: 'absolute', top: 145, left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
+          {/* Photo - absolute, straddles the black/light boundary. Moved
+              up to track the now-shorter black band above. */}
+          <div style={{ position: 'absolute', top: 105, left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
             <div style={{ width: 220, height: 220, borderRadius: '50%', overflow: 'hidden', border: `5px solid #ffffff`, boxShadow: '0 12px 36px rgba(0,0,0,0.55)' }}>
               {card.profile_image_url
                 ? <img src={card.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -940,7 +942,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           {/* Name + designation - top padding leaves room for the
               overlapping photo above. Bio renders AFTER the action arc
               below, not here. */}
-          <div style={{ backgroundColor: lightArea, paddingTop: 130, paddingBottom: 0, paddingLeft: 20, paddingRight: 20, textAlign: 'center' }}>
+          <div style={{ backgroundColor: lightArea, paddingTop: 135, paddingBottom: 0, paddingLeft: 20, paddingRight: 20, textAlign: 'center' }}>
             <h1 style={{ margin: '0 0 8px', fontSize: 40, fontWeight: 900, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.0, fontFamily: font.heading }}>{card.name}</h1>
             {isPro && card.title && <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.22em' }}>{card.title}</p>}
           </div>
@@ -951,23 +953,21 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           {(() => {
             const STUDIO_H = 250            // halved from 500 per user feedback
             const CIRCLE = 48               // a touch smaller so icons fit the shorter wedge
-            // Shared Bezier (percentages of the container, 0-1).
-            //   P0 (start) - bottom-left CORNER
-            //   P1 (control) - gentler bow now that the container is short
-            //   P2 (end) - top-right CORNER
+            // Shared Bezier for both the wedge SVG and the icon arc.
+            // The control point is now centred (0.35, 0.45) instead of
+            // pulled to the upper-left - this gives a gentler arc so
+            // icons distribute with roughly equal spacing along it.
             const P0 = { x: 0.00, y: 1.00 }
-            const P1 = { x: 0.22, y: 0.32 }
+            const P1 = { x: 0.35, y: 0.45 }
             const P2 = { x: 1.00, y: 0.00 }
             const bezier = (t: number, p0: number, p1: number, p2: number) => {
               const u = 1 - t
               return u * u * p0 + 2 * u * t * p1 + t * t * p2
             }
-            // Icons span the middle portion of the curve - far enough in
-            // from the corners that the circles don't get clipped, but
-            // close enough that the chain still reads as "bottom-left to
-            // top-right" the way the user wants.
-            const T_START = 0.12
-            const T_END = 0.88
+            // T range pulled in so icons get ~10% horizontal padding on
+            // each side and don't touch the wedge container edges.
+            const T_START = 0.18
+            const T_END = 0.82
             // Build the list of social actions. FIRST = bottom-left of arc
             // (Website / WWW), LAST = top-right (WhatsApp yellow standout).
             const actions: { color: string; href: string; icon: React.ReactNode; label: string; iconColor?: string }[] = [
