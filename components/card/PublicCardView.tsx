@@ -868,18 +868,32 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
   }
 
   // ── 10. STUDIO ────────────────────────────────────────────────────────────
-  // Black header band + large circular photo + curved white middle + accent
-  // diagonal at the bottom. Floating arc of social action circles. Inspired
-  // by photographer / creative-service business card layouts.
+  // Photographer-style template based on the user's reference image. Black
+  // top band with logo box + COMPANY NAME on the right, large circular
+  // portrait STRADDLING the boundary between the black and light areas,
+  // huge uppercase name + designation, then an orange diagonal accent slice
+  // at the bottom with brand-coloured social action circles scattered in an
+  // arc (Call pill, WhatsApp yellow, social icons, Email, Website) and a
+  // services bullet list rendered over the orange.
   if (design.templateId === 'studio') {
     const black = '#000000'
-    const lightArea = '#f5f5f5'
+    const lightArea = '#f0f0ef'
     const darkInk = '#0a0a0a'
-    type CircleProps = { href: string; color: string; icon: React.ReactNode; label: string }
-    const Circle = ({ href, color, icon, label }: CircleProps) => (
+    // Brand-coloured social action circles, matching the reference vibe.
+    const STUDIO_COLORS = {
+      whatsapp: '#FCC419',  // warm yellow
+      twitter:  '#1f2937',  // dark slate (X brand)
+      instagram:'#E1306C',  // instagram pink
+      facebook: '#1877F2',  // facebook blue
+      linkedin: '#0a66c2',  // linkedin blue
+      email:    '#404040',  // dark grey
+      website:  '#ffffff',  // white with dark icon
+    }
+    type CircleProps = { href: string; color: string; icon: React.ReactNode; label: string; iconColor?: string }
+    const Circle = ({ href, color, icon, label, iconColor }: CircleProps) => (
       <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel={href.startsWith('http') ? 'noopener noreferrer' : undefined} aria-label={label}
-        className="w-12 h-12 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95"
-        style={{ backgroundColor: color, color: '#ffffff', boxShadow: `0 4px 14px rgba(0,0,0,0.4)`, flexShrink: 0 }}>
+        className="w-14 h-14 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95"
+        style={{ backgroundColor: color, color: iconColor || '#ffffff', boxShadow: `0 6px 18px rgba(0,0,0,0.35), inset 0 -2px 6px rgba(0,0,0,0.2)`, flexShrink: 0 }}>
         {icon}
       </a>
     )
@@ -887,68 +901,77 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
       <div style={{ ...pageStyle, backgroundColor: lightArea }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
-        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <Share2 className="w-4 h-4 text-white" />
+        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.9)', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+          <Share2 className="w-4 h-4" style={{ color: darkInk }} />
         </button>
-        <div className="max-w-md mx-auto" style={{ backgroundColor: lightArea }}>
-          {/* Black top band: logo left, company name right */}
-          <div style={{ backgroundColor: black, padding: '60px 20px 30px', display: 'flex', alignItems: 'center', gap: 16 }}>
-            {card.company_logo_url ? (
-              <div style={{ width: 64, height: 64, backgroundColor: '#ffffff', borderRadius: 10, padding: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <img src={card.company_logo_url} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-              </div>
-            ) : (
-              <div style={{ width: 64, height: 64, backgroundColor: accentHex, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 28, fontWeight: 800, color: '#fff' }}>{(card.company || card.name || 'C')[0].toUpperCase()}</div>
-            )}
-            {card.company && <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', wordBreak: 'break-word', flex: 1 }}>{card.company}</p>}
+        <div className="max-w-md mx-auto" style={{ backgroundColor: lightArea, position: 'relative' }}>
+          {/* Black top band: logo box on the left, COMPANY NAME on the
+              right. Extends down so the photo (positioned absolutely
+              below) can straddle the boundary with the light area. */}
+          <div style={{ backgroundColor: black, paddingTop: 60, paddingBottom: 130, paddingLeft: 20, paddingRight: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              {card.company_logo_url ? (
+                <div style={{ width: 76, height: 76, backgroundColor: '#ffffff', borderRadius: 10, padding: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <img src={card.company_logo_url} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                </div>
+              ) : (
+                <div style={{ width: 76, height: 76, backgroundColor: '#ffffff', borderRadius: 10, padding: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: darkInk, fontSize: 11, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>
+                  Your<br />Logo<br />Here
+                </div>
+              )}
+              {card.company && <p style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.04em', wordBreak: 'break-word', flex: 1, lineHeight: 1.1 }}>{card.company}</p>}
+            </div>
           </div>
-          {/* Black photo section with large circular avatar */}
-          <div style={{ backgroundColor: black, padding: '10px 20px 40px', display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: 200, height: 200, borderRadius: '50%', overflow: 'hidden', border: `4px solid #ffffff`, boxShadow: '0 12px 32px rgba(0,0,0,0.6)' }}>
+          {/* Photo - absolute, straddles the black/light boundary */}
+          <div style={{ position: 'absolute', top: 145, left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
+            <div style={{ width: 220, height: 220, borderRadius: '50%', overflow: 'hidden', border: `5px solid #ffffff`, boxShadow: '0 12px 36px rgba(0,0,0,0.55)' }}>
               {card.profile_image_url
                 ? <img src={card.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : <div style={{ width: '100%', height: '100%', backgroundColor: accentHex + '44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 80, fontWeight: 800, color: accentHex }}>{card.name?.[0]?.toUpperCase()}</div>}
             </div>
           </div>
-          {/* SVG wave divider between black and light area */}
-          <svg viewBox="0 0 100 8" preserveAspectRatio="none" style={{ display: 'block', width: '100%', height: 32, marginTop: -1 }}>
-            <path d="M 0 8 L 0 4 Q 25 -1, 50 3 T 100 4 L 100 8 Z" fill={lightArea} />
-          </svg>
-          {/* Name + designation centred */}
-          <div style={{ backgroundColor: lightArea, padding: '0 20px 24px', textAlign: 'center' }}>
-            <h1 style={{ margin: '0 0 8px', fontSize: 36, fontWeight: 900, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.05, fontFamily: font.heading }}>{card.name}</h1>
-            {isPro && card.title && <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.18em' }}>{card.title}</p>}
-            {card.bio && <p style={{ margin: '12px 0 0', fontSize: 13, color: '#525252', lineHeight: 1.6 }}>{card.bio}</p>}
+          {/* Name + designation - top padding leaves room for the
+              overlapping photo above */}
+          <div style={{ backgroundColor: lightArea, paddingTop: 130, paddingBottom: 24, paddingLeft: 20, paddingRight: 20, textAlign: 'center' }}>
+            <h1 style={{ margin: '0 0 8px', fontSize: 40, fontWeight: 900, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.0, fontFamily: font.heading }}>{card.name}</h1>
+            {isPro && card.title && <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.22em' }}>{card.title}</p>}
+            {card.bio && <p style={{ margin: '14px 0 0', fontSize: 13, color: '#525252', lineHeight: 1.6, fontStyle: 'italic' }}>{card.bio}</p>}
           </div>
-          {/* Accent diagonal slice + floating action row */}
-          <div style={{ position: 'relative', backgroundColor: lightArea, padding: '20px 20px 32px', overflow: 'hidden' }}>
-            {/* Diagonal accent fill bottom-right */}
-            <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, background: accentHex, clipPath: 'polygon(55% 0, 100% 0, 100% 100%, 0 100%)' }} />
-            {/* Content on top */}
-            <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {/* Call pill + social circles */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                {card.phone && (
-                  <a href={`tel:${card.phone}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 22px', background: 'linear-gradient(180deg, #f5f5f5 0%, #d4d4d4 100%)', borderRadius: 999, boxShadow: '0 2px 10px rgba(0,0,0,0.25)', textDecoration: 'none', flexShrink: 0 }}>
-                    <Phone className="w-4 h-4" style={{ color: darkInk }} />
-                    <span style={{ fontSize: 15, fontWeight: 700, color: darkInk }}>Call</span>
-                  </a>
-                )}
-                {card.email && <Circle href={`mailto:${card.email}`} color="#374151" label="Email" icon={<Mail className="w-5 h-5" />} />}
-                {card.website && <Circle href={card.website.startsWith('http') ? card.website : `https://${card.website}`} color="#374151" label="Website" icon={<Globe className="w-5 h-5" />} />}
-                {isPro && card.whatsapp && <Circle href={`https://wa.me/${card.whatsapp.replace(/\D/g, '')}`} color="#22c55e" label="WhatsApp" icon={<MessageCircle className="w-5 h-5" />} />}
-                {socialLinks.map(s => <Circle key={s.platform} href={s.url} color="#1f2937" label={s.platform} icon={s.icon} />)}
-              </div>
-              {/* Certifications / services bullet list - right-aligned on the orange slice */}
-              {certifications.length > 0 && (
-                <ul style={{ margin: 0, padding: 0, listStyle: 'none', textAlign: 'right' }}>
-                  {certifications.map(cert => (
-                    <li key={cert} style={{ fontSize: 14, color: '#ffffff', fontWeight: 600, marginBottom: 4 }}>• {cert}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
+          {/* Orange diagonal section with floating action buttons in an arc
+              and a services bullet list overlaid on the orange. Fixed
+              height so absolute-positioned circles land predictably. */}
+          <div style={{ position: 'relative', backgroundColor: lightArea, height: 360, overflow: 'hidden' }}>
+            {/* Orange diagonal fill - bottom-right wedge */}
+            <div style={{ position: 'absolute', inset: 0, background: accentHex, clipPath: 'polygon(45% 0, 100% 0, 100% 100%, 0 100%)' }} />
+            {/* Subtle wavy seam between light area and orange */}
+            <svg viewBox="0 0 100 6" preserveAspectRatio="none" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 18, pointerEvents: 'none' }}>
+              <path d="M 0 0 Q 25 8, 50 3 T 100 5 L 100 0 Z" fill={lightArea} />
+            </svg>
+            {/* Action buttons - absolute positioned to mimic the reference's scattered arc */}
+            {card.phone && (
+              <a href={`tel:${card.phone}`}
+                style={{ position: 'absolute', top: 24, left: 20, display: 'flex', alignItems: 'center', gap: 10, padding: '14px 28px', background: 'linear-gradient(180deg, #fafafa 0%, #c4c4c4 100%)', borderRadius: 999, boxShadow: '0 6px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.8)', textDecoration: 'none', zIndex: 4 }}>
+                <span style={{ fontSize: 18, fontWeight: 800, color: darkInk, letterSpacing: '0.02em' }}>Call</span>
+                <Phone className="w-5 h-5" style={{ color: darkInk }} />
+              </a>
+            )}
+            {isPro && card.whatsapp && <div style={{ position: 'absolute', top: 28, left: '52%', zIndex: 5 }}><Circle href={`https://wa.me/${card.whatsapp.replace(/\D/g, '')}`} color={STUDIO_COLORS.whatsapp} label="WhatsApp" icon={<MessageCircle className="w-6 h-6" />} /></div>}
+            {isPro && (card as any).linkedin_url && <div style={{ position: 'absolute', top: 18, right: 20, zIndex: 4 }}><Circle href={(card as any).linkedin_url} color={STUDIO_COLORS.linkedin} label="LinkedIn" icon={<Linkedin className="w-6 h-6" />} /></div>}
+            {isPro && (card as any).twitter_url && <div style={{ position: 'absolute', top: 88, left: '40%', zIndex: 4 }}><Circle href={(card as any).twitter_url} color={STUDIO_COLORS.twitter} label="Twitter / X" icon={<Twitter className="w-6 h-6" />} /></div>}
+            {isPro && (card as any).instagram_url && <div style={{ position: 'absolute', top: 150, left: '28%', zIndex: 4 }}><Circle href={(card as any).instagram_url} color={STUDIO_COLORS.instagram} label="Instagram" icon={<Instagram className="w-6 h-6" />} /></div>}
+            {isPro && (card as any).facebook_url && <div style={{ position: 'absolute', top: 92, left: 20, zIndex: 4 }}><Circle href={(card as any).facebook_url} color={STUDIO_COLORS.facebook} label="Facebook" icon={<Facebook className="w-6 h-6" />} /></div>}
+            {card.email && <div style={{ position: 'absolute', top: 210, left: 26, zIndex: 4 }}><Circle href={`mailto:${card.email}`} color={STUDIO_COLORS.email} label="Email" icon={<Mail className="w-6 h-6" />} /></div>}
+            {card.website && <div style={{ position: 'absolute', bottom: 18, left: 14, zIndex: 4 }}><Circle href={card.website.startsWith('http') ? card.website : `https://${card.website}`} color={STUDIO_COLORS.website} label="Website" iconColor={darkInk} icon={<Globe className="w-6 h-6" />} /></div>}
+            {/* Services bullet list - over the orange */}
+            {certifications.length > 0 && (
+              <ul style={{ position: 'absolute', bottom: 28, right: 20, margin: 0, padding: 0, listStyle: 'none', textAlign: 'right', maxWidth: '50%', zIndex: 3 }}>
+                {certifications.slice(0, 6).map(cert => (
+                  <li key={cert} style={{ fontSize: 16, color: '#ffffff', fontWeight: 600, marginBottom: 4, lineHeight: 1.25 }}>• {cert}</li>
+                ))}
+              </ul>
+            )}
           </div>
+          {/* Footer with custom links / save contact / share / contact form */}
           <div style={{ backgroundColor: lightArea, padding: '8px 20px 24px' }}>
             <BottomSection {...bottomProps} />
             <p style={{ textAlign: 'center', fontSize: 11, color: '#737373', marginTop: 16, letterSpacing: '0.05em' }}>cardtly.com/{card.slug}</p>
