@@ -910,14 +910,14 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               (positioned absolutely below) can straddle the boundary. The
               SVG overlay at the bottom cuts a moon-shaped curve into the
               bottom edge so the black isn't a flat rectangle. */}
-          {/* Black header: drawn as a single SVG shape rather than a
-              rectangular div with an overlay. The shape has a flat top
-              edge across the full width, short side edges, and a deep
-              SMILE curve at the bottom that dips down through the middle
-              so the photo sits naturally inside the dip. */}
-          <div style={{ position: 'relative', height: 280 }}>
+          {/* Black header: SVG shape with the curve starting and ending
+              at the TOP CORNERS of the container, dipping deep through
+              the middle so the photo nests inside the dip. No side edges
+              - the curve runs corner-to-corner along the top, like the
+              user's pencil annotation. */}
+          <div style={{ position: 'relative', height: 400 }}>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', zIndex: 0 }}>
-              <path d="M 0 0 L 100 0 L 100 25 Q 50 110 0 60 Z" fill={black} />
+              <path d="M 0 0 L 100 0 Q 50 150 0 0 Z" fill={black} />
             </svg>
             {/* Logo + COMPANY NAME on top of the black shape */}
             <div style={{ position: 'relative', padding: '50px 20px 0', zIndex: 2 }}>
@@ -947,7 +947,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           {/* Name + designation - top padding leaves room for the
               overlapping photo above. Bio renders AFTER the action arc
               below, not here. */}
-          <div style={{ backgroundColor: lightArea, paddingTop: 110, paddingBottom: 0, paddingLeft: 20, paddingRight: 20, textAlign: 'center' }}>
+          <div style={{ backgroundColor: lightArea, paddingTop: 30, paddingBottom: 0, paddingLeft: 20, paddingRight: 20, textAlign: 'center' }}>
             <h1 style={{ margin: '0 0 8px', fontSize: 40, fontWeight: 900, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.0, fontFamily: font.heading }}>{card.name}</h1>
             {isPro && card.title && <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.22em' }}>{card.title}</p>}
           </div>
