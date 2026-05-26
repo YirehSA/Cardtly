@@ -55,6 +55,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@types/canvas-confetti": "^1.9.0",
     "eslint": "^9.16.0",
     "eslint-config-next": "15.1.0"

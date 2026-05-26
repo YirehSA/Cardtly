@@ -10,8 +10,10 @@ android {
 apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
 dependencies {
     implementation project(':capacitor-community-contacts')
+    implementation project(':capacitor-app')
     implementation project(':capacitor-share')
     implementation project(':exxili-capacitor-nfc')
+    implementation project(':capacitor-native-biometric')
 
 }
 
