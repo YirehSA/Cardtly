@@ -436,20 +436,22 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
   }
 
   if (design.templateId === 'modern') {
-    // Direction E: animated gradient orbs in the background, content
-    // sits on a glassmorphic central panel. Premium / SaaS / future feel.
+    // Direction E: gradient orbs in the background, content on a
+    // glassmorphic central panel. Orbs positioned ABSOLUTELY inside
+    // a relative-positioned outer wrapper so they live in the card
+    // container, not the viewport (previously fixed positioning made
+    // them invisible inside the editor's live-preview frame).
     const nameFontSize = calcNameSize(26, design)
     const titleColor = getTitleColor(design, accentHex)
     const bioColor = getBioColor(design, bg.subtext)
     return (
-      <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden' }} className="animate-fade-up">
-        {/* Floating gradient orbs - subtle slow motion. Three orbs at
-            different positions / sizes / colours give the bg life
-            without distracting from the content. */}
-        <div style={{ position: 'fixed', top: '-10%', left: '-15%', width: 420, height: 420, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}55 0%, transparent 70%)`, filter: 'blur(20px)', animation: 'modernOrb1 28s ease-in-out infinite', pointerEvents: 'none' }} />
-        <div style={{ position: 'fixed', top: '30%', right: '-20%', width: 480, height: 480, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.35) 0%, transparent 70%)', filter: 'blur(20px)', animation: 'modernOrb2 36s ease-in-out infinite', pointerEvents: 'none' }} />
-        <div style={{ position: 'fixed', bottom: '-15%', left: '15%', width: 380, height: 380, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.35) 0%, transparent 70%)', filter: 'blur(20px)', animation: 'modernOrb3 32s ease-in-out infinite', pointerEvents: 'none' }} />
-        {/* Inline keyframes so we don't need a separate CSS file */}
+      <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden', minHeight: '100vh' }} className="animate-fade-up">
+        {/* Floating gradient orbs - absolute positioned so they render
+            relative to the card container. Three orbs at different
+            spots / colours / sizes plus a subtle slow drift animation. */}
+        <div style={{ position: 'absolute', top: -120, left: -120, width: 460, height: 460, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}88 0%, transparent 65%)`, filter: 'blur(40px)', animation: 'modernOrb1 28s ease-in-out infinite', pointerEvents: 'none', zIndex: 0 }} />
+        <div style={{ position: 'absolute', top: '20%', right: -160, width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.55) 0%, transparent 65%)', filter: 'blur(40px)', animation: 'modernOrb2 36s ease-in-out infinite', pointerEvents: 'none', zIndex: 0 }} />
+        <div style={{ position: 'absolute', bottom: -100, left: 40, width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.55) 0%, transparent 65%)', filter: 'blur(40px)', animation: 'modernOrb3 32s ease-in-out infinite', pointerEvents: 'none', zIndex: 0 }} />
         <style>{`
           @keyframes modernOrb1 { 0%,100% { transform: translate(0,0) scale(1) } 50% { transform: translate(60px,40px) scale(1.1) } }
           @keyframes modernOrb2 { 0%,100% { transform: translate(0,0) scale(1) } 50% { transform: translate(-40px,80px) scale(1.05) } }
@@ -457,20 +459,20 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
         `}</style>
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
-        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md" style={{ backgroundColor: isLight ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)' }}>
+        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md" style={{ backgroundColor: isLight ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
         <div className="max-w-md mx-auto px-4 py-10 relative" style={{ zIndex: 1 }}>
-          {/* Glassmorphic central panel - frosted background, content
-              floats above the orbs for that premium SaaS feel */}
+          {/* Glassmorphic central panel - bumped opacity so it's visible
+              against dark bg, and a stronger border for definition */}
           <div style={{
-            backgroundColor: isLight ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.04)',
-            backdropFilter: 'blur(30px)',
-            WebkitBackdropFilter: 'blur(30px)',
-            border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
+            backgroundColor: isLight ? 'rgba(255,255,255,0.6)' : 'rgba(20,20,30,0.45)',
+            backdropFilter: 'blur(40px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+            border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.14)'}`,
             borderRadius: 28,
             padding: '32px 24px',
-            boxShadow: isLight ? '0 24px 60px rgba(0,0,0,0.08)' : '0 24px 60px rgba(0,0,0,0.5)',
+            boxShadow: isLight ? '0 24px 60px rgba(0,0,0,0.08)' : '0 24px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)',
           }}>
             <div className="flex items-start gap-5 mb-6">
               <div style={{ flexShrink: 0 }}>
@@ -482,11 +484,35 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
                 {card.company && <p style={{ margin: '4px 0 0', fontSize: 13, color: bg.subtext }}>{card.company}</p>}
               </div>
             </div>
-            {/* Accent rule */}
             <div className="rounded-full mb-4" style={{ width: 40, height: 3, backgroundColor: accentHex, boxShadow: `0 0 16px ${accentHex}88` }} />
-            <LogoZone {...shared} />
+            {/* Logo + inline social icon row: logo on the left, socials
+                as compact icon buttons on the right. Hides the bigger
+                social rows from AllContacts (we pass socialLinks=[] to
+                AllContacts and render them inline here instead). */}
+            {(card.company_logo_url || socialLinks.length > 0) && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                  <LogoZone {...shared} />
+                </div>
+                {socialLinks.length > 0 && (
+                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                    {socialLinks.map(s => (
+                      <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
+                        aria-label={s.platform}
+                        className="w-9 h-9 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95"
+                        style={{ backgroundColor: accentHex + '22', color: accentHex, border: `1px solid ${accentHex}44` }}>
+                        {s.icon}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             {card.bio && <p style={{ fontSize: getBodyFontSize(design), lineHeight: 1.7, marginBottom: 24, color: bioColor }}>{card.bio}</p>}
-            <AllContacts {...shared} socialLinks={socialLinks} />
+            {/* Pass empty socialLinks so AllContacts doesn't render the
+                bigger social rows - we already showed them above as
+                compact icons next to the logo */}
+            <AllContacts {...shared} socialLinks={[]} />
             <BottomSection {...bottomProps} />
           </div>
         </div>

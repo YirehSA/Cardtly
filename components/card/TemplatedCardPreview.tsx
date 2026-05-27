@@ -157,26 +157,32 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
 
   // ── 2. MODERN ─────────────────────────────────────────────────────────────
   if (design.templateId === 'modern') {
-    // Mirrors PublicCardView Modern: animated gradient orbs in the bg,
-    // content sits on a glass panel. Shrunken proportions for the preview.
+    // Mirrors PublicCardView Modern: gradient orbs + glass panel +
+    // inline social icons next to the logo.
     const nameFontSize = calcNameSize(15, design)
     const titleColor = getTitleColor(design, accentHex)
     const bioColor = getBioColor(design, bg.subtext)
+    const hasLinkedin = isPro && !!(form as any).linkedin_url
+    const hasTwitter  = isPro && !!(form as any).twitter_url
+    const hasFacebook = isPro && !!(form as any).facebook_url
+    const hasInstagram = isPro && !!(form as any).instagram_url
+    const hasAnySocial = hasLinkedin || hasTwitter || hasFacebook || hasInstagram
     return (
-      <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden' }}>
-        {/* Static gradient orbs (preview thumbnail, no animation needed) */}
-        <div style={{ position: 'absolute', top: -40, left: -40, width: 160, height: 160, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}66 0%, transparent 70%)`, filter: 'blur(12px)' }} />
-        <div style={{ position: 'absolute', top: 40, right: -50, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.45) 0%, transparent 70%)', filter: 'blur(12px)' }} />
-        <div style={{ position: 'absolute', bottom: -40, left: 30, width: 150, height: 150, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.45) 0%, transparent 70%)', filter: 'blur(12px)' }} />
+      <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden', minHeight: 480 }}>
+        {/* Static gradient orbs (preview thumbnail) - same colours as
+            the real card, no animation since this is just a thumbnail */}
+        <div style={{ position: 'absolute', top: -40, left: -40, width: 200, height: 200, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}99 0%, transparent 65%)`, filter: 'blur(20px)', zIndex: 0 }} />
+        <div style={{ position: 'absolute', top: 80, right: -60, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.65) 0%, transparent 65%)', filter: 'blur(20px)', zIndex: 0 }} />
+        <div style={{ position: 'absolute', bottom: -60, left: 20, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.65) 0%, transparent 65%)', filter: 'blur(20px)', zIndex: 0 }} />
         <div style={{ padding: 12, position: 'relative', zIndex: 1 }}>
           <div style={{
-            backgroundColor: isLight ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.05)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
-            borderRadius: 16,
+            backgroundColor: isLight ? 'rgba(255,255,255,0.6)' : 'rgba(20,20,30,0.45)',
+            backdropFilter: 'blur(28px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+            border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.14)'}`,
+            borderRadius: 18,
             padding: 14,
-            boxShadow: '0 12px 30px rgba(0,0,0,0.3)',
+            boxShadow: '0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)',
           }}>
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
               <div style={{ flexShrink: 0 }}><Avatar base={64} rounded="xl" extraStyle={{ border: `2px solid ${accentHex}66`, borderRadius: 14 }} /></div>
@@ -187,7 +193,20 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
               </div>
             </div>
             <div style={{ width: 28, height: 2, borderRadius: 2, backgroundColor: accentHex, marginBottom: 8, boxShadow: `0 0 10px ${accentHex}88` }} />
-            <LogoZone />
+            {/* Logo + inline socials row */}
+            {(form.company_logo_url || hasAnySocial) && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+                <div style={{ flex: '1 1 auto', minWidth: 0 }}><LogoZone /></div>
+                {hasAnySocial && (
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {hasLinkedin && <div style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: accentHex + '22', color: accentHex, border: `1px solid ${accentHex}44`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ExternalLink style={{ width: 9, height: 9 }} /></div>}
+                    {hasTwitter && <div style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: accentHex + '22', color: accentHex, border: `1px solid ${accentHex}44`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Twitter style={{ width: 9, height: 9 }} /></div>}
+                    {hasInstagram && <div style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: accentHex + '22', color: accentHex, border: `1px solid ${accentHex}44`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ExternalLink style={{ width: 9, height: 9 }} /></div>}
+                    {hasFacebook && <div style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: accentHex + '22', color: accentHex, border: `1px solid ${accentHex}44`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Facebook style={{ width: 9, height: 9 }} /></div>}
+                  </div>
+                )}
+              </div>
+            )}
             {isPro && form.bio && <p style={{ fontSize: Math.max(9, getBodyFontSize(design) - 4), color: bioColor, lineHeight: 1.6, marginBottom: 10 }}>{form.bio}</p>}
             <ContactList /><Certs /><SaveBtn />
           </div>
