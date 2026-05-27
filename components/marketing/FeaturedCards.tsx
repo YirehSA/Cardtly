@@ -63,15 +63,27 @@ export default function FeaturedCards() {
             Real cards. <span style={{ background: grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Real people.</span>
           </h2>
           <p className="text-lg max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            Eight Cardtly users shown here right now. The lineup refreshes every day. Tap any card to see it live.
+            {cards === null
+              ? <>Cardtly users featured here today. The lineup refreshes every day.</>
+              : cards.length === 1
+                ? <>One Cardtly user featured here today. <span className="text-white font-semibold">Be the next.</span></>
+                : <>{cards.length} Cardtly {cards.length === 1 ? 'user' : 'users'} featured here today. The lineup refreshes every day.</>
+            }
           </p>
         </div>
 
-        {/* Tiles */}
+        {/* Tiles — pad with CTA tiles up to 4 if we don't have enough real
+            cards yet. Once 5+ real cards are opted in, we extend to 8. */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
           {cards === null
             ? Array.from({ length: 8 }).map((_, i) => <SkeletonTile key={i} />)
-            : cards.map(c => <PhoneTile key={c.slug} card={c} />)
+            : (() => {
+                const target = cards.length >= 5 ? 8 : 4
+                const realTiles = cards.slice(0, target).map(c => <PhoneTile key={c.slug} card={c} />)
+                const ctaCount = Math.max(0, target - cards.length)
+                const ctaTiles = Array.from({ length: ctaCount }).map((_, i) => <BeNextTile key={`cta-${i}`} index={i} />)
+                return [...realTiles, ...ctaTiles]
+              })()
           }
         </div>
 
@@ -193,6 +205,46 @@ function PhoneTile({ card }: { card: FeaturedCard }) {
         <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>
           {card.title && card.company ? `${card.title} · ${card.company}` : card.title || card.company || 'Cardtly user'}
         </p>
+      </div>
+    </Link>
+  )
+}
+
+// "Be the next one" placeholder tile shown when fewer than the
+// target number of real cards have opted in. Doubles as a signup
+// CTA and visually completes the grid so it never looks half-empty.
+function BeNextTile({ index }: { index: number }) {
+  return (
+    <Link href="/signup" className="group block" aria-label="Sign up to get featured">
+      <div
+        className="relative rounded-[36px] p-2 transition-all group-hover:scale-[1.03] group-hover:-translate-y-1"
+        style={{
+          background: 'linear-gradient(135deg, rgba(0,212,255,0.06), rgba(124,58,237,0.08), rgba(236,72,153,0.06))',
+          border: '1px dashed rgba(255,255,255,0.18)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+        }}
+      >
+        <div
+          className="relative rounded-[28px] overflow-hidden flex flex-col items-center justify-center text-center p-6"
+          style={{
+            aspectRatio: '9 / 16',
+            background: 'radial-gradient(circle at 50% 30%, rgba(0,212,255,0.10) 0%, transparent 60%), radial-gradient(circle at 50% 80%, rgba(236,72,153,0.10) 0%, transparent 60%), #0a0a14',
+          }}
+        >
+          <div
+            className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
+            style={{ background: grad, boxShadow: '0 8px 24px rgba(124,58,237,0.4)' }}
+          >
+            <Sparkles className="w-6 h-6 text-white" />
+          </div>
+          <p className="text-sm font-bold text-white mb-1">Your card here</p>
+          <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            Sign up free<br />and opt in
+          </p>
+        </div>
+      </div>
+      <div className="text-center mt-4 px-2">
+        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>Open slot {index + 1}</p>
       </div>
     </Link>
   )
