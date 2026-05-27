@@ -238,21 +238,21 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           <div style={{ position: 'absolute', right: -30, top: -30, width: 120, height: 120, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.08)' }} />
           <div style={{ position: 'absolute', right: 20, bottom: -20, width: 60, height: 60, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.06)' }} />
           <div style={{ flexShrink: 0, position: 'relative', zIndex: 2 }}>
-            <div style={{ borderRadius: '50%', overflow: 'hidden', width: heroPhotoSize, height: heroPhotoSize, border: '3px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
+            <div style={{ borderRadius: '50%', overflow: 'hidden', width: heroPhotoSize, height: heroPhotoSize, border: design.profileBorder === false ? 'none' : '3px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
               {form.profile_image_url
                 ? <img src={form.profile_image_url} style={{ width: heroPhotoSize, height: heroPhotoSize, objectFit: 'cover' }} />
                 : <div style={{ width: heroPhotoSize, height: heroPhotoSize, backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: heroPhotoSize * 0.36, fontWeight: 700, color: '#fff', fontFamily: font.heading }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
             </div>
           </div>
           <div style={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 2, ...textNudge }}>
-            <h2 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 800, fontFamily: font.heading, color: '#fff', lineHeight: 1.1, textShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>{form.name || 'Your Name'}</h2>
-            {isPro && form.title && <p style={{ margin: '0 0 3px', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.85)', lineHeight: 1.2 }}>{form.title}</p>}
-            {form.company && <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.65)', lineHeight: 1.2 }}>{form.company}</p>}
+            <h2 style={{ margin: '0 0 4px', fontSize: calcNameSize(17, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, '#fff'), lineHeight: 1.1, textShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>{form.name || 'Your Name'}</h2>
+            {isPro && form.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(11, design), fontWeight: 600, color: getTitleColor(design, 'rgba(255,255,255,0.85)'), lineHeight: 1.2 }}>{form.title}</p>}
+            {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(10, design), color: getCompanyColor(design, 'rgba(255,255,255,0.65)'), lineHeight: 1.2 }}>{form.company}</p>}
           </div>
         </div>
         <div style={{ padding: '14px 14px 16px' }}>
           <LogoZone />
-          {isPro && form.bio && <p style={{ fontSize: 11, color: bg.subtext, lineHeight: 1.5, marginBottom: 12 }}>{form.bio}</p>}
+          {isPro && form.bio && <p style={{ fontSize: calcBioSize(11, design), color: getBioColor(design, bg.subtext), lineHeight: 1.5, marginBottom: 12 }}>{form.bio}</p>}
           <ContactList /><Certs /><SaveBtn />
           {!isPro && <p style={{ textAlign: 'center', fontSize: 10, color: bg.border, marginTop: 8 }}>Powered by Cardtly</p>}
         </div>
@@ -293,22 +293,27 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           {/* Company logo forced to top centre, above the photo */}
           {form.company_logo_url && design.logoPosition !== 'hidden' && (
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-              <img src={form.company_logo_url} style={{ height: 24, width: 'auto', objectFit: 'contain', maxWidth: 140 }} />
+              <img src={form.company_logo_url} style={{ height: calcLogoHeight(24, design), width: 'auto', objectFit: 'contain', maxWidth: 140 }} />
             </div>
           )}
           {/* Photo with neon-blue → purple → pink gradient ring. Inner wrap
-              gets pageBg so transparent-bg PNGs show the page through. */}
+              gets pageBg so transparent-bg PNGs show the page through.
+              When profileBorder is OFF the gradient ring is dropped. */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-            <div style={{ padding: 3, borderRadius: '50%', background: RING_GRADIENT, boxShadow: '0 0 8px rgba(0,212,255,0.22), 0 0 12px rgba(236,72,153,0.16)' }}>
-              <div style={{ borderRadius: '50%', overflow: 'hidden', border: `2px solid ${pageBg}`, backgroundColor: pageBg }}>
-                <Avatar base={76} />
+            {design.profileBorder === false ? (
+              <Avatar base={76} />
+            ) : (
+              <div style={{ padding: 3, borderRadius: '50%', background: RING_GRADIENT, boxShadow: '0 0 8px rgba(0,212,255,0.22), 0 0 12px rgba(236,72,153,0.16)' }}>
+                <div style={{ borderRadius: '50%', overflow: 'hidden', border: `2px solid ${pageBg}`, backgroundColor: pageBg }}>
+                  <Avatar base={76} />
+                </div>
               </div>
-            </div>
+            )}
           </div>
-          <h2 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 800, color: ink, fontFamily: font.heading, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{form.name || 'Your Name'}</h2>
-          {isPro && form.title && <p style={{ margin: 0, fontSize: 11, fontWeight: 500, color: titleColor }}>{form.title}</p>}
-          {form.company && <p style={{ margin: '3px 0 0', fontSize: 10, color: muted }}>{form.company}</p>}
-          {isPro && form.bio && <p style={{ fontSize: 10, color: muted, lineHeight: 1.5, margin: '8px 0 0' }}>{form.bio}</p>}
+          <h2 style={{ margin: '0 0 4px', fontSize: calcNameSize(18, design), fontWeight: 800, color: getNameColor(design, ink), fontFamily: font.heading, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{form.name || 'Your Name'}</h2>
+          {isPro && form.title && <p style={{ margin: 0, fontSize: calcTitleSize(11, design), fontWeight: 500, color: getTitleColor(design, titleColor) }}>{form.title}</p>}
+          {form.company && <p style={{ margin: '3px 0 0', fontSize: calcCompanySize(10, design), color: getCompanyColor(design, muted) }}>{form.company}</p>}
+          {isPro && form.bio && <p style={{ fontSize: calcBioSize(10, design), color: getBioColor(design, muted), lineHeight: 1.5, margin: '8px 0 0' }}>{form.bio}</p>}
           {/* Up to 6 vibrant circular quick-actions; wraps on narrow widths */}
           <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8, margin: '16px 0 14px' }}>
             {form.phone && <Circle color={ICON_COLORS.phone}><Phone style={{ width: 16, height: 16 }} /></Circle>}
@@ -378,18 +383,18 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           </div>
           {/* Name + rule + title */}
           <div style={{ position: 'absolute', bottom: 18, left: 14, right: 14 }}>
-            <h2 style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.025em', lineHeight: 0.96, fontFamily: font.heading, textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}>{form.name || 'Your Name'}</h2>
+            <h2 style={{ margin: '0 0 6px', fontSize: calcNameSize(20, design), fontWeight: 800, color: getNameColor(design, '#ffffff'), letterSpacing: '-0.025em', lineHeight: 0.96, fontFamily: font.heading, textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}>{form.name || 'Your Name'}</h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <div style={{ width: 20, height: 2, background: accentHex, boxShadow: `0 0 8px ${accentHex}aa` }} />
-              {isPro && form.title && <p style={{ margin: 0, fontSize: 7, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.28em' }}>{form.title}</p>}
+              {isPro && form.title && <p style={{ margin: 0, fontSize: calcTitleSize(7, design), fontWeight: 700, color: getTitleColor(design, '#ffffff'), textTransform: 'uppercase', letterSpacing: '0.28em' }}>{form.title}</p>}
             </div>
-            {form.company && <p style={{ margin: 0, fontSize: 8, color: 'rgba(255,255,255,0.7)', fontStyle: 'italic' }}>{form.company}</p>}
+            {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(8, design), color: getCompanyColor(design, 'rgba(255,255,255,0.7)'), fontStyle: 'italic' }}>{form.company}</p>}
           </div>
         </div>
         {/* Glass overlap card */}
         <div style={{ position: 'relative', marginTop: -14, marginLeft: 10, marginRight: 10, padding: '10px 12px', backgroundColor: glassBg, border: `1px solid ${glassBorder}`, borderRadius: 14, boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
           <LogoZone />
-          {isPro && form.bio && <p style={{ margin: 0, fontSize: 8, color: muted, lineHeight: 1.6, fontStyle: 'italic', textAlign: 'center' }}>&ldquo;{form.bio}&rdquo;</p>}
+          {isPro && form.bio && <p style={{ margin: 0, fontSize: calcBioSize(8, design), color: getBioColor(design, muted), lineHeight: 1.6, fontStyle: 'italic', textAlign: 'center' }}>&ldquo;{form.bio}&rdquo;</p>}
         </div>
         {/* Contact grid */}
         <div style={{ padding: '14px 10px 0' }}>
@@ -427,20 +432,28 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}55 0%, transparent 70%)`, pointerEvents: 'none' }} />
         {design.cardStyle === 'gradient' && <div style={{ position: 'absolute', bottom: -40, left: -40, width: 150, height: 150, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}33 0%, transparent 70%)`, pointerEvents: 'none' }} />}
         <div style={{ padding: 16, position: 'relative' }}>
-          <div style={{ marginBottom: 6, display: 'inline-block', padding: design.cardStyle === 'glass' ? 4 : 3, borderRadius: '50%',
-            background: `linear-gradient(135deg, ${accentHex}, ${accentHex}55)`,
-            boxShadow: design.cardStyle === 'glass' ? `0 0 20px ${accentHex}66` : undefined }}>
-            <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, border: `3px solid ${bg.page}` }}>
+          {design.profileBorder === false ? (
+            <div style={{ marginBottom: 6, display: 'inline-block', borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize }}>
               {form.profile_image_url
                 ? <img src={form.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
                 : <div style={{ width: photoSize, height: photoSize, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700 }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
             </div>
-          </div>
-          <h2 style={{ margin: '4px 0 3px', fontSize: 20, fontWeight: 800, fontFamily: font.heading, color: bg.text }}>{form.name || 'Your Name'}</h2>
-          {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 600, color: accentHex }}>{form.title}</p>}
-          {form.company && <p style={{ margin: 0, fontSize: 11, color: bg.subtext }}>{form.company}</p>}
+          ) : (
+            <div style={{ marginBottom: 6, display: 'inline-block', padding: design.cardStyle === 'glass' ? 4 : 3, borderRadius: '50%',
+              background: `linear-gradient(135deg, ${accentHex}, ${accentHex}55)`,
+              boxShadow: design.cardStyle === 'glass' ? `0 0 20px ${accentHex}66` : undefined }}>
+              <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, border: `3px solid ${bg.page}` }}>
+                {form.profile_image_url
+                  ? <img src={form.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
+                  : <div style={{ width: photoSize, height: photoSize, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700 }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
+              </div>
+            </div>
+          )}
+          <h2 style={{ margin: '4px 0 3px', fontSize: calcNameSize(20, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text) }}>{form.name || 'Your Name'}</h2>
+          {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentHex) }}>{form.title}</p>}
+          {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(11, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
           <LogoZone />
-          {isPro && form.bio && <p style={{ fontSize: 11, color: bg.subtext, lineHeight: 1.5, marginBottom: 10 }}>{form.bio}</p>}
+          {isPro && form.bio && <p style={{ fontSize: calcBioSize(11, design), color: getBioColor(design, bg.subtext), lineHeight: 1.5, marginBottom: 10 }}>{form.bio}</p>}
           <ContactList /><Certs />
           <div style={{ marginTop: 12, padding: '10px 0', borderRadius: 12, textAlign: 'center', fontSize: 12, fontWeight: 700, color: buttonText,
             background: `linear-gradient(135deg, ${buttonBg}, ${buttonBg}aa)`,
@@ -514,7 +527,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
       <div style={{ ...pageStyle, display: 'flex', minHeight: 380 }}>
         <div style={{ width: 80, flexShrink: 0, background: sidebarBg, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 8px', gap: 14,
           boxShadow: design.cardStyle === 'glass' ? `4px 0 20px ${accentHex}44` : undefined }}>
-          <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, border: '3px solid rgba(255,255,255,0.3)', flexShrink: 0 }}>
+          <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, border: design.profileBorder === false ? 'none' : '3px solid rgba(255,255,255,0.3)', flexShrink: 0 }}>
             {form.profile_image_url
               ? <img src={form.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
               : <div style={{ width: photoSize, height: photoSize, backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700, color: '#fff' }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
@@ -526,13 +539,13 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           </div>
         </div>
         <div style={{ flex: 1, padding: '16px 14px', display: 'flex', flexDirection: 'column' }}>
-          <h2 style={{ margin: '0 0 3px', fontSize: 16, fontWeight: 800, fontFamily: font.heading, color: bg.text, lineHeight: 1.2 }}>{form.name || 'Your Name'}</h2>
-          {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: 10, fontWeight: 600, color: accentHex, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{form.title}</p>}
-          {form.company && <p style={{ margin: '0 0 4px', fontSize: 10, color: bg.subtext }}>{form.company}</p>}
+          <h2 style={{ margin: '0 0 3px', fontSize: calcNameSize(16, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text), lineHeight: 1.2 }}>{form.name || 'Your Name'}</h2>
+          {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: calcTitleSize(10, design), fontWeight: 600, color: getTitleColor(design, accentHex), textTransform: 'uppercase', letterSpacing: '0.06em' }}>{form.title}</p>}
+          {form.company && <p style={{ margin: '0 0 4px', fontSize: calcCompanySize(10, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
           <div style={{ width: 24, height: 2, backgroundColor: accentHex, marginBottom: 8,
             boxShadow: design.cardStyle === 'glass' ? `0 0 6px ${accentHex}` : undefined }} />
           <LogoZone />
-          {isPro && form.bio && <p style={{ fontSize: 10, color: bg.subtext, lineHeight: 1.6, marginBottom: 10 }}>{form.bio}</p>}
+          {isPro && form.bio && <p style={{ fontSize: calcBioSize(10, design), color: getBioColor(design, bg.subtext), lineHeight: 1.6, marginBottom: 10 }}>{form.bio}</p>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
             {form.phone && <span style={{ fontSize: 10, color: bg.text }}>{form.phone}</span>}
             {form.email && <span style={{ fontSize: 10, color: bg.text }}>{form.email}</span>}
@@ -558,22 +571,30 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         )}
         <div style={{ padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
-            <div style={{ borderRadius: '50%', padding: 2, background: `linear-gradient(135deg, ${accentHex}, ${accentHex}44)`, boxShadow: neonBorder, flexShrink: 0 }}>
-              <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, backgroundColor: '#0a0a1a' }}>
+            {design.profileBorder === false ? (
+              <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, backgroundColor: '#0a0a1a', flexShrink: 0 }}>
                 {form.profile_image_url
                   ? <img src={form.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
                   : <div style={{ width: photoSize, height: photoSize, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700, color: accentHex }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
               </div>
-            </div>
+            ) : (
+              <div style={{ borderRadius: '50%', padding: 2, background: `linear-gradient(135deg, ${accentHex}, ${accentHex}44)`, boxShadow: neonBorder, flexShrink: 0 }}>
+                <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, backgroundColor: '#0a0a1a' }}>
+                  {form.profile_image_url
+                    ? <img src={form.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
+                    : <div style={{ width: photoSize, height: photoSize, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700, color: accentHex }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
+                </div>
+              </div>
+            )}
             <div style={{ flex: 1, minWidth: 0, ...textNudge }}>
-              <h2 style={{ margin: '0 0 3px', fontSize: 16, fontWeight: 700, fontFamily: font.heading, color: '#e8e8ff' }}>{form.name || 'Your Name'}</h2>
-              {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: 10, color: accentHex, fontWeight: 600, textShadow: `0 0 8px ${accentHex}` }}>{form.title}</p>}
-              {form.company && <p style={{ margin: 0, fontSize: 10, color: '#404070' }}>{form.company}</p>}
+              <h2 style={{ margin: '0 0 3px', fontSize: calcNameSize(16, design), fontWeight: 700, fontFamily: font.heading, color: getNameColor(design, '#e8e8ff') }}>{form.name || 'Your Name'}</h2>
+              {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: calcTitleSize(10, design), color: getTitleColor(design, accentHex), fontWeight: 600, textShadow: `0 0 8px ${accentHex}` }}>{form.title}</p>}
+              {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(10, design), color: getCompanyColor(design, '#404070') }}>{form.company}</p>}
             </div>
           </div>
           <div style={{ height: 1, background: `linear-gradient(90deg, ${accentHex}, transparent)`, marginBottom: 8, boxShadow: `0 0 4px ${accentHex}` }} />
           <LogoZone filter="brightness(2) saturate(0.5)" />
-          {isPro && form.bio && <p style={{ fontSize: 10, color: '#6060a0', lineHeight: 1.6, marginBottom: 12 }}>{form.bio}</p>}
+          {isPro && form.bio && <p style={{ fontSize: calcBioSize(10, design), color: getBioColor(design, '#6060a0'), lineHeight: 1.6, marginBottom: 12 }}>{form.bio}</p>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {[
               form.phone && { icon: <Phone style={{ width: 11, height: 11 }} />, label: form.phone },
@@ -616,7 +637,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         </div>
         {/* Photo on black */}
         <div style={{ backgroundColor: black, padding: '4px 12px 20px', display: 'flex', justifyContent: 'center' }}>
-          <div style={{ width: 92, height: 92, borderRadius: '50%', overflow: 'hidden', border: '2px solid #fff', boxShadow: '0 6px 14px rgba(0,0,0,0.5)' }}>
+          <div style={{ width: 92, height: 92, borderRadius: '50%', overflow: 'hidden', border: design.profileBorder === false ? 'none' : '2px solid #fff', boxShadow: '0 6px 14px rgba(0,0,0,0.5)' }}>
             <Avatar base={88} />
           </div>
         </div>
@@ -626,8 +647,8 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         </svg>
         {/* Name + designation */}
         <div style={{ padding: '0 14px 12px', textAlign: 'center', backgroundColor: lightArea }}>
-          <h2 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 900, color: '#0a0a0a', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.05, fontFamily: font.heading }}>{form.name || 'Your Name'}</h2>
-          {isPro && form.title && <p style={{ margin: 0, fontSize: 8, fontWeight: 700, color: '#0a0a0a', textTransform: 'uppercase', letterSpacing: '0.18em' }}>{form.title}</p>}
+          <h2 style={{ margin: '0 0 4px', fontSize: calcNameSize(18, design), fontWeight: 900, color: getNameColor(design, '#0a0a0a'), textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.05, fontFamily: font.heading }}>{form.name || 'Your Name'}</h2>
+          {isPro && form.title && <p style={{ margin: 0, fontSize: calcTitleSize(8, design), fontWeight: 700, color: getTitleColor(design, '#0a0a0a'), textTransform: 'uppercase', letterSpacing: '0.18em' }}>{form.title}</p>}
         </div>
         {/* Accent diagonal section */}
         <div style={{ position: 'relative', backgroundColor: lightArea, padding: '10px 12px 16px', overflow: 'hidden' }}>
@@ -652,13 +673,13 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         <div style={{ position: 'relative', padding: '16px 14px', zIndex: 1 }}>
           <div style={{ backgroundColor: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.6)', borderRadius: 18, padding: '16px 12px', boxShadow: '0 12px 32px rgba(0,0,0,0.12)' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-              <div style={{ borderRadius: '50%', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.9)' }}>
+              <div style={{ borderRadius: '50%', overflow: 'hidden', border: design.profileBorder === false ? 'none' : '2px solid rgba(255,255,255,0.9)' }}>
                 <Avatar base={64} />
               </div>
             </div>
-            <h2 style={{ margin: '0 0 3px', fontSize: 15, fontWeight: 800, color: '#0f172a', textAlign: 'center', fontFamily: font.heading }}>{form.name || 'Your Name'}</h2>
-            {isPro && form.title && <p style={{ margin: 0, fontSize: 9, fontWeight: 600, color: accentHex, textAlign: 'center' }}>{form.title}</p>}
-            {form.company && <p style={{ margin: '3px 0 8px', fontSize: 8, color: '#64748b', textAlign: 'center' }}>{form.company}</p>}
+            <h2 style={{ margin: '0 0 3px', fontSize: calcNameSize(15, design), fontWeight: 800, color: getNameColor(design, '#0f172a'), textAlign: 'center', fontFamily: font.heading }}>{form.name || 'Your Name'}</h2>
+            {isPro && form.title && <p style={{ margin: 0, fontSize: calcTitleSize(9, design), fontWeight: 600, color: getTitleColor(design, accentHex), textAlign: 'center' }}>{form.title}</p>}
+            {form.company && <p style={{ margin: '3px 0 8px', fontSize: calcCompanySize(8, design), color: getCompanyColor(design, '#64748b'), textAlign: 'center' }}>{form.company}</p>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {form.phone && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Phone style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: 8, color: '#0f172a' }}>{form.phone}</span></div>}
               {form.email && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Mail style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: 8, color: '#0f172a' }}>{form.email}</span></div>}
@@ -683,12 +704,12 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           <div style={{ width: '100%', borderTop: `1.5px solid ${ink}`, marginTop: 4 }} />
           <div style={{ width: '100%', borderTop: `0.5px solid ${ink}`, marginTop: 2 }} />
         </div>
-        <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 900, color: ink, fontFamily: 'Georgia, "Times New Roman", serif', lineHeight: 0.95, letterSpacing: '-0.02em', textAlign: 'center' }}>{form.name || 'Your Name'}</h2>
-        {isPro && form.title && <p style={{ margin: 0, fontSize: 9, color: muted, textAlign: 'center', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>{form.title}</p>}
-        {form.company && <p style={{ margin: '2px 0 0', fontSize: 7, color: muted, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 600 }}>{form.company}</p>}
+        <h2 style={{ margin: '0 0 4px', fontSize: calcNameSize(22, design), fontWeight: 900, color: getNameColor(design, ink), fontFamily: 'Georgia, "Times New Roman", serif', lineHeight: 0.95, letterSpacing: '-0.02em', textAlign: 'center' }}>{form.name || 'Your Name'}</h2>
+        {isPro && form.title && <p style={{ margin: 0, fontSize: calcTitleSize(9, design), color: getTitleColor(design, muted), textAlign: 'center', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>{form.title}</p>}
+        {form.company && <p style={{ margin: '2px 0 0', fontSize: calcCompanySize(7, design), color: getCompanyColor(design, muted), textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 600 }}>{form.company}</p>}
         <div style={{ width: 28, borderTop: `1.5px solid ${accentHex}`, margin: '10px auto' }} />
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-          <div style={{ borderRadius: '50%', overflow: 'hidden', border: `1px solid ${rule}` }}>
+          <div style={{ borderRadius: '50%', overflow: 'hidden', border: design.profileBorder === false ? 'none' : `1px solid ${rule}` }}>
             <Avatar base={64} />
           </div>
         </div>

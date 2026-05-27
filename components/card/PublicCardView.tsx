@@ -578,21 +578,21 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
             <div style={{ position: 'absolute', right: -40, top: -40, width: 160, height: 160, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.08)' }} />
             <div style={{ position: 'absolute', right: 30, bottom: -30, width: 80, height: 80, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.06)' }} />
             <div style={{ flexShrink: 0, position: 'relative', zIndex: 2 }}>
-              <div style={{ borderRadius: '50%', overflow: 'hidden', width: heroPhotoSize, height: heroPhotoSize, border: '3px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
+              <div style={{ borderRadius: '50%', overflow: 'hidden', width: heroPhotoSize, height: heroPhotoSize, border: design.profileBorder === false ? 'none' : '3px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
                 {card.profile_image_url
                   ? <img src={card.profile_image_url} style={{ width: heroPhotoSize, height: heroPhotoSize, objectFit: 'cover' }} />
                   : <div style={{ width: heroPhotoSize, height: heroPhotoSize, backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: heroPhotoSize * 0.36, fontWeight: 700, color: '#fff', fontFamily: font.heading }}>{card.name?.[0]?.toUpperCase()}</div>}
               </div>
             </div>
             <div style={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 2, ...textNudge }}>
-              <h1 style={{ margin: '0 0 5px', fontSize: 22, fontWeight: 800, fontFamily: font.heading, color: '#fff', lineHeight: 1.1 }}>{card.name}</h1>
-              {isPro && card.title && <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)', lineHeight: 1.2 }}>{card.title}</p>}
-              {card.company && <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.2 }}>{card.company}</p>}
+              <h1 style={{ margin: '0 0 5px', fontSize: calcNameSize(22, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, '#fff'), lineHeight: 1.1 }}>{card.name}</h1>
+              {isPro && card.title && <p style={{ margin: '0 0 4px', fontSize: calcTitleSize(13, design), fontWeight: 600, color: getTitleColor(design, 'rgba(255,255,255,0.85)'), lineHeight: 1.2 }}>{card.title}</p>}
+              {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), color: getCompanyColor(design, 'rgba(255,255,255,0.65)'), lineHeight: 1.2 }}>{card.company}</p>}
             </div>
           </div>
           <div className="px-6 py-6">
             <LogoZone {...shared} />
-            {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
+            {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
             <AllContacts {...shared} socialLinks={socialLinks} />
             <BottomSection {...bottomProps} />
           </div>
@@ -651,16 +651,21 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
           )}
           {/* Photo with neon-blue → purple → pink gradient ring. Avatar
               gets backgroundColor: pageBg so transparent PNGs (bg-removed
-              photos) show the page background through, not the gradient. */}
+              photos) show the page background through, not the gradient.
+              Ring is dropped when profileBorder is OFF. */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-            <div style={{ padding: 4, borderRadius: '50%', background: RING_GRADIENT, boxShadow: '0 0 12px rgba(0, 212, 255, 0.22), 0 0 18px rgba(236, 72, 153, 0.16)' }}>
-              <Avatar {...shared} size={140} rounded="full" extraStyle={{ border: `3px solid ${pageBg}`, backgroundColor: pageBg }} />
-            </div>
+            {design.profileBorder === false ? (
+              <Avatar {...shared} size={140} rounded="full" extraStyle={{ backgroundColor: pageBg }} />
+            ) : (
+              <div style={{ padding: 4, borderRadius: '50%', background: RING_GRADIENT, boxShadow: '0 0 12px rgba(0, 212, 255, 0.22), 0 0 18px rgba(236, 72, 153, 0.16)' }}>
+                <Avatar {...shared} size={140} rounded="full" extraStyle={{ border: `3px solid ${pageBg}`, backgroundColor: pageBg }} />
+              </div>
+            )}
           </div>
-          <h1 style={{ margin: '0 0 6px', fontSize: 30, fontWeight: 800, color: ink, textAlign: 'center', fontFamily: font.heading, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{card.name}</h1>
-          {isPro && card.title && <p style={{ margin: 0, fontSize: 15, fontWeight: 500, color: titleColor, textAlign: 'center' }}>{card.title}</p>}
-          {card.company && <p style={{ margin: '4px 0 0', fontSize: 14, color: muted, textAlign: 'center' }}>{card.company}</p>}
-          {card.bio && <p style={{ fontSize: 13, color: muted, textAlign: 'center', lineHeight: 1.6, margin: '12px 0 0' }}>{card.bio}</p>}
+          <h1 style={{ margin: '0 0 6px', fontSize: calcNameSize(30, design), fontWeight: 800, color: getNameColor(design, ink), textAlign: 'center', fontFamily: font.heading, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{card.name}</h1>
+          {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(15, design), fontWeight: 500, color: getTitleColor(design, titleColor), textAlign: 'center' }}>{card.title}</p>}
+          {card.company && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(14, design), color: getCompanyColor(design, muted), textAlign: 'center' }}>{card.company}</p>}
+          {card.bio && <p style={{ fontSize: calcBioSize(13, design), color: getBioColor(design, muted), textAlign: 'center', lineHeight: 1.6, margin: '12px 0 0' }}>{card.bio}</p>}
           {/* Up to 6 vibrant circular quick-actions (phone, email, linkedin,
               website, twitter/X, facebook). Wraps to a second row on narrow
               phones when 5+ are filled in. */}
@@ -750,12 +755,12 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.95) 100%)' }} />
             {/* Name + accent rule + title + company at the bottom */}
             <div style={{ position: 'absolute', bottom: 48, left: 24, right: 24 }}>
-              <h1 style={{ margin: '0 0 12px', fontSize: 36, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.025em', lineHeight: 0.96, fontFamily: font.heading, textShadow: '0 4px 24px rgba(0,0,0,0.6)' }}>{card.name}</h1>
+              <h1 style={{ margin: '0 0 12px', fontSize: calcNameSize(36, design), fontWeight: 800, color: getNameColor(design, '#ffffff'), letterSpacing: '-0.025em', lineHeight: 0.96, fontFamily: font.heading, textShadow: '0 4px 24px rgba(0,0,0,0.6)' }}>{card.name}</h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                 <div style={{ width: 36, height: 3, background: accentHex, boxShadow: `0 0 16px ${accentHex}aa` }} />
-                {isPro && card.title && <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.28em' }}>{card.title}</p>}
+                {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(11, design), fontWeight: 700, color: getTitleColor(design, '#ffffff'), textTransform: 'uppercase', letterSpacing: '0.28em' }}>{card.title}</p>}
               </div>
-              {card.company && <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.7)', fontStyle: 'italic', letterSpacing: '0.02em' }}>{card.company}</p>}
+              {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(13, design), color: getCompanyColor(design, 'rgba(255,255,255,0.7)'), fontStyle: 'italic', letterSpacing: '0.02em' }}>{card.company}</p>}
             </div>
           </div>
           {/* Glass card - reduced overlap from -36 to -20 so there's clear
@@ -765,7 +770,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
             {card.bio && (
               <div style={{ position: 'relative', padding: '8px 12px', textAlign: 'center' }}>
                 <span style={{ position: 'absolute', top: -10, left: 0, fontSize: 56, color: accentHex, fontFamily: 'Georgia, serif', lineHeight: 1, opacity: 0.5 }}>&ldquo;</span>
-                <p style={{ margin: 0, fontSize: 14, color: muted, lineHeight: 1.75, fontStyle: 'italic' }}>{card.bio}</p>
+                <p style={{ margin: 0, fontSize: calcBioSize(14, design), color: getBioColor(design, muted), lineHeight: 1.75, fontStyle: 'italic' }}>{card.bio}</p>
                 <span style={{ position: 'absolute', bottom: -28, right: 0, fontSize: 56, color: accentHex, fontFamily: 'Georgia, serif', lineHeight: 1, opacity: 0.5 }}>&rdquo;</span>
               </div>
             )}
@@ -830,24 +835,25 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
         </button>
         <div className="max-w-md mx-auto px-6 py-8 relative">
           <div className="mb-5" style={{ position: 'relative', zIndex: 2 }}>
-            <div style={{ display: 'inline-block', padding: 4, borderRadius: '50%', background: `linear-gradient(135deg, ${accentHex}, ${accentHex}55)` }}>
-              {(() => {
-                const photoSize = calcPhotoSize(96, design)
-                return (
-                  <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, border: `4px solid ${bg.page}` }}>
-                    {card.profile_image_url
-                      ? <img src={card.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
-                      : <div style={{ width: photoSize, height: photoSize, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.33, fontWeight: 700 }}>{card.name?.[0]?.toUpperCase()}</div>}
-                  </div>
-                )
-              })()}
-            </div>
+            {(() => {
+              const photoSize = calcPhotoSize(96, design)
+              const inner = (
+                <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, border: design.profileBorder === false ? 'none' : `4px solid ${bg.page}` }}>
+                  {card.profile_image_url
+                    ? <img src={card.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
+                    : <div style={{ width: photoSize, height: photoSize, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.33, fontWeight: 700 }}>{card.name?.[0]?.toUpperCase()}</div>}
+                </div>
+              )
+              return design.profileBorder === false ? inner : (
+                <div style={{ display: 'inline-block', padding: 4, borderRadius: '50%', background: `linear-gradient(135deg, ${accentHex}, ${accentHex}55)` }}>{inner}</div>
+              )
+            })()}
           </div>
-          <h1 className="text-2xl font-bold leading-tight" style={{ fontFamily: font.heading }}>{card.name}</h1>
-          {isPro && card.title && <p className="font-semibold mt-1" style={{ color: accentHex }}>{card.title}</p>}
-          {card.company && <p className="text-sm mt-0.5" style={{ color: bg.subtext }}>{card.company}</p>}
+          <h1 className="font-bold leading-tight" style={{ fontFamily: font.heading, fontSize: calcNameSize(24, design), color: getNameColor(design, bg.text) }}>{card.name}</h1>
+          {isPro && card.title && <p className="font-semibold mt-1" style={{ fontSize: calcTitleSize(14, design), color: getTitleColor(design, accentHex) }}>{card.title}</p>}
+          {card.company && <p className="mt-0.5" style={{ fontSize: calcCompanySize(14, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
           <LogoZone {...shared} />
-          {card.bio && <p className="text-sm mt-2 mb-6 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
+          {card.bio && <p className="mt-2 mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
           <AllContacts {...shared} socialLinks={socialLinks} />
           <BottomSection {...bottomProps} />
         </div>
@@ -930,7 +936,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
         {floatingBadge}
         {founderRibbon}
         <div style={{ width: 80, flexShrink: 0, background: sidebarBg, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 8px', gap: 16, position: 'fixed', top: 0, bottom: 0, left: 0 }}>
-          <Avatar {...shared} size={60} rounded="full" extraStyle={{ border: '3px solid rgba(255,255,255,0.3)' }} />
+          <Avatar {...shared} size={60} rounded="full" extraStyle={{ border: design.profileBorder === false ? 'none' : '3px solid rgba(255,255,255,0.3)' }} />
           <div style={{ width: '60%', height: 1, backgroundColor: 'rgba(255,255,255,0.3)' }} />
           {card.company_logo_url && design.logoPosition !== 'hidden' && (
             <img src={card.company_logo_url} style={{ width: 50, height: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)', opacity: 0.85 }} />
@@ -945,12 +951,12 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
           </button>
         </div>
         <div style={{ flex: 1, marginLeft: 80, padding: '28px 24px', maxWidth: 460 }}>
-          <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 800, fontFamily: font.heading, color: bg.text }}>{card.name}</h1>
-          {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: 12, fontWeight: 600, color: accentHex, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
-          {card.company && <p style={{ margin: '0 0 16px', fontSize: 13, color: bg.subtext }}>{card.company}</p>}
+          <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(26, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text) }}>{card.name}</h1>
+          {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentHex), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
+          {card.company && <p style={{ margin: '0 0 16px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
           <div style={{ width: 32, height: 3, backgroundColor: accentHex, marginBottom: 12, borderRadius: 2 }} />
           <LogoZone {...shared} />
-          {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
+          {card.bio && <p className="mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
           <AllContacts {...shared} socialLinks={socialLinks} />
           <BottomSection {...bottomProps} />
         </div>
@@ -970,27 +976,28 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
         </button>
         <div className="max-w-md mx-auto px-6 py-8">
           <div className="flex items-center gap-4 mb-4" style={{ position: 'relative', zIndex: 2 }}>
-            <div style={{ borderRadius: '50%', padding: 3, background: `linear-gradient(135deg, ${accentHex}, ${accentHex}44)`, boxShadow: glow, flexShrink: 0 }}>
-              {(() => {
-                const photoSize = calcPhotoSize(80, design)
-                return (
-                  <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, backgroundColor: '#0a0a1a' }}>
-                    {card.profile_image_url
-                      ? <img src={card.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
-                      : <div style={{ width: photoSize, height: photoSize, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700, color: accentHex }}>{card.name?.[0]?.toUpperCase()}</div>}
-                  </div>
-                )
-              })()}
-            </div>
+            {(() => {
+              const photoSize = calcPhotoSize(80, design)
+              const inner = (
+                <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, backgroundColor: '#0a0a1a' }}>
+                  {card.profile_image_url
+                    ? <img src={card.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
+                    : <div style={{ width: photoSize, height: photoSize, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700, color: accentHex }}>{card.name?.[0]?.toUpperCase()}</div>}
+                </div>
+              )
+              return design.profileBorder === false ? inner : (
+                <div style={{ borderRadius: '50%', padding: 3, background: `linear-gradient(135deg, ${accentHex}, ${accentHex}44)`, boxShadow: glow, flexShrink: 0 }}>{inner}</div>
+              )
+            })()}
             <div className="flex-1 min-w-0" style={textNudge}>
-              <h1 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700, fontFamily: font.heading, color: '#e8e8ff' }}>{card.name}</h1>
-              {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: 12, color: accentHex, fontWeight: 600, textShadow: `0 0 8px ${accentHex}` }}>{card.title}</p>}
-              {card.company && <p style={{ margin: 0, fontSize: 12, color: '#404070' }}>{card.company}</p>}
+              <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(22, design), fontWeight: 700, fontFamily: font.heading, color: getNameColor(design, '#e8e8ff') }}>{card.name}</h1>
+              {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), color: getTitleColor(design, accentHex), fontWeight: 600, textShadow: `0 0 8px ${accentHex}` }}>{card.title}</p>}
+              {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), color: getCompanyColor(design, '#404070') }}>{card.company}</p>}
             </div>
           </div>
           <div style={{ height: 1, background: `linear-gradient(90deg, ${accentHex}, transparent)`, marginBottom: 16, boxShadow: `0 0 6px ${accentHex}` }} />
           <LogoZone {...shared} />
-          {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: '#6060a0' }}>{card.bio}</p>}
+          {card.bio && <p className="mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), color: getBioColor(design, '#6060a0') }}>{card.bio}</p>}
           <div className="space-y-3">
             {[
               card.phone && { icon: <Phone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
@@ -1094,7 +1101,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
               dips lowest, giving the "wrapped by black" look from the
               user's annotated reference. */}
           <div style={{ position: 'absolute', top: 140, left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
-            <div style={{ width: 220, height: 220, borderRadius: '50%', overflow: 'hidden', border: `5px solid #ffffff`, boxShadow: '0 12px 36px rgba(0,0,0,0.55)' }}>
+            <div style={{ width: 220, height: 220, borderRadius: '50%', overflow: 'hidden', border: design.profileBorder === false ? 'none' : `5px solid #ffffff`, boxShadow: '0 12px 36px rgba(0,0,0,0.55)' }}>
               {card.profile_image_url
                 ? <img src={card.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : <div style={{ width: '100%', height: '100%', backgroundColor: accentHex + '44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 80, fontWeight: 800, color: accentHex }}>{card.name?.[0]?.toUpperCase()}</div>}
@@ -1104,8 +1111,8 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
               overlapping photo above. Bio renders AFTER the action arc
               below, not here. */}
           <div style={{ backgroundColor: lightArea, paddingTop: 30, paddingBottom: 0, paddingLeft: 20, paddingRight: 20, textAlign: 'center' }}>
-            <h1 style={{ margin: '0 0 8px', fontSize: 40, fontWeight: 900, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.0, fontFamily: font.heading }}>{card.name}</h1>
-            {isPro && card.title && <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: darkInk, textTransform: 'uppercase', letterSpacing: '0.22em' }}>{card.title}</p>}
+            <h1 style={{ margin: '0 0 8px', fontSize: calcNameSize(40, design), fontWeight: 900, color: getNameColor(design, darkInk), textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.0, fontFamily: font.heading }}>{card.name}</h1>
+            {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(14, design), fontWeight: 700, color: getTitleColor(design, darkInk), textTransform: 'uppercase', letterSpacing: '0.22em' }}>{card.title}</p>}
           </div>
           {/* Orange section with a CURVED left edge (SVG path), and action
               circles distributed along the SAME Bezier so the icons sit
@@ -1255,13 +1262,13 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
           {/* Single big glass card */}
           <div style={{ backgroundColor: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)', border: '1px solid rgba(255,255,255,0.6)', borderRadius: 32, padding: '36px 28px', boxShadow: '0 32px 80px rgba(0,0,0,0.12)' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-              <Avatar {...shared} size={120} rounded="full" extraStyle={{ border: '4px solid rgba(255,255,255,0.9)', boxShadow: '0 12px 28px rgba(0,0,0,0.15)' }} />
+              <Avatar {...shared} size={120} rounded="full" extraStyle={{ border: design.profileBorder === false ? 'none' : '4px solid rgba(255,255,255,0.9)', boxShadow: '0 12px 28px rgba(0,0,0,0.15)' }} />
             </div>
-            <h1 style={{ margin: '0 0 4px', fontSize: 28, fontWeight: 800, color: '#0f172a', textAlign: 'center', fontFamily: font.heading, letterSpacing: '-0.01em' }}>{card.name}</h1>
-            {isPro && card.title && <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: accentHex, textAlign: 'center' }}>{card.title}</p>}
-            {card.company && <p style={{ margin: '4px 0 16px', fontSize: 13, color: '#64748b', textAlign: 'center' }}>{card.company}</p>}
+            <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(28, design), fontWeight: 800, color: getNameColor(design, '#0f172a'), textAlign: 'center', fontFamily: font.heading, letterSpacing: '-0.01em' }}>{card.name}</h1>
+            {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(14, design), fontWeight: 600, color: getTitleColor(design, accentHex), textAlign: 'center' }}>{card.title}</p>}
+            {card.company && <p style={{ margin: '4px 0 16px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, '#64748b'), textAlign: 'center' }}>{card.company}</p>}
             <LogoZone {...shared} />
-            {card.bio && <p style={{ fontSize: 13, color: '#475569', textAlign: 'center', lineHeight: 1.65, margin: '0 0 20px' }}>{card.bio}</p>}
+            {card.bio && <p style={{ fontSize: calcBioSize(13, design), color: getBioColor(design, '#475569'), textAlign: 'center', lineHeight: 1.65, margin: '0 0 20px' }}>{card.bio}</p>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
                 card.phone && { icon: <Phone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
@@ -1321,18 +1328,18 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
             <div style={{ width: '100%', borderTop: `1px solid ${ink}`, marginTop: 2 }} />
           </div>
           {/* Name in giant serif */}
-          <h1 style={{ margin: '0 0 8px', fontSize: 52, fontWeight: 900, color: ink, fontFamily: 'Georgia, "Times New Roman", serif', lineHeight: 0.95, letterSpacing: '-0.02em', textAlign: 'center' }}>{card.name}</h1>
-          {isPro && card.title && <p style={{ margin: 0, fontSize: 16, color: muted, textAlign: 'center', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>{card.title}</p>}
-          {card.company && <p style={{ margin: '4px 0 0', fontSize: 13, color: muted, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 600 }}>{card.company}</p>}
+          <h1 style={{ margin: '0 0 8px', fontSize: calcNameSize(52, design), fontWeight: 900, color: getNameColor(design, ink), fontFamily: 'Georgia, "Times New Roman", serif', lineHeight: 0.95, letterSpacing: '-0.02em', textAlign: 'center' }}>{card.name}</h1>
+          {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(16, design), color: getTitleColor(design, muted), textAlign: 'center', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>{card.title}</p>}
+          {card.company && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, muted), textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 600 }}>{card.company}</p>}
           <div style={{ width: 60, borderTop: `2px solid ${accentHex}`, margin: '24px auto' }} />
           {/* Centered portrait with serif rule */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-            <Avatar {...shared} size={140} rounded="full" extraStyle={{ border: `1px solid ${rule}`, boxShadow: '0 1px 0 #fff, 0 8px 24px rgba(0,0,0,0.1)' }} />
+            <Avatar {...shared} size={140} rounded="full" extraStyle={{ border: design.profileBorder === false ? 'none' : `1px solid ${rule}`, boxShadow: '0 1px 0 #fff, 0 8px 24px rgba(0,0,0,0.1)' }} />
           </div>
           <LogoZone {...shared} />
           {/* Bio as a leading paragraph with drop-cap first letter */}
           {card.bio && (
-            <p style={{ fontSize: 15, color: '#3c2c20', lineHeight: 1.75, margin: '0 0 28px', fontFamily: 'Georgia, serif', textAlign: 'justify' }}>
+            <p style={{ fontSize: calcBioSize(15, design), color: getBioColor(design, '#3c2c20'), lineHeight: 1.75, margin: '0 0 28px', fontFamily: 'Georgia, serif', textAlign: 'justify' }}>
               <span style={{ float: 'left', fontSize: 56, fontFamily: 'Georgia, serif', fontWeight: 900, lineHeight: 0.85, marginRight: 8, marginTop: 6, color: accentHex }}>{card.bio.charAt(0)}</span>
               {card.bio.slice(1)}
             </p>
