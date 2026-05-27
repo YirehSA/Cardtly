@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Card, extractLinks } from '@/types/database'
-import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, TEXT_POSITION_TEMPLATES } from '@/types/design'
+import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, TEXT_POSITION_TEMPLATES, calcNameSize, getTitleColor, getBioColor, getBodyFontSize, getButtonFontSize } from '@/types/design'
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
@@ -118,6 +118,7 @@ interface BottomProps {
   buttonBg: string
   buttonText: string
   buttonBorder: string | null
+  buttonFontSize: number
   bg: Shared['bg']
   cardEffect: Shared['cardEffect']
   handleShare: () => void
@@ -150,7 +151,7 @@ function BookingTrigger({ card, accentHex, buttonBg, buttonText, buttonBorder }:
   )
 }
 
-function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, buttonBg, buttonText, buttonBorder, bg, cardEffect, handleShare }: BottomProps) {
+function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare }: BottomProps) {
   const [showContactForm, setShowContactForm] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -255,17 +256,18 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           // Web fallback: navigate to the vCard download endpoint
           window.location.href = `/api/vcf/${card.slug}`
         }}
-          className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm hover:opacity-90 transition"
+          className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold hover:opacity-90 transition"
           style={{
             backgroundColor: buttonBg,
             color: buttonText,
             border: buttonBorder ? `2px solid ${buttonBorder}` : 'none',
+            fontSize: buttonFontSize,
           }}>
           <Download className="w-4 h-4" />Save Contact
         </button>
         <button onClick={handleShare}
-          className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl font-semibold text-sm hover:opacity-80 transition"
-          style={{ border: `1px solid ${bg.border}`, color: bg.text }}>
+          className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl font-semibold hover:opacity-80 transition"
+          style={{ border: `1px solid ${bg.border}`, color: bg.text, fontSize: buttonFontSize }}>
           <Share2 className="w-4 h-4" />Share
         </button>
       </div>
@@ -371,7 +373,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
 
   // Shared prop bundles
   const shared: Shared = { card, isPro, accentHex, bg, font, cardEffect, design }
-  const bottomProps: BottomProps = { card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, buttonBg, buttonText, buttonBorder, bg, cardEffect, handleShare }
+  const bottomProps: BottomProps = { card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, buttonBg, buttonText, buttonBorder, buttonFontSize: getButtonFontSize(design), bg, cardEffect, handleShare }
 
   const pageStyle: React.CSSProperties = { minHeight: '100vh', backgroundColor: bg.page, color: bg.text, fontFamily: font.body }
 
@@ -416,14 +418,14 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
                     was reading as an unwanted outline around the photo */}
                 <Avatar {...shared} size={120} extraStyle={{ border: 'none' }} />
               </div>
-              <h1 className="text-2xl font-bold mt-4 leading-tight" style={{ fontFamily: font.heading, letterSpacing: '-0.01em' }}>{card.name}</h1>
-              {isPro && card.title && <p className="font-semibold mt-1" style={{ color: accentHex, fontSize: 14, letterSpacing: '0.04em' }}>{card.title}</p>}
+              <h1 className="font-bold mt-4 leading-tight" style={{ fontFamily: font.heading, letterSpacing: '-0.01em', fontSize: calcNameSize(24, design), color: bg.text }}>{card.name}</h1>
+              {isPro && card.title && <p className="font-semibold mt-1" style={{ color: getTitleColor(design, accentHex), fontSize: 14, letterSpacing: '0.04em' }}>{card.title}</p>}
               {card.company && <p className="text-sm mt-1" style={{ color: bg.subtext }}>{card.company}</p>}
               {/* Subtle accent rule for visual polish - sits below the
                   title/company line, helps separate identity from bio */}
               <div style={{ width: 40, height: 2, background: accentHex, margin: '14px auto 0', borderRadius: 2, boxShadow: `0 0 12px ${accentHex}66` }} />
               <div className="mt-3"><LogoZone {...shared} /></div>
-              {card.bio && <p className="text-sm mt-3 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
+              {card.bio && <p className="mt-3 leading-relaxed" style={{ color: getBioColor(design, bg.subtext), fontSize: getBodyFontSize(design) }}>{card.bio}</p>}
             </div>
             <AllContacts {...shared} socialLinks={socialLinks} />
             <BottomSection {...bottomProps} />
@@ -434,30 +436,59 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
   }
 
   if (design.templateId === 'modern') {
+    // Direction E: animated gradient orbs in the background, content
+    // sits on a glassmorphic central panel. Premium / SaaS / future feel.
+    const nameFontSize = calcNameSize(26, design)
+    const titleColor = getTitleColor(design, accentHex)
+    const bioColor = getBioColor(design, bg.subtext)
     return (
-      <div style={pageStyle} className="animate-fade-up">
-        <div style={{ height: 6, background: `linear-gradient(90deg, ${accentHex}, ${accentHex}44)` }} />
+      <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden' }} className="animate-fade-up">
+        {/* Floating gradient orbs - subtle slow motion. Three orbs at
+            different positions / sizes / colours give the bg life
+            without distracting from the content. */}
+        <div style={{ position: 'fixed', top: '-10%', left: '-15%', width: 420, height: 420, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}55 0%, transparent 70%)`, filter: 'blur(20px)', animation: 'modernOrb1 28s ease-in-out infinite', pointerEvents: 'none' }} />
+        <div style={{ position: 'fixed', top: '30%', right: '-20%', width: 480, height: 480, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.35) 0%, transparent 70%)', filter: 'blur(20px)', animation: 'modernOrb2 36s ease-in-out infinite', pointerEvents: 'none' }} />
+        <div style={{ position: 'fixed', bottom: '-15%', left: '15%', width: 380, height: 380, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.35) 0%, transparent 70%)', filter: 'blur(20px)', animation: 'modernOrb3 32s ease-in-out infinite', pointerEvents: 'none' }} />
+        {/* Inline keyframes so we don't need a separate CSS file */}
+        <style>{`
+          @keyframes modernOrb1 { 0%,100% { transform: translate(0,0) scale(1) } 50% { transform: translate(60px,40px) scale(1.1) } }
+          @keyframes modernOrb2 { 0%,100% { transform: translate(0,0) scale(1) } 50% { transform: translate(-40px,80px) scale(1.05) } }
+          @keyframes modernOrb3 { 0%,100% { transform: translate(0,0) scale(1) } 50% { transform: translate(30px,-50px) scale(1.15) } }
+        `}</style>
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
-        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
+        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md" style={{ backgroundColor: isLight ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
-        <div className="max-w-md mx-auto px-6 py-8">
-          <div className="flex items-start gap-5 mb-6">
-            <div style={{ flexShrink: 0 }}>
-              <Avatar {...shared} size={100} rounded="xl" extraStyle={{ border: `3px solid ${accentHex}44`, borderRadius: 18 }} />
+        <div className="max-w-md mx-auto px-4 py-10 relative" style={{ zIndex: 1 }}>
+          {/* Glassmorphic central panel - frosted background, content
+              floats above the orbs for that premium SaaS feel */}
+          <div style={{
+            backgroundColor: isLight ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.04)',
+            backdropFilter: 'blur(30px)',
+            WebkitBackdropFilter: 'blur(30px)',
+            border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
+            borderRadius: 28,
+            padding: '32px 24px',
+            boxShadow: isLight ? '0 24px 60px rgba(0,0,0,0.08)' : '0 24px 60px rgba(0,0,0,0.5)',
+          }}>
+            <div className="flex items-start gap-5 mb-6">
+              <div style={{ flexShrink: 0 }}>
+                <Avatar {...shared} size={92} rounded="xl" extraStyle={{ border: `2px solid ${accentHex}66`, borderRadius: 20 }} />
+              </div>
+              <div className="flex-1 min-w-0 pt-1" style={textNudge}>
+                <h1 style={{ margin: 0, fontSize: nameFontSize, fontWeight: 800, lineHeight: 1.1, fontFamily: font.heading, letterSpacing: '-0.02em', color: bg.text }}>{card.name}</h1>
+                {isPro && card.title && <p style={{ margin: '6px 0 0', fontSize: 12, fontWeight: 700, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{card.title}</p>}
+                {card.company && <p style={{ margin: '4px 0 0', fontSize: 13, color: bg.subtext }}>{card.company}</p>}
+              </div>
             </div>
-            <div className="flex-1 min-w-0 pt-2" style={textNudge}>
-              <h1 className="text-2xl font-bold leading-tight" style={{ fontFamily: font.heading }}>{card.name}</h1>
-              {isPro && card.title && <p className="text-sm font-semibold mt-1" style={{ color: accentHex, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{card.title}</p>}
-              {card.company && <p className="text-sm mt-0.5" style={{ color: bg.subtext }}>{card.company}</p>}
-            </div>
+            {/* Accent rule */}
+            <div className="rounded-full mb-4" style={{ width: 40, height: 3, backgroundColor: accentHex, boxShadow: `0 0 16px ${accentHex}88` }} />
+            <LogoZone {...shared} />
+            {card.bio && <p style={{ fontSize: getBodyFontSize(design), lineHeight: 1.7, marginBottom: 24, color: bioColor }}>{card.bio}</p>}
+            <AllContacts {...shared} socialLinks={socialLinks} />
+            <BottomSection {...bottomProps} />
           </div>
-          <div className="w-10 h-1 rounded-full mb-4" style={{ backgroundColor: accentHex }} />
-          <LogoZone {...shared} />
-          {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
-          <AllContacts {...shared} socialLinks={socialLinks} />
-          <BottomSection {...bottomProps} />
         </div>
       </div>
     )

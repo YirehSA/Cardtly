@@ -36,6 +36,14 @@ export interface CardDesign {
   // template's default page background. Applies to every template
   // since they all read bg.page from getBgColors.
   customBgColor?: string
+  // Typography overrides. All optional - blank means "use the
+  // template's default". Applied via helper functions below so
+  // every template reads from the same source.
+  nameSize?: number          // 80-140 percentage of the template's default name font size
+  titleColor?: string        // hex - overrides the title colour (defaults to accent)
+  bioColor?: string          // hex - overrides the bio paragraph colour
+  bodySize?: 'small' | 'medium' | 'large'  // contact row + custom link text size
+  buttonTextSize?: 'small' | 'medium' | 'large'  // Save Contact button text size
 }
 
 export const DEFAULT_DESIGN: CardDesign = {
@@ -57,6 +65,11 @@ export const DEFAULT_DESIGN: CardDesign = {
   buttonBorderColor: undefined,
   solidBackground: false,
   customBgColor: undefined,
+  nameSize: 100,
+  titleColor: undefined,
+  bioColor: undefined,
+  bodySize: 'medium',
+  buttonTextSize: 'medium',
 }
 
 export const ACCENT_COLORS: Record<Exclude<AccentColor, 'custom'>, { label: string; hex: string }> = {
@@ -240,4 +253,43 @@ export function calcPhotoSize(base: number, design: CardDesign): number {
 
 export function calcLogoHeight(base: number, design: CardDesign): number {
   return Math.round(base * ((design.logoSize ?? 100) / 100))
+}
+
+// Typography helpers — every template reads from these so the design
+// panel controls take effect uniformly across templates.
+
+export function calcNameSize(base: number, design: CardDesign): number {
+  // base is the template's default name font size in px. The user
+  // slider multiplies it by 80% to 140%.
+  return Math.round(base * ((design.nameSize ?? 100) / 100))
+}
+
+export function getTitleColor(design: CardDesign, fallbackHex: string): string {
+  // Custom title colour overrides the template's default (which is
+  // usually the accent colour passed in as fallback).
+  return design.titleColor || fallbackHex
+}
+
+export function getBioColor(design: CardDesign, fallbackHex: string): string {
+  return design.bioColor || fallbackHex
+}
+
+const BODY_SIZE_PX: Record<NonNullable<CardDesign['bodySize']>, number> = {
+  small: 12,
+  medium: 14,
+  large: 16,
+}
+
+export function getBodyFontSize(design: CardDesign): number {
+  return BODY_SIZE_PX[design.bodySize ?? 'medium']
+}
+
+const BUTTON_SIZE_PX: Record<NonNullable<CardDesign['buttonTextSize']>, number> = {
+  small: 12,
+  medium: 14,
+  large: 16,
+}
+
+export function getButtonFontSize(design: CardDesign): number {
+  return BUTTON_SIZE_PX[design.buttonTextSize ?? 'medium']
 }

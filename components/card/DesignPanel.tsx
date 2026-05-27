@@ -398,15 +398,109 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
           </div>
         </div>
 
+        {/* Button text size */}
+        <div className="mt-4">
+          <label className="block text-xs font-medium mb-2">Text size</label>
+          <div className="grid grid-cols-3 gap-2">
+            {(['small', 'medium', 'large'] as const).map(size => (
+              <button key={size}
+                onClick={() => update({ buttonTextSize: size })}
+                className={`py-2 px-2 rounded-lg border-2 text-xs font-medium transition capitalize ${(design.buttonTextSize ?? 'medium') === size ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
+                {size}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Preview */}
         <div className="mt-3 p-3 rounded-xl bg-muted/40 flex items-center justify-center">
-          <div className="px-5 py-2.5 rounded-xl text-sm font-semibold"
+          <div className="px-5 py-2.5 rounded-xl font-semibold"
             style={{
               backgroundColor: getButtonBg(design),
               color: getButtonText(design),
               border: design.buttonBorderColor ? `2px solid ${design.buttonBorderColor}` : 'none',
+              fontSize: { small: 12, medium: 14, large: 16 }[design.buttonTextSize ?? 'medium'],
             }}>
             Save Contact
+          </div>
+        </div>
+      </div>
+
+      {/* Typography section - new controls for name size, title colour,
+          bio colour, body text size. Applied via helpers in design.ts
+          so every template reads from the same source. */}
+      <div className="border-t border-border pt-6">
+        <label className="block text-sm font-semibold mb-1">Typography</label>
+        <p className="text-xs text-muted-foreground mb-4">Override the template's default text styling</p>
+
+        {/* Name size slider */}
+        <div className="mb-5">
+          <label className="block text-xs font-medium mb-1">Name size</label>
+          <input type="range" min="80" max="140" step="5"
+            value={design.nameSize ?? 100}
+            onChange={e => update({ nameSize: parseInt(e.target.value) })}
+            className="w-full accent-blue-500" />
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <span>Smaller</span><span>{design.nameSize ?? 100}%</span><span>Larger</span>
+          </div>
+        </div>
+
+        {/* Title colour picker (defaults to accent) */}
+        <div className="mb-5">
+          <label className="block text-xs font-medium mb-2">Title colour</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={design.titleColor || currentAccentHex}
+              onChange={e => update({ titleColor: e.target.value })}
+              className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent"
+            />
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground font-mono">{design.titleColor || `Auto (${currentAccentHex})`}</p>
+            </div>
+            {design.titleColor && (
+              <button onClick={() => update({ titleColor: undefined })}
+                className="text-xs text-muted-foreground hover:text-foreground underline">
+                Reset
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Bio colour picker (defaults to muted grey) */}
+        <div className="mb-5">
+          <label className="block text-xs font-medium mb-2">Bio colour</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={design.bioColor || '#888888'}
+              onChange={e => update({ bioColor: e.target.value })}
+              className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent"
+            />
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground font-mono">{design.bioColor || 'Auto (muted)'}</p>
+            </div>
+            {design.bioColor && (
+              <button onClick={() => update({ bioColor: undefined })}
+                className="text-xs text-muted-foreground hover:text-foreground underline">
+                Reset
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Body text size (contact rows + custom link text) */}
+        <div>
+          <label className="block text-xs font-medium mb-2">Body text size</label>
+          <p className="text-xs text-muted-foreground mb-2">Contact rows, bio, links</p>
+          <div className="grid grid-cols-3 gap-2">
+            {(['small', 'medium', 'large'] as const).map(size => (
+              <button key={size}
+                onClick={() => update({ bodySize: size })}
+                className={`py-2 px-2 rounded-lg border-2 text-xs font-medium transition capitalize ${(design.bodySize ?? 'medium') === size ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
+                {size}
+              </button>
+            ))}
           </div>
         </div>
       </div>

@@ -3,7 +3,8 @@
 import {
   CardDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight,
   getAccentHex, getReadableTextOn, getButtonBg, getButtonText, getButtonBorder,
-  getCardStyleEffect, TEXT_POSITION_TEMPLATES
+  getCardStyleEffect, TEXT_POSITION_TEMPLATES,
+  calcNameSize, getTitleColor, getBioColor, getBodyFontSize, getButtonFontSize
 } from '@/types/design'
 import { Phone, Mail, Globe, MessageCircle, ExternalLink, ChevronRight, Twitter, Facebook } from 'lucide-react'
 
@@ -156,24 +157,40 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
 
   // ── 2. MODERN ─────────────────────────────────────────────────────────────
   if (design.templateId === 'modern') {
+    // Mirrors PublicCardView Modern: animated gradient orbs in the bg,
+    // content sits on a glass panel. Shrunken proportions for the preview.
+    const nameFontSize = calcNameSize(15, design)
+    const titleColor = getTitleColor(design, accentHex)
+    const bioColor = getBioColor(design, bg.subtext)
     return (
-      <div style={pageStyle}>
-        {/* Glass/gradient top bar */}
-        <div style={{ height: 6, background: `linear-gradient(90deg, ${accentHex}, ${accentHex}44)` }} />
-        <div style={{ padding: 16 }}>
-          <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 14 }}>
-            <div style={{ flexShrink: 0 }}><Avatar base={84} rounded="xl" /></div>
-            <div style={{ flex: 1, minWidth: 0, ...textNudge }}>
-              <h2 style={{ margin: '0 0 3px', fontSize: 18, fontWeight: 800, fontFamily: font.heading, color: bg.text, lineHeight: 1.2 }}>{form.name || 'Your Name'}</h2>
-              {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 600, color: accentHex, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{form.title}</p>}
-              {form.company && <p style={{ margin: 0, fontSize: 11, color: bg.subtext }}>{form.company}</p>}
+      <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden' }}>
+        {/* Static gradient orbs (preview thumbnail, no animation needed) */}
+        <div style={{ position: 'absolute', top: -40, left: -40, width: 160, height: 160, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}66 0%, transparent 70%)`, filter: 'blur(12px)' }} />
+        <div style={{ position: 'absolute', top: 40, right: -50, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.45) 0%, transparent 70%)', filter: 'blur(12px)' }} />
+        <div style={{ position: 'absolute', bottom: -40, left: 30, width: 150, height: 150, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.45) 0%, transparent 70%)', filter: 'blur(12px)' }} />
+        <div style={{ padding: 12, position: 'relative', zIndex: 1 }}>
+          <div style={{
+            backgroundColor: isLight ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.05)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
+            borderRadius: 16,
+            padding: 14,
+            boxShadow: '0 12px 30px rgba(0,0,0,0.3)',
+          }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
+              <div style={{ flexShrink: 0 }}><Avatar base={64} rounded="xl" extraStyle={{ border: `2px solid ${accentHex}66`, borderRadius: 14 }} /></div>
+              <div style={{ flex: 1, minWidth: 0, ...textNudge, paddingTop: 2 }}>
+                <h2 style={{ margin: 0, fontSize: nameFontSize, fontWeight: 800, fontFamily: font.heading, color: bg.text, lineHeight: 1.1, letterSpacing: '-0.02em' }}>{form.name || 'Your Name'}</h2>
+                {isPro && form.title && <p style={{ margin: '4px 0 0', fontSize: 8, fontWeight: 700, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{form.title}</p>}
+                {form.company && <p style={{ margin: '2px 0 0', fontSize: 9, color: bg.subtext }}>{form.company}</p>}
+              </div>
             </div>
+            <div style={{ width: 28, height: 2, borderRadius: 2, backgroundColor: accentHex, marginBottom: 8, boxShadow: `0 0 10px ${accentHex}88` }} />
+            <LogoZone />
+            {isPro && form.bio && <p style={{ fontSize: Math.max(9, getBodyFontSize(design) - 4), color: bioColor, lineHeight: 1.6, marginBottom: 10 }}>{form.bio}</p>}
+            <ContactList /><Certs /><SaveBtn />
           </div>
-          <div style={{ width: 32, height: 3, borderRadius: 2, backgroundColor: accentHex, marginBottom: 10,
-            boxShadow: design.cardStyle === 'glass' ? `0 0 8px ${accentHex}88` : undefined }} />
-          <LogoZone />
-          {isPro && form.bio && <p style={{ fontSize: 11, color: bg.subtext, lineHeight: 1.6, marginBottom: 12 }}>{form.bio}</p>}
-          <ContactList /><Certs /><SaveBtn />
         </div>
       </div>
     )
