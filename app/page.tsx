@@ -164,12 +164,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Templates showcase */}
-      <TemplatesShowcase />
-
       {/* Real cards from real people, refreshed daily. Hides itself
           if there are fewer than 8 opted-in cards in the pool. */}
       <FeaturedCards />
+
+      {/* Templates showcase */}
+      <TemplatesShowcase />
 
       {/* ── How it works — kept simple ──────────────────────────────────────── */}
       <section className="py-24 px-6" style={{ background: 'rgba(255,255,255,0.02)' }}>

@@ -48,15 +48,21 @@ interface Featured {
   bgMode?: BgMode
 }
 
-// Six templates with strong visual variety — light + dark, gradient
-// + glass + photo-led + editorial. Each gets a hand-picked accent
-// so it reads distinctly in the grid.
+// All 12 templates. Tiles are small enough that showing the full
+// set proves the "12 vibes" claim instead of just teasing it. Each
+// gets a hand-picked accent so it reads distinctly in the grid.
 const FEATURED: Featured[] = [
   { id: 'classic',   name: 'Classic',   tag: 'Polished default',          accent: 'blue'   },
-  { id: 'modern',    name: 'Modern',    tag: 'Glass + gradient orbs',     accent: 'pink'   },
+  { id: 'modern',    name: 'Modern',    tag: 'Glass + orbs',              accent: 'pink'   },
+  { id: 'bold',      name: 'Bold',      tag: 'Split hero',                accent: 'purple' },
+  { id: 'minimal',   name: 'Minimal',   tag: 'Neon ring',                 accent: 'purple' },
   { id: 'executive', name: 'Executive', tag: 'Editorial luxury',          accent: 'gold'   },
-  { id: 'studio',    name: 'Studio',    tag: 'Smile-curve photo',         accent: 'orange' },
-  { id: 'wave',      name: 'Wave',      tag: 'Curved hero band',          accent: 'teal'   },
+  { id: 'creative',  name: 'Creative',  tag: 'Radial glow',               accent: 'pink'   },
+  { id: 'wave',      name: 'Wave',      tag: 'Curved hero',               accent: 'teal'   },
+  { id: 'split',     name: 'Split',     tag: 'Sidebar accent',            accent: 'blue'   },
+  { id: 'neon',      name: 'Neon',      tag: 'Cyberpunk glow',            accent: 'teal'   },
+  { id: 'studio',    name: 'Studio',    tag: 'Smile-curve',               accent: 'orange' },
+  { id: 'frost',     name: 'Frost',     tag: 'Soft glass',                accent: 'blue',  bgMode: 'light' },
   { id: 'editorial', name: 'Editorial', tag: 'Magazine spread',           accent: 'red',   bgMode: 'light' },
 ]
 
@@ -80,7 +86,7 @@ export default function TemplatesShowcase() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {FEATURED.map((t) => (
             <TemplateTile key={t.id} t={t} />
           ))}
@@ -91,7 +97,7 @@ export default function TemplatesShowcase() {
             className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white transition hover:opacity-90 hover:scale-[1.02]"
             style={{ background: grad, boxShadow: '0 8px 28px rgba(124,58,237,0.35)' }}>
             <Sparkles className="w-4 h-4" />
-            Try all 12 templates
+            Pick yours
             <ArrowRight className="w-4 h-4" />
           </Link>
           <p className="text-xs mt-3" style={{ color: 'rgba(255,255,255,0.35)' }}>
@@ -120,40 +126,31 @@ function TemplateTile({ t }: { t: Featured }) {
       className="group block"
       aria-label={`Try the ${t.name} template`}
     >
-      {/* Phone bezel — same visual treatment as Featured Cards section
-          so the two showcases feel like a coherent set. */}
+      {/* Small phone-style frame */}
       <div
-        className="relative rounded-[36px] p-2 transition-all group-hover:scale-[1.02] group-hover:-translate-y-1"
+        className="relative rounded-2xl p-1 transition-all group-hover:scale-[1.04] group-hover:-translate-y-0.5"
         style={{
           background: 'linear-gradient(135deg, #1a1a2e, #0a0a14)',
-          border: '1px solid rgba(255,255,255,0.12)',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
         }}
       >
-        {/* Notch */}
+        {/* Screen — 3:4 instead of 9:16 to keep tiles compact */}
         <div
-          className="absolute top-3 left-1/2 -translate-x-1/2 w-14 h-3 rounded-full pointer-events-none"
-          style={{ background: '#000', zIndex: 2 }}
-        />
-
-        {/* Screen */}
-        <div
-          className="relative rounded-[28px] overflow-hidden"
-          style={{ aspectRatio: '9 / 16', background: '#000' }}
+          className="relative rounded-xl overflow-hidden"
+          style={{ aspectRatio: '3 / 4', background: '#000' }}
         >
-          {/* Real TemplatedCardPreview scaled to fit the phone screen.
-              Scale 0.55 with the inner box at 182% means the rendered
-              card uses its native font size and spacing, then we
-              squeeze it into the tile. That's what makes it look real
-              instead of blurry-thumbnail-fake. */}
+          {/* Real TemplatedCardPreview scaled down. Smaller tile +
+              tighter scale so the visible portion is the card hero,
+              which is where each template's identity lives. */}
           <div
             style={{
               position: 'absolute',
               top: 0,
               left: 0,
-              width: '182%',
-              height: '182%',
-              transform: 'scale(0.55)',
+              width: '286%',
+              height: '286%',
+              transform: 'scale(0.35)',
               transformOrigin: 'top left',
               pointerEvents: 'none',
             }}
@@ -167,21 +164,21 @@ function TemplateTile({ t }: { t: Featured }) {
 
           {/* Hover veil + CTA */}
           <div
-            className="absolute inset-0 flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+            className="absolute inset-0 flex items-end justify-center pb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
             style={{ background: 'linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.85) 100%)' }}
           >
-            <div className="px-3 py-1.5 rounded-full text-xs font-bold text-white"
-              style={{ background: grad, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
-              Try this template
+            <div className="px-2 py-1 rounded-full text-[10px] font-bold text-white"
+              style={{ background: grad }}>
+              Try this
             </div>
           </div>
         </div>
       </div>
 
       {/* Label */}
-      <div className="text-center mt-4 px-2">
-        <p className="font-bold text-base text-white">{t.name}</p>
-        <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>{t.tag}</p>
+      <div className="text-center mt-2 px-1">
+        <p className="font-bold text-xs text-white truncate">{t.name}</p>
+        <p className="text-[10px] truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>{t.tag}</p>
       </div>
     </Link>
   )
