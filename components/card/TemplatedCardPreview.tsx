@@ -24,7 +24,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
   const buttonText = getButtonText(design)
   const buttonBorder = getButtonBorder(design)
   const font = FONTS[design.fontId]
-  const bg = getBgColors(design.bgMode, design.templateId)
+  const bg = getBgColors(design.bgMode, design.templateId, design.customBgColor)
   const isLight = design.bgMode === 'light'
   const cardEffect = getCardStyleEffect(design.cardStyle, accentHex, bg.page)
 

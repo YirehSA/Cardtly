@@ -326,7 +326,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
 export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }: Props) {
   const design = parseDesign(card.color_theme)
   const font = FONTS[design.fontId]
-  const bg = getBgColors(design.bgMode, design.templateId)
+  const bg = getBgColors(design.bgMode, design.templateId, design.customBgColor)
   const accentHex = getAccentHex(design)
   const buttonBg = getButtonBg(design)
   const buttonText = getButtonText(design)
@@ -410,7 +410,11 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           <div className="px-6 pb-10" style={{ marginTop: -64 }}>
             <div className="text-center mb-6">
               <div style={{ display: 'inline-block', position: 'relative', zIndex: 2 }}>
-                <Avatar {...shared} size={120} />
+                {/* extraStyle border: none overrides the Avatar
+                    component's default 4px page-bg border. The border
+                    becomes visible against the accent hero band and
+                    was reading as an unwanted outline around the photo */}
+                <Avatar {...shared} size={120} extraStyle={{ border: 'none' }} />
               </div>
               <h1 className="text-2xl font-bold mt-4 leading-tight" style={{ fontFamily: font.heading, letterSpacing: '-0.01em' }}>{card.name}</h1>
               {isPro && card.title && <p className="font-semibold mt-1" style={{ color: accentHex, fontSize: 14, letterSpacing: '0.04em' }}>{card.title}</p>}

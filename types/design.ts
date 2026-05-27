@@ -32,6 +32,10 @@ export interface CardDesign {
   // colour (page bg) instead of the accent-tinted gradient. Currently
   // only the Classic template reads this field.
   solidBackground?: boolean
+  // Custom card background colour (hex). When set, overrides the
+  // template's default page background. Applies to every template
+  // since they all read bg.page from getBgColors.
+  customBgColor?: string
 }
 
 export const DEFAULT_DESIGN: CardDesign = {
@@ -52,6 +56,7 @@ export const DEFAULT_DESIGN: CardDesign = {
   buttonTextColor: undefined,
   buttonBorderColor: undefined,
   solidBackground: false,
+  customBgColor: undefined,
 }
 
 export const ACCENT_COLORS: Record<Exclude<AccentColor, 'custom'>, { label: string; hex: string }> = {
@@ -165,11 +170,18 @@ export function getCardStyleEffect(style: CardStyle, accentHex: string, bgPage: 
   }
 }
 
-export function getBgColors(mode: BgMode, templateId: TemplateId): {
+export function getBgColors(mode: BgMode, templateId: TemplateId, customBgColor?: string): {
   page: string; card: string; surface: string; text: string; subtext: string; border: string
 } {
+  // Helper: when a user picks a custom card background colour, override
+  // page (and text where contrast demands it) on whichever palette the
+  // template/mode would otherwise use.
+  const applyCustomBg = (colors: ReturnType<typeof getBgColors>) => {
+    if (!customBgColor) return colors
+    return { ...colors, page: customBgColor, text: getReadableTextOn(customBgColor) }
+  }
   if (mode === 'light') {
-    return { page: '#f8fafc', card: '#ffffff', surface: '#f1f5f9', text: '#0f172a', subtext: '#64748b', border: '#e2e8f0' }
+    return applyCustomBg({ page: '#f8fafc', card: '#ffffff', surface: '#f1f5f9', text: '#0f172a', subtext: '#64748b', border: '#e2e8f0' })
   }
   const dark: Record<TemplateId, ReturnType<typeof getBgColors>> = {
     classic:   { page: '#030712', card: '#111827', surface: '#1f2937', text: '#f9fafb', subtext: '#9ca3af', border: '#374151' },
@@ -185,7 +197,7 @@ export function getBgColors(mode: BgMode, templateId: TemplateId): {
     frost:     { page: '#f8fafc', card: 'rgba(255,255,255,0.6)', surface: 'rgba(255,255,255,0.4)', text: '#0f172a', subtext: '#64748b', border: 'rgba(255,255,255,0.4)' },
     editorial: { page: '#fafaf9', card: '#ffffff', surface: '#f5f5f4', text: '#1c1917', subtext: '#78716c', border: '#e7e5e4' },
   }
-  return dark[templateId] || dark.classic
+  return applyCustomBg(dark[templateId] || dark.classic)
 }
 
 export function parseDesign(colorTheme: string | null): CardDesign {
