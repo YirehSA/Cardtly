@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Copy, Check, Share2, Mail, Trophy, Globe, DollarSign, Sparkles, Users, Heart, Hash } from 'lucide-react'
+import { Copy, Check, Share2, Trophy, Globe, DollarSign, Sparkles, Users, Heart } from 'lucide-react'
 
 interface Props {
   initialFilled: number
@@ -187,13 +187,12 @@ export default function PromotionsClient({ initialFilled, initialRemaining, tota
         <h2 className="font-display text-3xl md:text-4xl font-bold text-center mb-3">How entries work</h2>
         <p className="text-center text-white/50 mb-12 max-w-2xl mx-auto">Same mechanic across every Tier 3 + 4 milestone. Simple, fair, and viral.</p>
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-3 gap-4">
           <RuleCard num="01" icon={<Trophy className="w-5 h-5" />} title="Every paid account earns one entry" desc="Automatic. Just being a paying subscriber gets you in the draw." />
           <RuleCard num="02" icon={<Users className="w-5 h-5" />} title="Refer friends, earn bonus entries" desc="Each verified paid referral (they stay paid for 30+ days) earns you one extra entry." />
-          <RuleCard num="03" icon={<Hash className="w-5 h-5" />} title="Follow and share for bonus entries" desc="Follow Cardtly on Instagram and Facebook for an extra entry each. Share your card with #Cardtly for another." />
-          <RuleCard num="04" icon={<Heart className="w-5 h-5" />} title="Cap at 10 entries per person" desc="Stops super-referrers from dominating. Keeps the draw fair while still rewarding sharing." />
+          <RuleCard num="03" icon={<Heart className="w-5 h-5" />} title="Cap at 10 entries per person" desc="Stops super-referrers from dominating. Keeps the draw fair while still rewarding sharing." />
         </div>
-        <p className="text-center text-sm text-white/50 mt-8 max-w-2xl mx-auto italic">Entries carry forward and accumulate. The longer you're a paid user, the more chances at every prize.</p>
+        <p className="text-center text-sm text-white/50 mt-8 max-w-2xl mx-auto italic">Entries carry forward and accumulate. The longer you're a paid user, the more chances at every prize. No social account or purchase is required &mdash; there's always a free email-alt entry route.</p>
       </div>
 
       {/* FAQ */}
@@ -202,7 +201,8 @@ export default function PromotionsClient({ initialFilled, initialRemaining, tota
         <div className="space-y-3">
           <FaqItem q="Is this real?" a="Yes. The promotions are registered with the South African National Consumer Commission. T&Cs lawyer-reviewed. Draws are random + recorded for transparency." />
           <FaqItem q="What counts as a paid account?" a="Any active Cardtly Pro subscription, monthly or yearly. Refunds and cancellations within 30 days don't count." />
-          <FaqItem q="Do I need to follow Cardtly socially?" a="No, but it earns you bonus entries. Under SA consumer law there's always an email-only alternative entry route at contest@cardtly.com." />
+          <FaqItem q="Do I need a social account to enter?" a="No. Entries come from being a paid subscriber and from successful referrals. That's it. Under SA consumer law there's also a free email-only entry route at contest@cardtly.com if you don't want to subscribe." />
+          <FaqItem q="How do referrals get verified?" a="When someone signs up using your link and stays on a paid plan for 30+ days, the referral is counted automatically. No manual claim needed." />
           <FaqItem q="How are winners drawn?" a="Server-side random selection. Process is recorded or livestreamed for each Tier 3 + 4 milestone. Winners notified by email and listed publicly here." />
           <FaqItem q="Who is eligible?" a="South African residents, 18+. Each prize is awarded directly to the winner with all admin (registration, taxes, transfer fees) covered by Cardtly." />
           <FaqItem q="What's the Tier 4 grand prize?" a="That's the surprise. We'll reveal it publicly when we hit 5,000 paid users (the Tier 3 third milestone). It's bigger than everything else combined — that's all we're saying for now." />
