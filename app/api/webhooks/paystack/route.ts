@@ -52,6 +52,63 @@ export async function POST(request: Request) {
             paid_at,
           },
         })
+
+        // Promotions: grant a 'paid' draw entry. Idempotent via the
+        // Paystack reference so a retried webhook can't double-grant.
+        // Capped at 10 total entries per user inside grant-entry.
+        try {
+          const paidIdemKey = `paid:${event.data.reference}`
+          // Count check first - skip the API call if at cap to save a hop
+          const { count: entryCount } = await admin
+            .from('promo_entries')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', userId)
+          if ((entryCount ?? 0) < 10) {
+            await admin.from('promo_entries').insert({
+              user_id: userId,
+              source: 'paid',
+              idempotency_key: paidIdemKey,
+            })
+          }
+        } catch {
+          // Don't fail the webhook if entry grant errors - the
+          // subscription is the important part.
+        }
+
+        // Promotions: if this user was referred by someone, mark
+        // the referral as 'paid' and grant the referrer an entry
+        // (also idempotent, also capped at 10). The 30-day-paid
+        // verification will be enforced later by a daily cron;
+        // for now we treat first paid as eligible.
+        try {
+          const { data: referralRow } = await admin
+            .from('referrals')
+            .select('id, referrer_user_id, became_paid_at')
+            .eq('referred_user_id', userId)
+            .maybeSingle()
+
+          if (referralRow && !referralRow.became_paid_at) {
+            await admin.from('referrals').update({
+              status: 'paid',
+              became_paid_at: new Date().toISOString(),
+            }).eq('id', referralRow.id)
+
+            const referrerEntryKey = `referral:${referralRow.id}`
+            const { count: refEntryCount } = await admin
+              .from('promo_entries')
+              .select('id', { count: 'exact', head: true })
+              .eq('user_id', referralRow.referrer_user_id)
+            if ((refEntryCount ?? 0) < 10) {
+              await admin.from('promo_entries').insert({
+                user_id: referralRow.referrer_user_id,
+                source: 'referral',
+                idempotency_key: referrerEntryKey,
+              })
+            }
+          }
+        } catch {
+          // Same - don't fail the webhook on entry-grant errors
+        }
       }
     }
 
