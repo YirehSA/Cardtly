@@ -427,73 +427,100 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
         </div>
       </div>
 
-      {/* Typography section - new controls for name size, title colour,
-          bio colour, body text size. Applied via helpers in design.ts
-          so every template reads from the same source. */}
+      {/* Typography section - one row per element (Name, Title,
+          Company, Bio). Each row exposes a colour swatch + native
+          colour picker, and stepper buttons (-) (current %) (+) for
+          font size in 10% increments. Cleaner, faster, no scrubbing
+          a slider to land on a number. */}
       <div className="border-t border-border pt-6">
         <label className="block text-sm font-semibold mb-1">Typography</label>
-        <p className="text-xs text-muted-foreground mb-4">Override the template's default text styling</p>
+        <p className="text-xs text-muted-foreground mb-4">Adjust the size and colour of each text element</p>
 
-        {/* Name size slider */}
-        <div className="mb-5">
-          <label className="block text-xs font-medium mb-1">Name size</label>
-          <input type="range" min="80" max="140" step="5"
-            value={design.nameSize ?? 100}
-            onChange={e => update({ nameSize: parseInt(e.target.value) })}
-            className="w-full accent-blue-500" />
-          <div className="flex justify-between text-xs text-muted-foreground mt-1">
-            <span>Smaller</span><span>{design.nameSize ?? 100}%</span><span>Larger</span>
-          </div>
-        </div>
+        {(() => {
+          // Reusable per-element row. fieldSize is the percent field
+          // (e.g. design.nameSize), fieldColor is the hex override.
+          type Row = {
+            label: string
+            sizeKey: 'nameSize' | 'titleSize' | 'companySize' | 'bioSize'
+            colorKey: 'nameColor' | 'titleColor' | 'companyColor' | 'bioColor'
+            fallbackColor: string
+            fallbackLabel: string
+          }
+          const ROWS: Row[] = [
+            { label: 'Name',    sizeKey: 'nameSize',    colorKey: 'nameColor',    fallbackColor: '#ffffff',         fallbackLabel: 'Auto' },
+            { label: 'Title',   sizeKey: 'titleSize',   colorKey: 'titleColor',   fallbackColor: currentAccentHex,  fallbackLabel: `Auto (accent)` },
+            { label: 'Company', sizeKey: 'companySize', colorKey: 'companyColor', fallbackColor: '#9ca3af',         fallbackLabel: 'Auto (muted)' },
+            { label: 'Bio',     sizeKey: 'bioSize',     colorKey: 'bioColor',     fallbackColor: '#9ca3af',         fallbackLabel: 'Auto (muted)' },
+          ]
+          return ROWS.map(row => {
+            const sizePct = design[row.sizeKey] ?? 100
+            const colorValue = design[row.colorKey]
+            return (
+              <div key={row.label} className="mb-5 pb-5 border-b border-border/40 last:border-b-0 last:pb-0">
+                <p className="text-xs font-semibold mb-2">{row.label}</p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {/* Colour swatch + picker */}
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={colorValue || row.fallbackColor}
+                      onChange={e => update({ [row.colorKey]: e.target.value } as Partial<CardDesign>)}
+                      className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent"
+                      title="Pick a colour"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground font-mono flex-1 min-w-0 truncate">
+                    {colorValue || row.fallbackLabel}
+                  </p>
+                  {colorValue && (
+                    <button
+                      onClick={() => update({ [row.colorKey]: undefined } as Partial<CardDesign>)}
+                      className="text-xs text-muted-foreground hover:text-foreground underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+                {/* Size stepper -/+ */}
+                <div className="flex items-center gap-3 mt-3">
+                  <span className="text-xs text-muted-foreground w-10">Size</span>
+                  <button
+                    onClick={() => update({ [row.sizeKey]: Math.max(80, sizePct - 10) } as Partial<CardDesign>)}
+                    disabled={sizePct <= 80}
+                    className="w-8 h-8 rounded-lg border-2 border-border hover:border-foreground/40 transition flex items-center justify-center font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Decrease size"
+                  >
+                    −
+                  </button>
+                  <div className="flex-1 text-center text-sm font-semibold tabular-nums">{sizePct}%</div>
+                  <button
+                    onClick={() => update({ [row.sizeKey]: Math.min(160, sizePct + 10) } as Partial<CardDesign>)}
+                    disabled={sizePct >= 160}
+                    className="w-8 h-8 rounded-lg border-2 border-border hover:border-foreground/40 transition flex items-center justify-center font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Increase size"
+                  >
+                    +
+                  </button>
+                  {sizePct !== 100 && (
+                    <button
+                      onClick={() => update({ [row.sizeKey]: 100 } as Partial<CardDesign>)}
+                      className="text-xs text-muted-foreground hover:text-foreground underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })
+        })()}
 
-        {/* Title colour picker (defaults to accent) */}
-        <div className="mb-5">
-          <label className="block text-xs font-medium mb-2">Title colour</label>
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-              value={design.titleColor || currentAccentHex}
-              onChange={e => update({ titleColor: e.target.value })}
-              className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent"
-            />
-            <div className="flex-1">
-              <p className="text-xs text-muted-foreground font-mono">{design.titleColor || `Auto (${currentAccentHex})`}</p>
-            </div>
-            {design.titleColor && (
-              <button onClick={() => update({ titleColor: undefined })}
-                className="text-xs text-muted-foreground hover:text-foreground underline">
-                Reset
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Bio colour picker (defaults to muted grey) */}
-        <div className="mb-5">
-          <label className="block text-xs font-medium mb-2">Bio colour</label>
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-              value={design.bioColor || '#888888'}
-              onChange={e => update({ bioColor: e.target.value })}
-              className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent"
-            />
-            <div className="flex-1">
-              <p className="text-xs text-muted-foreground font-mono">{design.bioColor || 'Auto (muted)'}</p>
-            </div>
-            {design.bioColor && (
-              <button onClick={() => update({ bioColor: undefined })}
-                className="text-xs text-muted-foreground hover:text-foreground underline">
-                Reset
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Body text size (contact rows + custom link text) */}
+        {/* Body text size (contact rows + custom links) - kept as a
+            3-button toggle since this controls multiple elements at
+            once and there's no individual sizing to do here */}
         <div>
           <label className="block text-xs font-medium mb-2">Body text size</label>
-          <p className="text-xs text-muted-foreground mb-2">Contact rows, bio, links</p>
+          <p className="text-xs text-muted-foreground mb-2">Contact rows and custom links</p>
           <div className="grid grid-cols-3 gap-2">
             {(['small', 'medium', 'large'] as const).map(size => (
               <button key={size}

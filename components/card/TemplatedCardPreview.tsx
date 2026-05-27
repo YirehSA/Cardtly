@@ -4,7 +4,9 @@ import {
   CardDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight,
   getAccentHex, getReadableTextOn, getButtonBg, getButtonText, getButtonBorder,
   getCardStyleEffect, TEXT_POSITION_TEMPLATES,
-  calcNameSize, getTitleColor, getBioColor, getBodyFontSize, getButtonFontSize
+  calcNameSize, calcTitleSize, calcCompanySize, calcBioSize,
+  getNameColor, getTitleColor, getCompanyColor, getBioColor,
+  getBodyFontSize, getButtonFontSize
 } from '@/types/design'
 import { Phone, Mail, Globe, MessageCircle, ExternalLink, ChevronRight, Twitter, Facebook } from 'lucide-react'
 
@@ -149,9 +151,9 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         <div style={{ padding: '0 16px 20px', marginTop: -(photoSize / 2) }}>
           <div style={{ textAlign: 'center', marginBottom: 12 }}>
             <div style={{ display: 'inline-block', zIndex: 2, position: 'relative' }}><Avatar base={76} extraStyle={{ border: 'none' }} /></div>
-            <h2 style={{ margin: '8px 0 2px', fontSize: 17, fontWeight: 700, fontFamily: font.heading, color: bg.text, letterSpacing: '-0.01em' }}>{form.name || 'Your Name'}</h2>
-            {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 600, color: accentHex, letterSpacing: '0.04em' }}>{form.title}</p>}
-            {form.company && <p style={{ margin: 0, fontSize: 11, color: bg.subtext }}>{form.company}</p>}
+            <h2 style={{ margin: '8px 0 2px', fontSize: calcNameSize(17, design), fontWeight: 700, fontFamily: font.heading, color: getNameColor(design, bg.text), letterSpacing: '-0.01em' }}>{form.name || 'Your Name'}</h2>
+            {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentHex), letterSpacing: '0.04em' }}>{form.title}</p>}
+            {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(11, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
             {/* Accent rule matching PublicCardView */}
             <div style={{ width: 28, height: 2, background: accentHex, margin: '8px auto 0', borderRadius: 2, boxShadow: `0 0 8px ${accentHex}66` }} />
             <LogoZone />
@@ -196,9 +198,9 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
               <div style={{ flexShrink: 0 }}><Avatar base={64} rounded="xl" extraStyle={{ border: `2px solid ${accentHex}66`, borderRadius: 14 }} /></div>
               <div style={{ flex: 1, minWidth: 0, ...textNudge, paddingTop: 2 }}>
-                <h2 style={{ margin: 0, fontSize: nameFontSize, fontWeight: 800, fontFamily: font.heading, color: bg.text, lineHeight: 1.1, letterSpacing: '-0.02em' }}>{form.name || 'Your Name'}</h2>
-                {isPro && form.title && <p style={{ margin: '4px 0 0', fontSize: 8, fontWeight: 700, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{form.title}</p>}
-                {form.company && <p style={{ margin: '2px 0 0', fontSize: 9, color: bg.subtext }}>{form.company}</p>}
+                <h2 style={{ margin: 0, fontSize: nameFontSize, fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text), lineHeight: 1.1, letterSpacing: '-0.02em' }}>{form.name || 'Your Name'}</h2>
+                {isPro && form.title && <p style={{ margin: '4px 0 0', fontSize: calcTitleSize(8, design), fontWeight: 700, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{form.title}</p>}
+                {form.company && <p style={{ margin: '2px 0 0', fontSize: calcCompanySize(9, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
               </div>
             </div>
             <div style={{ width: 28, height: 2, borderRadius: 2, backgroundColor: accentHex, marginBottom: 8, boxShadow: `0 0 10px ${accentHex}88` }} />
@@ -473,9 +475,9 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           <div style={{ display: 'flex', padding: '20px 16px 44px', gap: 0 }}>
             <div style={{ flexShrink: 0 }}><Avatar base={80} rounded="xl" /></div>
             <div style={{ flex: 1, paddingLeft: 14, ...textNudge }}>
-              <h2 style={{ margin: '0 0 4px', fontSize: nameFontSize, fontWeight: 800, fontFamily: font.heading, color: bg.text, lineHeight: 1.2 }}>{form.name || 'Your Name'}</h2>
-              {isPro && form.title && <p style={{ margin: '0 0 3px', fontSize: 11, fontWeight: 600, color: titleColor }}>{form.title}</p>}
-              {form.company && <p style={{ margin: 0, fontSize: 11, color: bg.subtext }}>{form.company}</p>}
+              <h2 style={{ margin: '0 0 4px', fontSize: nameFontSize, fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text), lineHeight: 1.2 }}>{form.name || 'Your Name'}</h2>
+              {isPro && form.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(11, design), fontWeight: 600, color: titleColor }}>{form.title}</p>}
+              {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(11, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
             </div>
           </div>
           <svg viewBox="0 0 400 48" style={{ display: 'block', width: '100%', height: 48, position: 'absolute', bottom: 0 }} preserveAspectRatio="none">

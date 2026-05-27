@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Card, extractLinks } from '@/types/database'
-import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, TEXT_POSITION_TEMPLATES, calcNameSize, getTitleColor, getBioColor, getBodyFontSize, getButtonFontSize } from '@/types/design'
+import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize } from '@/types/design'
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
@@ -433,14 +433,13 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
                     was reading as an unwanted outline around the photo */}
                 <Avatar {...shared} size={120} extraStyle={{ border: 'none' }} />
               </div>
-              <h1 className="font-bold mt-4 leading-tight" style={{ fontFamily: font.heading, letterSpacing: '-0.01em', fontSize: calcNameSize(24, design), color: bg.text }}>{card.name}</h1>
-              {isPro && card.title && <p className="font-semibold mt-1" style={{ color: getTitleColor(design, accentHex), fontSize: 14, letterSpacing: '0.04em' }}>{card.title}</p>}
-              {card.company && <p className="text-sm mt-1" style={{ color: bg.subtext }}>{card.company}</p>}
-              {/* Subtle accent rule for visual polish - sits below the
-                  title/company line, helps separate identity from bio */}
+              <h1 className="font-bold mt-4 leading-tight" style={{ fontFamily: font.heading, letterSpacing: '-0.01em', fontSize: calcNameSize(24, design), color: getNameColor(design, bg.text) }}>{card.name}</h1>
+              {isPro && card.title && <p className="font-semibold mt-1" style={{ color: getTitleColor(design, accentHex), fontSize: calcTitleSize(14, design), letterSpacing: '0.04em' }}>{card.title}</p>}
+              {card.company && <p className="mt-1" style={{ color: getCompanyColor(design, bg.subtext), fontSize: calcCompanySize(14, design) }}>{card.company}</p>}
+              {/* Subtle accent rule for visual polish */}
               <div style={{ width: 40, height: 2, background: accentHex, margin: '14px auto 0', borderRadius: 2, boxShadow: `0 0 12px ${accentHex}66` }} />
               <div className="mt-3"><LogoZone {...shared} /></div>
-              {card.bio && <p className="mt-3 leading-relaxed" style={{ color: getBioColor(design, bg.subtext), fontSize: getBodyFontSize(design) }}>{card.bio}</p>}
+              {card.bio && <p className="mt-3 leading-relaxed" style={{ color: getBioColor(design, bg.subtext), fontSize: calcBioSize(14, design) }}>{card.bio}</p>}
             </div>
             <AllContacts {...shared} socialLinks={socialLinks} />
             <BottomSection {...bottomProps} />
@@ -494,14 +493,14 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
                 <Avatar {...shared} size={92} rounded="xl" extraStyle={{ border: `2px solid ${accentHex}66`, borderRadius: 20 }} />
               </div>
               <div className="flex-1 min-w-0 pt-1" style={textNudge}>
-                <h1 style={{ margin: 0, fontSize: nameFontSize, fontWeight: 800, lineHeight: 1.1, fontFamily: font.heading, letterSpacing: '-0.02em', color: bg.text }}>{card.name}</h1>
-                {isPro && card.title && <p style={{ margin: '6px 0 0', fontSize: 12, fontWeight: 700, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{card.title}</p>}
-                {card.company && <p style={{ margin: '4px 0 0', fontSize: 13, color: bg.subtext }}>{card.company}</p>}
+                <h1 style={{ margin: 0, fontSize: nameFontSize, fontWeight: 800, lineHeight: 1.1, fontFamily: font.heading, letterSpacing: '-0.02em', color: getNameColor(design, bg.text) }}>{card.name}</h1>
+                {isPro && card.title && <p style={{ margin: '6px 0 0', fontSize: calcTitleSize(12, design), fontWeight: 700, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{card.title}</p>}
+                {card.company && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
               </div>
             </div>
             <div className="rounded-full mb-4" style={{ width: 40, height: 3, backgroundColor: accentHex, boxShadow: `0 0 16px ${accentHex}88` }} />
             <LogoZone {...shared} />
-            {card.bio && <p style={{ fontSize: getBodyFontSize(design), lineHeight: 1.7, marginBottom: 20, color: bioColor }}>{card.bio}</p>}
+            {card.bio && <p style={{ fontSize: calcBioSize(15, design), lineHeight: 1.7, marginBottom: 20, color: bioColor }}>{card.bio}</p>}
             {/* Socials row - centered, UNDER the bio, in brand colours.
                 White icon on the platform's own brand colour, instant
                 recognition vs an accent-tinted row of identical pills. */}
@@ -847,9 +846,9 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
                 <Avatar {...shared} size={100} rounded="xl" extraStyle={{ border: `3px solid ${accentHex}44`, borderRadius: 18 }} />
               </div>
               <div style={{ flex: 1, paddingLeft: 18, ...textNudge }}>
-                <h1 style={{ margin: '4px 0 6px', fontSize: nameFontSize, fontWeight: 800, fontFamily: font.heading, color: bg.text, lineHeight: 1.2 }}>{card.name}</h1>
-                {isPro && card.title && <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600, color: titleColor }}>{card.title}</p>}
-                {card.company && <p style={{ margin: 0, fontSize: 12, color: bg.subtext }}>{card.company}</p>}
+                <h1 style={{ margin: '4px 0 6px', fontSize: nameFontSize, fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text), lineHeight: 1.2 }}>{card.name}</h1>
+                {isPro && card.title && <p style={{ margin: '0 0 4px', fontSize: calcTitleSize(13, design), fontWeight: 600, color: titleColor }}>{card.title}</p>}
+                {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
               </div>
             </div>
             <svg viewBox="0 0 400 56" style={{ display: 'block', width: '100%', height: 56, position: 'absolute', bottom: 0 }} preserveAspectRatio="none">
@@ -858,7 +857,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           </div>
           <div className="px-6 py-4 pb-10">
             <LogoZone {...shared} />
-            {card.bio && <p style={{ fontSize: getBodyFontSize(design), lineHeight: 1.7, marginBottom: 20, color: bioColor }}>{card.bio}</p>}
+            {card.bio && <p style={{ fontSize: calcBioSize(14, design), lineHeight: 1.7, marginBottom: 20, color: bioColor }}>{card.bio}</p>}
             {/* Brand-coloured socials row - centred UNDER the bio.
                 Same pattern as Modern. */}
             {socialLinks.length > 0 && (

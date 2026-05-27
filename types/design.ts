@@ -39,10 +39,18 @@ export interface CardDesign {
   // Typography overrides. All optional - blank means "use the
   // template's default". Applied via helper functions below so
   // every template reads from the same source.
-  nameSize?: number          // 80-140 percentage of the template's default name font size
+  // Typography overrides - each element (name, title, company, bio)
+  // gets its own size (80-160 percent) and colour. Size is rendered
+  // in the panel as -/+ buttons; colour as a swatch + native input.
+  nameSize?: number          // 80-160 percentage of the template's default name font size
+  nameColor?: string         // hex - overrides the name colour (defaults to template text)
+  titleSize?: number         // 80-160 percentage
   titleColor?: string        // hex - overrides the title colour (defaults to accent)
+  companySize?: number       // 80-160 percentage
+  companyColor?: string      // hex - overrides the company colour (defaults to muted)
+  bioSize?: number           // 80-160 percentage
   bioColor?: string          // hex - overrides the bio paragraph colour
-  bodySize?: 'small' | 'medium' | 'large'  // contact row + custom link text size
+  bodySize?: 'small' | 'medium' | 'large'  // contact row + custom link text size (separate)
   buttonTextSize?: 'small' | 'medium' | 'large'  // Save Contact button text size
   profileBorder?: boolean    // toggle the photo's border ring on/off (default: true)
 }
@@ -67,7 +75,12 @@ export const DEFAULT_DESIGN: CardDesign = {
   solidBackground: false,
   customBgColor: undefined,
   nameSize: 100,
+  nameColor: undefined,
+  titleSize: 100,
   titleColor: undefined,
+  companySize: 100,
+  companyColor: undefined,
+  bioSize: 100,
   bioColor: undefined,
   bodySize: 'medium',
   buttonTextSize: 'medium',
@@ -260,16 +273,36 @@ export function calcLogoHeight(base: number, design: CardDesign): number {
 // Typography helpers — every template reads from these so the design
 // panel controls take effect uniformly across templates.
 
+function applyPercent(base: number, percent?: number): number {
+  return Math.round(base * ((percent ?? 100) / 100))
+}
+
 export function calcNameSize(base: number, design: CardDesign): number {
-  // base is the template's default name font size in px. The user
-  // slider multiplies it by 80% to 140%.
-  return Math.round(base * ((design.nameSize ?? 100) / 100))
+  return applyPercent(base, design.nameSize)
+}
+
+export function calcTitleSize(base: number, design: CardDesign): number {
+  return applyPercent(base, design.titleSize)
+}
+
+export function calcCompanySize(base: number, design: CardDesign): number {
+  return applyPercent(base, design.companySize)
+}
+
+export function calcBioSize(base: number, design: CardDesign): number {
+  return applyPercent(base, design.bioSize)
+}
+
+export function getNameColor(design: CardDesign, fallbackHex: string): string {
+  return design.nameColor || fallbackHex
 }
 
 export function getTitleColor(design: CardDesign, fallbackHex: string): string {
-  // Custom title colour overrides the template's default (which is
-  // usually the accent colour passed in as fallback).
   return design.titleColor || fallbackHex
+}
+
+export function getCompanyColor(design: CardDesign, fallbackHex: string): string {
+  return design.companyColor || fallbackHex
 }
 
 export function getBioColor(design: CardDesign, fallbackHex: string): string {
