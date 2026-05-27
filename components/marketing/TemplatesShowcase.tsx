@@ -2,76 +2,92 @@
 
 import Link from 'next/link'
 import { ArrowRight, Sparkles } from 'lucide-react'
+import { TEMPLATES, DEFAULT_DESIGN, CardDesign, TemplateId, AccentColor, BgMode } from '@/types/design'
+import TemplatedCardPreview from '@/components/card/TemplatedCardPreview'
 
-// Lightweight template tiles. These don't render the real
-// TemplatedCardPreview (heavy + depends on a full Card object); they're
-// stylised mockups that capture each template's vibe. The point is
-// "we have a lot of looks, pick yours" — actual previews live in
-// /dashboard/card/design.
+// Real template previews — same component the dashboard design picker
+// uses, just scaled down inside a fixed-height tile so the whole card
+// fits in a clean card-shaped frame. The user sees exactly what they
+// would get if they picked that template.
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
-interface TemplateVibe {
-  name: string
-  tag: string
-  bg: string
-  accent: string
-  text: string
-  isDark?: boolean
+// Realistic sample card so the templates look populated, not empty.
+const SAMPLE_FORM = {
+  name: 'Andre Nel',
+  title: 'Founder & CEO',
+  company: 'Yireh',
+  bio: 'Building digital products that connect people across the African continent.',
+  email: 'andre@yireh.co.za',
+  phone: '+27 82 555 1234',
+  whatsapp: '+27 82 555 1234',
+  address: 'Pretoria, South Africa',
+  website: 'yireh.co.za',
+  profile_image_url: '',
+  company_logo_url: '',
+  certifications: 'Web Design, SEO, Brand',
+  link_1_title: 'Portfolio', link_1_url: 'https://yireh.co.za',
+  link_2_title: '',          link_2_url: '',
+  link_3_title: '',          link_3_url: '',
 }
 
-const TEMPLATES: TemplateVibe[] = [
-  { name: 'Classic',    tag: 'Polished default',
-    bg: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)', accent: '#00d4ff', text: '#fff', isDark: true },
-  { name: 'Modern',     tag: 'Glass + gradient orbs',
-    bg: 'radial-gradient(circle at 20% 30%, rgba(0,212,255,0.4) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(236,72,153,0.4) 0%, transparent 50%), #0a0a14', accent: '#7c3aed', text: '#fff', isDark: true },
-  { name: 'Wave',       tag: 'Curved hero',
-    bg: 'linear-gradient(180deg, #0ea5e9 0%, #0284c7 60%, #fef3c7 60%, #fef3c7 100%)', accent: '#fff', text: '#0c4a6e' },
-  { name: 'Executive',  tag: 'Editorial luxury',
-    bg: 'linear-gradient(180deg, #18181b 0%, #27272a 100%)', accent: '#d4af37', text: '#fff', isDark: true },
-  { name: 'Studio',     tag: 'Smile-curve photo',
-    bg: 'linear-gradient(180deg, #0a0a0a 0%, #0a0a0a 50%, #fb923c 50%, #fb923c 100%)', accent: '#fb923c', text: '#fff', isDark: true },
-  { name: 'Minimal',    tag: 'Icon-led, neon ring',
-    bg: '#0a0a0a', accent: '#a855f7', text: '#fff', isDark: true },
-  { name: 'Frost',      tag: 'Cool glass',
-    bg: 'linear-gradient(135deg, #dbeafe 0%, #e0e7ff 60%, #f3e8ff 100%)', accent: '#3b82f6', text: '#1e293b' },
-  { name: 'Editorial',  tag: 'Magazine spread',
-    bg: 'linear-gradient(135deg, #fef9c3 0%, #fbbf24 100%)', accent: '#000', text: '#000' },
+// 8 of the 12 templates that have the most visual variety, paired
+// with sensible accents so each tile looks distinct in the grid.
+interface Featured {
+  id: TemplateId
+  name: string
+  tag: string
+  accent: AccentColor
+  bgMode?: BgMode
+}
+
+const FEATURED: Featured[] = [
+  { id: 'classic',   name: 'Classic',   tag: 'Polished default',         accent: 'blue'   },
+  { id: 'modern',    name: 'Modern',    tag: 'Glass + gradient orbs',     accent: 'pink'   },
+  { id: 'executive', name: 'Executive', tag: 'Editorial luxury',          accent: 'gold'   },
+  { id: 'studio',    name: 'Studio',    tag: 'Smile-curve photo',         accent: 'orange' },
+  { id: 'wave',      name: 'Wave',      tag: 'Curved hero band',          accent: 'teal'   },
+  { id: 'bold',      name: 'Bold',      tag: 'Split hero',                accent: 'purple' },
+  { id: 'frost',     name: 'Frost',     tag: 'Soft glass pastel',         accent: 'blue',  bgMode: 'light' },
+  { id: 'editorial', name: 'Editorial', tag: 'Magazine spread',           accent: 'red',   bgMode: 'light' },
 ]
 
 export default function TemplatesShowcase() {
   return (
     <section className="py-24 px-6 relative" style={{ background: 'rgba(255,255,255,0.02)' }}>
-      <div className="max-w-7xl mx-auto">
+      <div className="absolute top-0 left-0 w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(0,212,255,0.08) 0%, transparent 70%)' }} />
+
+      <div className="max-w-7xl mx-auto relative">
         <div className="text-center mb-12">
           <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#ec4899' }}>Pick your look</p>
           <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
             12 designed templates.<br />
             <span style={{ background: grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-              All free to start.
+              All real. All yours.
             </span>
           </h2>
           <p className="text-lg max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Crafted by designers, fully customisable. Switch templates anytime — your data follows.
+            Crafted by designers, fully customisable. Switch templates anytime &mdash; your data follows.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {TEMPLATES.map((t, i) => (
-            <TemplateTile key={t.name} t={t} index={i} />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+          {FEATURED.map((t) => (
+            <TemplateTile key={t.id} t={t} />
           ))}
         </div>
 
-        <div className="text-center mt-10">
+        <div className="text-center mt-12">
           <Link href="/signup"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white transition hover:opacity-90"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white transition hover:opacity-90 hover:scale-[1.02]"
             style={{ background: grad, boxShadow: '0 8px 28px rgba(124,58,237,0.35)' }}>
             <Sparkles className="w-4 h-4" />
-            Browse all 12 templates
+            Try all 12 templates
             <ArrowRight className="w-4 h-4" />
           </Link>
           <p className="text-xs mt-3" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            Free tier includes 4 templates. Pro unlocks all 12 plus custom theming.
+            Free tier includes Classic. Pro unlocks the other 11 plus custom theming.
           </p>
         </div>
       </div>
@@ -79,59 +95,66 @@ export default function TemplatesShowcase() {
   )
 }
 
-function TemplateTile({ t, index }: { t: TemplateVibe; index: number }) {
+// ── Tile ─────────────────────────────────────────────────────────
+
+function TemplateTile({ t }: { t: Featured }) {
+  // Build a CardDesign for this template (defaults + featured overrides)
+  const templateConfig = TEMPLATES.find(tc => tc.id === t.id)
+  const design: CardDesign = {
+    ...DEFAULT_DESIGN,
+    templateId: t.id,
+    accentColor: t.accent,
+    bgMode: t.bgMode || templateConfig?.defaultBgMode || 'dark',
+  }
+
   return (
     <div
-      className="group rounded-2xl overflow-hidden transition-all hover:scale-[1.03]"
+      className="group rounded-3xl overflow-hidden transition-all hover:scale-[1.03] hover:-translate-y-1"
       style={{
         border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2)',
       }}
     >
-      {/* Mini card preview */}
+      {/* Real template preview, scaled to fit the tile */}
       <div
-        className="aspect-[3/4] relative p-3 flex flex-col"
-        style={{ background: t.bg, color: t.text }}
+        className="relative overflow-hidden"
+        style={{ height: 320, background: '#000' }}
       >
-        {/* Avatar */}
+        {/* Scaled inner — 0.4 means inner box is 250% the size of outer */}
         <div
-          className="w-12 h-12 rounded-xl mb-3 flex items-center justify-center font-black"
           style={{
-            background: t.accent,
-            color: t.isDark ? '#000' : '#fff',
-            fontSize: 18,
+            transform: 'scale(0.4)',
+            transformOrigin: 'top left',
+            width: '250%',
+            height: '250%',
+            pointerEvents: 'none',
           }}
         >
-          {['A', 'M', 'S', 'L', 'J', 'P', 'R', 'K'][index % 8]}
+          <TemplatedCardPreview
+            form={SAMPLE_FORM}
+            isPro={true}
+            design={design}
+          />
         </div>
 
-        {/* Name */}
-        <div className="font-bold text-xs leading-tight mb-0.5">Andre Nel</div>
-        <div className="text-[10px] opacity-70 mb-3">Founder &amp; CEO</div>
-
-        {/* Mini info bars */}
-        <div className="space-y-1 mt-auto">
-          {[0.85, 0.65, 0.75].map((w, i) => (
-            <div key={i} className="h-1.5 rounded-full" style={{ background: `${t.text}25`, width: `${w * 100}%` }} />
-          ))}
-        </div>
-
-        {/* CTA pill */}
+        {/* Subtle hover overlay with "Try this" hint */}
         <div
-          className="mt-3 h-5 rounded-md text-[8px] font-bold flex items-center justify-center"
-          style={{
-            background: t.accent,
-            color: t.isDark ? '#000' : '#fff',
-          }}
+          className="absolute inset-0 flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          style={{ background: 'linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.8) 100%)' }}
         >
-          SAVE CONTACT
+          <div
+            className="px-3 py-1.5 rounded-full text-xs font-bold text-white"
+            style={{ background: grad, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}
+          >
+            Try this template
+          </div>
         </div>
       </div>
 
       {/* Label */}
-      <div className="p-3" style={{ background: 'rgba(0,0,0,0.4)' }}>
-        <p className="font-bold text-sm text-white">{t.name}</p>
-        <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{t.tag}</p>
+      <div className="p-4" style={{ background: 'rgba(255,255,255,0.02)' }}>
+        <p className="font-bold text-base text-white">{t.name}</p>
+        <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>{t.tag}</p>
       </div>
     </div>
   )
