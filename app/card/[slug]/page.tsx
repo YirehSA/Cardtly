@@ -85,17 +85,19 @@ export default async function PublicCardPage({ params }: Props) {
         .maybeSingle(),
       supabase
         .from('profiles')
-        .select('last_active_at')
+        .select('last_active_at, is_founder, founder_number, founder_lifetime_pro')
         .eq('user_id', (card as any).user_id)
         .maybeSingle(),
     ])
 
     const isPro = (sub as any)?.subscription_tier === 'pro' && (sub as any)?.status === 'active'
     const lastActiveAt = (profile as any)?.last_active_at || null
+    const founderNumber = (profile as any)?.is_founder ? (profile as any)?.founder_number ?? null : null
+    const founderLifetime = !!(profile as any)?.founder_lifetime_pro
 
     return (
       <CardTracker cardId={(card as any).id}>
-        <PublicCardView card={card as any} isPro={isPro} lastActiveAt={lastActiveAt} />
+        <PublicCardView card={card as any} isPro={isPro} lastActiveAt={lastActiveAt} founderNumber={founderNumber} founderLifetime={founderLifetime} />
       </CardTracker>
     )
   }

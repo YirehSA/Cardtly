@@ -19,6 +19,11 @@ interface Props {
   isPro: boolean
   isTeamCard?: boolean
   lastActiveAt?: string | null
+  // Tier 1 founder status - if set, render the gold founder ribbon
+  // near the share button so it shows on every template without
+  // having to touch each template's layout individually.
+  founderNumber?: number | null
+  founderLifetime?: boolean
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -339,7 +344,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
 // Main component — only computes values and renders layout
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }: Props) {
+export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, founderNumber, founderLifetime }: Props) {
   const design = parseDesign(card.color_theme)
   const font = FONTS[design.fontId]
   const bg = getBgColors(design.bgMode, design.templateId, design.customBgColor)
@@ -403,6 +408,31 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
     </div>
   ) : null
 
+  // Founder ribbon (Tier 1 promotions). Anchored to the top-LEFT of
+  // every template so it doesn't compete with the share/online badges
+  // on the right. Gold gradient with optional lifetime upgrade styling.
+  const founderRibbon = founderNumber ? (
+    <div className="fixed top-4 left-4 z-40">
+      <div
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.12em] text-black shadow-lg"
+        style={{
+          background: founderLifetime
+            ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #ec4899 100%)'
+            : 'linear-gradient(135deg, #fcd34d 0%, #fbbf24 50%, #f59e0b 100%)',
+          boxShadow: '0 4px 12px rgba(245,158,11,0.4), inset 0 1px 0 rgba(255,255,255,0.6)',
+        }}
+        title={founderLifetime ? 'Cardtly Founding Member - Lifetime Pro' : 'Cardtly Founding Member'}
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+          {/* Crown silhouette */}
+          <path d="M5 16L3 8l5.5 4L12 4l3.5 8L21 8l-2 8H5zm0 2h14v2H5v-2z" />
+        </svg>
+        <span>Founder #{founderNumber}</span>
+        {founderLifetime && <span className="opacity-80">· Lifetime</span>}
+      </div>
+    </div>
+  ) : null
+
   if (design.templateId === 'classic') {
     // Hero band background: accent-tinted gradient (default) or a solid
     // block of the accent colour when the user picks the Solid option in
@@ -413,6 +443,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
       <div style={pageStyle} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
+        {founderRibbon}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
@@ -473,6 +504,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
         `}</style>
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
+        {founderRibbon}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md" style={{ backgroundColor: isLight ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
@@ -537,6 +569,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
       <div style={pageStyle} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
+        {founderRibbon}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
           <Share2 className="w-4 h-4 text-white" />
         </button>
@@ -604,6 +637,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
       <div style={{ ...pageStyle, backgroundColor: pageBg }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
+        {founderRibbon}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)' }}>
           <Share2 className="w-4 h-4" style={{ color: ink }} />
         </button>
@@ -679,6 +713,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
         <div style={{ position: 'absolute', top: -180, left: '50%', transform: 'translateX(-50%)', width: '140%', height: 600, background: `radial-gradient(ellipse at center, ${accentHex}28 0%, transparent 65%)`, pointerEvents: 'none' }} />
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
+        {founderRibbon}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: ink }} />
         </button>
@@ -789,6 +824,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
         <div style={{ position: 'fixed', bottom: -60, left: -60, width: 200, height: 200, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}33 0%, transparent 70%)`, pointerEvents: 'none' }} />
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
+        {founderRibbon}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
@@ -836,6 +872,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
       <div style={pageStyle} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
+        {founderRibbon}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
@@ -891,6 +928,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
       <div style={{ ...pageStyle, display: 'flex', minHeight: '100vh' }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
+        {founderRibbon}
         <div style={{ width: 80, flexShrink: 0, background: sidebarBg, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 8px', gap: 16, position: 'fixed', top: 0, bottom: 0, left: 0 }}>
           <Avatar {...shared} size={60} rounded="full" extraStyle={{ border: '3px solid rgba(255,255,255,0.3)' }} />
           <div style={{ width: '60%', height: 1, backgroundColor: 'rgba(255,255,255,0.3)' }} />
@@ -926,6 +964,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
       <div style={{ ...pageStyle, backgroundColor: '#050510' }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
+        {founderRibbon}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ border: `1px solid ${accentHex}44`, backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <Share2 className="w-4 h-4" style={{ color: accentHex }} />
         </button>
@@ -1005,6 +1044,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
       <div style={{ ...pageStyle, backgroundColor: lightArea }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
+        {founderRibbon}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.9)', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
           <Share2 className="w-4 h-4" style={{ color: darkInk }} />
         </button>
@@ -1207,6 +1247,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
         <div style={{ position: 'absolute', bottom: -100, left: -80, width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.4) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
+        {founderRibbon}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md" style={{ backgroundColor: 'rgba(255,255,255,0.5)' }}>
           <Share2 className="w-4 h-4" style={{ color: '#0f172a' }} />
         </button>
@@ -1268,6 +1309,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
       <div style={{ ...pageStyle, backgroundColor: paper }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
+        {founderRibbon}
         <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(28,25,23,0.08)' }}>
           <Share2 className="w-4 h-4" style={{ color: ink }} />
         </button>
