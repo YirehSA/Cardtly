@@ -470,9 +470,8 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
         <label className="block text-sm font-semibold mb-1">Typography</label>
         <p className="text-xs text-muted-foreground mb-4">Adjust the size and colour of each text element</p>
 
+        <div className="space-y-2">
         {(() => {
-          // Reusable per-element row. fieldSize is the percent field
-          // (e.g. design.nameSize), fieldColor is the hex override.
           type Row = {
             label: string
             sizeKey: 'nameSize' | 'titleSize' | 'companySize' | 'bioSize'
@@ -482,72 +481,70 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
           }
           const ROWS: Row[] = [
             { label: 'Name',    sizeKey: 'nameSize',    colorKey: 'nameColor',    fallbackColor: '#ffffff',         fallbackLabel: 'Auto' },
-            { label: 'Title',   sizeKey: 'titleSize',   colorKey: 'titleColor',   fallbackColor: currentAccentHex,  fallbackLabel: `Auto (accent)` },
-            { label: 'Company', sizeKey: 'companySize', colorKey: 'companyColor', fallbackColor: '#9ca3af',         fallbackLabel: 'Auto (muted)' },
-            { label: 'Bio',     sizeKey: 'bioSize',     colorKey: 'bioColor',     fallbackColor: '#9ca3af',         fallbackLabel: 'Auto (muted)' },
+            { label: 'Title',   sizeKey: 'titleSize',   colorKey: 'titleColor',   fallbackColor: currentAccentHex,  fallbackLabel: 'Accent' },
+            { label: 'Company', sizeKey: 'companySize', colorKey: 'companyColor', fallbackColor: '#9ca3af',         fallbackLabel: 'Muted' },
+            { label: 'Bio',     sizeKey: 'bioSize',     colorKey: 'bioColor',     fallbackColor: '#9ca3af',         fallbackLabel: 'Muted' },
           ]
           return ROWS.map(row => {
             const sizePct = design[row.sizeKey] ?? 100
             const colorValue = design[row.colorKey]
+            const isModified = !!colorValue || sizePct !== 100
             return (
-              <div key={row.label} className="mb-5 pb-5 border-b border-border/40 last:border-b-0 last:pb-0">
-                <p className="text-xs font-semibold mb-2">{row.label}</p>
-                <div className="flex items-center gap-3 flex-wrap">
-                  {/* Colour swatch + picker */}
-                  <div className="relative">
-                    <input
-                      type="color"
-                      value={colorValue || row.fallbackColor}
-                      onChange={e => update({ [row.colorKey]: e.target.value } as Partial<CardDesign>)}
-                      className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent"
-                      title="Pick a colour"
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground font-mono flex-1 min-w-0 truncate">
-                    {colorValue || row.fallbackLabel}
-                  </p>
-                  {colorValue && (
+              <div key={row.label} className="rounded-xl border border-border bg-card/40 px-3 py-2.5">
+                {/* Header row: element label + reset (only when modified) */}
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold">{row.label}</p>
+                  {isModified && (
                     <button
-                      onClick={() => update({ [row.colorKey]: undefined } as Partial<CardDesign>)}
+                      onClick={() => update({ [row.colorKey]: undefined, [row.sizeKey]: 100 } as Partial<CardDesign>)}
                       className="text-xs text-muted-foreground hover:text-foreground underline"
+                      title="Reset colour and size to defaults"
                     >
                       Reset
                     </button>
                   )}
                 </div>
-                {/* Size stepper -/+ */}
-                <div className="flex items-center gap-3 mt-3">
-                  <span className="text-xs text-muted-foreground w-10">Size</span>
-                  <button
-                    onClick={() => update({ [row.sizeKey]: Math.max(80, sizePct - 10) } as Partial<CardDesign>)}
-                    disabled={sizePct <= 80}
-                    className="w-8 h-8 rounded-lg border-2 border-border hover:border-foreground/40 transition flex items-center justify-center font-bold disabled:opacity-40 disabled:cursor-not-allowed"
-                    title="Decrease size"
-                  >
-                    −
-                  </button>
-                  <div className="flex-1 text-center text-sm font-semibold tabular-nums">{sizePct}%</div>
-                  <button
-                    onClick={() => update({ [row.sizeKey]: Math.min(160, sizePct + 10) } as Partial<CardDesign>)}
-                    disabled={sizePct >= 160}
-                    className="w-8 h-8 rounded-lg border-2 border-border hover:border-foreground/40 transition flex items-center justify-center font-bold disabled:opacity-40 disabled:cursor-not-allowed"
-                    title="Increase size"
-                  >
-                    +
-                  </button>
-                  {sizePct !== 100 && (
+                {/* Controls row: colour swatch + hex on the left,
+                    tight inline size stepper on the right */}
+                <div className="flex items-center gap-3">
+                  {/* Colour swatch (clickable, opens native picker) */}
+                  <input
+                    type="color"
+                    value={colorValue || row.fallbackColor}
+                    onChange={e => update({ [row.colorKey]: e.target.value } as Partial<CardDesign>)}
+                    className="w-8 h-8 rounded-md border border-border cursor-pointer bg-transparent flex-shrink-0"
+                    title="Pick a colour"
+                  />
+                  <span className="text-xs text-muted-foreground font-mono flex-1 min-w-0 truncate">
+                    {colorValue || row.fallbackLabel}
+                  </span>
+                  {/* Tight inline size stepper - all three controls
+                      grouped in one bordered pill */}
+                  <div className="flex items-center border border-border rounded-lg overflow-hidden flex-shrink-0">
                     <button
-                      onClick={() => update({ [row.sizeKey]: 100 } as Partial<CardDesign>)}
-                      className="text-xs text-muted-foreground hover:text-foreground underline"
+                      onClick={() => update({ [row.sizeKey]: Math.max(80, sizePct - 10) } as Partial<CardDesign>)}
+                      disabled={sizePct <= 80}
+                      className="w-7 h-7 flex items-center justify-center font-bold hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition"
+                      aria-label="Decrease size"
                     >
-                      Reset
+                      −
                     </button>
-                  )}
+                    <span className="text-xs font-semibold tabular-nums w-10 text-center border-x border-border py-1">{sizePct}%</span>
+                    <button
+                      onClick={() => update({ [row.sizeKey]: Math.min(160, sizePct + 10) } as Partial<CardDesign>)}
+                      disabled={sizePct >= 160}
+                      className="w-7 h-7 flex items-center justify-center font-bold hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition"
+                      aria-label="Increase size"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               </div>
             )
           })
         })()}
+        </div>
 
         {/* Body text size (contact rows + custom links) - kept as a
             3-button toggle since this controls multiple elements at
