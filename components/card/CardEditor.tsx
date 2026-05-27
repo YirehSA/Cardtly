@@ -104,6 +104,7 @@ export default function CardEditor({ card, plan, userId }: Props) {
       setSlugError(data.error || 'Failed to update')
     } else {
       setSlugSuccess(true)
+      setSavedSlug(data.slug || slug)
       setTimeout(() => setSlugSuccess(false), 3000)
     }
     setSlugSaving(false)
@@ -139,15 +140,21 @@ export default function CardEditor({ card, plan, userId }: Props) {
     setSaving(false)
   }
 
-  const cardUrl = card?.slug ? `/card/${card.slug}` : null
+  const [slug, setSlug] = useState(card?.slug || '')
+  // Track the saved slug separately from the input value so the displayed
+  // URL above the input updates immediately after a successful save,
+  // instead of staying stale until the page is reloaded.
+  const [savedSlug, setSavedSlug] = useState(card?.slug || '')
+  // Drive the displayed URL from local savedSlug state so it refreshes
+  // immediately when the slug changes, without needing a page reload.
+  const cardUrl = savedSlug ? `/card/${savedSlug}` : null
   const [copied, setCopied] = useState(false)
   function copyLink() {
-    if (!card?.slug) return
-    navigator.clipboard.writeText(`https://cardtly.com/card/${card.slug}`)
+    if (!savedSlug) return
+    navigator.clipboard.writeText(`https://cardtly.com/card/${savedSlug}`)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
-  const [slug, setSlug] = useState(card?.slug || '')
   const [slugSaving, setSlugSaving] = useState(false)
   const [slugError, setSlugError] = useState('')
   const [slugSuccess, setSlugSuccess] = useState(false)
@@ -182,7 +189,7 @@ export default function CardEditor({ card, plan, userId }: Props) {
                 placeholder="yireh-your-name"
                 className="px-3 py-1.5 rounded-r-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring transition w-44"
               />
-              <button onClick={saveSlug} disabled={slugSaving || !slug || slug === card?.slug}
+              <button onClick={saveSlug} disabled={slugSaving || !slug || slug === savedSlug}
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
                 style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
                 {slugSaving ? '...' : slugSuccess ? '✓ Saved' : 'Update URL'}

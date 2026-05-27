@@ -4,15 +4,37 @@ import { useState } from 'react'
 import {
   TEMPLATES, ACCENT_COLORS, FONTS, CardDesign, TEXT_POSITION_TEMPLATES,
   AccentColor, FontId, LogoPosition, CardStyle, BgMode, getAccentHex,
-  getButtonBg, getButtonText,
+  getButtonBg, getButtonText, DEFAULT_DESIGN,
 } from '@/types/design'
 import { Check, Lock, Sun, Moon, AlignLeft, AlignCenter, AlignRight, EyeOff, Pipette } from 'lucide-react'
 import Link from 'next/link'
+import TemplatedCardPreview from './TemplatedCardPreview'
 
 interface Props {
   design: CardDesign
   onChange: (design: CardDesign) => void
   isPro: boolean
+}
+
+// Sample form data used to render real mini-previews inside the template
+// picker tiles. Realistic-looking fake content so each tile shows what
+// the actual template will look like with a populated card.
+const PICKER_SAMPLE_FORM = {
+  name: 'Andre Nel',
+  title: 'Founder & CEO',
+  company: 'Yireh',
+  bio: 'Building digital products that connect people.',
+  email: 'andre@example.com',
+  phone: '+27 82 000 0000',
+  whatsapp: '+27 82 000 0000',
+  address: 'Pretoria',
+  website: 'yireh.co.za',
+  profile_image_url: '',
+  company_logo_url: '',
+  certifications: 'Web Design, SEO',
+  link_1_title: 'Portfolio', link_1_url: 'https://example.com',
+  link_2_title: '',         link_2_url: '',
+  link_3_title: '',         link_3_url: '',
 }
 
 const LOGO_POSITIONS: { id: LogoPosition; label: string; icon: React.ReactNode }[] = [
@@ -34,26 +56,51 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
   return (
     <div className="space-y-8">
 
-      {/* Template picker */}
+      {/* Template picker - real scaled-down previews so each tile
+          actually represents what that template will render */}
       <div>
         <label className="block text-sm font-semibold mb-3">Template</label>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {TEMPLATES.map(t => {
             const locked = t.proOnly && !isPro
             const active = design.templateId === t.id
+            // Build a per-template design state that keeps the user's
+            // accent colour but switches to this template's defaults so
+            // the tile shows that template's signature look.
+            const previewDesign: CardDesign = {
+              ...DEFAULT_DESIGN,
+              ...design,
+              templateId: t.id,
+              bgMode: t.defaultBgMode,
+            }
             return (
               <button
                 key={t.id}
                 onClick={() => { if (!locked) update({ templateId: t.id, bgMode: t.defaultBgMode }) }}
                 className={`relative rounded-xl overflow-hidden border-2 transition text-left ${active ? 'border-blue-500' : 'border-border hover:border-foreground/20'} ${locked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
-                <div className={`h-16 bg-gradient-to-br ${t.previewGradient} relative`}>
-                  {active && <div className="absolute top-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center"><Check className="w-3 h-3 text-white" /></div>}
-                  {locked && <div className="absolute top-2 right-2 w-5 h-5 bg-black/40 rounded-full flex items-center justify-center"><Lock className="w-3 h-3 text-white" /></div>}
-                  <div className="absolute bottom-2 left-2 right-2 space-y-1">
-                    <div className="h-1.5 bg-white/20 rounded w-3/4" />
-                    <div className="h-1 bg-white/10 rounded w-1/2" />
+                {/* Render the actual template at 35% scale. Outer div
+                    clips to a fixed tile size; inner div is sized 1/0.35
+                    larger so the template lays out at full width then
+                    gets scaled down without distortion. */}
+                <div className="relative h-32 bg-card overflow-hidden">
+                  <div
+                    style={{
+                      transform: 'scale(0.35)',
+                      transformOrigin: 'top left',
+                      width: 'calc(100% / 0.35)',
+                      height: 'calc(100% / 0.35)',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <TemplatedCardPreview
+                      form={PICKER_SAMPLE_FORM}
+                      isPro={true}
+                      design={previewDesign}
+                    />
                   </div>
+                  {active && <div className="absolute top-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center z-10"><Check className="w-3 h-3 text-white" /></div>}
+                  {locked && <div className="absolute top-2 right-2 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center z-10"><Lock className="w-3 h-3 text-white" /></div>}
                 </div>
                 <div className="p-2 bg-card">
                   <p className="text-xs font-semibold leading-tight">{t.name}</p>
