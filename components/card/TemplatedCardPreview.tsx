@@ -61,10 +61,19 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
     )
   }
 
+  // Brand colours for the social pills (mirror PublicCardView)
+  const SOCIAL_BRAND_COLORS = {
+    linkedin: '#0a66c2',
+    twitter:  '#000000',
+    instagram: '#E4405F',
+    facebook: '#1877F2',
+    whatsapp: '#25D366',
+  }
   function Avatar({ base = 64, rounded = 'full', extraStyle = {} }: { base?: number; rounded?: string; extraStyle?: React.CSSProperties }) {
     const size = calcPhotoSize(base, design)
     const borderRadius = rounded === 'full' ? '50%' : rounded === 'xl' ? 14 : 10
     const style: React.CSSProperties = { width: size, height: size, objectFit: 'cover', flexShrink: 0, borderRadius, border: `3px solid ${bg.page}`, ...extraStyle }
+    if (design.profileBorder === false) style.border = 'none'
     if (form.profile_image_url) return <img src={form.profile_image_url} style={style} />
     return <div style={{ ...style, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.35, fontWeight: 700, fontFamily: font.heading }}>{form.name?.[0]?.toUpperCase() || '?'}</div>
   }
@@ -87,7 +96,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {form.phone && <Row icon={<Phone style={{ width: 12, height: 12 }} />} label={form.phone} />}
         {form.email && <Row icon={<Mail style={{ width: 12, height: 12 }} />} label={form.email} />}
-        {isPro && form.whatsapp && <Row icon={<MessageCircle style={{ width: 12, height: 12 }} />} label={form.whatsapp} sublabel="WhatsApp" />}
+        {/* WhatsApp moved to socials row (brand-coloured pill) */}
         {form.website && <Row icon={<Globe style={{ width: 12, height: 12 }} />} label={form.website.replace(/^https?:\/\//, '')} />}
         {links.map(l => <Row key={l.title} icon={<ExternalLink style={{ width: 12, height: 12 }} />} label={l.title} />)}
       </div>
@@ -193,21 +202,18 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
               </div>
             </div>
             <div style={{ width: 28, height: 2, borderRadius: 2, backgroundColor: accentHex, marginBottom: 8, boxShadow: `0 0 10px ${accentHex}88` }} />
-            {/* Logo + inline socials row */}
-            {(form.company_logo_url || hasAnySocial) && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
-                <div style={{ flex: '1 1 auto', minWidth: 0 }}><LogoZone /></div>
-                {hasAnySocial && (
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    {hasLinkedin && <div style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: accentHex + '22', color: accentHex, border: `1px solid ${accentHex}44`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ExternalLink style={{ width: 9, height: 9 }} /></div>}
-                    {hasTwitter && <div style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: accentHex + '22', color: accentHex, border: `1px solid ${accentHex}44`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Twitter style={{ width: 9, height: 9 }} /></div>}
-                    {hasInstagram && <div style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: accentHex + '22', color: accentHex, border: `1px solid ${accentHex}44`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ExternalLink style={{ width: 9, height: 9 }} /></div>}
-                    {hasFacebook && <div style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: accentHex + '22', color: accentHex, border: `1px solid ${accentHex}44`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Facebook style={{ width: 9, height: 9 }} /></div>}
-                  </div>
-                )}
+            <LogoZone />
+            {isPro && form.bio && <p style={{ fontSize: Math.max(9, getBodyFontSize(design) - 4), color: bioColor, lineHeight: 1.6, marginBottom: 10 }}>{form.bio}</p>}
+            {/* Socials row - centered UNDER the bio, in brand colours */}
+            {(hasAnySocial || (isPro && form.whatsapp)) && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 10 }}>
+                {hasLinkedin && <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: SOCIAL_BRAND_COLORS.linkedin, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 2px 6px ${SOCIAL_BRAND_COLORS.linkedin}66` }}><ExternalLink style={{ width: 10, height: 10 }} /></div>}
+                {hasTwitter && <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: SOCIAL_BRAND_COLORS.twitter, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 2px 6px ${SOCIAL_BRAND_COLORS.twitter}66` }}><Twitter style={{ width: 10, height: 10 }} /></div>}
+                {hasInstagram && <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: SOCIAL_BRAND_COLORS.instagram, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 2px 6px ${SOCIAL_BRAND_COLORS.instagram}66` }}><ExternalLink style={{ width: 10, height: 10 }} /></div>}
+                {hasFacebook && <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: SOCIAL_BRAND_COLORS.facebook, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 2px 6px ${SOCIAL_BRAND_COLORS.facebook}66` }}><Facebook style={{ width: 10, height: 10 }} /></div>}
+                {isPro && form.whatsapp && <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: SOCIAL_BRAND_COLORS.whatsapp, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 2px 6px ${SOCIAL_BRAND_COLORS.whatsapp}66` }}><MessageCircle style={{ width: 10, height: 10 }} /></div>}
               </div>
             )}
-            {isPro && form.bio && <p style={{ fontSize: Math.max(9, getBodyFontSize(design) - 4), color: bioColor, lineHeight: 1.6, marginBottom: 10 }}>{form.bio}</p>}
             <ContactList /><Certs /><SaveBtn />
           </div>
         </div>

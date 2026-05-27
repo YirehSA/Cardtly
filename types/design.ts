@@ -44,6 +44,7 @@ export interface CardDesign {
   bioColor?: string          // hex - overrides the bio paragraph colour
   bodySize?: 'small' | 'medium' | 'large'  // contact row + custom link text size
   buttonTextSize?: 'small' | 'medium' | 'large'  // Save Contact button text size
+  profileBorder?: boolean    // toggle the photo's border ring on/off (default: true)
 }
 
 export const DEFAULT_DESIGN: CardDesign = {
@@ -70,6 +71,7 @@ export const DEFAULT_DESIGN: CardDesign = {
   bioColor: undefined,
   bodySize: 'medium',
   buttonTextSize: 'medium',
+  profileBorder: true,
 }
 
 export const ACCENT_COLORS: Record<Exclude<AccentColor, 'custom'>, { label: string; hex: string }> = {

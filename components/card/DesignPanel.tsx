@@ -520,6 +520,25 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
         </div>
       </div>
 
+      {/* Profile photo border toggle - applies to every template via
+          the shared Avatar component */}
+      <div>
+        <label className="block text-sm font-semibold mb-1">Profile border</label>
+        <p className="text-xs text-muted-foreground mb-3">Show or hide the ring around the profile photo</p>
+        <div className="flex gap-3">
+          <button
+            onClick={() => update({ profileBorder: true })}
+            className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition ${(design.profileBorder ?? true) ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
+            On
+          </button>
+          <button
+            onClick={() => update({ profileBorder: false })}
+            className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition ${design.profileBorder === false ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
+            Off
+          </button>
+        </div>
+      </div>
+
       {/* Profile photo size */}
       <div>
         <label className="block text-sm font-semibold mb-1">Profile photo size</label>

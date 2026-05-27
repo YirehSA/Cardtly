@@ -59,12 +59,26 @@ function Avatar({ card, bg, accentHex, font, design, size = 112, rounded = 'full
     width: scaledSize, height: scaledSize, objectFit: 'cover', flexShrink: 0,
     borderRadius, border: `4px solid ${bg.page}`, ...extraStyle,
   }
+  // When the user toggles profileBorder OFF, force border: none. Must
+  // override AFTER extraStyle so template-specific borders are also
+  // suppressed.
+  if (design.profileBorder === false) baseStyle.border = 'none'
   if (card.profile_image_url) return <img src={card.profile_image_url} style={baseStyle} />
   return (
     <div style={{ ...baseStyle, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: scaledSize * 0.36, fontWeight: 700, fontFamily: font.heading }}>
       {card.name?.[0]?.toUpperCase()}
     </div>
   )
+}
+
+// Brand colours for the social pills. White icon on coloured circle
+// gives instant recognition vs accent-tinted everything-the-same look.
+const SOCIAL_BRAND_COLORS = {
+  linkedin: '#0a66c2',
+  twitter:  '#000000',  // X uses pure black now
+  instagram: '#E4405F',
+  facebook: '#1877F2',
+  whatsapp: '#25D366',
 }
 
 // ── ContactBtn ────────────────────────────────────────────────────────────────
@@ -91,13 +105,13 @@ function ContactBtn({ icon, label, sublabel, href, accentHex, bg, cardEffect }: 
 
 // ── AllContacts ───────────────────────────────────────────────────────────────
 function AllContacts({ card, isPro, accentHex, bg, cardEffect, socialLinks }: Pick<Shared, 'card' | 'isPro' | 'accentHex' | 'bg' | 'cardEffect'> & {
-  socialLinks: { platform: string; url: string; icon: React.ReactNode }[]
+  socialLinks: { platform: string; url: string; icon: React.ReactNode; color?: string }[]
 }) {
   return (
     <div className="space-y-2.5">
       {card.phone && <ContactBtn icon={<Phone className="w-4 h-4" />} label={card.phone} href={`tel:${card.phone}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
       {isPro && card.work_phone && <ContactBtn icon={<Phone className="w-4 h-4" />} label={card.work_phone} sublabel="Work" href={`tel:${card.work_phone}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
-      {isPro && card.whatsapp && <ContactBtn icon={<MessageCircle className="w-4 h-4" />} label={card.whatsapp} sublabel="WhatsApp" href={`https://wa.me/${card.whatsapp.replace(/\D/g, '')}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
+      {/* WhatsApp moved to socialLinks (brand-coloured pill) so it doesn't double-up here */}
       {card.email && <ContactBtn icon={<Mail className="w-4 h-4" />} label={card.email} href={`mailto:${card.email}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
       {isPro && card.address && <ContactBtn icon={<MapPin className="w-4 h-4" />} label={card.address} href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
       {card.website && <ContactBtn icon={<Globe className="w-4 h-4" />} label={card.website.replace(/^https?:\/\//, '')} href={card.website.startsWith('http') ? card.website : `https://${card.website}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
@@ -351,11 +365,12 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
     { url: card.image_5_url, link: (card as any).image_5_link },
   ].filter(item => item.url) as { url: string; link?: string }[] : []
   const socialLinks = isPro ? [
-    card.linkedin_url && { platform: 'LinkedIn', url: card.linkedin_url, icon: <Linkedin className="w-4 h-4" /> },
-    card.twitter_url && { platform: 'Twitter / X', url: card.twitter_url, icon: <Twitter className="w-4 h-4" /> },
-    card.instagram_url && { platform: 'Instagram', url: card.instagram_url, icon: <Instagram className="w-4 h-4" /> },
-    (card as any).facebook_url && { platform: 'Facebook', url: (card as any).facebook_url, icon: <Facebook className="w-4 h-4" /> },
-  ].filter(Boolean) as { platform: string; url: string; icon: React.ReactNode }[] : []
+    card.linkedin_url && { platform: 'LinkedIn', url: card.linkedin_url, icon: <Linkedin className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.linkedin },
+    card.twitter_url && { platform: 'Twitter / X', url: card.twitter_url, icon: <Twitter className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.twitter },
+    card.instagram_url && { platform: 'Instagram', url: card.instagram_url, icon: <Instagram className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.instagram },
+    (card as any).facebook_url && { platform: 'Facebook', url: (card as any).facebook_url, icon: <Facebook className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.facebook },
+    card.whatsapp && { platform: 'WhatsApp', url: `https://wa.me/${card.whatsapp.replace(/\D/g, '')}`, icon: <MessageCircle className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.whatsapp },
+  ].filter(Boolean) as { platform: string; url: string; icon: React.ReactNode; color: string }[] : []
 
   async function handleShare() {
     const url = window.location.href
@@ -485,33 +500,25 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
               </div>
             </div>
             <div className="rounded-full mb-4" style={{ width: 40, height: 3, backgroundColor: accentHex, boxShadow: `0 0 16px ${accentHex}88` }} />
-            {/* Logo + inline social icon row: logo on the left, socials
-                as compact icon buttons on the right. Hides the bigger
-                social rows from AllContacts (we pass socialLinks=[] to
-                AllContacts and render them inline here instead). */}
-            {(card.company_logo_url || socialLinks.length > 0) && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-                <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-                  <LogoZone {...shared} />
-                </div>
-                {socialLinks.length > 0 && (
-                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                    {socialLinks.map(s => (
-                      <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
-                        aria-label={s.platform}
-                        className="w-9 h-9 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95"
-                        style={{ backgroundColor: accentHex + '22', color: accentHex, border: `1px solid ${accentHex}44` }}>
-                        {s.icon}
-                      </a>
-                    ))}
-                  </div>
-                )}
+            <LogoZone {...shared} />
+            {card.bio && <p style={{ fontSize: getBodyFontSize(design), lineHeight: 1.7, marginBottom: 20, color: bioColor }}>{card.bio}</p>}
+            {/* Socials row - centered, UNDER the bio, in brand colours.
+                White icon on the platform's own brand colour, instant
+                recognition vs an accent-tinted row of identical pills. */}
+            {socialLinks.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
+                {socialLinks.map(s => (
+                  <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
+                    aria-label={s.platform}
+                    className="w-11 h-11 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95"
+                    style={{ backgroundColor: s.color, color: '#ffffff', boxShadow: `0 4px 14px ${s.color}66` }}>
+                    {s.icon}
+                  </a>
+                ))}
               </div>
             )}
-            {card.bio && <p style={{ fontSize: getBodyFontSize(design), lineHeight: 1.7, marginBottom: 24, color: bioColor }}>{card.bio}</p>}
-            {/* Pass empty socialLinks so AllContacts doesn't render the
-                bigger social rows - we already showed them above as
-                compact icons next to the logo */}
+            {/* Pass empty socialLinks so AllContacts doesn't render
+                them again - we showed them above as brand-coloured icons */}
             <AllContacts {...shared} socialLinks={[]} />
             <BottomSection {...bottomProps} />
           </div>
