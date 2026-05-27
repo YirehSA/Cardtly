@@ -44,15 +44,24 @@ const LOGO_POSITIONS: { id: LogoPosition; label: string; icon: React.ReactNode }
   { id: 'hidden', label: 'Hidden', icon: <EyeOff className="w-4 h-4" /> },
 ]
 
+type DesignTabId = 'template' | 'colours' | 'text' | 'profile' | 'button'
+
+const DESIGN_TABS: { id: DesignTabId; label: string }[] = [
+  { id: 'template', label: 'Template' },
+  { id: 'colours',  label: 'Colours' },
+  { id: 'text',     label: 'Text' },
+  { id: 'profile',  label: 'Profile' },
+  { id: 'button',   label: 'Button' },
+]
+
 export default function DesignPanel({ design, onChange, isPro }: Props) {
   const [showColorPicker, setShowColorPicker] = useState(false)
-  // Separate state for the custom card background picker, opens on click
   const [showBgPicker, setShowBgPicker] = useState(false)
-  // Template picker collapses to just the active tile + a "Change
-  // template" button. Click that to expand the full grid; clicking
-  // any template collapses it again. Makes the design panel much
-  // easier to scan when only one option is the focus.
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false)
+  // Group the previously-scrolling design panel into five tabs so
+  // navigation isn't a scroll marathon. Each tab renders its own
+  // section. Defaults to Template since that's the most common entry.
+  const [activeTab, setActiveTab] = useState<DesignTabId>('template')
   const currentAccentHex = getAccentHex(design)
   const supportsTextPosition = TEXT_POSITION_TEMPLATES.includes(design.templateId)
   const activeTemplate = TEMPLATES.find(t => t.id === design.templateId)
@@ -62,7 +71,21 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Tab bar at the top - wraps on narrow widths */}
+      <div className="flex flex-wrap gap-1 bg-muted p-1 rounded-xl">
+        {DESIGN_TABS.map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap text-center ${activeTab === tab.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      {/* Tab content - everything below this line is wrapped in
+          conditional rendering based on activeTab. The space-y-8
+          inside each tab is preserved so individual sections still
+          have breathing room. */}
+      <div className="space-y-8" style={{ display: activeTab === 'template' ? 'block' : 'none' }}>
 
       {/* Template picker - collapses to just the active tile + a
           "Change template" button when one is selected. Click that
@@ -180,6 +203,10 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
           </p>
         )}
       </div>
+      </div>{/* /Template tab */}
+
+      {/* ── COLOURS TAB ─────────────────────────────────────────── */}
+      <div className="space-y-8" style={{ display: activeTab === 'colours' ? 'block' : 'none' }}>
 
       {/* Card style — visible effect description */}
       <div>
@@ -325,6 +352,10 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
           <span className="text-xs text-muted-foreground font-mono">{currentAccentHex}</span>
         </div>
       </div>
+      </div>{/* /Colours tab */}
+
+      {/* ── BUTTON TAB ──────────────────────────────────────────── */}
+      <div className="space-y-8" style={{ display: activeTab === 'button' ? 'block' : 'none' }}>
 
       {/* Save Contact button colours */}
       <div>
@@ -426,13 +457,16 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
           </div>
         </div>
       </div>
+      </div>{/* /Button tab */}
+
+      {/* ── TEXT TAB ────────────────────────────────────────────── */}
+      <div className="space-y-8" style={{ display: activeTab === 'text' ? 'block' : 'none' }}>
 
       {/* Typography section - one row per element (Name, Title,
           Company, Bio). Each row exposes a colour swatch + native
           colour picker, and stepper buttons (-) (current %) (+) for
-          font size in 10% increments. Cleaner, faster, no scrubbing
-          a slider to land on a number. */}
-      <div className="border-t border-border pt-6">
+          font size in 10% increments. */}
+      <div>
         <label className="block text-sm font-semibold mb-1">Typography</label>
         <p className="text-xs text-muted-foreground mb-4">Adjust the size and colour of each text element</p>
 
@@ -547,6 +581,10 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
           ))}
         </div>
       </div>
+      </div>{/* /Text tab */}
+
+      {/* ── PROFILE TAB ─────────────────────────────────────────── */}
+      <div className="space-y-8" style={{ display: activeTab === 'profile' ? 'block' : 'none' }}>
 
       {/* Profile photo border toggle - applies to every template via
           the shared Avatar component */}
@@ -662,6 +700,7 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
           )}
         </div>
       )}
+      </div>{/* /Profile tab */}
 
     </div>
   )
