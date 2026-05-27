@@ -29,6 +29,7 @@ export default function Footer() {
               {[
                 { href: '/how-it-works', label: 'How it works' },
                 { href: '/pricing',       label: 'Pricing' },
+                { href: '/promotions',    label: 'Win prizes 🏆' },
                 { href: '/nfc',           label: 'NFC Cards 🇿🇦' },
                 { href: '/signup',        label: 'Get started' },
                 { href: '/login',         label: 'Sign in' },
@@ -47,10 +48,11 @@ export default function Footer() {
             <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Company</p>
             <div className="space-y-2.5">
               {[
-                { href: '/about',   label: 'About us' },
-                { href: '/contact', label: 'Contact' },
-                { href: '/privacy', label: 'Privacy policy' },
-                { href: '/terms',   label: 'Terms of service' },
+                { href: '/about',             label: 'About us' },
+                { href: '/contact',           label: 'Contact' },
+                { href: '/privacy',           label: 'Privacy policy' },
+                { href: '/terms',             label: 'Terms of service' },
+                { href: '/promotions/terms',  label: 'Promotion rules' },
               ].map(({ href, label }) => (
                 <Link key={href} href={href}
                   className="block text-sm transition hover:text-white"
