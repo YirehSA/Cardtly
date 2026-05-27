@@ -149,6 +149,25 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
         </div>
       </div>
 
+      {/* Background fill - shown for Classic only (other templates
+          have their own hero treatment) */}
+      {design.templateId === 'classic' && (
+        <div>
+          <label className="block text-sm font-semibold mb-1">Hero fill</label>
+          <p className="text-xs text-muted-foreground mb-3">Pick the colour treatment for the top band behind the photo</p>
+          <div className="flex gap-3">
+            <button onClick={() => update({ solidBackground: false })}
+              className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition ${!design.solidBackground ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
+              Gradient
+            </button>
+            <button onClick={() => update({ solidBackground: true })}
+              className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition ${design.solidBackground ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
+              Solid
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Accent colour + custom colour picker */}
       <div>
         <label className="block text-sm font-semibold mb-3">Accent colour</label>

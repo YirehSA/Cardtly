@@ -28,6 +28,10 @@ export interface CardDesign {
   buttonBgColor?: string
   buttonTextColor?: string
   buttonBorderColor?: string
+  // Hero/background fill style. When true, the hero band uses a solid
+  // colour (page bg) instead of the accent-tinted gradient. Currently
+  // only the Classic template reads this field.
+  solidBackground?: boolean
 }
 
 export const DEFAULT_DESIGN: CardDesign = {
@@ -47,6 +51,7 @@ export const DEFAULT_DESIGN: CardDesign = {
   buttonBgColor: undefined,
   buttonTextColor: undefined,
   buttonBorderColor: undefined,
+  solidBackground: false,
 }
 
 export const ACCENT_COLORS: Record<Exclude<AccentColor, 'custom'>, { label: string; hex: string }> = {

@@ -376,16 +376,20 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
   const pageStyle: React.CSSProperties = { minHeight: '100vh', backgroundColor: bg.page, color: bg.text, fontFamily: font.body }
 
   // Floating availability badge (Online now / Active 2h ago). Rendered
-  // fixed at top-center over every template so it doesn't conflict
-  // with template-specific layouts. Hidden entirely when there's no
-  // last_active_at timestamp.
+  // fixed at top-right with a 64px right offset so it sits NEXT TO the
+  // share button (which lives in the corner at right-4) instead of in
+  // the middle of the page on top of the profile photo. Hidden entirely
+  // when there's no last_active_at timestamp.
   const floatingBadge = lastActiveAt ? (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40">
+    <div className="fixed top-4 right-16 z-40">
       <AvailabilityBadge lastActiveAt={lastActiveAt} textColor={bg.text} />
     </div>
   ) : null
 
   if (design.templateId === 'classic') {
+    // Hero band background: gradient (default) or solid page colour when
+    // the user picks solidBackground in the design panel.
+    const heroBackground = design.solidBackground ? bg.page : cardEffect.heroBg
     return (
       <div style={pageStyle} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
@@ -394,17 +398,26 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
         <div className="max-w-md mx-auto">
-          <div style={{ height: 90, background: cardEffect.heroBg }} />
-          <div className="px-6 pb-10" style={{ marginTop: -56 }}>
+          {/* Hero band - either accent-tinted gradient or flat page colour.
+              When gradient, add a subtle radial accent glow for depth. */}
+          <div style={{ height: 110, background: heroBackground, position: 'relative', overflow: 'hidden' }}>
+            {!design.solidBackground && (
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 280, height: 280, background: `radial-gradient(circle, ${accentHex}22 0%, transparent 70%)`, pointerEvents: 'none' }} />
+            )}
+          </div>
+          <div className="px-6 pb-10" style={{ marginTop: -64 }}>
             <div className="text-center mb-6">
               <div style={{ display: 'inline-block', position: 'relative', zIndex: 2 }}>
-                <Avatar {...shared} size={112} />
+                <Avatar {...shared} size={120} />
               </div>
-              <h1 className="text-2xl font-bold mt-4 leading-tight" style={{ fontFamily: font.heading }}>{card.name}</h1>
-              {isPro && card.title && <p className="font-medium mt-1" style={{ color: accentHex }}>{card.title}</p>}
-              {card.company && <p className="text-sm mt-0.5" style={{ color: bg.subtext }}>{card.company}</p>}
-              <div className="mt-2"><LogoZone {...shared} /></div>
-              {card.bio && <p className="text-sm mt-4 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
+              <h1 className="text-2xl font-bold mt-4 leading-tight" style={{ fontFamily: font.heading, letterSpacing: '-0.01em' }}>{card.name}</h1>
+              {isPro && card.title && <p className="font-semibold mt-1" style={{ color: accentHex, fontSize: 14, letterSpacing: '0.04em' }}>{card.title}</p>}
+              {card.company && <p className="text-sm mt-1" style={{ color: bg.subtext }}>{card.company}</p>}
+              {/* Subtle accent rule for visual polish - sits below the
+                  title/company line, helps separate identity from bio */}
+              <div style={{ width: 40, height: 2, background: accentHex, margin: '14px auto 0', borderRadius: 2, boxShadow: `0 0 12px ${accentHex}66` }} />
+              <div className="mt-3"><LogoZone {...shared} /></div>
+              {card.bio && <p className="text-sm mt-3 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
             </div>
             <AllContacts {...shared} socialLinks={socialLinks} />
             <BottomSection {...bottomProps} />
