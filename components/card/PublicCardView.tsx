@@ -387,9 +387,11 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
   ) : null
 
   if (design.templateId === 'classic') {
-    // Hero band background: gradient (default) or solid page colour when
-    // the user picks solidBackground in the design panel.
-    const heroBackground = design.solidBackground ? bg.page : cardEffect.heroBg
+    // Hero band background: accent-tinted gradient (default) or a solid
+    // block of the accent colour when the user picks the Solid option in
+    // the design panel. Solid uses accentHex so the top band stays a
+    // distinct colour instead of disappearing into the page bg.
+    const heroBackground = design.solidBackground ? accentHex : cardEffect.heroBg
     return (
       <div style={pageStyle} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />

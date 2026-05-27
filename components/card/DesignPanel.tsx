@@ -46,8 +46,14 @@ const LOGO_POSITIONS: { id: LogoPosition; label: string; icon: React.ReactNode }
 
 export default function DesignPanel({ design, onChange, isPro }: Props) {
   const [showColorPicker, setShowColorPicker] = useState(false)
+  // Template picker collapses to just the active tile + a "Change
+  // template" button. Click that to expand the full grid; clicking
+  // any template collapses it again. Makes the design panel much
+  // easier to scan when only one option is the focus.
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false)
   const currentAccentHex = getAccentHex(design)
   const supportsTextPosition = TEXT_POSITION_TEMPLATES.includes(design.templateId)
+  const activeTemplate = TEMPLATES.find(t => t.id === design.templateId)
 
   function update(patch: Partial<CardDesign>) {
     onChange({ ...design, ...patch })
@@ -56,33 +62,27 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
   return (
     <div className="space-y-8">
 
-      {/* Template picker - real scaled-down previews so each tile
-          actually represents what that template will render */}
+      {/* Template picker - collapses to just the active tile + a
+          "Change template" button when one is selected. Click that
+          to expand the full grid. */}
       <div>
         <label className="block text-sm font-semibold mb-3">Template</label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {TEMPLATES.map(t => {
-            const locked = t.proOnly && !isPro
-            const active = design.templateId === t.id
-            // Build a per-template design state that keeps the user's
-            // accent colour but switches to this template's defaults so
-            // the tile shows that template's signature look.
-            const previewDesign: CardDesign = {
-              ...DEFAULT_DESIGN,
-              ...design,
-              templateId: t.id,
-              bgMode: t.defaultBgMode,
-            }
-            return (
-              <button
-                key={t.id}
-                onClick={() => { if (!locked) update({ templateId: t.id, bgMode: t.defaultBgMode }) }}
-                className={`relative rounded-xl overflow-hidden border-2 transition text-left ${active ? 'border-blue-500' : 'border-border hover:border-foreground/20'} ${locked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-              >
-                {/* Render the actual template at 35% scale. Outer div
-                    clips to a fixed tile size; inner div is sized 1/0.35
-                    larger so the template lays out at full width then
-                    gets scaled down without distortion. */}
+
+        {/* Collapsed view: show the active template card + a button
+            to expand. Only shown when an active template exists and
+            the picker isn't open. */}
+        {activeTemplate && !templatePickerOpen && (() => {
+          const previewDesign: CardDesign = {
+            ...DEFAULT_DESIGN,
+            ...design,
+            templateId: activeTemplate.id,
+            bgMode: activeTemplate.defaultBgMode,
+          }
+          return (
+            <div className="flex items-stretch gap-3">
+              {/* Active template preview tile - same render style as
+                  the expanded grid so toggling feels seamless */}
+              <div className="relative rounded-xl overflow-hidden border-2 border-blue-500 flex-1 max-w-[200px]">
                 <div className="relative h-32 bg-card overflow-hidden">
                   <div
                     style={{
@@ -99,17 +99,79 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
                       design={previewDesign}
                     />
                   </div>
-                  {active && <div className="absolute top-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center z-10"><Check className="w-3 h-3 text-white" /></div>}
-                  {locked && <div className="absolute top-2 right-2 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center z-10"><Lock className="w-3 h-3 text-white" /></div>}
+                  <div className="absolute top-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center z-10">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
                 </div>
                 <div className="p-2 bg-card">
-                  <p className="text-xs font-semibold leading-tight">{t.name}</p>
-                  {locked && <p className="text-xs text-muted-foreground">Pro</p>}
+                  <p className="text-xs font-semibold leading-tight">{activeTemplate.name}</p>
+                  <p className="text-xs text-muted-foreground">{activeTemplate.description}</p>
                 </div>
+              </div>
+              {/* Expand button */}
+              <button
+                onClick={() => setTemplatePickerOpen(true)}
+                className="flex-1 max-w-[200px] flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border-2 border-dashed border-border hover:border-foreground/40 hover:bg-muted/50 transition text-sm font-medium text-muted-foreground"
+              >
+                Change template
               </button>
-            )
-          })}
-        </div>
+            </div>
+          )
+        })()}
+
+        {/* Expanded view: full grid of all templates, with their
+            scaled-down real previews. Visible when the user clicks
+            "Change template" or when no template is selected yet. */}
+        {(templatePickerOpen || !activeTemplate) && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {TEMPLATES.map(t => {
+              const locked = t.proOnly && !isPro
+              const active = design.templateId === t.id
+              const previewDesign: CardDesign = {
+                ...DEFAULT_DESIGN,
+                ...design,
+                templateId: t.id,
+                bgMode: t.defaultBgMode,
+              }
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    if (locked) return
+                    update({ templateId: t.id, bgMode: t.defaultBgMode })
+                    setTemplatePickerOpen(false)
+                  }}
+                  className={`relative rounded-xl overflow-hidden border-2 transition text-left ${active ? 'border-blue-500' : 'border-border hover:border-foreground/20'} ${locked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <div className="relative h-32 bg-card overflow-hidden">
+                    <div
+                      style={{
+                        transform: 'scale(0.35)',
+                        transformOrigin: 'top left',
+                        width: 'calc(100% / 0.35)',
+                        height: 'calc(100% / 0.35)',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      <TemplatedCardPreview
+                        form={PICKER_SAMPLE_FORM}
+                        isPro={true}
+                        design={previewDesign}
+                      />
+                    </div>
+                    {active && <div className="absolute top-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center z-10"><Check className="w-3 h-3 text-white" /></div>}
+                    {locked && <div className="absolute top-2 right-2 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center z-10"><Lock className="w-3 h-3 text-white" /></div>}
+                  </div>
+                  <div className="p-2 bg-card">
+                    <p className="text-xs font-semibold leading-tight">{t.name}</p>
+                    {locked && <p className="text-xs text-muted-foreground">Pro</p>}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         {!isPro && (
           <p className="text-xs text-muted-foreground mt-2">
             <Link href="/dashboard/upgrade" className="text-primary underline">Upgrade to Pro</Link> to unlock all templates.
