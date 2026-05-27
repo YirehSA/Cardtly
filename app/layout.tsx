@@ -5,6 +5,7 @@ import { Toaster } from 'sonner'
 import CapacitorBackButton from '@/components/CapacitorBackButton'
 import CapacitorDeepLinks from '@/components/CapacitorDeepLinks'
 import CapacitorSessionRefresh from '@/components/CapacitorSessionRefresh'
+import ReferralCapture from '@/components/ReferralCapture'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         <CapacitorBackButton />
+        <ReferralCapture />
         <CapacitorDeepLinks />
         <CapacitorSessionRefresh />
       </body>

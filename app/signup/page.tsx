@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { Mail, ArrowLeft } from 'lucide-react'
+import { getStoredReferralCode, clearReferralCode } from '@/lib/referral'
 
 const schema = z.object({
   name:     z.string().min(2, 'Enter your full name'),
@@ -108,6 +109,21 @@ export default function SignupPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: userId }),
     }).catch(() => {})
+
+    // Consume any referral code stored from a ?ref= link the user
+    // hit earlier. Best-effort: if it fails for any reason, the
+    // user still gets their account - we just lose the referral
+    // attribution.
+    const referralCode = getStoredReferralCode()
+    if (referralCode) {
+      fetch('/api/referrals/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, referral_code: referralCode }),
+      })
+        .then(() => clearReferralCode())
+        .catch(() => {})
+    }
 
     // If Supabase returned a session, email confirmation is off and we
     // can take the user straight in. Otherwise the user must confirm
