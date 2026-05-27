@@ -1,55 +1,57 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, Sparkles } from 'lucide-react'
-import { TEMPLATES, DEFAULT_DESIGN, CardDesign, TemplateId, AccentColor, BgMode } from '@/types/design'
-import TemplatedCardPreview from '@/components/card/TemplatedCardPreview'
+import Image from 'next/image'
+import { useState } from 'react'
+import { ArrowRight, Sparkles, ImageIcon } from 'lucide-react'
 
-// Real template previews — same component the dashboard design picker
-// uses, just scaled down inside a fixed-height tile so the whole card
-// fits in a clean card-shaped frame. The user sees exactly what they
-// would get if they picked that template.
+// Marketing template showcase. Uses static screenshots from
+// /public/templates/ so each tile shows a real, curated example
+// of the template (a populated card with proper photo + branding)
+// rather than a scaled-down live component with placeholder data.
+//
+// Drop screenshots into /public/templates/ with the filenames listed
+// in FEATURED below. If a file is missing the tile falls back to a
+// gradient placeholder so the page still renders cleanly.
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
-// Realistic sample card so the templates look populated, not empty.
-const SAMPLE_FORM = {
-  name: 'Andre Nel',
-  title: 'Founder & CEO',
-  company: 'Yireh',
-  bio: 'Building digital products that connect people across the African continent.',
-  email: 'andre@yireh.co.za',
-  phone: '+27 82 555 1234',
-  whatsapp: '+27 82 555 1234',
-  address: 'Pretoria, South Africa',
-  website: 'yireh.co.za',
-  profile_image_url: '',
-  company_logo_url: '',
-  certifications: 'Web Design, SEO, Brand',
-  link_1_title: 'Portfolio', link_1_url: 'https://yireh.co.za',
-  link_2_title: '',          link_2_url: '',
-  link_3_title: '',          link_3_url: '',
-}
-
-// 8 of the 12 templates that have the most visual variety, paired
-// with sensible accents so each tile looks distinct in the grid.
 interface Featured {
-  id: TemplateId
+  id: string
   name: string
   tag: string
-  accent: AccentColor
-  bgMode?: BgMode
+  // Filename inside /public/templates/. Without the extension —
+  // the component tries .webp first, then .png.
+  image: string
+  // Fallback gradient if the image is missing or still being prepared.
+  fallback: string
 }
 
 const FEATURED: Featured[] = [
-  { id: 'classic',   name: 'Classic',   tag: 'Polished default',         accent: 'blue'   },
-  { id: 'modern',    name: 'Modern',    tag: 'Glass + gradient orbs',     accent: 'pink'   },
-  { id: 'executive', name: 'Executive', tag: 'Editorial luxury',          accent: 'gold'   },
-  { id: 'studio',    name: 'Studio',    tag: 'Smile-curve photo',         accent: 'orange' },
-  { id: 'wave',      name: 'Wave',      tag: 'Curved hero band',          accent: 'teal'   },
-  { id: 'bold',      name: 'Bold',      tag: 'Split hero',                accent: 'purple' },
-  { id: 'frost',     name: 'Frost',     tag: 'Soft glass pastel',         accent: 'blue',  bgMode: 'light' },
-  { id: 'editorial', name: 'Editorial', tag: 'Magazine spread',           accent: 'red',   bgMode: 'light' },
+  { id: 'classic',   name: 'Classic',   tag: 'Polished default',
+    image: 'template-classic',
+    fallback: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)' },
+  { id: 'modern',    name: 'Modern',    tag: 'Glass + gradient orbs',
+    image: 'template-modern',
+    fallback: 'radial-gradient(circle at 20% 30%, rgba(0,212,255,0.4) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(236,72,153,0.4) 0%, transparent 50%), #0a0a14' },
+  { id: 'executive', name: 'Executive', tag: 'Editorial luxury',
+    image: 'template-executive',
+    fallback: 'linear-gradient(180deg, #18181b 0%, #27272a 100%)' },
+  { id: 'studio',    name: 'Studio',    tag: 'Smile-curve photo',
+    image: 'template-studio',
+    fallback: 'linear-gradient(180deg, #0a0a0a 0%, #0a0a0a 50%, #fb923c 50%, #fb923c 100%)' },
+  { id: 'wave',      name: 'Wave',      tag: 'Curved hero band',
+    image: 'template-wave',
+    fallback: 'linear-gradient(180deg, #0ea5e9 0%, #0284c7 60%, #fef3c7 60%, #fef3c7 100%)' },
+  { id: 'bold',      name: 'Bold',      tag: 'Split hero',
+    image: 'template-bold',
+    fallback: 'linear-gradient(135deg, #4c1d95 0%, #1e1b4b 100%)' },
+  { id: 'frost',     name: 'Frost',     tag: 'Soft glass pastel',
+    image: 'template-frost',
+    fallback: 'linear-gradient(135deg, #dbeafe 0%, #e0e7ff 60%, #f3e8ff 100%)' },
+  { id: 'editorial', name: 'Editorial', tag: 'Magazine spread',
+    image: 'template-editorial',
+    fallback: 'linear-gradient(135deg, #fef9c3 0%, #fbbf24 100%)' },
 ]
 
 export default function TemplatesShowcase() {
@@ -64,11 +66,11 @@ export default function TemplatesShowcase() {
           <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
             12 designed templates.<br />
             <span style={{ background: grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-              All real. All yours.
+              One tap to switch.
             </span>
           </h2>
           <p className="text-lg max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Crafted by designers, fully customisable. Switch templates anytime &mdash; your data follows.
+            Crafted by designers, fully customisable. Try a new look every week &mdash; your data follows you.
           </p>
         </div>
 
@@ -98,14 +100,10 @@ export default function TemplatesShowcase() {
 // ── Tile ─────────────────────────────────────────────────────────
 
 function TemplateTile({ t }: { t: Featured }) {
-  // Build a CardDesign for this template (defaults + featured overrides)
-  const templateConfig = TEMPLATES.find(tc => tc.id === t.id)
-  const design: CardDesign = {
-    ...DEFAULT_DESIGN,
-    templateId: t.id,
-    accentColor: t.accent,
-    bgMode: t.bgMode || templateConfig?.defaultBgMode || 'dark',
-  }
+  // Try webp first (smaller), fall back to png, then fall back to
+  // the gradient placeholder.
+  const [errored, setErrored] = useState(false)
+  const [src, setSrc] = useState(`/templates/${t.image}.webp`)
 
   return (
     <div
@@ -115,32 +113,43 @@ function TemplateTile({ t }: { t: Featured }) {
         boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2)',
       }}
     >
-      {/* Real template preview, scaled to fit the tile */}
+      {/* Preview area — 2:3 portrait */}
       <div
         className="relative overflow-hidden"
-        style={{ height: 320, background: '#000' }}
+        style={{
+          height: 360,
+          background: errored ? t.fallback : '#000',
+        }}
       >
-        {/* Scaled inner — 0.4 means inner box is 250% the size of outer */}
-        <div
-          style={{
-            transform: 'scale(0.4)',
-            transformOrigin: 'top left',
-            width: '250%',
-            height: '250%',
-            pointerEvents: 'none',
-          }}
-        >
-          <TemplatedCardPreview
-            form={SAMPLE_FORM}
-            isPro={true}
-            design={design}
+        {!errored ? (
+          <Image
+            src={src}
+            alt={`${t.name} template`}
+            fill
+            sizes="(max-width: 768px) 50vw, 25vw"
+            className="object-cover object-top transition-transform group-hover:scale-105"
+            onError={() => {
+              // Try png if webp failed, then give up to fallback
+              if (src.endsWith('.webp')) {
+                setSrc(`/templates/${t.image}.png`)
+              } else {
+                setErrored(true)
+              }
+            }}
           />
-        </div>
+        ) : (
+          // Fallback: gradient placeholder with template name
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+            <ImageIcon className="w-8 h-8 mb-3" style={{ color: 'rgba(255,255,255,0.4)' }} />
+            <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.7)' }}>{t.name}</p>
+            <p className="text-[10px] mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>screenshot coming</p>
+          </div>
+        )}
 
-        {/* Subtle hover overlay with "Try this" hint */}
+        {/* Hover overlay */}
         <div
           className="absolute inset-0 flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-          style={{ background: 'linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.8) 100%)' }}
+          style={{ background: 'linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.85) 100%)' }}
         >
           <div
             className="px-3 py-1.5 rounded-full text-xs font-bold text-white"
