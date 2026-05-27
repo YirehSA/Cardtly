@@ -265,8 +265,8 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
   // pink-purple-blue gradient ring, company logo forced to top-centre, four
   // fixed-colour quick-action circles, gradient URL footer.
   if (design.templateId === 'minimal') {
-    const pageBg = isLight ? '#ffffff' : '#000000'
-    const ink = isLight ? '#0f172a' : '#ffffff'
+    const pageBg = design.customBgColor || (isLight ? '#ffffff' : '#000000')
+    const ink = design.customBgColor ? getReadableTextOn(design.customBgColor) : (isLight ? '#0f172a' : '#ffffff')
     const muted = isLight ? '#64748b' : 'rgba(255,255,255,0.55)'
     const titleColor = isLight ? '#475569' : 'rgba(255,255,255,0.85)'
     const RING_GRADIENT = 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 50%, #ec4899 100%)'
@@ -343,8 +343,8 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
   // magazine masthead, big name + accent rule, glass card overlap,
   // 2-column contact tile grid, glass-square social icons.
   if (design.templateId === 'executive') {
-    const pageBg = isLight ? '#fafafa' : '#000000'
-    const ink = isLight ? '#0f172a' : '#ffffff'
+    const pageBg = design.customBgColor || (isLight ? '#fafafa' : '#000000')
+    const ink = design.customBgColor ? getReadableTextOn(design.customBgColor) : (isLight ? '#0f172a' : '#ffffff')
     const muted = isLight ? '#64748b' : 'rgba(255,255,255,0.6)'
     const glassBg = isLight ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.05)'
     const tileBg = isLight ? '#ffffff' : 'rgba(255,255,255,0.05)'
@@ -565,7 +565,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
     const photoSize = calcPhotoSize(60, design)
     const neonBorder = design.cardStyle === 'glass' ? `0 0 20px ${accentHex}44` : glow
     return (
-      <div style={{ ...pageStyle, backgroundColor: '#050510' }}>
+      <div style={{ ...pageStyle, backgroundColor: design.customBgColor || '#050510' }}>
         {design.cardStyle === 'gradient' && (
           <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at top, ${accentHex}11 0%, transparent 60%)`, pointerEvents: 'none' }} />
         )}
@@ -618,7 +618,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
   // ── 10. STUDIO ────────────────────────────────────────────────────────────
   if (design.templateId === 'studio') {
     const black = '#000'
-    const lightArea = '#f5f5f5'
+    const lightArea = design.customBgColor || '#f5f5f5'
     const Mini = ({ color, children }: { color: string; children: React.ReactNode }) => (
       <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>{children}</div>
     )
@@ -666,8 +666,9 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
 
   // ── 11. FROST ─────────────────────────────────────────────────────────────
   if (design.templateId === 'frost') {
+    const frostBg = design.customBgColor || 'linear-gradient(135deg, #fef3c7 0%, #fce7f3 25%, #e0e7ff 60%, #ccfbf1 100%)'
     return (
-      <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, #fef3c7 0%, #fce7f3 25%, #e0e7ff 60%, #ccfbf1 100%)' }}>
+      <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden', background: frostBg }}>
         <div style={{ position: 'absolute', top: -40, right: -30, width: 120, height: 120, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}55 0%, transparent 70%)` }} />
         <div style={{ position: 'absolute', bottom: -30, left: -30, width: 100, height: 100, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.4) 0%, transparent 70%)' }} />
         <div style={{ position: 'relative', padding: '16px 14px', zIndex: 1 }}>
@@ -693,7 +694,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
 
   // ── 12. EDITORIAL ─────────────────────────────────────────────────────────
   if (design.templateId === 'editorial') {
-    const paper = '#fafaf9'
+    const paper = design.customBgColor || '#fafaf9'
     const ink = '#1c1917'
     const rule = '#a8a29e'
     const muted = '#78716c'

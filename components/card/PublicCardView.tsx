@@ -608,8 +608,8 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
     // quick-action buttons (green/red/blue/purple), and a gradient cardtly.com
     // footer. Other templates still honour the accent colour; Minimal uses a
     // signature palette so the look matches the design reference exactly.
-    const pageBg = isLight ? '#ffffff' : '#000000'
-    const ink = isLight ? '#0f172a' : '#ffffff'
+    const pageBg = design.customBgColor || (isLight ? '#ffffff' : '#000000')
+    const ink = design.customBgColor ? getReadableTextOn(design.customBgColor) : (isLight ? '#0f172a' : '#ffffff')
     const muted = isLight ? '#64748b' : 'rgba(255,255,255,0.55)'
     const titleColor = isLight ? '#475569' : 'rgba(255,255,255,0.85)'
     // Neon blue → purple → pink, matching the design reference. Goes
@@ -697,8 +697,8 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
     // at the bottom of the hero. A glass card overlaps the bottom of the hero
     // and floats above the page, holding the bio and contact grid. Accent
     // colour drives the rails, dividers, icon tiles, and CTA highlights.
-    const pageBg  = isLight ? '#fafafa' : '#000000'
-    const ink     = isLight ? '#0f172a' : '#ffffff'
+    const pageBg  = design.customBgColor || (isLight ? '#fafafa' : '#000000')
+    const ink     = design.customBgColor ? getReadableTextOn(design.customBgColor) : (isLight ? '#0f172a' : '#ffffff')
     const muted   = isLight ? '#64748b' : 'rgba(255,255,255,0.6)'
     const glassBg = isLight ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.04)'
     const glassBorder = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'
@@ -967,7 +967,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
   if (design.templateId === 'neon') {
     const glow = `0 0 12px ${accentHex}66`
     return (
-      <div style={{ ...pageStyle, backgroundColor: '#050510' }} className="animate-fade-up">
+      <div style={{ ...pageStyle, backgroundColor: design.customBgColor || '#050510' }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
         {founderRibbon}
@@ -1027,7 +1027,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
   // services bullet list rendered over the orange.
   if (design.templateId === 'studio') {
     const black = '#000000'
-    const lightArea = '#f0f0ef'
+    const lightArea = design.customBgColor || '#f0f0ef'
     const darkInk = '#0a0a0a'
     // Brand-coloured social action circles, matching the reference vibe.
     const STUDIO_COLORS = {
@@ -1248,7 +1248,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
   // card containing everything. Heavy backdrop-blur, light-mode dominant.
   if (design.templateId === 'frost') {
     return (
-      <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, #fef3c7 0%, #fce7f3 25%, #e0e7ff 60%, #ccfbf1 100%)' }} className="animate-fade-up">
+      <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden', background: design.customBgColor || 'linear-gradient(135deg, #fef3c7 0%, #fce7f3 25%, #e0e7ff 60%, #ccfbf1 100%)' }} className="animate-fade-up">
         {/* Decorative gradient blobs for the mesh-y feel */}
         <div style={{ position: 'absolute', top: -120, right: -80, width: 320, height: 320, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}55 0%, transparent 70%)`, pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: -100, left: -80, width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.4) 0%, transparent 70%)', pointerEvents: 'none' }} />
@@ -1308,7 +1308,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
   // Serif typography on warm paper bg. Newspaper-style: massive name, drop
   // capital lead, classical contact list with rules.
   if (design.templateId === 'editorial') {
-    const paper = '#fafaf9'
+    const paper = design.customBgColor || '#fafaf9'
     const ink = '#1c1917'
     const rule = '#a8a29e'
     const muted = '#78716c'
