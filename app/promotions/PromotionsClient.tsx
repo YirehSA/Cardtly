@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Copy, Check, Share2, Mail, Trophy, Globe, DollarSign, Car, Users, Heart, Hash } from 'lucide-react'
+import { Copy, Check, Share2, Mail, Trophy, Globe, DollarSign, Sparkles, Users, Heart, Hash } from 'lucide-react'
 
 interface Props {
   initialFilled: number
@@ -67,10 +67,10 @@ export default function PromotionsClient({ initialFilled, initialRemaining, tota
         <div className="relative max-w-5xl mx-auto px-6 pt-20 pb-12 text-center" style={{ zIndex: 1 }}>
           <p className="text-xs font-bold uppercase tracking-[0.4em] text-cyan-400 mb-4">Growth Promotions</p>
           <h1 className="font-display text-4xl md:text-6xl font-bold leading-tight mb-4" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-            Win Pro for life. <br className="hidden md:block" />Or a car.
+            Win Pro for life. <br className="hidden md:block" />And much more.
           </h1>
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
-            Four growing milestones. Better prizes the bigger we get. The earlier you join, the bigger your slice.
+            Four growing milestones. Better prizes the bigger we get. The fourth one will blow your mind &mdash; revealed when we hit 5,000 paid users.
           </p>
         </div>
       </div>
@@ -136,10 +136,10 @@ export default function PromotionsClient({ initialFilled, initialRemaining, tota
             milestone="1,000 / 2,500 / 5,000 paid"
             prize="Cash prizes of R25,000 · R75,000 · R150,000"
             tag="UPCOMING" tagColor="bg-white/10" />
-          <TierCard tier="4" icon={<Car className="w-5 h-5" />} accent="from-amber-400 to-orange-500"
+          <TierCard tier="4" icon={<Sparkles className="w-5 h-5" />} accent="from-amber-400 to-orange-500"
             milestone="10,000 paid accounts"
-            prize="Brand new Suzuki Swift GL · registered in winner's name"
-            tag="GRAND PRIZE" tagColor="bg-amber-500" />
+            prize="The ultimate grand prize · revealed at 5,000 paid users"
+            tag="MYSTERY" tagColor="bg-amber-500" />
         </div>
       </div>
 
@@ -204,7 +204,8 @@ export default function PromotionsClient({ initialFilled, initialRemaining, tota
           <FaqItem q="What counts as a paid account?" a="Any active Cardtly Pro subscription, monthly or yearly. Refunds and cancellations within 30 days don't count." />
           <FaqItem q="Do I need to follow Cardtly socially?" a="No, but it earns you bonus entries. Under SA consumer law there's always an email-only alternative entry route at contest@cardtly.com." />
           <FaqItem q="How are winners drawn?" a="Server-side random selection. Process is recorded or livestreamed for each Tier 3 + 4 milestone. Winners notified by email and listed publicly here." />
-          <FaqItem q="Who is eligible?" a="South African residents, 18+. The Tier 4 grand prize (Suzuki Swift) is registered in the winner's name and includes road tax + licensing for the first year." />
+          <FaqItem q="Who is eligible?" a="South African residents, 18+. Each prize is awarded directly to the winner with all admin (registration, taxes, transfer fees) covered by Cardtly." />
+          <FaqItem q="What's the Tier 4 grand prize?" a="That's the surprise. We'll reveal it publicly when we hit 5,000 paid users (the Tier 3 third milestone). It's bigger than everything else combined — that's all we're saying for now." />
           <FaqItem q="How long do I have to wait?" a="Tier 1 closes the moment we hit 100 founders. Tier 2 + 3 + 4 unlock as we hit the user milestones — no fixed dates, just growth." />
         </div>
       </div>

@@ -8,7 +8,7 @@ import PromotionsClient from './PromotionsClient'
 
 export const metadata = {
   title: 'Growth Promotions — Cardtly',
-  description: 'Win lifetime Pro, a custom website, cash, or a brand new Suzuki Swift. Cardtly is rewarding early adopters across four growing milestones.',
+  description: 'Win lifetime Pro, a custom website, cash, and an ultimate grand prize. Cardtly is rewarding early adopters across four growing milestones.',
 }
 
 export default async function PromotionsPage() {
