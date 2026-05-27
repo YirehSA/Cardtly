@@ -821,11 +821,18 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
   }
 
   if (design.templateId === 'wave') {
-    const waveHeroBg = design.cardStyle === 'gradient'
+    // Hero band - either accent gradient (default) or solid block of
+    // accent colour when user picks the Solid option in the design
+    // panel. Same toggle as Classic.
+    const waveGradient = design.cardStyle === 'gradient'
       ? `linear-gradient(135deg, ${accentHex}55 0%, ${accentHex}22 100%)`
       : design.cardStyle === 'glass'
         ? `linear-gradient(135deg, ${accentHex}44 0%, ${accentHex}11 100%)`
         : `linear-gradient(135deg, ${accentHex}44 0%, ${bg.page} 100%)`
+    const waveHeroBg = design.solidBackground ? accentHex : waveGradient
+    const nameFontSize = calcNameSize(22, design)
+    const titleColor = getTitleColor(design, accentHex)
+    const bioColor = getBioColor(design, bg.subtext)
     return (
       <div style={pageStyle} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
@@ -840,8 +847,8 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
                 <Avatar {...shared} size={100} rounded="xl" extraStyle={{ border: `3px solid ${accentHex}44`, borderRadius: 18 }} />
               </div>
               <div style={{ flex: 1, paddingLeft: 18, ...textNudge }}>
-                <h1 style={{ margin: '4px 0 6px', fontSize: 22, fontWeight: 800, fontFamily: font.heading, color: bg.text, lineHeight: 1.2 }}>{card.name}</h1>
-                {isPro && card.title && <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600, color: accentHex }}>{card.title}</p>}
+                <h1 style={{ margin: '4px 0 6px', fontSize: nameFontSize, fontWeight: 800, fontFamily: font.heading, color: bg.text, lineHeight: 1.2 }}>{card.name}</h1>
+                {isPro && card.title && <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600, color: titleColor }}>{card.title}</p>}
                 {card.company && <p style={{ margin: 0, fontSize: 12, color: bg.subtext }}>{card.company}</p>}
               </div>
             </div>
@@ -851,8 +858,23 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt }
           </div>
           <div className="px-6 py-4 pb-10">
             <LogoZone {...shared} />
-            {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ color: bg.subtext }}>{card.bio}</p>}
-            <AllContacts {...shared} socialLinks={socialLinks} />
+            {card.bio && <p style={{ fontSize: getBodyFontSize(design), lineHeight: 1.7, marginBottom: 20, color: bioColor }}>{card.bio}</p>}
+            {/* Brand-coloured socials row - centred UNDER the bio.
+                Same pattern as Modern. */}
+            {socialLinks.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
+                {socialLinks.map(s => (
+                  <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
+                    aria-label={s.platform}
+                    className="w-11 h-11 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95"
+                    style={{ backgroundColor: s.color, color: '#ffffff', boxShadow: `0 4px 14px ${s.color}66` }}>
+                    {s.icon}
+                  </a>
+                ))}
+              </div>
+            )}
+            {/* Empty socialLinks so AllContacts doesn't duplicate them */}
+            <AllContacts {...shared} socialLinks={[]} />
             <BottomSection {...bottomProps} />
           </div>
         </div>

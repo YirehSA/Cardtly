@@ -451,19 +451,30 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
 
   // ── 7. WAVE ───────────────────────────────────────────────────────────────
   if (design.templateId === 'wave') {
-    const waveHeroBg = design.cardStyle === 'gradient'
+    // Mirror PublicCardView Wave: solid accent block when
+    // solidBackground, otherwise the accent gradient. Brand-coloured
+    // socials row centred under the bio.
+    const waveGradient = design.cardStyle === 'gradient'
       ? `linear-gradient(135deg, ${accentHex}55 0%, ${accentHex}22 100%)`
       : design.cardStyle === 'glass'
         ? `linear-gradient(135deg, ${accentHex}44 0%, ${accentHex}11 100%)`
         : `linear-gradient(135deg, ${accentHex}33 0%, ${bg.page} 100%)`
+    const waveHeroBg = design.solidBackground ? accentHex : waveGradient
+    const nameFontSize = calcNameSize(17, design)
+    const titleColor = getTitleColor(design, accentHex)
+    const bioColor = getBioColor(design, bg.subtext)
+    const hasLinkedin = isPro && !!(form as any).linkedin_url
+    const hasTwitter  = isPro && !!(form as any).twitter_url
+    const hasFacebook = isPro && !!(form as any).facebook_url
+    const hasInstagram = isPro && !!(form as any).instagram_url
     return (
       <div style={pageStyle}>
         <div style={{ background: waveHeroBg, position: 'relative' }}>
           <div style={{ display: 'flex', padding: '20px 16px 44px', gap: 0 }}>
             <div style={{ flexShrink: 0 }}><Avatar base={80} rounded="xl" /></div>
             <div style={{ flex: 1, paddingLeft: 14, ...textNudge }}>
-              <h2 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 800, fontFamily: font.heading, color: bg.text, lineHeight: 1.2 }}>{form.name || 'Your Name'}</h2>
-              {isPro && form.title && <p style={{ margin: '0 0 3px', fontSize: 11, fontWeight: 600, color: accentHex }}>{form.title}</p>}
+              <h2 style={{ margin: '0 0 4px', fontSize: nameFontSize, fontWeight: 800, fontFamily: font.heading, color: bg.text, lineHeight: 1.2 }}>{form.name || 'Your Name'}</h2>
+              {isPro && form.title && <p style={{ margin: '0 0 3px', fontSize: 11, fontWeight: 600, color: titleColor }}>{form.title}</p>}
               {form.company && <p style={{ margin: 0, fontSize: 11, color: bg.subtext }}>{form.company}</p>}
             </div>
           </div>
@@ -473,7 +484,16 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         </div>
         <div style={{ padding: '8px 16px 20px' }}>
           <LogoZone />
-          {isPro && form.bio && <p style={{ fontSize: 11, color: bg.subtext, lineHeight: 1.6, marginBottom: 12 }}>{form.bio}</p>}
+          {isPro && form.bio && <p style={{ fontSize: Math.max(9, getBodyFontSize(design) - 3), color: bioColor, lineHeight: 1.6, marginBottom: 10 }}>{form.bio}</p>}
+          {(hasLinkedin || hasTwitter || hasInstagram || hasFacebook || (isPro && form.whatsapp)) && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 10 }}>
+              {hasLinkedin && <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: SOCIAL_BRAND_COLORS.linkedin, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 2px 6px ${SOCIAL_BRAND_COLORS.linkedin}66` }}><ExternalLink style={{ width: 10, height: 10 }} /></div>}
+              {hasTwitter && <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: SOCIAL_BRAND_COLORS.twitter, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 2px 6px ${SOCIAL_BRAND_COLORS.twitter}66` }}><Twitter style={{ width: 10, height: 10 }} /></div>}
+              {hasInstagram && <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: SOCIAL_BRAND_COLORS.instagram, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 2px 6px ${SOCIAL_BRAND_COLORS.instagram}66` }}><ExternalLink style={{ width: 10, height: 10 }} /></div>}
+              {hasFacebook && <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: SOCIAL_BRAND_COLORS.facebook, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 2px 6px ${SOCIAL_BRAND_COLORS.facebook}66` }}><Facebook style={{ width: 10, height: 10 }} /></div>}
+              {isPro && form.whatsapp && <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: SOCIAL_BRAND_COLORS.whatsapp, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 2px 6px ${SOCIAL_BRAND_COLORS.whatsapp}66` }}><MessageCircle style={{ width: 10, height: 10 }} /></div>}
+            </div>
+          )}
           <ContactList /><Certs /><SaveBtn />
         </div>
       </div>

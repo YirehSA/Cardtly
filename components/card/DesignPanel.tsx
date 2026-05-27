@@ -254,9 +254,10 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
         )}
       </div>
 
-      {/* Background fill - shown for Classic only (other templates
-          have their own hero treatment) */}
-      {design.templateId === 'classic' && (
+      {/* Background fill - shown for Classic and Wave (the two templates
+          that read solidBackground). Other templates have their own
+          hero treatment. */}
+      {(design.templateId === 'classic' || design.templateId === 'wave') && (
         <div>
           <label className="block text-sm font-semibold mb-1">Hero fill</label>
           <p className="text-xs text-muted-foreground mb-3">Pick the colour treatment for the top band behind the photo</p>
