@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
+import Link from 'next/link'
 import {
   Users, CreditCard, BarChart2, Package, Loader2,
   Search, Check, X, ChevronDown, ChevronUp, Building2,
-  Wifi, MessageSquare, Shield, Trash2, Mail, KeyRound, MailCheck
+  Wifi, MessageSquare, Shield, Trash2, Mail, KeyRound, MailCheck, Trophy
 } from 'lucide-react'
 
 interface User {
@@ -270,10 +271,16 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats, a
           style={{ background: grad }}>
           <Shield className="w-5 h-5 text-white" />
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-lg font-bold text-white">Cardtly Admin</h1>
           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Internal dashboard — restricted access</p>
         </div>
+        <Link href="/admin/promotions"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90"
+          style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' }}>
+          <Trophy className="w-4 h-4" />
+          Promotions
+        </Link>
       </div>
 
       <div className="px-8 py-6 max-w-7xl mx-auto space-y-6">
