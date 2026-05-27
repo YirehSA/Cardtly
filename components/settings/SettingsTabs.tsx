@@ -12,7 +12,7 @@ import { getBiometricStatus, hasBiometricEnabled, enableBiometric, disableBiomet
 interface Props {
   user: { id: string; email: string }
   profile: { fullName: string }
-  card?: { id: string; slug: string } | null
+  card?: { id: string; slug: string; allow_homepage_feature?: boolean | null } | null
   plan: UserPlan
   subscription: {
     subscription_tier: string
@@ -56,7 +56,7 @@ export default function SettingsTabs({ user, profile, plan, subscription, card }
 
       {/* Tab content */}
       <div className="bg-card border border-border rounded-2xl p-6">
-        {tab === 'profile' && <ProfileTab user={user} profile={profile} supabase={supabase} />}
+        {tab === 'profile' && <ProfileTab user={user} profile={profile} card={card || undefined} supabase={supabase} />}
         {tab === 'security' && <SecurityTab user={user} supabase={supabase} />}
         {tab === 'billing' && <BillingTab plan={plan} subscription={subscription} />}
         {tab === 'danger' && <DangerTab user={user} supabase={supabase} router={router} />}
@@ -74,6 +74,28 @@ function ProfileTab({ user, profile, card, supabase }: { user: Props['user']; pr
   const [slugError, setSlugError] = useState('')
   const [slugSuccess, setSlugSuccess] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [allowFeature, setAllowFeature] = useState(!!card?.allow_homepage_feature)
+  const [featureSaving, setFeatureSaving] = useState(false)
+
+  async function toggleFeature(next: boolean) {
+    if (!card?.id) return
+    setFeatureSaving(true)
+    const prev = allowFeature
+    setAllowFeature(next) // optimistic
+    const res = await fetch('/api/cards/visibility', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ card_id: card.id, allow_homepage_feature: next }),
+    })
+    if (!res.ok) {
+      setAllowFeature(prev)
+      const data = await res.json().catch(() => ({}))
+      toast.error(data.error || 'Could not save')
+    } else {
+      toast.success(next ? 'Your card may now be featured on the homepage' : 'Your card will no longer be featured')
+    }
+    setFeatureSaving(false)
+  }
 
   async function save() {
     setSaving(true)
@@ -156,6 +178,44 @@ function ProfileTab({ user, profile, card, supabase }: { user: Props['user']; pr
             <p className="text-xs text-muted-foreground mt-1.5">
               Use your name or company. e.g. <span className="font-mono">andre-nel</span> or <span className="font-mono">andre-yireh</span>. Old links still work.
             </p>
+          </div>
+        )}
+
+        {/* Homepage feature opt-in */}
+        {card && (
+          <div className="pt-2">
+            <div className="rounded-xl border border-border p-4 bg-background">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold mb-1">Feature my card on cardtly.com</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    When this is on, your card may appear in the rotating &ldquo;Real cards, real people&rdquo; section on the public Cardtly homepage. Eight cards are shown at a time and refresh daily. You can turn this off any time.
+                  </p>
+                </div>
+                {/* Toggle */}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={allowFeature}
+                  onClick={() => !featureSaving && toggleFeature(!allowFeature)}
+                  disabled={featureSaving}
+                  className="relative shrink-0 inline-flex h-7 w-12 items-center rounded-full transition disabled:opacity-50"
+                  style={{
+                    background: allowFeature
+                      ? 'linear-gradient(135deg, #00d4ff, #7c3aed)'
+                      : 'rgba(120, 120, 120, 0.3)',
+                  }}
+                >
+                  <span
+                    className="inline-block h-5 w-5 bg-white rounded-full shadow transition-transform"
+                    style={{ transform: allowFeature ? 'translateX(22px)' : 'translateX(4px)' }}
+                  />
+                </button>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-3 italic">
+                Note: your card is already publicly viewable at its own URL. This setting only controls whether we may include it in our homepage showcase.
+              </p>
+            </div>
           </div>
         )}
       </div>

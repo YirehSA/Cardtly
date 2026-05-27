@@ -4,6 +4,7 @@ import Footer from '@/components/marketing/Footer'
 import HeroSection from '@/components/marketing/HeroSection'
 import ThreeWaysToShare from '@/components/marketing/ThreeWaysToShare'
 import TemplatesShowcase from '@/components/marketing/TemplatesShowcase'
+import FeaturedCards from '@/components/marketing/FeaturedCards'
 import {
   Smartphone, Globe, BarChart2, Mail, Monitor, Users, Star, ArrowRight, Wifi, Sparkles, Zap,
 } from 'lucide-react'
@@ -165,6 +166,10 @@ export default function HomePage() {
 
       {/* Templates showcase */}
       <TemplatesShowcase />
+
+      {/* Real cards from real people, refreshed daily. Hides itself
+          if there are fewer than 8 opted-in cards in the pool. */}
+      <FeaturedCards />
 
       {/* ── How it works — kept simple ──────────────────────────────────────── */}
       <section className="py-24 px-6" style={{ background: 'rgba(255,255,255,0.02)' }}>

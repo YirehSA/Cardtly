@@ -8,6 +8,7 @@ interface CardSummary {
   id: string
   slug: string | null
   name: string | null
+  allow_homepage_feature?: boolean | null
 }
 
 export const metadata = { title: 'Settings' }
@@ -21,7 +22,7 @@ export default async function SettingsPage() {
 
   const [{ data: profile }, card] = await Promise.all([
     supabase.from('profiles').select('name').eq('user_id', user.id).maybeSingle(),
-    getPrimaryCard<CardSummary>(user.id, 'id, slug, name'),
+    getPrimaryCard<CardSummary>(user.id, 'id, slug, name, allow_homepage_feature'),
   ])
 
   const { data: sub } = await supabase
