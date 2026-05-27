@@ -125,15 +125,25 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
   // ── 1. CLASSIC ────────────────────────────────────────────────────────────
   if (design.templateId === 'classic') {
     const photoSize = calcPhotoSize(76, design)
+    // Mirror PublicCardView Classic: gradient hero by default, solid
+    // accent block when solidBackground is on. Same accent rule below
+    // the title/company so the live preview matches the real card.
+    const heroBackground = design.solidBackground ? accentHex : cardEffect.heroBg
     return (
       <div style={pageStyle}>
-        <div style={{ height: 72, background: cardEffect.heroBg }} />
+        <div style={{ height: 72, background: heroBackground, position: 'relative', overflow: 'hidden' }}>
+          {!design.solidBackground && (
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 180, height: 180, background: `radial-gradient(circle, ${accentHex}22 0%, transparent 70%)`, pointerEvents: 'none' }} />
+          )}
+        </div>
         <div style={{ padding: '0 16px 20px', marginTop: -(photoSize / 2) }}>
           <div style={{ textAlign: 'center', marginBottom: 12 }}>
-            <div style={{ display: 'inline-block', zIndex: 2, position: 'relative' }}><Avatar base={76} /></div>
-            <h2 style={{ margin: '8px 0 2px', fontSize: 17, fontWeight: 700, fontFamily: font.heading, color: bg.text }}>{form.name || 'Your Name'}</h2>
-            {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 600, color: accentHex }}>{form.title}</p>}
+            <div style={{ display: 'inline-block', zIndex: 2, position: 'relative' }}><Avatar base={76} extraStyle={{ border: 'none' }} /></div>
+            <h2 style={{ margin: '8px 0 2px', fontSize: 17, fontWeight: 700, fontFamily: font.heading, color: bg.text, letterSpacing: '-0.01em' }}>{form.name || 'Your Name'}</h2>
+            {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 600, color: accentHex, letterSpacing: '0.04em' }}>{form.title}</p>}
             {form.company && <p style={{ margin: 0, fontSize: 11, color: bg.subtext }}>{form.company}</p>}
+            {/* Accent rule matching PublicCardView */}
+            <div style={{ width: 28, height: 2, background: accentHex, margin: '8px auto 0', borderRadius: 2, boxShadow: `0 0 8px ${accentHex}66` }} />
             <LogoZone />
             {isPro && form.bio && <p style={{ margin: '4px 0 0', fontSize: 11, color: bg.subtext, lineHeight: 1.5 }}>{form.bio}</p>}
           </div>
