@@ -4,4 +4,6 @@
     <string name="title_activity_main">Cardtly</string>
     <string name="package_name">com.cardtly.app</string>
     <string name="custom_url_scheme">com.cardtly.app</string>
+    <string name="nfc_share_description">Share your Cardtly card via NFC tap</string>
+    <string name="nfc_share_aid_group">Cardtly card share</string>
 </resources>

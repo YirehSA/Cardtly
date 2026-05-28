@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    HCE service descriptor for Cardtly card sharing. Registers the
+    standard NFC Forum Type 4 Tag NDEF Application AID so any NFC
+    reader that wants to read an NDEF tag will route to our service.
+
+    requireDeviceUnlock=false lets sharing work from the lock screen
+    too - the receiving phone gets the URL without the sender having
+    to fully unlock first.
+
+    Category "other" means this isn't a payment service, so the OS
+    doesn't require the user to set a default payment app for the AID
+    to be routed here.
+-->
+<host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/nfc_share_description"
+    android:requireDeviceUnlock="false">
+    <aid-group android:description="@string/nfc_share_aid_group"
+        android:category="other">
+        <aid-filter android:name="D2760000850101" />
+    </aid-group>
+</host-apdu-service>

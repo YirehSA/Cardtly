@@ -1,4 +1,14 @@
 apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+
+// Upload-keystore config. Password MUST come from an env var or ~/.gradle/gradle.properties
+// (outside the repo), never from a file inside this project. See android/SIGNING.md.
+def cardtlyKeystorePath = System.getenv("CARDTLY_KEYSTORE_PATH") ?:
+        project.findProperty("cardtlyKeystorePath") ?:
+        "${System.properties['user.home']}/.android/cardtly-upload.jks"
+def cardtlyKeystorePassword = System.getenv("CARDTLY_KEYSTORE_PASSWORD") ?:
+        project.findProperty("cardtlyKeystorePassword") ?:
+        ""
 
 android {
     namespace = "com.cardtly.app"
@@ -7,8 +17,8 @@ android {
         applicationId "com.cardtly.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3
-        versionName "1.2"
+        versionCode 4
+        versionName "1.3"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +26,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            storeFile file(cardtlyKeystorePath)
+            storePassword cardtlyKeystorePassword
+            keyAlias "cardtly-upload"
+            keyPassword cardtlyKeystorePassword
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 }
@@ -40,6 +59,8 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    // Kotlin stdlib - required for the NfcShare HCE plugin sources.
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 }
 
 apply from: 'capacitor.build.gradle'

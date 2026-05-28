@@ -8,6 +8,7 @@ import CopyLinkButton from '@/components/dashboard/CopyLinkButton'
 import AnimatedCounter from '@/components/dashboard/AnimatedCounter'
 import OnboardingTour from '@/components/dashboard/OnboardingTour'
 import ReferralCard from '@/components/dashboard/ReferralCard'
+import TapToShareButton from '@/components/nfc/TapToShareButton'
 import {
   CreditCard, BarChart2, Eye, Users, ArrowUpRight,
   QrCode, Mail, Monitor, Sparkles, ChevronRight
@@ -175,6 +176,16 @@ export default async function DashboardPage() {
         {/* Quick actions */}
         <div className="lg:col-span-3 space-y-3">
           <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">Quick actions</p>
+          {/* Tap-to-Share — featured at the top because it's the new
+              flagship Android app feature. Works only in the native app;
+              the modal explains gracefully on web. */}
+          {card?.slug && (
+            <TapToShareButton
+              cardUrl={`https://cardtly.com/card/${card.slug}`}
+              cardName={card.name || firstName}
+              accentHex={accentHex}
+            />
+          )}
           {QUICK_ACTIONS.map(({ href, label, icon: Icon, desc, pro }) => {
             const locked = pro && !isPro
             return (

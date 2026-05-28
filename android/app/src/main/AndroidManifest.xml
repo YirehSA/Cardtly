@@ -53,6 +53,24 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Host Card Emulation service: lets the phone broadcast the
+             user's Cardtly card URL as an NDEF tag when armed via the
+             "Tap to share" modal. Other phones (and NFC readers) reading
+             standard NDEF tags will pick up the URL and open it.
+             The android:permission attribute is required by Android. -->
+        <service
+            android:name=".CardtlyHceService"
+            android:exported="true"
+            android:permission="android.permission.BIND_NFC_SERVICE">
+            <intent-filter>
+                <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.nfc.cardemulation.host_apdu_service"
+                android:resource="@xml/apduservice" />
+        </service>
     </application>
 
     <!-- Permissions -->
@@ -69,6 +87,9 @@
          (cardtly.com browsing still works without it). -->
     <uses-permission android:name="android.permission.NFC" />
     <uses-feature android:name="android.hardware.nfc" android:required="false" />
+    <!-- HCE: phone-to-phone card sharing via Host Card Emulation. Also
+         not required so non-HCE Android devices can still install. -->
+    <uses-feature android:name="android.hardware.nfc.hce" android:required="false" />
 
     <!-- Biometric plugin: USE_BIOMETRIC is the modern Android 9+ permission;
          USE_FINGERPRINT is the legacy fallback so older devices still work.
