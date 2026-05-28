@@ -52,8 +52,8 @@ export default function InAppBackButton({ bgMode = 'dark', fallbackHref = '/' }:
     <button
       onClick={handleClick}
       aria-label="Go back"
-      className="fixed top-4 left-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm transition hover:opacity-80 active:scale-95"
-      style={{ backgroundColor: bgColor }}>
+      className="fixed left-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm transition hover:opacity-80 active:scale-95"
+      style={{ backgroundColor: bgColor, top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
       <ArrowLeft className="w-5 h-5" style={{ color: iconColor }} />
     </button>
   )

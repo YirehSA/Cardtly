@@ -89,6 +89,12 @@
 }
 
 @layer utilities {
+  /* Safe-area-aware top positioning for fixed floating UI on public
+     card pages. Falls back to a plain offset on devices/browsers
+     that don't expose env(safe-area-inset-top). */
+  .safe-top-3 { top: calc(env(safe-area-inset-top, 0px) + 12px); }
+  .safe-top-15 { top: calc(env(safe-area-inset-top, 0px) + 60px); }
+
   /* Scrollbar styling */
   .scrollbar-thin {
     scrollbar-width: thin;

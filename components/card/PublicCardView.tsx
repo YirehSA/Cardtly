@@ -397,22 +397,29 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
 
   const pageStyle: React.CSSProperties = { minHeight: '100vh', backgroundColor: bg.page, color: bg.text, fontFamily: font.body }
 
-  // Floating availability badge (Online now / Active 2h ago). Rendered
-  // fixed at top-right with a 64px right offset so it sits NEXT TO the
-  // share button (which lives in the corner at right-4) instead of in
-  // the middle of the page on top of the profile photo. Hidden entirely
-  // when there's no last_active_at timestamp.
+  // Floating availability badge (Online now / Active 2h ago).
+  // Positioned in a SECOND row below the top button row (back, share)
+  // so it never sits behind the in-app back button or under the
+  // phone status bar / notch. env(safe-area-inset-top) accounts for
+  // iOS notch + Android cutouts; the +60px clears the 40px round
+  // share button at top-4 plus a small gap.
   const floatingBadge = lastActiveAt ? (
-    <div className="fixed top-4 right-16 z-40">
+    <div
+      className="fixed right-4 z-40"
+      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 60px)' }}
+    >
       <AvailabilityBadge lastActiveAt={lastActiveAt} textColor={bg.text} />
     </div>
   ) : null
 
-  // Founder ribbon (Tier 1 promotions). Anchored to the top-LEFT of
-  // every template so it doesn't compete with the share/online badges
-  // on the right. Gold gradient with optional lifetime upgrade styling.
+  // Founder ribbon (Tier 1 promotions). Same row as floatingBadge
+  // (below the back/share button row). Anchored top-LEFT so it sits
+  // under the back button instead of overlapping it.
   const founderRibbon = founderNumber ? (
-    <div className="fixed top-4 left-4 z-40">
+    <div
+      className="fixed left-4 z-40"
+      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 60px)' }}
+    >
       <div
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.12em] text-black shadow-lg"
         style={{
@@ -444,7 +451,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
         {founderRibbon}
-        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
+        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
         <div className="max-w-md mx-auto">
@@ -505,7 +512,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
         {founderRibbon}
-        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md" style={{ backgroundColor: isLight ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)' }}>
+        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md" style={{ backgroundColor: isLight ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
         <div className="max-w-md mx-auto px-4 py-10 relative" style={{ zIndex: 1 }}>
@@ -570,7 +577,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
         {founderRibbon}
-        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
+        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
           <Share2 className="w-4 h-4 text-white" />
         </button>
         <div className="max-w-md mx-auto">
@@ -638,7 +645,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
         {founderRibbon}
-        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)' }}>
+        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)' }}>
           <Share2 className="w-4 h-4" style={{ color: ink }} />
         </button>
         <div className="max-w-md mx-auto px-6 py-10">
@@ -719,7 +726,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
         {founderRibbon}
-        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: ink }} />
         </button>
         <div className="max-w-md mx-auto relative">
@@ -830,7 +837,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
         {founderRibbon}
-        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
+        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
         <div className="max-w-md mx-auto px-6 py-8 relative">
@@ -879,7 +886,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
         {founderRibbon}
-        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
+        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
         <div className="max-w-md mx-auto">
@@ -971,7 +978,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
         {founderRibbon}
-        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ border: `1px solid ${accentHex}44`, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ border: `1px solid ${accentHex}44`, backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <Share2 className="w-4 h-4" style={{ color: accentHex }} />
         </button>
         <div className="max-w-md mx-auto px-6 py-8">
@@ -1052,7 +1059,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
         {founderRibbon}
-        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.9)', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.9)', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
           <Share2 className="w-4 h-4" style={{ color: darkInk }} />
         </button>
         <div className="max-w-md mx-auto" style={{ backgroundColor: lightArea, position: 'relative' }}>
@@ -1255,7 +1262,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
         {founderRibbon}
-        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md" style={{ backgroundColor: 'rgba(255,255,255,0.5)' }}>
+        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md" style={{ backgroundColor: 'rgba(255,255,255,0.5)' }}>
           <Share2 className="w-4 h-4" style={{ color: '#0f172a' }} />
         </button>
         <div className="max-w-md mx-auto px-5 py-12 relative" style={{ zIndex: 1 }}>
@@ -1317,7 +1324,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
         <InAppBackButton bgMode={design.bgMode} />
         {floatingBadge}
         {founderRibbon}
-        <button onClick={handleShare} className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(28,25,23,0.08)' }}>
+        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(28,25,23,0.08)' }}>
           <Share2 className="w-4 h-4" style={{ color: ink }} />
         </button>
         <div className="max-w-md mx-auto px-6 py-12">
