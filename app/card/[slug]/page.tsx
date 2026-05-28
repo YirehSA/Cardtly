@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { notFound, redirect } from 'next/navigation'
 import { Metadata } from 'next'
 import PublicCardView from '@/components/card/PublicCardView'
@@ -74,8 +75,20 @@ export default async function PublicCardPage({ params }: Props) {
     .single()
 
   if (card) {
+    // Use the service-role admin client for the profile + subscription
+    // reads. These power the public card's "Online now" badge, Pro
+    // feature gates, and Founder ribbon — all intended to be visible to
+    // anonymous viewers, but the underlying tables have row-level
+    // security that blocks anon reads. Service role bypasses RLS;
+    // safe because we only SELECT, never expose user-only fields, and
+    // the page already only renders fields meant to be public.
+    const admin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    ) as any
+
     const [{ data: sub }, { data: profile }] = await Promise.all([
-      supabase
+      admin
         .from('whop_subscriptions')
         .select('subscription_tier, status')
         .eq('user_id', (card as any).user_id)
@@ -83,7 +96,7 @@ export default async function PublicCardPage({ params }: Props) {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
-      supabase
+      admin
         .from('profiles')
         .select('last_active_at, is_founder, founder_number, founder_lifetime_pro')
         .eq('user_id', (card as any).user_id)
