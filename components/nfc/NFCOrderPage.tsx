@@ -46,6 +46,13 @@ interface Props {
 type Color = 'black' | 'white'
 type Step = 'design' | 'shipping' | 'confirm'
 
+// Pricing — ZAR. Card price is fixed at R150 each; shipping is an
+// up-front estimate of R100 anywhere in SA (actual depends on
+// destination, finalised on the invoice).
+const PRICE_PER_CARD = 150
+const SHIPPING_ESTIMATE = 100
+const formatZAR = (n: number) => 'R' + n.toLocaleString('en-ZA')
+
 const SA_PROVINCES = [
   'Gauteng', 'Western Cape', 'KwaZulu-Natal', 'Eastern Cape',
   'Limpopo', 'Mpumalanga', 'North West', 'Free State', 'Northern Cape',
@@ -424,8 +431,13 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
           {/* Step 1 — Design details */}
           {step === 'design' && (
             <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="font-semibold">Who needs an NFC card?</h2>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h2 className="font-semibold">Who needs an NFC card?</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {formatZAR(PRICE_PER_CARD)} per card · {formatZAR(SHIPPING_ESTIMATE)} estimated shipping
+                  </p>
+                </div>
                 {includedLines.length > 0 && (
                   <span className="text-xs font-medium px-2.5 py-1 rounded-full" style={{ background: accentHex + '18', color: accentHex }}>
                     {includedLines.length} selected · {totalQty} card{totalQty !== 1 ? 's' : ''}
@@ -613,13 +625,20 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
 
               <div className="border-t border-border pt-4 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total cards</span>
-                  <span>{totalQty} card{totalQty !== 1 ? 's' : ''}</span>
+                  <span className="text-muted-foreground">{totalQty} card{totalQty !== 1 ? 's' : ''} × {formatZAR(PRICE_PER_CARD)}</span>
+                  <span>{formatZAR(totalQty * PRICE_PER_CARD)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Shipping (estimate)</span>
+                  <span>{formatZAR(SHIPPING_ESTIMATE)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-base border-t border-border pt-2 mt-2">
-                  <span>Total</span>
-                  <span>Invoice to follow</span>
+                  <span>Estimated total</span>
+                  <span>{formatZAR(totalQty * PRICE_PER_CARD + SHIPPING_ESTIMATE)}</span>
                 </div>
+                <p className="text-[10px] text-muted-foreground text-center pt-1">
+                  Final shipping cost confirmed on your invoice based on delivery address.
+                </p>
               </div>
 
               <div className="flex gap-3">

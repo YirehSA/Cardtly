@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
+import NativeAppRedirect from '@/components/NativeAppRedirect'
 import HeroSection from '@/components/marketing/HeroSection'
 import ThreeWaysToShare from '@/components/marketing/ThreeWaysToShare'
 import TemplatesShowcase from '@/components/marketing/TemplatesShowcase'
@@ -26,6 +27,9 @@ const TESTIMONIALS = [
 export default function HomePage() {
   return (
     <div style={{ background: '#000', color: '#fff' }}>
+      {/* In the native app, bypass the marketing page and go straight
+          to login (or dashboard if signed in). No-op on web. */}
+      <NativeAppRedirect />
       <Navbar />
 
       {/* Cinematic hero with parallax card */}

@@ -84,13 +84,16 @@ export default function Sidebar({ isPro, userName, userEmail }: SidebarProps) {
         <X className="w-4 h-4" />
       </button>
 
-      {/* Logo */}
+      {/* Logo — clicking it returns to the public marketing homepage
+          so dashboard users can always get to /  without hunting */}
       <div className="flex items-center gap-3 px-6 py-6" style={{ borderBottom: '1px solid hsl(var(--sidebar-border))' }}>
-        <img
-          src="/cardtly-logo.png"
-          alt="Cardtly"
-          className="h-14 w-auto"
-        />
+        <Link href="/" className="flex items-center hover:opacity-80 transition" aria-label="Cardtly home">
+          <img
+            src="/cardtly-logo.png"
+            alt="Cardtly"
+            className="h-14 w-auto"
+          />
+        </Link>
         {isPro && (
           <span
             className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1"

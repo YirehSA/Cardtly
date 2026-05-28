@@ -92,7 +92,7 @@ export default function NFCMarketingPage() {
               <div className="flex items-center gap-6 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
                 <span>R150 once-off</span>
                 <span>·</span>
-                <span>R90 shipping</span>
+                <span>R100 shipping</span>
                 <span>·</span>
                 <span>Pro subscribers only</span>
               </div>
@@ -194,7 +194,7 @@ export default function NFCMarketingPage() {
             {[
               { n: '01', title: 'Upgrade to Pro',    desc: 'NFC cards are a Pro feature. Start with a free Cardtly account and upgrade when ready.' },
               { n: '02', title: 'Choose your card',  desc: 'Pick Black or White. Confirm your name, job title, and shipping address. Takes 2 minutes.' },
-              { n: '03', title: 'We ship to you',    desc: 'Pay R240 (card + shipping) and your NFC card arrives within 5–7 business days anywhere in SA.' },
+              { n: '03', title: 'We ship to you',    desc: 'Pay R250 (card + shipping) and your NFC card arrives within 5–7 business days anywhere in SA.' },
             ].map(({ n, title, desc }) => (
               <div key={n}>
                 <div className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center text-xl font-black text-white"
@@ -236,10 +236,10 @@ export default function NFCMarketingPage() {
                     <span>NFC card</span><span className="text-white font-semibold">R150</span>
                   </div>
                   <div className="flex gap-8">
-                    <span>Shipping</span><span className="text-white font-semibold">R90</span>
+                    <span>Shipping</span><span className="text-white font-semibold">R100</span>
                   </div>
                   <div className="flex gap-8 text-base font-black text-white">
-                    <span>Total</span><span style={gradText}>R240</span>
+                    <span>Total</span><span style={gradText}>R250</span>
                   </div>
                 </div>
                 <Link href="/signup"

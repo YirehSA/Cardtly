@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { UserPlan } from '@/types/database'
@@ -25,8 +26,10 @@ export default function DashboardHeader({ user, plan }: Props) {
 
   return (
     <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 lg:px-8 flex-shrink-0">
-      {/* Mobile logo */}
-      <div className="lg:hidden font-display font-bold text-lg">Cardtly</div>
+      {/* Mobile logo — clickable, goes to the marketing homepage */}
+      <Link href="/" className="lg:hidden font-display font-bold text-lg hover:opacity-80 transition" aria-label="Cardtly home">
+        Cardtly
+      </Link>
       <div className="hidden lg:block" />
 
       <div className="flex items-center gap-3">
