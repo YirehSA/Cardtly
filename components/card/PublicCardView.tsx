@@ -397,28 +397,31 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
 
   const pageStyle: React.CSSProperties = { minHeight: '100vh', backgroundColor: bg.page, color: bg.text, fontFamily: font.body }
 
-  // Floating availability badge (Online now / Active 2h ago).
-  // Positioned in a SECOND row below the top button row (back, share)
-  // so it never sits behind the in-app back button or under the
-  // phone status bar / notch. env(safe-area-inset-top) accounts for
-  // iOS notch + Android cutouts; the +60px clears the 40px round
-  // share button at top-4 plus a small gap.
+  // Founder ribbon and availability badge are both centred horizontally
+  // so they sit between the back button (top-left) and share button
+  // (top-right) instead of overlapping them or covering the profile
+  // photo. The founder ribbon takes the top centre row; the "Active
+  // now" badge sits directly below it.
+  //
+  // Vertical offsets:
+  //   founderRibbon  = safe-area + 12px (same line as back/share buttons)
+  //   floatingBadge  = safe-area + 56px (below the founder pill)
+  //
+  // env(safe-area-inset-top) clears iOS notches + Android cutouts;
+  // falls back to 0 on browsers that don't expose it.
   const floatingBadge = lastActiveAt ? (
     <div
-      className="fixed right-4 z-40"
-      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 60px)' }}
+      className="fixed left-1/2 z-40"
+      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 56px)', transform: 'translateX(-50%)' }}
     >
       <AvailabilityBadge lastActiveAt={lastActiveAt} textColor={bg.text} />
     </div>
   ) : null
 
-  // Founder ribbon (Tier 1 promotions). Same row as floatingBadge
-  // (below the back/share button row). Anchored top-LEFT so it sits
-  // under the back button instead of overlapping it.
   const founderRibbon = founderNumber ? (
     <div
-      className="fixed left-4 z-40"
-      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 60px)' }}
+      className="fixed left-1/2 z-40"
+      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)', transform: 'translateX(-50%)' }}
     >
       <div
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.12em] text-black shadow-lg"
