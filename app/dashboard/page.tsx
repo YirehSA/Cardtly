@@ -7,6 +7,7 @@ import Link from 'next/link'
 import CopyLinkButton from '@/components/dashboard/CopyLinkButton'
 import AnimatedCounter from '@/components/dashboard/AnimatedCounter'
 import OnboardingTour from '@/components/dashboard/OnboardingTour'
+import ReferralCard from '@/components/dashboard/ReferralCard'
 import {
   CreditCard, BarChart2, Eye, Users, ArrowUpRight,
   QrCode, Mail, Monitor, Sparkles, ChevronRight
@@ -28,10 +29,12 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [plan, card] = await Promise.all([
+  const [plan, card, { data: profile }] = await Promise.all([
     getUserPlan(user.id),
     getPrimaryCard<CardSummary>(user.id, 'id, name, title, company, slug, view_count, color_theme, profile_image_url'),
+    supabase.from('profiles').select('referral_code').eq('user_id', user.id).maybeSingle(),
   ])
+  const referralCode = (profile as any)?.referral_code as string | null
 
   const isPro = plan.tier === 'pro' && plan.isActive
 
@@ -199,6 +202,12 @@ export default async function DashboardPage() {
           })}
         </div>
       </div>
+
+      {/* Referral card — surfaces the personal ?ref= link where users
+          actually land daily, instead of hiding it on /promotions */}
+      {referralCode && (
+        <ReferralCard referralCode={referralCode} firstName={firstName} />
+      )}
 
       {/* Pro upgrade banner for free users */}
       {!isPro && (
