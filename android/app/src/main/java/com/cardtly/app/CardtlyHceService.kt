@@ -19,6 +19,10 @@ import android.os.Bundle
 class CardtlyHceService : HostApduService() {
 
     private var selectedFile: ByteArray? = null
+    // True once the reader has successfully read the full NDEF payload
+    // - i.e. they got the URL. Used to fire the "tap success" callback
+    // in onDeactivated so the modal can play a sound + vibration.
+    private var ndefDelivered: Boolean = false
 
     override fun processCommandApdu(apdu: ByteArray?, extras: Bundle?): ByteArray {
         if (apdu == null) return SW_FAIL
@@ -49,6 +53,13 @@ class CardtlyHceService : HostApduService() {
             if (length == 0) length = 256
             if (offset >= file.size) return SW_FAIL
             val end = (offset + length).coerceAtMost(file.size)
+            // Mark delivery once the reader has read THROUGH the end of
+            // the NDEF file (signalling they got the URL). Only count
+            // it for the NDEF file - reads of the CC file don't mean
+            // a successful URL transfer.
+            if (file === NfcShareBroadcast.ndefFile && end >= file.size) {
+                ndefDelivered = true
+            }
             return file.copyOfRange(offset, end) + SW_SUCCESS
         }
 
@@ -56,8 +67,14 @@ class CardtlyHceService : HostApduService() {
     }
 
     override fun onDeactivated(reason: Int) {
-        // Reader gone or link lost. Clear the selected file but leave
-        // the broadcast armed - the user might tap a second device.
+        // Reader gone or link lost. If the reader managed to get the
+        // full NDEF payload during this session, treat it as a
+        // successful tap and notify the JS layer (sound, vibration,
+        // success animation).
+        if (ndefDelivered) {
+            NfcShareBroadcast.onTapSuccess?.invoke()
+        }
+        ndefDelivered = false
         selectedFile = null
     }
 

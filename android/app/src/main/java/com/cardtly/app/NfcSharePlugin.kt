@@ -41,6 +41,15 @@ class NfcSharePlugin : Plugin() {
             call.reject("nfc_disabled")
             return
         }
+        // Hook the success callback so the HCE service can notify JS
+        // when a reader has actually pulled the URL off our phone.
+        // We notify on the main thread because Capacitor's listener
+        // emitter expects it.
+        NfcShareBroadcast.onTapSuccess = {
+            val ev = JSObject()
+            ev.put("at", System.currentTimeMillis())
+            notifyListeners("tapSuccess", ev)
+        }
         NfcShareBroadcast.arm(url)
         val result = JSObject()
         result.put("success", true)
@@ -50,6 +59,7 @@ class NfcSharePlugin : Plugin() {
     @PluginMethod
     fun stopBroadcast(call: PluginCall) {
         NfcShareBroadcast.disarm()
+        NfcShareBroadcast.onTapSuccess = null
         val result = JSObject()
         result.put("success", true)
         call.resolve(result)

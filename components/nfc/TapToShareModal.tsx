@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { X, Wifi, AlertCircle, Settings, CheckCircle2 } from 'lucide-react'
-import { startTapToShare, stopTapToShare, checkNfcSupport } from '@/lib/nfc-share'
+import { startTapToShare, stopTapToShare, checkNfcSupport, onTapSuccess } from '@/lib/nfc-share'
 import { isNativeApp } from '@/lib/capacitor'
 
 interface Props {
@@ -15,6 +15,7 @@ interface Props {
 type State =
   | { kind: 'idle' }
   | { kind: 'broadcasting' }
+  | { kind: 'success' }
   | { kind: 'web_unsupported' }
   | { kind: 'hardware_unsupported' }
   | { kind: 'nfc_disabled' }
@@ -23,6 +24,43 @@ type State =
 // Auto-stop after this many seconds so a phone in a pocket can't
 // accidentally keep broadcasting forever.
 const AUTO_STOP_MS = 60_000
+// After a successful tap, hold the success screen this long before
+// closing the modal so the user gets clear visual confirmation.
+const SUCCESS_HOLD_MS = 1_800
+
+// Quick two-tone success chime via the Web Audio API. No external
+// asset to ship, no licensing concerns. Plays a major-third
+// "ding" - C5 -> E5 - over ~250ms.
+function playSuccessSound() {
+  try {
+    const Ctx: typeof AudioContext = (window.AudioContext || (window as any).webkitAudioContext)
+    if (!Ctx) return
+    const ctx = new Ctx()
+    const now = ctx.currentTime
+    const tones = [
+      { freq: 523.25, start: 0,     dur: 0.14 }, // C5
+      { freq: 659.25, start: 0.08,  dur: 0.18 }, // E5
+    ]
+    tones.forEach(({ freq, start, dur }) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'sine'
+      osc.frequency.value = freq
+      gain.gain.setValueAtTime(0.0001, now + start)
+      gain.gain.exponentialRampToValueAtTime(0.18, now + start + 0.015)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + start + dur)
+      osc.connect(gain).connect(ctx.destination)
+      osc.start(now + start)
+      osc.stop(now + start + dur + 0.02)
+    })
+    // Auto-close the context after the sound finishes
+    setTimeout(() => { ctx.close().catch(() => {}) }, 500)
+  } catch { /* silent */ }
+}
+
+function triggerVibration() {
+  try { navigator.vibrate?.([60, 40, 80]) } catch { /* not supported */ }
+}
 
 export default function TapToShareModal({ open, onClose, cardUrl, cardName }: Props) {
   const [state, setState] = useState<State>({ kind: 'idle' })
@@ -31,6 +69,8 @@ export default function TapToShareModal({ open, onClose, cardUrl, cardName }: Pr
     if (!open) return
     let cancelled = false
     let stopTimer: ReturnType<typeof setTimeout> | null = null
+    let successTimer: ReturnType<typeof setTimeout> | null = null
+    let unsubscribe: (() => void) | null = null
 
     ;(async () => {
       if (!isNativeApp()) {
@@ -41,6 +81,20 @@ export default function TapToShareModal({ open, onClose, cardUrl, cardName }: Pr
       if (cancelled) return
       if (!cap.supported) { setState({ kind: 'hardware_unsupported' }); return }
       if (!cap.enabled)   { setState({ kind: 'nfc_disabled' }); return }
+
+      // Subscribe to tap-success events BEFORE arming so we never
+      // miss the very first tap. The HCE service fires this when the
+      // receiving phone has fully read the NDEF payload.
+      unsubscribe = await onTapSuccess(() => {
+        playSuccessSound()
+        triggerVibration()
+        setState({ kind: 'success' })
+        // Hold the success state briefly, then close. Stop broadcasting
+        // right away - the tap is done.
+        stopTapToShare()
+        if (successTimer) clearTimeout(successTimer)
+        successTimer = setTimeout(() => onClose(), SUCCESS_HOLD_MS)
+      })
 
       const res = await startTapToShare(cardUrl)
       if (cancelled) return
@@ -62,9 +116,11 @@ export default function TapToShareModal({ open, onClose, cardUrl, cardName }: Pr
     return () => {
       cancelled = true
       if (stopTimer) clearTimeout(stopTimer)
+      if (successTimer) clearTimeout(successTimer)
+      unsubscribe?.()
       stopTapToShare()
     }
-  }, [open, cardUrl])
+  }, [open, cardUrl, onClose])
 
   if (!open) return null
 
@@ -86,6 +142,7 @@ export default function TapToShareModal({ open, onClose, cardUrl, cardName }: Pr
 
       <div className="w-full max-w-md text-center text-white">
         {state.kind === 'broadcasting' && <Broadcasting cardName={cardName} />}
+        {state.kind === 'success' && <SuccessScreen />}
         {state.kind === 'idle' && <PreparingScreen />}
         {state.kind === 'web_unsupported' && <WebUnsupportedScreen />}
         {state.kind === 'hardware_unsupported' && <NoHardwareScreen />}
@@ -140,6 +197,47 @@ function Broadcasting({ cardName }: { cardName?: string }) {
         .animate-pulse-ring   { animation: pulse-ring 2.4s ease-out infinite;       }
         .animate-pulse-ring-2 { animation: pulse-ring 2.4s ease-out 0.6s infinite;  }
         .animate-pulse-ring-3 { animation: pulse-ring 2.4s ease-out 1.2s infinite;  }
+      `}</style>
+    </>
+  )
+}
+
+function SuccessScreen() {
+  return (
+    <>
+      <div className="relative w-56 h-56 mx-auto mb-8">
+        {/* Single celebratory ring */}
+        <span className="absolute inset-0 rounded-full animate-success-ring"
+          style={{ border: '3px solid rgba(34,197,94,0.7)' }} />
+        {/* Centre puck — green gradient with checkmark */}
+        <div className="absolute inset-8 rounded-full flex items-center justify-center animate-success-pop"
+          style={{ background: 'linear-gradient(135deg, #22c55e, #10b981)', boxShadow: '0 12px 60px rgba(34,197,94,0.6)' }}>
+          <CheckCircle2 className="w-20 h-20 text-white" strokeWidth={2.5} />
+        </div>
+      </div>
+
+      <p className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-3"
+        style={{ background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.4)', color: '#22c55e' }}>
+        Shared
+      </p>
+
+      <h2 className="text-3xl font-black mb-3">Card sent!</h2>
+      <p className="text-sm leading-relaxed max-w-xs mx-auto" style={{ color: 'rgba(255,255,255,0.65)' }}>
+        Your Cardtly card just landed on their phone. They can save your contact or visit your card directly.
+      </p>
+
+      <style>{`
+        @keyframes success-pop {
+          0%   { transform: scale(0.5); }
+          60%  { transform: scale(1.08); }
+          100% { transform: scale(1);    }
+        }
+        @keyframes success-ring {
+          0%   { transform: scale(0.6); opacity: 0.9; }
+          100% { transform: scale(1.6); opacity: 0;   }
+        }
+        .animate-success-pop  { animation: success-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+        .animate-success-ring { animation: success-ring 1.2s ease-out infinite; }
       `}</style>
     </>
   )

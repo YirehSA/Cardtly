@@ -19,6 +19,14 @@ object NfcShareBroadcast {
         private set
 
     /**
+     * Callback fired by [CardtlyHceService] when a reader has just
+     * successfully read our NDEF file. Plugin assigns this in
+     * startBroadcast so it can post a Capacitor event back to JS
+     * (sound, vibration, success animation in the modal).
+     */
+    @Volatile var onTapSuccess: (() -> Unit)? = null
+
+    /**
      * Capability Container (CC) file - tells the reader where to find
      * the NDEF file and how big it is. Standard NFC Forum Type 4 Tag
      * 2.0 layout. NDEF file ID = E1 04, max NDEF size = 1024 bytes,
