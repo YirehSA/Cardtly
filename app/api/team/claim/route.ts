@@ -127,13 +127,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Could not link card to your account' }, { status: 500 })
   }
 
-  // Make sure they have a profiles row (needed for referrals, founder
-  // counts, etc.). insert-or-ignore via upsert with onConflict.
+  // Make sure they have a profiles row (needed for referrals etc.).
+  // ignoreDuplicates: true means an existing personal user (who may
+  // already be a founder) keeps their profile as-is - we only INSERT
+  // for genuinely new users created via the invite. New rows get
+  // signup_source = 'team_invite' which the founder-assignment
+  // trigger (006) uses to skip them - the Founders 100 is reserved
+  // for organic signups, not people added to an existing org.
   await admin
     .from('profiles')
     .upsert(
-      { user_id: userId, name: card.name || '' } as any,
-      { onConflict: 'user_id' }
+      { user_id: userId, name: card.name || '', signup_source: 'team_invite' } as any,
+      { onConflict: 'user_id', ignoreDuplicates: true }
     )
 
   return NextResponse.json({ success: true, card_id: card.id })
