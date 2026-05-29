@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import {
   Users, Plus, Edit2, Trash2, ExternalLink, Loader2,
-  CreditCard, ChevronDown, ChevronUp, Check, Building2, X
+  CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail, UserCheck, Send
 } from 'lucide-react'
 
 interface TeamCard {
@@ -20,6 +20,11 @@ interface TeamCard {
   profile_image_url: string | null
   is_active: boolean
   created_at: string
+  // Team-member invite fields (migration 005)
+  user_id?: string | null
+  invite_email?: string | null
+  invite_sent_at?: string | null
+  claimed_at?: string | null
 }
 
 interface Org {
@@ -62,6 +67,50 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   // Add seats
   const [showAddSeats, setShowAddSeats] = useState(false)
   const [selectedTier, setSelectedTier] = useState(0)
+
+  // Invite UI state: which card is currently showing the inline
+  // invite form, and the email being entered. Inline (no modal) so
+  // the admin can see the card while typing.
+  const [invitingCardId, setInvitingCardId] = useState<string | null>(null)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteSending, setInviteSending] = useState(false)
+
+  type InviteStatus = 'not_invited' | 'invited' | 'claimed'
+  function getInviteStatus(card: TeamCard): InviteStatus {
+    if (card.claimed_at) return 'claimed'
+    if (card.invite_sent_at && card.invite_email) return 'invited'
+    return 'not_invited'
+  }
+
+  async function sendInvite(cardId: string, email: string, resend = false) {
+    if (!email.trim()) {
+      toast.error('Enter an email address')
+      return
+    }
+    setInviteSending(true)
+    try {
+      const res = await fetch('/api/team/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ card_id: cardId, email, resend }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || 'Could not send invite')
+      } else {
+        toast.success(resend ? 'Invite email resent' : 'Invite sent')
+        // Optimistic update so the status pill flips immediately
+        setCards(prev => prev.map(c => c.id === cardId
+          ? { ...c, invite_email: email, invite_sent_at: new Date().toISOString() }
+          : c))
+        setInvitingCardId(null)
+        setInviteEmail('')
+      }
+    } catch {
+      toast.error('Network error')
+    }
+    setInviteSending(false)
+  }
 
   useEffect(() => {
     if (status === 'success') toast.success('Payment confirmed! Your team plan is active.')
@@ -439,6 +488,69 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                   {card.phone && <p className="text-xs text-muted-foreground">📞 {card.phone}</p>}
                   {card.company && <p className="text-xs text-muted-foreground truncate">🏢 {card.company}</p>}
                 </div>
+
+                {/* Member status — shows whether this card has been claimed,
+                    invited, or is still unassigned. */}
+                {(() => {
+                  const inviteStatus = getInviteStatus(card)
+                  const isInviting = invitingCardId === card.id
+                  return (
+                    <div className="mb-4">
+                      {inviteStatus === 'claimed' && (
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
+                          style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.25)' }}>
+                          <UserCheck className="w-3.5 h-3.5" />
+                          <span className="truncate">Claimed by {card.invite_email}</span>
+                        </div>
+                      )}
+                      {inviteStatus === 'invited' && !isInviting && (
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
+                          style={{ background: 'rgba(245,158,11,0.1)', color: '#b45309', border: '1px solid rgba(245,158,11,0.25)' }}>
+                          <Mail className="w-3.5 h-3.5" />
+                          <span className="flex-1 truncate">Invite sent to {card.invite_email}</span>
+                          <button onClick={() => sendInvite(card.id, card.invite_email || '', true)}
+                            disabled={inviteSending}
+                            className="text-[10px] uppercase tracking-wider font-bold hover:underline disabled:opacity-50">
+                            Resend
+                          </button>
+                        </div>
+                      )}
+                      {inviteStatus === 'not_invited' && !isInviting && (
+                        <button onClick={() => { setInvitingCardId(card.id); setInviteEmail('') }}
+                          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-dashed border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition">
+                          <Send className="w-3.5 h-3.5" />
+                          Invite team member to claim
+                        </button>
+                      )}
+                      {isInviting && (
+                        <div className="space-y-2">
+                          <input
+                            type="email"
+                            autoFocus
+                            value={inviteEmail}
+                            onChange={e => setInviteEmail(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') sendInvite(card.id, inviteEmail) }}
+                            placeholder={`${card.name?.split(' ')[0]?.toLowerCase() || 'member'}@company.com`}
+                            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                          />
+                          <div className="flex gap-2">
+                            <button onClick={() => sendInvite(card.id, inviteEmail)}
+                              disabled={inviteSending || !inviteEmail.trim()}
+                              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-50"
+                              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                              {inviteSending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                              Send invite
+                            </button>
+                            <button onClick={() => { setInvitingCardId(null); setInviteEmail('') }}
+                              className="px-3 py-2 rounded-lg text-xs font-semibold border border-border hover:bg-muted transition">
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-3 border-t border-border">
