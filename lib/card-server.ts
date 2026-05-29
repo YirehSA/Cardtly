@@ -37,3 +37,53 @@ export async function getPrimaryCard<T = Record<string, unknown>>(
   const primary = cards.find((c) => c.is_primary === true)
   return ((primary || cards[0]) as T | undefined) || null
 }
+
+/**
+ * Find the team card claimed by this user, if any. Used to power
+ * the dashboard for team members - they don't have a personal
+ * card in the `cards` table but DO have one in `team_cards` once
+ * they've claimed their invite.
+ */
+export async function getMemberTeamCard<T = Record<string, unknown>>(
+  userId: string,
+  columns: string = '*'
+): Promise<T | null> {
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  ) as any
+
+  const { data } = await admin
+    .from('team_cards')
+    .select(columns)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  return (data as T | null) || null
+}
+
+/**
+ * Resolves the right card to show on a user's dashboard. Tries
+ * personal first, falls back to a claimed team card. Returns a
+ * tagged result so callers can know which kind they got and route
+ * Edit links etc. accordingly.
+ */
+export async function getDashboardCard(
+  userId: string
+): Promise<{ kind: 'personal' | 'team' | 'none'; card: any | null }> {
+  const personal = await getPrimaryCard<any>(
+    userId,
+    'id, name, title, company, slug, view_count, color_theme, profile_image_url'
+  )
+  if (personal) return { kind: 'personal', card: personal }
+
+  const team = await getMemberTeamCard<any>(
+    userId,
+    'id, name, title, company, slug, color_theme, profile_image_url, organization_id'
+  )
+  if (team) return { kind: 'team', card: team }
+
+  return { kind: 'none', card: null }
+}

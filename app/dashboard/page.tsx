@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
-import { getPrimaryCard } from '@/lib/card-server'
+import { getPrimaryCard, getMemberTeamCard } from '@/lib/card-server'
 import { parseDesign, getAccentHex } from '@/types/design'
 import Link from 'next/link'
 import CopyLinkButton from '@/components/dashboard/CopyLinkButton'
@@ -30,36 +30,60 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [plan, card, { data: profile }] = await Promise.all([
+  const [plan, personalCard, { data: profile }] = await Promise.all([
     getUserPlan(user.id),
     getPrimaryCard<CardSummary>(user.id, 'id, name, title, company, slug, view_count, color_theme, profile_image_url'),
     supabase.from('profiles').select('referral_code').eq('user_id', user.id).maybeSingle(),
   ])
+
+  // Team-member fallback: if the user has no personal card, see if
+  // they've claimed a team card. The dashboard adapts so members see
+  // their card without needing to know about team mechanics.
+  const teamCard = personalCard ? null : await getMemberTeamCard<CardSummary & { organization_id?: string }>(
+    user.id,
+    'id, name, title, company, slug, color_theme, profile_image_url, organization_id'
+  )
+
+  const card: (CardSummary & { id: string }) | null = personalCard || (teamCard as any) || null
+  const cardKind: 'personal' | 'team' | 'none' = personalCard ? 'personal' : teamCard ? 'team' : 'none'
   const referralCode = (profile as any)?.referral_code as string | null
 
   const isPro = plan.tier === 'pro' && plan.isActive
 
-  // Fetch analytics summary (last 30 days)
+  // Fetch analytics summary (last 30 days). Stats only render for
+  // personal cards in v1 - team card events aren't tracked yet.
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
   const [{ count: viewsThisMonth }, { count: contactCount }] = await Promise.all([
-    card ? supabase
+    cardKind === 'personal' && card ? supabase
       .from('card_events')
       .select('*', { count: 'exact', head: true })
       .eq('card_id', card.id)
       .eq('event_type', 'view')
       .gte('created_at', thirtyDaysAgo) : { count: 0 },
-    card ? supabase
+    cardKind === 'personal' && card ? supabase
       .from('contacts')
       .select('*', { count: 'exact', head: true })
-      .eq('card_id', card.id) : { count: 0 },
+      .eq('card_id', card.id)
+      : cardKind === 'team' && card ? supabase
+        .from('contacts')
+        .select('*', { count: 'exact', head: true })
+        .eq('team_card_id', card.id)
+      : { count: 0 },
   ])
 
   const design = card ? parseDesign(card.color_theme) : null
   const accentHex = design ? getAccentHex(design) : '#3b82f6'
   const firstName = (card?.name || 'there').split(' ')[0]
 
+  // Team members edit their card on the team-card editor (so the
+  // locked-field UI kicks in). Personal users go to the standard
+  // /dashboard/card editor.
+  const editCardHref = cardKind === 'team' && card
+    ? `/dashboard/team/card/${card.id}`
+    : '/dashboard/card'
+
   const QUICK_ACTIONS = [
-    { href: '/dashboard/card',        label: 'Edit Card',       icon: CreditCard, desc: 'Update your info & design' },
+    { href: editCardHref,             label: 'Edit Card',       icon: CreditCard, desc: 'Update your info & design' },
     { href: '/dashboard/qr',          label: 'QR Code',         icon: QrCode,     desc: 'Download and share' },
     { href: '/dashboard/analytics',   label: 'Analytics',       icon: BarChart2,  desc: 'Views, clicks & more' },
     { href: '/dashboard/email-signature', label: 'Email Sig',   icon: Mail,       desc: 'Generate your signature', pro: true },
@@ -131,8 +155,10 @@ export default async function DashboardPage() {
         <div className="lg:col-span-2">
           <div className="rounded-2xl border border-border bg-card overflow-hidden h-full">
             <div className="p-5 border-b border-border flex items-center justify-between">
-              <p className="font-semibold text-sm">Your card</p>
-              <Link href="/dashboard/card"
+              <p className="font-semibold text-sm">
+                Your card{cardKind === 'team' && <span className="ml-2 text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded" style={{ background: accentHex + '20', color: accentHex }}>Team</span>}
+              </p>
+              <Link href={editCardHref}
                 className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition">
                 Edit <ArrowUpRight className="w-3 h-3" />
               </Link>
