@@ -24,20 +24,34 @@ export default async function TeamCardPage({ params }: { params: Promise<{ id: s
 
   if (!card) notFound()
 
+  // Resolve the org first (every team card belongs to one) so we
+  // know who the admin is. Service-role lookup so members - who
+  // don't have read RLS on organizations - can still be matched.
   const { data: org } = await admin
     .from('organizations')
     .select('id, name, admin_user_id')
     .eq('id', card.organization_id)
-    .eq('admin_user_id', user.id)
     .single()
 
-  if (!org) redirect('/dashboard/team')
+  if (!org) notFound()
+
+  // Two valid editor identities:
+  //   admin   - the org's admin_user_id. Can edit everything.
+  //   member  - the team card's claimed user_id (their own card).
+  //             Personal fields editable, branded fields locked.
+  // Anyone else gets bounced to the dashboard.
+  const isOrgAdmin = org.admin_user_id === user.id
+  const isCardOwner = (card as any).user_id === user.id
+  if (!isOrgAdmin && !isCardOwner) redirect('/dashboard')
+
+  const role: 'admin' | 'member' = isOrgAdmin ? 'admin' : 'member'
 
   return (
     <TeamCardEditor
       card={card}
       org={org}
       userId={user.id}
+      role={role}
     />
   )
 }

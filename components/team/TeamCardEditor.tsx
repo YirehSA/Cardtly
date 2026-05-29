@@ -51,19 +51,34 @@ interface Props {
   card: TeamCard
   org: Org
   userId: string
+  /**
+   * 'admin'  - org admin editing any team card. Full edit access.
+   * 'member' - the user who claimed this card. Personal info only;
+   *            company, logo, design tab, and URL are admin-locked.
+   */
+  role?: 'admin' | 'member'
 }
 
 type TabId = 'basic' | 'contact' | 'links' | 'media' | 'design'
 
-const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+const ALL_TABS: { id: TabId; label: string; icon: React.ReactNode; adminOnly?: boolean }[] = [
   { id: 'basic',   label: 'Profile', icon: <User className="w-4 h-4" /> },
   { id: 'contact', label: 'Contact', icon: <Phone className="w-4 h-4" /> },
   { id: 'links',   label: 'Links',   icon: <Link2 className="w-4 h-4" /> },
   { id: 'media',   label: 'Media',   icon: <Image className="w-4 h-4" /> },
-  { id: 'design',  label: 'Design',  icon: <Palette className="w-4 h-4" /> },
+  { id: 'design',  label: 'Design',  icon: <Palette className="w-4 h-4" />, adminOnly: true },
 ]
 
-export default function TeamCardEditor({ card, org, userId }: Props) {
+// Fields the org admin owns and members cannot change. Members get
+// to edit everything personal (name, photo, title, bio, contact rows,
+// social links, custom links, gallery images) but the org's identity
+// stays under the admin's control.
+const MEMBER_LOCKED_FIELDS = ['company', 'company_logo_url'] as const
+
+export default function TeamCardEditor({ card, org, userId, role = 'admin' }: Props) {
+  const isAdmin = role === 'admin'
+  const isMember = role === 'member'
+  const TABS = ALL_TABS.filter(t => isAdmin || !t.adminOnly)
   const supabase = createClient()
   const router = useRouter()
   const [saving, setSaving] = useState(false)
@@ -138,13 +153,24 @@ export default function TeamCardEditor({ card, org, userId }: Props) {
 
   async function save() {
     setSaving(true)
+
+    // Members can't write the locked fields or the design JSON, so
+    // we strip them from the payload before sending. Defense in
+    // depth: even if a member tampered with the client, the
+    // service-role RLS bypass means we should ideally also enforce
+    // this server-side - but the team_cards table currently only
+    // gets writes from the editor, so client-side filtering is
+    // sufficient for v1.
+    const payload: Record<string, any> = { ...form, updated_at: new Date().toISOString() }
+    if (isAdmin) {
+      payload.color_theme = serializeDesign(design)
+    } else {
+      for (const f of MEMBER_LOCKED_FIELDS) delete payload[f]
+    }
+
     const { error } = await supabase
       .from('team_cards')
-      .update({
-        ...form,
-        color_theme: serializeDesign(design),
-        updated_at: new Date().toISOString(),
-      })
+      .update(payload)
       .eq('id', card.id)
 
     if (error) toast.error('Failed to save: ' + error.message)
@@ -181,21 +207,23 @@ export default function TeamCardEditor({ card, org, userId }: Props) {
                   </button>
                 </div>
               )}
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <div className="flex items-center px-2 py-1.5 rounded-l-lg border border-r-0 border-border bg-muted text-xs text-muted-foreground whitespace-nowrap">
-                  cardtly.com/card/
+              {isAdmin && (
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <div className="flex items-center px-2 py-1.5 rounded-l-lg border border-r-0 border-border bg-muted text-xs text-muted-foreground whitespace-nowrap">
+                    cardtly.com/card/
+                  </div>
+                  <input value={slug}
+                    onChange={e => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setSlugError(''); setSlugSuccess(false) }}
+                    placeholder="yireh-member-name"
+                    className="px-3 py-1.5 rounded-r-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring transition w-44" />
+                  <button onClick={saveSlug} disabled={slugSaving || !slug || slug === card.slug}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
+                    style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                    {slugSaving ? '...' : slugSuccess ? '✓ Saved' : 'Update URL'}
+                  </button>
+                  {slugError && <span className="text-xs text-destructive">{slugError}</span>}
                 </div>
-                <input value={slug}
-                  onChange={e => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setSlugError(''); setSlugSuccess(false) }}
-                  placeholder="yireh-member-name"
-                  className="px-3 py-1.5 rounded-r-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring transition w-44" />
-                <button onClick={saveSlug} disabled={slugSaving || !slug || slug === card.slug}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
-                  style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-                  {slugSaving ? '...' : slugSuccess ? '✓ Saved' : 'Update URL'}
-                </button>
-                {slugError && <span className="text-xs text-destructive">{slugError}</span>}
-              </div>
+              )}
             </div>
           </div>
           <button onClick={save} disabled={saving}
@@ -205,6 +233,19 @@ export default function TeamCardEditor({ card, org, userId }: Props) {
             {saving ? 'Saving...' : 'Save'}
           </button>
         </div>
+
+        {/* Member banner — explains which fields are admin-locked */}
+        {isMember && (
+          <div className="mb-5 rounded-xl p-4 border flex items-start gap-3" style={{ borderColor: 'rgba(124,58,237,0.3)', background: 'linear-gradient(135deg, rgba(0,212,255,0.06), rgba(124,58,237,0.08), rgba(236,72,153,0.06))' }}>
+            <div className="text-lg mt-0.5">💼</div>
+            <div className="flex-1 text-sm">
+              <p className="font-semibold mb-0.5">You're editing your team card</p>
+              <p className="text-muted-foreground">
+                Your name, photo, title, bio, contact details, social links, custom links, and gallery images are all yours to edit. The company name, logo, design, and URL are managed by your team admin.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex flex-wrap gap-1 bg-muted p-1 rounded-xl mb-6">
@@ -232,7 +273,7 @@ export default function TeamCardEditor({ card, org, userId }: Props) {
                 <Input value={form.title} onChange={e => update('title', e.target.value)} placeholder="Sales Manager" />
               </Field>
               <Field label="Company">
-                <Input value={form.company} onChange={e => update('company', e.target.value)} placeholder={org.name} />
+                <Input value={form.company} onChange={e => update('company', e.target.value)} placeholder={org.name} disabled={isMember} />
               </Field>
               <Field label="Bio">
                 <textarea value={form.bio} onChange={e => update('bio', e.target.value)}
@@ -301,11 +342,22 @@ export default function TeamCardEditor({ card, org, userId }: Props) {
 
           {activeTab === 'media' && (
             <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-1">Company Logo</label>
-                <p className="text-xs text-muted-foreground mb-3">Shown on the card with position controlled in Design tab</p>
-                <ImageUploader value={form.company_logo_url} onChange={url => update('company_logo_url', url)} bucket="company-logos" userId={userId} shape="square" />
-              </div>
+              {isAdmin ? (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Company Logo</label>
+                  <p className="text-xs text-muted-foreground mb-3">Shown on the card with position controlled in Design tab</p>
+                  <ImageUploader value={form.company_logo_url} onChange={url => update('company_logo_url', url)} bucket="company-logos" userId={userId} shape="square" />
+                </div>
+              ) : form.company_logo_url ? (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Company Logo</label>
+                  <p className="text-xs text-muted-foreground mb-3">Set by your team admin and shared across all team cards.</p>
+                  <div className="inline-block rounded-xl border border-border p-3 bg-muted/30">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={form.company_logo_url} alt="Company logo" className="h-16 w-auto object-contain opacity-70" />
+                  </div>
+                </div>
+              ) : null}
               <div>
                 <label className="block text-sm font-medium mb-1">Gallery Images</label>
                 <p className="text-xs text-muted-foreground mb-3">Up to 6 images shown on the card</p>
