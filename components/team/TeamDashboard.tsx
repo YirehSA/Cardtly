@@ -74,6 +74,9 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   const [invitingCardId, setInvitingCardId] = useState<string | null>(null)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteSending, setInviteSending] = useState(false)
+  // Which card is mid-cancel or mid-revoke - we just block the
+  // buttons during the round-trip to avoid double-fires.
+  const [actioningCardId, setActioningCardId] = useState<string | null>(null)
 
   type InviteStatus = 'not_invited' | 'invited' | 'claimed'
   function getInviteStatus(card: TeamCard): InviteStatus {
@@ -110,6 +113,55 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
       toast.error('Network error')
     }
     setInviteSending(false)
+  }
+
+  async function cancelInvite(cardId: string) {
+    if (!confirm('Cancel this pending invite? The claim link will stop working immediately.')) return
+    setActioningCardId(cardId)
+    try {
+      const res = await fetch('/api/team/cancel-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ card_id: cardId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || 'Could not cancel')
+      } else {
+        toast.success('Invite cancelled')
+        setCards(prev => prev.map(c => c.id === cardId
+          ? { ...c, invite_email: null, invite_sent_at: null }
+          : c))
+      }
+    } catch {
+      toast.error('Network error')
+    }
+    setActioningCardId(null)
+  }
+
+  async function revokeMember(cardId: string, memberEmail: string | null | undefined) {
+    const label = memberEmail ? memberEmail : 'this member'
+    if (!confirm(`Remove ${label}'s access to this card? Their Cardtly account stays active; they just lose ownership of this team card.`)) return
+    setActioningCardId(cardId)
+    try {
+      const res = await fetch('/api/team/revoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ card_id: cardId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || 'Could not revoke')
+      } else {
+        toast.success('Access revoked')
+        setCards(prev => prev.map(c => c.id === cardId
+          ? { ...c, user_id: null, invite_email: null, invite_sent_at: null, claimed_at: null }
+          : c))
+      }
+    } catch {
+      toast.error('Network error')
+    }
+    setActioningCardId(null)
   }
 
   useEffect(() => {
@@ -497,22 +549,43 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                   return (
                     <div className="mb-4">
                       {inviteStatus === 'claimed' && (
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
-                          style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.25)' }}>
-                          <UserCheck className="w-3.5 h-3.5" />
-                          <span className="truncate">Claimed by {card.invite_email}</span>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
+                            style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.25)' }}>
+                            <UserCheck className="w-3.5 h-3.5" />
+                            <span className="flex-1 truncate">Claimed by {card.invite_email}</span>
+                            <button onClick={() => revokeMember(card.id, card.invite_email)}
+                              disabled={actioningCardId === card.id}
+                              title="Remove this member's access. Card is preserved; admin keeps managing it."
+                              className="text-[10px] uppercase tracking-wider font-bold hover:underline disabled:opacity-50">
+                              Revoke
+                            </button>
+                          </div>
                         </div>
                       )}
                       {inviteStatus === 'invited' && !isInviting && (
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
-                          style={{ background: 'rgba(245,158,11,0.1)', color: '#b45309', border: '1px solid rgba(245,158,11,0.25)' }}>
-                          <Mail className="w-3.5 h-3.5" />
-                          <span className="flex-1 truncate">Invite sent to {card.invite_email}</span>
-                          <button onClick={() => sendInvite(card.id, card.invite_email || '', true)}
-                            disabled={inviteSending}
-                            className="text-[10px] uppercase tracking-wider font-bold hover:underline disabled:opacity-50">
-                            Resend
-                          </button>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
+                            style={{ background: 'rgba(245,158,11,0.1)', color: '#b45309', border: '1px solid rgba(245,158,11,0.25)' }}>
+                            <Mail className="w-3.5 h-3.5" />
+                            <span className="flex-1 truncate">Invite sent to {card.invite_email}</span>
+                          </div>
+                          <div className="flex items-center gap-3 px-1">
+                            <button onClick={() => sendInvite(card.id, card.invite_email || '', true)}
+                              disabled={inviteSending || actioningCardId === card.id}
+                              className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground hover:text-foreground disabled:opacity-50">
+                              Resend
+                            </button>
+                            <button onClick={() => { setInvitingCardId(card.id); setInviteEmail(card.invite_email || '') }}
+                              className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground hover:text-foreground">
+                              Change email
+                            </button>
+                            <button onClick={() => cancelInvite(card.id)}
+                              disabled={actioningCardId === card.id}
+                              className="text-[10px] uppercase tracking-wider font-bold text-destructive/80 hover:text-destructive disabled:opacity-50 ml-auto">
+                              Cancel
+                            </button>
+                          </div>
                         </div>
                       )}
                       {inviteStatus === 'not_invited' && !isInviting && (

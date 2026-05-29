@@ -80,8 +80,17 @@ export async function POST(request: Request) {
     .maybeSingle()
   const inviterName = (adminProfile as any)?.name || user.email || 'A team admin'
 
-  // Generate or reuse the invite token
-  const token = (isResend && card.invite_token)
+  // Token reuse rule:
+  //   * resend with the SAME email -> keep the existing token so the
+  //     old email's link is still valid (no orphan link)
+  //   * email CHANGED (admin fixing a typo or sending to a different
+  //     person) -> generate a fresh token. That immediately
+  //     invalidates the old email's link so whoever received it
+  //     can't claim the card anymore.
+  //   * first-time invite -> generate a fresh token.
+  const previousEmail = (card as any).invite_email as string | null
+  const emailChanged = !!previousEmail && previousEmail !== trimmedEmail
+  const token = (isResend && card.invite_token && !emailChanged)
     ? card.invite_token as string
     : crypto.randomBytes(24).toString('base64url')
 
