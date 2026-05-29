@@ -28,6 +28,17 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com'),
   openGraph: { type: 'website', siteName: 'Cardtly' },
   twitter: { card: 'summary_large_image' },
+  // Browser tab icon + iOS "Add to Home Screen" icon. The PNG lives
+  // in /public/favicon.png (the Cardtly C logo on transparent bg).
+  // Next.js serves /public files at the root, so /favicon.png is
+  // the correct URL for both.
+  icons: {
+    icon: [
+      { url: '/favicon.png', type: 'image/png' },
+    ],
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
