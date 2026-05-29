@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import {
   ArrowLeft, Crown, Users, Trophy, Gift, Sparkles, DollarSign, Globe,
-  TrendingUp, Heart, Hash, AtSign, Award, Dice5, Loader2,
+  TrendingUp, Heart, Hash, AtSign, Award, Dice5, Loader2, X,
 } from 'lucide-react'
 
 interface Founder {
@@ -94,6 +94,35 @@ export default function PromotionsAdmin({
   counter, founders, referrals, refStats, entriesBySource, totalEntries, topUsers, winners, activePaidCount, totalUsers,
 }: Props) {
   const [tab, setTab] = useState<Tab>('overview')
+
+  // Local mirror of the founders list so removing a row updates the
+  // UI without a page reload. The server count stays accurate via
+  // the trigger - next signup reclaims the freed slot.
+  const [localFounders, setLocalFounders] = useState<Founder[]>(founders)
+  const [removingFounderId, setRemovingFounderId] = useState<string | null>(null)
+
+  async function removeFounder(f: Founder) {
+    const label = f.email || `Founder #${f.founder_number}`
+    if (!confirm(`Remove ${label} from the Founders 100? Slot #${f.founder_number} returns to the pool and the next organic signup claims it. If they're on the 3-month grant it will be cancelled.`)) return
+    setRemovingFounderId(f.user_id)
+    try {
+      const res = await fetch('/api/admin/founders/remove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: f.user_id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || 'Could not remove founder')
+      } else {
+        toast.success(`Slot #${f.founder_number} freed`)
+        setLocalFounders(prev => prev.filter(x => x.user_id !== f.user_id))
+      }
+    } catch {
+      toast.error('Network error')
+    }
+    setRemovingFounderId(null)
+  }
 
   // Draw form state
   const [drawTier, setDrawTier] = useState<string>('tier1_founder_lifetime')
@@ -187,7 +216,7 @@ export default function PromotionsAdmin({
         <div className="max-w-7xl mx-auto px-6 flex gap-1 overflow-x-auto">
           {([
             ['overview', 'Overview'],
-            ['founders', `Founders (${founders.length})`],
+            ['founders', `Founders (${localFounders.length})`],
             ['referrals', `Referrals (${referrals.length})`],
             ['entries', `Entries (${totalEntries})`],
             ['winners', `Winners (${localWinners.length})`],
@@ -351,13 +380,13 @@ export default function PromotionsAdmin({
             <div className="px-6 py-4 border-b border-border flex items-center justify-between">
               <h2 className="text-lg font-bold flex items-center gap-2">
                 <Crown className="w-5 h-5" style={{ color: '#f59e0b' }} />
-                Founders ({founders.length} / 100)
+                Founders ({localFounders.length} / 100)
               </h2>
               <p className="text-xs text-muted-foreground">
-                Ordered by signup
+                Ordered by signup · Remove to free a slot
               </p>
             </div>
-            {founders.length === 0 ? (
+            {localFounders.length === 0 ? (
               <div className="px-6 py-12 text-center text-muted-foreground">
                 No founders yet. They'll appear here as new users sign up.
               </div>
@@ -372,10 +401,11 @@ export default function PromotionsAdmin({
                       <th className="px-4 py-3 text-left">Ref code</th>
                       <th className="px-4 py-3 text-left">Plan</th>
                       <th className="px-4 py-3 text-left">3m ends</th>
+                      <th className="px-4 py-3 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {founders.map((f) => (
+                    {localFounders.map((f) => (
                       <tr key={f.user_id} className="border-t border-border hover:bg-muted/20">
                         <td className="px-4 py-3 font-mono tabular-nums">{f.founder_number}</td>
                         <td className="px-4 py-3">{f.email}</td>
@@ -399,6 +429,18 @@ export default function PromotionsAdmin({
                           )}
                         </td>
                         <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(f.period_end)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button onClick={() => removeFounder(f)}
+                            disabled={removingFounderId === f.user_id}
+                            title="Remove founder status. Slot returns to the pool."
+                            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md transition disabled:opacity-50"
+                            style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }}>
+                            {removingFounderId === f.user_id
+                              ? <Loader2 className="w-3 h-3 animate-spin" />
+                              : <X className="w-3 h-3" />}
+                            Remove
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
