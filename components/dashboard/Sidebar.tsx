@@ -52,38 +52,18 @@ export default function Sidebar({ isPro, userName, userEmail }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile hamburger */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 lg:hidden w-10 h-10 rounded-xl flex items-center justify-center bg-card border border-border"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
-
-      {/* Overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
+      {/* Mobile uses MobileBottomNav instead of this sidebar - the
+          hamburger that used to live here was removed. Sidebar is
+          desktop-only now (lg:flex, hidden on smaller breakpoints). */}
 
       <aside
-        className={`fixed top-0 left-0 h-screen flex flex-col z-50 transition-transform duration-300 lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 left-0 h-screen flex-col z-50 hidden lg:flex lg:translate-x-0`}
         style={{
           width: 'var(--sidebar-width)',
         background: 'hsl(var(--sidebar-bg))',
         borderRight: '1px solid hsl(var(--sidebar-border))',
       }}
     >
-      {/* Close button mobile only */}
-      <button
-        onClick={() => setMobileOpen(false)}
-        className="absolute top-3 right-3 lg:hidden w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition"
-      >
-        <X className="w-4 h-4" />
-      </button>
-
       {/* Logo — clicking it returns to the public marketing homepage
           so dashboard users can always get to /  without hunting */}
       <div className="flex items-center gap-3 px-6 py-6" style={{ borderBottom: '1px solid hsl(var(--sidebar-border))' }}>

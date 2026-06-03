@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
 import { ThemeProvider } from '@/components/dashboard/ThemeProvider'
 import Sidebar from '@/components/dashboard/Sidebar'
+import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
 import CommandPalette from '@/components/CommandPalette'
 import AnnouncementBanner from '@/components/AnnouncementBanner'
 import HeartbeatPing from '@/components/dashboard/HeartbeatPing'
@@ -28,7 +29,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
           userEmail={user.email || ''}
         />
         <main className="min-h-screen transition-all duration-300 lg:[padding-left:var(--sidebar-width)]">
-          <div className="max-w-6xl mx-auto px-4 sm:px-8 pt-16 lg:pt-10 pb-10">
+          {/* Bottom padding leaves room for the mobile bottom nav so
+              the last scroll item isn't covered. lg:pb-10 reverts to
+              the original spacing on desktop where the bar is hidden. */}
+          <div className="max-w-6xl mx-auto px-4 sm:px-8 pt-16 lg:pt-10 pb-28 lg:pb-10">
             <AnnouncementBanner />
             <div className="animate-fade-in-page">
               {children}
@@ -37,6 +41,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </main>
         <CommandPalette />
         <HeartbeatPing />
+        <MobileBottomNav />
       </div>
     </ThemeProvider>
   )
