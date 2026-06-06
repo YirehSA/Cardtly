@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useTheme } from './ThemeProvider'
 import {
   CreditCard, BarChart2, Mail, Monitor, Users,
-  Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi, Building2, Menu, X
+  Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi, Building2, Menu, X, Shield
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -27,11 +27,12 @@ const NAV = [
 
 interface SidebarProps {
   isPro: boolean
+  isAdmin?: boolean
   userName: string
   userEmail: string
 }
 
-export default function Sidebar({ isPro, userName, userEmail }: SidebarProps) {
+export default function Sidebar({ isPro, isAdmin = false, userName, userEmail }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
   const { theme, toggle } = useTheme()
@@ -126,6 +127,34 @@ export default function Sidebar({ isPro, userName, userEmail }: SidebarProps) {
             </Link>
           )
         })}
+
+        {/* Admin link — only rendered when the current user is an
+            admin (founder admin OR profiles.is_admin=true). Sits at
+            the bottom of the main nav with a subtle accent border so
+            it's clearly a different section. */}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            prefetch={true}
+            className="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden mt-3"
+            data-active={pathname.startsWith('/admin')}
+            style={{
+              border: '1px dashed hsl(var(--sidebar-border))',
+              background: pathname.startsWith('/admin') ? 'hsl(var(--sidebar-accent) / 0.12)' : 'transparent',
+            }}
+          >
+            <Shield
+              className="w-4 h-4 flex-shrink-0 transition-all duration-200 group-hover:scale-110 relative z-10"
+              style={{ color: 'hsl(var(--sidebar-accent))' }}
+            />
+            <span
+              className="relative z-10 font-semibold"
+              style={{ color: pathname.startsWith('/admin') ? 'hsl(var(--sidebar-active))' : 'hsl(var(--sidebar-fg))' }}
+            >
+              Admin
+            </span>
+          </Link>
+        )}
       </nav>
 
       {/* Bottom section */}

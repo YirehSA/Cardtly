@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
+import { isAdminUser } from '@/lib/admin-check'
 import { ThemeProvider } from '@/components/dashboard/ThemeProvider'
 import Sidebar from '@/components/dashboard/Sidebar'
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
@@ -13,9 +14,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [plan, { data: card }] = await Promise.all([
+  const [plan, { data: card }, isAdmin] = await Promise.all([
     getUserPlan(user.id),
     supabase.from('cards').select('name').eq('user_id', user.id).maybeSingle(),
+    isAdminUser(user.id),
   ])
 
   const isPro = plan.tier === 'pro' && plan.isActive
@@ -25,6 +27,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="min-h-screen bg-background">
         <Sidebar
           isPro={isPro}
+          isAdmin={isAdmin}
           userName={card?.name || ''}
           userEmail={user.email || ''}
         />
@@ -41,7 +44,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </main>
         <CommandPalette />
         <HeartbeatPing />
-        <MobileBottomNav />
+        <MobileBottomNav isAdmin={isAdmin} />
       </div>
     </ThemeProvider>
   )

@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   Users, CreditCard, BarChart2, Package, Loader2,
   Search, Check, X, ChevronDown, ChevronUp, Building2,
-  Wifi, MessageSquare, Shield, Trash2, Mail, KeyRound, MailCheck, Trophy
+  Wifi, MessageSquare, Shield, Trash2, Mail, KeyRound, MailCheck, Trophy, ArrowLeft
 } from 'lucide-react'
 
 interface User {
@@ -20,6 +20,7 @@ interface User {
   signup_city?: string | null
   signup_region?: string | null
   isPro: boolean
+  isAdmin?: boolean
   subscription: any
   org: any
 }
@@ -137,6 +138,20 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats, a
       setLocalUsers(prev => prev.map(u => u.id === user.id ? { ...u, isPro: false } : u))
       toast.success(`Pro deactivated for ${user.email}`)
     } else toast.error(data.error)
+    setLoading(null)
+  }
+
+  async function toggleAdmin(user: User) {
+    const next = !user.isAdmin
+    if (!next && !confirm(`Remove admin access from ${user.email}?`)) return
+    setLoading(`admin-${user.id}`)
+    const data = await api({ action: 'set_admin', user_id: user.id, value: next })
+    if (data.success) {
+      setLocalUsers(prev => prev.map(u => u.id === user.id ? { ...u, isAdmin: next } : u))
+      toast.success(next ? `${user.email} is now an admin` : `Admin removed from ${user.email}`)
+    } else {
+      toast.error(data.error || 'Could not update')
+    }
     setLoading(null)
   }
 
@@ -275,6 +290,12 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats, a
           <h1 className="text-lg font-bold text-white">Cardtly Admin</h1>
           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Internal dashboard — restricted access</p>
         </div>
+        <Link href="/dashboard"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition hover:bg-white/10"
+          style={{ color: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.18)' }}>
+          <ArrowLeft className="w-4 h-4" />
+          Dashboard
+        </Link>
         <Link href="/admin/promotions"
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90"
           style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' }}>
@@ -502,6 +523,13 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats, a
                           style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>Free</span>
                       )}
 
+                      {user.isAdmin && (
+                        <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-semibold"
+                          style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24' }}>
+                          <Shield className="w-3 h-3" />Admin
+                        </span>
+                      )}
+
                       {user.isPro ? (
                         <button onClick={() => deactivatePro(user)}
                           disabled={loading === `depro-${user.id}`}
@@ -519,6 +547,18 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats, a
                           Activate Pro
                         </button>
                       )}
+
+                      {/* Make/Revoke admin toggle */}
+                      <button onClick={() => toggleAdmin(user)}
+                        disabled={loading === `admin-${user.id}`}
+                        title={user.isAdmin ? 'Revoke admin access' : 'Grant admin access (sees /admin in their sidebar)'}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition hover:opacity-80 disabled:opacity-50"
+                        style={user.isAdmin
+                          ? { background: 'rgba(239,68,68,0.15)', color: '#f87171' }
+                          : { background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' }}>
+                        {loading === `admin-${user.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Shield className="w-3 h-3" />}
+                        {user.isAdmin ? 'Remove admin' : 'Make admin'}
+                      </button>
 
                       <button onClick={() => resendConfirmation(user)}
                         disabled={loading === `confirm-${user.id}`}

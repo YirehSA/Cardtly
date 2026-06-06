@@ -2,16 +2,14 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import PromotionsAdmin from '@/components/admin/PromotionsAdmin'
-
-// Same hardcoded admin gate as the main /admin page.
-const ADMIN_USER_ID = '6216ca40-72e5-47f2-af6a-a37d35f9d169'
+import { isAdminUser } from '@/lib/admin-check'
 
 export const metadata = { title: 'Promotions Admin' }
 
 export default async function PromotionsAdminPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.id !== ADMIN_USER_ID) {
+  if (!await isAdminUser(user?.id)) {
     redirect('/dashboard')
   }
 

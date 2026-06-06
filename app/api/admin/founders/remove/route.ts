@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { isAdminUser } from '@/lib/admin-check'
 
 // POST /api/admin/founders/remove
 // Body: { user_id: string }
@@ -17,14 +18,12 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 // too - they shouldn't keep Pro for free if they're no longer
 // a founder. A user who upgraded with their own card stays Pro.
 //
-// Only the hardcoded admin (info@yireh.co.za) can call this.
-
-const ADMIN_USER_ID = '6216ca40-72e5-47f2-af6a-a37d35f9d169'
+// Any admin (hardcoded founder admin OR profiles.is_admin=true) can call this.
 
 export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.id !== ADMIN_USER_ID) {
+  if (!await isAdminUser(user?.id)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

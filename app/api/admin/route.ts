@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-
-const ADMIN_USER_ID = '6216ca40-72e5-47f2-af6a-a37d35f9d169'
+import { isAdminUser, FOUNDER_ADMIN_USER_ID } from '@/lib/admin-check'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.id !== ADMIN_USER_ID) {
+  if (!await isAdminUser(user?.id)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -232,6 +231,29 @@ export async function POST(request: Request) {
   if (action === 'clear_announcement') {
     await admin.from('app_announcements').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000')
     return NextResponse.json({ success: true })
+  }
+
+  // Toggle a user's is_admin flag. Granting is unrestricted across
+  // admins; revoking has guards so we don't lock out the founder
+  // admin or revoke yourself by mistake.
+  if (action === 'set_admin') {
+    const { user_id, value } = body as { user_id?: string; value?: boolean }
+    if (!user_id || typeof value !== 'boolean') {
+      return NextResponse.json({ error: 'Missing user_id or value' }, { status: 400 })
+    }
+    if (!value && user_id === FOUNDER_ADMIN_USER_ID) {
+      return NextResponse.json({ error: 'Cannot revoke the founder admin' }, { status: 400 })
+    }
+    if (!value && user_id === user!.id) {
+      return NextResponse.json({ error: 'Cannot revoke your own admin access' }, { status: 400 })
+    }
+    // upsert so it works even if a profiles row is missing for this
+    // user (shouldn't happen, but defensive).
+    const { error } = await admin
+      .from('profiles')
+      .upsert({ user_id, is_admin: value } as any, { onConflict: 'user_id' })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, is_admin: value })
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 })

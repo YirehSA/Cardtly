@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-
-// Hardcoded admin gate — same pattern as /app/admin/page.tsx.
-const ADMIN_USER_ID = '6216ca40-72e5-47f2-af6a-a37d35f9d169'
+import { isAdminUser } from '@/lib/admin-check'
 
 // POST /api/admin/promotions/draw
 // Body: { tier: string, n_winners: number, prize: string, source_filter?: string, dry_run?: boolean }
@@ -33,7 +31,7 @@ export async function POST(request: Request) {
   // 1. Auth gate
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.id !== ADMIN_USER_ID) {
+  if (!await isAdminUser(user?.id)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

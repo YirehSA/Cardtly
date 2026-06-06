@@ -2,9 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import AdminDashboard from '@/components/admin/AdminDashboard'
-
-// Your user ID — only you can access this
-const ADMIN_USER_ID = '6216ca40-72e5-47f2-af6a-a37d35f9d169'
+import { isAdminUser, FOUNDER_ADMIN_USER_ID } from '@/lib/admin-check'
 
 export const metadata = { title: 'Admin' }
 
@@ -12,7 +10,7 @@ export default async function AdminPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user || user.id !== ADMIN_USER_ID) {
+  if (!await isAdminUser(user?.id)) {
     redirect('/dashboard')
   }
 
@@ -37,7 +35,7 @@ export default async function AdminPage() {
     admin.from('organizations').select('*').order('created_at', { ascending: false }),
     admin.from('nfc_orders').select('*').order('created_at', { ascending: false }),
     admin.from('contacts').select('id, created_at').order('created_at', { ascending: false }),
-    admin.from('profiles').select('user_id, signup_country, signup_country_code, signup_city, signup_region, signup_ip'),
+    admin.from('profiles').select('user_id, signup_country, signup_country_code, signup_city, signup_region, signup_ip, is_admin'),
   ])
 
   const { data: activeAnnouncement } = await admin
@@ -68,6 +66,10 @@ export default async function AdminPage() {
       subscription: subMap[u.id] || null,
       org: orgMap[u.id] || null,
       isPro: subMap[u.id]?.status === 'active' && subMap[u.id]?.subscription_tier === 'pro',
+      // is_admin from the profile row OR the hardcoded founder id.
+      // Either grants admin access via the isAdminUser helper, so
+      // we reflect both here for the UI.
+      isAdmin: !!p.is_admin || u.id === FOUNDER_ADMIN_USER_ID,
     }
   })
 

@@ -9,7 +9,7 @@ import { disableBiometric } from '@/lib/biometric'
 import {
   Home, CreditCard, QrCode, BarChart2,
   Users, Mail, Monitor, Wifi, Building2, Settings as SettingsIcon,
-  Sun, Moon, LogOut,
+  Sun, Moon, LogOut, Shield,
   ChevronUp, X,
 } from 'lucide-react'
 
@@ -49,7 +49,11 @@ const MORE_TABS: Tab[] = [
   { href: '/dashboard/settings',         label: 'Settings',        icon: SettingsIcon },
 ]
 
-export default function MobileBottomNav() {
+interface Props {
+  isAdmin?: boolean
+}
+
+export default function MobileBottomNav({ isAdmin = false }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const { theme, toggle } = useTheme()
@@ -58,8 +62,13 @@ export default function MobileBottomNav() {
   // Close the More sheet whenever we navigate away.
   useEffect(() => { setMoreOpen(false) }, [pathname])
 
+  // Visible More items = the base 6 + Admin if granted
+  const moreTabs: Tab[] = isAdmin
+    ? [...MORE_TABS, { href: '/admin', label: 'Admin', icon: Shield }]
+    : MORE_TABS
+
   // Active any time the current page is one of the More items
-  const moreActive = MORE_TABS.some(t => isActive(pathname, t.href))
+  const moreActive = moreTabs.some(t => isActive(pathname, t.href))
 
   async function signOut() {
     try { await disableBiometric() } catch {}
@@ -107,7 +116,7 @@ export default function MobileBottomNav() {
             </div>
 
             <div className="grid grid-cols-3 gap-2 px-4 py-3">
-              {MORE_TABS.map(({ href, label, icon: Icon }) => {
+              {moreTabs.map(({ href, label, icon: Icon }) => {
                 const active = isActive(pathname, href)
                 return (
                   <Link

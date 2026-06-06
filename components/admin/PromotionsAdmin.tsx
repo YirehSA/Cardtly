@@ -198,8 +198,12 @@ export default function PromotionsAdmin({
       <div className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Link href="/admin" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition">
+            <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition">
               <ArrowLeft className="w-4 h-4" />
+              Dashboard
+            </Link>
+            <span className="text-muted-foreground/40">/</span>
+            <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground transition">
               Admin
             </Link>
             <span className="text-muted-foreground/40">/</span>
