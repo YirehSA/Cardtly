@@ -170,38 +170,86 @@ export async function POST(request: Request) {
     if (!user_id || typeof user_id !== 'string') {
       return NextResponse.json({ error: 'user_id required' }, { status: 400 })
     }
-    if (user_id === ADMIN_USER_ID) {
-      return NextResponse.json({ error: 'Cannot delete the admin account from here' }, { status: 400 })
+    if (user_id === FOUNDER_ADMIN_USER_ID) {
+      return NextResponse.json({ error: 'Cannot delete the founder admin account from here' }, { status: 400 })
+    }
+    if (user_id === user!.id) {
+      return NextResponse.json({ error: 'Cannot delete yourself from here' }, { status: 400 })
+    }
+
+    // Helper: try a delete, capture the error but don't bail out the
+    // whole transaction. Some rows may not exist for every user;
+    // we only abort if the actual auth.users delete fails at the end.
+    const steps: Array<{ step: string; error?: string }> = []
+    async function step(name: string, op: Promise<{ error: any }>): Promise<void> {
+      try {
+        const { error } = await op
+        if (error) steps.push({ step: name, error: error.message || String(error) })
+        else steps.push({ step: name })
+      } catch (e: any) {
+        steps.push({ step: name, error: e?.message || String(e) })
+      }
     }
 
     try {
+      // 1. Personal cards + their dependents
       const { data: userCards } = await admin.from('cards').select('id').eq('user_id', user_id)
       const cardIds = (userCards || []).map((c: { id: string }) => c.id)
-
       if (cardIds.length > 0) {
-        await admin.from('contacts').delete().in('card_id', cardIds)
-        await admin.from('slug_redirects').delete().in('card_id', cardIds)
+        await step('contacts (by card_id)',      admin.from('contacts').delete().in('card_id', cardIds))
+        await step('slug_redirects',             admin.from('slug_redirects').delete().in('card_id', cardIds))
+        await step('card_events',                admin.from('card_events').delete().in('card_id', cardIds))
       }
 
+      // 2. Team-card relationships
+      //    a. If they OWN an org (admin), kill the team cards under it
       const { data: userOrgs } = await admin.from('organizations').select('id').eq('admin_user_id', user_id)
       const orgIds = (userOrgs || []).map((o: { id: string }) => o.id)
       if (orgIds.length > 0) {
-        await admin.from('team_cards').delete().in('organization_id', orgIds)
+        const { data: teamCards } = await admin.from('team_cards').select('id').in('organization_id', orgIds)
+        const teamCardIds = (teamCards || []).map((c: { id: string }) => c.id)
+        if (teamCardIds.length > 0) {
+          await step('contacts (by team_card_id)', admin.from('contacts').delete().in('team_card_id', teamCardIds))
+        }
+        await step('team_cards (owned org)',    admin.from('team_cards').delete().in('organization_id', orgIds))
       }
-      await admin.from('organizations').delete().eq('admin_user_id', user_id)
-      await admin.from('nfc_orders').delete().eq('user_id', user_id)
-      await admin.from('whop_subscriptions').delete().eq('user_id', user_id)
-      await admin.from('cards').delete().eq('user_id', user_id)
-      await admin.from('profiles').delete().eq('user_id', user_id)
+      //    b. If they CLAIMED a team card (member), release it back to admin
+      await step('team_cards (member claim release)',
+        admin.from('team_cards').update({
+          user_id: null,
+          claimed_at: null,
+          invite_email: null,
+          invite_token: null,
+          invite_sent_at: null,
+        } as any).eq('user_id', user_id))
 
+      // 3. Promotions data — FKs are on delete cascade for these, but
+      //    do it explicitly so a misconfigured FK can't silently block.
+      await step('referrals (as referrer)', admin.from('referrals').delete().eq('referrer_user_id', user_id))
+      await step('referrals (as referred)', admin.from('referrals').delete().eq('referred_user_id', user_id))
+      await step('promo_entries',           admin.from('promo_entries').delete().eq('user_id', user_id))
+      await step('promo_winners',           admin.from('promo_winners').delete().eq('user_id', user_id))
+
+      // 4. Org, subs, NFC orders, primary cards, profile
+      await step('organizations',     admin.from('organizations').delete().eq('admin_user_id', user_id))
+      await step('nfc_orders',        admin.from('nfc_orders').delete().eq('user_id', user_id))
+      await step('whop_subscriptions', admin.from('whop_subscriptions').delete().eq('user_id', user_id))
+      await step('cards',             admin.from('cards').delete().eq('user_id', user_id))
+      await step('profiles',          admin.from('profiles').delete().eq('user_id', user_id))
+
+      // 5. The auth row itself — this is the one that must succeed.
       const { error: authError } = await admin.auth.admin.deleteUser(user_id)
       if (authError) {
-        return NextResponse.json({ error: authError.message }, { status: 500 })
+        // Bubble up details of which prior steps failed so we can debug.
+        const stepErrors = steps.filter(s => s.error).map(s => `${s.step}: ${s.error}`).join(' | ')
+        return NextResponse.json({
+          error: `${authError.message}${stepErrors ? ' — prior failures: ' + stepErrors : ''}`,
+        }, { status: 500 })
       }
-      return NextResponse.json({ success: true })
+      return NextResponse.json({ success: true, steps })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Deletion failed'
-      return NextResponse.json({ error: message }, { status: 500 })
+      return NextResponse.json({ error: message, steps }, { status: 500 })
     }
   }
 
