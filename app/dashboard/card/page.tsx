@@ -37,6 +37,24 @@ export default async function CardPage() {
 
   const plan = await getUserPlan(user.id)
 
+  // Team-member route: if the user has no personal card but DOES
+  // own a claimed team card, send them to the team-card editor
+  // (where the locked-field UI lives). Without this guard, we
+  // would silently auto-create a duplicate empty personal card and
+  // then prioritise it on the dashboard, hiding their real team
+  // card from view.
+  if (!card) {
+    const { data: teamCard } = await admin
+      .from('team_cards')
+      .select('id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle()
+    if (teamCard) {
+      redirect(`/dashboard/team/card/${teamCard.id}`)
+    }
+  }
+
   if (!card) {
     const firstName = user.email?.split('@')[0] || 'user'
     const slug = `${firstName}-${Math.random().toString(36).slice(2, 7)}`

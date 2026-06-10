@@ -128,18 +128,41 @@ export async function POST(request: Request) {
   }
 
   // Make sure they have a profiles row (needed for referrals etc.).
-  // ignoreDuplicates: true means an existing personal user (who may
-  // already be a founder) keeps their profile as-is - we only INSERT
-  // for genuinely new users created via the invite. New rows get
-  // signup_source = 'team_invite' which the founder-assignment
-  // trigger (006) uses to skip them - the Founders 100 is reserved
-  // for organic signups, not people added to an existing org.
+  //
+  // Subtle: a Supabase auth-side trigger can create the profile row
+  // before this code runs, with the default signup_source='organic',
+  // which trips the founder-assignment trigger and gives a slot to
+  // someone who's actually a team invitee. ignoreDuplicates avoids
+  // overwriting existing organic users joining a team, but it ALSO
+  // misses fixing those default-organic rows for new users.
+  //
+  // So: only for users we just created in this request (no
+  // existingUser), explicitly UPDATE signup_source and undo any
+  // founder fields the trigger may have set. Existing organic users
+  // are left alone - their original signup_source + founder status
+  // are preserved.
+  const wasJustCreated = !existingUser
+
   await admin
     .from('profiles')
     .upsert(
       { user_id: userId, name: card.name || '', signup_source: 'team_invite' } as any,
       { onConflict: 'user_id', ignoreDuplicates: true }
     )
+
+  if (wasJustCreated) {
+    // Force the values that should always hold for a team-invite
+    // signup, in case some trigger raced ahead of us.
+    await admin
+      .from('profiles')
+      .update({
+        signup_source: 'team_invite',
+        is_founder: false,
+        founder_number: null,
+        founder_lifetime_pro: false,
+      } as any)
+      .eq('user_id', userId)
+  }
 
   return NextResponse.json({ success: true, card_id: card.id })
 }
