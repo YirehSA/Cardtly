@@ -9,7 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { ArrowRight, Wifi, Fingerprint, Eye, EyeOff, Mail, Lock } from 'lucide-react'
-import { getBiometricStatus, hasBiometricEnabled, signInWithBiometric, enableBiometric } from '@/lib/biometric'
+import { getBiometricStatus, hasBiometricEnabled, signInWithBiometric, enableBiometric, disableBiometric } from '@/lib/biometric'
 
 const schema = z.object({
   email:    z.string().email('Enter a valid email'),
@@ -72,7 +72,14 @@ function LoginForm() {
       }
       const { error } = await supabase.auth.refreshSession({ refresh_token: result.refreshToken })
       if (error) {
-        toast.error('Session expired. Sign in with password.')
+        // The stored refresh token is dead (server-side invalidated
+        // OR expired by TTL). Auto-clear the bad credentials so the
+        // user isn't stuck re-trying biometric with a dead token,
+        // and hide the biometric button until they re-enable it
+        // after a successful password sign-in.
+        try { await disableBiometric() } catch { /* noop */ }
+        setShowBiometricButton(false)
+        toast.error('Saved biometric expired — sign in with your password to re-enable it.', { duration: 6000 })
         setBiometricBusy(false)
         return
       }
