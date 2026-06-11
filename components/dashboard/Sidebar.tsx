@@ -8,7 +8,6 @@ import {
   Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi, Building2, Shield,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { disableBiometric } from '@/lib/biometric'
 
 // Each nav item gets its own brand-pillar colour. Icons render
 // inside a small chip - desaturated by default, fully lit on
@@ -42,7 +41,11 @@ export default function Sidebar({ isPro, isAdmin = false, userName, userEmail }:
   const supabase = createClient()
 
   async function signOut() {
-    try { await disableBiometric() } catch {}
+    // Biometric credentials are NOT cleared on sign-out. They stay
+    // in the device's secure store so the user can biometrically
+    // restore the session on next login without being re-prompted
+    // every single time. To clear them explicitly, the user can
+    // toggle biometric OFF from /dashboard/settings.
     await supabase.auth.signOut()
     router.push('/login')
   }

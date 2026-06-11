@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTheme } from './ThemeProvider'
 import { createClient } from '@/lib/supabase/client'
-import { disableBiometric } from '@/lib/biometric'
 import {
   Home, CreditCard, QrCode, BarChart2,
   Users, Mail, Monitor, Wifi, Building2, Settings as SettingsIcon,
@@ -71,7 +70,10 @@ export default function MobileBottomNav({ isAdmin = false }: Props) {
   const moreActive = moreTabs.some(t => isActive(pathname, t.href))
 
   async function signOut() {
-    try { await disableBiometric() } catch {}
+    // Biometric stays enabled across sign-outs - the user can
+    // disable it explicitly from /dashboard/settings if they want
+    // to. Auto-clearing on every sign-out meant the next login
+    // re-prompted "enable biometric?" forever.
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/login')
