@@ -24,9 +24,64 @@ const TESTIMONIALS = [
   { name: 'Priya N.', role: 'Real Estate Agent',  text: 'The analytics tell me exactly which properties people clicked after viewing my card.' },
 ]
 
+// Synchronous pre-paint script.
+//
+// Lives inline in the document head so it runs BEFORE the browser
+// paints any marketing content. Goal: in the Cardtly Android WebView,
+// the homepage HTML should never visibly flash before the deep-link
+// redirect kicks in.
+//
+// How it works:
+//   - Reads navigator.userAgent immediately. We only act when the
+//     " wv" token is present (Android WebView). Desktop browsers
+//     and Chrome / Safari on mobile do NOT contain " wv", so they
+//     skip the script entirely - zero impact on regular web visits.
+//   - In a WebView, injects a <style> tag that hides everything
+//     non-script inside <body> and paints the page black.
+//   - Polls every 16ms for up to 220ms to see if Capacitor has
+//     finished injecting window.Capacitor. If yes, the page stays
+//     hidden - the React NativeAppRedirect component will handle
+//     the actual navigation. If 220ms passes without detection
+//     (in-app browsers like WhatsApp's that also use " wv"), the
+//     hide style is removed and the marketing page becomes visible.
+//
+// The polling is a worst-case 220ms - normal users in any in-app
+// browser tap a link, expect ~half a second of loading, and then
+// see the page. The visual experience there is unchanged in
+// practice. Cardtly app users get a clean black-then-card flow.
+const PREVENT_FLASH_SCRIPT = `(function(){
+  try {
+    var ua = navigator.userAgent || '';
+    if (ua.indexOf(' wv') === -1) return;
+    var hide = document.createElement('style');
+    hide.id = '__cardtly_prefetch_hide';
+    hide.textContent = 'html,body{background:#000!important}body>*{visibility:hidden!important}';
+    (document.head || document.documentElement).appendChild(hide);
+    var start = Date.now();
+    var iv = setInterval(function(){
+      var cap = window.Capacitor;
+      var isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
+      if (isNative) {
+        clearInterval(iv);
+        return;
+      }
+      if (Date.now() - start > 220) {
+        clearInterval(iv);
+        var s = document.getElementById('__cardtly_prefetch_hide');
+        if (s) s.parentNode.removeChild(s);
+      }
+    }, 16);
+  } catch (e) { /* fail-open: do nothing, show the page */ }
+})();`
+
 export default function HomePage() {
   return (
     <div style={{ background: '#000', color: '#fff' }}>
+      {/* Synchronous head-script: hides body in Android WebViews until
+          we know whether we're in the Cardtly app (-> stay hidden,
+          redirect via React) or some other in-app browser (-> show
+          after 220ms). Web visitors are unaffected. */}
+      <script dangerouslySetInnerHTML={{ __html: PREVENT_FLASH_SCRIPT }} />
       {/* In the native app, bypass the marketing page and go straight
           to login (or dashboard if signed in). No-op on web. */}
       <NativeAppRedirect />
