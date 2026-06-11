@@ -9,6 +9,7 @@ import AnimatedCounter from '@/components/dashboard/AnimatedCounter'
 import OnboardingTour from '@/components/dashboard/OnboardingTour'
 import ReferralCard from '@/components/dashboard/ReferralCard'
 import TapToShareButton from '@/components/nfc/TapToShareButton'
+import AddToGoogleWalletButton from '@/components/wallet/AddToGoogleWalletButton'
 import {
   CreditCard, BarChart2, Eye, Users, ArrowUpRight,
   QrCode, Mail, Monitor, Sparkles, ChevronRight
@@ -193,6 +194,13 @@ export default async function DashboardPage() {
                     <ArrowUpRight className="w-3 h-3" />
                   </a>
                   <CopyLinkButton slug={card.slug} />
+                </div>
+              )}
+
+              {/* Save to Google Wallet */}
+              {card?.slug && (
+                <div className="mt-3 flex justify-center">
+                  <AddToGoogleWalletButton slug={card.slug} />
                 </div>
               )}
             </div>

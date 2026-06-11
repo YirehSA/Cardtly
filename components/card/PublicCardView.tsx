@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
 import InAppBackButton from '@/components/InAppBackButton'
 import BookingModal from './BookingModal'
+import AddToGoogleWalletButton from '@/components/wallet/AddToGoogleWalletButton'
 
 interface Props {
   card: Card & { _team_card_id?: string }
@@ -325,6 +326,14 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
               </button>
             </form>
           )}
+        </div>
+      )}
+
+      {/* Save to Google Wallet — anyone viewing this card can save
+          it as a wallet pass for quick access from their lock screen. */}
+      {card.slug && (
+        <div className="mt-8 flex justify-center">
+          <AddToGoogleWalletButton slug={card.slug} />
         </div>
       )}
 
