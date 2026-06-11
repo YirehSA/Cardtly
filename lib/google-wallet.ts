@@ -16,7 +16,10 @@
 import jwt from 'jsonwebtoken'
 
 const SAVE_URL_PREFIX = 'https://pay.google.com/gp/v/save/'
-const CLASS_SUFFIX = 'cardtly_card_v1'
+// Bumped from v1 -> v2 when the class template / logo changed.
+// Bumping the suffix tells Google this is a NEW class to create,
+// so existing saved passes aren't stuck on the old template.
+const CLASS_SUFFIX = 'cardtly_card_v2'
 
 interface ServiceAccount {
   client_email: string
@@ -67,6 +70,15 @@ export function buildGoogleWalletSaveUrl(card: CardForWallet): string | null {
 
   const genericClass = {
     id: classId,
+    // Cardtly C logo appears top-left of every pass so it reads
+    // as a Cardtly card at a glance. Public favicon.png is the
+    // square brand mark on transparent background.
+    logo: {
+      sourceUri: { uri: 'https://cardtly.com/favicon.png' },
+      contentDescription: {
+        defaultValue: { language: 'en-US', value: 'Cardtly' },
+      },
+    },
     classTemplateInfo: {
       cardTemplateOverride: {
         cardRowTemplateInfos: [
