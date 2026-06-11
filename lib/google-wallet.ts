@@ -18,9 +18,10 @@ import jwt from 'jsonwebtoken'
 const SAVE_URL_PREFIX = 'https://pay.google.com/gp/v/save/'
 // Class suffix versioning: bumping forces Google to treat it as a
 // new class so existing saved passes don't get stuck on the old
-// template. v2 added the logo, v3 used /api/wallet-logo, v4 uses
-// the actual Cardtly app icon (3D C + wordmark) at /wallet-logo.png.
-const CLASS_SUFFIX = 'cardtly_card_v4'
+// template. v5 routes the logo through /api/wallet-logo which
+// re-encodes the 192x192 PNG into a 660x660 canvas so it meets
+// Wallet's hard minimum dimensions requirement.
+const CLASS_SUFFIX = 'cardtly_card_v5'
 
 interface ServiceAccount {
   client_email: string
@@ -71,12 +72,11 @@ export function buildGoogleWalletSaveUrl(card: CardForWallet): string | null {
 
   const genericClass = {
     id: classId,
-    // Cardtly app icon copied from the Android xxxhdpi launcher
-    // - 3D C with Cardtly wordmark + tagline on a dark gradient
-    // circular background. Same image users already see on the
-    // Play Store / their phone home screen.
+    // Cardtly app icon, sized up to 660x660 via /api/wallet-logo.
+    // The static file at /wallet-logo.png is only 192x192 which
+    // is below Wallet's hard minimum and gets silently dropped.
     logo: {
-      sourceUri: { uri: 'https://cardtly.com/wallet-logo.png' },
+      sourceUri: { uri: 'https://cardtly.com/api/wallet-logo' },
       contentDescription: {
         defaultValue: { language: 'en-US', value: 'Cardtly' },
       },
