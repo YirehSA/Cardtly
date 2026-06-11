@@ -39,6 +39,13 @@ export default function NativeAppRedirect() {
       setShowOverlay(false)
       return
     }
+    // Helper: remove the inline pre-paint hide style so the new
+    // route is visible after a client-side router.replace().
+    // A full-page window.location.replace already clears it via the
+    // new HTML load, so we only need to call this before router.replace.
+    function revealFlashBlock() {
+      try { (window as any).__cardtlyRevealFlashBlock?.() } catch { /* noop */ }
+    }
 
     let cancelled = false
 
@@ -75,9 +82,16 @@ export default function NativeAppRedirect() {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (cancelled) return
+        // The inline pre-paint script (in app/page.tsx) has the body
+        // visibility:hidden so the marketing content doesn't flash.
+        // Client-side router.replace keeps the same DOM, so the hide
+        // style would persist on the new route and the user would see
+        // a black screen. Reveal explicitly before navigating.
+        revealFlashBlock()
         router.replace(user ? '/dashboard' : '/login')
       } catch {
         if (cancelled) return
+        revealFlashBlock()
         router.replace('/login')
       }
     })()

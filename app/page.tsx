@@ -57,20 +57,35 @@ const PREVENT_FLASH_SCRIPT = `(function(){
     hide.id = '__cardtly_prefetch_hide';
     hide.textContent = 'html,body{background:#000!important}body>*{visibility:hidden!important}';
     (document.head || document.documentElement).appendChild(hide);
+    function reveal(){
+      var s = document.getElementById('__cardtly_prefetch_hide');
+      if (s && s.parentNode) s.parentNode.removeChild(s);
+    }
+    // Hard ceiling: under no circumstances stay hidden longer than
+    // 1500ms. If React or the redirect fails for any reason the user
+    // sees the marketing page instead of a permanent black screen.
+    setTimeout(reveal, 1500);
     var start = Date.now();
     var iv = setInterval(function(){
       var cap = window.Capacitor;
       var isNative = cap && cap.isNativePlatform && cap.isNativePlatform();
       if (isNative) {
+        // Detected Cardtly app. Keep hidden until NativeAppRedirect
+        // navigates us away - it explicitly calls revealCardtlyFlashBlock()
+        // before any client-side navigation. The 1500ms safety net above
+        // is still armed as a final backstop.
         clearInterval(iv);
         return;
       }
       if (Date.now() - start > 220) {
         clearInterval(iv);
-        var s = document.getElementById('__cardtly_prefetch_hide');
-        if (s) s.parentNode.removeChild(s);
+        reveal();
       }
     }, 16);
+    // Expose the reveal function so NativeAppRedirect can clear the
+    // hide BEFORE doing a client-side router.replace - otherwise the
+    // style would stay applied to the new route's DOM.
+    window.__cardtlyRevealFlashBlock = reveal;
   } catch (e) { /* fail-open: do nothing, show the page */ }
 })();`
 
