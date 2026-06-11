@@ -18,9 +18,10 @@ import jwt from 'jsonwebtoken'
 const SAVE_URL_PREFIX = 'https://pay.google.com/gp/v/save/'
 // Class suffix versioning: bumping forces Google to treat it as a
 // new class so existing saved passes don't get stuck on the old
-// template. v6 uses /wallet-logo.png at its final resized 660x660
-// dimensions (was 192x192, below Wallet's hard minimum).
-const CLASS_SUFFIX = 'cardtly_card_v6'
+// template. v7 finally fixes the logo by moving it from the class
+// (where Wallet silently drops it) to the object where it actually
+// renders.
+const CLASS_SUFFIX = 'cardtly_card_v7'
 
 interface ServiceAccount {
   client_email: string
@@ -71,15 +72,8 @@ export function buildGoogleWalletSaveUrl(card: CardForWallet): string | null {
 
   const genericClass = {
     id: classId,
-    // Cardtly app icon at 660x660 (Wallet's hard minimum). The
-    // file at /wallet-logo.png is the Android xxxhdpi launcher
-    // resized via sharp with the dark Cardtly background fill.
-    logo: {
-      sourceUri: { uri: 'https://cardtly.com/wallet-logo.png' },
-      contentDescription: {
-        defaultValue: { language: 'en-US', value: 'Cardtly' },
-      },
-    },
+    // NOTE: logo lives on the GenericObject, not the class. Wallet
+    // silently drops logo if set here. See genericObject below.
     classTemplateInfo: {
       cardTemplateOverride: {
         cardRowTemplateInfos: [
@@ -131,6 +125,15 @@ export function buildGoogleWalletSaveUrl(card: CardForWallet): string | null {
     id: objectId,
     classId,
     state: 'ACTIVE',
+    // Cardtly app icon at 660x660 (Wallet's hard minimum). On the
+    // object - NOT the class. Wallet's GenericClass schema doesn't
+    // expose a logo field so setting it there is silently dropped.
+    logo: {
+      sourceUri: { uri: 'https://cardtly.com/wallet-logo.png' },
+      contentDescription: {
+        defaultValue: { language: 'en-US', value: 'Cardtly' },
+      },
+    },
     cardTitle: {
       defaultValue: { language: 'en-US', value: 'Cardtly' },
     },
