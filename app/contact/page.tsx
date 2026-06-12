@@ -42,13 +42,30 @@ export default function ContactPage() {
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  // Honeypot - hidden field humans never see. Bots that fill it
+  // get silently dropped by the API.
+  const [website, setWebsite] = useState('')
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     setSending(true)
-    // Simulate sending — wire to Resend when live
-    await new Promise(r => setTimeout(r, 1200))
-    setSent(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/contact-form', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, topic, message, website }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        setSent(true)
+      } else {
+        setError(data.error || 'Could not send your message. Please email us directly at hello@cardtly.com.')
+      }
+    } catch {
+      setError('Network error. Please try again, or email us directly at hello@cardtly.com.')
+    }
     setSending(false)
   }
 
@@ -190,6 +207,25 @@ export default function ContactPage() {
                       style={{ ...inputStyle, resize: 'none' }}
                     />
                   </div>
+
+                  {/* Honeypot - invisible to humans, bots fill it and
+                      get silently dropped server-side */}
+                  <input
+                    type="text"
+                    value={website}
+                    onChange={e => setWebsite(e.target.value)}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                    style={{ position: 'absolute', left: '-9999px', height: 0, width: 0, opacity: 0 }}
+                  />
+
+                  {error && (
+                    <p className="text-sm px-4 py-3 rounded-xl"
+                      style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171' }}>
+                      {error}
+                    </p>
+                  )}
 
                   <button
                     type="submit"

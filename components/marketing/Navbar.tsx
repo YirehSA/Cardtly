@@ -20,15 +20,13 @@ export default function Navbar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50" style={{ backdropFilter: 'blur(20px)', background: 'rgba(0,0,0,0.6)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
+      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        {/* Logo only - the badge carries the wordmark inside it, so no
+            text next to it. 72px = double the old 36px mark; the bar
+            grew h-16 -> h-20 to give it room. */}
+        <Link href="/" className="flex items-center group" aria-label="Cardtly home">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/cardtly-icon.png" alt="Cardtly logo" className="w-9 h-9 rounded-full transition group-hover:scale-105" />
-          <span className="font-black text-lg tracking-tight"
-            style={{ background: 'linear-gradient(90deg, #00d4ff, #7c3aed, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Cardtly
-          </span>
+          <img src="/cardtly-icon.png" alt="Cardtly logo" className="w-[72px] h-[72px] rounded-full transition group-hover:scale-105" />
         </Link>
 
         {/* Desktop nav */}
