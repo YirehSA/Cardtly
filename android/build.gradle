@@ -1,7 +1,10 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = '1.9.25'
+    // 2.2.0: Firebase BoM 34.x artifacts carry Kotlin 2.2 metadata,
+    // which Kotlin 1.9.x cannot read. AGP 8.13 + Gradle 8.14 both
+    // support KGP 2.2.
+    ext.kotlin_version = '2.2.0'
 
     repositories {
         google()
