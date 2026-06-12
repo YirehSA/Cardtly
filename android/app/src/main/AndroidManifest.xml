@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -46,6 +47,14 @@
             </intent-filter>
         </activity>
 
+        <!-- Tell Firebase Analytics not to collect the advertising ID
+             at runtime - pairs with the AD_ID permission removal below
+             so the manifest and behaviour both match the Play Console
+             "does not use advertising ID" declaration. -->
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -91,6 +100,18 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Firebase Analytics auto-injects advertising-ID permissions
+         (the classic GMS one plus the Android 13 AdServices set),
+         which force a "uses advertising ID" declaration in Play
+         Console. Cardtly does no ads or ad attribution, so strip
+         them all from the merged manifest and declare "No" in Play
+         Console. Analytics (sessions, retention, installs) works
+         fully without them. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_TOPICS" tools:node="remove" />
 
     <!-- Contacts plugin: needed for the Save Contact button to write the
          card directly to the user's phone address book. -->
