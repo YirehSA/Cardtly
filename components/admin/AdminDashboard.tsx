@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   Users, CreditCard, BarChart2, Package, Loader2,
   Search, Check, X, ChevronDown, ChevronUp, Building2,
-  Wifi, MessageSquare, Shield, Trash2, Mail, KeyRound, MailCheck, Trophy, ArrowLeft
+  Wifi, MessageSquare, Shield, Trash2, Mail, KeyRound, MailCheck, Trophy, ArrowLeft, Eye
 } from 'lucide-react'
 
 interface User {
@@ -23,6 +23,7 @@ interface User {
   isAdmin?: boolean
   subscription: any
   org: any
+  total_views?: number
 }
 
 // Convert a 2-letter country code to its flag emoji
@@ -515,6 +516,18 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats, a
                           title="User has not confirmed their email yet"
                           style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24' }}>Unconfirmed</span>
                       )}
+
+                      {/* Total views across this user's personal cards.
+                          Team card views are not tracked yet and don't
+                          contribute to this number. */}
+                      <span className="hidden sm:inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-semibold tabular-nums"
+                        title={`Total views across ${user.email}'s personal cards`}
+                        style={(user.total_views ?? 0) > 0
+                          ? { background: 'rgba(0,212,255,0.12)', color: '#00d4ff' }
+                          : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)' }}>
+                        <Eye className="w-3 h-3" />
+                        {(user.total_views ?? 0).toLocaleString()}
+                      </span>
 
                       {user.isPro ? (
                         <span className="text-xs px-2 py-1 rounded-full font-semibold"

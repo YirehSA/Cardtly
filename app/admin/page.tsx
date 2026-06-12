@@ -51,6 +51,15 @@ export default async function AdminPage() {
   const orgMap = Object.fromEntries((orgs || []).map((o: any) => [o.admin_user_id, o]))
   const profileMap = Object.fromEntries((profiles || []).map((p: any) => [p.user_id, p]))
 
+  // Sum personal card views per owner so we can show a "X views"
+  // chip next to each user in the Users tab. Team card views are
+  // not tracked yet, so this is personal cards only for now.
+  const viewsByUser: Record<string, number> = {}
+  for (const c of (cards as any[]) || []) {
+    if (!c?.user_id) continue
+    viewsByUser[c.user_id] = (viewsByUser[c.user_id] || 0) + (c.view_count || 0)
+  }
+
   const enrichedUsers = users.map((u: any) => {
     const p = profileMap[u.id] || {}
     return {
@@ -70,6 +79,7 @@ export default async function AdminPage() {
       // Either grants admin access via the isAdminUser helper, so
       // we reflect both here for the UI.
       isAdmin: !!p.is_admin || u.id === FOUNDER_ADMIN_USER_ID,
+      total_views: viewsByUser[u.id] || 0,
     }
   })
 
