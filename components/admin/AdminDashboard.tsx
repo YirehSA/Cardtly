@@ -40,6 +40,7 @@ interface Card {
   name: string
   slug: string | null
   user_id: string
+  view_count: number | null
   created_at: string
 }
 
@@ -648,25 +649,37 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats, a
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  {['Name', 'Slug', 'User ID', 'Created'].map(h => (
+                  {['Name', 'Slug', 'Views', 'User ID', 'Created'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold"
                       style={{ color: 'rgba(255,255,255,0.4)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {cards.map(card => (
-                  <tr key={card.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td className="px-4 py-3 text-white">{card.name || '—'}</td>
-                    <td className="px-4 py-3">
-                      {card.slug
-                        ? <a href={`/card/${card.slug}`} target="_blank" className="text-xs font-mono hover:text-white transition" style={{ color: '#00d4ff' }}>{card.slug}</a>
-                        : <span style={{ color: 'rgba(255,255,255,0.3)' }}>No slug</span>}
-                    </td>
-                    <td className="px-4 py-3 text-xs font-mono" style={{ color: 'rgba(255,255,255,0.35)' }}>{card.user_id?.slice(0, 8)}...</td>
-                    <td className="px-4 py-3 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{new Date(card.created_at).toLocaleDateString('en-ZA')}</td>
-                  </tr>
-                ))}
+                {cards.map(card => {
+                  const views = card.view_count ?? 0
+                  return (
+                    <tr key={card.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td className="px-4 py-3 text-white">{card.name || '—'}</td>
+                      <td className="px-4 py-3">
+                        {card.slug
+                          ? <a href={`/card/${card.slug}`} target="_blank" className="text-xs font-mono hover:text-white transition" style={{ color: '#00d4ff' }}>{card.slug}</a>
+                          : <span style={{ color: 'rgba(255,255,255,0.3)' }}>No slug</span>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-bold tabular-nums"
+                          style={{
+                            background: views > 0 ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.04)',
+                            color: views > 0 ? '#00d4ff' : 'rgba(255,255,255,0.4)',
+                          }}>
+                          {views.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs font-mono" style={{ color: 'rgba(255,255,255,0.35)' }}>{card.user_id?.slice(0, 8)}...</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{new Date(card.created_at).toLocaleDateString('en-ZA')}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

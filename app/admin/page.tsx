@@ -31,7 +31,7 @@ export default async function AdminPage() {
   ] = await Promise.all([
     admin.auth.admin.listUsers({ perPage: 1000 }),
     admin.from('whop_subscriptions').select('*').order('created_at', { ascending: false }),
-    admin.from('cards').select('id, name, slug, user_id, created_at').order('created_at', { ascending: false }),
+    admin.from('cards').select('id, name, slug, user_id, view_count, created_at').order('view_count', { ascending: false, nullsFirst: false }),
     admin.from('organizations').select('*').order('created_at', { ascending: false }),
     admin.from('nfc_orders').select('*').order('created_at', { ascending: false }),
     admin.from('contacts').select('id, created_at').order('created_at', { ascending: false }),
