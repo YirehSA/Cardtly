@@ -253,9 +253,12 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Team members: share a colleague's card on the spot. The
-          component self-hides when the org has no other active cards. */}
-      {cardKind === 'team' && <TeammatesCard />}
+      {/* Share a team card on the spot - shown to team members (their
+          colleagues' cards) AND org admins (all their team's cards).
+          The component self-hides when the API returns no cards, so
+          rendering it unconditionally costs one light request for
+          personal users and nothing visual. */}
+      <TeammatesCard />
 
       {/* Referral card — surfaces the personal ?ref= link where users
           actually land daily, instead of hiding it on /promotions */}

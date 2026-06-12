@@ -2,14 +2,17 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
-// Teammates list for team members. A member (someone who claimed a
-// team card) gets the other active cards in their org so they can
-// share a colleague's card on the spot - "let me give you our sales
-// director's card" at an expo, reception sharing a rep's card, etc.
+// Teammates list for the dashboard "Share a teammate's card" panel.
+// Two kinds of caller qualify:
+//   - Team members (claimed a team card): get the OTHER active
+//     cards in their org, so they can share a colleague's card.
+//   - Org admins (organizations.admin_user_id): get ALL active
+//     cards in their org - they have no team card of their own.
+// Everyone else gets an empty list and the panel hides itself.
 //
 // Service role is required: team_cards RLS only exposes a member's
-// own row, and organizations is admin-scoped. We gate access by
-// first proving the caller owns a claimed card in the org.
+// own row, and organizations is admin-scoped. Access is gated by
+// proving the caller is a member or the admin first.
 export async function GET() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -22,35 +25,52 @@ export async function GET() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
 
-  // Caller must be a claimed team member.
+  // Member path: caller claimed a team card.
   const { data: myCard } = await admin
     .from('team_cards')
     .select('id, organization_id')
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (!myCard) {
-    return NextResponse.json({ mates: [], org_name: null })
-  }
+  let orgId: string | null = myCard?.organization_id || null
+  let orgName: string | null = null
+  let excludeCardId: string | null = myCard?.id || null
 
-  const [{ data: org }, { data: mates }] = await Promise.all([
-    admin
+  if (orgId) {
+    const { data: org } = await admin
       .from('organizations')
       .select('name')
-      .eq('id', myCard.organization_id)
-      .maybeSingle(),
-    admin
-      .from('team_cards')
-      .select('id, name, title, slug, profile_image_url')
-      .eq('organization_id', myCard.organization_id)
-      .eq('is_active', true)
-      .neq('id', myCard.id)
-      .not('slug', 'is', null)
-      .order('name', { ascending: true }),
-  ])
+      .eq('id', orgId)
+      .maybeSingle()
+    orgName = org?.name || null
+  } else {
+    // Admin path: caller owns an organization.
+    const { data: org } = await admin
+      .from('organizations')
+      .select('id, name')
+      .eq('admin_user_id', user.id)
+      .maybeSingle()
+    if (!org) {
+      return NextResponse.json({ mates: [], org_name: null })
+    }
+    orgId = org.id
+    orgName = org.name || null
+  }
+
+  let query = admin
+    .from('team_cards')
+    .select('id, name, title, slug, profile_image_url')
+    .eq('organization_id', orgId)
+    .eq('is_active', true)
+    .not('slug', 'is', null)
+    .order('name', { ascending: true })
+  if (excludeCardId) {
+    query = query.neq('id', excludeCardId)
+  }
+  const { data: mates } = await query
 
   return NextResponse.json({
-    org_name: org?.name || null,
+    org_name: orgName,
     mates: (mates || []).map((m: any) => ({
       id: m.id,
       name: m.name,
