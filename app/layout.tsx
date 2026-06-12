@@ -21,12 +21,37 @@ const syne = Syne({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Cardtly — Digital Business Cards',
+    // Exact-match head term + geo qualifier. "Digital business card"
+    // leads the title because position-1 words carry the most weight;
+    // South Africa is the geo wedge we can actually win near-term.
+    default: 'Digital Business Card South Africa — Cardtly | NFC, QR & Link Sharing',
     template: '%s | Cardtly',
   },
-  description: 'Create and share your digital business card. Custom URLs, QR codes, and easy sharing.',
+  description:
+    'Create your free digital business card in minutes. Share with an NFC tap, QR code, or link. Track views, update anytime, add to Google Wallet. Built for South African professionals and teams - ZAR pricing, local NFC card delivery.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com'),
-  openGraph: { type: 'website', siteName: 'Cardtly' },
+  keywords: [
+    'digital business card',
+    'digital business card south africa',
+    'nfc business card',
+    'smart business card',
+    'electronic business card',
+    'qr code business card',
+    'virtual business card',
+    'digital visiting card',
+  ],
+  // NOTE: no alternates.canonical here - the root layout's metadata
+  // is inherited by every page, so a canonical set here would point
+  // ALL pages at the homepage and deindex them. Set canonicals
+  // per-page where needed instead.
+  openGraph: {
+    type: 'website',
+    siteName: 'Cardtly',
+    locale: 'en_ZA',
+    title: 'Digital Business Card South Africa — Cardtly',
+    description:
+      'Create your free digital business card in minutes. Share with an NFC tap, QR code, or link. ZAR pricing, built for South Africa.',
+  },
   twitter: { card: 'summary_large_image' },
   // Browser tab icon + iOS "Add to Home Screen" icon. The PNG lives
   // in /public/favicon.png (the Cardtly C logo on transparent bg).

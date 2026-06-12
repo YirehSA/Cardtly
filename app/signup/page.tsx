@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -60,11 +60,21 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
 
   const [confirmEmail, setConfirmEmail] = useState<string | null>(null)
+
+  // Prefill the name when arriving from the homepage hero's
+  // "claim your card" CTA (/signup?name=Jane+Doe). window read in
+  // an effect because this page is prerendered server-side.
+  useEffect(() => {
+    const prefill = new URLSearchParams(window.location.search).get('name')
+    if (prefill && prefill.trim().length >= 2) {
+      setValue('name', prefill.trim())
+    }
+  }, [setValue])
 
   async function onSubmit(data: FormData) {
     setLoading(true)

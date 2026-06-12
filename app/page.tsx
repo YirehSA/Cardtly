@@ -6,6 +6,8 @@ import HeroSection from '@/components/marketing/HeroSection'
 import ThreeWaysToShare from '@/components/marketing/ThreeWaysToShare'
 import TemplatesShowcase from '@/components/marketing/TemplatesShowcase'
 import FeaturedCards from '@/components/marketing/FeaturedCards'
+import FaqSection from '@/components/marketing/FaqSection'
+import StructuredData from '@/components/marketing/StructuredData'
 import {
   Smartphone, Globe, BarChart2, Mail, Monitor, Users, Star, ArrowRight, Wifi, Sparkles, Zap,
 } from 'lucide-react'
@@ -97,6 +99,8 @@ export default function HomePage() {
           redirect via React) or some other in-app browser (-> show
           after 220ms). Web visitors are unaffected. */}
       <script dangerouslySetInnerHTML={{ __html: PREVENT_FLASH_SCRIPT }} />
+      {/* Organization + WebSite + SoftwareApplication JSON-LD */}
+      <StructuredData />
       {/* In the native app, bypass the marketing page and go straight
           to login (or dashboard if signed in). No-op on web. */}
       <NativeAppRedirect />
@@ -397,6 +401,9 @@ export default function HomePage() {
           </p>
         </div>
       </section>
+
+      {/* ── FAQ — long-tail SEO + FAQPage schema ─────────────────────────────── */}
+      <FaqSection />
 
       {/* ── Final CTA ────────────────────────────────────────────────────────── */}
       <section className="py-24 px-6">

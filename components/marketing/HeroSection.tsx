@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Sparkles, Zap, QrCode } from 'lucide-react'
+import { ArrowRight, Sparkles, Zap, QrCode, Wand2 } from 'lucide-react'
 
 // Cinematic hero with a card that responds to mouse movement (3D tilt),
 // floating "live" notification pills, and ambient animated orbs.
@@ -20,6 +20,26 @@ export default function HeroSection() {
   const cardRef = useRef<HTMLDivElement>(null)
   const [tilt, setTilt] = useState({ rx: 0, ry: 0 })
   const [hovering, setHovering] = useState(false)
+
+  // Live personalization: visitor types their name and the demo card
+  // becomes THEIR card in real time. People don't bounce from a page
+  // with their own name on it - and the claim CTA below the card
+  // carries the name into signup so the magic continues there.
+  const [visitorName, setVisitorName] = useState('')
+  const trimmedName = visitorName.trim()
+  const firstName = trimmedName.split(/\s+/)[0] || ''
+  const displayName = trimmedName || 'Andre Nel'
+  const displayInitial = (firstName[0] || 'A').toUpperCase()
+  const displayEmail = firstName
+    ? `${firstName.toLowerCase().replace(/[^a-z]/g, '')}@yourcompany.co.za`
+    : 'hello@yireh.co.za'
+  const displayCompany = trimmedName ? 'Your Company Name' : 'Yireh Business Solutions'
+  const previewSlug = trimmedName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 40)
 
   function handleMove(e: React.MouseEvent<HTMLDivElement>) {
     const el = cardRef.current
@@ -72,8 +92,10 @@ export default function HeroSection() {
           The future of business cards is here
         </div>
 
-        <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.95] mb-6">
-          Your card.
+        {/* H1 carries the exact head term "digital business card" -
+            the single most important on-page SEO signal we control. */}
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.0] mb-6">
+          Your digital business card.
           <br />
           <span style={gradText}>One tap away.</span>
         </h1>
@@ -83,7 +105,7 @@ export default function HeroSection() {
           Cardtly turns your business card into a living link. Share it with a tap, a scan, or a URL. Track who connects. Update it from anywhere. <span className="text-white font-semibold">Free, forever.</span>
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-20">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
           <Link href="/signup"
             className="group flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition-all hover:scale-[1.03] hover:shadow-2xl"
             style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.5)' }}>
@@ -95,6 +117,28 @@ export default function HeroSection() {
             style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)' }}>
             See how it works
           </Link>
+        </div>
+
+        {/* Try-it-live input: types straight onto the demo card below */}
+        <div className="max-w-sm mx-auto mb-12 animate-fade-in">
+          <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl border transition-all"
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              borderColor: trimmedName ? 'rgba(0,212,255,0.5)' : 'rgba(255,255,255,0.12)',
+              backdropFilter: 'blur(12px)',
+              boxShadow: trimmedName ? '0 0 30px rgba(0,212,255,0.25)' : 'none',
+            }}>
+            <Wand2 className="w-4 h-4 flex-shrink-0" style={{ color: trimmedName ? '#00d4ff' : 'rgba(255,255,255,0.4)' }} />
+            <input
+              type="text"
+              value={visitorName}
+              onChange={e => setVisitorName(e.target.value)}
+              maxLength={50}
+              placeholder="Type your name — watch the card change"
+              aria-label="Type your name to preview your digital business card"
+              className="w-full bg-transparent text-sm text-white placeholder:text-white/35 focus:outline-none"
+            />
+          </div>
         </div>
 
         {/* ── Interactive card stage ─────────────────────────────────── */}
@@ -156,13 +200,13 @@ export default function HeroSection() {
             <div className="px-6 pb-6" style={{ marginTop: -32, transform: 'translateZ(20px)' }}>
               <div className="w-16 h-16 rounded-2xl mx-auto mb-3 flex items-center justify-center text-2xl font-black text-white"
                 style={{ background: grad, boxShadow: '0 8px 24px rgba(124,58,237,0.45)' }}>
-                A
+                {displayInitial}
               </div>
-              <p className="font-bold text-white text-lg">Andre Nel</p>
+              <p className="font-bold text-white text-lg">{displayName}</p>
               <p className="text-sm font-medium" style={{ color: '#00d4ff' }}>Founder &amp; CEO</p>
-              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>Yireh Business Solutions</p>
+              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{displayCompany}</p>
               <div className="mt-4 space-y-2">
-                {['+27 82 000 0000', 'hello@yireh.co.za', 'yireh.co.za'].map((item, i) => (
+                {['+27 82 000 0000', displayEmail, previewSlug ? `cardtly.com/card/${previewSlug}` : 'yireh.co.za'].map((item, i) => (
                   <div key={item} className="flex items-center gap-2 text-xs py-2 px-3 rounded-xl"
                     style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.75)' }}>
                     <span className="w-1.5 h-1.5 rounded-full" style={{ background: ['#00d4ff', '#7c3aed', '#ec4899'][i] }} />
@@ -212,10 +256,27 @@ export default function HeroSection() {
           />
         </div>
 
-        {/* Hint to interact */}
-        <p className="mt-12 text-xs hidden md:block" style={{ color: 'rgba(255,255,255,0.3)' }}>
-          ✦ Move your mouse over the card
-        </p>
+        {/* Claim CTA appears once they've typed - their URL is right
+            there, one click from being theirs. Falls back to the
+            interaction hint when the input is empty. */}
+        {previewSlug ? (
+          <div className="mt-10 animate-fade-in">
+            <Link
+              href={`/signup?name=${encodeURIComponent(trimmedName)}`}
+              className="group inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold text-white transition-all hover:scale-[1.03]"
+              style={{ background: grad, boxShadow: '0 8px 40px rgba(0,212,255,0.4)' }}>
+              Claim cardtly.com/card/{previewSlug} — free
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <p className="mt-3 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              No credit card. Live in 2 minutes.
+            </p>
+          </div>
+        ) : (
+          <p className="mt-12 text-xs hidden md:block" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            ✦ Move your mouse over the card — or type your name above
+          </p>
+        )}
       </div>
 
       {/* Inline keyframes (Tailwind doesn't ship these by default) */}
