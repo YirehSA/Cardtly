@@ -146,6 +146,34 @@ export default function PricingPage() {
         <p className="text-center text-xs mt-8" style={{ color: 'rgba(255,255,255,0.25)' }}>
           South African users pay in ZAR via PayStack. All other regions pay in USD via Whop. Both are billed monthly, cancel anytime.
         </p>
+
+        {/* Teams + add-ons strip */}
+        <div className="max-w-4xl mx-auto mt-10 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-6 rounded-2xl flex items-start gap-4"
+            style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.25)' }}>
+            <div className="text-2xl">👥</div>
+            <div>
+              <p className="font-bold text-white mb-1">Need cards for a whole team?</p>
+              <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                Locked company branding, member-managed details, one admin dashboard. Priced per seat.
+              </p>
+              <Link href="/contact" className="text-sm font-semibold inline-flex items-center gap-1 transition hover:opacity-80"
+                style={{ color: '#a78bfa' }}>
+                Talk to us about Teams <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+          <div className="p-6 rounded-2xl flex items-start gap-4"
+            style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.2)' }}>
+            <div className="text-2xl">🚀</div>
+            <div>
+              <p className="font-bold text-white mb-1">Add-ons coming soon</p>
+              <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                We ship fast. New templates, integrations, and power features are on the way - Pro members get them first.
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* FAQs */}

@@ -43,6 +43,10 @@ const FAQS: Array<{ q: string; a: string }> = [
     a: 'Yes. Cardtly Teams gives every team member a branded card with locked company branding, while each person manages their own details. Admins control the brand, templates, and seats from one dashboard - ideal for sales teams, agencies, and franchises.',
   },
   {
+    q: 'Can I customise the design of my digital business card?',
+    a: 'Completely. Choose from 12 templates, then make it yours: accent colours (including any custom hex), light or dark mode, five font styles, logo position and size, custom background colours, button colours, and the size and colour of every text element. Add photo galleries, custom links, social profiles, and certifications.',
+  },
+  {
     q: 'What happens when someone taps my NFC card?',
     a: 'Your card opens instantly in their phone browser - no app to install. They see your details, photo, and links, and can save you to their contacts with one tap. You see the view in your analytics.',
   },

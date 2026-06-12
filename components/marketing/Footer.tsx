@@ -31,6 +31,7 @@ export default function Footer() {
               {[
                 { href: '/how-it-works', label: 'How digital cards work' },
                 { href: '/pricing',       label: 'Digital business card pricing' },
+                { href: '/#teams',        label: 'Cardtly for Teams' },
                 { href: '/promotions',    label: 'Win prizes 🏆' },
                 { href: '/nfc',           label: 'NFC business cards 🇿🇦' },
                 { href: '/signup',        label: 'Create your free card' },

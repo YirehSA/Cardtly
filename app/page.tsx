@@ -8,6 +8,8 @@ import TemplatesShowcase from '@/components/marketing/TemplatesShowcase'
 import FeaturedCards from '@/components/marketing/FeaturedCards'
 import FaqSection from '@/components/marketing/FaqSection'
 import StructuredData from '@/components/marketing/StructuredData'
+import CustomizeShowcase from '@/components/marketing/CustomizeShowcase'
+import TeamsSection from '@/components/marketing/TeamsSection'
 import {
   Smartphone, Globe, BarChart2, Mail, Monitor, Users, Star, ArrowRight, Wifi, Sparkles, Zap,
 } from 'lucide-react'
@@ -238,6 +240,14 @@ export default function HomePage() {
               title="Capture leads"
               desc="Visitors share their info through your card. No forms."
             />
+
+            {/* Card content — links, galleries, socials */}
+            <BentoTile
+              icon={<Sparkles className="w-5 h-5" />}
+              accent="#ec4899"
+              title="More than contact details"
+              desc="Photo galleries, custom links, WhatsApp, socials, certifications, even an AI-written bio."
+            />
           </div>
         </div>
       </section>
@@ -248,6 +258,10 @@ export default function HomePage() {
 
       {/* Templates showcase */}
       <TemplatesShowcase />
+
+      {/* Interactive customization demo — extends the templates story:
+          12 templates, and every one is fully editable */}
+      <CustomizeShowcase />
 
       {/* ── How it works — kept simple ──────────────────────────────────────── */}
       <section className="py-24 px-6" style={{ background: 'rgba(255,255,255,0.02)' }}>
@@ -318,6 +332,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── Cardtly for Teams — locked branding, member-owned details ────────── */}
+      <TeamsSection />
 
       {/* ── App download ─────────────────────────────────────────────────────── */}
       <section className="py-24 px-6">
