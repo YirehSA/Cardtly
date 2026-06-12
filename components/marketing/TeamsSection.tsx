@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, Building2, Lock, UserPlus, BarChart2, Check } from 'lucide-react'
+import { ArrowRight, Building2, Lock, UserPlus, BarChart2, Check, Share2 } from 'lucide-react'
 
 // Cardtly for Teams. This feature shipped (org admin creates branded
 // member cards, invites by email, members claim their card and sign
@@ -29,6 +29,11 @@ const TEAM_POINTS = [
     icon: BarChart2,
     title: 'One dashboard for everything',
     desc: 'Add seats, manage cards, and see team-wide analytics from a single admin view.',
+  },
+  {
+    icon: Share2,
+    title: 'Share each other\'s cards',
+    desc: 'Anyone on the team can hand out a colleague\'s card from their own phone - reception shares the rep, the rep shares the director.',
   },
 ]
 

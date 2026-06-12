@@ -10,6 +10,7 @@ import OnboardingTour from '@/components/dashboard/OnboardingTour'
 import ReferralCard from '@/components/dashboard/ReferralCard'
 import TapToShareButton from '@/components/nfc/TapToShareButton'
 import WidgetSync from '@/components/dashboard/WidgetSync'
+import TeammatesCard from '@/components/dashboard/TeammatesCard'
 import AddToGoogleWalletButton from '@/components/wallet/AddToGoogleWalletButton'
 import {
   CreditCard, BarChart2, Eye, Users, ArrowUpRight,
@@ -251,6 +252,10 @@ export default async function DashboardPage() {
           })}
         </div>
       </div>
+
+      {/* Team members: share a colleague's card on the spot. The
+          component self-hides when the org has no other active cards. */}
+      {cardKind === 'team' && <TeammatesCard />}
 
       {/* Referral card — surfaces the personal ?ref= link where users
           actually land daily, instead of hiding it on /promotions */}

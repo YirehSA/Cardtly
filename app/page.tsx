@@ -11,7 +11,7 @@ import StructuredData from '@/components/marketing/StructuredData'
 import CustomizeShowcase from '@/components/marketing/CustomizeShowcase'
 import TeamsSection from '@/components/marketing/TeamsSection'
 import {
-  Smartphone, Globe, BarChart2, Mail, Monitor, Users, Star, ArrowRight, Wifi, Sparkles, Zap,
+  Smartphone, Globe, BarChart2, Mail, Monitor, Users, Star, ArrowRight, Wifi, Sparkles, Zap, CalendarDays,
 } from 'lucide-react'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
@@ -233,12 +233,12 @@ export default function HomePage() {
               desc="Branded virtual backgrounds with your name and QR."
             />
 
-            {/* Lead capture */}
+            {/* Lead capture — built-in mini-CRM */}
             <BentoTile
               icon={<Users className="w-5 h-5" />}
               accent="#a855f7"
-              title="Capture leads"
-              desc="Visitors share their info through your card. No forms."
+              title="Capture leads, build your CRM"
+              desc="Visitors share their details through your card and every lead lands in your contacts - a pocket CRM that builds itself."
             />
 
             {/* Card content — links, galleries, socials */}
@@ -247,6 +247,14 @@ export default function HomePage() {
               accent="#ec4899"
               title="More than contact details"
               desc="Photo galleries, custom links, WhatsApp, socials, certifications, even an AI-written bio."
+            />
+
+            {/* Meeting booking from the card */}
+            <BentoTile
+              icon={<CalendarDays className="w-5 h-5" />}
+              accent="#06b6d4"
+              title="Book meetings from your card"
+              desc="Visitors pick a date and time right on your card. You get the request by email and they land in your contacts."
             />
           </div>
         </div>

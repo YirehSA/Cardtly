@@ -50,6 +50,14 @@ const FAQS: Array<{ q: string; a: string }> = [
     q: 'What happens when someone taps my NFC card?',
     a: 'Your card opens instantly in their phone browser - no app to install. They see your details, photo, and links, and can save you to their contacts with one tap. You see the view in your analytics.',
   },
+  {
+    q: 'Can people book a meeting from my digital business card?',
+    a: 'Yes. Your card has a built-in "Book a meeting" button - visitors pick a date and time, you get the request by email and can confirm with a single reply. No Calendly or extra tools needed, and the requester is automatically saved to your contacts.',
+  },
+  {
+    q: 'Does Cardtly capture leads from my card?',
+    a: 'Yes. Visitors can share their name, email, and phone number through your card, and every lead lands in your Cardtly contacts dashboard - a lightweight CRM that builds itself as you network. Meeting requests are captured there too.',
+  },
 ]
 
 export default function FaqSection() {
