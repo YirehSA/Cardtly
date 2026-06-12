@@ -61,22 +61,37 @@ export async function POST(request: Request) {
       })
     }
 
-    if (team_card_id && event_type === 'view') {
-      // Team card: no card_events equivalent yet, so bump the
-      // denormalized counter on team_cards directly. Read then
-      // write +1 - simultaneous views can race and undercount,
-      // which is fine for an analytics counter and avoids needing
-      // to ship a Postgres function. Migration 009 added the column.
-      const { data: tc } = await (supabase
-        .from('team_cards') as any)
-        .select('view_count')
-        .eq('id', team_card_id)
-        .single()
-      if (tc) {
-        await (supabase
+    if (team_card_id) {
+      // Team card: log to its own events table so we can do
+      // time-windowed analytics (last 30d, this month) instead of
+      // just running totals. team_card_events mirrors card_events
+      // and was added in migration 010.
+      await (supabase.from('team_card_events') as any).insert({
+        team_card_id,
+        event_type,
+        link_title: link_title || null,
+        device,
+        browser,
+        os,
+        referrer: referrer || null,
+      })
+
+      // Also bump the denormalized counter on team_cards (added in
+      // migration 009) for fast all-time reads without a count(*).
+      // Race conditions on simultaneous views can slightly under-
+      // count, which is fine for a counter.
+      if (event_type === 'view') {
+        const { data: tc } = await (supabase
           .from('team_cards') as any)
-          .update({ view_count: ((tc as any).view_count || 0) + 1 })
+          .select('view_count')
           .eq('id', team_card_id)
+          .single()
+        if (tc) {
+          await (supabase
+            .from('team_cards') as any)
+            .update({ view_count: ((tc as any).view_count || 0) + 1 })
+            .eq('id', team_card_id)
+        }
       }
     }
 

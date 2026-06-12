@@ -24,6 +24,7 @@ interface User {
   subscription: any
   org: any
   total_views?: number
+  views_30d?: number
 }
 
 // Convert a 2-letter country code to its flag emoji
@@ -42,6 +43,7 @@ interface Card {
   slug: string | null
   user_id: string
   view_count: number | null
+  views_30d?: number
   created_at: string
 }
 
@@ -52,6 +54,7 @@ interface TeamCard {
   user_id: string | null
   organization_id: string
   view_count: number
+  views_30d?: number
   claimed_at: string | null
   created_at: string
   org_name: string | null
@@ -530,15 +533,20 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                           style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24' }}>Unconfirmed</span>
                       )}
 
-                      {/* Total views across this user's personal cards
-                          AND any team cards they've claimed. */}
-                      <span className="hidden sm:inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-semibold tabular-nums"
-                        title={`Total views across ${user.email}'s personal + claimed team cards`}
-                        style={(user.total_views ?? 0) > 0
+                      {/* Views across this user's personal cards AND
+                          any team cards they've claimed. Primary
+                          number is last 30 days; all-time shows as
+                          smaller suffix and full breakdown in tooltip. */}
+                      <span className="hidden sm:inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full font-semibold tabular-nums"
+                        title={`${(user.views_30d ?? 0).toLocaleString()} views last 30 days · ${(user.total_views ?? 0).toLocaleString()} all-time`}
+                        style={(user.views_30d ?? 0) > 0
                           ? { background: 'rgba(0,212,255,0.12)', color: '#00d4ff' }
                           : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)' }}>
                         <Eye className="w-3 h-3" />
-                        {(user.total_views ?? 0).toLocaleString()}
+                        <span>{(user.views_30d ?? 0).toLocaleString()}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 400 }}>30d</span>
+                        <span style={{ color: 'rgba(255,255,255,0.25)' }}>·</span>
+                        <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>{(user.total_views ?? 0).toLocaleString()}</span>
                       </span>
 
                       {user.isPro ? (
@@ -676,7 +684,7 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                 <div>
                   <p className="text-sm font-semibold text-white">Personal cards</p>
                   <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    {cards.length} total · sorted by views
+                    {cards.length} total · sorted by last-30-day views
                   </p>
                 </div>
               </div>
@@ -685,7 +693,7 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                 <table className="w-full text-sm">
                   <thead>
                     <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                      {['Name', 'Slug', 'Views', 'User ID', 'Created'].map(h => (
+                      {['Name', 'Slug', 'Last 30d', 'All-time', 'User ID', 'Created'].map(h => (
                         <th key={h} className="text-left px-4 py-3 text-xs font-semibold"
                           style={{ color: 'rgba(255,255,255,0.4)' }}>{h}</th>
                       ))}
@@ -694,6 +702,7 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                   <tbody>
                     {cards.map(card => {
                       const views = card.view_count ?? 0
+                      const views30 = card.views_30d ?? 0
                       return (
                         <tr key={card.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                           <td className="px-4 py-3 text-white">{card.name || '—'}</td>
@@ -705,9 +714,15 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                           <td className="px-4 py-3">
                             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-bold tabular-nums"
                               style={{
-                                background: views > 0 ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.04)',
-                                color: views > 0 ? '#00d4ff' : 'rgba(255,255,255,0.4)',
+                                background: views30 > 0 ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.04)',
+                                color: views30 > 0 ? '#00d4ff' : 'rgba(255,255,255,0.4)',
                               }}>
+                              {views30.toLocaleString()}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs font-medium tabular-nums"
+                              style={{ color: views > 0 ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.3)' }}>
                               {views.toLocaleString()}
                             </span>
                           </td>
@@ -730,7 +745,7 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                     Team cards
                   </p>
                   <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    {teamCards.length} total · {teamCards.filter(tc => tc.claimed_at).length} claimed · sorted by views
+                    {teamCards.length} total · {teamCards.filter(tc => tc.claimed_at).length} claimed · sorted by last-30-day views
                   </p>
                 </div>
               </div>
@@ -745,7 +760,7 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                   <table className="w-full text-sm">
                     <thead>
                       <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                        {['Name', 'Slug', 'Views', 'Organization', 'Status', 'Created'].map(h => (
+                        {['Name', 'Slug', 'Last 30d', 'All-time', 'Organization', 'Status', 'Created'].map(h => (
                           <th key={h} className="text-left px-4 py-3 text-xs font-semibold"
                             style={{ color: 'rgba(255,255,255,0.4)' }}>{h}</th>
                         ))}
@@ -754,6 +769,7 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                     <tbody>
                       {teamCards.map(tc => {
                         const views = tc.view_count
+                        const views30 = tc.views_30d ?? 0
                         const claimed = !!tc.claimed_at
                         return (
                           <tr key={tc.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
@@ -766,9 +782,15 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                             <td className="px-4 py-3">
                               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-bold tabular-nums"
                                 style={{
-                                  background: views > 0 ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.04)',
-                                  color: views > 0 ? '#a78bfa' : 'rgba(255,255,255,0.4)',
+                                  background: views30 > 0 ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.04)',
+                                  color: views30 > 0 ? '#a78bfa' : 'rgba(255,255,255,0.4)',
                                 }}>
+                                {views30.toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs font-medium tabular-nums"
+                                style={{ color: views > 0 ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.3)' }}>
                                 {views.toLocaleString()}
                               </span>
                             </td>
