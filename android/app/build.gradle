@@ -61,6 +61,14 @@ dependencies {
     implementation project(':capacitor-cordova-android-plugins')
     // Kotlin stdlib - required for the NfcShare HCE plugin sources.
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+
+    // Firebase. The BoM pins compatible versions for all Firebase
+    // artifacts so individual ones don't need version numbers.
+    // google-services.json (project cardtly-6156d) lives next to
+    // this file; the google-services plugin at the bottom of this
+    // script picks it up automatically.
+    implementation platform('com.google.firebase:firebase-bom:34.14.1')
+    implementation 'com.google.firebase:firebase-analytics'
 }
 
 apply from: 'capacitor.build.gradle'
