@@ -105,6 +105,22 @@ export default async function AdminPage() {
   // the Team Cards table can show which org they belong to. Also
   // attach the 30-day view count we just computed.
   const orgsById = Object.fromEntries((orgs as any[] || []).map((o: any) => [o.id, o]))
+
+  // Team members are users who've claimed a team card (team_cards.user_id
+  // matches their auth uid). They don't appear in orgMap (which is keyed
+  // by admin_user_id), so without this they'd fall through to "Free"
+  // even though they have access to a Pro team card via their org. We
+  // also record which org each belongs to so the badge can name it.
+  const teamMemberOrgByUser: Record<string, { org_name: string | null; org_admin_user_id: string | null }> = {}
+  for (const tc of (teamCards as any[]) || []) {
+    if (!tc?.user_id) continue
+    if (teamMemberOrgByUser[tc.user_id]) continue
+    const org = orgsById[tc.organization_id]
+    teamMemberOrgByUser[tc.user_id] = {
+      org_name: org?.name || null,
+      org_admin_user_id: org?.admin_user_id || null,
+    }
+  }
   const enrichedTeamCards = (teamCards as any[] || [])
     .map((tc: any) => ({
       id: tc.id,
@@ -129,6 +145,7 @@ export default async function AdminPage() {
 
   const enrichedUsers = users.map((u: any) => {
     const p = profileMap[u.id] || {}
+    const teamMembership = teamMemberOrgByUser[u.id] || null
     return {
       id: u.id,
       email: u.email,
@@ -148,6 +165,12 @@ export default async function AdminPage() {
       isAdmin: !!p.is_admin || u.id === FOUNDER_ADMIN_USER_ID,
       total_views: viewsByUser[u.id] || 0,
       views_30d: views30dByUser[u.id] || 0,
+      // True if this user has claimed a team card. The badge UI
+      // uses this to distinguish team members from genuinely-free
+      // users - team members aren't on a paid plan themselves but
+      // do have Pro access via their org's seat.
+      isTeamMember: !!teamMembership,
+      teamMemberOrg: teamMembership,
     }
   })
 

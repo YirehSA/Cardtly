@@ -25,6 +25,8 @@ interface User {
   org: any
   total_views?: number
   views_30d?: number
+  isTeamMember?: boolean
+  teamMemberOrg?: { org_name: string | null; org_admin_user_id: string | null } | null
 }
 
 // Convert a 2-letter country code to its flag emoji
@@ -469,12 +471,25 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {u.org && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(124,58,237,0.2)', color: '#a78bfa' }}>Team</span>}
+                      {u.org && (
+                        <span className="text-xs px-2 py-0.5 rounded-full"
+                          title={`Org admin: ${u.org.name}`}
+                          style={{ background: 'rgba(124,58,237,0.2)', color: '#a78bfa' }}>
+                          Team owner
+                        </span>
+                      )}
+                      {u.isTeamMember && !u.org && (
+                        <span className="text-xs px-2 py-0.5 rounded-full"
+                          title={u.teamMemberOrg?.org_name ? `Team member of ${u.teamMemberOrg.org_name}` : 'Team member'}
+                          style={{ background: 'rgba(124,58,237,0.15)', color: '#a78bfa' }}>
+                          Team member
+                        </span>
+                      )}
                       <span className="text-xs px-2 py-0.5 rounded-full"
-                        style={u.isPro
+                        style={(u.isPro || u.isTeamMember)
                           ? { background: 'rgba(0,212,255,0.15)', color: '#00d4ff' }
                           : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>
-                        {u.isPro ? 'Pro' : 'Free'}
+                        {u.isPro ? 'Pro' : u.isTeamMember ? 'Pro (team)' : 'Free'}
                       </span>
                     </div>
                   </div>
@@ -521,7 +536,10 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                               · {[user.signup_city, user.signup_region, user.signup_country].filter(Boolean).join(', ')}
                             </span>
                           )}
-                          {user.org && <span>· Team: {user.org.name} ({user.org.max_seats} seats)</span>}
+                          {user.org && <span>· Team owner: {user.org.name} ({user.org.max_seats} seats)</span>}
+                          {!user.org && user.isTeamMember && user.teamMemberOrg?.org_name && (
+                            <span>· Team member of {user.teamMemberOrg.org_name}</span>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -552,6 +570,12 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                       {user.isPro ? (
                         <span className="text-xs px-2 py-1 rounded-full font-semibold"
                           style={{ background: 'rgba(0,212,255,0.15)', color: '#00d4ff' }}>Pro</span>
+                      ) : user.isTeamMember ? (
+                        <span className="text-xs px-2 py-1 rounded-full font-semibold"
+                          title={user.teamMemberOrg?.org_name ? `Team member of ${user.teamMemberOrg.org_name} - Pro access via the org seat` : 'Team member - Pro access via their org seat'}
+                          style={{ background: 'rgba(124,58,237,0.15)', color: '#a78bfa' }}>
+                          Pro · Team
+                        </span>
                       ) : (
                         <span className="text-xs px-2 py-1 rounded-full"
                           style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>Free</span>
