@@ -23,10 +23,8 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm"
-            style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-            C
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/cardtly-icon.png" alt="Cardtly logo" className="w-9 h-9 rounded-full transition group-hover:scale-105" />
           <span className="font-black text-lg tracking-tight"
             style={{ background: 'linear-gradient(90deg, #00d4ff, #7c3aed, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             Cardtly

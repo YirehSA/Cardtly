@@ -74,8 +74,12 @@ export default function Sidebar({ isPro, isAdmin = false, userName, userEmail }:
     >
       {/* Logo + Pro badge */}
       <div className="flex items-center gap-3 px-6 py-6" style={{ borderBottom: '1px solid hsl(var(--sidebar-border))' }}>
-        <Link href="/" className="flex items-center hover:opacity-80 transition" aria-label="Cardtly home">
-          <img src="/cardtly-logo.png" alt="Cardtly" className="h-14 w-auto" />
+        <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition" aria-label="Cardtly home">
+          <img src="/cardtly-icon.png" alt="Cardtly" className="h-11 w-11 rounded-full" />
+          <span className="font-black text-base tracking-tight"
+            style={{ background: 'linear-gradient(90deg, #00d4ff, #7c3aed, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            Cardtly
+          </span>
         </Link>
         {isPro && (
           <span

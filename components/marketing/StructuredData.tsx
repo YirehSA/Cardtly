@@ -10,7 +10,7 @@ const ORG = {
   '@id': 'https://cardtly.com/#organization',
   name: 'Cardtly',
   url: 'https://cardtly.com',
-  logo: 'https://cardtly.com/cardtly-logo.png',
+  logo: 'https://cardtly.com/cardtly-icon.png',
   description:
     'Cardtly is a digital business card platform built in South Africa. Create a free digital business card and share it by NFC tap, QR code, or link.',
   address: {

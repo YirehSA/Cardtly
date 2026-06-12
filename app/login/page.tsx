@@ -292,7 +292,7 @@ export default function LoginPage() {
           style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.1) 0%, transparent 70%)' }} />
 
         <div className="relative">
-          <img src="/cardtly-logo.png" alt="Cardtly" className="h-10 w-auto object-contain" />
+          <img src="/cardtly-icon.png" alt="Cardtly" className="h-14 w-14 rounded-full object-contain" />
         </div>
 
         <div className="relative space-y-8">
@@ -337,7 +337,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm relative">
           {/* Mobile logo */}
           <div className="lg:hidden mb-10">
-            <img src="/cardtly-logo.png" alt="Cardtly" className="h-9 w-auto object-contain" />
+            <img src="/cardtly-icon.png" alt="Cardtly" className="h-12 w-12 rounded-full object-contain" />
           </div>
 
           <div className="mb-8">

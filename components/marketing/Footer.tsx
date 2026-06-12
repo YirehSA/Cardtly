@@ -8,10 +8,8 @@ export default function Footer() {
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm"
-                style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-                C
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/cardtly-icon.png" alt="Cardtly logo" className="w-9 h-9 rounded-full" />
               <span className="font-black text-lg tracking-tight"
                 style={{ background: 'linear-gradient(90deg, #00d4ff, #7c3aed, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 Cardtly

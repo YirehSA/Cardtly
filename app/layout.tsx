@@ -54,15 +54,15 @@ export const metadata: Metadata = {
   },
   twitter: { card: 'summary_large_image' },
   // Browser tab icon + iOS "Add to Home Screen" icon. The PNG lives
-  // in /public/favicon.png (the Cardtly C logo on transparent bg).
-  // Next.js serves /public files at the root, so /favicon.png is
-  // the correct URL for both.
+  // in /public/favicon.png (the circular Cardtly badge - same brand
+  // mark as the Android app icon). ?v=2 busts the old C-only favicon
+  // out of browser caches. Next.js serves /public files at the root.
   icons: {
     icon: [
-      { url: '/favicon.png', type: 'image/png' },
+      { url: '/favicon.png?v=2', type: 'image/png' },
     ],
-    shortcut: '/favicon.png',
-    apple: '/favicon.png',
+    shortcut: '/favicon.png?v=2',
+    apple: '/favicon.png?v=2',
   },
 }
 

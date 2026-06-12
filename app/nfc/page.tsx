@@ -17,6 +17,10 @@ const NFC_PRODUCT_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'Product',
   name: 'Cardtly NFC Business Card',
+  // Google's Merchant listing rich results REQUIRE an image - the
+  // schema is invalid without one. Brand badge for now; swap for a
+  // real product photo of the physical card when we shoot one.
+  image: ['https://cardtly.com/cardtly-icon.png'],
   description:
     'Physical NFC business card linked to your Cardtly digital business card. Tap any modern smartphone to share your details instantly - no app required.',
   brand: { '@type': 'Brand', name: 'Cardtly' },
