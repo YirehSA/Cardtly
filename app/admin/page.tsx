@@ -24,6 +24,7 @@ export default async function AdminPage() {
     { data: authUsers },
     { data: subscriptions },
     { data: cards },
+    { data: teamCards },
     { data: orgs },
     { data: nfcOrders },
     { data: contacts },
@@ -32,6 +33,7 @@ export default async function AdminPage() {
     admin.auth.admin.listUsers({ perPage: 1000 }),
     admin.from('whop_subscriptions').select('*').order('created_at', { ascending: false }),
     admin.from('cards').select('id, name, slug, user_id, view_count, created_at').order('view_count', { ascending: false, nullsFirst: false }),
+    admin.from('team_cards').select('id, name, slug, user_id, organization_id, view_count, claimed_at, created_at').order('view_count', { ascending: false, nullsFirst: false }),
     admin.from('organizations').select('*').order('created_at', { ascending: false }),
     admin.from('nfc_orders').select('*').order('created_at', { ascending: false }),
     admin.from('contacts').select('id, created_at').order('created_at', { ascending: false }),
@@ -51,14 +53,34 @@ export default async function AdminPage() {
   const orgMap = Object.fromEntries((orgs || []).map((o: any) => [o.admin_user_id, o]))
   const profileMap = Object.fromEntries((profiles || []).map((p: any) => [p.user_id, p]))
 
-  // Sum personal card views per owner so we can show a "X views"
-  // chip next to each user in the Users tab. Team card views are
-  // not tracked yet, so this is personal cards only for now.
+  // Sum personal + claimed-team-card views per owner so we can show
+  // a "X views" chip next to each user in the Users tab. Unclaimed
+  // team cards (user_id is null) only contribute to the Team Cards
+  // table, not to any user's totals.
   const viewsByUser: Record<string, number> = {}
   for (const c of (cards as any[]) || []) {
     if (!c?.user_id) continue
     viewsByUser[c.user_id] = (viewsByUser[c.user_id] || 0) + (c.view_count || 0)
   }
+  for (const tc of (teamCards as any[]) || []) {
+    if (!tc?.user_id) continue
+    viewsByUser[tc.user_id] = (viewsByUser[tc.user_id] || 0) + (tc.view_count || 0)
+  }
+
+  // Resolve organization name + admin user id for each team card so
+  // the Team Cards table can show which org they belong to.
+  const orgsById = Object.fromEntries((orgs as any[] || []).map((o: any) => [o.id, o]))
+  const enrichedTeamCards = (teamCards as any[] || []).map((tc: any) => ({
+    id: tc.id,
+    name: tc.name,
+    slug: tc.slug,
+    user_id: tc.user_id,
+    organization_id: tc.organization_id,
+    view_count: tc.view_count || 0,
+    claimed_at: tc.claimed_at,
+    created_at: tc.created_at,
+    org_name: orgsById[tc.organization_id]?.name || null,
+  }))
 
   const enrichedUsers = users.map((u: any) => {
     const p = profileMap[u.id] || {}
@@ -96,6 +118,7 @@ export default async function AdminPage() {
     <AdminDashboard
       users={enrichedUsers}
       cards={cards || []}
+      teamCards={enrichedTeamCards}
       orgs={orgs || []}
       nfcOrders={nfcOrders || []}
       stats={stats}

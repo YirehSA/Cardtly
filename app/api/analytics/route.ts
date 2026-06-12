@@ -29,9 +29,10 @@ function detectOS(ua: string): string {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { card_id, event_type, link_title } = body
+    const { card_id, team_card_id, event_type, link_title } = body
 
-    if (!card_id || !event_type) {
+    // Need either a personal or team card id plus an event type.
+    if ((!card_id && !team_card_id) || !event_type) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
@@ -45,15 +46,39 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
 
-    await (supabase.from('card_events') as any).insert({
-      card_id,
-      event_type,
-      link_title: link_title || null,
-      device,
-      browser,
-      os,
-      referrer: referrer || null,
-    })
+    if (card_id) {
+      // Personal card: insert card_events row. A Supabase-side
+      // trigger (configured in the dashboard, not in repo
+      // migrations) bumps cards.view_count from this row.
+      await (supabase.from('card_events') as any).insert({
+        card_id,
+        event_type,
+        link_title: link_title || null,
+        device,
+        browser,
+        os,
+        referrer: referrer || null,
+      })
+    }
+
+    if (team_card_id && event_type === 'view') {
+      // Team card: no card_events equivalent yet, so bump the
+      // denormalized counter on team_cards directly. Read then
+      // write +1 - simultaneous views can race and undercount,
+      // which is fine for an analytics counter and avoids needing
+      // to ship a Postgres function. Migration 009 added the column.
+      const { data: tc } = await (supabase
+        .from('team_cards') as any)
+        .select('view_count')
+        .eq('id', team_card_id)
+        .single()
+      if (tc) {
+        await (supabase
+          .from('team_cards') as any)
+          .update({ view_count: ((tc as any).view_count || 0) + 1 })
+          .eq('id', team_card_id)
+      }
+    }
 
     return NextResponse.json({ success: true })
   } catch {

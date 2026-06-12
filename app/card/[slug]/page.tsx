@@ -128,15 +128,17 @@ export default async function PublicCardPage({ params }: Props) {
       ...teamCard,
       user_id: null,
       is_primary: true,
-      view_count: 0,
-      work_phone: teamCard.work_phone || null,
-      whatsapp: teamCard.whatsapp || null,
+      view_count: (teamCard as any).view_count || 0,
+      work_phone: (teamCard as any).work_phone || null,
+      whatsapp: (teamCard as any).whatsapp || null,
       // Pass team_card_id so contact form saves correctly
-      _team_card_id: teamCard.id,
+      _team_card_id: (teamCard as any).id,
     }
 
     return (
-      <PublicCardView card={cardShaped as any} isPro={true} isTeamCard={true} />
+      <CardTracker teamCardId={(teamCard as any).id}>
+        <PublicCardView card={cardShaped as any} isPro={true} isTeamCard={true} />
+      </CardTracker>
     )
   }
 

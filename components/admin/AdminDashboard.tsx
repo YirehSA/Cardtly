@@ -45,6 +45,18 @@ interface Card {
   created_at: string
 }
 
+interface TeamCard {
+  id: string
+  name: string
+  slug: string | null
+  user_id: string | null
+  organization_id: string
+  view_count: number
+  claimed_at: string | null
+  created_at: string
+  org_name: string | null
+}
+
 interface NfcOrder {
   id: string
   color: string
@@ -78,6 +90,7 @@ interface Announcement {
 interface Props {
   users: User[]
   cards: Card[]
+  teamCards: TeamCard[]
   orgs: any[]
   nfcOrders: NfcOrder[]
   stats: Stats
@@ -99,7 +112,7 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: '#ef4444',
 }
 
-export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats, announcement }: Props) {
+export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrders, stats, announcement }: Props) {
   const [tab, setTab] = useState<Tab>('overview')
   const [annMessage, setAnnMessage] = useState(announcement?.message || '')
   const [annLinkUrl, setAnnLinkUrl] = useState(announcement?.link_url || '')
@@ -517,11 +530,10 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats, a
                           style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24' }}>Unconfirmed</span>
                       )}
 
-                      {/* Total views across this user's personal cards.
-                          Team card views are not tracked yet and don't
-                          contribute to this number. */}
+                      {/* Total views across this user's personal cards
+                          AND any team cards they've claimed. */}
                       <span className="hidden sm:inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-semibold tabular-nums"
-                        title={`Total views across ${user.email}'s personal cards`}
+                        title={`Total views across ${user.email}'s personal + claimed team cards`}
                         style={(user.total_views ?? 0) > 0
                           ? { background: 'rgba(0,212,255,0.12)', color: '#00d4ff' }
                           : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)' }}>
@@ -657,44 +669,127 @@ export default function AdminDashboard({ users, cards, orgs, nfcOrders, stats, a
 
         {/* Cards */}
         {tab === 'cards' && (
-          <div className="rounded-2xl border overflow-hidden"
-            style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  {['Name', 'Slug', 'Views', 'User ID', 'Created'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold"
-                      style={{ color: 'rgba(255,255,255,0.4)' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {cards.map(card => {
-                  const views = card.view_count ?? 0
-                  return (
-                    <tr key={card.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                      <td className="px-4 py-3 text-white">{card.name || '—'}</td>
-                      <td className="px-4 py-3">
-                        {card.slug
-                          ? <a href={`/card/${card.slug}`} target="_blank" className="text-xs font-mono hover:text-white transition" style={{ color: '#00d4ff' }}>{card.slug}</a>
-                          : <span style={{ color: 'rgba(255,255,255,0.3)' }}>No slug</span>}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-bold tabular-nums"
-                          style={{
-                            background: views > 0 ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.04)',
-                            color: views > 0 ? '#00d4ff' : 'rgba(255,255,255,0.4)',
-                          }}>
-                          {views.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-xs font-mono" style={{ color: 'rgba(255,255,255,0.35)' }}>{card.user_id?.slice(0, 8)}...</td>
-                      <td className="px-4 py-3 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{new Date(card.created_at).toLocaleDateString('en-ZA')}</td>
+          <div className="space-y-6">
+            {/* Personal cards */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">Personal cards</p>
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    {cards.length} total · sorted by views
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-2xl border overflow-hidden"
+                style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      {['Name', 'Slug', 'Views', 'User ID', 'Created'].map(h => (
+                        <th key={h} className="text-left px-4 py-3 text-xs font-semibold"
+                          style={{ color: 'rgba(255,255,255,0.4)' }}>{h}</th>
+                      ))}
                     </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {cards.map(card => {
+                      const views = card.view_count ?? 0
+                      return (
+                        <tr key={card.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td className="px-4 py-3 text-white">{card.name || '—'}</td>
+                          <td className="px-4 py-3">
+                            {card.slug
+                              ? <a href={`/card/${card.slug}`} target="_blank" className="text-xs font-mono hover:text-white transition" style={{ color: '#00d4ff' }}>{card.slug}</a>
+                              : <span style={{ color: 'rgba(255,255,255,0.3)' }}>No slug</span>}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-bold tabular-nums"
+                              style={{
+                                background: views > 0 ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.04)',
+                                color: views > 0 ? '#00d4ff' : 'rgba(255,255,255,0.4)',
+                              }}>
+                              {views.toLocaleString()}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs font-mono" style={{ color: 'rgba(255,255,255,0.35)' }}>{card.user_id?.slice(0, 8)}...</td>
+                          <td className="px-4 py-3 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{new Date(card.created_at).toLocaleDateString('en-ZA')}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Team cards */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm font-semibold text-white flex items-center gap-2">
+                    <Building2 className="w-4 h-4" style={{ color: '#a78bfa' }} />
+                    Team cards
+                  </p>
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    {teamCards.length} total · {teamCards.filter(tc => tc.claimed_at).length} claimed · sorted by views
+                  </p>
+                </div>
+              </div>
+              {teamCards.length === 0 ? (
+                <div className="rounded-2xl border p-8 text-center"
+                  style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)' }}>
+                  <p className="text-sm">No team cards yet</p>
+                </div>
+              ) : (
+                <div className="rounded-2xl border overflow-hidden"
+                  style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                        {['Name', 'Slug', 'Views', 'Organization', 'Status', 'Created'].map(h => (
+                          <th key={h} className="text-left px-4 py-3 text-xs font-semibold"
+                            style={{ color: 'rgba(255,255,255,0.4)' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teamCards.map(tc => {
+                        const views = tc.view_count
+                        const claimed = !!tc.claimed_at
+                        return (
+                          <tr key={tc.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                            <td className="px-4 py-3 text-white">{tc.name || '—'}</td>
+                            <td className="px-4 py-3">
+                              {tc.slug
+                                ? <a href={`/card/${tc.slug}`} target="_blank" className="text-xs font-mono hover:text-white transition" style={{ color: '#a78bfa' }}>{tc.slug}</a>
+                                : <span style={{ color: 'rgba(255,255,255,0.3)' }}>No slug</span>}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-bold tabular-nums"
+                                style={{
+                                  background: views > 0 ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.04)',
+                                  color: views > 0 ? '#a78bfa' : 'rgba(255,255,255,0.4)',
+                                }}>
+                                {views.toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>{tc.org_name || '—'}</td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                style={claimed
+                                  ? { background: 'rgba(16,185,129,0.15)', color: '#34d399' }
+                                  : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}>
+                                {claimed ? 'Claimed' : 'Unclaimed'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{new Date(tc.created_at).toLocaleDateString('en-ZA')}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
