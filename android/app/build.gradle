@@ -69,6 +69,10 @@ dependencies {
     // script picks it up automatically.
     implementation platform('com.google.firebase:firebase-bom:34.14.1')
     implementation 'com.google.firebase:firebase-analytics'
+
+    // ZXing core: renders the QR bitmap for the home-screen widget
+    // (CardQrWidgetProvider). Pure-Java, no transitive Android deps.
+    implementation 'com.google.zxing:core:3.5.3'
 }
 
 apply from: 'capacitor.build.gradle'

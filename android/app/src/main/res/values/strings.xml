@@ -6,4 +6,9 @@
     <string name="custom_url_scheme">com.cardtly.app</string>
     <string name="nfc_share_description">Share your Cardtly card via NFC tap</string>
     <string name="nfc_share_aid_group">Cardtly card share</string>
+    <string name="widget_label">My Cardtly QR</string>
+    <string name="widget_description">Your card\'s QR code on your home screen, ready to scan.</string>
+    <string name="widget_empty_title">Set up your card</string>
+    <string name="widget_empty_subtitle">Open Cardtly once to activate</string>
+    <string name="widget_default_name">My card</string>
 </resources>

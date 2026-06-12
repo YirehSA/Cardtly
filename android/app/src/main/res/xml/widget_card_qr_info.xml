@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget metadata. updatePeriodMillis=0 because updates are pushed
+     by the CardWidget plugin whenever the app syncs card data - no
+     polling needed. targetCellWidth/Height + previewLayout +
+     description are API 31+ attributes; older Androids ignore them
+     and use minWidth/minHeight + initialLayout. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_card_qr"
+    android:previewLayout="@layout/widget_card_qr"
+    android:description="@string/widget_description"
+    android:widgetCategory="home_screen" />

@@ -54,6 +54,21 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- Home-screen QR widget: shows the user's card QR code so
+             they can be scanned without opening the app. Fed by the
+             CardWidget Capacitor plugin via SharedPreferences. -->
+        <receiver
+            android:name=".CardQrWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_card_qr_info" />
+        </receiver>
+
         <!-- Host Card Emulation service: lets the phone broadcast the
              user's Cardtly card URL as an NDEF tag when armed via the
              "Tap to share" modal. Other phones (and NFC readers) reading

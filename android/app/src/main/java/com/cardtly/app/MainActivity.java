@@ -6,9 +6,10 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        // Register our custom NfcShare plugin (HCE phone-to-phone tap).
-        // Must be called BEFORE super.onCreate so the bridge picks it up.
-        registerPlugin(NfcSharePlugin.class);
+        // Register our custom plugins. Must be called BEFORE
+        // super.onCreate so the bridge picks them up.
+        registerPlugin(NfcSharePlugin.class);   // HCE phone-to-phone tap
+        registerPlugin(CardWidgetPlugin.class); // home-screen QR widget sync
         super.onCreate(savedInstanceState);
     }
 }

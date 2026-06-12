@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home-screen QR widget. RemoteViews-compatible views only
+     (LinearLayout / ImageView / TextView). White card so the QR
+     scans reliably; Android 12+ rounds the corners itself, the
+     background drawable handles older versions. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="10dp"
+    android:background="@drawable/widget_card_bg">
+
+    <ImageView
+        android:id="@+id/widget_qr"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:scaleType="fitCenter"
+        android:contentDescription="@string/widget_description" />
+
+    <TextView
+        android:id="@+id/widget_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="center"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:textStyle="bold"
+        android:textSize="13sp"
+        android:textColor="#14142B" />
+
+    <TextView
+        android:id="@+id/widget_url"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:textSize="10sp"
+        android:textColor="#7C3AED" />
+
+</LinearLayout>

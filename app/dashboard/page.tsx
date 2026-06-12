@@ -9,6 +9,7 @@ import AnimatedCounter from '@/components/dashboard/AnimatedCounter'
 import OnboardingTour from '@/components/dashboard/OnboardingTour'
 import ReferralCard from '@/components/dashboard/ReferralCard'
 import TapToShareButton from '@/components/nfc/TapToShareButton'
+import WidgetSync from '@/components/dashboard/WidgetSync'
 import AddToGoogleWalletButton from '@/components/wallet/AddToGoogleWalletButton'
 import {
   CreditCard, BarChart2, Eye, Users, ArrowUpRight,
@@ -95,6 +96,9 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-10 animate-fade-in">
       <OnboardingTour />
+      {/* Pushes the card URL + name to the Android home-screen QR
+          widget. Renders nothing; no-op on web. */}
+      <WidgetSync slug={card?.slug ?? null} name={card?.name ?? null} />
 
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
