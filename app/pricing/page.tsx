@@ -1,7 +1,15 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
 import { Check, ArrowRight, Zap } from 'lucide-react'
+
+export const metadata: Metadata = {
+  title: 'Digital Business Card Pricing — Free Forever, Pro R65/month',
+  description:
+    'Cardtly pricing in South African rand. Free digital business card with QR code and link sharing forever. Pro at R65/month adds premium templates and advanced analytics. NFC card R150 once-off.',
+  alternates: { canonical: '/pricing' },
+}
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 const gradText: React.CSSProperties = {
@@ -61,7 +69,7 @@ export default function PricingPage() {
             Simple pricing.<br /><span style={gradText}>No surprises.</span>
           </h1>
           <p className="text-lg" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Start free and upgrade only when you need the extras.
+            Your digital business card is free forever. Upgrade only when you need the extras.
           </p>
         </div>
       </section>

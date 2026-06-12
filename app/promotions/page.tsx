@@ -7,7 +7,9 @@ import PromotionsClient from './PromotionsClient'
 // share button interactions.
 
 export const metadata = {
-  title: 'Growth Promotions — Cardtly',
+  // No "- Cardtly" suffix here: the root layout's title template
+  // already appends "| Cardtly" and doubling reads broken in SERPs.
+  title: 'Win Prizes with Your Digital Business Card',
   description: 'Win lifetime Pro, a custom website, cash, and an ultimate grand prize. Cardtly is rewarding early adopters across four growing milestones.',
 }
 

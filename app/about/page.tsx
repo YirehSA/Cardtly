@@ -1,7 +1,15 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
 import { ArrowRight, Heart, Zap, Globe, Users } from 'lucide-react'
+
+export const metadata: Metadata = {
+  title: 'About Cardtly — Digital Business Cards Made in South Africa',
+  description:
+    'Cardtly is a South African digital business card platform on a mission to retire the paper card. ZAR pricing, local NFC card delivery, and a free-forever plan for every professional.',
+  alternates: { canonical: '/about' },
+}
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 const gradText: React.CSSProperties = {

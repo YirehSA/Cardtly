@@ -1,7 +1,38 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
 import { Wifi, ArrowRight, Check, Smartphone, Zap, Shield, Package } from 'lucide-react'
+
+export const metadata: Metadata = {
+  title: 'NFC Business Cards South Africa — Tap to Share | R150 Once-off',
+  description:
+    'Order your NFC business card in South Africa. One tap opens your full digital business card on any modern phone - no app needed. R150 once-off plus R100 shipping, delivered in 5-7 business days nationwide.',
+  alternates: { canonical: '/nfc' },
+}
+
+// Product schema: the NFC card is a physical product with a price,
+// which makes it eligible for product rich results in search.
+const NFC_PRODUCT_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: 'Cardtly NFC Business Card',
+  description:
+    'Physical NFC business card linked to your Cardtly digital business card. Tap any modern smartphone to share your details instantly - no app required.',
+  brand: { '@type': 'Brand', name: 'Cardtly' },
+  offers: {
+    '@type': 'Offer',
+    price: '150',
+    priceCurrency: 'ZAR',
+    availability: 'https://schema.org/InStock',
+    shippingDetails: {
+      '@type': 'OfferShippingDetails',
+      shippingRate: { '@type': 'MonetaryAmount', value: '100', currency: 'ZAR' },
+      shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'ZA' },
+    },
+    url: 'https://cardtly.com/nfc',
+  },
+}
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 const gradText: React.CSSProperties = {
@@ -49,6 +80,10 @@ const SPECS = [
 export default function NFCMarketingPage() {
   return (
     <div style={{ background: '#000', color: '#fff' }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(NFC_PRODUCT_SCHEMA) }}
+      />
       <Navbar />
 
       {/* Hero */}
@@ -73,7 +108,7 @@ export default function NFCMarketingPage() {
               </h1>
 
               <p className="text-lg leading-relaxed mb-8" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                A physical NFC card that opens your full Cardtly profile with a single tap. No scanning, no typing, no app. Just tap and connect.
+                A physical NFC business card that opens your full digital business card with a single tap. No scanning, no typing, no app. Just tap and connect.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 mb-8">

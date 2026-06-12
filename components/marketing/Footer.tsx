@@ -18,20 +18,22 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-sm leading-relaxed max-w-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              Your digital business card. Share who you are with a tap, a scan, or a link. For everyone.
+              The digital business card built for South Africa. Share who you are with a tap, a scan, or a link. For everyone.
             </p>
           </div>
 
-          {/* Product */}
+          {/* Product - keyword-bearing anchors help Google understand
+              what each page is about (internal anchor text is a real,
+              if modest, ranking signal). */}
           <div>
             <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Product</p>
             <div className="space-y-2.5">
               {[
-                { href: '/how-it-works', label: 'How it works' },
-                { href: '/pricing',       label: 'Pricing' },
+                { href: '/how-it-works', label: 'How digital cards work' },
+                { href: '/pricing',       label: 'Digital business card pricing' },
                 { href: '/promotions',    label: 'Win prizes 🏆' },
-                { href: '/nfc',           label: 'NFC Cards 🇿🇦' },
-                { href: '/signup',        label: 'Get started' },
+                { href: '/nfc',           label: 'NFC business cards 🇿🇦' },
+                { href: '/signup',        label: 'Create your free card' },
                 { href: '/login',         label: 'Sign in' },
               ].map(({ href, label }) => (
                 <Link key={href} href={href}

@@ -42,6 +42,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: ogTitle,
     description,
+    // Canonical strips query params (?t=, utm_) so shared variants
+    // all consolidate ranking signal onto the clean card URL.
+    alternates: { canonical: `/card/${slug}` },
     openGraph: {
       title: ogTitle,
       description,

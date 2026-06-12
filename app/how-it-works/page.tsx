@@ -1,8 +1,16 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
 import GeoPricing from '@/components/marketing/GeoPricing'
 import { ArrowRight } from 'lucide-react'
+
+export const metadata: Metadata = {
+  title: 'How Digital Business Cards Work — Set Up in 2 Minutes',
+  description:
+    'See how a Cardtly digital business card works: create your card, get your link and QR code, then share by NFC tap, scan, or URL. Update anytime - everyone always sees your latest details.',
+  alternates: { canonical: '/how-it-works' },
+}
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 const gradText: React.CSSProperties = {
@@ -83,7 +91,7 @@ export default function HowItWorksPage() {
             From sign up to sharing<br /><span style={gradText}>in 2 minutes flat.</span>
           </h1>
           <p className="text-lg leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Cardtly is designed to be effortless. No design skills needed, no complicated setup. Just your details and a link that works everywhere.
+            Cardtly is designed to be effortless. No design skills needed, no complicated setup. Just your details and a digital business card link that works everywhere.
           </p>
         </div>
       </section>
