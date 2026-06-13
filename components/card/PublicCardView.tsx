@@ -376,6 +376,7 @@ export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, 
     { url: card.image_3_url, link: (card as any).image_3_link },
     { url: card.image_4_url, link: (card as any).image_4_link },
     { url: card.image_5_url, link: (card as any).image_5_link },
+    { url: (card as any).image_6_url, link: (card as any).image_6_link },
   ].filter(item => item.url) as { url: string; link?: string }[] : []
   const socialLinks = isPro ? [
     card.linkedin_url && { platform: 'LinkedIn', url: card.linkedin_url, icon: <Linkedin className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.linkedin },
