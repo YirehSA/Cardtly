@@ -67,16 +67,15 @@ export default function TeammatesCard() {
   }
 
   return (
-    <div className="rounded-2xl border p-6"
-      style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.07)' }}>
+    <div className="rounded-2xl border border-border bg-card p-6">
       <div className="flex items-center gap-3 mb-5">
         <div className="w-9 h-9 rounded-xl flex items-center justify-center"
           style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)' }}>
           <Users className="w-4 h-4" style={{ color: '#a78bfa' }} />
         </div>
         <div>
-          <p className="font-bold text-white text-sm">Share a teammate&apos;s card</p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <p className="font-bold text-foreground text-sm">Share a teammate&apos;s card</p>
+          <p className="text-xs text-muted-foreground">
             {orgName ? `${orgName} · ` : ''}hand out a colleague&apos;s card on the spot
           </p>
         </div>
@@ -84,8 +83,7 @@ export default function TeammatesCard() {
 
       <div className="space-y-2">
         {mates.map(mate => (
-          <div key={mate.id} className="flex items-center gap-3 p-3 rounded-xl transition hover:bg-white/[0.03]"
-            style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div key={mate.id} className="flex items-center gap-3 p-3 rounded-xl border border-border transition hover:bg-muted">
             {mate.profile_image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={mate.profile_image_url} alt={mate.name || 'Teammate'}
@@ -97,22 +95,20 @@ export default function TeammatesCard() {
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white truncate">{mate.name || 'Unnamed'}</p>
+              <p className="text-sm font-semibold text-foreground truncate">{mate.name || 'Unnamed'}</p>
               {mate.title && (
-                <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>{mate.title}</p>
+                <p className="text-xs text-muted-foreground truncate">{mate.title}</p>
               )}
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <a href={cardUrl(mate.slug)} target="_blank" rel="noopener noreferrer"
                 title="Open card"
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition hover:bg-white/10"
-                style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>
+                className="w-8 h-8 rounded-lg flex items-center justify-center border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground">
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
               <button onClick={() => copyLink(mate)}
                 title="Copy link"
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition hover:bg-white/10"
-                style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>
+                className="w-8 h-8 rounded-lg flex items-center justify-center border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground">
                 <Copy className="w-3.5 h-3.5" />
               </button>
               <button onClick={() => shareCard(mate)}
