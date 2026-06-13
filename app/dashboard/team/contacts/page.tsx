@@ -37,7 +37,7 @@ export default async function TeamContactsPage() {
   const { data: contacts } = teamCardIds.length > 0
     ? await admin
         .from('contacts')
-        .select('id, name, email, phone, message, created_at, team_card_id')
+        .select('id, name, email, phone, message, created_at, team_card_id, source')
         .in('team_card_id', teamCardIds)
         .order('created_at', { ascending: false })
     : { data: [] }
@@ -108,6 +108,12 @@ export default async function TeamContactsPage() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4">
+                    {/* Meeting request vs contact form */}
+                    {contact.source === 'booking' && (
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-500 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />Meeting request
+                      </span>
+                    )}
                     {/* Which team card they contacted */}
                     {teamCard && (
                       <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary">

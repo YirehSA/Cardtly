@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
-import { getPrimaryCard } from '@/lib/card-server'
+import { getPrimaryCard, getMemberTeamCard } from '@/lib/card-server'
 import ProGate from '@/components/card/ProGate'
 import EmptyState from '@/components/EmptyState'
 import { Users, Mail, Phone, MessageSquare, Calendar } from 'lucide-react'
@@ -19,12 +20,21 @@ export default async function ContactsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [card, plan] = await Promise.all([
+  const [personalCard, plan] = await Promise.all([
     getPrimaryCard<CardSummary>(user.id, 'id, name, slug'),
     getUserPlan(user.id),
   ])
 
-  const isPro = plan.tier === 'pro' && plan.isActive
+  // Team members have no personal card - fall back to their claimed
+  // team card so they can see their own leads (the team admin sees
+  // these too in Team Contacts).
+  const teamCard = personalCard ? null : await getMemberTeamCard<CardSummary>(user.id, 'id, name, slug')
+  const card = personalCard || teamCard
+  const isTeam = !personalCard && !!teamCard
+
+  // Pro gate applies to personal cards. Team cards are always Pro
+  // (the org pays), so team members skip the gate.
+  const isPro = (plan.tier === 'pro' && plan.isActive) || isTeam
 
   if (!isPro) {
     return (
@@ -42,10 +52,15 @@ export default async function ContactsPage() {
     )
   }
 
-  const { data: contacts } = await supabase
+  // Team-card contacts are blocked from anon RLS reads, so use the
+  // service-role client for those; personal cards use the user client.
+  const reader = isTeam
+    ? createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!) as any
+    : supabase
+  const { data: contacts } = await reader
     .from('contacts')
-    .select('id, name, email, phone, message, created_at')
-    .eq('card_id', card.id)
+    .select('id, name, email, phone, message, created_at, source')
+    .eq(isTeam ? 'team_card_id' : 'card_id', card.id)
     .order('created_at', { ascending: false })
 
   const rows = contacts || []
@@ -101,7 +116,12 @@ export default async function ContactsPage() {
                 </div>
 
                 {/* Contact details */}
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  {contact.source === 'booking' && (
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-500 flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />Meeting request
+                    </span>
+                  )}
                   {contact.email && (
                     <a href={`mailto:${contact.email}`}
                       className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition">

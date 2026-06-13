@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { resolveCardOwner } from '@/lib/card-owner'
 
 // Public endpoint: a visitor on someone's card submits a meeting
 // request. We store it in the bookings table, fire an email to the
 // card owner via Resend, and add the visitor to the owner's
 // contacts list so they don't have to enter the info twice if they
-// also want to follow up.
+// also want to follow up. Works for personal and team cards; for
+// team cards the contact is stored under team_card_id so the team
+// admin sees it in Team Contacts.
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM_EMAIL = 'noreply@cardtly.com'
@@ -41,35 +44,13 @@ export async function POST(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
 
-  // Look up the card to find the owner. Supports both personal and
-  // team cards via separate tables.
-  let owner: { email: string; name: string } | null = null
-  let cardName = ''
-
-  const { data: personalCard } = await admin
-    .from('cards')
-    .select('id, name, email, user_id')
-    .eq('id', card_id)
-    .maybeSingle()
-
-  if (personalCard) {
-    owner = { email: personalCard.email || '', name: personalCard.name || '' }
-    cardName = personalCard.name || ''
-  } else {
-    const { data: teamCard } = await admin
-      .from('team_cards')
-      .select('id, name, email, organization_id')
-      .eq('id', card_id)
-      .maybeSingle()
-    if (teamCard) {
-      owner = { email: teamCard.email || '', name: teamCard.name || '' }
-      cardName = teamCard.name || ''
-    }
-  }
-
-  if (!owner) {
+  // Resolve the owner + correct storage column. card_id here may be a
+  // personal card id or a team card id - the resolver detects which.
+  const owner = await resolveCardOwner(admin, card_id)
+  if (!owner.found) {
     return NextResponse.json({ error: 'Card not found' }, { status: 404 })
   }
+  const cardName = owner.cardName
 
   // Store the booking request. Falls through silently if the
   // bookings table does not exist yet so the email still sends.
@@ -88,10 +69,13 @@ export async function POST(request: Request) {
     // table missing or RLS - non-fatal
   }
 
-  // Also add to contacts so the card owner has them in their CRM-ish view
+  // Also add to contacts so the owner (and, for team cards, the team
+  // admin) sees them in the dashboard. Stored under the correct column
+  // so team-card bookings show in Team Contacts.
   try {
     await admin.from('contacts').insert({
-      card_id,
+      card_id: owner.personalCardId,
+      team_card_id: owner.teamCardId,
       name: requester_name.trim(),
       email: requester_email.trim(),
       phone: requester_phone?.trim() || null,
@@ -102,12 +86,12 @@ export async function POST(request: Request) {
     // ignore
   }
 
-  // Notify the card owner via Resend
-  if (process.env.RESEND_API_KEY && owner.email) {
+  // Notify the card owner via Resend (their card email + account email)
+  if (process.env.RESEND_API_KEY && owner.ownerEmails.length > 0) {
     try {
       await resend.emails.send({
         from: FROM_EMAIL,
-        to: owner.email,
+        to: owner.ownerEmails,
         replyTo: requester_email.trim(),
         subject: `New booking request from ${requester_name.trim()}`,
         html: `
@@ -120,7 +104,7 @@ export async function POST(request: Request) {
               <p style="margin:0 0 6px"><strong>Preferred date:</strong> ${preferred_date}${preferred_time ? ' at ' + preferred_time : ''}</p>
               ${notes ? `<p style="margin:12px 0 0;white-space:pre-wrap"><strong>Note:</strong> ${notes}</p>` : ''}
             </div>
-            <p style="font-size:12px;color:#888;margin:24px 0 0">Card: ${cardName}. Sent via Cardtly.</p>
+            <p style="font-size:12px;color:#888;margin:24px 0 0">Card: ${cardName}. Sent via Cardtly.${owner.isTeam ? ' Your team admin can also see this in Team Contacts.' : ''}</p>
           </div>
         `,
       })
