@@ -7,6 +7,7 @@ import Sidebar from '@/components/dashboard/Sidebar'
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
 import CommandPalette from '@/components/CommandPalette'
 import AnnouncementBanner from '@/components/AnnouncementBanner'
+import AnnouncementModal from '@/components/AnnouncementModal'
 import HeartbeatPing from '@/components/dashboard/HeartbeatPing'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -44,6 +45,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </main>
         <CommandPalette />
         <HeartbeatPing />
+        <AnnouncementModal />
         <MobileBottomNav isAdmin={isAdmin} />
       </div>
     </ThemeProvider>

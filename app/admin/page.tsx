@@ -59,7 +59,7 @@ export default async function AdminPage() {
 
   const { data: activeAnnouncement } = await admin
     .from('app_announcements')
-    .select('id, message, link_url, link_text, variant, created_at')
+    .select('id, message, link_url, link_text, variant, display_style, created_at')
     .eq('is_active', true)
     .order('created_at', { ascending: false })
     .limit(1)

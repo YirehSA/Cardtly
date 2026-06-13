@@ -10,6 +10,7 @@ interface Announcement {
   link_url: string | null
   link_text: string | null
   variant: 'info' | 'success' | 'warning'
+  display_style?: 'banner' | 'modal'
 }
 
 // Reads the single active announcement from the app_announcements table
@@ -17,6 +18,9 @@ interface Announcement {
 // Dismissal is per-announcement-per-browser via localStorage so the
 // same user gets a fresh banner the next time the admin posts a new
 // one (different id = different dismiss key).
+//
+// Announcements set to display_style='modal' are skipped here - they
+// render via AnnouncementModal instead so we never double up.
 
 export default function AnnouncementBanner() {
   const [announcement, setAnnouncement] = useState<Announcement | null>(null)
@@ -26,7 +30,7 @@ export default function AnnouncementBanner() {
     const supabase = createClient()
     supabase
       .from('app_announcements')
-      .select('id, message, link_url, link_text, variant')
+      .select('id, message, link_url, link_text, variant, display_style')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -34,6 +38,8 @@ export default function AnnouncementBanner() {
       .then(({ data }) => {
         if (!data) return
         const a = data as unknown as Announcement
+        // Modal-style announcements render via AnnouncementModal, not here.
+        if (a.display_style === 'modal') return
         // Check if this announcement was already dismissed
         try {
           if (localStorage.getItem(`cardtly:announce-${a.id}`) === '1') {

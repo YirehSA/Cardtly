@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   Users, CreditCard, BarChart2, Package, Loader2,
   Search, Check, X, ChevronDown, ChevronUp, Building2,
-  Wifi, MessageSquare, Shield, Trash2, Mail, KeyRound, MailCheck, Trophy, ArrowLeft, Eye
+  Wifi, MessageSquare, Shield, Trash2, Mail, KeyRound, MailCheck, Trophy, ArrowLeft, Eye, Lock
 } from 'lucide-react'
 
 interface User {
@@ -89,6 +89,7 @@ interface Announcement {
   link_url: string | null
   link_text: string | null
   variant: 'info' | 'success' | 'warning'
+  display_style?: 'banner' | 'modal'
   created_at: string
 }
 
@@ -123,6 +124,7 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
   const [annLinkUrl, setAnnLinkUrl] = useState(announcement?.link_url || '')
   const [annLinkText, setAnnLinkText] = useState(announcement?.link_text || '')
   const [annVariant, setAnnVariant] = useState<'info' | 'success' | 'warning'>(announcement?.variant || 'info')
+  const [annDisplayStyle, setAnnDisplayStyle] = useState<'banner' | 'modal'>(announcement?.display_style || 'banner')
   const [annActive, setAnnActive] = useState(!!announcement)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState<string | null>(null)
@@ -210,6 +212,41 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
     setLoading(null)
   }
 
+  // Directly set a new password for a client and hand it to them.
+  // Admin types (or accepts a suggested) password; it takes effect
+  // immediately. We surface it in a long-lived toast with a copy
+  // action so the admin can relay it to the client.
+  async function setPassword(user: User) {
+    const suggested = `Cardtly${Math.floor(1000 + Math.random() * 9000)}!`
+    const pw = window.prompt(
+      `Set a new password for ${user.email}.\n\nThis takes effect immediately - share it with the client. Minimum 8 characters.`,
+      suggested,
+    )
+    if (pw === null) return // cancelled
+    if (pw.trim().length < 8) {
+      toast.error('Password must be at least 8 characters')
+      return
+    }
+    setLoading(`setpw-${user.id}`)
+    const data = await api({ action: 'set_password', user_id: user.id, password: pw.trim() })
+    if (data.success) {
+      const finalPw = pw.trim()
+      toast.success(`Password set for ${user.email}`, {
+        description: `New password: ${finalPw} — tap to copy`,
+        duration: 30000,
+        action: {
+          label: 'Copy',
+          onClick: () => {
+            navigator.clipboard?.writeText(finalPw).catch(() => {})
+          },
+        },
+      })
+    } else {
+      toast.error(data.error || 'Could not set password')
+    }
+    setLoading(null)
+  }
+
   async function postAnnouncement() {
     if (!annMessage.trim()) {
       toast.error('Enter a message first')
@@ -222,10 +259,11 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
       link_url: annLinkUrl.trim() || null,
       link_text: annLinkText.trim() || null,
       variant: annVariant,
+      display_style: annDisplayStyle,
     })
     if (data.success) {
       setAnnActive(true)
-      toast.success('Announcement posted to all users')
+      toast.success(annDisplayStyle === 'modal' ? 'Popup posted to all users' : 'Banner posted to all users')
     } else {
       toast.error(data.error || 'Could not post')
     }
@@ -349,7 +387,7 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                 <div>
                   <p className="text-sm font-semibold text-white">Site-wide announcement</p>
                   <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    {annActive ? 'Currently shown to all logged-in users' : 'Nothing active. Post a message to show a banner on every dashboard.'}
+                    {annActive ? `Currently shown to all logged-in users as a ${annDisplayStyle === 'modal' ? 'popup' : 'banner'}` : 'Nothing active. Post a message to show a banner or popup on every dashboard.'}
                   </p>
                 </div>
                 {annActive && (
@@ -378,8 +416,26 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                     className="px-3 py-2.5 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }} />
                 </div>
+                {/* Show as: thin banner vs big popup */}
                 <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Style:</span>
+                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Show as:</span>
+                  {([
+                    { v: 'banner' as const, label: 'Banner', hint: 'Thin strip at the top' },
+                    { v: 'modal' as const, label: 'Popup', hint: 'Big centered popup' },
+                  ]).map(({ v, label, hint }) => (
+                    <button key={v} onClick={() => setAnnDisplayStyle(v)}
+                      title={hint}
+                      className={`text-xs px-3 py-1.5 rounded-lg transition ${annDisplayStyle === v ? 'text-white' : ''}`}
+                      style={annDisplayStyle === v
+                        ? { background: grad }
+                        : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)' }}>
+                      {v === 'modal' ? '📣 ' : ''}{label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Colour:</span>
                   {(['info', 'success', 'warning'] as const).map(v => (
                     <button key={v} onClick={() => setAnnVariant(v)}
                       className={`text-xs px-3 py-1.5 rounded-lg transition ${annVariant === v ? 'ring-1 ring-white/30' : ''}`}
@@ -393,7 +449,7 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                   <button onClick={postAnnouncement} disabled={loading === 'announce' || !annMessage.trim()}
                     className="ml-auto text-xs font-bold px-4 py-1.5 rounded-lg text-white transition hover:opacity-90 disabled:opacity-50"
                     style={{ background: grad }}>
-                    {loading === 'announce' ? 'Posting...' : annActive ? 'Update banner' : 'Post banner'}
+                    {loading === 'announce' ? 'Posting...' : annActive ? `Update ${annDisplayStyle === 'modal' ? 'popup' : 'banner'}` : `Post ${annDisplayStyle === 'modal' ? 'popup' : 'banner'}`}
                   </button>
                 </div>
               </div>
@@ -637,10 +693,18 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
 
                       <button onClick={() => sendPasswordReset(user)}
                         disabled={loading === `reset-${user.id}`}
-                        title="Send a password reset link to this user"
+                        title="Email this user a password-reset link"
                         className="p-1.5 rounded-lg transition hover:bg-white/10 disabled:opacity-50"
                         style={{ color: '#fbbf24' }}>
                         {loading === `reset-${user.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                      </button>
+
+                      <button onClick={() => setPassword(user)}
+                        disabled={loading === `setpw-${user.id}`}
+                        title="Set a new password directly (takes effect immediately - hand it to the client)"
+                        className="p-1.5 rounded-lg transition hover:bg-white/10 disabled:opacity-50"
+                        style={{ color: '#a78bfa' }}>
+                        {loading === `setpw-${user.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
                       </button>
 
                       <button onClick={() => deleteUser(user)}

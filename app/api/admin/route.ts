@@ -161,6 +161,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true })
   }
 
+  // Directly set a new password for a user. Unlike send_password_reset
+  // (which emails them a link), this lets the admin choose the password
+  // and hand it to the client on a call - useful when the client can't
+  // receive the reset email or needs immediate access. The new password
+  // takes effect instantly; the admin relays it to the client.
+  if (action === 'set_password') {
+    const { user_id, password } = body as { user_id?: string; password?: string }
+    if (!user_id || !password) {
+      return NextResponse.json({ error: 'user_id and password required' }, { status: 400 })
+    }
+    if (typeof password !== 'string' || password.length < 8) {
+      return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
+    }
+    const { error } = await admin.auth.admin.updateUserById(user_id, { password })
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json({ success: true })
+  }
+
   // Hard-delete a user and every record we own about them. Mirrors the
   // self-service /api/account/delete route but is initiated by the
   // admin, not the user themselves. Cannot delete the admin's own
@@ -257,16 +277,20 @@ export async function POST(request: Request) {
   // logged-in users on the dashboard. Sets is_active=false on every
   // existing row first so only one is shown at a time.
   if (action === 'post_announcement') {
-    const { message, link_url, link_text, variant } = body
+    const { message, link_url, link_text, variant, display_style } = body
     if (!message || typeof message !== 'string') {
       return NextResponse.json({ error: 'message required' }, { status: 400 })
     }
+    // display_style: 'banner' (top strip) or 'modal' (big popup).
+    // Anything unexpected falls back to banner.
+    const style = display_style === 'modal' ? 'modal' : 'banner'
     await admin.from('app_announcements').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000')
     const { error: insertError } = await admin.from('app_announcements').insert({
       message,
       link_url: link_url || null,
       link_text: link_text || null,
       variant: variant || 'info',
+      display_style: style,
       is_active: true,
     })
     if (insertError) {
