@@ -30,22 +30,71 @@ export default function ResetPasswordPage() {
   const [show2, setShow2] = useState(false)
   const [authed, setAuthed] = useState<boolean | null>(null)
 
-  // Supabase puts the access/refresh tokens for password-reset links in
-  // the URL hash on arrival. The supabase-js client picks those up
-  // automatically via detectSessionInUrl. We just need to wait for the
-  // session to settle before showing the form.
+  // Establish a recovery session from the reset link. We support every
+  // link format so resets work whoever triggered them and on any device:
+  //   1. token_hash + type=recovery  -> verifyOtp (our token_hash flow,
+  //      works cross-device and for admin-triggered resets)
+  //   2. #access_token & #refresh_token -> setSession (implicit links)
+  //   3. ?code= -> exchangeCodeForSession (legacy PKCE links)
+  //   4. #error= / ?error= -> link expired or already used
+  //   5. otherwise -> whatever session already settled
+  // A recovery-grade session is what lets updateUser({password}) run
+  // without "Password update requires reauthentication".
   useEffect(() => {
     let cancelled = false
-    async function check() {
+
+    async function establish() {
+      const hashStr = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : ''
+      const hash = new URLSearchParams(hashStr)
+      const query = new URLSearchParams(window.location.search)
+
+      // Error from Supabase (expired / used link)
+      if (hash.get('error') || query.get('error')) {
+        if (!cancelled) setAuthed(false)
+        return
+      }
+
+      const cleanUrl = () => window.history.replaceState(null, '', window.location.pathname)
+
+      // 1. token_hash flow (our branded reset email)
+      const tokenHash = query.get('token_hash')
+      const type = query.get('type')
+      if (tokenHash && type) {
+        const { error } = await supabase.auth.verifyOtp({ type: type as any, token_hash: tokenHash })
+        cleanUrl()
+        if (!cancelled) setAuthed(!error)
+        return
+      }
+
+      // 2. Implicit hash tokens
+      const access_token = hash.get('access_token')
+      const refresh_token = hash.get('refresh_token')
+      if (access_token && refresh_token) {
+        const { error } = await supabase.auth.setSession({ access_token, refresh_token })
+        cleanUrl()
+        if (!cancelled) setAuthed(!error)
+        return
+      }
+
+      // 3. PKCE code
+      const code = query.get('code')
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        cleanUrl()
+        if (!cancelled) setAuthed(!error)
+        return
+      }
+
+      // 4. Fall back to any session detectSessionInUrl already settled
       const { data: { session } } = await supabase.auth.getSession()
       if (!cancelled) setAuthed(!!session)
     }
-    check()
-    // Listen for PASSWORD_RECOVERY event in case the session arrives later
+
+    establish()
+
+    // Catch PASSWORD_RECOVERY arriving slightly later
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
-        setAuthed(true)
-      }
+      if (event === 'PASSWORD_RECOVERY') setAuthed(true)
     })
     return () => {
       cancelled = true
@@ -62,7 +111,13 @@ export default function ResetPasswordPage() {
     setLoading(true)
     const { error } = await supabase.auth.updateUser({ password: data.password })
     if (error) {
-      toast.error(error.message)
+      // This specific error means the session in use isn't recovery-grade
+      // (e.g. a stale link opened in a logged-in browser). A fresh link
+      // is the clean recovery path.
+      const msg = /reauthentication/i.test(error.message)
+        ? 'This reset link has expired or was already used. Please request a new one.'
+        : error.message
+      toast.error(msg)
       setLoading(false)
       return
     }

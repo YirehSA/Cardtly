@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { ArrowRight, ArrowLeft, Mail } from 'lucide-react'
 
@@ -18,7 +17,6 @@ type FormData = z.infer<typeof schema>
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
 export default function ForgotPasswordPage() {
-  const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState<string | null>(null)
 
@@ -28,16 +26,25 @@ export default function ForgotPasswordPage() {
 
   async function onSubmit(data: FormData) {
     setLoading(true)
-    const redirectTo = `${window.location.origin}/reset-password`
-    const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-      redirectTo,
-    })
-    if (error) {
-      toast.error(error.message)
-      setLoading(false)
-      return
+    // Token-hash reset via our own endpoint so the link works on any
+    // device (not just the browser that requested it). See
+    // lib/password-reset for the why.
+    try {
+      const res = await fetch('/api/auth/send-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        toast.error(json.error || 'Could not send reset email')
+        setLoading(false)
+        return
+      }
+      setSent(data.email)
+    } catch {
+      toast.error('Network error. Please try again.')
     }
-    setSent(data.email)
     setLoading(false)
   }
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { isAdminUser, FOUNDER_ADMIN_USER_ID } from '@/lib/admin-check'
+import { sendPasswordResetEmail } from '@/lib/password-reset'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -144,19 +145,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true })
   }
 
-  // Trigger a password-reset email to a user. The link Supabase sends
-  // points back to /reset-password on cardtly.com where the user picks
-  // a new password.
+  // Email a user a password-reset link. Uses the token_hash flow
+  // (lib/password-reset) so the link works on any device - the old
+  // resetPasswordForEmail produced PKCE links that only worked in the
+  // browser that requested them, which never works for an admin-
+  // triggered reset (different person, different browser).
   if (action === 'send_password_reset') {
     const { email } = body
     if (!email) {
       return NextResponse.json({ error: 'email required' }, { status: 400 })
     }
-    const { error } = await admin.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com'}/reset-password`,
-    })
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com'
+    const result = await sendPasswordResetEmail(email, origin)
+    if (!result.ok && result.reason !== 'no_user') {
+      return NextResponse.json({ error: result.error || 'Could not send reset email' }, { status: 500 })
     }
     return NextResponse.json({ success: true })
   }
