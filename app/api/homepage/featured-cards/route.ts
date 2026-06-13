@@ -24,29 +24,49 @@ export async function GET() {
   // 60 days ago — lower bound on activity
   const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString()
 
-  // Pull a generous pool, we'll downsample in memory.
-  const { data: cards, error } = await admin
-    .from('cards')
-    .select('id, slug, name, title, company, profile_image_url, updated_at')
-    .eq('allow_homepage_feature', true)
-    .not('profile_image_url', 'is', null)
-    .not('name', 'is', null)
-    .not('slug', 'is', null)
-    .gte('updated_at', sixtyDaysAgo)
-    .limit(200)
+  // Pull a generous pool from BOTH personal and team cards, we'll
+  // downsample in memory. Team cards are always Pro and equally
+  // showcase-worthy. Each query is independent so a missing column
+  // (pre-migration) on one table doesn't break the other.
+  const [personalRes, teamRes] = await Promise.all([
+    admin
+      .from('cards')
+      .select('id, slug, name, title, company, profile_image_url, updated_at')
+      .eq('allow_homepage_feature', true)
+      .not('profile_image_url', 'is', null)
+      .not('name', 'is', null)
+      .not('slug', 'is', null)
+      .gte('updated_at', sixtyDaysAgo)
+      .limit(200),
+    admin
+      .from('team_cards')
+      .select('id, slug, name, title, company, profile_image_url, updated_at')
+      .eq('allow_homepage_feature', true)
+      .eq('is_active', true)
+      .not('profile_image_url', 'is', null)
+      .not('name', 'is', null)
+      .not('slug', 'is', null)
+      .gte('updated_at', sixtyDaysAgo)
+      .limit(200),
+  ])
 
-  if (error) {
-    // 42703 = "column does not exist" — happens before the
-    // migration is applied. Return empty silently so the homepage
-    // section just hides instead of showing a broken state.
-    if ((error as any).code === '42703') {
-      return NextResponse.json({ cards: [], rotatedFor: dateKey(), notice: 'migration_pending' })
-    }
-    console.error('featured-cards: query error', error)
+  const personalErr = personalRes.error
+  // Personal-cards column missing means the base feature migration
+  // hasn't run - that's the one that matters, so report pending.
+  if (personalErr && (personalErr as any).code === '42703') {
+    return NextResponse.json({ cards: [], rotatedFor: dateKey(), notice: 'migration_pending' })
+  }
+  if (personalErr) {
+    console.error('featured-cards: personal query error', personalErr)
     return NextResponse.json({ cards: [], error: 'query_failed' }, { status: 500 })
   }
+  // Team-cards column missing (migration 012 not yet applied) is
+  // non-fatal: just feature personal cards until it's run.
+  const teamCards = (teamRes.error ? [] : teamRes.data) || []
 
-  if (!cards || cards.length === 0) {
+  const cards = [...(personalRes.data || []), ...teamCards]
+
+  if (cards.length === 0) {
     return NextResponse.json({ cards: [], rotatedFor: dateKey() })
   }
 

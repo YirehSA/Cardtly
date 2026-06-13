@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Calendar, X, Loader2, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -26,7 +27,20 @@ export default function BookingModal({ open, onClose, cardId, cardName, accentHe
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
 
-  if (!open) return null
+  // Portals need document.body, which only exists after mount.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
+  // Lock background scroll while the modal is open so the page behind
+  // doesn't move under it.
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [open])
+
+  if (!open || !mounted) return null
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -62,11 +76,20 @@ export default function BookingModal({ open, onClose, cardId, cardName, accentHe
   // Tomorrow as the minimum date so people don't book for today
   const today = new Date().toISOString().slice(0, 10)
 
-  return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center px-4 py-8 overflow-y-auto"
+  // Rendered through a portal to document.body. The public card has
+  // tilt transforms and backdrop-filters on ancestor elements, which
+  // would make position:fixed anchor to the card instead of the
+  // viewport - that's why the modal appeared off-screen and you had to
+  // scroll up to find it. A portal escapes those ancestors entirely.
+  // The outer div is the full-viewport scroll container; the inner
+  // min-h-full flex wrapper centres the modal but lets the top stay
+  // reachable when the form is taller than the screen.
+  return createPortal(
+    <div className="fixed inset-0 z-[150] overflow-y-auto"
       style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
       onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl overflow-hidden border shadow-2xl my-auto"
+      <div className="flex min-h-full items-center justify-center p-4">
+      <div className="w-full max-w-md rounded-2xl overflow-hidden border shadow-2xl"
         style={{ background: '#0a0a0a', borderColor: 'rgba(255,255,255,0.1)' }}
         onClick={(e) => e.stopPropagation()}>
 
@@ -147,6 +170,8 @@ export default function BookingModal({ open, onClose, cardId, cardName, accentHe
           </>
         )}
       </div>
-    </div>
+      </div>
+    </div>,
+    document.body
   )
 }

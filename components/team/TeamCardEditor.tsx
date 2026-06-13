@@ -43,6 +43,7 @@ interface TeamCard {
   link_3_title: string | null; link_3_url: string | null
   link_4_title: string | null; link_4_url: string | null
   link_5_title: string | null; link_5_url: string | null
+  allow_homepage_feature?: boolean | null
 }
 
 interface Org { id: string; name: string }
@@ -95,6 +96,28 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin' }: Pr
   const [slugError, setSlugError] = useState('')
   const [slugSuccess, setSlugSuccess] = useState(false)
   const [design, setDesign] = useState<CardDesign>(() => parseDesign(card.color_theme))
+
+  // Homepage-feature opt-in. Saves instantly (like the personal
+  // settings toggle) rather than waiting for "Save changes".
+  const [allowFeature, setAllowFeature] = useState(!!card.allow_homepage_feature)
+  const [featureSaving, setFeatureSaving] = useState(false)
+  async function toggleFeature(next: boolean) {
+    setFeatureSaving(true)
+    setAllowFeature(next)
+    try {
+      const res = await fetch('/api/cards/visibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ card_id: card.id, allow_homepage_feature: next }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success(next ? 'This card may now be featured on the homepage' : 'This card will no longer be featured')
+    } catch {
+      setAllowFeature(!next) // revert
+      toast.error('Could not update. Try again.')
+    }
+    setFeatureSaving(false)
+  }
 
   const [form, setForm] = useState({
     name:              card.name || '',
@@ -380,6 +403,27 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin' }: Pr
           {activeTab === 'design' && (
             <DesignPanel design={design} onChange={setDesign} isPro={true} />
           )}
+        </div>
+
+        {/* Homepage feature opt-in. Saves instantly on toggle. */}
+        <div className="mt-4 rounded-xl border border-border p-4 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold mb-1">Feature this card on cardtly.com</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              When on, this team card may appear in the rotating &ldquo;Real cards, real people&rdquo; showcase on the public Cardtly homepage. Eight cards show at a time and refresh daily. Turn it off any time.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={allowFeature}
+            disabled={featureSaving}
+            onClick={() => !featureSaving && toggleFeature(!allowFeature)}
+            className="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition disabled:opacity-50"
+            style={{ background: allowFeature ? 'linear-gradient(135deg, #00d4ff, #7c3aed)' : 'rgba(255,255,255,0.15)' }}>
+            <span className="inline-block h-5 w-5 transform rounded-full bg-white transition"
+              style={{ transform: allowFeature ? 'translateX(22px)' : 'translateX(2px)' }} />
+          </button>
         </div>
 
         <div className="mt-4 flex justify-end">
