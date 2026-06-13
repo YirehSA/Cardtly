@@ -70,20 +70,22 @@ export async function POST(request: Request) {
   }
 
   // Also add to contacts so the owner (and, for team cards, the team
-  // admin) sees them in the dashboard. Stored under the correct column
-  // so team-card bookings show in Team Contacts.
-  try {
-    await admin.from('contacts').insert({
-      card_id: owner.personalCardId,
-      team_card_id: owner.teamCardId,
-      name: requester_name.trim(),
-      email: requester_email.trim(),
-      phone: requester_phone?.trim() || null,
-      message: `Booking request for ${preferred_date}${preferred_time ? ' at ' + preferred_time : ''}.${notes ? '\n\nNote: ' + notes : ''}`,
-      source: 'booking',
-    })
-  } catch {
-    // ignore
+  // admin) sees the request in the dashboard. Stored under the correct
+  // column so team-card bookings show in Team Contacts. We log any
+  // failure loudly rather than swallowing it - this is a required
+  // surface, not best-effort. Migration 013 guarantees the schema
+  // (nullable card_id + team_card_id) this insert depends on.
+  const { error: contactErr } = await admin.from('contacts').insert({
+    card_id: owner.personalCardId,
+    team_card_id: owner.teamCardId,
+    name: requester_name.trim(),
+    email: requester_email.trim(),
+    phone: requester_phone?.trim() || null,
+    message: `Booking request for ${preferred_date}${preferred_time ? ' at ' + preferred_time : ''}.${notes ? '\n\nNote: ' + notes : ''}`,
+    source: 'booking',
+  })
+  if (contactErr) {
+    console.error('bookings: failed to store contact', contactErr)
   }
 
   // Notify the card owner via Resend (their card email + account email)
