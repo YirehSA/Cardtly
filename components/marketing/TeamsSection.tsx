@@ -45,7 +45,7 @@ const DEMO_MEMBERS = [
 
 export default function TeamsSection() {
   return (
-    <section id="teams" className="py-24 px-6" style={{ background: 'rgba(255,255,255,0.02)' }}>
+    <section id="teams" className="py-24 px-6 overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)' }}>
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Copy */}
@@ -94,7 +94,7 @@ export default function TeamsSection() {
           </div>
 
           {/* Visual: three on-brand member cards */}
-          <div className="relative flex justify-center items-center min-h-[420px]">
+          <div className="relative flex justify-center items-center min-h-[420px] overflow-hidden">
             <div className="absolute w-[400px] h-[400px] rounded-full blur-[100px] pointer-events-none"
               style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 70%)' }} />
             {DEMO_MEMBERS.map(({ name, role }, i) => (

@@ -95,7 +95,7 @@ const PREVENT_FLASH_SCRIPT = `(function(){
 
 export default function HomePage() {
   return (
-    <div style={{ background: '#000', color: '#fff' }}>
+    <div className="overflow-x-hidden" style={{ background: '#000', color: '#fff' }}>
       {/* Synchronous head-script: hides body in Android WebViews until
           we know whether we're in the Cardtly app (-> stay hidden,
           redirect via React) or some other in-app browser (-> show
