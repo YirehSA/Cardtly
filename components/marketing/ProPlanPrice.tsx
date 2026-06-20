@@ -16,28 +16,27 @@ export default function ProPlanPrice() {
 
   return (
     <div className="relative">
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#7c3aed' }}>Pro</p>
+      <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#7c3aed' }}>Pro</p>
 
-        {/* Monthly / Yearly toggle */}
-        <div className="flex items-center gap-0.5 p-0.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)' }}>
-          <button onClick={() => setBilling('monthly')}
-            className="px-2.5 py-1 rounded-md text-xs font-semibold transition"
-            style={!isYearly
-              ? { background: 'rgba(255,255,255,0.12)', color: '#fff' }
-              : { color: 'rgba(255,255,255,0.5)' }}>
-            Monthly
-          </button>
-          <button onClick={() => setBilling('yearly')}
-            className="px-2.5 py-1 rounded-md text-xs font-semibold transition flex items-center gap-1"
-            style={isYearly
-              ? { background: 'rgba(255,255,255,0.12)', color: '#fff' }
-              : { color: 'rgba(255,255,255,0.5)' }}>
-            Yearly
-            <span className="text-[10px] font-bold px-1 py-0.5 rounded"
-              style={{ background: 'rgba(16,185,129,0.2)', color: '#34d399' }}>-23%</span>
-          </button>
-        </div>
+      {/* Monthly / Yearly toggle — its own row, left-aligned so it
+          clears the absolutely-positioned "Most popular" badge. */}
+      <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg mb-4" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <button onClick={() => setBilling('monthly')}
+          className="px-2.5 py-1 rounded-md text-xs font-semibold transition"
+          style={!isYearly
+            ? { background: 'rgba(255,255,255,0.12)', color: '#fff' }
+            : { color: 'rgba(255,255,255,0.5)' }}>
+          Monthly
+        </button>
+        <button onClick={() => setBilling('yearly')}
+          className="px-2.5 py-1 rounded-md text-xs font-semibold transition flex items-center gap-1"
+          style={isYearly
+            ? { background: 'rgba(255,255,255,0.12)', color: '#fff' }
+            : { color: 'rgba(255,255,255,0.5)' }}>
+          Yearly
+          <span className="text-[10px] font-bold px-1 py-0.5 rounded"
+            style={{ background: 'rgba(16,185,129,0.2)', color: '#34d399' }}>-23%</span>
+        </button>
       </div>
 
       <div className="flex items-end gap-2 mb-1">
