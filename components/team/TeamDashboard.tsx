@@ -44,6 +44,11 @@ interface Props {
 
 const inputClass = "w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
 
+// The only seat counts Paystack has plan codes for (see TEAM_PLANS in
+// app/api/team/route.ts). The picker must offer ONLY these - any other
+// count has no plan and checkout fails. R65 per seat per month.
+const SEAT_TIERS = [5, 10, 15, 20, 25, 30, 40, 50] as const
+
 export default function TeamDashboard({ user, org: initialOrg, teamCards: initialCards }: Props) {
   const searchParams = useSearchParams()
   const status = searchParams.get('status')
@@ -184,7 +189,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   async function handleCreateOrg() {
     if (!orgName.trim()) { toast.error('Enter a company name'); return }
     setLoading(true)
-    const data = await api({ action: 'create_org', org_name: orgName, max_seats: seatCount })
+    const data = await api({ action: 'create_org', org_name: orgName, seat_count: seatCount })
     if (data.authorization_url) {
       window.location.href = data.authorization_url
     } else {
@@ -272,7 +277,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { label: 'Per card/month', value: 'R65', sub: 'ZAR, billed monthly' },
-            { label: 'Minimum cards', value: '2', sub: 'No maximum' },
+            { label: 'Plans from', value: '5', sub: 'cards, scale to 50' },
             { label: 'Admin controls', value: '100%', sub: 'You manage all cards' },
           ].map(({ label, value, sub }) => (
             <div key={label} className="bg-card border border-border rounded-2xl p-4 text-center">
@@ -294,22 +299,25 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
+            <label className="block text-xs font-semibold text-muted-foreground mb-2">
               Number of cards — <span className="text-foreground font-bold">{seatCount} cards × R65 = R{seatCount * 65}/month</span>
             </label>
-            <div className="flex items-center gap-3">
-              <button onClick={() => setSeatCount(Math.max(2, seatCount - 1))}
-                className="w-10 h-10 rounded-xl border border-border flex items-center justify-center hover:bg-muted transition font-bold text-lg">
-                −
-              </button>
-              <span className="text-2xl font-black w-12 text-center">{seatCount}</span>
-              <button onClick={() => setSeatCount(seatCount + 1)}
-                className="w-10 h-10 rounded-xl border border-border flex items-center justify-center hover:bg-muted transition font-bold text-lg">
-                +
-              </button>
+            {/* Tier buttons - only the seat counts Paystack has plans for */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {SEAT_TIERS.map(seats => {
+                const active = seatCount === seats
+                return (
+                  <button key={seats} type="button" onClick={() => setSeatCount(seats)}
+                    className={`px-3 py-2.5 rounded-xl border text-sm font-bold transition ${active ? 'border-transparent text-white' : 'border-border text-foreground hover:bg-muted'}`}
+                    style={active ? { background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' } : undefined}>
+                    {seats} cards
+                    <span className="block text-[11px] font-medium opacity-80">R{seats * 65}/mo</span>
+                  </button>
+                )
+              })}
             </div>
             {/* Live USD estimate of the team total for non-rand admins */}
-            <UsdEstimate zar={seatCount * 65} suffix="/mo" className="block text-sm font-medium text-muted-foreground mt-2" />
+            <UsdEstimate zar={seatCount * 65} suffix="/mo" className="block text-sm font-medium text-muted-foreground mt-3" />
             <p className="text-xs text-muted-foreground mt-1">
               You can add more cards later. Billed monthly, cancel anytime.
             </p>
@@ -389,18 +397,9 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
               onChange={e => setSelectedTier(Number(e.target.value))}
               className="px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition flex-1 min-w-[200px]">
               <option value={0}>Select a plan...</option>
-              {[
-                { seats: 5,  price: 325 },
-                { seats: 10, price: 650 },
-                { seats: 15, price: 975 },
-                { seats: 20, price: 1300 },
-                { seats: 25, price: 1625 },
-                { seats: 30, price: 1950 },
-                { seats: 40, price: 2600 },
-                { seats: 50, price: 3250 },
-              ].filter(t => t.seats > seatsTotal).map(t => (
-                <option key={t.seats} value={t.seats}>
-                  {t.seats} seats — R{t.price}/month
+              {SEAT_TIERS.filter(seats => seats > seatsTotal).map(seats => (
+                <option key={seats} value={seats}>
+                  {seats} seats — R{seats * 65}/month
                 </option>
               ))}
             </select>
