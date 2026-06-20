@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Check, ArrowRight, Zap } from 'lucide-react'
+import UsdEstimate from '@/components/marketing/UsdEstimate'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
@@ -65,6 +66,7 @@ export default function GeoPricing({ freePlan, proPlan }: GeoPricingProps) {
             </span>
             <span className="text-base pb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>/ month</span>
           </div>
+          <UsdEstimate zar={65} suffix="/mo" className="block text-sm font-medium mb-1 text-white/70" />
           <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{currency} · {payNote}</p>
           <p className="text-sm mb-8 mt-3" style={{ color: 'rgba(255,255,255,0.45)' }}>Unlock the full Cardtly experience.</p>
         </div>

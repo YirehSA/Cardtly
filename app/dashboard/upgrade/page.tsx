@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, Zap, ArrowRight, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import UsdEstimate from '@/components/marketing/UsdEstimate'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 const gradText: React.CSSProperties = {
@@ -113,6 +114,9 @@ export default function UpgradePage() {
                 {billing === 'monthly' ? '/ month' : '/ year'}
               </span>
             </div>
+            <UsdEstimate zar={billing === 'monthly' ? 65 : 600}
+              suffix={billing === 'monthly' ? '/mo' : '/yr'}
+              className="block text-sm font-medium text-muted-foreground mb-1" />
             {billing === 'yearly' && (
               <div className="flex items-center gap-3">
                 <span className="text-sm text-muted-foreground">That's {perMonth}, billed annually</span>
