@@ -13,10 +13,21 @@ const ORG = {
   logo: 'https://cardtly.com/cardtly-icon.png',
   description:
     'Cardtly is a digital business card platform built in South Africa. Create a free digital business card and share it by NFC tap, QR code, or link.',
+  slogan: 'Your card. One tap away.',
   address: {
     '@type': 'PostalAddress',
     addressCountry: 'ZA',
   },
+  areaServed: { '@type': 'Country', name: 'South Africa' },
+  // Topics Cardtly is an authority on - helps AI engines map the
+  // brand to the right subject for "best digital business card"
+  // style questions.
+  knowsAbout: [
+    'Digital business cards',
+    'NFC business cards',
+    'QR code contact sharing',
+    'Networking',
+  ],
   sameAs: [
     'https://play.google.com/store/apps/details?id=com.cardtly.app',
   ],
@@ -40,6 +51,19 @@ const APP = {
   url: 'https://cardtly.com',
   description:
     'Create and share a digital business card with NFC tap, QR code, or link. Track views, update anytime, manage team cards.',
+  // Explicit capability list so AI answers to "what can Cardtly do"
+  // are grounded in the real feature set.
+  featureList: [
+    'Share by NFC tap, QR code, or link',
+    '12 customisable card templates',
+    'Analytics: views, clicks, and contact saves',
+    'Lead capture and built-in contacts CRM',
+    'Book-a-meeting button',
+    'Paper business card scanner (AI)',
+    'Add to phone contacts and Google Wallet',
+    'Team cards with locked branding',
+    'Email signature and virtual background generators',
+  ],
   offers: [
     {
       '@type': 'Offer',

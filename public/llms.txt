@@ -1,0 +1,46 @@
+# Cardtly
+
+> Cardtly is a digital business card platform built in South Africa. It lets professionals and teams create a digital business card and share it instantly by NFC tap, QR code, or link - no app required for the person receiving it. There is a free-forever plan; Pro is R65/month (South African rand). Live at https://cardtly.com.
+
+## What Cardtly is
+
+A digital business card is an online profile that replaces a paper business card. It holds your name, role, company, contact details, links, and photo on a single page with its own URL. Cardtly cards are shared three ways: an NFC tap (hold the card or phone to another phone), a QR code scan, or a plain link sent over WhatsApp, email, or SMS. The recipient can save the details straight to their phone contacts. Because the card is a live web page, the owner can update it anytime and everyone who has the link sees the latest version.
+
+## Key facts
+
+- Company: Cardtly, based in South Africa, available worldwide.
+- Free plan: a digital business card with a public URL, QR code, and contact-save (vCard), free forever, no credit card.
+- Pro plan: R65/month in South African rand (ZAR), billed via Paystack. International cards accepted; the bank converts at checkout. Roughly USD 3.50/month equivalent.
+- NFC card: an optional physical tap-to-share card, R150 once-off plus R100 shipping in South Africa.
+- Teams: branded cards for whole teams with locked company branding, per-member editing, and one admin dashboard. Priced per seat (R65/seat/month), 5-50 seats.
+- Android app available on Google Play (com.cardtly.app). iOS coming.
+
+## Main features
+
+- NFC tap-to-share, QR code, and link sharing from one card.
+- 12 card templates, fully customisable: accent colours (any hex), fonts, logo, light/dark mode, per-text colours and sizes, custom backgrounds.
+- Photo galleries, custom links, WhatsApp, social profiles, certifications, and an AI-written bio.
+- Built-in analytics: track views, clicks, and contact saves per card.
+- Lead capture and a built-in contacts CRM - visitors share their details and every lead lands in the owner's dashboard.
+- Book-a-meeting button: visitors request a meeting time directly from the card; the owner is emailed and the requester is saved to contacts.
+- Paper business card scanner (Pro): photograph someone else's paper card and AI extracts their details to save to contacts or the phone.
+- Add any contact straight to the phone address book, or download a vCard.
+- Add your card to Google Wallet.
+- Email signature generator and branded virtual backgrounds for Zoom and Teams.
+
+## Pages
+
+- [Home](https://cardtly.com/): what Cardtly is and how it works.
+- [How it works](https://cardtly.com/how-it-works): create a card, get your link and QR, share by tap, scan, or URL.
+- [Pricing](https://cardtly.com/pricing): Free vs Pro (R65/month), with a live USD estimate for international visitors.
+- [NFC cards](https://cardtly.com/nfc): the physical tap-to-share card for South Africa.
+- [About](https://cardtly.com/about): Cardtly's mission to retire the paper business card.
+- [Contact](https://cardtly.com/contact): get in touch with the Cardtly team.
+
+## Common questions
+
+- What is a digital business card? An online profile that replaces a paper card, shared by NFC tap, QR code, or link, with details the recipient can save to their phone.
+- How much does Cardtly cost? Free forever for the core card. Pro is R65/month. A physical NFC card is R150 once-off plus R100 shipping in South Africa.
+- Do I need an NFC card? No. The QR code and link work on the free plan with nothing physical.
+- Can teams use it? Yes. Cardtly Teams gives every member a branded card under locked company branding, managed from one admin dashboard.
+- Can I scan paper business cards? Yes, on Pro: photograph a paper card and AI reads it into a saved contact.
