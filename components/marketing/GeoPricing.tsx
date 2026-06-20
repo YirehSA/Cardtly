@@ -1,8 +1,5 @@
-'use client'
-
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Check, ArrowRight, Zap, Loader2 } from 'lucide-react'
+import { Check, ArrowRight, Zap } from 'lucide-react'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
@@ -11,27 +8,13 @@ interface GeoPricingProps {
   proPlan: string[]
 }
 
+// Everyone is billed in ZAR via Paystack (international cards welcome,
+// the bank converts at checkout). No region detection needed - the
+// price is the same worldwide.
 export default function GeoPricing({ freePlan, proPlan }: GeoPricingProps) {
-  const [region, setRegion] = useState<'za' | 'intl' | null>(null)
-
-  useEffect(() => {
-    // Use a free IP geo API to detect country
-    fetch('https://ipapi.co/json/')
-      .then(r => r.json())
-      .then(data => {
-        setRegion(data.country_code === 'ZA' ? 'za' : 'intl')
-      })
-      .catch(() => {
-        // Default to ZA if detection fails (SA-first product)
-        setRegion('za')
-      })
-  }, [])
-
-  const price = region === 'za' ? 'R65' : '$9'
-  const currency = region === 'za' ? 'ZAR' : 'USD'
-  const payNote = region === 'za'
-    ? 'Billed monthly via PayStack. Cancel anytime.'
-    : 'Billed monthly via Whop. Cancel anytime.'
+  const price = 'R65'
+  const currency = 'ZAR'
+  const payNote = 'Billed monthly via Paystack. Cancel anytime.'
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -75,23 +58,14 @@ export default function GeoPricing({ freePlan, proPlan }: GeoPricingProps) {
         <div className="relative">
           <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#7c3aed' }}>Pro</p>
 
-          {/* Price — show loader while detecting */}
-          {region === null ? (
-            <div className="flex items-center gap-3 mb-2 h-14">
-              <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
-              <span className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Detecting your region...</span>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-end gap-2 mb-1">
-                <span className="text-5xl font-black" style={{ background: grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  {price}
-                </span>
-                <span className="text-base pb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>/ month</span>
-              </div>
-              <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{currency} · {payNote}</p>
-            </>
-          )}
+          {/* Price — same in ZAR worldwide */}
+          <div className="flex items-end gap-2 mb-1">
+            <span className="text-5xl font-black" style={{ background: grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              {price}
+            </span>
+            <span className="text-base pb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>/ month</span>
+          </div>
+          <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{currency} · {payNote}</p>
           <p className="text-sm mb-8 mt-3" style={{ color: 'rgba(255,255,255,0.45)' }}>Unlock the full Cardtly experience.</p>
         </div>
 

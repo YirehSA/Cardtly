@@ -270,7 +270,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
         {/* Value prop */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: 'Per card/month', value: 'R65', sub: '$9 outside SA' },
+            { label: 'Per card/month', value: 'R65', sub: 'ZAR, billed monthly' },
             { label: 'Minimum cards', value: '2', sub: 'No maximum' },
             { label: 'Admin controls', value: '100%', sub: 'You manage all cards' },
           ].map(({ label, value, sub }) => (

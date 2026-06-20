@@ -475,9 +475,9 @@ function BillingTab({ plan, subscription }: { plan: UserPlan; subscription: Prop
       {isPro && (
         <div className="pt-2 border-t border-border">
           <p className="text-sm text-muted-foreground mb-3">
-            To manage or cancel your subscription, visit the billing portal.
+            Your Pro subscription is billed in ZAR via Paystack. To cancel or change it, get in touch and we'll sort it out right away.
           </p>
-          <a href="https://whop.com" target="_blank" rel="noopener noreferrer"
+          <a href="/contact"
             className="inline-flex items-center gap-2 border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition">
             <CreditCard className="w-4 h-4" />
             Manage subscription

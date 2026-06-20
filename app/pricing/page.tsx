@@ -48,7 +48,7 @@ const PRO = [
 const FAQS = [
   { q: 'Is the free plan really free forever?', a: 'Yes. No trial period, no credit card needed. The free plan stays free as long as Cardtly exists.' },
   { q: 'Can I upgrade or downgrade anytime?', a: 'Absolutely. Upgrade when you need more, cancel any time. Your card stays live on the free plan even after cancelling Pro.' },
-  { q: 'What payment methods do you accept?', a: 'We accept all major credit and debit cards. South African users can pay in ZAR via PayStack. International users pay via Whop.' },
+  { q: 'What payment methods do you accept?', a: 'We accept all major credit and debit cards through Paystack, our secure payment partner. Billing is in South African rand (ZAR). International cards are welcome too - your bank simply converts the rand amount to your local currency at checkout.' },
   { q: 'Will my card URL change if I upgrade or downgrade?', a: 'Never. Your card URL is yours regardless of your plan. It never changes.' },
   { q: 'Can I try Pro features before paying?', a: 'Sign up for free and explore the dashboard. When you\'re ready, upgrade in Settings.' },
   { q: 'Is there a team or business plan?', a: 'Business plans for teams are coming soon. Contact us if you need something now and we\'ll sort you out.' },
@@ -121,8 +121,7 @@ export default function PricingPage() {
                 <span className="text-5xl font-black">R65</span>
                 <span className="text-base pb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>/ month</span>
               </div>
-              <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>International: $9 / month via Whop</p>
-              <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.45)' }}>Unlock the full Cardtly experience.</p>
+              <p className="text-sm mb-8 mt-2" style={{ color: 'rgba(255,255,255,0.45)' }}>Unlock the full Cardtly experience.</p>
             </div>
 
             <div className="relative space-y-3 flex-1">
@@ -142,9 +141,9 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Region note */}
+        {/* Payment note */}
         <p className="text-center text-xs mt-8" style={{ color: 'rgba(255,255,255,0.25)' }}>
-          South African users pay in ZAR via PayStack. All other regions pay in USD via Whop. Both are billed monthly, cancel anytime.
+          Secure payment in ZAR via Paystack. International cards welcome — your bank converts at checkout. Billed monthly, cancel anytime.
         </p>
 
         {/* Teams + add-ons strip */}
