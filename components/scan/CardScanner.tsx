@@ -16,6 +16,36 @@ const EMPTY: Parsed = { name: '', title: '', company: '', email: '', phone: '', 
 
 type Stage = 'capture' | 'scanning' | 'review'
 
+// Load a File into an <img>, draw it onto a canvas scaled so the long
+// edge is <= maxEdge, and return a JPEG data URL. Keeps the upload
+// small and fast regardless of the original photo size.
+function resizeImage(file: File, maxEdge: number, quality: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const img = new window.Image()
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const { width, height } = img
+      const scale = Math.min(1, maxEdge / Math.max(width, height))
+      const w = Math.round(width * scale)
+      const h = Math.round(height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { reject(new Error('no canvas')); return }
+      ctx.drawImage(img, 0, 0, w, h)
+      try {
+        resolve(canvas.toDataURL('image/jpeg', quality))
+      } catch (err) {
+        reject(err)
+      }
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image load failed')) }
+    img.src = url
+  })
+}
+
 export default function CardScanner() {
   const fileRef = useRef<HTMLInputElement>(null)
   const [stage, setStage] = useState<Stage>('capture')
@@ -36,13 +66,18 @@ export default function CardScanner() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Read to a data URL for both the preview and the API.
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const r = new FileReader()
-      r.onload = () => resolve(r.result as string)
-      r.onerror = reject
-      r.readAsDataURL(file)
-    })
+    // Downscale in the browser before upload. A raw phone photo is
+    // several MB - as base64 it blows past the serverless request
+    // limit (causing a "network error") and is slow for the vision
+    // model. 1600px on the long edge keeps card text legible while
+    // landing well under the limit.
+    let dataUrl: string
+    try {
+      dataUrl = await resizeImage(file, 1600, 0.82)
+    } catch {
+      toast.error('Could not read that image. Try a different photo.')
+      return
+    }
 
     setPreview(dataUrl)
     setStage('scanning')
@@ -53,9 +88,9 @@ export default function CardScanner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: dataUrl }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        toast.error(data.error || 'Could not read the card')
+        toast.error(data.error || 'Could not read the card. Try a clearer, well-lit photo.')
         setStage('capture')
         return
       }
