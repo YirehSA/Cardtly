@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { Users, Mail, Phone, MessageSquare, Calendar, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import AddToPhoneButton from '@/components/dashboard/AddToPhoneButton'
 
 export const metadata = { title: 'Team Contacts' }
 
@@ -37,7 +38,7 @@ export default async function TeamContactsPage() {
   const { data: contacts } = teamCardIds.length > 0
     ? await admin
         .from('contacts')
-        .select('id, name, email, phone, message, created_at, team_card_id, source')
+        .select('id, name, email, phone, message, created_at, team_card_id, source, title, company, website, address')
         .in('team_card_id', teamCardIds)
         .order('created_at', { ascending: false })
     : { data: [] }
@@ -108,10 +109,15 @@ export default async function TeamContactsPage() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4">
-                    {/* Meeting request vs contact form */}
+                    {/* Meeting request vs contact form vs scanned card */}
                     {contact.source === 'booking' && (
                       <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-500 flex items-center gap-1">
                         <Calendar className="w-3 h-3" />Meeting request
+                      </span>
+                    )}
+                    {contact.source === 'scanned' && (
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-400">
+                        Scanned
                       </span>
                     )}
                     {/* Which team card they contacted */}
@@ -147,14 +153,15 @@ export default async function TeamContactsPage() {
                   </div>
                 )}
 
-                {contact.email && (
-                  <div className="mt-4">
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  {contact.email && (
                     <a href={`mailto:${contact.email}?subject=Re: We connected on Cardtly`}
                       className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition">
                       <Mail className="w-3 h-3" />Reply
                     </a>
-                  </div>
-                )}
+                  )}
+                  <AddToPhoneButton contact={contact} />
+                </div>
               </div>
             )
           })}

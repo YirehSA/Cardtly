@@ -9,7 +9,7 @@ import { hasBiometricEnabled } from '@/lib/biometric'
 import {
   Home, CreditCard, QrCode, BarChart2,
   Users, Mail, Monitor, Wifi, Building2, Settings as SettingsIcon,
-  Sun, Moon, LogOut, Shield,
+  Sun, Moon, LogOut, Shield, ScanLine,
   ChevronUp, X,
 } from 'lucide-react'
 
@@ -42,6 +42,7 @@ const PRIMARY_TABS: Tab[] = [
 
 const MORE_TABS: Tab[] = [
   { href: '/dashboard/contacts',         label: 'Contacts',        icon: Users        },
+  { href: '/dashboard/scan',             label: 'Scan Card',       icon: ScanLine     },
   { href: '/dashboard/email-signature',  label: 'Email Signature', icon: Mail         },
   { href: '/dashboard/virtual-bg',       label: 'Virtual BG',      icon: Monitor      },
   { href: '/dashboard/nfc',              label: 'NFC Cards',       icon: Wifi         },
