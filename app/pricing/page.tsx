@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
-import UsdEstimate from '@/components/marketing/UsdEstimate'
+import ProPlanPrice from '@/components/marketing/ProPlanPrice'
 import { Check, ArrowRight, Zap } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -116,16 +116,7 @@ export default function PricingPage() {
             <div className="absolute top-0 right-0 w-48 h-48 rounded-full blur-3xl pointer-events-none"
               style={{ background: 'rgba(124,58,237,0.2)', transform: 'translate(20%, -20%)' }} />
 
-            <div className="relative">
-              <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#7c3aed' }}>Pro</p>
-              <div className="flex items-end gap-2 mb-1">
-                <span className="text-5xl font-black">R65</span>
-                <span className="text-base pb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>/ month</span>
-              </div>
-              {/* Live USD estimate for visitors outside the rand zone */}
-              <UsdEstimate zar={65} suffix="/mo" className="block text-sm font-medium mb-1 text-white/70" />
-              <p className="text-sm mb-8 mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Unlock the full Cardtly experience.</p>
-            </div>
+            <ProPlanPrice />
 
             <div className="relative space-y-3 flex-1">
               {PRO.map(f => (

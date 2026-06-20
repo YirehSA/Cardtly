@@ -8,6 +8,7 @@ import {
   Users, Plus, Edit2, Trash2, ExternalLink, Loader2,
   CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail, UserCheck, Send
 } from 'lucide-react'
+import UsdEstimate from '@/components/marketing/UsdEstimate'
 
 interface TeamCard {
   id: string
@@ -307,7 +308,9 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                 +
               </button>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
+            {/* Live USD estimate of the team total for non-rand admins */}
+            <UsdEstimate zar={seatCount * 65} suffix="/mo" className="block text-sm font-medium text-muted-foreground mt-2" />
+            <p className="text-xs text-muted-foreground mt-1">
               You can add more cards later. Billed monthly, cancel anytime.
             </p>
           </div>
