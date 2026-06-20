@@ -229,8 +229,8 @@ export default function CardScanner() {
             <button onClick={saveToContacts} disabled={saving || saved}
               className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-60"
               style={{ background: grad }}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : <Check className="w-4 h-4" />}
-              {saved ? 'Saved to Contacts' : 'Save to Contacts'}
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {saved ? 'Saved to Cardtly Contacts' : 'Save to Cardtly Contacts'}
             </button>
             <button onClick={addToPhone}
               className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold border border-border transition hover:bg-muted">

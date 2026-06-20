@@ -5,8 +5,8 @@ import { getUserPlan } from '@/lib/plan-server'
 import { getPrimaryCard, getMemberTeamCard } from '@/lib/card-server'
 import ProGate from '@/components/card/ProGate'
 import EmptyState from '@/components/EmptyState'
-import AddToPhoneButton from '@/components/dashboard/AddToPhoneButton'
-import { Users, Mail, Phone, MessageSquare, Calendar, ScanLine, Globe, MapPin } from 'lucide-react'
+import ContactCard from '@/components/dashboard/ContactCard'
+import { Users } from 'lucide-react'
 
 interface CardSummary {
   id: string
@@ -66,12 +66,6 @@ export default async function ContactsPage() {
 
   const rows = contacts || []
 
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString('en-ZA', {
-      day: 'numeric', month: 'short', year: 'numeric',
-    })
-  }
-
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Header */}
@@ -97,99 +91,10 @@ export default async function ContactsPage() {
           accent="#f59e0b"
         />
       ) : (
-        /* Contact cards */
+        /* Contact cards — each manages its own view / edit / delete */
         <div className="space-y-3">
-          {rows.map(contact => (
-            <div key={contact.id} className="bg-card border border-border rounded-2xl p-5">
-              <div className="flex items-start justify-between gap-4 flex-wrap">
-                {/* Name + date */}
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary font-bold text-sm">
-                    {contact.name?.[0]?.toUpperCase() || '?'}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm">{contact.name}</p>
-                    {(contact.title || contact.company) && (
-                      <p className="text-xs text-muted-foreground">
-                        {[contact.title, contact.company].filter(Boolean).join(' · ')}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                      <Calendar className="w-3 h-3" />
-                      {formatDate(contact.created_at)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Contact details */}
-                <div className="flex flex-wrap items-center gap-4">
-                  {contact.source === 'booking' && (
-                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-500 flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />Meeting request
-                    </span>
-                  )}
-                  {contact.source === 'scanned' && (
-                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-400 flex items-center gap-1">
-                      <ScanLine className="w-3 h-3" />Scanned
-                    </span>
-                  )}
-                  {contact.email && (
-                    <a href={`mailto:${contact.email}`}
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition">
-                      <Mail className="w-3.5 h-3.5 flex-shrink-0" />
-                      {contact.email}
-                    </a>
-                  )}
-                  {contact.phone && (
-                    <a href={`tel:${contact.phone}`}
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition">
-                      <Phone className="w-3.5 h-3.5 flex-shrink-0" />
-                      {contact.phone}
-                    </a>
-                  )}
-                </div>
-              </div>
-
-              {/* Message */}
-              {contact.message && (
-                <div className="mt-4 pt-4 border-t border-border">
-                  <div className="flex items-start gap-2">
-                    <MessageSquare className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-muted-foreground leading-relaxed">{contact.message}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Website / address for scanned cards */}
-              {(contact.website || contact.address) && (
-                <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                  {contact.website && (
-                    <a href={contact.website.startsWith('http') ? contact.website : `https://${contact.website}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 hover:text-foreground transition">
-                      <Globe className="w-3.5 h-3.5 flex-shrink-0" />{contact.website}
-                    </a>
-                  )}
-                  {contact.address && (
-                    <span className="flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 flex-shrink-0" />{contact.address}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                {contact.email && (
-                  <a href={`mailto:${contact.email}?subject=Re: We connected on Cardtly`}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition">
-                    <Mail className="w-3 h-3" />
-                    Reply
-                  </a>
-                )}
-                <AddToPhoneButton contact={contact} />
-              </div>
-            </div>
+          {rows.map((contact: any) => (
+            <ContactCard key={contact.id} contact={contact} />
           ))}
         </div>
       )}
