@@ -11,7 +11,7 @@ import StructuredData from '@/components/marketing/StructuredData'
 import CustomizeShowcase from '@/components/marketing/CustomizeShowcase'
 import TeamsSection from '@/components/marketing/TeamsSection'
 import {
-  Smartphone, Globe, BarChart2, Mail, Monitor, Users, Star, ArrowRight, Wifi, Sparkles, Zap, CalendarDays,
+  Smartphone, Globe, BarChart2, Mail, Monitor, Users, Star, ArrowRight, Wifi, Sparkles, Zap, CalendarDays, ScanLine,
 } from 'lucide-react'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
@@ -255,6 +255,14 @@ export default function HomePage() {
               accent="#06b6d4"
               title="Book meetings from your card"
               desc="Visitors pick a date and time right on your card. You get the request by email and they land in your contacts."
+            />
+
+            {/* Paper card scanner */}
+            <BentoTile
+              icon={<ScanLine className="w-5 h-5" />}
+              accent="#a855f7"
+              title="Scan paper business cards"
+              desc="Snap a photo of someone's paper card and AI pulls out their details, ready to save to your contacts or your phone."
             />
           </div>
         </div>

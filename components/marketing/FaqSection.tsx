@@ -58,6 +58,10 @@ const FAQS: Array<{ q: string; a: string }> = [
     q: 'Does Cardtly capture leads from my card?',
     a: 'Yes. Visitors can share their name, email, and phone number through your card, and every lead lands in your Cardtly contacts dashboard - a lightweight CRM that builds itself as you network. Meeting requests are captured there too.',
   },
+  {
+    q: 'Can I scan other people’s paper business cards?',
+    a: 'Yes. With Cardtly Pro you can photograph someone’s paper business card and our AI reads the details - name, title, company, email, phone, website, address - into a contact you can edit, save to your Cardtly contacts, and add straight to your phone. A fast way to digitise the stack of cards you collect at events.',
+  },
 ]
 
 export default function FaqSection() {

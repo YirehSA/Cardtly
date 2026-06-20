@@ -38,7 +38,7 @@ const FIELDS: { key: keyof ContactRow; label: string; placeholder: string; type?
   { key: 'message', label: 'Notes',   placeholder: 'Notes' },
 ]
 
-export default function ContactCard({ contact }: { contact: ContactRow }) {
+export default function ContactCard({ contact, viaLabel }: { contact: ContactRow; viaLabel?: string | null }) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -154,6 +154,11 @@ export default function ContactCard({ contact }: { contact: ContactRow }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
+          {viaLabel && (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+              via {viaLabel}
+            </span>
+          )}
           {contact.source === 'booking' && (
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-500 flex items-center gap-1">
               <Calendar className="w-3 h-3" />Meeting request

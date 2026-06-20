@@ -337,16 +337,16 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
   ]
 
   return (
-    <div className="min-h-screen" style={{ background: '#050510' }}>
+    <div className="min-h-screen overflow-x-hidden" style={{ background: '#050510' }}>
       {/* Header */}
-      <div className="border-b border-white/08 px-8 py-5 flex items-center gap-4">
+      <div className="border-b border-white/08 px-4 sm:px-8 py-5 flex items-center gap-3 flex-wrap">
         <div className="w-9 h-9 rounded-xl flex items-center justify-center"
           style={{ background: grad }}>
           <Shield className="w-5 h-5 text-white" />
         </div>
-        <div className="flex-1">
-          <h1 className="text-lg font-bold text-white">Cardtly Admin</h1>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Internal dashboard — restricted access</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg font-bold text-white truncate">Cardtly Admin</h1>
+          <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>Internal dashboard — restricted access</p>
         </div>
         <Link href="/dashboard"
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition hover:bg-white/10"
@@ -362,9 +362,10 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
         </Link>
       </div>
 
-      <div className="px-8 py-6 max-w-7xl mx-auto space-y-6">
-        {/* Tabs */}
-        <div className="flex gap-1 bg-white/03 border border-white/06 p-1 rounded-xl w-fit">
+      <div className="px-4 sm:px-8 py-6 max-w-7xl mx-auto space-y-6">
+        {/* Tabs — scroll horizontally on narrow screens instead of
+            pushing the page wide. */}
+        <div className="flex gap-1 bg-white/03 border border-white/06 p-1 rounded-xl w-fit max-w-full overflow-x-auto">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => setTab(id as Tab)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap"
@@ -570,7 +571,7 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
               {filteredUsers.map(user => (
                 <div key={user.id} className="rounded-2xl border overflow-hidden"
                   style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
-                  <div className="flex items-center justify-between p-4">
+                  <div className="flex items-center justify-between gap-3 p-4 flex-wrap">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
                         style={{ background: user.isPro ? grad : 'rgba(255,255,255,0.1)' }}>
@@ -600,7 +601,7 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                    <div className="flex flex-wrap items-center gap-2 justify-end">
                       {user.email_confirmed === false && (
                         <span className="text-xs px-2 py-1 rounded-full font-semibold"
                           title="User has not confirmed their email yet"
@@ -776,9 +777,9 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                   </p>
                 </div>
               </div>
-              <div className="rounded-2xl border overflow-hidden"
+              <div className="rounded-2xl border overflow-x-auto"
                 style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
-                <table className="w-full text-sm">
+                <table className="w-full text-sm min-w-[640px]">
                   <thead>
                     <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                       {['Name', 'Slug', 'Last 30d', 'All-time', 'User ID', 'Created'].map(h => (
@@ -843,9 +844,9 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                   <p className="text-sm">No team cards yet</p>
                 </div>
               ) : (
-                <div className="rounded-2xl border overflow-hidden"
+                <div className="rounded-2xl border overflow-x-auto"
                   style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm min-w-[720px]">
                     <thead>
                       <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                         {['Name', 'Slug', 'Last 30d', 'All-time', 'Organization', 'Status', 'Created'].map(h => (
