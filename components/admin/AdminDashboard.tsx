@@ -27,6 +27,7 @@ interface User {
   views_30d?: number
   isTeamMember?: boolean
   teamMemberOrg?: { org_name: string | null; org_admin_user_id: string | null } | null
+  addons?: Record<string, any>
 }
 
 // Convert a 2-letter country code to its flag emoji
@@ -160,6 +161,18 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
       setLocalUsers(prev => prev.map(u => u.id === user.id ? { ...u, isPro: false } : u))
       toast.success(`Pro deactivated for ${user.email}`)
     } else toast.error(data.error)
+    setLoading(null)
+  }
+
+  async function toggleAddon(user: User, addon: 'contactExchange' | 'questionnaireEnabled', value: boolean) {
+    setLoading(`addon-${addon}-${user.id}`)
+    const data = await api({ action: 'set_card_addon', user_id: user.id, addon, value })
+    if (data.success) {
+      setLocalUsers(prev => prev.map(u => u.id === user.id ? { ...u, addons: data.addons } : u))
+      toast.success(value ? 'Add-on enabled' : 'Add-on disabled')
+    } else {
+      toast.error(data.error || 'Could not update add-on')
+    }
     setLoading(null)
   }
 
@@ -727,6 +740,28 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                   {/* Expanded — team setup */}
                   {expandedUser === user.id && (
                     <div className="px-4 pb-4 pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                      {/* Per-client paid add-ons */}
+                      <p className="text-xs font-semibold mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>Add-ons (this client only)</p>
+                      <div className="flex flex-wrap gap-2 mb-5">
+                        {([
+                          { key: 'contactExchange' as const, label: 'Contact exchange popup' },
+                          { key: 'questionnaireEnabled' as const, label: 'Custom questionnaire' },
+                        ]).map(({ key, label }) => {
+                          const on = !!user.addons?.[key]
+                          const busy = loading === `addon-${key}-${user.id}`
+                          return (
+                            <button key={key} onClick={() => toggleAddon(user, key, !on)} disabled={busy}
+                              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-50"
+                              style={on
+                                ? { background: 'rgba(34,197,94,0.15)', color: '#34d399', border: '1px solid rgba(34,197,94,0.3)' }
+                                : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                              {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : (on ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />)}
+                              {label}
+                            </button>
+                          )
+                        })}
+                      </div>
+
                       <p className="text-xs font-semibold mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>
                         {user.org ? `Edit team plan — currently ${user.org.max_seats} seats` : 'Set up team plan'}
                       </p>

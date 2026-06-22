@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
+import ContactExchangeModal from './ContactExchangeModal'
 import InAppBackButton from '@/components/InAppBackButton'
 import BookingModal from './BookingModal'
 import AddToGoogleWalletButton from '@/components/wallet/AddToGoogleWalletButton'
@@ -179,6 +180,11 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
+  // Contact-exchange add-on: after the visitor saves this contact,
+  // offer to share their details back. Off unless the admin enabled it.
+  const contactExchangeOn = !!(card as any).addons?.contactExchange
+  const [exchangeOpen, setExchangeOpen] = useState(false)
+
   async function submitContact(e: React.FormEvent) {
     e.preventDefault()
     setSubmitting(true)
@@ -266,14 +272,27 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
                 address: card.address,
               })
               toast.success('Saved to contacts')
+              // Native save confirmed -> offer reciprocal exchange.
+              if (contactExchangeOn) setExchangeOpen(true)
             } catch (err) {
               const msg = err instanceof Error ? err.message : 'Could not save contact'
               toast.error(msg)
             }
             return
           }
-          // Web fallback: navigate to the vCard download endpoint
-          window.location.href = `/api/vcf/${card.slug}`
+          // Web: trigger the vCard download, then offer the exchange.
+          // We can't confirm the OS saved it, so we prompt right after
+          // the download starts.
+          if (contactExchangeOn) {
+            const a = document.createElement('a')
+            a.href = `/api/vcf/${card.slug}`
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            setExchangeOpen(true)
+          } else {
+            window.location.href = `/api/vcf/${card.slug}`
+          }
         }}
           className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold hover:opacity-90 transition"
           style={{
@@ -290,6 +309,17 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           <Share2 className="w-4 h-4" />Share
         </button>
       </div>
+
+      {contactExchangeOn && (
+        <ContactExchangeModal
+          open={exchangeOpen}
+          onClose={() => setExchangeOpen(false)}
+          ownerName={card.name || ''}
+          cardId={isTeamCard ? null : card.id}
+          teamCardId={isTeamCard ? ((card as any)._team_card_id || null) : null}
+          accentHex={accentHex}
+        />
+      )}
 
       {isPro && (
         <div className="mt-8">

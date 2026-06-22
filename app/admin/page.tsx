@@ -40,8 +40,8 @@ export default async function AdminPage() {
   ] = await Promise.all([
     admin.auth.admin.listUsers({ perPage: 1000 }),
     admin.from('whop_subscriptions').select('*').order('created_at', { ascending: false }),
-    admin.from('cards').select('id, name, slug, user_id, view_count, created_at').order('view_count', { ascending: false, nullsFirst: false }),
-    admin.from('team_cards').select('id, name, slug, user_id, organization_id, view_count, claimed_at, created_at').order('view_count', { ascending: false, nullsFirst: false }),
+    admin.from('cards').select('id, name, slug, user_id, view_count, addons, created_at').order('view_count', { ascending: false, nullsFirst: false }),
+    admin.from('team_cards').select('id, name, slug, user_id, organization_id, view_count, claimed_at, addons, created_at').order('view_count', { ascending: false, nullsFirst: false }),
     admin.from('organizations').select('*').order('created_at', { ascending: false }),
     admin.from('nfc_orders').select('*').order('created_at', { ascending: false }),
     admin.from('contacts').select('id, created_at').order('created_at', { ascending: false }),
@@ -143,6 +143,17 @@ export default async function AdminPage() {
     .map((c: any) => ({ ...c, views_30d: views30dByCard[c.id] || 0 }))
     .sort((a, b) => (b.views_30d - a.views_30d) || ((b.view_count || 0) - (a.view_count || 0)))
 
+  // Add-on flags live on the user's card (personal first, else their
+  // claimed team card) - map them per user so the admin toggles show
+  // the current state.
+  const addonsByUser: Record<string, any> = {}
+  for (const c of (cards as any[]) || []) {
+    if (c?.user_id && !addonsByUser[c.user_id]) addonsByUser[c.user_id] = c.addons || {}
+  }
+  for (const tc of (teamCards as any[]) || []) {
+    if (tc?.user_id && !addonsByUser[tc.user_id]) addonsByUser[tc.user_id] = tc.addons || {}
+  }
+
   const enrichedUsers = users.map((u: any) => {
     const p = profileMap[u.id] || {}
     const teamMembership = teamMemberOrgByUser[u.id] || null
@@ -171,6 +182,7 @@ export default async function AdminPage() {
       // do have Pro access via their org's seat.
       isTeamMember: !!teamMembership,
       teamMemberOrg: teamMembership,
+      addons: addonsByUser[u.id] || {},
     }
   })
 

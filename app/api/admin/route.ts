@@ -330,5 +330,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, is_admin: value })
   }
 
+  // Enable/disable a paid add-on on a user's card. Add-ons are per
+  // client - this is how we switch one on for just the client who
+  // bought it. Sets the flag on their personal card, or their claimed
+  // team card if they have no personal card.
+  if (action === 'set_card_addon') {
+    const { user_id, addon, value } = body as { user_id?: string; addon?: string; value?: boolean }
+    const ALLOWED = ['contactExchange', 'questionnaireEnabled']
+    if (!user_id || !addon || !ALLOWED.includes(addon) || typeof value !== 'boolean') {
+      return NextResponse.json({ error: 'Missing or invalid fields' }, { status: 400 })
+    }
+
+    // Resolve the card: personal first, else a claimed team card.
+    const { data: personal } = await admin
+      .from('cards').select('id, addons').eq('user_id', user_id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+    let table = 'cards'
+    let card = personal
+    if (!card) {
+      const { data: team } = await admin
+        .from('team_cards').select('id, addons').eq('user_id', user_id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+      table = 'team_cards'
+      card = team
+    }
+    if (!card) return NextResponse.json({ error: 'No card found for this user' }, { status: 404 })
+
+    const nextAddons = { ...(card.addons || {}), [addon]: value }
+    const { error } = await admin.from(table).update({ addons: nextAddons }).eq('id', card.id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, addons: nextAddons })
+  }
+
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
 }
