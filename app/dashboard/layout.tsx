@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
-import { getMemberTeamCard } from '@/lib/card-server'
 import { isAdminUser } from '@/lib/admin-check'
+import { resolveAddonTarget } from '@/lib/addon-target'
 import { ThemeProvider } from '@/components/dashboard/ThemeProvider'
 import Sidebar from '@/components/dashboard/Sidebar'
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
@@ -23,13 +24,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   ])
 
   const isPro = plan.tier === 'pro' && plan.isActive
-  // Show the Questionnaire builder in the nav only for clients who
-  // have the add-on switched on (on their personal or team card).
-  let hasQuestionnaire = !!(card as any)?.addons?.questionnaireEnabled
-  if (!card) {
-    const teamCard = await getMemberTeamCard<{ addons?: any }>(user.id, 'addons')
-    hasQuestionnaire = !!teamCard?.addons?.questionnaireEnabled
-  }
+  // Show the Questionnaire builder in the nav only for clients with
+  // the add-on on. Resolves to the org for team admins (team-wide),
+  // else the user's own card.
+  const addonAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  ) as any
+  const addonTarget = await resolveAddonTarget(addonAdmin, user.id)
+  const hasQuestionnaire = !!addonTarget?.addons?.questionnaireEnabled
 
   return (
     <ThemeProvider>

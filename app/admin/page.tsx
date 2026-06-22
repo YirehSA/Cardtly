@@ -146,7 +146,12 @@ export default async function AdminPage() {
   // Add-on flags live on the user's card (personal first, else their
   // claimed team card) - map them per user so the admin toggles show
   // the current state.
+  // Org admins' add-ons live on the org (team-wide) - check those
+  // first so the toggle reflects the right source.
   const addonsByUser: Record<string, any> = {}
+  for (const o of (orgs as any[]) || []) {
+    if (o?.admin_user_id) addonsByUser[o.admin_user_id] = o.addons || {}
+  }
   for (const c of (cards as any[]) || []) {
     if (c?.user_id && !addonsByUser[c.user_id]) addonsByUser[c.user_id] = c.addons || {}
   }

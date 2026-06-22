@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { sanitizeQuestionnaire } from '@/lib/questionnaire'
+import { resolveAddonTarget } from '@/lib/addon-target'
 
 // Lets a client build/save their own questionnaire - but only if an
 // admin has switched the add-on on for them (addons.questionnaireEnabled).
@@ -20,25 +21,19 @@ export async function POST(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
 
-  // Resolve the caller's card: personal first, else claimed team card.
-  let table = 'cards'
-  let { data: card } = await admin.from('cards').select('id, addons').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-  if (!card) {
-    const r = await admin.from('team_cards').select('id, addons').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-    table = 'team_cards'
-    card = r.data
-  }
-  if (!card) return NextResponse.json({ error: 'No card found' }, { status: 404 })
+  // Org for a team admin (applies to all team cards), else the caller's
+  // own card.
+  const target = await resolveAddonTarget(admin, user.id)
+  if (!target) return NextResponse.json({ error: 'No card found' }, { status: 404 })
 
-  const addons = card.addons || {}
-  if (!addons.questionnaireEnabled) {
+  if (!target.addons.questionnaireEnabled) {
     return NextResponse.json({ error: 'The questionnaire add-on is not enabled on your account.' }, { status: 403 })
   }
 
   const questionnaire = sanitizeQuestionnaire(body)
-  const nextAddons = { ...addons, questionnaire }
+  const nextAddons = { ...target.addons, questionnaire }
 
-  const { error } = await admin.from(table).update({ addons: nextAddons }).eq('id', card.id)
+  const { error } = await admin.from(target.table).update({ addons: nextAddons }).eq('id', target.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ success: true, questionnaire })
 }

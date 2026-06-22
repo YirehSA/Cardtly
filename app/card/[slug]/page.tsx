@@ -127,6 +127,24 @@ export default async function PublicCardPage({ params }: Props) {
     .single()
 
   if (teamCard) {
+    // Add-ons (contact exchange, questionnaire) for a team are
+    // configured once on the organization and apply to every team
+    // card. Fetch the org's add-ons and merge them over the card's
+    // own (org wins). Service role: organizations is RLS-protected.
+    let orgAddons: Record<string, any> = {}
+    if ((teamCard as any).organization_id) {
+      const admin = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      ) as any
+      const { data: org } = await admin
+        .from('organizations')
+        .select('addons')
+        .eq('id', (teamCard as any).organization_id)
+        .maybeSingle()
+      orgAddons = org?.addons || {}
+    }
+
     const cardShaped = {
       ...teamCard,
       user_id: null,
@@ -134,6 +152,9 @@ export default async function PublicCardPage({ params }: Props) {
       view_count: (teamCard as any).view_count || 0,
       work_phone: (teamCard as any).work_phone || null,
       whatsapp: (teamCard as any).whatsapp || null,
+      // Org add-ons fan out to every team card; card-level addons
+      // (rarely used for teams) act as a fallback.
+      addons: { ...((teamCard as any).addons || {}), ...orgAddons },
       // Pass team_card_id so contact form saves correctly
       _team_card_id: (teamCard as any).id,
     }

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import QuestionnaireBuilder from '@/components/questionnaire/QuestionnaireBuilder'
+import { resolveAddonTarget } from '@/lib/addon-target'
 import { ClipboardList } from 'lucide-react'
 import Link from 'next/link'
 
@@ -17,15 +18,11 @@ export default async function QuestionnairePage() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
 
-  // Resolve the card + its addons (personal first, else team card).
-  let { data: card } = await admin.from('cards').select('addons').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-  if (!card) {
-    const r = await admin.from('team_cards').select('addons').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-    card = r.data
-  }
-
-  const addons = card?.addons || {}
+  // Org for a team admin (one form for all team cards), else own card.
+  const target = await resolveAddonTarget(admin, user.id)
+  const addons = target?.addons || {}
   const enabled = !!addons.questionnaireEnabled
+  const isTeamWide = !!target?.isOrg
 
   return (
     <div className="space-y-6">
@@ -35,7 +32,7 @@ export default async function QuestionnairePage() {
           Custom questionnaire
         </h1>
         <p className="text-muted-foreground text-sm mt-0.5">
-          Add up to 5 of your own questions to the form on your card.
+          Add up to 5 of your own questions to the form on your card.{isTeamWide ? ' This form shows on every card in your team.' : ''}
         </p>
       </div>
 

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { isAdminUser, FOUNDER_ADMIN_USER_ID } from '@/lib/admin-check'
 import { sendPasswordResetEmail } from '@/lib/password-reset'
+import { resolveAddonTarget } from '@/lib/addon-target'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -341,21 +342,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing or invalid fields' }, { status: 400 })
     }
 
-    // Resolve the card: personal first, else a claimed team card.
-    const { data: personal } = await admin
-      .from('cards').select('id, addons').eq('user_id', user_id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-    let table = 'cards'
-    let card = personal
-    if (!card) {
-      const { data: team } = await admin
-        .from('team_cards').select('id, addons').eq('user_id', user_id).order('created_at', { ascending: true }).limit(1).maybeSingle()
-      table = 'team_cards'
-      card = team
-    }
-    if (!card) return NextResponse.json({ error: 'No card found for this user' }, { status: 404 })
+    // For a team admin this targets the org (applies to all team
+    // cards); for a solo user, their card; for a member, their team card.
+    const target = await resolveAddonTarget(admin, user_id)
+    if (!target) return NextResponse.json({ error: 'No card or team found for this user' }, { status: 404 })
 
-    const nextAddons = { ...(card.addons || {}), [addon]: value }
-    const { error } = await admin.from(table).update({ addons: nextAddons }).eq('id', card.id)
+    const nextAddons = { ...target.addons, [addon]: value }
+    const { error } = await admin.from(target.table).update({ addons: nextAddons }).eq('id', target.id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ success: true, addons: nextAddons })
   }
