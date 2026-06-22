@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useTheme } from './ThemeProvider'
 import {
   CreditCard, BarChart2, Mail, Monitor, Users,
-  Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi, Building2, Shield, ScanLine,
+  Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi, Building2, Shield, ScanLine, ClipboardList,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { hasBiometricEnabled } from '@/lib/biometric'
@@ -30,15 +30,21 @@ const NAV = [
 interface SidebarProps {
   isPro: boolean
   isAdmin?: boolean
+  hasQuestionnaire?: boolean
   userName: string
   userEmail: string
 }
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
-export default function Sidebar({ isPro, isAdmin = false, userName, userEmail }: SidebarProps) {
+export default function Sidebar({ isPro, isAdmin = false, hasQuestionnaire = false, userName, userEmail }: SidebarProps) {
   const pathname = usePathname()
   const { theme, toggle } = useTheme()
+  // The Questionnaire builder only appears for clients who have the
+  // add-on enabled.
+  const nav = hasQuestionnaire
+    ? [...NAV, { href: '/dashboard/questionnaire', label: 'Questionnaire', icon: ClipboardList, color: '#0ea5e9' }]
+    : NAV
   const router = useRouter()
   const supabase = createClient()
 
@@ -94,7 +100,7 @@ export default function Sidebar({ isPro, isAdmin = false, userName, userEmail }:
 
       {/* Nav — colour-chip icons, animated active state */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin">
-        {NAV.map(({ href, label, icon: Icon, color }) => {
+        {nav.map(({ href, label, icon: Icon, color }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           return (
             <Link

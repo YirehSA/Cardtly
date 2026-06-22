@@ -11,6 +11,7 @@ import {
 import { toast } from 'sonner'
 import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
 import ContactExchangeModal from './ContactExchangeModal'
+import QuestionnaireForm from './QuestionnaireForm'
 import InAppBackButton from '@/components/InAppBackButton'
 import BookingModal from './BookingModal'
 import AddToGoogleWalletButton from '@/components/wallet/AddToGoogleWalletButton'
@@ -180,10 +181,17 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
-  // Contact-exchange add-on: after the visitor saves this contact,
-  // offer to share their details back. Off unless the admin enabled it.
-  const contactExchangeOn = !!(card as any).addons?.contactExchange
+  // Per-card add-ons (off unless an admin enabled them for this client).
+  const addons = (card as any).addons || {}
+  // Contact-exchange: after the visitor saves this contact, offer to
+  // share their details back.
+  const contactExchangeOn = !!addons.contactExchange
   const [exchangeOpen, setExchangeOpen] = useState(false)
+  // Custom questionnaire: only show if enabled AND the client has
+  // actually built at least one question.
+  const questionnaireCfg = addons.questionnaireEnabled && addons.questionnaire?.questions?.length
+    ? addons.questionnaire
+    : null
 
   async function submitContact(e: React.FormEvent) {
     e.preventDefault()
@@ -318,6 +326,18 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           cardId={isTeamCard ? null : card.id}
           teamCardId={isTeamCard ? ((card as any)._team_card_id || null) : null}
           accentHex={accentHex}
+        />
+      )}
+
+      {/* Custom questionnaire add-on — sits alongside Save Contact */}
+      {questionnaireCfg && (
+        <QuestionnaireForm
+          config={questionnaireCfg}
+          cardId={isTeamCard ? null : card.id}
+          teamCardId={isTeamCard ? ((card as any)._team_card_id || null) : null}
+          ownerName={card.name || ''}
+          accentHex={accentHex}
+          bg={bg}
         />
       )}
 

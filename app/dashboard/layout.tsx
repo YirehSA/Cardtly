@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
+import { getMemberTeamCard } from '@/lib/card-server'
 import { isAdminUser } from '@/lib/admin-check'
 import { ThemeProvider } from '@/components/dashboard/ThemeProvider'
 import Sidebar from '@/components/dashboard/Sidebar'
@@ -17,11 +18,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const [plan, { data: card }, isAdmin] = await Promise.all([
     getUserPlan(user.id),
-    supabase.from('cards').select('name').eq('user_id', user.id).maybeSingle(),
+    supabase.from('cards').select('name, addons').eq('user_id', user.id).maybeSingle(),
     isAdminUser(user.id),
   ])
 
   const isPro = plan.tier === 'pro' && plan.isActive
+  // Show the Questionnaire builder in the nav only for clients who
+  // have the add-on switched on (on their personal or team card).
+  let hasQuestionnaire = !!(card as any)?.addons?.questionnaireEnabled
+  if (!card) {
+    const teamCard = await getMemberTeamCard<{ addons?: any }>(user.id, 'addons')
+    hasQuestionnaire = !!teamCard?.addons?.questionnaireEnabled
+  }
 
   return (
     <ThemeProvider>
@@ -29,6 +37,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <Sidebar
           isPro={isPro}
           isAdmin={isAdmin}
+          hasQuestionnaire={hasQuestionnaire}
           userName={card?.name || ''}
           userEmail={user.email || ''}
         />
@@ -46,7 +55,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <CommandPalette />
         <HeartbeatPing />
         <AnnouncementModal />
-        <MobileBottomNav isAdmin={isAdmin} />
+        <MobileBottomNav isAdmin={isAdmin} hasQuestionnaire={hasQuestionnaire} />
       </div>
     </ThemeProvider>
   )

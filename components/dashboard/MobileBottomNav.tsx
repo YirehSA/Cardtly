@@ -9,7 +9,7 @@ import { hasBiometricEnabled } from '@/lib/biometric'
 import {
   Home, CreditCard, QrCode, BarChart2,
   Users, Mail, Monitor, Wifi, Building2, Settings as SettingsIcon,
-  Sun, Moon, LogOut, Shield, ScanLine,
+  Sun, Moon, LogOut, Shield, ScanLine, ClipboardList,
   ChevronUp, X,
 } from 'lucide-react'
 
@@ -52,9 +52,10 @@ const MORE_TABS: Tab[] = [
 
 interface Props {
   isAdmin?: boolean
+  hasQuestionnaire?: boolean
 }
 
-export default function MobileBottomNav({ isAdmin = false }: Props) {
+export default function MobileBottomNav({ isAdmin = false, hasQuestionnaire = false }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const { theme, toggle } = useTheme()
@@ -63,10 +64,12 @@ export default function MobileBottomNav({ isAdmin = false }: Props) {
   // Close the More sheet whenever we navigate away.
   useEffect(() => { setMoreOpen(false) }, [pathname])
 
-  // Visible More items = the base 6 + Admin if granted
-  const moreTabs: Tab[] = isAdmin
-    ? [...MORE_TABS, { href: '/admin', label: 'Admin', icon: Shield }]
-    : MORE_TABS
+  // Visible More items = base + Questionnaire (if the add-on is on) + Admin (if granted)
+  const moreTabs: Tab[] = [
+    ...MORE_TABS,
+    ...(hasQuestionnaire ? [{ href: '/dashboard/questionnaire', label: 'Questionnaire', icon: ClipboardList }] : []),
+    ...(isAdmin ? [{ href: '/admin', label: 'Admin', icon: Shield }] : []),
+  ]
 
   // Active any time the current page is one of the More items
   const moreActive = moreTabs.some(t => isActive(pathname, t.href))

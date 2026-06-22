@@ -20,6 +20,7 @@ export interface ContactRow {
   address?: string | null
   message?: string | null
   source?: string | null
+  answers?: { label: string; value: string }[] | null
   created_at: string
 }
 
@@ -169,6 +170,11 @@ export default function ContactCard({ contact, viaLabel }: { contact: ContactRow
               <ScanLine className="w-3 h-3" />Scanned
             </span>
           )}
+          {contact.source === 'questionnaire' && (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-sky-500/15 text-sky-400">
+              Questionnaire
+            </span>
+          )}
           {contact.email && (
             <a href={`mailto:${contact.email}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition">
               <Mail className="w-3.5 h-3.5 flex-shrink-0" />{contact.email}
@@ -188,6 +194,17 @@ export default function ContactCard({ contact, viaLabel }: { contact: ContactRow
             <MessageSquare className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
             <p className="text-sm text-muted-foreground leading-relaxed">{contact.message}</p>
           </div>
+        </div>
+      )}
+
+      {Array.isArray(contact.answers) && contact.answers.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-border space-y-2">
+          {contact.answers.map((a, i) => (
+            <div key={i} className="text-sm">
+              <span className="text-xs font-semibold text-muted-foreground">{a.label}</span>
+              <p className="text-foreground/90 leading-relaxed">{a.value}</p>
+            </div>
+          ))}
         </div>
       )}
 

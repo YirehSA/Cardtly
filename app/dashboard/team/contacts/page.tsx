@@ -38,7 +38,7 @@ export default async function TeamContactsPage() {
   const { data: contacts } = teamCardIds.length > 0
     ? await admin
         .from('contacts')
-        .select('id, name, email, phone, message, created_at, team_card_id, source, title, company, website, address')
+        .select('id, name, email, phone, message, created_at, team_card_id, source, title, company, website, address, answers')
         .in('team_card_id', teamCardIds)
         .order('created_at', { ascending: false })
     : { data: [] }

@@ -60,7 +60,7 @@ export default async function ContactsPage() {
     : supabase
   const { data: contacts } = await reader
     .from('contacts')
-    .select('id, name, email, phone, message, created_at, source, title, company, website, address')
+    .select('id, name, email, phone, message, created_at, source, title, company, website, address, answers')
     .eq(isTeam ? 'team_card_id' : 'card_id', card.id)
     .order('created_at', { ascending: false })
 
