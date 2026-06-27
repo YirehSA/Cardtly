@@ -28,7 +28,7 @@ export default async function PromotionsAdminPage() {
     { data: subscriptions },
     authResp,
   ] = await Promise.all([
-    admin.from('founder_count').select('*').maybeSingle(),
+    admin.rpc('founder_count'),
     admin
       .from('profiles')
       .select('user_id, founder_number, founder_lifetime_pro, referral_code')
@@ -131,9 +131,9 @@ export default async function PromotionsAdminPage() {
   return (
     <PromotionsAdmin
       counter={{
-        filled: counter?.filled ?? 0,
-        remaining: counter?.remaining ?? 100,
-        total: counter?.total ?? 100,
+        filled: counter?.[0]?.filled ?? 0,
+        remaining: counter?.[0]?.remaining ?? 100,
+        total: counter?.[0]?.total ?? 100,
       }}
       founders={founderRows}
       referrals={referralRows}

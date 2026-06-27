@@ -16,8 +16,11 @@ export const metadata = {
 export default async function PromotionsPage() {
   const supabase = await createClient() as any
 
-  // Initial founder count - the client will poll for updates
-  const { data: counter } = await supabase.from('founder_count').select('*').maybeSingle()
+  // Initial founder count - the client will poll for updates.
+  // founder_count() is a function (migration 022); it returns a
+  // one-row array.
+  const { data: counterData } = await supabase.rpc('founder_count')
+  const counter = Array.isArray(counterData) ? counterData[0] : counterData
   const filled = counter?.filled ?? 0
   const remaining = counter?.remaining ?? 100
   const total = counter?.total ?? 100
