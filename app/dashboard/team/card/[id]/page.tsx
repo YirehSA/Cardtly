@@ -29,7 +29,7 @@ export default async function TeamCardPage({ params }: { params: Promise<{ id: s
   // don't have read RLS on organizations - can still be matched.
   const { data: org } = await admin
     .from('organizations')
-    .select('id, name, admin_user_id')
+    .select('id, name, admin_user_id, brand')
     .eq('id', card.organization_id)
     .single()
 
@@ -52,6 +52,7 @@ export default async function TeamCardPage({ params }: { params: Promise<{ id: s
       org={org}
       userId={user.id}
       role={role}
+      orgBrand={(org as any).brand || {}}
     />
   )
 }

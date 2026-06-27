@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import { Metadata } from 'next'
 import PublicCardView from '@/components/card/PublicCardView'
 import CardTracker from '@/components/card/CardTracker'
+import { mergeBrand } from '@/lib/team-brand'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -132,6 +133,7 @@ export default async function PublicCardPage({ params }: Props) {
     // card. Fetch the org's add-ons and merge them over the card's
     // own (org wins). Service role: organizations is RLS-protected.
     let orgAddons: Record<string, any> = {}
+    let orgBrand: Record<string, any> = {}
     if ((teamCard as any).organization_id) {
       const admin = createAdminClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -139,13 +141,18 @@ export default async function PublicCardPage({ params }: Props) {
       ) as any
       const { data: org } = await admin
         .from('organizations')
-        .select('addons')
+        .select('addons, brand')
         .eq('id', (teamCard as any).organization_id)
         .maybeSingle()
       orgAddons = org?.addons || {}
+      orgBrand = org?.brand || {}
     }
 
-    const cardShaped = {
+    // The team brand (logo, company, website, colours, template,
+    // socials, links) is configured once on the org and merged over
+    // every card. Personal fields on the card win for anything not in
+    // the brand.
+    const cardShaped = mergeBrand({
       ...teamCard,
       user_id: null,
       is_primary: true,
@@ -157,7 +164,7 @@ export default async function PublicCardPage({ params }: Props) {
       addons: { ...((teamCard as any).addons || {}), ...orgAddons },
       // Pass team_card_id so contact form saves correctly
       _team_card_id: (teamCard as any).id,
-    }
+    }, orgBrand)
 
     return (
       <CardTracker teamCardId={(teamCard as any).id}>

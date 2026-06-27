@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CardDesign, DEFAULT_DESIGN, parseDesign, serializeDesign } from '@/types/design'
+import { BRAND_FIELDS, mergeBrand } from '@/lib/team-brand'
 import { toast } from 'sonner'
 import TemplatedCardPreview from '@/components/card/TemplatedCardPreview'
 import DesignPanel from '@/components/card/DesignPanel'
@@ -58,6 +59,9 @@ interface Props {
    *            company, logo, design tab, and URL are admin-locked.
    */
   role?: 'admin' | 'member'
+  /** The org's team brand (logo, company, colours, etc). Merged into
+   *  the live preview so it matches the public card. */
+  orgBrand?: Record<string, any>
 }
 
 type TabId = 'basic' | 'contact' | 'links' | 'media' | 'design'
@@ -70,13 +74,15 @@ const ALL_TABS: { id: TabId; label: string; icon: React.ReactNode; adminOnly?: b
   { id: 'design',  label: 'Design',  icon: <Palette className="w-4 h-4" />, adminOnly: true },
 ]
 
-// Fields the org admin owns and members cannot change. Members get
-// to edit everything personal (name, photo, title, bio, contact rows,
-// social links, custom links, gallery images) but the org's identity
-// stays under the admin's control.
-const MEMBER_LOCKED_FIELDS = ['company', 'company_logo_url'] as const
+// Fields that come from the org's team brand and are not editable per
+// card - members (and admins) manage these centrally in Team Brand.
+// Members edit only personal fields: name, title, bio, contact rows,
+// photo. Even if a brand field were edited here, the org brand wins at
+// render; stripping it on member save keeps the data clean too.
+const MEMBER_LOCKED_FIELDS = BRAND_FIELDS
 
-export default function TeamCardEditor({ card, org, userId, role = 'admin' }: Props) {
+export default function TeamCardEditor({ card, org, userId, role = 'admin', orgBrand = {} }: Props) {
+  const hasBrand = Object.keys(orgBrand).length > 0
   const isAdmin = role === 'admin'
   const isMember = role === 'member'
   const TABS = ALL_TABS.filter(t => isAdmin || !t.adminOnly)
@@ -441,7 +447,11 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin' }: Pr
         <div className="sticky top-6">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Live Preview</p>
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-800" style={{ maxHeight: '82vh', overflowY: 'auto' }}>
-            <TemplatedCardPreview form={form} isPro={true} design={design} />
+            <TemplatedCardPreview
+              form={mergeBrand(form, orgBrand)}
+              isPro={true}
+              design={hasBrand && orgBrand.color_theme ? parseDesign(orgBrand.color_theme) : design}
+            />
           </div>
           {cardUrl && (
             <a href={cardUrl} target="_blank" rel="noopener noreferrer"

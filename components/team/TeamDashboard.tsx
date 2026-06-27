@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import {
   Users, Plus, Edit2, Trash2, ExternalLink, Loader2,
-  CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail, UserCheck, Send, BarChart2
+  CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail, UserCheck, Send, BarChart2, Sparkles
 } from 'lucide-react'
 import UsdEstimate from '@/components/marketing/UsdEstimate'
 
@@ -364,6 +364,10 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
         <div className="flex items-center gap-3 flex-wrap">
           {/* Quick links */}
+          <Link href="/dashboard/team/brand"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
+            <Sparkles className="w-4 h-4" />Brand
+          </Link>
           <Link href="/dashboard/team/analytics"
             className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
             <BarChart2 className="w-4 h-4" />Analytics
@@ -442,35 +446,11 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
               <X className="w-4 h-4" />
             </button>
           </div>
-          {/* Copy from existing card */}
-          {(cards.length > 0) && (
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
-                Copy design & settings from
-              </label>
-              <select
-                value={copyFromId}
-                onChange={e => {
-                  setCopyFromId(e.target.value)
-                  // Pre-fill company if copying
-                  if (e.target.value) {
-                    const src = cards.find(c => c.id === e.target.value)
-                    if (src) setNewCard(p => ({ ...p, company: src.company || p.company }))
-                  }
-                }}
-                className={inputClass}>
-                <option value="">Start fresh (blank card)</option>
-                {cards.map(c => (
-                  <option key={c.id} value={c.id}>{c.name} — {c.title || 'No title'}</option>
-                ))}
-              </select>
-              {copyFromId && (
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  Design, logo, links and social profiles will be copied. Just update the personal details below.
-                </p>
-              )}
-            </div>
-          )}
+          {/* Brand is applied automatically from your Team Brand, so
+              adding a member is just their personal details. */}
+          <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
+            Your <a href="/dashboard/team/brand" className="underline hover:text-foreground">team brand</a> (logo, company, colours, website, links) is applied to this card automatically. Just add the person&apos;s details below.
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

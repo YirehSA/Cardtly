@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { BRAND_FIELDS, extractBrand } from '@/lib/team-brand'
 
 function generateSlug(name: string, suffix: string) {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').slice(0, 20) + '-' + suffix
@@ -153,6 +154,37 @@ export async function POST(request: Request) {
     const { error } = await admin.from('team_cards').update({ ...fields, updated_at: new Date().toISOString() }).eq('id', card_id).eq('organization_id', org_id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ success: true })
+  }
+
+  // ── Team brand (org-level, applies to all team cards) ───────────────────────
+  // Save the brand (sanitised to brand fields only).
+  if (action === 'save_team_brand') {
+    const { org_id, brand } = body
+    const { data: org } = await admin.from('organizations').select('id').eq('id', org_id).eq('admin_user_id', user.id).single()
+    if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+
+    const clean: Record<string, any> = {}
+    for (const f of BRAND_FIELDS) if (brand && f in brand) clean[f] = brand[f]
+
+    const { error } = await admin.from('organizations').update({ brand: clean }).eq('id', org_id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, brand: clean })
+  }
+
+  // Pull the brand straight from the admin's own card.
+  if (action === 'import_brand_from_my_card') {
+    const { org_id } = body
+    const { data: org } = await admin.from('organizations').select('id').eq('id', org_id).eq('admin_user_id', user.id).single()
+    if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+
+    const { data: myCard } = await admin
+      .from('cards').select('*').eq('user_id', user.id).eq('is_primary', true).maybeSingle()
+    if (!myCard) return NextResponse.json({ error: 'You have no personal card to pull a brand from.' }, { status: 404 })
+
+    const brand = extractBrand(myCard)
+    const { error } = await admin.from('organizations').update({ brand }).eq('id', org_id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, brand })
   }
 
   // ── Delete team card ───────────────────────────────────────────────────────
