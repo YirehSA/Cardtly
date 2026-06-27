@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import {
   Users, Plus, Edit2, Trash2, ExternalLink, Loader2,
-  CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail, UserCheck, Send
+  CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail, UserCheck, Send, BarChart2
 } from 'lucide-react'
 import UsdEstimate from '@/components/marketing/UsdEstimate'
 
@@ -363,6 +363,16 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
+          {/* Quick links */}
+          <Link href="/dashboard/team/analytics"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
+            <BarChart2 className="w-4 h-4" />Analytics
+          </Link>
+          <Link href="/dashboard/team/contacts"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
+            <Mail className="w-4 h-4" />Contacts
+          </Link>
+
           {/* Seat usage */}
           <div className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm">
             <Users className="w-4 h-4 text-muted-foreground" />

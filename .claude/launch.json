@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "melectrical-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/Users/User/Desktop/Melectrical/.preview-server.js"],
+      "port": 5599
+    }
+  ]
+}
