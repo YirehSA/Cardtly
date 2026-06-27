@@ -148,10 +148,12 @@ export default async function PublicCardPage({ params }: Props) {
       orgBrand = org?.brand || {}
     }
 
-    // The team brand (logo, company, website, colours, template,
-    // socials, links) is configured once on the org and merged over
-    // every card. Personal fields on the card win for anything not in
-    // the brand.
+    // The team brand is merged over this card ONLY if the admin opted
+    // it in (use_team_brand). Cards that keep their own branding (a
+    // family member, a contractor with their own company) are left
+    // untouched. Personal fields always win for anything not in the
+    // brand.
+    const brandToApply = (teamCard as any).use_team_brand ? orgBrand : {}
     const cardShaped = mergeBrand({
       ...teamCard,
       user_id: null,
@@ -164,7 +166,7 @@ export default async function PublicCardPage({ params }: Props) {
       addons: { ...((teamCard as any).addons || {}), ...orgAddons },
       // Pass team_card_id so contact form saves correctly
       _team_card_id: (teamCard as any).id,
-    }, orgBrand)
+    }, brandToApply)
 
     return (
       <CardTracker teamCardId={(teamCard as any).id}>

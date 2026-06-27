@@ -26,6 +26,7 @@ interface TeamCard {
   invite_email?: string | null
   invite_sent_at?: string | null
   claimed_at?: string | null
+  use_team_brand?: boolean | null
 }
 
 interface Org {
@@ -230,6 +231,18 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   }
 
   // Delete card
+  async function toggleCardBrand(card: TeamCard) {
+    const next = !card.use_team_brand
+    setCards(prev => prev.map(c => c.id === card.id ? { ...c, use_team_brand: next } : c))
+    const data = await api({ action: 'set_card_team_brand', org_id: org!.id, card_id: card.id, value: next })
+    if (data.success) {
+      toast.success(next ? `Team brand applied to ${card.name.split(' ')[0]}'s card` : `${card.name.split(' ')[0]}'s card now uses its own branding`)
+    } else {
+      setCards(prev => prev.map(c => c.id === card.id ? { ...c, use_team_brand: !next } : c)) // revert
+      toast.error(data.error || 'Could not update')
+    }
+  }
+
   async function handleDelete(cardId: string, name: string) {
     if (!confirm(`Delete ${name}'s card? This cannot be undone.`)) return
     setLoading(true)
@@ -616,6 +629,24 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                     </div>
                   )
                 })()}
+
+                {/* Team brand toggle */}
+                <div className="flex items-center justify-between pt-3 border-t border-border">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" />Use team brand
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={!!card.use_team_brand}
+                    onClick={() => toggleCardBrand(card)}
+                    title={card.use_team_brand ? 'This card shows the team brand. Tap to use its own branding.' : 'This card uses its own branding. Tap to apply the team brand.'}
+                    className="relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition"
+                    style={{ background: card.use_team_brand ? 'linear-gradient(135deg, #00d4ff, #7c3aed)' : 'hsl(var(--muted))' }}>
+                    <span className="inline-block h-4 w-4 rounded-full bg-white transition"
+                      style={{ transform: card.use_team_brand ? 'translateX(18px)' : 'translateX(2px)' }} />
+                  </button>
+                </div>
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-3 border-t border-border">

@@ -82,7 +82,10 @@ const ALL_TABS: { id: TabId; label: string; icon: React.ReactNode; adminOnly?: b
 const MEMBER_LOCKED_FIELDS = BRAND_FIELDS
 
 export default function TeamCardEditor({ card, org, userId, role = 'admin', orgBrand = {} }: Props) {
-  const hasBrand = Object.keys(orgBrand).length > 0
+  // Brand only applies to this card if the admin opted it in AND a
+  // team brand is set. Cards keeping their own branding stay fully
+  // editable, with no brand merged into the preview.
+  const usesBrand = !!(card as any).use_team_brand && Object.keys(orgBrand).length > 0
   const isAdmin = role === 'admin'
   const isMember = role === 'member'
   const TABS = ALL_TABS.filter(t => isAdmin || !t.adminOnly)
@@ -193,7 +196,10 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
     const payload: Record<string, any> = { ...form, updated_at: new Date().toISOString() }
     if (isAdmin) {
       payload.color_theme = serializeDesign(design)
-    } else {
+    } else if (usesBrand) {
+      // Member on a brand-managed card: strip the brand fields they
+      // can't change. On a card with its own branding, members edit
+      // freely.
       for (const f of MEMBER_LOCKED_FIELDS) delete payload[f]
     }
 
@@ -448,9 +454,9 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Live Preview</p>
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-800" style={{ maxHeight: '82vh', overflowY: 'auto' }}>
             <TemplatedCardPreview
-              form={mergeBrand(form, orgBrand)}
+              form={usesBrand ? mergeBrand(form, orgBrand) : form}
               isPro={true}
-              design={hasBrand && orgBrand.color_theme ? parseDesign(orgBrand.color_theme) : design}
+              design={usesBrand && orgBrand.color_theme ? parseDesign(orgBrand.color_theme) : design}
             />
           </div>
           {cardUrl && (

@@ -171,6 +171,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, brand: clean })
   }
 
+  // Turn the team brand on/off for a single card.
+  if (action === 'set_card_team_brand') {
+    const { org_id, card_id, value } = body as { org_id?: string; card_id?: string; value?: boolean }
+    if (!org_id || !card_id || typeof value !== 'boolean') {
+      return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+    }
+    const { data: org } = await admin.from('organizations').select('id').eq('id', org_id).eq('admin_user_id', user.id).single()
+    if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+
+    const { error } = await admin.from('team_cards').update({ use_team_brand: value }).eq('id', card_id).eq('organization_id', org_id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, use_team_brand: value })
+  }
+
+  // Apply (or remove) the team brand across every card at once.
+  if (action === 'apply_brand_to_all') {
+    const { org_id, value } = body as { org_id?: string; value?: boolean }
+    if (!org_id || typeof value !== 'boolean') return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+    const { data: org } = await admin.from('organizations').select('id').eq('id', org_id).eq('admin_user_id', user.id).single()
+    if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+
+    const { error } = await admin.from('team_cards').update({ use_team_brand: value }).eq('organization_id', org_id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true })
+  }
+
   // Pull the brand straight from the admin's own card.
   if (action === 'import_brand_from_my_card') {
     const { org_id } = body

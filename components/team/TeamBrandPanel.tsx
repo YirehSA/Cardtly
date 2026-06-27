@@ -37,6 +37,27 @@ export default function TeamBrandPanel({ orgId, brand, hasBrand }: { orgId: stri
     setBusy(false)
   }
 
+  async function applyAll(value: boolean) {
+    setBusy(true)
+    try {
+      const res = await fetch('/api/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'apply_brand_to_all', org_id: orgId, value }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
+        toast.success(value ? 'Team brand applied to every card' : 'Every card reverted to its own branding')
+        router.refresh()
+      } else {
+        toast.error(data.error || 'Could not update')
+      }
+    } catch {
+      toast.error('Network error. Please try again.')
+    }
+    setBusy(false)
+  }
+
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-border bg-card p-6">
@@ -69,17 +90,33 @@ export default function TeamBrandPanel({ orgId, brand, hasBrand }: { orgId: stri
         </div>
       </div>
 
-      <button onClick={syncFromCard} disabled={busy}
-        className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-60"
-        style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-        {hasBrand ? 'Update team brand from my card' : 'Set team brand from my card'}
-      </button>
+      <div className="flex flex-wrap gap-3">
+        <button onClick={syncFromCard} disabled={busy}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-60"
+          style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          {hasBrand ? 'Update brand from my card' : 'Set brand from my card'}
+        </button>
+        {hasBrand && (
+          <>
+            <button onClick={() => applyAll(true)} disabled={busy}
+              className="inline-flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold border border-border hover:bg-muted transition disabled:opacity-60">
+              Apply to all cards
+            </button>
+            <button onClick={() => applyAll(false)} disabled={busy}
+              className="inline-flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold border border-border hover:bg-muted transition disabled:opacity-60">
+              Remove from all
+            </button>
+          </>
+        )}
+      </div>
 
       <p className="text-xs text-muted-foreground leading-relaxed max-w-lg">
-        Your team brand is taken from your own card: logo, company, website, address, colours, template, fonts, social links, custom links, certifications, and gallery. To change it, edit those on
+        Choose which members use the brand with the toggle on each card in Team Cards - it&apos;s off by default, so a card keeps its own branding until you switch it on. &ldquo;Apply to all&rdquo; turns it on for everyone; &ldquo;Remove from all&rdquo; reverts every card to its own branding.
+        <br /><br />
+        The brand is taken from your own card (logo, company, website, address, colours, template, fonts, links, certifications, gallery). Edit those on
         {' '}<a href="/dashboard/card" className="underline hover:text-foreground">your card</a>{' '}
-        then click the button above - every team card updates instantly. Team members only edit their own name, title, contact details, photo, and bio.
+        then click &ldquo;Update brand from my card&rdquo;. Branded members can only edit their own name, title, contact details, photo, and bio.
       </p>
     </div>
   )
