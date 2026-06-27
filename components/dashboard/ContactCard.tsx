@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   Mail, Phone, MessageSquare, Calendar, ScanLine, Globe, MapPin,
-  Pencil, Trash2, Check, X, Loader2,
+  Pencil, Trash2, Check, X, Loader2, MessageCircle,
 } from 'lucide-react'
 import AddToPhoneButton from './AddToPhoneButton'
+import { waLink } from '@/lib/whatsapp'
 
 export interface ContactRow {
   id: string
@@ -223,6 +224,16 @@ export default function ContactCard({ contact, viaLabel }: { contact: ContactRow
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
+        {(() => {
+          const wa = waLink(contact.phone, `Hi ${contact.name?.split(' ')[0] || 'there'}, great to connect via my Cardtly card.`)
+          return wa ? (
+            <a href={wa} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition"
+              style={{ background: 'rgba(37,211,102,0.12)', color: '#25D366' }}>
+              <MessageCircle className="w-3 h-3" />WhatsApp
+            </a>
+          ) : null
+        })()}
         {contact.email && (
           <a href={`mailto:${contact.email}?subject=Re: We connected on Cardtly`}
             className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition">

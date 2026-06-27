@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { resolveCardOwner } from '@/lib/card-owner'
+import { waLink } from '@/lib/whatsapp'
 
 // Public endpoint: a visitor on someone's card submits a meeting
 // request. We store it in the bookings table, fire an email to the
@@ -106,6 +107,7 @@ export async function POST(request: Request) {
               <p style="margin:0 0 6px"><strong>Preferred date:</strong> ${preferred_date}${preferred_time ? ' at ' + preferred_time : ''}</p>
               ${notes ? `<p style="margin:12px 0 0;white-space:pre-wrap"><strong>Note:</strong> ${notes}</p>` : ''}
             </div>
+            ${waLink(requester_phone, `Hi ${requester_name.trim().split(' ')[0]}, about your meeting request on my Cardtly card...`) ? `<a href="${waLink(requester_phone, `Hi ${requester_name.trim().split(' ')[0]}, about your meeting request on my Cardtly card...`)}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 22px;border-radius:10px;margin-bottom:8px">Confirm on WhatsApp</a>` : ''}
             <p style="font-size:12px;color:#888;margin:24px 0 0">Card: ${cardName}. Sent via Cardtly.${owner.isTeam ? ' Your team admin can also see this in Team Contacts.' : ''}</p>
           </div>
         `,

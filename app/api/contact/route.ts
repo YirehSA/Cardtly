@@ -2,6 +2,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { resolveCardOwner } from '@/lib/card-owner'
+import { waLink } from '@/lib/whatsapp'
 
 // Public endpoint: a visitor fills in the "share your info" form on a
 // card. We store the lead and email the card owner. Works for both
@@ -75,6 +76,7 @@ export async function POST(request: Request) {
                 ${phone ? `<p style="margin:0 0 6px"><strong>Phone:</strong> ${esc(phone)}</p>` : ''}
                 ${message ? `<p style="margin:12px 0 0;white-space:pre-wrap"><strong>Message:</strong> ${esc(message)}</p>` : ''}
               </div>
+              ${waLink(phone, `Hi ${name.split(' ')[0]}, thanks for reaching out via my Cardtly card.`) ? `<a href="${waLink(phone, `Hi ${name.split(' ')[0]}, thanks for reaching out via my Cardtly card.`)}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 22px;border-radius:10px;margin-bottom:8px">Reply on WhatsApp</a>` : ''}
               <p style="font-size:12px;color:#888;margin:24px 0 0">Card: ${esc(owner.cardName)}. Sent via Cardtly.${owner.isTeam ? ' Your team admin can also see this in Team Contacts.' : ''}</p>
             </div>
           `,
