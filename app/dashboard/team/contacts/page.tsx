@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { Users, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import ContactCard from '@/components/dashboard/ContactCard'
+import ExportContactsButton from '@/components/dashboard/ExportContactsButton'
 
 export const metadata = { title: 'Team Contacts' }
 
@@ -64,11 +65,14 @@ export default async function TeamContactsPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-muted px-4 py-2 rounded-xl">
-          <Users className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-semibold">
-            {rows.length} contact{rows.length !== 1 ? 's' : ''}
-          </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          {rows.length > 0 && <ExportContactsButton contacts={rows as any} filename="cardtly-team-contacts" />}
+          <div className="flex items-center gap-2 bg-muted px-4 py-2 rounded-xl">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-semibold">
+              {rows.length} contact{rows.length !== 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import { getPrimaryCard, getMemberTeamCard } from '@/lib/card-server'
 import ProGate from '@/components/card/ProGate'
 import EmptyState from '@/components/EmptyState'
 import ContactCard from '@/components/dashboard/ContactCard'
+import ExportContactsButton from '@/components/dashboard/ExportContactsButton'
 import { Users } from 'lucide-react'
 
 interface CardSummary {
@@ -76,9 +77,12 @@ export default async function ContactsPage() {
             People who shared their info via your card
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-muted px-4 py-2 rounded-xl">
-          <Users className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-semibold">{rows.length} contact{rows.length !== 1 ? 's' : ''}</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          {rows.length > 0 && <ExportContactsButton contacts={rows as any} />}
+          <div className="flex items-center gap-2 bg-muted px-4 py-2 rounded-xl">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-semibold">{rows.length} contact{rows.length !== 1 ? 's' : ''}</span>
+          </div>
         </div>
       </div>
 
