@@ -47,9 +47,9 @@ export async function POST(request: Request) {
     const supabase = await createClient()
 
     if (card_id) {
-      // Personal card: insert card_events row. A Supabase-side
-      // trigger (configured in the dashboard, not in repo
-      // migrations) bumps cards.view_count from this row.
+      // Personal card: insert card_events row. A DB trigger
+      // (migration 019) bumps cards.view_count from this row -
+      // server-side so RLS can't block it.
       await (supabase.from('card_events') as any).insert({
         card_id,
         event_type,
