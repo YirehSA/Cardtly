@@ -66,6 +66,12 @@ export async function POST(request: Request) {
       // time-windowed analytics (last 30d, this month) instead of
       // just running totals. team_card_events mirrors card_events
       // and was added in migration 010.
+      //
+      // team_cards.view_count is kept in sync by a DB trigger
+      // (migration 018), NOT here - the old app-side increment ran
+      // with the anonymous visitor's session, which RLS blocks on
+      // team_cards, so it silently undercounted. The trigger runs
+      // server-side and can't be blocked.
       await (supabase.from('team_card_events') as any).insert({
         team_card_id,
         event_type,
@@ -75,24 +81,6 @@ export async function POST(request: Request) {
         os,
         referrer: referrer || null,
       })
-
-      // Also bump the denormalized counter on team_cards (added in
-      // migration 009) for fast all-time reads without a count(*).
-      // Race conditions on simultaneous views can slightly under-
-      // count, which is fine for a counter.
-      if (event_type === 'view') {
-        const { data: tc } = await (supabase
-          .from('team_cards') as any)
-          .select('view_count')
-          .eq('id', team_card_id)
-          .single()
-        if (tc) {
-          await (supabase
-            .from('team_cards') as any)
-            .update({ view_count: ((tc as any).view_count || 0) + 1 })
-            .eq('id', team_card_id)
-        }
-      }
     }
 
     return NextResponse.json({ success: true })
