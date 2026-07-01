@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
+import Reveal from '@/components/marketing/Reveal'
 import {
   Wifi, Smartphone, Globe, LayoutTemplate, Palette, Images, Link2, Share2, Award, Sparkles,
   Users, CalendarDays, ClipboardList, Repeat, ScanLine,
@@ -44,7 +45,7 @@ function TierPill({ tier }: { tier: Tier }) {
 
 function NewBadge() {
   return (
-    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-white whitespace-nowrap"
+    <span className="badge-glow px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-white whitespace-nowrap"
       style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed)' }}>
       New
     </span>
@@ -84,7 +85,7 @@ function MockPanel({ accent, children }: { accent: string; children: React.React
 
 function CardMock() {
   return (
-    <div className="relative">
+    <div className="relative float-soft">
       <div className="absolute inset-0 w-56 h-36 rounded-2xl"
         style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)', border: '1px solid rgba(255,255,255,0.1)', transform: 'translate(-9px,-9px) rotate(-5deg)' }} />
       <div className="relative w-56 h-36 rounded-2xl p-4 flex flex-col justify-between"
@@ -427,18 +428,18 @@ export default function FeaturesPage() {
 
       {/* Hero */}
       <section className="pt-32 pb-14 px-6 text-center relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[520px] h-[320px] rounded-full blur-[110px] pointer-events-none"
+        <div className="blob-drift absolute top-0 left-1/2 -translate-x-1/2 w-[520px] h-[320px] rounded-full blur-[110px] pointer-events-none"
           style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 70%)' }} />
         <div className="relative max-w-3xl mx-auto">
-          <p className="text-sm font-bold uppercase tracking-widest mb-4" style={{ color: '#7c3aed' }}>Features</p>
-          <h1 className="text-5xl md:text-6xl font-black tracking-tight mb-6">
+          <p className="animate-fade-up text-sm font-bold uppercase tracking-widest mb-4" style={{ color: '#7c3aed' }}>Features</p>
+          <h1 className="animate-fade-up text-5xl md:text-6xl font-black tracking-tight mb-6">
             Everything your card<br /><span style={gradText}>can do.</span>
           </h1>
-          <p className="text-lg max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          <p className="animate-fade-up-delayed text-lg max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.55)' }}>
             One digital business card that shares in a tap, captures leads, follows up for you and tells you what is working. Free to start, no credit card needed.
           </p>
           {/* Tier legend */}
-          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-8 text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <div className="animate-fade-up-delayed flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-8 text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
             <span className="flex items-center gap-1.5"><TierPill tier="Free" /> included free</span>
             <span className="flex items-center gap-1.5"><TierPill tier="Pro" /> with Pro</span>
             <span className="flex items-center gap-1.5"><TierPill tier="Add-on" /> optional extra</span>
@@ -466,53 +467,59 @@ export default function FeaturesPage() {
         return (
           <section key={group.eyebrow} className="py-14 px-6" style={gi % 2 === 1 ? { background: 'rgba(255,255,255,0.02)' } : undefined}>
             <div className="max-w-6xl mx-auto">
-              <div className="mb-10">
-                <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: group.color }}>{group.eyebrow}</p>
-                <h2 className="text-3xl md:text-4xl font-black tracking-tight max-w-2xl">{group.heading}</h2>
-              </div>
+              <Reveal>
+                <div className="mb-10">
+                  <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: group.color }}>{group.eyebrow}</p>
+                  <h2 className="text-3xl md:text-4xl font-black tracking-tight max-w-2xl">{group.heading}</h2>
+                </div>
+              </Reveal>
 
               {/* Featured rows: text + visual, alternating sides */}
               <div className="space-y-8 mb-8">
                 {featured.map((f, fi) => (
-                  <div key={f.title} className="grid md:grid-cols-2 gap-6 lg:gap-10 items-center">
-                    <div className={fi % 2 === 1 ? 'md:order-2' : ''}>
-                      <div className="flex items-center gap-3 mb-4 flex-wrap">
-                        <IconBox Icon={f.icon} accent={group.color} big />
-                        <div className="flex items-center gap-1.5">
-                          {f.isNew && <NewBadge />}
-                          <TierPill tier={f.tier} />
+                  <Reveal key={f.title}>
+                    <div className="grid md:grid-cols-2 gap-6 lg:gap-10 items-center">
+                      <div className={fi % 2 === 1 ? 'md:order-2' : ''}>
+                        <div className="flex items-center gap-3 mb-4 flex-wrap">
+                          <IconBox Icon={f.icon} accent={group.color} big />
+                          <div className="flex items-center gap-1.5">
+                            {f.isNew && <NewBadge />}
+                            <TierPill tier={f.tier} />
+                          </div>
                         </div>
+                        <h3 className="text-2xl font-black tracking-tight text-white mb-3">{f.title}</h3>
+                        <p className="text-base leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>{f.desc}</p>
+                        <HowLine how={f.how} accent={group.color} />
                       </div>
-                      <h3 className="text-2xl font-black tracking-tight text-white mb-3">{f.title}</h3>
-                      <p className="text-base leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>{f.desc}</p>
-                      <HowLine how={f.how} accent={group.color} />
+                      <div className={fi % 2 === 1 ? 'md:order-1' : ''}>
+                        <MockPanel accent={group.color}>{f.visual}</MockPanel>
+                      </div>
                     </div>
-                    <div className={fi % 2 === 1 ? 'md:order-1' : ''}>
-                      <MockPanel accent={group.color}>{f.visual}</MockPanel>
-                    </div>
-                  </div>
+                  </Reveal>
                 ))}
               </div>
 
               {/* Compact cards for the rest */}
               {compact.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {compact.map(f => (
-                    <div key={f.title} className="rounded-2xl p-6 transition-all hover:bg-white/5"
-                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      <div className="flex items-center justify-between mb-4">
-                        <IconBox Icon={f.icon} accent={group.color} />
-                        <div className="flex items-center gap-1.5">
-                          {f.isNew && <NewBadge />}
-                          <TierPill tier={f.tier} />
+                  {compact.map((f, ci) => (
+                    <Reveal key={f.title} delay={ci * 70} className="h-full">
+                      <div className="h-full flex flex-col rounded-2xl p-6 lift-card hover:bg-white/5"
+                        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div className="flex items-center justify-between mb-4">
+                          <IconBox Icon={f.icon} accent={group.color} />
+                          <div className="flex items-center gap-1.5">
+                            {f.isNew && <NewBadge />}
+                            <TierPill tier={f.tier} />
+                          </div>
+                        </div>
+                        <h3 className="font-bold text-white text-lg mb-2">{f.title}</h3>
+                        <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.55)' }}>{f.desc}</p>
+                        <div className="pt-3 mt-auto" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                          <HowLine how={f.how} accent={group.color} />
                         </div>
                       </div>
-                      <h3 className="font-bold text-white text-lg mb-2">{f.title}</h3>
-                      <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.55)' }}>{f.desc}</p>
-                      <div className="pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-                        <HowLine how={f.how} accent={group.color} />
-                      </div>
-                    </div>
+                    </Reveal>
                   ))}
                 </div>
               )}
@@ -523,7 +530,7 @@ export default function FeaturesPage() {
 
       {/* Teams callout */}
       <section className="py-14 px-6">
-        <div className="max-w-6xl mx-auto">
+        <Reveal className="max-w-6xl mx-auto">
           <div className="rounded-3xl p-8 md:p-10 relative overflow-hidden"
             style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.12), rgba(0,212,255,0.06))', border: '1px solid rgba(124,58,237,0.25)' }}>
             <div className="flex items-start gap-5 flex-wrap">
@@ -550,25 +557,29 @@ export default function FeaturesPage() {
               </div>
             </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* FAQ */}
       <section className="py-16 px-6" style={{ background: 'rgba(255,255,255,0.02)' }}>
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-12">
-            <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#00d4ff' }}>Questions</p>
-            <h2 className="text-3xl md:text-4xl font-black tracking-tight">
-              Frequently asked <span style={gradText}>questions.</span>
-            </h2>
-          </div>
+          <Reveal>
+            <div className="text-center mb-12">
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#00d4ff' }}>Questions</p>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight">
+                Frequently asked <span style={gradText}>questions.</span>
+              </h2>
+            </div>
+          </Reveal>
           <div className="space-y-4">
-            {FAQS.map(({ q, a }) => (
-              <div key={q} className="p-6 rounded-2xl"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <h3 className="font-bold mb-2">{q}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>{a}</p>
-              </div>
+            {FAQS.map(({ q, a }, i) => (
+              <Reveal key={q} delay={i * 50}>
+                <div className="p-6 rounded-2xl lift-card"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <h3 className="font-bold mb-2">{q}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>{a}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -576,7 +587,7 @@ export default function FeaturesPage() {
 
       {/* Final CTA */}
       <section className="py-24 px-6">
-        <div className="max-w-3xl mx-auto text-center">
+        <Reveal className="max-w-3xl mx-auto text-center">
           <div className="rounded-3xl p-12 relative overflow-hidden"
             style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.1), rgba(124,58,237,0.15), rgba(236,72,153,0.1))', border: '1px solid rgba(124,58,237,0.25)' }}>
             <div className="absolute inset-0 pointer-events-none"
@@ -608,7 +619,7 @@ export default function FeaturesPage() {
               </div>
             </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       <Footer />
