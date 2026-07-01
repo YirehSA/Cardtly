@@ -48,8 +48,11 @@ export default function ExportContactsButton({ contacts, filename = 'cardtly-con
       ].map(cell).join(',')
     })
 
-    // Prepend a UTF-8 BOM so Excel reads accented characters correctly.
-    const csv = '﻿' + [headers.map(cell).join(','), ...rows].join('\r\n')
+    // UTF-8 BOM (accents render in Excel) + a "sep=," directive so
+    // Excel splits on commas even in locales - like South Africa -
+    // that default their list separator to a semicolon. Without this,
+    // the whole row lands in column A.
+    const csv = '﻿' + 'sep=,\r\n' + [headers.map(cell).join(','), ...rows].join('\r\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
