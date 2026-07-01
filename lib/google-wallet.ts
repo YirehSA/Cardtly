@@ -18,10 +18,13 @@ import jwt from 'jsonwebtoken'
 const SAVE_URL_PREFIX = 'https://pay.google.com/gp/v/save/'
 // Class suffix versioning: bumping forces Google to treat it as a
 // new class so existing saved passes don't get stuck on the old
-// template. v7 finally fixes the logo by moving it from the class
-// (where Wallet silently drops it) to the object where it actually
-// renders.
-const CLASS_SUFFIX = 'cardtly_card_v7'
+// template. Inline classes in the save JWT are only applied at
+// CREATE time - Google won't patch an existing class from the JWT -
+// so a new class-level property (see multipleDevicesAndHoldersAllowedStatus
+// below) only takes effect on a freshly-suffixed class.
+// v7 fixed the logo by moving it from the class to the object.
+// v8 adds MULTIPLE_HOLDERS so many people can save the same card's pass.
+const CLASS_SUFFIX = 'cardtly_card_v8'
 
 interface ServiceAccount {
   client_email: string
@@ -72,6 +75,10 @@ export function buildGoogleWalletSaveUrl(card: CardForWallet): string | null {
 
   const genericClass = {
     id: classId,
+    // Let the same card's pass (one object per slug) be saved by many
+    // different people, each across their devices - essential for a
+    // shareable business card, where anyone viewing a card can save it.
+    multipleDevicesAndHoldersAllowedStatus: 'MULTIPLE_HOLDERS',
     // NOTE: logo lives on the GenericObject, not the class. Wallet
     // silently drops logo if set here. See genericObject below.
     classTemplateInfo: {
