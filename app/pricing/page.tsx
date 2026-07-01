@@ -42,6 +42,12 @@ const PRO = [
   'Email signature generator',
   'Virtual background for Zoom & Teams',
   'Contact capture form',
+  'Book meetings from your card',
+  'WhatsApp follow-up on every lead',
+  'Paper business card scanner',
+  'Manage contacts & save to phone',
+  'One-click Excel contact export',
+  'Weekly performance digest email',
   'QR code with your logo',
   'Remove Cardtly branding',
 ]

@@ -16,6 +16,7 @@ const BASE = 'https://cardtly.com'
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: `${BASE}/`, changeFrequency: 'weekly', priority: 1 },
+    { url: `${BASE}/features`, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE}/pricing`, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE}/nfc`, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE}/how-it-works`, changeFrequency: 'monthly', priority: 0.8 },

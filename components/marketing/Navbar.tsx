@@ -7,6 +7,7 @@ import { Menu, X } from 'lucide-react'
 
 const LINKS = [
   { href: '/',              label: 'Home' },
+  { href: '/features',      label: 'Features' },
   { href: '/how-it-works', label: 'How it works' },
   { href: '/nfc',           label: 'NFC Cards', badge: '🇿🇦' },
   { href: '/pricing',       label: 'Pricing' },

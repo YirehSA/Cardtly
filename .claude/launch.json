@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "cardtly-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    },
+    {
       "name": "melectrical-preview",
       "runtimeExecutable": "node",
       "runtimeArgs": ["C:/Users/User/Desktop/Melectrical/.preview-server.js"],

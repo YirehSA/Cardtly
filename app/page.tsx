@@ -12,6 +12,7 @@ import CustomizeShowcase from '@/components/marketing/CustomizeShowcase'
 import TeamsSection from '@/components/marketing/TeamsSection'
 import {
   Smartphone, Globe, BarChart2, Mail, Monitor, Users, Star, ArrowRight, Wifi, Sparkles, Zap, CalendarDays, ScanLine,
+  FileSpreadsheet, CalendarClock, MessageCircle, Contact,
 } from 'lucide-react'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
@@ -264,6 +265,60 @@ export default function HomePage() {
               title="Scan paper business cards"
               desc="Snap a photo of someone's paper card and AI pulls out their details, ready to save to your contacts or your phone."
             />
+
+            {/* WhatsApp follow-up — wider tile with chat visual */}
+            <BentoTile
+              span="md:col-span-2"
+              icon={<MessageCircle className="w-5 h-5" />}
+              accent="#25D366"
+              title="Follow up on WhatsApp"
+              desc="Every lead comes with a one-tap WhatsApp button, so you can reply while you're still fresh in their mind. No copying out numbers."
+              visual={
+                <div className="absolute right-6 top-6 bottom-6 hidden lg:flex flex-col justify-center items-end gap-2 pointer-events-none">
+                  <div className="px-4 py-2.5 rounded-2xl rounded-tr-sm text-xs font-medium text-white max-w-[180px]"
+                    style={{ background: '#25D366' }}>
+                    Great meeting you! Here&apos;s my card 👋
+                  </div>
+                  <div className="px-4 py-2.5 rounded-2xl rounded-br-sm text-xs font-medium max-w-[160px]"
+                    style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)' }}>
+                    Thanks! Let&apos;s chat Monday.
+                  </div>
+                </div>
+              }
+            />
+
+            {/* Excel export */}
+            <BentoTile
+              icon={<FileSpreadsheet className="w-5 h-5" />}
+              accent="#0ea5e9"
+              title="Export to Excel in a click"
+              desc="Turn every lead into a clean, colour-branded spreadsheet - names, emails, companies, sources and answers - ready for your CRM or mailing list."
+            />
+
+            {/* Weekly digest */}
+            <BentoTile
+              icon={<CalendarClock className="w-5 h-5" />}
+              accent="#14b8a6"
+              title="Your week, in your inbox"
+              desc="Every Monday we email you how your card performed - views and new leads from the past 7 days - so you always know what's working."
+            />
+
+            {/* Manage contacts */}
+            <BentoTile
+              icon={<Contact className="w-5 h-5" />}
+              accent="#f43f5e"
+              title="Manage your contacts"
+              desc="Edit, tidy and save any lead straight to your phone. Your Cardtly contacts stay organised and always within reach."
+            />
+          </div>
+
+          {/* See-all link to the full features page */}
+          <div className="text-center mt-12">
+            <Link href="/features"
+              className="inline-flex items-center gap-2 text-sm font-semibold transition hover:opacity-80"
+              style={{ color: '#7c3aed' }}>
+              Explore every feature <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </section>
