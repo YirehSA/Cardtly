@@ -16,6 +16,7 @@ interface Contact {
   message?: string | null
   answers?: { label: string; value: string }[] | null
   created_at?: string | null
+  owner?: string | null // whose card captured this contact (team exports)
 }
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -25,42 +26,70 @@ const SOURCE_LABEL: Record<string, string> = {
   questionnaire: 'Questionnaire',
 }
 
-// Cardtly brand palette (ARGB - ExcelJS wants the alpha byte first).
+// Cardtly brand blue (#00d4ff cyan) worked into a readable, professional
+// family - deep sky-blue bars for white text, the bright cyan as accent.
+// ARGB: alpha byte first, as ExcelJS expects.
 const BRAND = {
-  bannerBg: 'FF5B21B6', // deep violet title bar
-  subBg: 'FF6D28D9', // violet subtitle bar
-  headerBg: 'FF7C3AED', // brand violet column headers
-  headerLine: 'FF4C1D95', // darker underline beneath headers
-  zebra: 'FFF5F3FF', // violet-50 stripe
+  bannerBg: 'FF075985', // deep sky-blue title bar
+  subBg: 'FF0369A1', // sky-700 subtitle bar
+  headerBg: 'FF0284C7', // sky-600 column headers
+  headerLine: 'FF00D4FF', // brand cyan accent underline
+  zebra: 'FFF0F9FF', // sky-50 stripe
   gridline: 'FFE5E7EB', // light gray cell borders
   text: 'FF111827', // near-black body text
-  linkText: 'FF6D28D9', // violet for hyperlinks
+  linkText: 'FF0369A1', // blue hyperlinks
   white: 'FFFFFFFF',
-  subText: 'FFEDE9FE', // pale violet subtitle text
+  subText: 'FFE0F2FE', // pale blue subtitle text
 }
 
-const COLUMNS: { header: string; width: number; wrap?: boolean }[] = [
-  { header: 'Name', width: 24 },
-  { header: 'Email', width: 30 },
-  { header: 'Phone', width: 18 },
-  { header: 'Company', width: 24 },
-  { header: 'Title', width: 22 },
-  { header: 'Website', width: 28 },
-  { header: 'Address', width: 32, wrap: true },
-  { header: 'Source', width: 16 },
-  { header: 'Notes', width: 42, wrap: true },
-  { header: 'Responses', width: 42, wrap: true },
-  { header: 'Date', width: 14 },
+type ColType = 'email' | 'url' | 'date'
+interface Col {
+  key: keyof Contact | 'responses'
+  header: string
+  width: number
+  wrap?: boolean
+  type?: ColType
+}
+
+const BASE_COLUMNS: Col[] = [
+  { key: 'name', header: 'Name', width: 24 },
+  { key: 'email', header: 'Email', width: 30, type: 'email' },
+  { key: 'phone', header: 'Phone', width: 18 },
+  { key: 'company', header: 'Company', width: 24 },
+  { key: 'title', header: 'Title', width: 22 },
+  { key: 'website', header: 'Website', width: 28, type: 'url' },
+  { key: 'address', header: 'Address', width: 32, wrap: true },
+  { key: 'source', header: 'Source', width: 16 },
+  { key: 'message', header: 'Notes', width: 42, wrap: true },
+  { key: 'responses', header: 'Responses', width: 42, wrap: true },
+  { key: 'created_at', header: 'Date', width: 14, type: 'date' },
 ]
+
+// Pull the raw value for a column from a contact. Dates stay as Date so
+// Excel treats them as real, sortable dates.
+function rawValue(c: Contact, key: Col['key']): string | Date | null {
+  switch (key) {
+    case 'owner': return c.owner || ''
+    case 'source': return c.source ? (SOURCE_LABEL[c.source] || c.source) : ''
+    case 'responses':
+      return Array.isArray(c.answers) ? c.answers.map(a => `${a.label}: ${a.value}`).join('\n') : ''
+    case 'created_at': return c.created_at ? new Date(c.created_at) : null
+    default: return (c[key as keyof Contact] as string) || ''
+  }
+}
 
 export default function ExportContactsButton({
   contacts,
   filename = 'cardtly-contacts',
   orgName,
+  ownerName,
+  ownerLabel = 'Team Member',
 }: {
   contacts: Contact[]
   filename?: string
-  orgName?: string
+  orgName?: string // team export: shown in the title banner
+  ownerName?: string // personal export: whose contacts, shown in subtitle
+  ownerLabel?: string // header for the owner column (team export)
 }) {
   const [busy, setBusy] = useState(false)
 
@@ -77,14 +106,21 @@ export default function ExportContactsButton({
       // @ts-expect-error - the dist bundle has no bundled types
       const ExcelJS = (await import('exceljs/dist/exceljs.min.js')).default
 
+      // Show the owner column only when contacts actually carry an owner
+      // (team exports). Personal exports skip it - it'd just repeat you.
+      const hasOwner = contacts.some(c => c.owner)
+      const columns: Col[] = hasOwner
+        ? [{ key: 'owner', header: ownerLabel, width: 24 }, ...BASE_COLUMNS]
+        : BASE_COLUMNS
+
       const wb = new ExcelJS.Workbook()
       wb.creator = 'Cardtly'
       const ws = wb.addWorksheet('Contacts', {
         views: [{ state: 'frozen', ySplit: 3 }], // keep banner + header pinned while scrolling
       })
 
-      const lastCol = COLUMNS.length
-      COLUMNS.forEach((c, i) => { ws.getColumn(i + 1).width = c.width })
+      const lastCol = columns.length
+      columns.forEach((c, i) => { ws.getColumn(i + 1).width = c.width })
 
       // Row 1 - title banner spanning every column.
       ws.mergeCells(1, 1, 1, lastCol)
@@ -95,11 +131,12 @@ export default function ExportContactsButton({
       title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRAND.bannerBg } }
       ws.getRow(1).height = 36
 
-      // Row 2 - subtitle with export date + count.
+      // Row 2 - subtitle: whose contacts (personal), export date + count.
       ws.mergeCells(2, 1, 2, lastCol)
       const sub = ws.getCell(2, 1)
       const dateStr = new Date().toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })
-      sub.value = `Exported ${dateStr}  •  ${contacts.length} contact${contacts.length === 1 ? '' : 's'}`
+      const who = ownerName ? `${ownerName}  •  ` : ''
+      sub.value = `${who}Exported ${dateStr}  •  ${contacts.length} contact${contacts.length === 1 ? '' : 's'}`
       sub.font = { name: 'Calibri', size: 11, color: { argb: BRAND.subText } }
       sub.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 }
       sub.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRAND.subBg } }
@@ -107,7 +144,7 @@ export default function ExportContactsButton({
 
       // Row 3 - column headers.
       const headerRow = ws.getRow(3)
-      COLUMNS.forEach((c, i) => {
+      columns.forEach((c, i) => {
         const hc = headerRow.getCell(i + 1)
         hc.value = c.header
         hc.font = { name: 'Calibri', size: 11, bold: true, color: { argb: BRAND.white } }
@@ -121,39 +158,27 @@ export default function ExportContactsButton({
       const thin = { style: 'thin' as const, color: { argb: BRAND.gridline } }
       contacts.forEach((c, idx) => {
         const row = ws.getRow(4 + idx)
-        const responses = Array.isArray(c.answers)
-          ? c.answers.map(a => `${a.label}: ${a.value}`).join('\n')
-          : ''
-        const values: (string | Date | null)[] = [
-          c.name || '', c.email || '', c.phone || '', c.company || '',
-          c.title || '', c.website || '', c.address || '',
-          c.source ? (SOURCE_LABEL[c.source] || c.source) : '',
-          c.message || '', responses,
-          c.created_at ? new Date(c.created_at) : null,
-        ]
-
-        values.forEach((v, i) => {
+        columns.forEach((col, i) => {
           const cell = row.getCell(i + 1)
-          const isEmail = i === 1
-          const isWebsite = i === 5
-          const isDate = i === 10
+          const v = rawValue(c, col.key)
 
-          if (isDate && v instanceof Date) {
+          if (col.type === 'date' && v instanceof Date) {
             cell.value = v
             cell.numFmt = 'yyyy-mm-dd'
-          } else if (isEmail && v) {
+          } else if (col.type === 'email' && v) {
             cell.value = { text: String(v), hyperlink: `mailto:${v}` }
-          } else if (isWebsite && v) {
+          } else if (col.type === 'url' && v) {
             const href = /^https?:\/\//i.test(String(v)) ? String(v) : `https://${v}`
             cell.value = { text: String(v), hyperlink: href }
           } else {
             cell.value = (v as string) || ''
           }
 
-          cell.font = (isEmail || isWebsite) && v
+          const isLink = (col.type === 'email' || col.type === 'url') && v
+          cell.font = isLink
             ? { name: 'Calibri', size: 10, color: { argb: BRAND.linkText }, underline: true }
             : { name: 'Calibri', size: 10, color: { argb: BRAND.text } }
-          cell.alignment = { vertical: 'top', horizontal: 'left', indent: 1, wrapText: !!COLUMNS[i].wrap }
+          cell.alignment = { vertical: 'top', horizontal: 'left', indent: 1, wrapText: !!col.wrap }
           cell.border = { top: thin, bottom: thin, left: thin, right: thin }
           if (idx % 2 === 1) {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRAND.zebra } }

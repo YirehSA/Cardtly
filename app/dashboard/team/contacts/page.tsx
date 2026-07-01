@@ -49,6 +49,13 @@ export default async function TeamContactsPage() {
   // Build a lookup map for team card names
   const cardMap = Object.fromEntries((teamCards || []).map(c => [c.id, c]))
 
+  // Tag each contact with the team member whose card captured it, so the
+  // export can show a "Team Member" column (whose contact it is).
+  const exportRows = rows.map((r: any) => ({
+    ...r,
+    owner: r.team_card_id ? (cardMap[r.team_card_id]?.name ?? null) : null,
+  }))
+
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -66,7 +73,7 @@ export default async function TeamContactsPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {rows.length > 0 && <ExportContactsButton contacts={rows as any} filename="cardtly-team-contacts" orgName={org.name} />}
+          {rows.length > 0 && <ExportContactsButton contacts={exportRows as any} filename="cardtly-team-contacts" orgName={org.name} ownerLabel="Team Member" />}
           <div className="flex items-center gap-2 bg-muted px-4 py-2 rounded-xl">
             <Users className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm font-semibold">
