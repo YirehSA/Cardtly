@@ -23,14 +23,20 @@ A digital business card is an online profile that replaces a paper business card
 - Built-in analytics: track views, clicks, and contact saves per card.
 - Lead capture and a built-in contacts CRM - visitors share their details and every lead lands in the owner's dashboard.
 - Book-a-meeting button: visitors request a meeting time directly from the card; the owner is emailed and the requester is saved to contacts.
+- Custom questionnaire (optional add-on): the card owner builds up to five of their own questions and the answers save with each lead.
+- Reciprocal contact exchange (optional add-on): after a visitor saves the owner's details, they are prompted to share theirs back.
 - Paper business card scanner (Pro): photograph someone else's paper card and AI extracts their details to save to contacts or the phone.
-- Add any contact straight to the phone address book, or download a vCard.
+- WhatsApp follow-up: every captured lead has a one-tap WhatsApp button so the owner can reply instantly.
+- Contact management: edit, delete or organise any lead, and save any contact straight to the phone address book, or download a vCard.
+- One-click Excel export: download all contacts as a colour-branded spreadsheet (names, emails, companies, sources and questionnaire answers).
+- Weekly performance digest: an automatic Monday email summarising the past 7 days of card views and new leads.
 - Add your card to Google Wallet.
 - Email signature generator and branded virtual backgrounds for Zoom and Teams.
 
 ## Pages
 
 - [Home](https://cardtly.com/): what Cardtly is and how it works.
+- [Features](https://cardtly.com/features): a full breakdown of every feature, what is free vs Pro, and how each one works.
 - [How it works](https://cardtly.com/how-it-works): create a card, get your link and QR, share by tap, scan, or URL.
 - [Pricing](https://cardtly.com/pricing): Free vs Pro (R65/month), with a live USD estimate for international visitors.
 - [NFC cards](https://cardtly.com/nfc): the physical tap-to-share card for South Africa.

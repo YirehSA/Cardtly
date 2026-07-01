@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
 import ProPlanPrice from '@/components/marketing/ProPlanPrice'
+import Reveal from '@/components/marketing/Reveal'
 import { Check, ArrowRight, Zap } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -71,11 +72,11 @@ export default function PricingPage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full blur-[100px] pointer-events-none"
           style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.15) 0%, transparent 70%)' }} />
         <div className="relative max-w-2xl mx-auto">
-          <p className="text-sm font-bold uppercase tracking-widest mb-4" style={{ color: '#ec4899' }}>Pricing</p>
-          <h1 className="text-5xl md:text-6xl font-black tracking-tight mb-6">
+          <p className="animate-fade-up text-sm font-bold uppercase tracking-widest mb-4" style={{ color: '#ec4899' }}>Pricing</p>
+          <h1 className="animate-fade-up text-5xl md:text-6xl font-black tracking-tight mb-6">
             Simple pricing.<br /><span style={gradText}>No surprises.</span>
           </h1>
-          <p className="text-lg" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <p className="animate-fade-up-delayed text-lg" style={{ color: 'rgba(255,255,255,0.5)' }}>
             Your digital business card is free forever. Upgrade only when you need the extras.
           </p>
         </div>
@@ -86,7 +87,8 @@ export default function PricingPage() {
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
 
           {/* Free */}
-          <div className="p-8 rounded-3xl flex flex-col"
+          <Reveal className="h-full">
+          <div className="h-full p-8 rounded-3xl flex flex-col lift-card"
             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
             <div>
               <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Free</p>
@@ -110,9 +112,11 @@ export default function PricingPage() {
               Get started free
             </Link>
           </div>
+          </Reveal>
 
           {/* Pro */}
-          <div className="p-8 rounded-3xl flex flex-col relative overflow-hidden"
+          <Reveal delay={120} className="h-full">
+          <div className="h-full p-8 rounded-3xl flex flex-col relative overflow-hidden lift-card"
             style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.08), rgba(124,58,237,0.14), rgba(236,72,153,0.08))', border: '1px solid rgba(124,58,237,0.35)' }}>
             {/* Popular badge */}
             <div className="absolute top-6 right-6 px-3 py-1 rounded-full text-xs font-bold text-white flex items-center gap-1"
@@ -139,6 +143,7 @@ export default function PricingPage() {
               Upgrade to Pro <ArrowRight className="w-4 h-4 inline ml-1" />
             </Link>
           </div>
+          </Reveal>
         </div>
 
         {/* Payment note */}
@@ -148,7 +153,8 @@ export default function PricingPage() {
 
         {/* Teams + add-ons strip */}
         <div className="max-w-4xl mx-auto mt-10 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-6 rounded-2xl flex items-start gap-4"
+          <Reveal className="h-full">
+          <div className="h-full p-6 rounded-2xl flex items-start gap-4 lift-card"
             style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.25)' }}>
             <div className="text-2xl">👥</div>
             <div>
@@ -162,7 +168,9 @@ export default function PricingPage() {
               </Link>
             </div>
           </div>
-          <div className="p-6 rounded-2xl flex items-start gap-4"
+          </Reveal>
+          <Reveal delay={120} className="h-full">
+          <div className="h-full p-6 rounded-2xl flex items-start gap-4 lift-card"
             style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.2)' }}>
             <div className="text-2xl">🚀</div>
             <div>
@@ -172,22 +180,27 @@ export default function PricingPage() {
               </p>
             </div>
           </div>
+          </Reveal>
         </div>
       </section>
 
       {/* FAQs */}
       <section className="py-24 px-6" style={{ background: 'rgba(255,255,255,0.02)' }}>
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-black text-center mb-12">
-            Frequently asked <span style={gradText}>questions.</span>
-          </h2>
+          <Reveal>
+            <h2 className="text-3xl font-black text-center mb-12">
+              Frequently asked <span style={gradText}>questions.</span>
+            </h2>
+          </Reveal>
           <div className="space-y-4">
-            {FAQS.map(({ q, a }) => (
-              <div key={q} className="p-6 rounded-2xl"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <p className="font-bold mb-2">{q}</p>
-                <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>{a}</p>
-              </div>
+            {FAQS.map(({ q, a }, i) => (
+              <Reveal key={q} delay={i * 50}>
+                <div className="p-6 rounded-2xl lift-card"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <p className="font-bold mb-2">{q}</p>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>{a}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -195,19 +208,19 @@ export default function PricingPage() {
 
       {/* CTA */}
       <section className="py-24 px-6 text-center">
-        <div className="max-w-2xl mx-auto">
+        <Reveal className="max-w-2xl mx-auto">
           <h2 className="text-4xl font-black tracking-tight mb-4">
             Still unsure? <span style={gradText}>Start free.</span>
           </h2>
           <p className="mb-8" style={{ color: 'rgba(255,255,255,0.45)' }}>
-            No risk. No credit card. Upgrade any time when you\'re ready.
+            No risk. No credit card. Upgrade any time when you&apos;re ready.
           </p>
           <Link href="/signup"
             className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:opacity-90"
             style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.35)' }}>
             Create your free card <ArrowRight className="w-4 h-4" />
           </Link>
-        </div>
+        </Reveal>
       </section>
 
       <Footer />

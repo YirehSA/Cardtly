@@ -11,6 +11,7 @@ export const metadata = {
   // already appends "| Cardtly" and doubling reads broken in SERPs.
   title: 'Win Prizes with Your Digital Business Card',
   description: 'Win lifetime Pro, a custom website, cash, and an ultimate grand prize. Cardtly is rewarding early adopters across four growing milestones.',
+  alternates: { canonical: '/promotions' },
 }
 
 export default async function PromotionsPage() {

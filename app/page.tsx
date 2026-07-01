@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
+import Reveal from '@/components/marketing/Reveal'
 import NativeAppRedirect from '@/components/NativeAppRedirect'
 import HeroSection from '@/components/marketing/HeroSection'
 import ThreeWaysToShare from '@/components/marketing/ThreeWaysToShare'
@@ -94,6 +95,11 @@ const PREVENT_FLASH_SCRIPT = `(function(){
   } catch (e) { /* fail-open: do nothing, show the page */ }
 })();`
 
+// The homepage inherits the root layout's title, description and OG.
+// It only needs its own canonical - without one it has none, since the
+// root layout deliberately omits a canonical (see layout.tsx).
+export const metadata = { alternates: { canonical: '/' } }
+
 export default function HomePage() {
   return (
     <div className="overflow-x-hidden" style={{ background: '#000', color: '#fff' }}>
@@ -121,11 +127,13 @@ export default function HomePage() {
               { n: '500K+',    label: 'Views served' },
               { n: '12',       label: 'Designed templates' },
               { n: 'Free',     label: 'To get started' },
-            ].map(({ n, label }) => (
-              <div key={label} className="text-center">
-                <p className="text-4xl md:text-6xl font-black tracking-tight" style={gradText}>{n}</p>
-                <p className="text-xs md:text-sm mt-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>{label}</p>
-              </div>
+            ].map(({ n, label }, i) => (
+              <Reveal key={label} delay={i * 90}>
+                <div className="text-center">
+                  <p className="text-4xl md:text-6xl font-black tracking-tight" style={gradText}>{n}</p>
+                  <p className="text-xs md:text-sm mt-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>{label}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -140,14 +148,17 @@ export default function HomePage() {
           style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.10) 0%, transparent 70%)' }} />
 
         <div className="max-w-6xl mx-auto relative">
-          <div className="text-center mb-16">
-            <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#7c3aed' }}>Everything you need</p>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tight">
-              One card. <span style={gradText}>Infinite connections.</span>
-            </h2>
-          </div>
+          <Reveal>
+            <div className="text-center mb-16">
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#7c3aed' }}>Everything you need</p>
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight">
+                One card. <span style={gradText}>Infinite connections.</span>
+              </h2>
+            </div>
+          </Reveal>
 
           {/* Bento — mixed sizes */}
+          <Reveal>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Big featured tile — NFC */}
             <BentoTile
@@ -311,15 +322,16 @@ export default function HomePage() {
               desc="Edit, tidy and save any lead straight to your phone. Your Cardtly contacts stay organised and always within reach."
             />
           </div>
+          </Reveal>
 
           {/* See-all link to the full features page */}
-          <div className="text-center mt-12">
+          <Reveal className="text-center mt-12">
             <Link href="/features"
               className="inline-flex items-center gap-2 text-sm font-semibold transition hover:opacity-80"
               style={{ color: '#7c3aed' }}>
               Explore every feature <ArrowRight className="w-4 h-4" />
             </Link>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -337,19 +349,21 @@ export default function HomePage() {
       {/* ── How it works — kept simple ──────────────────────────────────────── */}
       <section className="py-24 px-6" style={{ background: 'rgba(255,255,255,0.02)' }}>
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#00d4ff' }}>Simple as that</p>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tight">
-              Up and running <span style={gradText}>in 2 minutes.</span>
-            </h2>
-          </div>
+          <Reveal>
+            <div className="text-center mb-16">
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#00d4ff' }}>Simple as that</p>
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight">
+                Up and running <span style={gradText}>in 2 minutes.</span>
+              </h2>
+            </div>
+          </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { n: '01', title: 'Create your card',   desc: 'Pick a template, fill in your details, choose your colours.' },
               { n: '02', title: 'Share your link',    desc: 'Your card lives at cardtly.com/yourname. Share it anywhere.' },
               { n: '03', title: 'Make connections',   desc: 'People scan, save your contact, and you track every interaction.' },
             ].map(({ n, title, desc }, i, arr) => (
-              <div key={n} className="relative text-center">
+              <Reveal key={n} delay={i * 90} className="relative text-center">
                 {i < arr.length - 1 && (
                   <div className="hidden md:block absolute top-8 left-[60%] w-full h-px"
                     style={{ background: 'linear-gradient(90deg, rgba(124,58,237,0.4), transparent)' }} />
@@ -360,7 +374,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="font-bold text-lg mb-2">{title}</h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>{desc}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
           <div className="text-center mt-12">
@@ -376,29 +390,33 @@ export default function HomePage() {
       {/* ── Testimonials ─────────────────────────────────────────────────────── */}
       <section className="py-24 px-6">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#f59e0b' }}>The people speak</p>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tight">Loved by <span style={gradText}>professionals.</span></h2>
-          </div>
+          <Reveal>
+            <div className="text-center mb-16">
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#f59e0b' }}>The people speak</p>
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight">Loved by <span style={gradText}>professionals.</span></h2>
+            </div>
+          </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {TESTIMONIALS.map(({ name, role, text }) => (
-              <div key={name} className="p-6 rounded-3xl transition-all hover:scale-[1.02]"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => <Star key={i} className="w-3.5 h-3.5 fill-current" style={{ color: '#f59e0b' }} />)}
-                </div>
-                <p className="text-base leading-relaxed mb-5" style={{ color: 'rgba(255,255,255,0.75)' }}>&ldquo;{text}&rdquo;</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-black text-white"
-                    style={{ background: grad }}>
-                    {name.charAt(0)}
+            {TESTIMONIALS.map(({ name, role, text }, i) => (
+              <Reveal key={name} delay={i * 90} className="h-full">
+                <div className="h-full p-6 rounded-3xl lift-card"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="flex gap-1 mb-4">
+                    {[...Array(5)].map((_, s) => <Star key={s} className="w-3.5 h-3.5 fill-current" style={{ color: '#f59e0b' }} />)}
                   </div>
-                  <div>
-                    <p className="font-bold text-sm text-white">{name}</p>
-                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{role}</p>
+                  <p className="text-base leading-relaxed mb-5" style={{ color: 'rgba(255,255,255,0.75)' }}>&ldquo;{text}&rdquo;</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-black text-white"
+                      style={{ background: grad }}>
+                      {name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm text-white">{name}</p>
+                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{role}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -410,15 +428,17 @@ export default function HomePage() {
       {/* ── App download ─────────────────────────────────────────────────────── */}
       <section className="py-24 px-6">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#00d4ff' }}>Mobile</p>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
-              Take Cardtly <span style={gradText}>with you.</span>
-            </h2>
-            <p className="text-lg max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              The full Cardtly experience plus tap-to-share with NFC, contact saving, and offline access. Available now on Android.
-            </p>
-          </div>
+          <Reveal>
+            <div className="text-center mb-12">
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#00d4ff' }}>Mobile</p>
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
+                Take Cardtly <span style={gradText}>with you.</span>
+              </h2>
+              <p className="text-lg max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                The full Cardtly experience plus tap-to-share with NFC, contact saving, and offline access. Available now on Android.
+              </p>
+            </div>
+          </Reveal>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <a
@@ -495,7 +515,7 @@ export default function HomePage() {
 
       {/* ── Final CTA ────────────────────────────────────────────────────────── */}
       <section className="py-24 px-6">
-        <div className="max-w-3xl mx-auto text-center">
+        <Reveal className="max-w-3xl mx-auto text-center">
           <div className="rounded-3xl p-12 relative overflow-hidden"
             style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.1), rgba(124,58,237,0.15), rgba(236,72,153,0.1))', border: '1px solid rgba(124,58,237,0.25)' }}>
             <div className="absolute inset-0 pointer-events-none"
@@ -528,7 +548,7 @@ export default function HomePage() {
               <p className="text-xs mt-6" style={{ color: 'rgba(255,255,255,0.35)' }}>No credit card · No catch · Free forever tier</p>
             </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       <Footer />
