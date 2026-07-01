@@ -15,7 +15,7 @@ const gradText: React.CSSProperties = {
 }
 
 const PRO_FEATURES = [
-  '9 card templates',
+  '12 card templates',
   'Custom accent colour and fonts',
   'Bio, title, address, WhatsApp',
   'Up to 14 custom links',

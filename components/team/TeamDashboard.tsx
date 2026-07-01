@@ -339,7 +339,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           {/* Inclusions */}
           <div className="space-y-2">
             {[
-              'All 9 card templates for every team member',
+              'All 12 card templates for every team member',
               'Admin dashboard — you create and manage all cards',
               'Each card gets its own public URL and QR code',
               'Analytics, email signature, virtual background per card',

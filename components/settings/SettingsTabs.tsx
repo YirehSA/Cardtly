@@ -452,7 +452,7 @@ function BillingTab({ plan, subscription }: { plan: UserPlan; subscription: Prop
       <div className="space-y-2">
         {isPro ? (
           [
-            '9 card templates', 'Custom accent colour', 'Custom links and social profiles',
+            '12 card templates', 'Custom accent colour', 'Custom links and social profiles',
             'Gallery and media', 'Analytics dashboard', 'Email signature generator',
             'Virtual background generator', 'Contact form and leads', 'QR code with your logo',
           ].map(f => (

@@ -45,7 +45,7 @@ export default async function UpgradeSuccessPage({
             </p>
             <div className="space-y-2.5">
               {[
-                '9 card templates — go to My Card to switch',
+                '12 card templates — go to My Card to switch',
                 'Analytics — see who viewed your card',
                 'Email signature — generate yours now',
                 'Virtual background — for Zoom & Teams',

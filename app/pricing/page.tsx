@@ -32,7 +32,7 @@ const FREE = [
 
 const PRO = [
   'Everything in Free',
-  '9 card templates',
+  '12 card templates',
   'Custom accent colour and fonts',
   'Job title, bio, address, WhatsApp',
   'Up to 14 custom links',
