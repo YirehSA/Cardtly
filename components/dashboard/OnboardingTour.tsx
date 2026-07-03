@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, ArrowRight, ArrowLeft, Sparkles, CreditCard, QrCode, Share2 } from 'lucide-react'
 
 const KEY_TOUR_DISMISSED = 'cardtly:tour-dismissed'
@@ -65,11 +66,16 @@ export default function OnboardingTour() {
   const isLast = step === STEPS.length - 1
   const Icon = current.icon
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+  // Portal to <body> so the fixed overlay is anchored to the viewport,
+  // not the dashboard's animated (transformed) content wrapper - otherwise
+  // a non-none transform ancestor makes it centre inside the scrollable
+  // content and you have to scroll to find it. max-h + overflow keeps it
+  // fully visible on short mobile screens.
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-6"
       style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
       onClick={dismiss}>
-      <div className="relative max-w-md w-full rounded-3xl p-8"
+      <div className="relative max-w-md w-full rounded-3xl p-8 max-h-[90dvh] overflow-y-auto"
         style={{
           background: '#0a0a0a',
           border: '1px solid rgba(255,255,255,0.1)',
@@ -143,6 +149,7 @@ export default function OnboardingTour() {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
