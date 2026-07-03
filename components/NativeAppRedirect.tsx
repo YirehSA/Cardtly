@@ -27,11 +27,16 @@ import { isNativeApp } from '@/lib/capacitor'
 export default function NativeAppRedirect() {
   const router = useRouter()
   const [showOverlay, setShowOverlay] = useState<boolean>(() => {
-    // Default to true ONLY if we're sure we're in the native app.
-    // Doing the check during state init avoids an initial false ->
-    // true flip that would briefly show the homepage.
+    // Default to true ONLY if we're sure we're in the native app AND
+    // this is the app's cold start. On a later homepage visit (the user
+    // tapped a Cardtly logo) we want to SHOW the marketing home, not
+    // cover it - so don't raise the overlay in that case.
     if (typeof window === 'undefined') return false
-    try { return isNativeApp() } catch { return false }
+    try {
+      if (!isNativeApp()) return false
+      if (sessionStorage.getItem('cardtly:appLaunched') === '1') return false
+      return true
+    } catch { return false }
   })
 
   useEffect(() => {
@@ -46,6 +51,19 @@ export default function NativeAppRedirect() {
     function revealFlashBlock() {
       try { (window as any).__cardtlyRevealFlashBlock?.() } catch { /* noop */ }
     }
+
+    // Only redirect on the app's cold start. Once we've routed once this
+    // session, a homepage visit is intentional (the user tapped a Cardtly
+    // logo), so reveal and show the marketing home instead of bouncing
+    // straight back to login/dashboard.
+    let alreadyLaunched = false
+    try { alreadyLaunched = sessionStorage.getItem('cardtly:appLaunched') === '1' } catch { /* noop */ }
+    if (alreadyLaunched) {
+      revealFlashBlock()
+      setShowOverlay(false)
+      return
+    }
+    try { sessionStorage.setItem('cardtly:appLaunched', '1') } catch { /* noop */ }
 
     let cancelled = false
 
