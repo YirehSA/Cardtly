@@ -209,7 +209,19 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
       .eq('id', card.id)
 
     if (error) toast.error('Failed to save: ' + error.message)
-    else toast.success('Card saved')
+    else {
+      toast.success('Card saved')
+      // Keep any saved Google Wallet passes for this team card in sync.
+      // Best-effort and non-blocking; no-ops if nobody saved it.
+      const slug = (card as any).slug
+      if (slug) {
+        fetch('/api/wallet/google/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug }),
+        }).catch(() => {})
+      }
+    }
     setSaving(false)
   }
 

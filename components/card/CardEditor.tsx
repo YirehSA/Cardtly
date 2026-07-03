@@ -136,6 +136,17 @@ export default function CardEditor({ card, plan, userId }: Props) {
         markFirstSaveCelebrated()
         celebrateFirstSave()
       }
+      // Push the fresh details to any saved Google Wallet passes so they
+      // stay up to date. Best-effort and non-blocking; the server no-ops
+      // if nobody has saved this card to Wallet.
+      const slug = (card as any).slug
+      if (slug) {
+        fetch('/api/wallet/google/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug }),
+        }).catch(() => {})
+      }
     }
     setSaving(false)
   }
