@@ -21,10 +21,10 @@ const syne = Syne({
 
 export const metadata: Metadata = {
   title: {
-    // Exact-match head term + geo qualifier. "Digital business card"
-    // leads the title because position-1 words carry the most weight;
-    // South Africa is the geo wedge we can actually win near-term.
-    default: 'Digital Business Card South Africa — Cardtly | NFC, QR & Link Sharing',
+    // Lead with the exact target phrase "Digital Business Cards"
+    // (plural, position 1 = most weight), then the South Africa geo
+    // wedge we can actually win near-term, then the brand.
+    default: 'Digital Business Cards South Africa - Free NFC & QR Cards | Cardtly',
     template: '%s | Cardtly',
   },
   description:
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     type: 'website',
     siteName: 'Cardtly',
     locale: 'en_ZA',
-    title: 'Digital Business Card South Africa — Cardtly',
+    title: 'Digital Business Cards South Africa - Cardtly',
     description:
       'Create your free digital business card in minutes. Share with an NFC tap, QR code, or link. ZAR pricing, built for South Africa.',
   },
