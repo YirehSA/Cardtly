@@ -43,6 +43,13 @@ A digital business card is an online profile that replaces a paper business card
 - [About](https://cardtly.com/about): Cardtly's mission to retire the paper business card.
 - [Contact](https://cardtly.com/contact): get in touch with the Cardtly team.
 
+## Guides (blog)
+
+- [What is a digital business card?](https://cardtly.com/blog/what-is-a-digital-business-card): plain-English explainer of what a digital business card is, how it works, and how to get one free.
+- [Digital business cards in South Africa](https://cardtly.com/blog/digital-business-cards-south-africa): the 2026 guide for South African professionals, with ZAR pricing and local NFC card delivery.
+- [NFC vs paper business cards](https://cardtly.com/blog/nfc-vs-paper-business-cards): a comparison of NFC/digital and paper business cards on cost, updates, sustainability, analytics and reach.
+- [How to make a free digital business card](https://cardtly.com/blog/how-to-make-a-free-digital-business-card): a step-by-step guide to creating and sharing a free digital business card.
+
 ## Common questions
 
 - What is a digital business card? An online profile that replaces a paper card, shared by NFC tap, QR code, or link, with details the recipient can save to their phone.

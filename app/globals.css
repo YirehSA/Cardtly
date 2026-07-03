@@ -336,4 +336,73 @@
     .float-soft, .blob-drift, .badge-glow { animation: none; }
     .lift-card:hover { transform: none; }
   }
+
+  /* ── Blog article typography (dark theme) ──────────────────────────── */
+  /* Long-form article HTML is rendered inside .article-prose, so we style
+     bare semantic tags once instead of per element. */
+  .article-prose {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 1.0625rem;
+    line-height: 1.75;
+  }
+  .article-prose > :first-child { margin-top: 0; }
+  .article-prose p { margin: 0 0 1.25rem; }
+  .article-prose h2 {
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.6rem;
+    letter-spacing: -0.02em;
+    margin: 2.5rem 0 1rem;
+    line-height: 1.25;
+  }
+  .article-prose h3 {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin: 2rem 0 0.75rem;
+  }
+  .article-prose strong { color: #fff; font-weight: 700; }
+  .article-prose a {
+    color: #00d4ff;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.35);
+    transition: border-color 0.2s ease;
+  }
+  .article-prose a:hover { border-bottom-color: #00d4ff; }
+  .article-prose ul,
+  .article-prose ol { margin: 0 0 1.25rem; padding-left: 1.4rem; }
+  .article-prose li { margin: 0 0 0.55rem; padding-left: 0.25rem; }
+  .article-prose ul li::marker { color: #7c3aed; }
+  .article-prose ol li::marker { color: #7c3aed; font-weight: 700; }
+  .article-prose blockquote {
+    margin: 1.5rem 0;
+    padding: 0.5rem 0 0.5rem 1.25rem;
+    border-left: 3px solid #7c3aed;
+    color: rgba(255, 255, 255, 0.85);
+    font-style: italic;
+  }
+  /* Tables scroll on their own on narrow screens instead of breaking the page. */
+  .article-prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.95rem;
+    display: block;
+    overflow-x: auto;
+  }
+  .article-prose thead { background: rgba(124, 58, 237, 0.18); }
+  .article-prose th {
+    color: #fff;
+    font-weight: 700;
+    text-align: left;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    white-space: nowrap;
+  }
+  .article-prose td {
+    padding: 0.7rem 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    vertical-align: top;
+  }
+  .article-prose tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
 }

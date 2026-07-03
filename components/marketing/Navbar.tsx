@@ -11,6 +11,7 @@ const LINKS = [
   { href: '/how-it-works', label: 'How it works' },
   { href: '/nfc',           label: 'NFC Cards', badge: '🇿🇦' },
   { href: '/pricing',       label: 'Pricing' },
+  { href: '/blog',          label: 'Blog' },
   { href: '/about',         label: 'About' },
   { href: '/contact',       label: 'Contact' },
 ]

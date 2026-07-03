@@ -27,8 +27,10 @@ export default function Footer() {
             <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Product</p>
             <div className="space-y-2.5">
               {[
+                { href: '/features',      label: 'Features' },
                 { href: '/how-it-works', label: 'How digital cards work' },
                 { href: '/pricing',       label: 'Digital business card pricing' },
+                { href: '/blog',          label: 'Digital business card blog' },
                 { href: '/#teams',        label: 'Cardtly for Teams' },
                 { href: '/promotions',    label: 'Win prizes 🏆' },
                 { href: '/nfc',           label: 'NFC business cards 🇿🇦' },

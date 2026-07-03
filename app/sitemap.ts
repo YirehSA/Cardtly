@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { POSTS } from './blog/posts'
 
 // Sitemap: static marketing pages + every public card page.
 // Card pages are included deliberately - each one is an indexable
@@ -20,6 +21,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/pricing`, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE}/nfc`, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE}/how-it-works`, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${BASE}/blog`, changeFrequency: 'weekly', priority: 0.7 },
+    ...POSTS.map(p => ({
+      url: `${BASE}/blog/${p.slug}`,
+      lastModified: new Date(p.date + 'T00:00:00Z'),
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    })),
     { url: `${BASE}/about`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/contact`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/signup`, changeFrequency: 'monthly', priority: 0.8 },
