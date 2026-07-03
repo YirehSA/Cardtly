@@ -7,7 +7,7 @@ import {
   Wifi, Smartphone, Globe, LayoutTemplate, Palette, Images, Link2, Share2, Award, Sparkles,
   Users, CalendarDays, ClipboardList, Repeat, ScanLine,
   MessageCircle, Contact, FileSpreadsheet, CalendarClock,
-  BarChart2, Mail, Monitor, Building2, ArrowRight, Zap, Check,
+  BarChart2, Mail, Monitor, Building2, ArrowRight, Zap, Check, Wallet, UserPlus,
 } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -25,7 +25,7 @@ const gradText: React.CSSProperties = {
   backgroundClip: 'text',
 }
 
-type Tier = 'Free' | 'Pro' | 'Add-on'
+type Tier = 'Free' | 'Pro' | 'Add-on' | 'Team'
 
 // ── Small UI atoms ─────────────────────────────────────────────────────
 
@@ -34,6 +34,7 @@ function TierPill({ tier }: { tier: Tier }) {
     Free: { bg: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.65)', border: 'rgba(255,255,255,0.16)' },
     Pro: { bg: 'rgba(124,58,237,0.15)', color: '#a78bfa', border: 'rgba(124,58,237,0.4)' },
     'Add-on': { bg: 'rgba(0,212,255,0.12)', color: '#00d4ff', border: 'rgba(0,212,255,0.35)' },
+    Team: { bg: 'rgba(236,72,153,0.14)', color: '#f472b6', border: 'rgba(236,72,153,0.35)' },
   }[tier]
   return (
     <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider whitespace-nowrap"
@@ -248,6 +249,16 @@ const GROUPS: Group[] = [
         desc: 'Change your number, title or photo once. It updates everywhere your card lives. Never reprint a card again.',
         how: 'Edit your card in the dashboard and every shared link, QR code and NFC tap reflects it instantly.',
       },
+      {
+        icon: Wallet, title: 'Add to Google Wallet', tier: 'Free',
+        desc: 'Save your card to Google Wallet so it sits with your boarding passes and loyalty cards, one swipe away, and updates itself when you edit your card.',
+        how: 'Tap Add to Google Wallet on your card; edits you make later push to the saved pass automatically.',
+      },
+      {
+        icon: UserPlus, title: "Share a teammate's card", tier: 'Team',
+        desc: 'On a team, hand out a colleague’s card on the spot. "Let me give you our sales director’s card" is now a single tap from your dashboard.',
+        how: 'Your dashboard lists every teammate’s card with copy and share buttons, ready to send by WhatsApp or link.',
+      },
     ],
   },
   {
@@ -443,6 +454,7 @@ export default function FeaturesPage() {
             <span className="flex items-center gap-1.5"><TierPill tier="Free" /> included free</span>
             <span className="flex items-center gap-1.5"><TierPill tier="Pro" /> with Pro</span>
             <span className="flex items-center gap-1.5"><TierPill tier="Add-on" /> optional extra</span>
+            <span className="flex items-center gap-1.5"><TierPill tier="Team" /> Teams plan</span>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
             <Link href="/signup"
@@ -544,7 +556,7 @@ export default function FeaturesPage() {
                   Roll out consistent, on-brand cards across your whole team. Company branding stays locked, each member manages their own name, title and photo, and one admin dashboard shows every card&apos;s views and leads. Priced per seat.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-6 max-w-xl">
-                  {['Locked company branding', 'Member-managed details', 'Shared questionnaire & add-ons', 'One admin analytics dashboard'].map(t => (
+                  {['Locked company branding', 'Member-managed details', 'Shared questionnaire & add-ons', 'One admin analytics dashboard', "Share any teammate's card in a tap"].map(t => (
                     <div key={t} className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
                       <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#a78bfa' }} />{t}
                     </div>

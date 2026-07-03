@@ -13,7 +13,7 @@ import CustomizeShowcase from '@/components/marketing/CustomizeShowcase'
 import TeamsSection from '@/components/marketing/TeamsSection'
 import {
   Smartphone, Globe, BarChart2, Mail, Monitor, Users, Star, ArrowRight, Wifi, Sparkles, Zap, CalendarDays, ScanLine,
-  FileSpreadsheet, CalendarClock, MessageCircle, Contact,
+  FileSpreadsheet, CalendarClock, MessageCircle, Contact, Wallet, UserPlus, ClipboardList, Repeat,
 } from 'lucide-react'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
@@ -320,6 +320,38 @@ export default function HomePage() {
               accent="#f43f5e"
               title="Manage your contacts"
               desc="Edit, tidy and save any lead straight to your phone. Your Cardtly contacts stay organised and always within reach."
+            />
+
+            {/* Reciprocal contact exchange (save-card popup add-on) */}
+            <BentoTile
+              icon={<Repeat className="w-5 h-5" />}
+              accent="#06b6d4"
+              title="Two-way contact exchange"
+              desc="When someone saves your details, an optional popup invites them to share theirs back, so every handshake becomes a lead in your contacts."
+            />
+
+            {/* Custom questionnaire (webform popup add-on) */}
+            <BentoTile
+              icon={<ClipboardList className="w-5 h-5" />}
+              accent="#f59e0b"
+              title="Custom questionnaire"
+              desc="Add your own short form of up to five questions to your card. Visitors answer, and their responses save with every lead. An optional add-on."
+            />
+
+            {/* Add to Google Wallet */}
+            <BentoTile
+              icon={<Wallet className="w-5 h-5" />}
+              accent="#22c55e"
+              title="Add to Google Wallet"
+              desc="Save your card to Google Wallet, one swipe away with your boarding passes. Edit your card and the saved pass updates itself."
+            />
+
+            {/* Share a teammate's card (Teams) */}
+            <BentoTile
+              icon={<UserPlus className="w-5 h-5" />}
+              accent="#ec4899"
+              title="Share a teammate's card"
+              desc="On a team, hand out a colleague's card on the spot. Every teammate's card is one tap away from your dashboard to send by WhatsApp or link."
             />
           </div>
           </Reveal>
