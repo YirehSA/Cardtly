@@ -274,8 +274,10 @@ export default function SignupPage() {
 
         <div className="w-full max-w-sm relative">
           <div className="lg:hidden mb-10">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/cardtly-icon.png" alt="Cardtly" className="h-12 w-12 rounded-full" />
+            <Link href="/" aria-label="Cardtly home" className="inline-block hover:opacity-80 transition">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/cardtly-icon.png" alt="Cardtly" className="h-12 w-12 rounded-full" />
+            </Link>
           </div>
 
           {confirmEmail ? (

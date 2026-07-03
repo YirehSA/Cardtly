@@ -33,8 +33,6 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [biometricLabel, setBiometricLabel] = useState<string>('')
-  const [showBiometricButton, setShowBiometricButton] = useState(false)
-  const [biometricBusy, setBiometricBusy] = useState(false)
   const [postLoginPrompt, setPostLoginPrompt] = useState<{ email: string; refreshToken: string } | null>(null)
   const [magicMode, setMagicMode] = useState(false)
   const [magicSent, setMagicSent] = useState<string | null>(null)
@@ -44,52 +42,33 @@ function LoginForm() {
     resolver: zodResolver(schema),
   })
 
-  // On mount: check if biometric is available and previously enabled.
-  // If so, surface a button so the user can sign in with one tap. We do
-  // NOT auto-prompt because some users want to switch accounts.
+  // On mount: if biometric is available and already enabled on this
+  // device, sign in automatically. No manual button - the app does it
+  // itself. Silent by design: if the user cancels the prompt (e.g. to
+  // switch accounts) we just show the normal email/password form. On web
+  // (no native biometric) this is a no-op.
   useEffect(() => {
     let cancelled = false
-    async function check() {
+    async function auto() {
       const status = await getBiometricStatus()
       if (cancelled) return
-      if (status.available && hasBiometricEnabled()) {
-        setBiometricLabel(status.label)
-        setShowBiometricButton(true)
-      }
-    }
-    check()
-    return () => { cancelled = true }
-  }, [])
-
-  async function handleBiometricSignIn() {
-    setBiometricBusy(true)
-    try {
+      setBiometricLabel(status.label)
+      if (!(status.available && hasBiometricEnabled())) return
       const result = await signInWithBiometric()
-      if (!result.ok || !result.refreshToken) {
-        toast.error('Could not verify. Try password.')
-        setBiometricBusy(false)
-        return
-      }
+      if (cancelled || !result.ok || !result.refreshToken) return
       const { error } = await supabase.auth.refreshSession({ refresh_token: result.refreshToken })
       if (error) {
-        // The stored refresh token is dead (server-side invalidated
-        // OR expired by TTL). Auto-clear the bad credentials so the
-        // user isn't stuck re-trying biometric with a dead token,
-        // and hide the biometric button until they re-enable it
-        // after a successful password sign-in.
+        // Stored refresh token is dead - clear it so we don't keep
+        // prompting; a fresh password sign-in re-enables biometric.
         try { await disableBiometric() } catch { /* noop */ }
-        setShowBiometricButton(false)
-        toast.error('Saved biometric expired — sign in with your password to re-enable it.', { duration: 6000 })
-        setBiometricBusy(false)
         return
       }
       router.push(redirectTo)
       router.refresh()
-    } catch {
-      toast.error('Biometric sign in failed')
-      setBiometricBusy(false)
     }
-  }
+    auto()
+    return () => { cancelled = true }
+  }, [])
 
   async function sendMagicLink(email: string) {
     setLoading(true)
@@ -209,25 +188,6 @@ function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {showBiometricButton && (
-        <>
-          <button type="button" onClick={handleBiometricSignIn} disabled={biometricBusy}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition hover:opacity-90 disabled:opacity-50"
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              color: 'white',
-            }}>
-            <Fingerprint className="w-4 h-4" style={{ color: '#00d4ff' }} />
-            {biometricBusy ? 'Verifying...' : `Sign in with ${biometricLabel || 'biometric'}`}
-          </button>
-          <div className="flex items-center gap-3" style={{ color: 'rgba(255,255,255,0.25)' }}>
-            <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
-            <span className="text-xs">or</span>
-            <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
-          </div>
-        </>
-      )}
       <div>
         <label className="block text-sm font-medium mb-2 text-white/70">Email</label>
         <input id="email" type="email" autoComplete="email"
@@ -292,7 +252,9 @@ export default function LoginPage() {
           style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.1) 0%, transparent 70%)' }} />
 
         <div className="relative">
-          <img src="/cardtly-icon.png" alt="Cardtly" className="h-14 w-14 rounded-full object-contain" />
+          <Link href="/" aria-label="Cardtly home" className="inline-block hover:opacity-80 transition">
+            <img src="/cardtly-icon.png" alt="Cardtly" className="h-14 w-14 rounded-full object-contain" />
+          </Link>
         </div>
 
         <div className="relative space-y-8">
@@ -337,7 +299,9 @@ export default function LoginPage() {
         <div className="w-full max-w-sm relative">
           {/* Mobile logo */}
           <div className="lg:hidden mb-10">
-            <img src="/cardtly-icon.png" alt="Cardtly" className="h-12 w-12 rounded-full object-contain" />
+            <Link href="/" aria-label="Cardtly home" className="inline-block hover:opacity-80 transition">
+              <img src="/cardtly-icon.png" alt="Cardtly" className="h-12 w-12 rounded-full object-contain" />
+            </Link>
           </div>
 
           <div className="mb-8">

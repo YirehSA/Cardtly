@@ -7,14 +7,14 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           {/* Brand */}
           <div className="md:col-span-2">
-            <div className="flex items-center gap-2.5 mb-4">
+            <Link href="/" aria-label="Cardtly home" className="flex items-center gap-2.5 mb-4 w-fit hover:opacity-80 transition">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/cardtly-icon.png" alt="Cardtly logo" className="w-9 h-9 rounded-full" />
               <span className="font-black text-lg tracking-tight"
                 style={{ background: 'linear-gradient(90deg, #00d4ff, #7c3aed, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 Cardtly
               </span>
-            </div>
+            </Link>
             <p className="text-sm leading-relaxed max-w-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
               The digital business card built for South Africa. Share who you are with a tap, a scan, or a link. For everyone.
             </p>
