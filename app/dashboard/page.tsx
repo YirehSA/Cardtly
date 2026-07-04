@@ -190,22 +190,29 @@ export default async function DashboardPage() {
                 </div>
               </div>
 
-              {/* Card URL + Copy */}
               {card?.slug && (
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="w-full space-y-3">
+                  {/* View my card - primary button */}
                   <a href={`/card/${card.slug}`} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition">
-                    cardtly.com/card/{card.slug}
-                    <ArrowUpRight className="w-3 h-3" />
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
+                    style={{ background: `linear-gradient(135deg, ${accentHex}, ${accentHex}cc)`, boxShadow: `0 6px 24px ${accentHex}44` }}>
+                    <Eye className="w-4 h-4" /> View my card
                   </a>
-                  <CopyLinkButton slug={card.slug} />
-                </div>
-              )}
 
-              {/* Save to Google Wallet */}
-              {card?.slug && (
-                <div className="mt-3 flex justify-center">
-                  <AddToGoogleWalletButton slug={card.slug} />
+                  {/* Shareable URL + copy */}
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                    <a href={`/card/${card.slug}`} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition">
+                      cardtly.com/card/{card.slug}
+                      <ArrowUpRight className="w-3 h-3" />
+                    </a>
+                    <CopyLinkButton slug={card.slug} />
+                  </div>
+
+                  {/* Save to Google Wallet */}
+                  <div className="flex justify-center">
+                    <AddToGoogleWalletButton slug={card.slug} />
+                  </div>
                 </div>
               )}
             </div>

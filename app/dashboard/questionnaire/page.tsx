@@ -23,6 +23,7 @@ export default async function QuestionnairePage() {
   const addons = target?.addons || {}
   const enabled = !!addons.questionnaireEnabled
   const isTeamWide = !!target?.isOrg
+  const savedCount = Array.isArray(addons.questionnaire?.questions) ? addons.questionnaire.questions.length : 0
 
   return (
     <div className="space-y-6">
@@ -48,6 +49,12 @@ export default async function QuestionnairePage() {
           <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
             The custom questionnaire lets you collect your own questions from everyone who opens your card. Get in touch and we&apos;ll switch it on for your account.
           </p>
+          {savedCount > 0 && (
+            <p className="text-sm mb-6 max-w-sm mx-auto rounded-xl px-4 py-3"
+              style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', color: '#22c55e' }}>
+              Good news: your saved questionnaire ({savedCount} question{savedCount === 1 ? '' : 's'}) is still here. Nothing was lost. It comes straight back the moment the add-on is switched on again.
+            </p>
+          )}
           <Link href="/contact"
             className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
             style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
