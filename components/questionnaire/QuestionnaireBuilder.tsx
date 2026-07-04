@@ -29,9 +29,11 @@ function blankForm(): SavedQuestionnaire {
 interface Props {
   initial: { questionnaires: SavedQuestionnaire[]; activeId: string | null }
   teamWide?: boolean
+  // Which card/org this builder is saving to (from the page's switcher).
+  target?: { table: string; id: string }
 }
 
-export default function QuestionnaireBuilder({ initial, teamWide }: Props) {
+export default function QuestionnaireBuilder({ initial, teamWide, target }: Props) {
   // Every form keeps at least one (possibly empty) question row so the
   // editor is never blank.
   const seeded: SavedQuestionnaire[] = initial.questionnaires.length
@@ -104,7 +106,7 @@ export default function QuestionnaireBuilder({ initial, teamWide }: Props) {
       const res = await fetch('/api/card/questionnaire', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questionnaires: cleaned, activeId }),
+        body: JSON.stringify({ questionnaires: cleaned, activeId, targetTable: target?.table, targetId: target?.id }),
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok && data.success) {

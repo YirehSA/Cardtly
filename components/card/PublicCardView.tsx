@@ -6,7 +6,7 @@ import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAcce
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
-  Instagram, Linkedin, Twitter, Facebook
+  Instagram, Linkedin, Twitter, Facebook, UserPlus
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
@@ -345,10 +345,20 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
         <div className="mt-8">
           {!showContactForm && !submitted ? (
             <button onClick={() => setShowContactForm(true)}
-              className="w-full py-3.5 rounded-2xl text-sm font-medium flex items-center justify-center gap-2 hover:opacity-80 transition"
-              style={{ border: `1px solid ${bg.border}`, color: bg.subtext }}>
-              Share your info with {card.name.split(' ')[0]}
-              <ChevronRight className="w-4 h-4" />
+              className="group w-full py-3 px-3.5 rounded-2xl text-sm font-semibold flex items-center justify-between gap-3 transition hover:-translate-y-0.5"
+              style={{
+                background: `linear-gradient(135deg, ${accentHex}22, ${accentHex}0d)`,
+                border: `1px solid ${accentHex}55`,
+                color: bg.text,
+                boxShadow: `0 4px 16px -6px ${accentHex}55`,
+              }}>
+              <span className="flex items-center gap-2.5 min-w-0">
+                <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: accentHex + '2e' }}>
+                  <UserPlus className="w-4 h-4" style={{ color: accentHex }} />
+                </span>
+                <span className="truncate">Share your info with {card.name.split(' ')[0]}</span>
+              </span>
+              <ChevronRight className="w-4 h-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: accentHex }} />
             </button>
           ) : submitted ? (
             <div className="rounded-2xl p-5 text-center" style={{ backgroundColor: bg.surface }}>

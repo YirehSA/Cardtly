@@ -17,7 +17,7 @@ interface Props {
   teamCardId: string | null
   ownerName: string
   accentHex: string
-  bg: { border: string; subtext: string }
+  bg: { border: string; subtext: string; text: string }
 }
 
 export default function QuestionnaireForm({ config, cardId, teamCardId, ownerName, accentHex, bg }: Props) {
@@ -76,10 +76,20 @@ export default function QuestionnaireForm({ config, cardId, teamCardId, ownerNam
   return (
     <>
       <button onClick={() => setOpen(true)}
-        className="w-full mt-3 py-3.5 rounded-2xl text-sm font-medium flex items-center justify-center gap-2 hover:opacity-80 transition"
-        style={{ border: `1px solid ${bg.border}`, color: bg.subtext }}>
-        <ClipboardList className="w-4 h-4" />{config.title || 'Answer a few questions'}
-        <ChevronRight className="w-4 h-4" />
+        className="group w-full mt-3 py-3 px-3.5 rounded-2xl text-sm font-semibold flex items-center justify-between gap-3 transition hover:-translate-y-0.5"
+        style={{
+          background: `linear-gradient(135deg, ${accentHex}22, ${accentHex}0d)`,
+          border: `1px solid ${accentHex}55`,
+          color: bg.text,
+          boxShadow: `0 4px 16px -6px ${accentHex}55`,
+        }}>
+        <span className="flex items-center gap-2.5 min-w-0">
+          <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: accentHex + '2e' }}>
+            <ClipboardList className="w-4 h-4" style={{ color: accentHex }} />
+          </span>
+          <span className="truncate">{config.title || 'Answer a few questions'}</span>
+        </span>
+        <ChevronRight className="w-4 h-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: accentHex }} />
       </button>
 
       {open && mounted && createPortal(

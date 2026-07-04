@@ -2,13 +2,30 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import QuestionnaireBuilder from '@/components/questionnaire/QuestionnaireBuilder'
-import { resolveAddonTarget } from '@/lib/addon-target'
-import { ClipboardList } from 'lucide-react'
+import { resolveAddonTargets } from '@/lib/addon-target'
+import { ClipboardList, User, Users } from 'lucide-react'
 import Link from 'next/link'
 
 export const metadata = { title: 'Questionnaire' }
 
-export default async function QuestionnairePage() {
+const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
+
+// Turn a target's addons into the library the builder edits. Prefer the
+// new multi-form shape; fall back to wrapping a single legacy form.
+function deriveLibrary(addons: Record<string, any>) {
+  let library = Array.isArray(addons.questionnaires) ? addons.questionnaires : null
+  if (!library) {
+    const single = addons.questionnaire
+    library = single && Array.isArray(single.questions) && single.questions.length
+      ? [{ id: 'form_1', title: single.title, questions: single.questions }]
+      : []
+  }
+  const activeId = addons.activeQuestionnaireId || library[0]?.id || null
+  return { library, activeId }
+}
+
+export default async function QuestionnairePage({ searchParams }: { searchParams: Promise<{ target?: string }> }) {
+  const { target: targetParam } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -18,24 +35,25 @@ export default async function QuestionnairePage() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
 
-  // Org for a team admin (one form for all team cards), else own card.
-  const target = await resolveAddonTarget(admin, user.id)
-  const addons = target?.addons || {}
-  const enabled = !!addons.questionnaireEnabled
-  const isTeamWide = !!target?.isOrg
+  // A team admin can ALSO have a personal card - two separate
+  // questionnaires. Offer whichever they've got the add-on enabled on.
+  const allTargets = await resolveAddonTargets(admin, user.id)
+  const targets = allTargets.filter(t => t.addons.questionnaireEnabled)
+  const enabled = targets.length > 0
 
-  // Build the library the builder edits. Prefer the new multi-form
-  // shape; fall back to wrapping a single legacy form so older accounts
-  // keep their questionnaire.
-  let library = Array.isArray(addons.questionnaires) ? addons.questionnaires : null
-  if (!library) {
-    const single = addons.questionnaire
-    library = single && Array.isArray(single.questions) && single.questions.length
-      ? [{ id: 'form_1', title: single.title, questions: single.questions }]
-      : []
-  }
-  const activeId = addons.activeQuestionnaireId || library[0]?.id || null
-  const savedCount = library.reduce((n: number, f: any) => n + (Array.isArray(f?.questions) ? f.questions.length : 0), 0)
+  const keyOf = (t: { table: string; id: string }) => `${t.table}:${t.id}`
+  const selected = targets.find(t => keyOf(t) === targetParam) || targets[0] || null
+  const selKey = selected ? keyOf(selected) : ''
+
+  const isTeamWide = !!selected?.isOrg
+  const { library, activeId } = selected ? deriveLibrary(selected.addons) : { library: [] as any[], activeId: null as string | null }
+
+  // For the "still here" note when the add-on is OFF, count saved
+  // questions across every target (enabled or not).
+  const savedCount = allTargets.reduce((n, t) => {
+    const lib = Array.isArray(t.addons.questionnaires) ? t.addons.questionnaires : (t.addons.questionnaire ? [t.addons.questionnaire] : [])
+    return n + lib.reduce((m: number, f: any) => m + (Array.isArray(f?.questions) ? f.questions.length : 0), 0)
+  }, 0)
 
   return (
     <div className="space-y-6">
@@ -49,8 +67,43 @@ export default async function QuestionnairePage() {
         </p>
       </div>
 
-      {enabled ? (
-        <QuestionnaireBuilder initial={{ questionnaires: library, activeId }} teamWide={isTeamWide} />
+      {enabled && selected ? (
+        <>
+          {/* Target switcher - only when you can manage more than one place */}
+          {targets.length > 1 && (
+            <div className="rounded-2xl border border-border bg-card p-4">
+              <p className="text-xs font-semibold text-muted-foreground mb-2.5">Which card are you editing?</p>
+              <div className="flex flex-wrap gap-2">
+                {targets.map(t => {
+                  const active = keyOf(t) === selKey
+                  return (
+                    <Link key={keyOf(t)} href={`/dashboard/questionnaire?target=${encodeURIComponent(keyOf(t))}`}
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border text-sm font-semibold transition"
+                      style={active
+                        ? { borderColor: 'transparent', background: grad, color: '#fff' }
+                        : { borderColor: 'hsl(var(--border))', background: 'hsl(var(--background))', color: 'hsl(var(--foreground))' }}>
+                      {t.isOrg ? <Users className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                      {t.label}
+                    </Link>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2.5">
+                {isTeamWide
+                  ? 'This form shows on every card in your team (not your personal card).'
+                  : 'This form shows on your personal card only (not your team cards).'}
+                {' '}Switching loads that card&apos;s own forms; save before you switch.
+              </p>
+            </div>
+          )}
+
+          <QuestionnaireBuilder
+            key={selKey}
+            initial={{ questionnaires: library, activeId }}
+            teamWide={isTeamWide}
+            target={{ table: selected.table, id: selected.id }}
+          />
+        </>
       ) : (
         <div className="max-w-xl mx-auto rounded-2xl border border-border bg-card p-8 text-center">
           <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center"

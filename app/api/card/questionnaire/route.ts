@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { sanitizeQuestionnaire, sanitizeLibrary } from '@/lib/questionnaire'
-import { resolveAddonTarget } from '@/lib/addon-target'
+import { resolveAddonTarget, loadOwnedTarget } from '@/lib/addon-target'
 
 // Lets a client build/save their own questionnaire - but only if an
 // admin has switched the add-on on for them (addons.questionnaireEnabled).
@@ -21,9 +21,12 @@ export async function POST(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
 
-  // Org for a team admin (applies to all team cards), else the caller's
-  // own card.
-  const target = await resolveAddonTarget(admin, user.id)
+  // If the client posted an explicit target (from the builder's
+  // switcher), use it - after verifying the caller owns it. Otherwise
+  // fall back to the default target (org for an admin, else own card).
+  const target = (body?.targetTable && body?.targetId)
+    ? await loadOwnedTarget(admin, user.id, body.targetTable, body.targetId)
+    : await resolveAddonTarget(admin, user.id)
   if (!target) return NextResponse.json({ error: 'No card found' }, { status: 404 })
 
   if (!target.addons.questionnaireEnabled) {
