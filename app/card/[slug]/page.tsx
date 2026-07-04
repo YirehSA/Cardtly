@@ -154,6 +154,16 @@ export default async function PublicCardPage({ params }: Props) {
     // untouched. Personal fields always win for anything not in the
     // brand.
     const brandToApply = (teamCard as any).use_team_brand ? orgBrand : {}
+
+    // Org add-ons fan out to every team card, but the questionnaire is
+    // per-card opt-out: strip it on cards the admin switched off so not
+    // every card has to show it.
+    const mergedAddons: Record<string, any> = { ...((teamCard as any).addons || {}), ...orgAddons }
+    if ((teamCard as any).use_team_questionnaire === false) {
+      mergedAddons.questionnaireEnabled = false
+      delete mergedAddons.questionnaire
+    }
+
     const cardShaped = mergeBrand({
       ...teamCard,
       user_id: null,
@@ -161,9 +171,7 @@ export default async function PublicCardPage({ params }: Props) {
       view_count: (teamCard as any).view_count || 0,
       work_phone: (teamCard as any).work_phone || null,
       whatsapp: (teamCard as any).whatsapp || null,
-      // Org add-ons fan out to every team card; card-level addons
-      // (rarely used for teams) act as a fallback.
-      addons: { ...((teamCard as any).addons || {}), ...orgAddons },
+      addons: mergedAddons,
       // Pass team_card_id so contact form saves correctly
       _team_card_id: (teamCard as any).id,
     }, brandToApply)

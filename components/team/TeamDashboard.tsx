@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import {
   Users, Plus, Edit2, Trash2, ExternalLink, Loader2,
-  CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail, UserCheck, Send, BarChart2, Sparkles
+  CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail, UserCheck, Send, BarChart2, Sparkles, ClipboardList
 } from 'lucide-react'
 import UsdEstimate from '@/components/marketing/UsdEstimate'
 
@@ -27,6 +27,7 @@ interface TeamCard {
   invite_sent_at?: string | null
   claimed_at?: string | null
   use_team_brand?: boolean | null
+  use_team_questionnaire?: boolean | null
 }
 
 interface Org {
@@ -35,6 +36,7 @@ interface Org {
   max_seats: number
   business_plan_active: boolean
   billing_period: string | null
+  addons?: Record<string, any> | null
 }
 
 interface Props {
@@ -57,6 +59,15 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   const [org, setOrg] = useState<Org | null>(initialOrg)
   const [cards, setCards] = useState<TeamCard[]>(initialCards)
   const [loading, setLoading] = useState(false)
+
+  // The per-card questionnaire toggle only makes sense when the org has
+  // the add-on switched on AND a form actually built.
+  const qAddons = (org as any)?.addons || {}
+  const questionnaireAvailable = !!(
+    qAddons.questionnaireEnabled &&
+    Array.isArray(qAddons.questionnaire?.questions) &&
+    qAddons.questionnaire.questions.length > 0
+  )
 
   // Create org form
   const [orgName, setOrgName] = useState('')
@@ -239,6 +250,23 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
       toast.success(next ? `Team brand applied to ${card.name.split(' ')[0]}'s card` : `${card.name.split(' ')[0]}'s card now uses its own branding`)
     } else {
       setCards(prev => prev.map(c => c.id === card.id ? { ...c, use_team_brand: !next } : c)) // revert
+      toast.error(data.error || 'Could not update')
+    }
+  }
+
+  // Show/hide the team questionnaire on a single card. Default is ON, so
+  // "on" means use_team_questionnaire !== false.
+  async function toggleCardQuestionnaire(card: TeamCard) {
+    const currentlyOn = card.use_team_questionnaire !== false
+    const next = !currentlyOn
+    setCards(prev => prev.map(c => c.id === card.id ? { ...c, use_team_questionnaire: next } : c))
+    const data = await api({ action: 'set_card_questionnaire', org_id: org!.id, card_id: card.id, value: next })
+    if (data.success) {
+      toast.success(next
+        ? `Questionnaire now shows on ${card.name.split(' ')[0]}'s card`
+        : `Questionnaire hidden on ${card.name.split(' ')[0]}'s card`)
+    } else {
+      setCards(prev => prev.map(c => c.id === card.id ? { ...c, use_team_questionnaire: currentlyOn } : c)) // revert
       toast.error(data.error || 'Could not update')
     }
   }
@@ -647,6 +675,28 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                       style={{ transform: card.use_team_brand ? 'translateX(18px)' : 'translateX(2px)' }} />
                   </button>
                 </div>
+
+                {/* Team questionnaire toggle - only shown when the org add-on
+                    is on and a form is built. Lets the admin pick which cards
+                    display the questionnaire. */}
+                {questionnaireAvailable && (
+                  <div className="flex items-center justify-between pt-3 border-t border-border">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <ClipboardList className="w-3.5 h-3.5" />Show questionnaire
+                    </span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={card.use_team_questionnaire !== false}
+                      onClick={() => toggleCardQuestionnaire(card)}
+                      title={card.use_team_questionnaire !== false ? 'This card shows the team questionnaire. Tap to hide it here.' : 'This card does not show the questionnaire. Tap to show it.'}
+                      className="relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition"
+                      style={{ background: card.use_team_questionnaire !== false ? 'linear-gradient(135deg, #00d4ff, #7c3aed)' : 'hsl(var(--muted))' }}>
+                      <span className="inline-block h-4 w-4 rounded-full bg-white transition"
+                        style={{ transform: card.use_team_questionnaire !== false ? 'translateX(18px)' : 'translateX(2px)' }} />
+                    </button>
+                  </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-3 border-t border-border">
