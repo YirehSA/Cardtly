@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { sanitizeQuestionnaire } from '@/lib/questionnaire'
+import { sanitizeQuestionnaire, sanitizeLibrary } from '@/lib/questionnaire'
 import { resolveAddonTarget } from '@/lib/addon-target'
 
 // Lets a client build/save their own questionnaire - but only if an
@@ -30,10 +30,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'The questionnaire add-on is not enabled on your account.' }, { status: 403 })
   }
 
-  const questionnaire = sanitizeQuestionnaire(body)
-  const nextAddons = { ...target.addons, questionnaire }
+  // New shape: a library of up to 3 forms plus which one is live.
+  // Legacy shape: a single { title, questions } - wrap it as one form.
+  let questionnaires, active
+  if (Array.isArray(body?.questionnaires)) {
+    const r = sanitizeLibrary(body.questionnaires, body.activeId)
+    questionnaires = r.questionnaires
+    active = r.active
+  } else {
+    const single = sanitizeQuestionnaire(body)
+    const form = { id: 'form_1', title: single.title, questions: single.questions }
+    questionnaires = [form]
+    active = form
+  }
+
+  const nextAddons = {
+    ...target.addons,
+    questionnaires,
+    activeQuestionnaireId: active.id,
+    // Keep the live form mirrored here so the public card, contact form,
+    // exports, and everything else keep reading a single questionnaire
+    // with no changes.
+    questionnaire: { title: active.title, questions: active.questions },
+  }
 
   const { error } = await admin.from(target.table).update({ addons: nextAddons }).eq('id', target.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ success: true, questionnaire })
+  return NextResponse.json({ success: true, questionnaires, activeId: active.id })
 }

@@ -23,7 +23,19 @@ export default async function QuestionnairePage() {
   const addons = target?.addons || {}
   const enabled = !!addons.questionnaireEnabled
   const isTeamWide = !!target?.isOrg
-  const savedCount = Array.isArray(addons.questionnaire?.questions) ? addons.questionnaire.questions.length : 0
+
+  // Build the library the builder edits. Prefer the new multi-form
+  // shape; fall back to wrapping a single legacy form so older accounts
+  // keep their questionnaire.
+  let library = Array.isArray(addons.questionnaires) ? addons.questionnaires : null
+  if (!library) {
+    const single = addons.questionnaire
+    library = single && Array.isArray(single.questions) && single.questions.length
+      ? [{ id: 'form_1', title: single.title, questions: single.questions }]
+      : []
+  }
+  const activeId = addons.activeQuestionnaireId || library[0]?.id || null
+  const savedCount = library.reduce((n: number, f: any) => n + (Array.isArray(f?.questions) ? f.questions.length : 0), 0)
 
   return (
     <div className="space-y-6">
@@ -33,12 +45,12 @@ export default async function QuestionnairePage() {
           Custom questionnaire
         </h1>
         <p className="text-muted-foreground text-sm mt-0.5">
-          Add up to 5 of your own questions to the form on your card.{isTeamWide ? ' This form shows on every card in your team.' : ''}
+          Build up to 3 forms (5 questions each) and choose which one is live.{isTeamWide ? ' The live form shows on every card in your team.' : ''}
         </p>
       </div>
 
       {enabled ? (
-        <QuestionnaireBuilder initial={addons.questionnaire || null} />
+        <QuestionnaireBuilder initial={{ questionnaires: library, activeId }} teamWide={isTeamWide} />
       ) : (
         <div className="max-w-xl mx-auto rounded-2xl border border-border bg-card p-8 text-center">
           <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center"

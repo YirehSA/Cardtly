@@ -162,6 +162,8 @@ export default async function PublicCardPage({ params }: Props) {
     if ((teamCard as any).use_team_questionnaire === false) {
       mergedAddons.questionnaireEnabled = false
       delete mergedAddons.questionnaire
+      delete mergedAddons.questionnaires
+      delete mergedAddons.activeQuestionnaireId
     }
 
     const cardShaped = mergeBrand({
