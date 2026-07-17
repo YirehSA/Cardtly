@@ -82,7 +82,7 @@ export default function TemplatesShowcase() {
             </span>
           </h2>
           <p className="text-base max-w-xl mx-auto" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            Same card data, different templates. Switch any time &mdash; takes one tap.
+            Same card data, different templates. Switch any time, takes one tap.
           </p>
         </div>
 
@@ -101,7 +101,7 @@ export default function TemplatesShowcase() {
             <ArrowRight className="w-4 h-4" />
           </Link>
           <p className="text-xs mt-3" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            Classic is free. Pro unlocks the other 11 plus custom theming.
+            Pro unlocks all 12 templates plus custom theming.
           </p>
         </div>
       </div>

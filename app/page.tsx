@@ -127,7 +127,7 @@ export default function HomePage() {
               { n: '10,000+',  label: 'Cards created' },
               { n: '500K+',    label: 'Views served' },
               { n: '12',       label: 'Designed templates' },
-              { n: 'Free',     label: 'To get started' },
+              { n: '60 days',  label: 'Free to try' },
             ].map(({ n, label }, i) => (
               <Reveal key={label} delay={i * 90}>
                 <div className="text-center">
@@ -566,13 +566,13 @@ export default function HomePage() {
                 Turn every handshake<br /><span style={gradText}>into a sale.</span>
               </h2>
               <p className="text-lg mb-8" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                Arm your whole team, or start free on your own. Takes 2 minutes.
+                Arm your whole team, or start on your own. Takes 2 minutes.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link href="/signup"
                   className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:scale-[1.03]"
                   style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.5)' }}>
-                  Create your free card
+                  Start your 60-day trial
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </Link>
                 <Link href={PROMOS_ENABLED ? '/promotions' : '/pricing'}
@@ -581,7 +581,7 @@ export default function HomePage() {
                   {PROMOS_ENABLED ? 'See the prize ladder' : 'See pricing'}
                 </Link>
               </div>
-              <p className="text-xs mt-6" style={{ color: 'rgba(255,255,255,0.35)' }}>No credit card · No catch · Free forever tier</p>
+              <p className="text-xs mt-6" style={{ color: 'rgba(255,255,255,0.35)' }}>No credit card to start · Cancel anytime · R97 a month after 60 days</p>
             </div>
           </div>
         </Reveal>

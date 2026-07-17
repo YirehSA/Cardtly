@@ -35,7 +35,7 @@ export default function Footer() {
                 { href: '/#teams',        label: 'Cardtly for Teams' },
                 ...(PROMOS_ENABLED ? [{ href: '/promotions', label: 'Win prizes 🏆' }] : []),
                 { href: '/nfc',           label: 'NFC business cards 🇿🇦' },
-                { href: '/signup',        label: 'Create your free card' },
+                { href: '/signup',        label: 'Start your free trial' },
                 { href: '/login',         label: 'Sign in' },
               ].map(({ href, label }) => (
                 <Link key={href} href={href}

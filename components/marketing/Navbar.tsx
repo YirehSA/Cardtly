@@ -54,7 +54,7 @@ export default function Navbar() {
           <Link href="/signup"
             className="px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
             style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)', boxShadow: '0 4px 20px rgba(124,58,237,0.4)' }}>
-            Get started free
+            Start free trial
           </Link>
         </div>
 
@@ -81,7 +81,7 @@ export default function Navbar() {
             <Link href="/signup" onClick={() => setOpen(false)}
               className="block text-center py-2.5 rounded-xl text-sm font-bold text-white"
               style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-              Get started free
+              Start free trial
             </Link>
           </div>
         </div>

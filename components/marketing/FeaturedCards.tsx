@@ -96,7 +96,7 @@ export default function FeaturedCards() {
             className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white transition hover:opacity-90 hover:scale-[1.02]"
             style={{ background: grad, boxShadow: '0 8px 28px rgba(124,58,237,0.35)' }}>
             <Sparkles className="w-4 h-4" />
-            Get featured here — sign up free
+            Get featured here, start your trial
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

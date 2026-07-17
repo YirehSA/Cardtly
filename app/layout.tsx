@@ -24,11 +24,11 @@ export const metadata: Metadata = {
     // Lead with the exact target phrase "Digital Business Cards"
     // (plural, position 1 = most weight), then the South Africa geo
     // wedge we can actually win near-term, then the brand.
-    default: 'Digital Business Cards South Africa - Free NFC & QR Cards | Cardtly',
+    default: 'Digital Business Cards South Africa - NFC & QR Cards | Cardtly',
     template: '%s | Cardtly',
   },
   description:
-    'Create your free digital business card in minutes. Share with an NFC tap, QR code, or link. Track views, update anytime, add to Google Wallet. Built for South African professionals and teams - ZAR pricing, local NFC card delivery.',
+    'Create your digital business card in minutes, free for 60 days. Share with an NFC tap, QR code, or link. Track views, update anytime, add to Google Wallet. Built for South African professionals and teams - ZAR pricing, local NFC card delivery.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com'),
   keywords: [
     'digital business card',

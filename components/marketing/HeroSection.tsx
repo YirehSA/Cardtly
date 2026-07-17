@@ -116,7 +116,7 @@ export default function HeroSection() {
           <Link href="/signup"
             className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-medium transition hover:bg-white/10"
             style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)' }}>
-            Create your free card
+            Start your 60-day trial
           </Link>
         </div>
 
@@ -266,7 +266,7 @@ export default function HeroSection() {
               href={`/signup?name=${encodeURIComponent(trimmedName)}`}
               className="group inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold text-white transition-all hover:scale-[1.03]"
               style={{ background: grad, boxShadow: '0 8px 40px rgba(0,212,255,0.4)' }}>
-              Claim cardtly.com/card/{previewSlug} — free
+              Claim cardtly.com/card/{previewSlug}
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Link>
             <p className="mt-3 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
@@ -275,7 +275,7 @@ export default function HeroSection() {
           </div>
         ) : (
           <p className="mt-12 text-xs hidden md:block" style={{ color: 'rgba(255,255,255,0.3)' }}>
-            ✦ Move your mouse over the card — or type your name above
+            ✦ Move your mouse over the card, or type your name above
           </p>
         )}
       </div>
