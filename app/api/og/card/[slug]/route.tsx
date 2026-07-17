@@ -133,6 +133,7 @@ export async function GET(
   // still returns a valid (generic) OG image rather than 500ing,
   // which WhatsApp would cache as "no image" for days.
   let card: { name?: string | null; title?: string | null; company?: string | null; profile_image_url?: string | null; company_logo_url?: string | null; color_theme?: string | null } | null = null
+  let brandCtx: { orgId: string; deptId: string | null } | null = null
 
   try {
     const { data: personalCard } = await supabase
@@ -152,19 +153,12 @@ export async function GET(
       if (teamCard) {
         card = teamCard
         // A team card wearing the team brand takes its colour from the org (or
-        // its department), same cascade the public card page applies, so the
-        // share matches what the company actually chose.
+        // its department). We only note the ids here; the actual brand fetch
+        // runs in parallel with the image fetch below, so it adds no latency.
+        // WhatsApp's scraper times out on a slow image, so cold generation
+        // speed is load-bearing, not a nicety.
         if ((teamCard as any).use_team_brand && (teamCard as any).organization_id) {
-          const { data: org } = await supabase
-            .from('organizations').select('brand').eq('id', (teamCard as any).organization_id).maybeSingle()
-          let deptBrand: Record<string, any> = {}
-          if ((teamCard as any).department_id) {
-            const { data: dept } = await supabase
-              .from('departments').select('brand').eq('id', (teamCard as any).department_id).maybeSingle()
-            deptBrand = (dept as any)?.brand || {}
-          }
-          const resolved = resolveTeamBrand((org as any)?.brand || {}, deptBrand)
-          if (resolved.color_theme) card = { ...card, color_theme: resolved.color_theme }
+          brandCtx = { orgId: (teamCard as any).organization_id, deptId: (teamCard as any).department_id || null }
         }
       }
     }
@@ -172,8 +166,23 @@ export async function GET(
     // fall through and render generic Cardtly OG image
   }
 
-  // Theme the share from the (possibly brand-resolved) design.
-  const theme = buildTheme(card?.color_theme || null)
+  // Resolve the brand colour, but do it CONCURRENTLY with the image fetch (the
+  // dominant cost) so it hides under that time rather than stacking on top.
+  async function resolveColorTheme(): Promise<string | null> {
+    if (!brandCtx) return card?.color_theme ?? null
+    try {
+      const [orgRes, deptRes] = await Promise.all([
+        supabase.from('organizations').select('brand').eq('id', brandCtx.orgId).maybeSingle(),
+        brandCtx.deptId
+          ? supabase.from('departments').select('brand').eq('id', brandCtx.deptId).maybeSingle()
+          : Promise.resolve({ data: null } as any),
+      ])
+      const resolved = resolveTeamBrand((orgRes.data as any)?.brand || {}, (deptRes.data as any)?.brand || {})
+      return resolved.color_theme || card?.color_theme || null
+    } catch {
+      return card?.color_theme ?? null
+    }
+  }
 
   const name    = card?.name    || 'Cardtly'
   const title   = card?.title   || ''
@@ -181,10 +190,14 @@ export async function GET(
 
   // Pre-fetch images in parallel and bake them in as data URLs so
   // Satori doesn't have to fetch them itself (and choke on webp).
-  const [photo, logo] = await Promise.all([
+  const [effectiveColorTheme, photo, logo] = await Promise.all([
+    resolveColorTheme(),
     fetchImageAsDataUrl(card?.profile_image_url || null),
     fetchImageAsDataUrl(card?.company_logo_url || null),
   ])
+
+  // Theme the share from the (possibly brand-resolved) design.
+  const theme = buildTheme(effectiveColorTheme)
 
   return new ImageResponse(
     (
