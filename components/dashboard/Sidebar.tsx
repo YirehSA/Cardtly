@@ -6,6 +6,7 @@ import { useTheme } from './ThemeProvider'
 import {
   CreditCard, BarChart2, Mail, Monitor, Users,
   Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi, Building2, Shield, ScanLine, ClipboardList,
+  Layers,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { hasBiometricEnabled } from '@/lib/biometric'
@@ -30,21 +31,25 @@ const NAV = [
 interface SidebarProps {
   isPro: boolean
   isAdmin?: boolean
+  managesDepartments?: boolean
   userName: string
   userEmail: string
 }
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
-export default function Sidebar({ isPro, isAdmin = false, userName, userEmail }: SidebarProps) {
+export default function Sidebar({ isPro, isAdmin = false, managesDepartments = false, userName, userEmail }: SidebarProps) {
   const pathname = usePathname()
   const { theme, toggle } = useTheme()
   // Lead capture (contact popup + questionnaire) is standard on Pro. The
   // user switches each one on inside; the link is always there so nobody has
   // to know it exists before they can find it.
-  const nav = isPro
-    ? [...NAV, { href: '/dashboard/questionnaire', label: 'Lead capture', icon: ClipboardList, color: '#0ea5e9' }]
-    : NAV
+  const nav = [
+    ...(isPro ? [...NAV, { href: '/dashboard/questionnaire', label: 'Lead capture', icon: ClipboardList, color: '#0ea5e9' }] : NAV),
+    // Only a department manager sees this. Their whole scoped surface lives
+    // behind it.
+    ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'My department', icon: Layers, color: '#a855f7' }] : []),
+  ]
   const router = useRouter()
   const supabase = createClient()
 

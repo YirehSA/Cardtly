@@ -3,7 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
 import { isAdminUser } from '@/lib/admin-check'
-import { resolveAddonTarget } from '@/lib/addon-target'
+import { getManagedDepartments } from '@/lib/department-perms'
 import { ThemeProvider } from '@/components/dashboard/ThemeProvider'
 import Sidebar from '@/components/dashboard/Sidebar'
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
@@ -17,11 +17,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [plan, { data: card }, isAdmin] = await Promise.all([
+  const deptAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  ) as any
+  const [plan, { data: card }, isAdmin, managedDepts] = await Promise.all([
     getUserPlan(user.id),
     supabase.from('cards').select('name, addons').eq('user_id', user.id).maybeSingle(),
     isAdminUser(user.id),
+    getManagedDepartments(deptAdmin, user.id),
   ])
+  // Show the department manager link only to someone who manages one.
+  const managesDepartments = managedDepts.length > 0
 
   const isPro = plan.tier === 'pro' && plan.isActive
   // Lead capture is standard on Pro and switched on by the user, so the nav
@@ -35,6 +42,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <Sidebar
           isPro={isPro}
           isAdmin={isAdmin}
+          managesDepartments={managesDepartments}
           userName={card?.name || ''}
           userEmail={user.email || ''}
         />
