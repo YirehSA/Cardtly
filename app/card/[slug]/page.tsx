@@ -4,7 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import { Metadata } from 'next'
 import PublicCardView from '@/components/card/PublicCardView'
 import CardTracker from '@/components/card/CardTracker'
-import { mergeBrand } from '@/lib/team-brand'
+import { mergeBrand, resolveTeamBrand } from '@/lib/team-brand'
 import { planFromTrial } from '@/lib/plan-server'
 
 interface Props {
@@ -145,6 +145,10 @@ export default async function PublicCardPage({ params }: Props) {
     // own (org wins). Service role: organizations is RLS-protected.
     let orgAddons: Record<string, any> = {}
     let orgBrand: Record<string, any> = {}
+    // A department's brand overrides the org's for the fields it sets, so a
+    // card in Sales can look different from one in Support while both inherit
+    // the company logo. Empty means the card just wears the org brand.
+    let deptBrand: Record<string, any> = {}
     // A suspension shows a notice on every card in the team. It never takes
     // them offline: the card opens, saves and scans exactly as before, it just
     // no longer looks finished, so the person carrying it asks their finance
@@ -163,14 +167,25 @@ export default async function PublicCardPage({ params }: Props) {
       orgAddons = org?.addons || {}
       orgBrand = org?.brand || {}
       if (org?.suspended_at) suspendedMessage = org.suspension_message || ''
+
+      if ((teamCard as any).department_id) {
+        const { data: dept } = await admin
+          .from('departments')
+          .select('brand')
+          .eq('id', (teamCard as any).department_id)
+          .maybeSingle()
+        deptBrand = dept?.brand || {}
+      }
     }
 
     // The team brand is merged over this card ONLY if the admin opted
     // it in (use_team_brand). Cards that keep their own branding (a
     // family member, a contractor with their own company) are left
     // untouched. Personal fields always win for anything not in the
-    // brand.
-    const brandToApply = (teamCard as any).use_team_brand ? orgBrand : {}
+    // brand. Department brand cascades over the org brand (dept wins).
+    const brandToApply = (teamCard as any).use_team_brand
+      ? resolveTeamBrand(orgBrand, deptBrand)
+      : {}
 
     // Org add-ons fan out to every team card, but the questionnaire is
     // per-card opt-out: strip it on cards the admin switched off so not

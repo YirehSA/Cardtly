@@ -50,3 +50,21 @@ export function mergeBrand<T extends Record<string, any>>(card: T, brand: Record
   }
   return merged as T
 }
+
+// The effective team brand for a card, cascading department over org.
+//
+// A department only sets what it wants to differ from the rest of the company
+// (its colours, its logo), so its brand is merged OVER the org brand: the
+// department wins on the keys it sets, and inherits the org for the rest. A
+// card with no department, or a department with an empty brand, resolves to
+// exactly the org brand as before.
+export function resolveTeamBrand(
+  orgBrand: Record<string, any> | null | undefined,
+  deptBrand: Record<string, any> | null | undefined,
+): Record<string, any> {
+  const org = orgBrand || {}
+  const dept = deptBrand || {}
+  // Shallow merge is correct: both are flat maps of brand fields, and dept
+  // keys should override org keys one for one.
+  return { ...org, ...dept }
+}
