@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle } from 'lucide-react'
+import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle, Flag } from 'lucide-react'
 import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
 import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, orgMonthlyRand, type OrgBillingMode } from '@/lib/org-billing'
 import type { AdminOrgRow, AdminUserRow } from '@/lib/admin-data'
@@ -89,8 +89,9 @@ export default function TeamsTab({ orgs, users, reps, onSave, onAssignRep, onMar
               const busy = loading === `org-${o.adminUserId}`
               const meta = BILLING_MODE_META[o.billingMode]
               return (
-                <div key={o.id} className="rounded-xl border" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
-                  <button onClick={() => openEdit(o)} className="w-full text-left p-3.5 flex items-center gap-3 flex-wrap">
+                <div key={o.id} className="rounded-xl border" style={{ borderColor: o.suspendedAt ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.08)', background: o.suspendedAt ? 'rgba(245,158,11,0.04)' : 'rgba(255,255,255,0.02)' }}>
+                  <div className="flex items-stretch">
+                  <button onClick={() => openEdit(o)} className="flex-1 min-w-0 text-left p-3.5 flex items-center gap-3 flex-wrap">
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                       style={{ background: 'rgba(236,72,153,0.14)', border: '1px solid rgba(236,72,153,0.3)' }}>
                       <Building2 className="w-4 h-4" style={{ color: '#f472b6' }} />
@@ -139,8 +140,36 @@ export default function TeamsTab({ orgs, users, reps, onSave, onAssignRep, onMar
                     </div>
                   </button>
 
-                  {(o.trialDaysLeft !== null || o.needsCollecting) && (
+                  {/* On the row, not hidden inside the expand panel. Burying
+                      this was the reason it looked like it did not exist. */}
+                  <button
+                    onClick={() => {
+                      if (o.suspendedAt) {
+                        onSuspend(o.id, false, null)
+                        return
+                      }
+                      if (!confirm(`Flag ${o.name}?\n\nAll ${o.cardsCreated} of their cards show a notice asking them to contact their administrator. The cards KEEP WORKING: they open, save and scan as normal.\n\nLift it the moment payment lands.`)) return
+                      onSuspend(o.id, true, null)
+                    }}
+                    disabled={loading === `susp-${o.id}`}
+                    title={o.suspendedAt ? 'Flagged. Click to lift.' : 'Flag this team until they pay. Their cards keep working, with a notice.'}
+                    className="px-3.5 flex items-center justify-center transition hover:bg-white/5 disabled:opacity-40 border-l"
+                    style={{ borderColor: 'rgba(255,255,255,0.06)', color: o.suspendedAt ? '#f59e0b' : 'rgba(255,255,255,0.25)' }}>
+                    {loading === `susp-${o.id}`
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <Flag className="w-4 h-4" fill={o.suspendedAt ? '#f59e0b' : 'none'} />}
+                  </button>
+                  </div>
+
+                  {(o.trialDaysLeft !== null || o.needsCollecting || o.suspendedAt) && (
                     <div className="px-3.5 pb-3 -mt-1 flex flex-wrap gap-2">
+                      {o.suspendedAt && (
+                        <span className="text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1.5"
+                          style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)', color: '#f59e0b' }}>
+                          <Flag className="w-3 h-3" fill="#f59e0b" />
+                          Flagged {fmtDate(o.suspendedAt)}. All {o.cardsCreated} cards show a notice and still work. Click the flag to lift.
+                        </span>
+                      )}
                       {o.trialDaysLeft !== null && (
                         <span className="text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1.5"
                           style={o.trialDaysLeft <= 0
