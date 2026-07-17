@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { renderTrialEmail, type TrialEmailKind } from '@/lib/trial-email-templates'
 import { denyIfNotCron } from '@/lib/cron-auth'
+import { sendOpsDigest } from '@/lib/ops-digest'
 import { FROM_EMAIL } from '@/lib/email'
 
 // Trial reminder emails. Triggered daily by Vercel Cron (see vercel.json).
@@ -154,5 +155,11 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, delivered, failed: failed.length, considered: queue.length })
+  // Ride-along: teams whose trial lapsed, and debit orders nobody has
+  // collected. Nothing enforces either, so without this they are only visible
+  // to someone who happens to open the admin. Runs last and never affects the
+  // reminders above; a failure here is reported, not thrown.
+  const ops = await sendOpsDigest(admin, resendKey)
+
+  return NextResponse.json({ ok: true, delivered, failed: failed.length, considered: queue.length, ops })
 }

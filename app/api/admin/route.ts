@@ -182,6 +182,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, trial_ends_at: next })
   }
 
+  // Record that a debit-order team was actually collected from.
+  //
+  // Nothing collects automatically, so without this a team can go months
+  // unbilled and nothing would notice.
+  if (action === 'mark_collected') {
+    const { org_id } = body
+    if (!org_id) return NextResponse.json({ error: 'org_id required' }, { status: 400 })
+    const today = new Date().toISOString().slice(0, 10)
+    const { error } = await admin.from('organizations').update({ last_collected_on: today }).eq('id', org_id)
+    if (error) {
+      console.error('mark_collected failed:', error)
+      return NextResponse.json({ error: `Could not record that: ${error.message}` }, { status: 500 })
+    }
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email,
+      action: 'mark_collected', detail: { org_id, on: today },
+    })
+    return NextResponse.json({ success: true, last_collected_on: today })
+  }
+
   // Create or update a sales rep.
   if (action === 'upsert_rep') {
     const { rep_id, name, email, phone, target_cards, commission_rand, active, started_on, notes } = body
@@ -261,7 +281,7 @@ export async function POST(request: Request) {
   // it is set explicitly here rather than defaulted to 'monthly' and forgotten
   // (which is how Cardtly's own 50-seat org came to report R4,850/month).
   if (action === 'create_org') {
-    const { user_id, org_name, seat_count, billing_period, billing_notes } = body
+    const { user_id, org_name, seat_count, billing_period, billing_notes, trial_ends_at } = body
 
     // Seats drive what the team can actually do (team/route.ts blocks
     // adding cards past max_seats), so refuse junk rather than writing
@@ -284,6 +304,10 @@ export async function POST(request: Request) {
     // Paystack self-serve tops out at 20 seats. Above that it is not billed
     // through Paystack at all, so calling it 'monthly' would claim we are
     // collecting money that nothing collects.
+    // A trial with no end date is not a trial, it is a comp nobody wrote down.
+    if (billing === 'trial' && !trial_ends_at) {
+      return NextResponse.json({ error: 'A team trial needs an end date, otherwise it is just a comp' }, { status: 400 })
+    }
     if (seats > MAX_SELF_SERVE_SEATS && (billing === 'monthly' || billing === 'yearly')) {
       return NextResponse.json({
         error: `${seats} seats is above the ${MAX_SELF_SERVE_SEATS}-seat Paystack limit. Set billing to Debit order (Enterprise) or Comped.`,
@@ -303,6 +327,7 @@ export async function POST(request: Request) {
         max_seats: seats,
         billing_period: billing,
         billing_notes: billing_notes ?? null,
+        trial_ends_at: billing === 'trial' ? trial_ends_at : null,
         business_plan_active: true,
         updated_at: new Date().toISOString(),
       }).eq('id', existing.id)
@@ -319,6 +344,7 @@ export async function POST(request: Request) {
         business_plan_active: true,
         billing_period: billing,
         billing_notes: billing_notes ?? null,
+        trial_ends_at: billing === 'trial' ? trial_ends_at : null,
       })
       if (error) {
         console.error('admin create_org insert failed:', error)

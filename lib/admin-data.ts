@@ -1,6 +1,6 @@
 import { FOUNDER_ADMIN_USER_ID } from '@/lib/admin-check'
 import { isBillablePaystackSub, listActivePaystackSubs } from '@/lib/paystack'
-import { orgMonthlyRand, BILLING_MODE_META, isOrgBillingMode, type OrgBillingMode } from '@/lib/org-billing'
+import { orgMonthlyRand, BILLING_MODE_META, isOrgBillingMode, orgTrialDaysLeft, orgNeedsCollecting, type OrgBillingMode } from '@/lib/org-billing'
 import { computeRep, type RepRow, type RepStats } from '@/lib/reps'
 
 // Everything the admin page needs, assembled in one place so the page stays a
@@ -60,6 +60,10 @@ export interface AdminOrgRow {
   billingNotes: string | null
   isRevenue: boolean
   repId: string | null
+  trialEndsAt: string | null
+  trialDaysLeft: number | null
+  lastCollectedOn: string | null
+  needsCollecting: boolean
   createdAt: string
 }
 
@@ -239,6 +243,10 @@ export async function loadAdminData(admin: any) {
       billingNotes: o.billing_notes || null,
       isRevenue: BILLING_MODE_META[mode].isRevenue,
       repId: o.rep_id || null,
+      trialEndsAt: o.trial_ends_at || null,
+      trialDaysLeft: orgTrialDaysLeft(mode, o.trial_ends_at || null),
+      lastCollectedOn: o.last_collected_on || null,
+      needsCollecting: orgNeedsCollecting(mode, o.last_collected_on || null),
       createdAt: o.created_at,
     }
   }).sort((a: AdminOrgRow, b: AdminOrgRow) => b.maxSeats - a.maxSeats)
@@ -289,6 +297,12 @@ export async function loadAdminData(admin: any) {
     totalTeamCards: (teamCards || []).length,
     totalOrgs: (orgs || []).length,
     openNfcOrders: (nfcOrders || []).filter((o: any) => !['delivered', 'cancelled'].includes(o.status)).length,
+    // Team trials that lapsed or are about to, and debit orders nobody has
+    // collected. Nothing enforces either, so this is what does the noticing.
+    teamTrialsLapsed: orgRows.filter((o: AdminOrgRow) => o.trialDaysLeft !== null && o.trialDaysLeft <= 0).length,
+    teamTrialsEnding: orgRows.filter((o: AdminOrgRow) => o.trialDaysLeft !== null && o.trialDaysLeft > 0 && o.trialDaysLeft <= 7).length,
+    debitOrdersToCollect: orgRows.filter((o: AdminOrgRow) => o.needsCollecting).length,
+    debitOrderRandDue: orgRows.filter((o: AdminOrgRow) => o.needsCollecting).reduce((n: number, o: AdminOrgRow) => n + o.monthlyRand, 0),
     totalContacts: contactsCount ?? 0,
     views30d: cardViews.rows.length,
     views30dTruncated: cardViews.truncated,

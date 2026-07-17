@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import {
   Users as UsersIcon, Building2, Search, Loader2, Trash2, Mail, MailCheck,
   KeyRound, Lock, Shield, Sparkles, ChevronDown, ChevronUp, ExternalLink, Megaphone,
-  ScrollText, Wifi, AlertTriangle, CalendarClock, X, LayoutGrid, UserCog,
+  ScrollText, Wifi, AlertTriangle, CalendarClock, X, LayoutGrid, UserCog, Banknote,
 } from 'lucide-react'
 import TeamsTab from './TeamsTab'
 import RepsTab from './RepsTab'
@@ -22,6 +22,8 @@ interface Stats {
   totalCards: number; totalTeamCards: number; totalOrgs: number
   openNfcOrders: number; totalContacts: number
   views30d: number; views30dTruncated: boolean
+  teamTrialsLapsed: number; teamTrialsEnding: number
+  debitOrdersToCollect: number; debitOrderRandDue: number
   mrrRand: number | null
   mrrError: string | null
   paystackSubs: { subscription_code: string; amount: number; email: string; next_payment_date: string | null }[]
@@ -133,6 +135,28 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
               </p>
               <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
                 Their trial ended, so their public link 404s for anyone they hand it to. Click to see them.
+              </p>
+            </div>
+          </button>
+        )}
+
+        {/* Teams needing a human. Nothing enforces either of these, so if
+            this is not said here it is not said anywhere. */}
+        {(stats.teamTrialsLapsed > 0 || stats.teamTrialsEnding > 0 || stats.debitOrdersToCollect > 0) && (
+          <button onClick={() => setTab('teams')}
+            className="w-full text-left rounded-2xl p-4 flex items-center gap-3 transition hover:opacity-90"
+            style={{ background: 'rgba(245,158,11,0.09)', border: '1px solid rgba(245,158,11,0.4)' }}>
+            <Banknote className="w-5 h-5 flex-shrink-0" style={{ color: '#f59e0b' }} />
+            <div>
+              <p className="font-bold text-sm" style={{ color: '#f59e0b' }}>
+                {[
+                  stats.teamTrialsLapsed > 0 ? `${stats.teamTrialsLapsed} team trial${stats.teamTrialsLapsed === 1 ? '' : 's'} lapsed` : null,
+                  stats.teamTrialsEnding > 0 ? `${stats.teamTrialsEnding} ending this week` : null,
+                  stats.debitOrdersToCollect > 0 ? `${stats.debitOrdersToCollect} debit order${stats.debitOrdersToCollect === 1 ? '' : 's'} to load (${randFmt(stats.debitOrderRandDue)})` : null,
+                ].filter(Boolean).join(' · ')}
+              </p>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                Their cards are still live and still free. Nothing collects a debit order automatically. Click to sort it.
               </p>
             </div>
           </button>
@@ -270,6 +294,7 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
         {tab === 'teams' && (
           <TeamsTab orgs={orgs} users={users} reps={reps} loading={loading}
             onAssignRep={(orgId, repId) => run(`reporg-${orgId}`, { action: 'assign_rep', org_id: orgId, rep_id: repId }, repId ? 'Team linked to rep' : 'Rep unlinked')}
+            onMarkCollected={(orgId) => run(`collect-${orgId}`, { action: 'mark_collected', org_id: orgId }, 'Recorded as collected today')}
             onSave={(f) => run(`org-${f.userId}`, {
               action: 'create_org',
               user_id: f.userId,
@@ -277,6 +302,7 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
               seat_count: Number(f.seats),
               billing_period: f.mode,
               billing_notes: f.notes || null,
+              trial_ends_at: f.trialEndsAt || null,
             }, `${f.name}: ${f.seats} seats, ${f.mode === 'comp' ? 'free' : f.mode.replace('_', ' ')}`)} />
         )}
 

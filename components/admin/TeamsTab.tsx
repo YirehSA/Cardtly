@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Building2, Loader2, AlertTriangle, Check, Plus, X } from 'lucide-react'
+import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote } from 'lucide-react'
 import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
 import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, orgMonthlyRand, type OrgBillingMode } from '@/lib/org-billing'
 import type { AdminOrgRow, AdminUserRow } from '@/lib/admin-data'
@@ -13,6 +13,7 @@ interface Form {
   seats: string
   mode: OrgBillingMode
   notes: string
+  trialEndsAt: string
 }
 
 interface Props {
@@ -21,6 +22,7 @@ interface Props {
   reps: RepStats[]
   onSave: (form: Form) => Promise<boolean>
   onAssignRep: (orgId: string, repId: string | null) => Promise<boolean>
+  onMarkCollected: (orgId: string) => Promise<boolean>
   loading: string | null
 }
 
@@ -28,10 +30,10 @@ interface Props {
 // row and as a count tile, seat utilisation was invisible, and there was
 // nowhere to say how a team is billed, so every one of them defaulted to
 // "monthly" and reported revenue nobody collects.
-export default function TeamsTab({ orgs, users, reps, onSave, onAssignRep, loading }: Props) {
+export default function TeamsTab({ orgs, users, reps, onSave, onAssignRep, onMarkCollected, loading }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
-  const [form, setForm] = useState<Form>({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '' })
+  const [form, setForm] = useState<Form>({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '' })
 
   function openEdit(o: AdminOrgRow) {
     setCreating(false)
@@ -40,13 +42,13 @@ export default function TeamsTab({ orgs, users, reps, onSave, onAssignRep, loadi
     // Seed from the org being edited. The old stepper was one shared
     // useState(5) that never read the org, so opening a 50-seat team showed
     // "5" next to a label saying "currently 50 seats", and saving wiped 45.
-    setForm({ userId: o.adminUserId, name: o.name, seats: String(o.maxSeats), mode: o.billingMode, notes: o.billingNotes || '' })
+    setForm({ userId: o.adminUserId, name: o.name, seats: String(o.maxSeats), mode: o.billingMode, notes: o.billingNotes || '', trialEndsAt: o.trialEndsAt ? o.trialEndsAt.slice(0, 10) : '' })
   }
 
   function openCreate() {
     setEditing(null)
     setCreating(c => !c)
-    setForm({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '' })
+    setForm({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '' })
   }
 
   const revenue = orgs.filter(o => o.isRevenue).reduce((n, o) => n + o.monthlyRand, 0)
@@ -128,6 +130,32 @@ export default function TeamsTab({ orgs, users, reps, onSave, onAssignRep, loadi
                       </div>
                     </div>
                   </button>
+
+                  {(o.trialDaysLeft !== null || o.needsCollecting) && (
+                    <div className="px-3.5 pb-3 -mt-1 flex flex-wrap gap-2">
+                      {o.trialDaysLeft !== null && (
+                        <span className="text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1.5"
+                          style={o.trialDaysLeft <= 0
+                            ? { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.35)', color: '#ef4444' }
+                            : { background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)', color: '#a855f7' }}>
+                          <CalendarClock className="w-3 h-3" />
+                          {o.trialDaysLeft <= 0
+                            ? `Trial ended ${fmtDate(o.trialEndsAt)}. Still live, still free. Convert them.`
+                            : `Trial ends ${fmtDate(o.trialEndsAt)} (${o.trialDaysLeft} days)`}
+                        </span>
+                      )}
+                      {o.needsCollecting && (
+                        <button onClick={() => onMarkCollected(o.id)} disabled={loading === `collect-${o.id}`}
+                          className="text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition hover:opacity-80 disabled:opacity-40"
+                          style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.35)', color: '#f59e0b' }}>
+                          {loading === `collect-${o.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Banknote className="w-3 h-3" />}
+                          {o.lastCollectedOn
+                            ? `Last collected ${fmtDate(o.lastCollectedOn)}. Load ${randFmt(o.monthlyRand)} and mark collected`
+                            : `Never collected. Load ${randFmt(o.monthlyRand)} and mark collected`}
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   {editing === o.id && (
                     <div className="px-3.5 pb-3.5 pt-1 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
@@ -274,6 +302,19 @@ function TeamForm({ form, setForm, users, onSave, busy, showUserPicker }: {
 
       <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{meta.desc}</p>
 
+      {form.mode === 'trial' && (
+        <div>
+          <label className="text-[11px] font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            Trial ends
+          </label>
+          <input type="date" value={form.trialEndsAt} onChange={e => setForm(f => ({ ...f, trialEndsAt: e.target.value }))}
+            className={inputClass} style={inputStyle} />
+          <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            Their cards stay live after this date. Nothing is cut off: it flags here and you convert them.
+          </p>
+        </div>
+      )}
+
       {(form.mode === 'debit_order' || form.mode === 'comp') && (
         <div>
           <label className="text-[11px] font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
@@ -294,7 +335,7 @@ function TeamForm({ form, setForm, users, onSave, busy, showUserPicker }: {
           )}
         </div>
         <button
-          disabled={busy || !form.name.trim() || !(seats >= 1) || !form.userId || overCap}
+          disabled={busy || !form.name.trim() || !(seats >= 1) || !form.userId || overCap || (form.mode === 'trial' && !form.trialEndsAt)}
           onClick={onSave}
           className="ml-auto flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-40"
           style={{ background: grad }}>

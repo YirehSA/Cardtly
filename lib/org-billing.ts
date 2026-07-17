@@ -6,7 +6,7 @@
 // deliberately free, and defaulting everything to 'monthly' is what made the
 // dashboard report R6,499 of revenue that will never be collected.
 
-export const ORG_BILLING_MODES = ['monthly', 'yearly', 'debit_order', 'comp'] as const
+export const ORG_BILLING_MODES = ['monthly', 'yearly', 'debit_order', 'comp', 'trial'] as const
 export type OrgBillingMode = (typeof ORG_BILLING_MODES)[number]
 
 export const MAX_SELF_SERVE_SEATS = 20
@@ -47,6 +47,31 @@ export const BILLING_MODE_META: Record<OrgBillingMode, {
     desc: 'Never billed, never counted as revenue. For our own teams and partners.',
     isRevenue: false,
   },
+  trial: {
+    label: 'Trial (free until a date)',
+    short: 'Trial',
+    colour: '#a855f7',
+    desc: 'Free until the end date, then you convert them. Nothing is billed and nothing goes offline when it lapses: it flags in admin and you decide.',
+    isRevenue: false,
+  },
+}
+
+// Days until a team trial ends. Negative means it already lapsed. Null when
+// the team is not on a trial, or has no date.
+export function orgTrialDaysLeft(mode: string | null, trialEndsAt: string | null): number | null {
+  if (mode !== 'trial' || !trialEndsAt) return null
+  const ms = new Date(trialEndsAt).getTime() - Date.now()
+  if (!Number.isFinite(ms)) return null
+  return Math.ceil(ms / (24 * 60 * 60 * 1000))
+}
+
+// A debit_order team nobody has collected from for over a month, or ever.
+// Nothing collects automatically, so this is the only thing that will notice.
+export function orgNeedsCollecting(mode: string | null, lastCollectedOn: string | null): boolean {
+  if (mode !== 'debit_order') return false
+  if (!lastCollectedOn) return true
+  const days = (Date.now() - new Date(lastCollectedOn).getTime()) / (24 * 60 * 60 * 1000)
+  return !Number.isFinite(days) || days >= 30
 }
 
 export function isOrgBillingMode(s: unknown): s is OrgBillingMode {
