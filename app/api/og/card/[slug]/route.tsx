@@ -2,7 +2,13 @@ import { ImageResponse } from 'next/og'
 import { createClient } from '@supabase/supabase-js'
 import { parseDesign, getAccentHex } from '@/types/design'
 import { resolveTeamBrand } from '@/lib/team-brand'
+import { CARDTLY_MARK } from '@/lib/og-cardtly-mark'
 
+// Edge runtime: next/og renders reliably here. Satori (inside it) only handles
+// PNG/JPEG, and our uploads are now WebP with some older logos as GIF - both of
+// which it drops silently. So we route every source image through /api/og/img,
+// a small node endpoint that transcodes to PNG with sharp, and bake the result
+// in as a data URL.
 export const runtime = 'edge'
 
 // ── Share-image theme ───────────────────────────────────────────────────────
@@ -64,53 +70,27 @@ function buildTheme(colorTheme: string | null): ShareTheme {
   }
 }
 
-// Satori (the engine inside ImageResponse) has unreliable WebP support
-// in the edge runtime - it crashes silently and returns 0 bytes when
-// given a .webp source. We fetch images ourselves and bake them in as
-// base64 data URLs. For Supabase-hosted webp/avif we try the storage
-// render endpoint first, which can transcode to jpeg via the Accept
-// header; if that fails or the transforms feature isn't enabled, we
-// fall back to the raw URL and finally to skipping the image so the
-// route still returns a valid response with the initials avatar.
-function supabaseTransformCandidate(url: string): string | null {
-  if (!url.includes('/storage/v1/object/public/')) return null
-  const u = new URL(url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/'))
-  if (!u.searchParams.has('width')) u.searchParams.set('width', '440')
-  if (!u.searchParams.has('height')) u.searchParams.set('height', '440')
-  if (!u.searchParams.has('quality')) u.searchParams.set('quality', '85')
-  return u.toString()
-}
-
-async function tryFetchAsDataUrl(url: string): Promise<string | null> {
+// Fetch an image as a PNG data URL Satori can always render. We hand the source
+// URL to /api/og/img, which transcodes any format (WebP, GIF, AVIF, PNG, JPEG)
+// to PNG with sharp, then bake the bytes in as base64. On any failure we return
+// null and the layout falls back to the initials avatar / no-logo, so the route
+// still returns a valid image.
+async function fetchImageAsDataUrl(url: string | null, origin: string): Promise<string | null> {
+  if (!url) return null
   try {
-    const res = await fetch(url, {
-      headers: { Accept: 'image/jpeg,image/png,image/gif' },
-      signal: AbortSignal.timeout(3000),
-    })
+    const proxied = new URL('/api/og/img', origin)
+    proxied.searchParams.set('src', url)
+    const res = await fetch(proxied.toString(), { signal: AbortSignal.timeout(6000) })
     if (!res.ok) return null
-    const contentType = (res.headers.get('content-type') || '').toLowerCase()
-    if (!contentType.startsWith('image/')) return null
-    if (contentType.includes('webp') || contentType.includes('avif') || contentType.includes('heic')) return null
     const buf = await res.arrayBuffer()
     if (buf.byteLength > 2_500_000) return null
     const bytes = new Uint8Array(buf)
     let binary = ''
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
-    const b64 = btoa(binary)
-    return `data:${contentType.split(';')[0]};base64,${b64}`
+    return `data:image/png;base64,${btoa(binary)}`
   } catch {
     return null
   }
-}
-
-async function fetchImageAsDataUrl(url: string | null): Promise<string | null> {
-  if (!url) return null
-  const transform = supabaseTransformCandidate(url)
-  if (transform) {
-    const viaTransform = await tryFetchAsDataUrl(transform)
-    if (viaTransform) return viaTransform
-  }
-  return await tryFetchAsDataUrl(url)
 }
 
 export async function GET(
@@ -118,6 +98,7 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params
+  const origin = new URL(request.url).origin
 
   // Use the service-role client so the OG image route can see team
   // cards regardless of RLS policy. The image we render is intended
@@ -166,10 +147,17 @@ export async function GET(
     // fall through and render generic Cardtly OG image
   }
 
-  // Resolve the brand colour, but do it CONCURRENTLY with the image fetch (the
-  // dominant cost) so it hides under that time rather than stacking on top.
-  async function resolveColorTheme(): Promise<string | null> {
-    if (!brandCtx) return card?.color_theme ?? null
+  // Resolve the brand a team card wears (org, then department overriding it).
+  // We take the colour, the company logo, and the company name from the brand,
+  // because a team card's own copies of those can be stale - the brand is the
+  // single source of truth for how the company currently looks.
+  async function resolveBrand(): Promise<{ colorTheme: string | null; logoUrl: string | null; company: string }> {
+    const own = {
+      colorTheme: card?.color_theme ?? null,
+      logoUrl: card?.company_logo_url ?? null,
+      company: card?.company || '',
+    }
+    if (!brandCtx) return own
     try {
       const [orgRes, deptRes] = await Promise.all([
         supabase.from('organizations').select('brand').eq('id', brandCtx.orgId).maybeSingle(),
@@ -178,26 +166,32 @@ export async function GET(
           : Promise.resolve({ data: null } as any),
       ])
       const resolved = resolveTeamBrand((orgRes.data as any)?.brand || {}, (deptRes.data as any)?.brand || {})
-      return resolved.color_theme || card?.color_theme || null
+      return {
+        colorTheme: resolved.color_theme || own.colorTheme,
+        logoUrl: resolved.company_logo_url || own.logoUrl,
+        company: resolved.company || own.company,
+      }
     } catch {
-      return card?.color_theme ?? null
+      return own
     }
   }
 
-  const name    = card?.name    || 'Cardtly'
-  const title   = card?.title   || ''
-  const company = card?.company || ''
+  const name  = card?.name  || 'Cardtly'
+  const title = card?.title || ''
 
-  // Pre-fetch images in parallel and bake them in as data URLs so
-  // Satori doesn't have to fetch them itself (and choke on webp).
-  const [effectiveColorTheme, photo, logo] = await Promise.all([
-    resolveColorTheme(),
-    fetchImageAsDataUrl(card?.profile_image_url || null),
-    fetchImageAsDataUrl(card?.company_logo_url || null),
+  // The person's photo never comes from the brand, so fetch it concurrently
+  // with the brand lookup. The logo URL depends on the resolved brand, so its
+  // fetch waits for the brand - it still overlaps the (usually larger) photo.
+  const photoPromise = fetchImageAsDataUrl(card?.profile_image_url || null, origin)
+  const brand = await resolveBrand()
+  const [photo, logo] = await Promise.all([
+    photoPromise,
+    fetchImageAsDataUrl(brand.logoUrl, origin),
   ])
+  const company = brand.company
 
   // Theme the share from the (possibly brand-resolved) design.
-  const theme = buildTheme(effectiveColorTheme)
+  const theme = buildTheme(brand.colorTheme)
 
   return new ImageResponse(
     (
@@ -310,7 +304,7 @@ export async function GET(
 
         {/* Bottom bar — compact for square */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', borderTop: '1px solid rgba(255,255,255,0.06)', gap: 8 }}>
-          <div style={{ display: 'flex', width: 24, height: 24, borderRadius: 7, background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 'bold', color: 'white' }}>C</div>
+          <img src={CARDTLY_MARK} width={26} height={26} style={{ objectFit: 'contain' }} />
           <div style={{ display: 'flex', fontSize: 16, fontWeight: 'bold', color: 'rgba(255,255,255,0.4)' }}>cardtly.com/card/{slug}</div>
         </div>
       </div>
