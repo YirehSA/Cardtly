@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     const live = (existing || []).find((s: any) => isBillablePaystackSub(s))
     if (live && !force) {
       return NextResponse.json({
-        error: 'This user has a live Paystack subscription that is still billing them. Cancel it with "Remove Pro" first, or re-send with force to comp them anyway.',
+        error: 'Paystack is still billing this user. Comping them now would give them free Pro while the charge keeps going out. Use "Cancel subscription" first, or confirm to comp them anyway and cancel it separately.',
         needsForce: true,
       }, { status: 409 })
     }

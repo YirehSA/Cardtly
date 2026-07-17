@@ -70,6 +70,14 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
     const data = await res.json().catch(() => ({}))
     setLoading(null)
     if (!res.ok || data?.error) {
+      // One refusal is recoverable: comping someone Paystack still bills.
+      // Offer the override right here. The route can say "confirm to do it
+      // anyway" precisely because there is a way to confirm; an error that
+      // names an escape hatch the UI does not provide is just a dead end.
+      // force:true means the retry cannot 409 again, so this recurses once.
+      if (data?.needsForce && confirm(`${data.error}\n\nComp them anyway?`)) {
+        return run(key, { ...body, force: true }, okMsg)
+      }
       toast.error(data?.error || 'That did not work', { duration: 9000 })
       return false
     }
