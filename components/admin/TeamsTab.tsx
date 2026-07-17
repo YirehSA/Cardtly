@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle, Flag } from 'lucide-react'
+import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle, Flag, ExternalLink, MailQuestion, UserCheck } from 'lucide-react'
 import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
 import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, orgMonthlyRand, type OrgBillingMode } from '@/lib/org-billing'
 import type { AdminOrgRow, AdminUserRow } from '@/lib/admin-data'
@@ -19,6 +19,7 @@ interface Form {
 interface Props {
   orgs: AdminOrgRow[]
   users: AdminUserRow[]
+  teamCards: any[]
   reps: RepStats[]
   onSave: (form: Form) => Promise<boolean>
   onAssignRep: (orgId: string, repId: string | null) => Promise<boolean>
@@ -31,7 +32,7 @@ interface Props {
 // row and as a count tile, seat utilisation was invisible, and there was
 // nowhere to say how a team is billed, so every one of them defaulted to
 // "monthly" and reported revenue nobody collects.
-export default function TeamsTab({ orgs, users, reps, onSave, onAssignRep, onMarkCollected, onSuspend, loading }: Props) {
+export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssignRep, onMarkCollected, onSuspend, loading }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState<Form>({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '' })
@@ -209,6 +210,15 @@ export default function TeamsTab({ orgs, users, reps, onSave, onAssignRep, onMar
                           Nothing collects this automatically. You invoice and collect {randFmt(o.monthlyRand)} yourself.
                         </p>
                       )}
+                      {/* Who is actually in this team.
+                          The rebuild dropped the old Team Cards table, and an
+                          UNCLAIMED card has no user account at all, so it can
+                          never appear under Users. That left 5 of 16 team
+                          cards with nowhere to be seen. This is their home:
+                          the question is always "who is in this team", not
+                          "which users exist". */}
+                      <TeamMembers cards={teamCards.filter((c: any) => c.organization_id === o.id)} />
+
                       <SuspendControl org={o} onSuspend={onSuspend} busy={loading === `susp-${o.id}`} />
 
                       {reps.length > 0 && (
@@ -463,6 +473,59 @@ function SuspendControl({ org, onSuspend, busy }: {
           style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)' }}>
           Cancel
         </button>
+      </div>
+    </div>
+  )
+}
+
+// The cards in a team, claimed or not.
+//
+// An unclaimed card is a real card with a real URL that a real person can
+// open: it just has nobody signed in behind it yet. That distinction is the
+// whole point of showing this, because "invited but never claimed" is the
+// state you actually want to chase.
+function TeamMembers({ cards }: { cards: any[] }) {
+  if (!cards.length) {
+    return (
+      <p className="text-xs mb-3 rounded-lg px-3 py-2"
+        style={{ background: 'rgba(255,255,255,0.02)', color: 'rgba(255,255,255,0.4)' }}>
+        No cards created for this team yet.
+      </p>
+    )
+  }
+
+  const claimed = cards.filter(c => c.user_id).length
+  return (
+    <div className="mb-3">
+      <p className="text-[11px] font-semibold mb-1.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
+        Cards in this team &middot; {claimed} of {cards.length} claimed
+        {claimed < cards.length && (
+          <span style={{ color: '#f59e0b' }}> &middot; {cards.length - claimed} never signed in</span>
+        )}
+      </p>
+      <div className="space-y-1">
+        {cards.map(c => (
+          <div key={c.id} className="flex items-center gap-2.5 text-xs rounded-lg px-2.5 py-1.5"
+            style={{ background: 'rgba(255,255,255,0.02)' }}>
+            {c.user_id
+              ? <UserCheck className="w-3 h-3 flex-shrink-0" style={{ color: '#22c55e' }} />
+              : <MailQuestion className="w-3 h-3 flex-shrink-0" style={{ color: '#f59e0b' }} />}
+            <span className="text-white truncate max-w-[160px]">{c.name || 'Unnamed'}</span>
+            <span className="truncate max-w-[170px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              {c.user_id ? 'claimed' : `invited ${c.email || '(no email)'}`}
+            </span>
+            {c.slug && (
+              <a href={`/card/${c.slug}`} target="_blank" rel="noreferrer"
+                className="ml-auto flex items-center gap-1 transition hover:text-white"
+                style={{ color: 'rgba(255,255,255,0.4)' }}>
+                /{c.slug} <ExternalLink className="w-3 h-3" />
+              </a>
+            )}
+            <span className="tabular-nums w-14 text-right" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              {c.view_count || 0} views
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   )

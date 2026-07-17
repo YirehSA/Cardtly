@@ -107,6 +107,17 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
     })
   }, [users, q, filter])
 
+  // Team cards matching the search. Kept separate from `filtered` on purpose:
+  // these are NOT users and must not be rendered as if they were.
+  const matchingTeamCards = useMemo(() => {
+    const needle = q.trim().toLowerCase()
+    if (!needle) return []
+    return teamCards.filter((c: any) =>
+      [c.name, c.slug, c.email, c.company, c.org_name].filter(Boolean)
+        .some((v: any) => String(v).toLowerCase().includes(needle))
+    )
+  }, [teamCards, q])
+
   return (
     <div className="min-h-screen p-4 sm:p-6" style={{ background: '#0a0a0a' }}>
       <div className="max-w-7xl mx-auto space-y-5">
@@ -279,6 +290,28 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
 
             <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{filtered.length} of {users.length}</p>
 
+            {/* An unclaimed team card has no user account, so it can never
+                appear here no matter what you type. Searching for one and
+                getting nothing looks like a bug rather than a fact, so when
+                the search matches an unclaimed card, say where it lives. */}
+            {q.trim() && matchingTeamCards.length > 0 && (
+              <button onClick={() => setTab('teams')}
+                className="w-full text-left rounded-xl p-3 flex items-start gap-2.5 transition hover:opacity-90"
+                style={{ background: 'rgba(236,72,153,0.08)', border: '1px solid rgba(236,72,153,0.3)' }}>
+                <Building2 className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#f472b6' }} />
+                <div>
+                  <p className="text-xs font-bold" style={{ color: '#f472b6' }}>
+                    {matchingTeamCards.length} team card{matchingTeamCards.length === 1 ? '' : 's'} match, but {matchingTeamCards.length === 1 ? 'it is' : 'they are'} not here
+                  </p>
+                  <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                    {matchingTeamCards.slice(0, 3).map((c: any) => `${c.name}${c.user_id ? '' : ' (never claimed)'}`).join(', ')}
+                    {matchingTeamCards.length > 3 ? ` and ${matchingTeamCards.length - 3} more` : ''}.
+                    {' '}An unclaimed card has no user account yet. Find them under Teams.
+                  </p>
+                </div>
+              </button>
+            )}
+
             <div className="space-y-1.5">
               {filtered.map(u => (
                 <UserRow key={u.id} u={u} expanded={expanded === u.id} reps={reps}
@@ -293,7 +326,7 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
         )}
 
         {tab === 'teams' && (
-          <TeamsTab orgs={orgs} users={users} reps={reps} loading={loading}
+          <TeamsTab orgs={orgs} users={users} teamCards={teamCards} reps={reps} loading={loading}
             onAssignRep={(orgId, repId) => run(`reporg-${orgId}`, { action: 'assign_rep', org_id: orgId, rep_id: repId }, repId ? 'Team linked to rep' : 'Rep unlinked')}
             onMarkCollected={(orgId) => run(`collect-${orgId}`, { action: 'mark_collected', org_id: orgId }, 'Recorded as collected today')}
             onSuspend={(orgId, suspended, message) => run(`susp-${orgId}`, { action: 'set_org_suspended', org_id: orgId, suspended, message }, suspended ? 'Team suspended. Their cards still work, with a notice.' : 'Suspension lifted')}
