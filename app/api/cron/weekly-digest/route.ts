@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { denyIfNotCron } from '@/lib/cron-auth'
 
 // Weekly "your card this week" digest. Triggered by Vercel Cron (see
 // vercel.json). For every card with activity in the last 7 days, emails
@@ -15,14 +16,11 @@ const FROM_EMAIL = 'Cardtly <noreply@cardtly.com>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com'
 
 export async function GET(request: Request) {
-  // Auth: only Vercel Cron (or someone with the secret) may run this.
-  const secret = process.env.CRON_SECRET
-  if (secret) {
-    const auth = request.headers.get('authorization')
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-  }
+  // Auth: only Vercel Cron (or someone with the secret) may run this. Fails
+  // closed, so a missing CRON_SECRET stops the job rather than leaving this
+  // open to anyone who guesses the URL.
+  const denied = denyIfNotCron(request)
+  if (denied) return denied
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY

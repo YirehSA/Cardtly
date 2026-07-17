@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { renderTrialEmail, type TrialEmailKind } from '@/lib/trial-email-templates'
+import { denyIfNotCron } from '@/lib/cron-auth'
 
 // Trial reminder emails. Triggered daily by Vercel Cron (see vercel.json).
 //
@@ -17,7 +18,7 @@ import { renderTrialEmail, type TrialEmailKind } from '@/lib/trial-email-templat
 // (user_id, kind), so a user who sits in the "within 7 days" window for a
 // week still only gets one 7-day email. See migration 026.
 //
-// Secured with CRON_SECRET, which this route requires in production.
+// Secured with CRON_SECRET (see lib/cron-auth), required in production.
 
 export const maxDuration = 60
 
@@ -27,19 +28,8 @@ const DAY_MS = 24 * 60 * 60 * 1000
 type Kind = TrialEmailKind
 
 export async function GET(request: Request) {
-  // Fails closed. The weekly-digest route only checks the token when
-  // CRON_SECRET happens to be set, which means an unset secret silently
-  // leaves a mass-email endpoint open to anyone who guesses the URL. Not
-  // copying that here: no secret in production means no run.
-  const secret = process.env.CRON_SECRET
-  if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
-      return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 503 })
-    }
-    // Local dev with no secret: allowed, so the dry run is testable.
-  } else if (request.headers.get('authorization') !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = denyIfNotCron(request)
+  if (denied) return denied
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
