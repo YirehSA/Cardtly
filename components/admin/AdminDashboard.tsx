@@ -316,15 +316,37 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
     setLoading(null)
   }
 
+  // Expanding a user seeds the org form from that user's actual org.
+  // orgName/orgSeats are shared across every row, so without this the
+  // stepper keeps whatever the last row left in it: expanding a 50-seat
+  // org would show the default 5 next to a label reading "currently 50
+  // seats", and saving would silently cut 45 seats.
+  function openUser(user: User) {
+    if (expandedUser === user.id) { setExpandedUser(null); return }
+    setExpandedUser(user.id)
+    setOrgName(user.org?.name || '')
+    setOrgSeats(user.org?.max_seats ?? 5)
+  }
+
   async function createOrg(user: User) {
     if (!orgName.trim()) { toast.error('Enter org name'); return }
     setLoading(`org-${user.id}`)
     const data = await api({ action: 'create_org', user_id: user.id, org_name: orgName, seat_count: orgSeats })
     if (data.success) {
-      toast.success(`Team plan set up for ${user.email}`)
-      setOrgName('')
+      toast.success(
+        user.org
+          ? `${orgName} updated: ${orgSeats} seat${orgSeats === 1 ? '' : 's'}`
+          : `Team plan set up for ${user.email}`
+      )
+      // Reflect the new org locally so the row and the "currently N
+      // seats" label are right without a reload. Previously the row
+      // still read "Set up team plan" after a successful create, which
+      // made a real failure look identical to success.
+      setLocalUsers(prev => prev.map(u => u.id === user.id
+        ? { ...u, org: { ...(u.org || {}), name: orgName, max_seats: orgSeats } as User['org'] }
+        : u))
       setExpandedUser(null)
-    } else toast.error(data.error)
+    } else toast.error(data.error || 'Team update failed')
     setLoading(null)
   }
 
@@ -729,7 +751,7 @@ export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrder
                         {loading === `del-${user.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                       </button>
 
-                      <button onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
+                      <button onClick={() => openUser(user)}
                         className="p-1.5 rounded-lg transition hover:bg-white/05"
                         style={{ color: 'rgba(255,255,255,0.4)' }}>
                         {expandedUser === user.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}

@@ -79,25 +79,48 @@ export async function POST(request: Request) {
   if (action === 'create_org') {
     const { user_id, org_name, seat_count } = body
 
+    // Seats drive what the team can actually do (team/route.ts blocks
+    // adding cards past max_seats), so refuse junk rather than writing
+    // it. Admin deliberately has no upper bound: comped and enterprise
+    // orgs sit above the 20-seat self-serve cap on purpose.
+    const seats = Number(seat_count)
+    if (!Number.isInteger(seats) || seats < 1) {
+      return NextResponse.json({ error: 'Seat count must be a whole number of 1 or more' }, { status: 400 })
+    }
+    if (!org_name || !String(org_name).trim()) {
+      return NextResponse.json({ error: 'Org name is required' }, { status: 400 })
+    }
+
     // Check if org exists
     const { data: existing } = await admin.from('organizations').select('id').eq('admin_user_id', user_id).single()
 
+    // Both branches capture their error. This used to return
+    // success: true unconditionally, so a failed write reported
+    // "Team plan set up" while doing nothing.
     if (existing) {
-      await admin.from('organizations').update({
+      const { error } = await admin.from('organizations').update({
         name: org_name,
-        max_seats: seat_count,
+        max_seats: seats,
         business_plan_active: true,
         updated_at: new Date().toISOString(),
       }).eq('id', existing.id)
+      if (error) {
+        console.error('admin create_org update failed:', error)
+        return NextResponse.json({ error: `Could not update team: ${error.message}` }, { status: 500 })
+      }
     } else {
-      await admin.from('organizations').insert({
+      const { error } = await admin.from('organizations').insert({
         admin_user_id: user_id,
         name: org_name,
-        max_seats: seat_count,
+        max_seats: seats,
         used_seats: 0,
         business_plan_active: true,
         billing_period: 'monthly',
       })
+      if (error) {
+        console.error('admin create_org insert failed:', error)
+        return NextResponse.json({ error: `Could not create team: ${error.message}` }, { status: 500 })
+      }
     }
     return NextResponse.json({ success: true })
   }
