@@ -1,3 +1,5 @@
+import { notFound } from 'next/navigation'
+import { PROMOS_ENABLED } from '@/lib/promos'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
@@ -7,6 +9,11 @@ import { isAdminUser } from '@/lib/admin-check'
 export const metadata = { title: 'Promotions Admin' }
 
 export default async function PromotionsAdminPage() {
+  // Promos are paused (lib/promos). The public pages already 404 and the
+  // draw route returns 409, so this rendered a full prize ladder that could
+  // not be drawn.
+  if (!PROMOS_ENABLED) notFound()
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!await isAdminUser(user?.id)) {

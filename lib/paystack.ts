@@ -57,6 +57,34 @@ export function isBillablePaystackSub(sub: any): boolean {
   return String(sub.plan_id || '').startsWith('paystack')
 }
 
+// Every active subscription on the account, with its real amount.
+//
+// The amount matters: a Paystack subscription locks in the plan price at
+// creation, so the two live ones still bill R65 from when the plan was R65,
+// even though the plan is R97 today. Deriving MRR from our own price constant
+// would overstate it. Paystack is the only honest source.
+export async function listActivePaystackSubs(): Promise<{ ok: boolean; subs: PaystackSub[]; error?: string }> {
+  const key = secret()
+  if (!key) return { ok: false, subs: [], error: 'PAYSTACK_SECRET_KEY is not configured' }
+  try {
+    const res = await fetch(`${PAYSTACK_API}/subscription?perPage=100`, { headers: { Authorization: `Bearer ${key}` } })
+    const out = await res.json()
+    if (!res.ok || !out?.status) return { ok: false, subs: [], error: out?.message || `Paystack list failed (${res.status})` }
+    const subs: PaystackSub[] = (out.data || [])
+      .filter((s: any) => s?.status === 'active')
+      .map((s: any) => ({
+        subscription_code: s.subscription_code,
+        status: s.status,
+        amount: s.amount,
+        email: s.customer?.email,
+        next_payment_date: s.next_payment_date ?? null,
+      }))
+    return { ok: true, subs }
+  } catch (e: any) {
+    return { ok: false, subs: [], error: e?.message || 'Could not reach Paystack' }
+  }
+}
+
 // Every active subscription Paystack holds for an email address. This is the
 // authority, because our own records cannot be trusted to have the code.
 export async function findActivePaystackSubs(email: string): Promise<{ ok: boolean; subs: PaystackSub[]; error?: string }> {

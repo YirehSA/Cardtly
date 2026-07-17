@@ -1,1004 +1,593 @@
 'use client'
 
-import { useState } from 'react'
-import { toast } from 'sonner'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import {
-  Users, CreditCard, BarChart2, Package, Loader2,
-  Search, Check, X, ChevronDown, ChevronUp, Building2,
-  Wifi, MessageSquare, Shield, Trash2, Mail, KeyRound, MailCheck, Trophy, ArrowLeft, Eye, Lock
+  Users as UsersIcon, Building2, Search, Loader2, Trash2, Mail, MailCheck,
+  KeyRound, Lock, Shield, Sparkles, ChevronDown, ChevronUp, ExternalLink, Megaphone,
+  ScrollText, Wifi, AlertTriangle, CalendarClock, X, LayoutGrid,
 } from 'lucide-react'
-
-interface User {
-  id: string
-  email: string
-  created_at: string
-  last_sign_in_at?: string | null
-  email_confirmed?: boolean
-  signup_country?: string | null
-  signup_country_code?: string | null
-  signup_city?: string | null
-  signup_region?: string | null
-  isPro: boolean
-  isAdmin?: boolean
-  subscription: any
-  org: any
-  total_views?: number
-  views_30d?: number
-  isTeamMember?: boolean
-  teamMemberOrg?: { org_name: string | null; org_admin_user_id: string | null } | null
-  addons?: Record<string, any>
-}
-
-// Convert a 2-letter country code to its flag emoji
-function countryFlag(code?: string | null): string {
-  if (!code || code.length !== 2) return ''
-  const A = 0x1F1E6
-  return String.fromCodePoint(
-    A + code.toUpperCase().charCodeAt(0) - 'A'.charCodeAt(0),
-    A + code.toUpperCase().charCodeAt(1) - 'A'.charCodeAt(0),
-  )
-}
-
-interface Card {
-  id: string
-  name: string
-  slug: string | null
-  user_id: string
-  view_count: number | null
-  views_30d?: number
-  created_at: string
-}
-
-interface TeamCard {
-  id: string
-  name: string
-  slug: string | null
-  user_id: string | null
-  organization_id: string
-  view_count: number
-  views_30d?: number
-  claimed_at: string | null
-  created_at: string
-  org_name: string | null
-}
-
-interface NfcOrder {
-  id: string
-  color: string
-  name_on_card: string
-  shipping_city: string
-  shipping_province: string
-  amount: number
-  status: string
-  created_at: string
-  tracking_number: string | null
-}
+import TeamsTab from './TeamsTab'
+import { Stat, Section, StatusPill, STATUS_META, grad, inputClass, inputStyle, fmtDate, fmtWhen, randFmt } from './shared'
+import { NFC_STATUSES, NFC_STATUS_COLORS, NFC_STATUS_LABELS, type NfcStatus } from '@/lib/nfc'
+import type { AdminUserRow, AdminOrgRow, UserStatus } from '@/lib/admin-data'
 
 interface Stats {
-  totalUsers: number
-  proUsers: number
-  totalCards: number
-  totalOrgs: number
-  totalNfcOrders: number
-  totalContacts: number
-}
-
-interface Announcement {
-  id: string
-  message: string
-  link_url: string | null
-  link_text: string | null
-  variant: 'info' | 'success' | 'warning'
-  display_style?: 'banner' | 'modal'
-  created_at: string
+  totalUsers: number; paying: number; comped: number; members: number
+  trialing: number; expiring: number; expired: number
+  totalCards: number; totalTeamCards: number; totalOrgs: number
+  openNfcOrders: number; totalContacts: number
+  views30d: number; views30dTruncated: boolean
+  mrrRand: number | null
+  mrrError: string | null
+  paystackSubs: { subscription_code: string; amount: number; email: string; next_payment_date: string | null }[]
 }
 
 interface Props {
-  users: User[]
-  cards: Card[]
-  teamCards: TeamCard[]
-  orgs: any[]
-  nfcOrders: NfcOrder[]
+  users: AdminUserRow[]
+  orgs: AdminOrgRow[]
+  cards: any[]
+  teamCards: any[]
+  nfcOrders: any[]
+  audit: any[]
   stats: Stats
-  announcement: Announcement | null
+  announcement: any | null
 }
 
-type Tab = 'overview' | 'users' | 'cards' | 'nfc'
+type Tab = 'overview' | 'users' | 'teams' | 'nfc' | 'activity'
+type Filter = 'all' | UserStatus | 'admins' | 'unconfirmed'
 
-const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
-const inputClass = "w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
+const FILTERS: { id: Filter; label: string }[] = [
+  { id: 'all', label: 'Everyone' },
+  { id: 'expired', label: 'Expired' },
+  { id: 'expiring', label: 'Expiring' },
+  { id: 'trial', label: 'Trial' },
+  { id: 'paying', label: 'Paying' },
+  { id: 'comped', label: 'Comped' },
+  { id: 'member', label: 'Team' },
+  { id: 'admins', label: 'Admins' },
+  { id: 'unconfirmed', label: 'Unconfirmed' },
+]
 
-const NFC_STATUSES = ['pending_payment', 'paid', 'in_production', 'shipped', 'delivered', 'cancelled']
-const STATUS_COLORS: Record<string, string> = {
-  pending_payment: '#f59e0b',
-  paid: '#3b82f6',
-  in_production: '#8b5cf6',
-  shipped: '#06b6d4',
-  delivered: '#10b981',
-  cancelled: '#ef4444',
-}
-
-export default function AdminDashboard({ users, cards, teamCards, orgs, nfcOrders, stats, announcement }: Props) {
+export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrders, audit, stats, announcement }: Props) {
+  const router = useRouter()
   const [tab, setTab] = useState<Tab>('overview')
-  const [annMessage, setAnnMessage] = useState(announcement?.message || '')
-  const [annLinkUrl, setAnnLinkUrl] = useState(announcement?.link_url || '')
-  const [annLinkText, setAnnLinkText] = useState(announcement?.link_text || '')
-  const [annVariant, setAnnVariant] = useState<'info' | 'success' | 'warning'>(announcement?.variant || 'info')
-  const [annDisplayStyle, setAnnDisplayStyle] = useState<'banner' | 'modal'>(announcement?.display_style || 'banner')
-  const [annActive, setAnnActive] = useState(!!announcement)
-  const [search, setSearch] = useState('')
+  const [q, setQ] = useState('')
+  const [filter, setFilter] = useState<Filter>('all')
   const [loading, setLoading] = useState<string | null>(null)
-  const [expandedUser, setExpandedUser] = useState<string | null>(null)
-  const [orgName, setOrgName] = useState('')
-  const [orgSeats, setOrgSeats] = useState(5)
-  const [localUsers, setLocalUsers] = useState(users)
-  const [localOrders, setLocalOrders] = useState(nfcOrders)
+  const [expanded, setExpanded] = useState<string | null>(null)
 
-  async function api(body: object) {
+  // Every mutation refetches from the server. The old dashboard patched local
+  // state instead, so the stats and view counts went stale the moment you
+  // touched anything and never recovered without a manual reload.
+  async function run(key: string, body: object, okMsg: string): Promise<boolean> {
+    setLoading(key)
     const res = await fetch('/api/admin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     })
-    return res.json()
-  }
-
-  async function activatePro(user: User) {
-    setLoading(`pro-${user.id}`)
-    const data = await api({ action: 'activate_pro', user_id: user.id, email: user.email })
-    if (data.success) {
-      setLocalUsers(prev => prev.map(u => u.id === user.id ? { ...u, isPro: true } : u))
-      toast.success(`Pro activated for ${user.email}`)
-    } else toast.error(data.error)
+    const data = await res.json().catch(() => ({}))
     setLoading(null)
+    if (!res.ok || data?.error) {
+      toast.error(data?.error || 'That did not work', { duration: 9000 })
+      return false
+    }
+    toast.success(okMsg)
+    router.refresh()
+    return true
   }
 
-  async function deactivatePro(user: User) {
-    setLoading(`depro-${user.id}`)
-    const data = await api({ action: 'deactivate_pro', user_id: user.id })
-    if (data.success) {
-      setLocalUsers(prev => prev.map(u => u.id === user.id ? { ...u, isPro: false } : u))
-      toast.success(`Pro deactivated for ${user.email}`)
-    } else toast.error(data.error)
-    setLoading(null)
-  }
-
-  async function toggleAdmin(user: User) {
-    const next = !user.isAdmin
-    if (!next && !confirm(`Remove admin access from ${user.email}?`)) return
-    setLoading(`admin-${user.id}`)
-    const data = await api({ action: 'set_admin', user_id: user.id, value: next })
-    if (data.success) {
-      setLocalUsers(prev => prev.map(u => u.id === user.id ? { ...u, isAdmin: next } : u))
-      toast.success(next ? `${user.email} is now an admin` : `Admin removed from ${user.email}`)
-    } else {
-      toast.error(data.error || 'Could not update')
-    }
-    setLoading(null)
-  }
-
-  async function resendConfirmation(user: User) {
-    setLoading(`confirm-${user.id}`)
-    const data = await api({ action: 'resend_confirmation', email: user.email })
-    if (data.success) {
-      toast.success(`Confirmation email resent to ${user.email}`)
-    } else {
-      toast.error(data.error || 'Could not resend')
-    }
-    setLoading(null)
-  }
-
-  async function forceConfirm(user: User) {
-    if (!confirm(`Mark ${user.email} as email-confirmed without them clicking a link?`)) return
-    setLoading(`forceconfirm-${user.id}`)
-    const data = await api({ action: 'force_confirm', user_id: user.id })
-    if (data.success) {
-      setLocalUsers(prev => prev.map(u => u.id === user.id ? { ...u, email_confirmed: true } : u))
-      toast.success(`${user.email} email confirmed`)
-    } else {
-      toast.error(data.error || 'Could not confirm')
-    }
-    setLoading(null)
-  }
-
-  async function sendPasswordReset(user: User) {
-    setLoading(`reset-${user.id}`)
-    const data = await api({ action: 'send_password_reset', email: user.email })
-    if (data.success) {
-      toast.success(`Password reset link sent to ${user.email}`)
-    } else {
-      toast.error(data.error || 'Could not send reset')
-    }
-    setLoading(null)
-  }
-
-  // Directly set a new password for a client and hand it to them.
-  // Admin types (or accepts a suggested) password; it takes effect
-  // immediately. We surface it in a long-lived toast with a copy
-  // action so the admin can relay it to the client.
-  async function setPassword(user: User) {
-    const suggested = `Cardtly${Math.floor(1000 + Math.random() * 9000)}!`
-    const pw = window.prompt(
-      `Set a new password for ${user.email}.\n\nThis takes effect immediately - share it with the client. Minimum 8 characters.`,
-      suggested,
-    )
-    if (pw === null) return // cancelled
-    if (pw.trim().length < 8) {
-      toast.error('Password must be at least 8 characters')
-      return
-    }
-    setLoading(`setpw-${user.id}`)
-    const data = await api({ action: 'set_password', user_id: user.id, password: pw.trim() })
-    if (data.success) {
-      const finalPw = pw.trim()
-      toast.success(`Password set for ${user.email}`, {
-        description: `New password: ${finalPw} — tap to copy`,
-        duration: 30000,
-        action: {
-          label: 'Copy',
-          onClick: () => {
-            navigator.clipboard?.writeText(finalPw).catch(() => {})
-          },
-        },
-      })
-    } else {
-      toast.error(data.error || 'Could not set password')
-    }
-    setLoading(null)
-  }
-
-  async function postAnnouncement() {
-    if (!annMessage.trim()) {
-      toast.error('Enter a message first')
-      return
-    }
-    setLoading('announce')
-    const data = await api({
-      action: 'post_announcement',
-      message: annMessage.trim(),
-      link_url: annLinkUrl.trim() || null,
-      link_text: annLinkText.trim() || null,
-      variant: annVariant,
-      display_style: annDisplayStyle,
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase()
+    return users.filter(u => {
+      if (filter === 'admins' && !u.isAdmin) return false
+      if (filter === 'unconfirmed' && u.email_confirmed) return false
+      if (filter !== 'all' && filter !== 'admins' && filter !== 'unconfirmed' && u.status !== filter) return false
+      if (!needle) return true
+      // Search everything you might actually know about a person. The old one
+      // matched email substrings only, so you could not find someone by their
+      // card name, slug, or team.
+      return [u.email, u.card?.name, u.card?.slug, u.org?.name, u.memberOfOrg, u.country, u.city, u.id]
+        .filter(Boolean).some(v => String(v).toLowerCase().includes(needle))
     })
-    if (data.success) {
-      setAnnActive(true)
-      toast.success(annDisplayStyle === 'modal' ? 'Popup posted to all users' : 'Banner posted to all users')
-    } else {
-      toast.error(data.error || 'Could not post')
-    }
-    setLoading(null)
-  }
-
-  async function clearAnnouncement() {
-    setLoading('announce-clear')
-    const data = await api({ action: 'clear_announcement' })
-    if (data.success) {
-      setAnnActive(false)
-      setAnnMessage('')
-      setAnnLinkUrl('')
-      setAnnLinkText('')
-      toast.success('Announcement cleared')
-    }
-    setLoading(null)
-  }
-
-  async function deleteUser(user: User) {
-    const confirmText = `delete ${user.email}`
-    const entered = prompt(
-      `This permanently deletes the user, all their cards, contacts, subscriptions, NFC orders, and teams. There is no undo.\n\nType "${confirmText}" to confirm:`
-    )
-    if (entered !== confirmText) {
-      if (entered !== null) toast.error('Confirmation did not match. Nothing was deleted.')
-      return
-    }
-    setLoading(`del-${user.id}`)
-    const data = await api({ action: 'delete_user', user_id: user.id })
-    if (data.success) {
-      setLocalUsers(prev => prev.filter(u => u.id !== user.id))
-      toast.success(`Deleted ${user.email}`)
-    } else {
-      toast.error(data.error || 'Deletion failed')
-    }
-    setLoading(null)
-  }
-
-  // Expanding a user seeds the org form from that user's actual org.
-  // orgName/orgSeats are shared across every row, so without this the
-  // stepper keeps whatever the last row left in it: expanding a 50-seat
-  // org would show the default 5 next to a label reading "currently 50
-  // seats", and saving would silently cut 45 seats.
-  function openUser(user: User) {
-    if (expandedUser === user.id) { setExpandedUser(null); return }
-    setExpandedUser(user.id)
-    setOrgName(user.org?.name || '')
-    setOrgSeats(user.org?.max_seats ?? 5)
-  }
-
-  async function createOrg(user: User) {
-    if (!orgName.trim()) { toast.error('Enter org name'); return }
-    setLoading(`org-${user.id}`)
-    const data = await api({ action: 'create_org', user_id: user.id, org_name: orgName, seat_count: orgSeats })
-    if (data.success) {
-      toast.success(
-        user.org
-          ? `${orgName} updated: ${orgSeats} seat${orgSeats === 1 ? '' : 's'}`
-          : `Team plan set up for ${user.email}`
-      )
-      // Reflect the new org locally so the row and the "currently N
-      // seats" label are right without a reload. Previously the row
-      // still read "Set up team plan" after a successful create, which
-      // made a real failure look identical to success.
-      setLocalUsers(prev => prev.map(u => u.id === user.id
-        ? { ...u, org: { ...(u.org || {}), name: orgName, max_seats: orgSeats } as User['org'] }
-        : u))
-      setExpandedUser(null)
-    } else toast.error(data.error || 'Team update failed')
-    setLoading(null)
-  }
-
-  async function updateNfcStatus(orderId: string, status: string, tracking?: string) {
-    setLoading(`nfc-${orderId}`)
-    const data = await api({ action: 'update_nfc_status', order_id: orderId, status, tracking_number: tracking })
-    if (data.success) {
-      setLocalOrders(prev => prev.map(o => o.id === orderId ? { ...o, status, tracking_number: tracking || o.tracking_number } : o))
-      toast.success('Order updated')
-    } else toast.error(data.error)
-    setLoading(null)
-  }
-
-  const filteredUsers = localUsers.filter(u =>
-    u.email.toLowerCase().includes(search.toLowerCase())
-  )
-
-  const TABS = [
-    { id: 'overview', label: 'Overview', icon: BarChart2 },
-    { id: 'users',    label: `Users (${localUsers.length})`, icon: Users },
-    { id: 'cards',    label: `Cards (${cards.length})`, icon: CreditCard },
-    { id: 'nfc',      label: `NFC Orders (${localOrders.length})`, icon: Package },
-  ]
+  }, [users, q, filter])
 
   return (
-    <div className="min-h-screen overflow-x-hidden" style={{ background: '#050510' }}>
-      {/* Header */}
-      <div className="border-b border-white/08 px-4 sm:px-8 py-5 flex items-center gap-3 flex-wrap">
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: grad }}>
-          <Shield className="w-5 h-5 text-white" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-bold text-white truncate">Cardtly Admin</h1>
-          <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>Internal dashboard — restricted access</p>
-        </div>
-        <Link href="/dashboard"
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition hover:bg-white/10"
-          style={{ color: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.18)' }}>
-          <ArrowLeft className="w-4 h-4" />
-          Dashboard
-        </Link>
-        <Link href="/admin/promotions"
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90"
-          style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' }}>
-          <Trophy className="w-4 h-4" />
-          Promotions
-        </Link>
-      </div>
+    <div className="min-h-screen p-4 sm:p-6" style={{ background: '#0a0a0a' }}>
+      <div className="max-w-7xl mx-auto space-y-5">
 
-      <div className="px-4 sm:px-8 py-6 max-w-7xl mx-auto space-y-6">
-        {/* Tabs — scroll horizontally on narrow screens instead of
-            pushing the page wide. */}
-        <div className="flex gap-1 bg-white/03 border border-white/06 p-1 rounded-xl w-fit max-w-full overflow-x-auto">
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => setTab(id as Tab)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap"
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-black text-white tracking-tight">Cardtly admin</h1>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              {stats.totalUsers} users · {stats.totalCards} cards · {orgs.length} teams
+            </p>
+          </div>
+          <Link href="/dashboard" className="text-sm px-3 py-2 rounded-lg transition hover:bg-white/10"
+            style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)' }}>
+            Back to dashboard
+          </Link>
+        </div>
+
+        {/* The one thing that needs saying loudly: whose card is dark. */}
+        {stats.expired > 0 && (
+          <button onClick={() => { setTab('users'); setFilter('expired'); setQ('') }}
+            className="w-full text-left rounded-2xl p-4 flex items-center gap-3 transition hover:opacity-90"
+            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)' }}>
+            <AlertTriangle className="w-5 h-5 flex-shrink-0" style={{ color: '#ef4444' }} />
+            <div>
+              <p className="font-bold text-sm" style={{ color: '#ef4444' }}>
+                {stats.expired} {stats.expired === 1 ? 'card is' : 'cards are'} offline right now
+              </p>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                Their trial ended, so their public link 404s for anyone they hand it to. Click to see them.
+              </p>
+            </div>
+          </button>
+        )}
+
+        <div className="flex gap-1.5 flex-wrap">
+          {([
+            ['overview', 'Overview', LayoutGrid],
+            ['users', 'Users', UsersIcon],
+            ['teams', 'Teams', Building2],
+            ['nfc', 'NFC orders', Wifi],
+            ['activity', 'Activity', ScrollText],
+          ] as [Tab, string, any][]).map(([id, label, Icon]) => (
+            <button key={id} onClick={() => setTab(id)}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition"
               style={tab === id
-                ? { background: grad, color: 'white' }
-                : { color: 'rgba(255,255,255,0.5)' }}>
-              <Icon className="w-4 h-4" />{label}
+                ? { background: grad, color: '#fff' }
+                : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <Icon className="w-4 h-4" />
+              {label}
+              {id === 'nfc' && stats.openNfcOrders > 0 && (
+                <span className="px-1.5 rounded text-[10px] font-bold" style={{ background: 'rgba(245,158,11,0.25)', color: '#f59e0b' }}>
+                  {stats.openNfcOrders}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
-        {/* Overview */}
         {tab === 'overview' && (
-          <div className="space-y-6">
-
-            {/* Announcement composer */}
-            <div className="rounded-2xl border p-5"
-              style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm font-semibold text-white">Site-wide announcement</p>
-                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    {annActive ? `Currently shown to all logged-in users as a ${annDisplayStyle === 'modal' ? 'popup' : 'banner'}` : 'Nothing active. Post a message to show a banner or popup on every dashboard.'}
-                  </p>
-                </div>
-                {annActive && (
-                  <button onClick={clearAnnouncement} disabled={loading === 'announce-clear'}
-                    className="text-xs px-3 py-1.5 rounded-lg transition hover:opacity-80 disabled:opacity-50"
-                    style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>
-                    {loading === 'announce-clear' ? 'Clearing...' : 'Clear'}
-                  </button>
-                )}
-              </div>
-              <div className="space-y-3">
-                <input value={annMessage}
-                  onChange={e => setAnnMessage(e.target.value)}
-                  placeholder="What do you want to tell everyone?"
-                  className="w-full px-3 py-2.5 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }} />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input value={annLinkUrl}
-                    onChange={e => setAnnLinkUrl(e.target.value)}
-                    placeholder="Optional link URL (e.g. /upgrade)"
-                    className="px-3 py-2.5 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }} />
-                  <input value={annLinkText}
-                    onChange={e => setAnnLinkText(e.target.value)}
-                    placeholder="Optional link text (e.g. Learn more)"
-                    className="px-3 py-2.5 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }} />
-                </div>
-                {/* Show as: thin banner vs big popup */}
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Show as:</span>
-                  {([
-                    { v: 'banner' as const, label: 'Banner', hint: 'Thin strip at the top' },
-                    { v: 'modal' as const, label: 'Popup', hint: 'Big centered popup' },
-                  ]).map(({ v, label, hint }) => (
-                    <button key={v} onClick={() => setAnnDisplayStyle(v)}
-                      title={hint}
-                      className={`text-xs px-3 py-1.5 rounded-lg transition ${annDisplayStyle === v ? 'text-white' : ''}`}
-                      style={annDisplayStyle === v
-                        ? { background: grad }
-                        : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)' }}>
-                      {v === 'modal' ? '📣 ' : ''}{label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Colour:</span>
-                  {(['info', 'success', 'warning'] as const).map(v => (
-                    <button key={v} onClick={() => setAnnVariant(v)}
-                      className={`text-xs px-3 py-1.5 rounded-lg transition ${annVariant === v ? 'ring-1 ring-white/30' : ''}`}
-                      style={{
-                        background: v === 'info' ? 'rgba(0,212,255,0.15)' : v === 'success' ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.15)',
-                        color: v === 'info' ? '#00d4ff' : v === 'success' ? '#22c55e' : '#fbbf24',
-                      }}>
-                      {v.charAt(0).toUpperCase() + v.slice(1)}
-                    </button>
-                  ))}
-                  <button onClick={postAnnouncement} disabled={loading === 'announce' || !annMessage.trim()}
-                    className="ml-auto text-xs font-bold px-4 py-1.5 rounded-lg text-white transition hover:opacity-90 disabled:opacity-50"
-                    style={{ background: grad }}>
-                    {loading === 'announce' ? 'Posting...' : annActive ? `Update ${annDisplayStyle === 'modal' ? 'popup' : 'banner'}` : `Post ${annDisplayStyle === 'modal' ? 'popup' : 'banner'}`}
-                  </button>
-                </div>
-              </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Stat
+                label="MRR (Paystack)"
+                value={stats.mrrRand == null ? '?' : randFmt(stats.mrrRand)}
+                colour="#22c55e"
+                hint={stats.mrrError
+                  ? `Could not reach Paystack: ${stats.mrrError}`
+                  : 'Summed from the real amounts Paystack is billing. Team seats are NOT included: nothing bills orgs through a subscription, so counting them would invent money.'}
+              />
+              <Stat label="Paying" value={stats.paying} colour="#22c55e" hint="Live Paystack subscription" />
+              <Stat label="Comped" value={stats.comped} colour="#0ea5e9" hint="Free Pro we granted. Not revenue." />
+              <Stat label="Cards offline" value={stats.expired} colour="#ef4444" warn={stats.expired > 0} hint="Trial ended: their public card 404s" />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Stat label="Expiring in 7d" value={stats.expiring} colour="#f59e0b" />
+              <Stat label="On trial" value={stats.trialing} colour="#a855f7" />
+              <Stat label="Team members" value={stats.members} colour="#f472b6" hint="Access via their org, not a personal trial" />
+              <Stat label="Total users" value={stats.totalUsers} />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Stat label="Cards" value={stats.totalCards} />
+              <Stat label="Team cards" value={stats.totalTeamCards} />
+              <Stat label="Leads captured" value={stats.totalContacts} />
+              <Stat
+                label={stats.views30dTruncated ? 'Views 30d (a floor)' : 'Views 30d'}
+                value={stats.views30dTruncated ? `${stats.views30d.toLocaleString()}+` : stats.views30d.toLocaleString()}
+                hint={stats.views30dTruncated ? 'Hit the paging cap, so this is a lower bound, not the real number.' : undefined}
+              />
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {[
-                { label: 'Total users',   value: stats.totalUsers,    icon: Users },
-                { label: 'Pro users',     value: stats.proUsers,      icon: CreditCard },
-                { label: 'Total cards',   value: stats.totalCards,    icon: CreditCard },
-                { label: 'Team orgs',     value: stats.totalOrgs,     icon: Building2 },
-                { label: 'NFC orders',    value: stats.totalNfcOrders, icon: Wifi },
-                { label: 'Contacts',      value: stats.totalContacts, icon: MessageSquare },
-              ].map(({ label, value, icon: Icon }) => (
-                <div key={label} className="rounded-2xl p-4 border"
-                  style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
-                  <Icon className="w-4 h-4 mb-2" style={{ color: '#7c3aed' }} />
-                  <p className="text-2xl font-black text-white">{value}</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</p>
-                </div>
-              ))}
-            </div>
+            <AnnouncementBox announcement={announcement} run={run} loading={loading} />
 
-            {/* Country breakdown - top 10 countries by signups */}
-            {(() => {
-              const counts: Record<string, { country: string; code: string; count: number }> = {}
-              localUsers.forEach(u => {
-                if (!u.signup_country || !u.signup_country_code) return
-                const key = u.signup_country_code
-                if (!counts[key]) counts[key] = { country: u.signup_country, code: u.signup_country_code, count: 0 }
-                counts[key].count += 1
-              })
-              const sorted = Object.values(counts).sort((a, b) => b.count - a.count).slice(0, 10)
-              const totalWithLocation = sorted.reduce((sum, c) => sum + c.count, 0)
-              const unknownCount = localUsers.length - totalWithLocation
-              if (sorted.length === 0) return null
-              return (
-                <div className="rounded-2xl border p-5"
-                  style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
-                  <p className="text-sm font-semibold text-white mb-4">Signups by country</p>
-                  <div className="space-y-2">
-                    {sorted.map(c => {
-                      const pct = totalWithLocation > 0 ? Math.round((c.count / localUsers.length) * 100) : 0
-                      return (
-                        <div key={c.code} className="flex items-center gap-3">
-                          <span className="text-base flex-shrink-0">{countryFlag(c.code)}</span>
-                          <span className="text-sm text-white flex-shrink-0 w-32 truncate">{c.country}</span>
-                          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                            <div className="h-full transition-all"
-                              style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #00d4ff, #7c3aed)' }} />
-                          </div>
-                          <span className="text-xs text-white/60 flex-shrink-0 w-12 text-right">{c.count}</span>
-                        </div>
-                      )
-                    })}
-                    {unknownCount > 0 && (
-                      <p className="text-xs text-white/30 pt-2">{unknownCount} user{unknownCount !== 1 ? 's' : ''} with no location data (signed up before tracking, or geo lookup failed)</p>
+            <Section title="Top cards" sub="By views in the last 30 days">
+              <div className="space-y-1">
+                {cards.slice(0, 8).map((c: any) => (
+                  <div key={c.id} className="flex items-center gap-3 text-xs rounded-lg px-3 py-2"
+                    style={{ background: 'rgba(255,255,255,0.02)' }}>
+                    <span className="text-white flex-1 truncate">{c.name || 'Untitled'}</span>
+                    {c.slug && (
+                      <a href={`/card/${c.slug}`} target="_blank" rel="noreferrer"
+                        className="flex items-center gap-1 transition hover:text-white" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        /{c.slug} <ExternalLink className="w-3 h-3" />
+                      </a>
                     )}
-                  </div>
-                </div>
-              )
-            })()}
-
-            {/* Recent users */}
-            <div className="rounded-2xl border p-5"
-              style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
-              <p className="text-sm font-semibold text-white mb-4">Recent signups</p>
-              <div className="space-y-2">
-                {localUsers.slice(0, 10).map(u => (
-                  <div key={u.id} className="flex items-center justify-between py-2 border-b border-white/05 last:border-0">
-                    <div>
-                      <p className="text-sm text-white">{u.email}</p>
-                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                        {new Date(u.created_at).toLocaleDateString('en-ZA')}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {u.org && (
-                        <span className="text-xs px-2 py-0.5 rounded-full"
-                          title={`Org admin: ${u.org.name}`}
-                          style={{ background: 'rgba(124,58,237,0.2)', color: '#a78bfa' }}>
-                          Team owner
-                        </span>
-                      )}
-                      {u.isTeamMember && !u.org && (
-                        <span className="text-xs px-2 py-0.5 rounded-full"
-                          title={u.teamMemberOrg?.org_name ? `Team member of ${u.teamMemberOrg.org_name}` : 'Team member'}
-                          style={{ background: 'rgba(124,58,237,0.15)', color: '#a78bfa' }}>
-                          Team member
-                        </span>
-                      )}
-                      <span className="text-xs px-2 py-0.5 rounded-full"
-                        style={(u.isPro || u.isTeamMember)
-                          ? { background: 'rgba(0,212,255,0.15)', color: '#00d4ff' }
-                          : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>
-                        {u.isPro ? 'Pro' : u.isTeamMember ? 'Pro (team)' : 'Free'}
-                      </span>
-                    </div>
+                    <span className="tabular-nums w-16 text-right" style={{ color: '#a855f7' }}>{c.views_30d} / 30d</span>
+                    <span className="tabular-nums w-20 text-right" style={{ color: 'rgba(255,255,255,0.4)' }}>{c.view_count || 0} all time</span>
                   </div>
                 ))}
+                {cards.length === 0 && <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>No cards yet.</p>}
               </div>
-            </div>
+            </Section>
           </div>
         )}
 
-        {/* Users */}
         {tab === 'users' && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.3)' }} />
-              <input value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search by email..."
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl border text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-                style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' }} />
+              <input value={q} onChange={e => setQ(e.target.value)}
+                placeholder="Search email, card name, slug, team, country, user id"
+                className={inputClass + ' pl-9'} style={inputStyle} />
+              {q && (
+                <button onClick={() => setQ('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10">
+                  <X className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+                </button>
+              )}
             </div>
 
-            <div className="space-y-2">
-              {filteredUsers.map(user => (
-                <div key={user.id} className="rounded-2xl border overflow-hidden"
-                  style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
-                  <div className="flex items-center justify-between gap-3 p-4 flex-wrap">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
-                        style={{ background: user.isPro ? grad : 'rgba(255,255,255,0.1)' }}>
-                        {user.email[0].toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm text-white truncate flex items-center gap-2">
-                          {user.email}
-                          {user.signup_country_code && (
-                            <span title={`${user.signup_city ? user.signup_city + ', ' : ''}${user.signup_country}`}>
-                              {countryFlag(user.signup_country_code)}
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-xs flex items-center gap-2 flex-wrap" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                          <span>Joined {new Date(user.created_at).toLocaleDateString('en-ZA')}</span>
-                          {(user.signup_city || user.signup_country) && (
-                            <span>
-                              · {[user.signup_city, user.signup_region, user.signup_country].filter(Boolean).join(', ')}
-                            </span>
-                          )}
-                          {user.org && <span>· Team owner: {user.org.name} ({user.org.max_seats} seats)</span>}
-                          {!user.org && user.isTeamMember && user.teamMemberOrg?.org_name && (
-                            <span>· Team member of {user.teamMemberOrg.org_name}</span>
-                          )}
-                        </p>
-                      </div>
-                    </div>
+            <div className="flex gap-1.5 flex-wrap">
+              {FILTERS.map(f => {
+                const n = f.id === 'all' ? users.length
+                  : f.id === 'admins' ? users.filter(u => u.isAdmin).length
+                  : f.id === 'unconfirmed' ? users.filter(u => !u.email_confirmed).length
+                  : users.filter(u => u.status === f.id).length
+                const colour = (STATUS_META as any)[f.id]?.colour
+                return (
+                  <button key={f.id} onClick={() => setFilter(f.id)} disabled={n === 0 && f.id !== 'all'}
+                    className="px-2.5 py-1 rounded-lg text-xs font-semibold transition disabled:opacity-30"
+                    style={filter === f.id
+                      ? { background: colour ? `${colour}25` : 'rgba(255,255,255,0.15)', color: colour || '#fff', border: `1px solid ${colour || 'rgba(255,255,255,0.3)'}` }
+                      : { background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    {f.label} {n}
+                  </button>
+                )
+              })}
+            </div>
 
-                    <div className="flex flex-wrap items-center gap-2 justify-end">
-                      {user.email_confirmed === false && (
-                        <span className="text-xs px-2 py-1 rounded-full font-semibold"
-                          title="User has not confirmed their email yet"
-                          style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24' }}>Unconfirmed</span>
-                      )}
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{filtered.length} of {users.length}</p>
 
-                      {/* Views across this user's personal cards AND
-                          any team cards they've claimed. Primary
-                          number is last 30 days; all-time shows as
-                          smaller suffix and full breakdown in tooltip. */}
-                      <span className="hidden sm:inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full font-semibold tabular-nums"
-                        title={`${(user.views_30d ?? 0).toLocaleString()} views last 30 days · ${(user.total_views ?? 0).toLocaleString()} all-time`}
-                        style={(user.views_30d ?? 0) > 0
-                          ? { background: 'rgba(0,212,255,0.12)', color: '#00d4ff' }
-                          : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)' }}>
-                        <Eye className="w-3 h-3" />
-                        <span>{(user.views_30d ?? 0).toLocaleString()}</span>
-                        <span style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 400 }}>30d</span>
-                        <span style={{ color: 'rgba(255,255,255,0.25)' }}>·</span>
-                        <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>{(user.total_views ?? 0).toLocaleString()}</span>
-                      </span>
-
-                      {user.isPro ? (
-                        <span className="text-xs px-2 py-1 rounded-full font-semibold"
-                          style={{ background: 'rgba(0,212,255,0.15)', color: '#00d4ff' }}>Pro</span>
-                      ) : user.isTeamMember ? (
-                        <span className="text-xs px-2 py-1 rounded-full font-semibold"
-                          title={user.teamMemberOrg?.org_name ? `Team member of ${user.teamMemberOrg.org_name} - Pro access via the org seat` : 'Team member - Pro access via their org seat'}
-                          style={{ background: 'rgba(124,58,237,0.15)', color: '#a78bfa' }}>
-                          Pro · Team
-                        </span>
-                      ) : (
-                        <span className="text-xs px-2 py-1 rounded-full"
-                          style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>Free</span>
-                      )}
-
-                      {user.isAdmin && (
-                        <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-semibold"
-                          style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24' }}>
-                          <Shield className="w-3 h-3" />Admin
-                        </span>
-                      )}
-
-                      {user.isPro ? (
-                        <button onClick={() => deactivatePro(user)}
-                          disabled={loading === `depro-${user.id}`}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition hover:opacity-80 disabled:opacity-50"
-                          style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>
-                          {loading === `depro-${user.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
-                          Remove Pro
-                        </button>
-                      ) : (
-                        <button onClick={() => activatePro(user)}
-                          disabled={loading === `pro-${user.id}`}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-50"
-                          style={{ background: grad }}>
-                          {loading === `pro-${user.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                          Activate Pro
-                        </button>
-                      )}
-
-                      {/* Make/Revoke admin toggle */}
-                      <button onClick={() => toggleAdmin(user)}
-                        disabled={loading === `admin-${user.id}`}
-                        title={user.isAdmin ? 'Revoke admin access' : 'Grant admin access (sees /admin in their sidebar)'}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition hover:opacity-80 disabled:opacity-50"
-                        style={user.isAdmin
-                          ? { background: 'rgba(239,68,68,0.15)', color: '#f87171' }
-                          : { background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' }}>
-                        {loading === `admin-${user.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Shield className="w-3 h-3" />}
-                        {user.isAdmin ? 'Remove admin' : 'Make admin'}
-                      </button>
-
-                      <button onClick={() => resendConfirmation(user)}
-                        disabled={loading === `confirm-${user.id}`}
-                        title={user.email_confirmed ? 'Send a fresh confirmation email (Supabase may reject for already-confirmed users)' : 'Resend the email-confirmation link to this user'}
-                        className="p-1.5 rounded-lg transition hover:bg-white/10 disabled:opacity-50"
-                        style={{ color: '#00d4ff' }}>
-                        {loading === `confirm-${user.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                      </button>
-                      {user.email_confirmed === false && (
-                        <button onClick={() => forceConfirm(user)}
-                          disabled={loading === `forceconfirm-${user.id}`}
-                          title="Force-confirm email without making them click the link"
-                          className="p-1.5 rounded-lg transition hover:bg-white/10 disabled:opacity-50"
-                          style={{ color: '#22c55e' }}>
-                          {loading === `forceconfirm-${user.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <MailCheck className="w-4 h-4" />}
-                        </button>
-                      )}
-
-                      <button onClick={() => sendPasswordReset(user)}
-                        disabled={loading === `reset-${user.id}`}
-                        title="Email this user a password-reset link"
-                        className="p-1.5 rounded-lg transition hover:bg-white/10 disabled:opacity-50"
-                        style={{ color: '#fbbf24' }}>
-                        {loading === `reset-${user.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
-                      </button>
-
-                      <button onClick={() => setPassword(user)}
-                        disabled={loading === `setpw-${user.id}`}
-                        title="Set a new password directly (takes effect immediately - hand it to the client)"
-                        className="p-1.5 rounded-lg transition hover:bg-white/10 disabled:opacity-50"
-                        style={{ color: '#a78bfa' }}>
-                        {loading === `setpw-${user.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-                      </button>
-
-                      <button onClick={() => deleteUser(user)}
-                        disabled={loading === `del-${user.id}`}
-                        title="Delete user and all their data"
-                        className="p-1.5 rounded-lg transition hover:bg-white/10 disabled:opacity-50"
-                        style={{ color: '#f87171' }}>
-                        {loading === `del-${user.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                      </button>
-
-                      <button onClick={() => openUser(user)}
-                        className="p-1.5 rounded-lg transition hover:bg-white/05"
-                        style={{ color: 'rgba(255,255,255,0.4)' }}>
-                        {expandedUser === user.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Expanded — team setup */}
-                  {expandedUser === user.id && (
-                    <div className="px-4 pb-4 pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-                      <p className="text-xs font-semibold mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                        {user.org ? `Edit team plan — currently ${user.org.max_seats} seats` : 'Set up team plan'}
-                      </p>
-                      <div className="flex gap-3 flex-wrap">
-                        <input
-                          value={orgName}
-                          onChange={e => setOrgName(e.target.value)}
-                          placeholder={user.org?.name || 'Company name'}
-                          className="px-3 py-2 rounded-lg border text-white text-sm focus:outline-none transition flex-1 min-w-40"
-                          style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}
-                        />
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => setOrgSeats(Math.max(1, orgSeats - 1))}
-                            className="w-8 h-8 rounded-lg border flex items-center justify-center text-white font-bold transition hover:bg-white/05"
-                            style={{ borderColor: 'rgba(255,255,255,0.1)' }}>−</button>
-                          <span className="text-white font-bold w-8 text-center">{orgSeats}</span>
-                          <button onClick={() => setOrgSeats(orgSeats + 1)}
-                            className="w-8 h-8 rounded-lg border flex items-center justify-center text-white font-bold transition hover:bg-white/05"
-                            style={{ borderColor: 'rgba(255,255,255,0.1)' }}>+</button>
-                          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>seats</span>
-                        </div>
-                        <button onClick={() => createOrg(user)}
-                          disabled={loading === `org-${user.id}`}
-                          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
-                          style={{ background: grad }}>
-                          {loading === `org-${user.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Building2 className="w-3 h-3" />}
-                          {user.org ? 'Update team' : 'Create team'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+            <div className="space-y-1.5">
+              {filtered.map(u => (
+                <UserRow key={u.id} u={u} expanded={expanded === u.id}
+                  onToggle={() => setExpanded(expanded === u.id ? null : u.id)}
+                  run={run} loading={loading} />
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Cards */}
-        {tab === 'cards' && (
-          <div className="space-y-6">
-            {/* Personal cards */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-sm font-semibold text-white">Personal cards</p>
-                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    {cards.length} total · sorted by last-30-day views
-                  </p>
-                </div>
-              </div>
-              <div className="rounded-2xl border overflow-x-auto"
-                style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
-                <table className="w-full text-sm min-w-[640px]">
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                      {['Name', 'Slug', 'Last 30d', 'All-time', 'User ID', 'Created'].map(h => (
-                        <th key={h} className="text-left px-4 py-3 text-xs font-semibold"
-                          style={{ color: 'rgba(255,255,255,0.4)' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cards.map(card => {
-                      const views = card.view_count ?? 0
-                      const views30 = card.views_30d ?? 0
-                      return (
-                        <tr key={card.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                          <td className="px-4 py-3 text-white">{card.name || '—'}</td>
-                          <td className="px-4 py-3">
-                            {card.slug
-                              ? <a href={`/card/${card.slug}`} target="_blank" className="text-xs font-mono hover:text-white transition" style={{ color: '#00d4ff' }}>{card.slug}</a>
-                              : <span style={{ color: 'rgba(255,255,255,0.3)' }}>No slug</span>}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-bold tabular-nums"
-                              style={{
-                                background: views30 > 0 ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.04)',
-                                color: views30 > 0 ? '#00d4ff' : 'rgba(255,255,255,0.4)',
-                              }}>
-                              {views30.toLocaleString()}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-xs font-medium tabular-nums"
-                              style={{ color: views > 0 ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.3)' }}>
-                              {views.toLocaleString()}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-xs font-mono" style={{ color: 'rgba(255,255,255,0.35)' }}>{card.user_id?.slice(0, 8)}...</td>
-                          <td className="px-4 py-3 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{new Date(card.created_at).toLocaleDateString('en-ZA')}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Team cards */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-sm font-semibold text-white flex items-center gap-2">
-                    <Building2 className="w-4 h-4" style={{ color: '#a78bfa' }} />
-                    Team cards
-                  </p>
-                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    {teamCards.length} total · {teamCards.filter(tc => tc.claimed_at).length} claimed · sorted by last-30-day views
-                  </p>
-                </div>
-              </div>
-              {teamCards.length === 0 ? (
-                <div className="rounded-2xl border p-8 text-center"
-                  style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)' }}>
-                  <p className="text-sm">No team cards yet</p>
-                </div>
-              ) : (
-                <div className="rounded-2xl border overflow-x-auto"
-                  style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
-                  <table className="w-full text-sm min-w-[720px]">
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                        {['Name', 'Slug', 'Last 30d', 'All-time', 'Organization', 'Status', 'Created'].map(h => (
-                          <th key={h} className="text-left px-4 py-3 text-xs font-semibold"
-                            style={{ color: 'rgba(255,255,255,0.4)' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {teamCards.map(tc => {
-                        const views = tc.view_count
-                        const views30 = tc.views_30d ?? 0
-                        const claimed = !!tc.claimed_at
-                        return (
-                          <tr key={tc.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                            <td className="px-4 py-3 text-white">{tc.name || '—'}</td>
-                            <td className="px-4 py-3">
-                              {tc.slug
-                                ? <a href={`/card/${tc.slug}`} target="_blank" className="text-xs font-mono hover:text-white transition" style={{ color: '#a78bfa' }}>{tc.slug}</a>
-                                : <span style={{ color: 'rgba(255,255,255,0.3)' }}>No slug</span>}
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-bold tabular-nums"
-                                style={{
-                                  background: views30 > 0 ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.04)',
-                                  color: views30 > 0 ? '#a78bfa' : 'rgba(255,255,255,0.4)',
-                                }}>
-                                {views30.toLocaleString()}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className="text-xs font-medium tabular-nums"
-                                style={{ color: views > 0 ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.3)' }}>
-                                {views.toLocaleString()}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>{tc.org_name || '—'}</td>
-                            <td className="px-4 py-3">
-                              <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                style={claimed
-                                  ? { background: 'rgba(16,185,129,0.15)', color: '#34d399' }
-                                  : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}>
-                                {claimed ? 'Claimed' : 'Unclaimed'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{new Date(tc.created_at).toLocaleDateString('en-ZA')}</td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+              {filtered.length === 0 && (
+                <p className="text-sm text-center py-8" style={{ color: 'rgba(255,255,255,0.3)' }}>Nobody matches that.</p>
               )}
             </div>
           </div>
         )}
 
-        {/* NFC Orders */}
-        {tab === 'nfc' && (
-          <div className="space-y-3">
-            {localOrders.length === 0 && (
-              <div className="text-center py-16" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                No NFC orders yet
-              </div>
-            )}
-            {localOrders.map(order => {
-              const color = STATUS_COLORS[order.status] || '#6b7280'
-              return (
-                <div key={order.id} className="rounded-2xl border p-5"
-                  style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}>
-                  <div className="flex items-start justify-between flex-wrap gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${order.color === 'black' ? 'bg-gray-950 text-white border border-white/10' : 'bg-white text-gray-900 border border-gray-200'}`}>
-                        {order.color === 'black' ? '⬛' : '⬜'}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-white">{order.name_on_card}</p>
-                        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                          {order.shipping_city}, {order.shipping_province} · R{(order.amount / 100).toFixed(0)} · {new Date(order.created_at).toLocaleDateString('en-ZA')}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 flex-wrap">
-                      {order.tracking_number && (
-                        <span className="text-xs font-mono px-2 py-1 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
-                          🚚 {order.tracking_number}
-                        </span>
-                      )}
-                      <span className="text-xs font-bold px-2.5 py-1 rounded-full"
-                        style={{ background: color + '20', color }}>
-                        {order.status.replace('_', ' ')}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Status actions */}
-                  <div className="mt-4 pt-4 border-t flex items-center gap-3 flex-wrap" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-                    <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.4)' }}>Update status:</p>
-                    {NFC_STATUSES.filter(s => s !== order.status).map(s => (
-                      <button key={s} onClick={() => updateNfcStatus(order.id, s)}
-                        disabled={loading === `nfc-${order.id}`}
-                        className="text-xs px-3 py-1.5 rounded-lg border transition hover:bg-white/05 disabled:opacity-50"
-                        style={{ borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>
-                        {s.replace('_', ' ')}
-                      </button>
-                    ))}
-                    {order.status === 'paid' && (
-                      <div className="flex items-center gap-2 ml-auto">
-                        <input
-                          placeholder="Tracking number"
-                          className="px-3 py-1.5 rounded-lg border text-white text-xs focus:outline-none transition"
-                          style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') {
-                              updateNfcStatus(order.id, 'shipped', (e.target as HTMLInputElement).value)
-                            }
-                          }}
-                        />
-                        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Press Enter to mark shipped</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+        {tab === 'teams' && (
+          <TeamsTab orgs={orgs} loading={loading}
+            onSave={(o, name, seats) => run(`org-${o.adminUserId}`,
+              { action: 'create_org', user_id: o.adminUserId, org_name: name, seat_count: seats },
+              `${name}: ${seats} seats`)} />
         )}
+
+        {tab === 'nfc' && <NfcTab orders={nfcOrders} run={run} loading={loading} />}
+        {tab === 'activity' && <ActivityTab audit={audit} />}
       </div>
     </div>
+  )
+}
+
+// ── User row ──────────────────────────────────────────────────────────────
+
+function UserRow({ u, expanded, onToggle, run, loading }: {
+  u: AdminUserRow; expanded: boolean; onToggle: () => void
+  run: (key: string, body: object, msg: string) => Promise<boolean>
+  loading: string | null
+}) {
+  const [extend, setExtend] = useState('14')
+
+  return (
+    <div className="rounded-xl border" style={{ borderColor: 'rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}>
+      <div className="p-3 flex items-center gap-3 flex-wrap">
+        <div className="flex-1 min-w-[220px]">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-medium text-white text-sm truncate">{u.email}</p>
+            <StatusPill status={u.status} daysLeft={u.trialDaysLeft} />
+            {u.isAdmin && (
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                style={{ background: 'rgba(168,85,247,0.15)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.4)' }}>Admin</span>
+            )}
+            {!u.email_confirmed && (
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.4)' }}>Unconfirmed</span>
+            )}
+          </div>
+          <p className="text-[11px] mt-0.5 flex items-center gap-2 flex-wrap" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <span>Joined {fmtDate(u.created_at)}</span>
+            <span>·</span>
+            <span title="Last sign in">Seen {fmtWhen(u.last_sign_in_at)}</span>
+            {u.org && <><span>·</span><span style={{ color: '#f472b6' }}>{u.org.name} ({u.org.cardsClaimed}/{u.org.maxSeats})</span></>}
+            {u.memberOfOrg && <><span>·</span><span style={{ color: '#f472b6' }}>member of {u.memberOfOrg}</span></>}
+            {u.country && <><span>·</span><span>{u.city ? `${u.city}, ` : ''}{u.country}</span></>}
+          </p>
+        </div>
+
+        {u.card?.slug && (
+          <a href={`/card/${u.card.slug}`} target="_blank" rel="noreferrer"
+            className="text-xs flex items-center gap-1 px-2 py-1 rounded-lg transition hover:bg-white/10"
+            style={{ color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            /{u.card.slug} <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
+        <span className="text-xs tabular-nums" style={{ color: 'rgba(255,255,255,0.4)' }}>{u.views} views</span>
+
+        <button onClick={onToggle} className="p-1.5 rounded-lg transition hover:bg-white/10" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="px-3 pb-3 pt-1 border-t space-y-3" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+
+          {/* Trial. The old dashboard did not fetch trial_ends_at at all. */}
+          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex items-center gap-2 flex-wrap justify-between">
+              <div className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                <CalendarClock className="w-3.5 h-3.5 inline mr-1.5" style={{ color: '#a855f7' }} />
+                {u.status === 'member' ? (
+                  <>Covered by <strong className="text-white">{u.memberOfOrg}</strong>. Their personal trial does not gate their card.</>
+                ) : u.trialEndsAt ? (
+                  <>Trial {u.trialDaysLeft != null && u.trialDaysLeft <= 0 ? 'ended' : 'ends'} <strong className="text-white">{fmtDate(u.trialEndsAt)}</strong>
+                    {u.trialDaysLeft != null && u.trialDaysLeft > 0 && <> ({u.trialDaysLeft} days)</>}</>
+                ) : (
+                  <>No trial date. Fails open, so their card stays live.</>
+                )}
+                {u.remindersSent.length > 0 && (
+                  <span className="ml-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                    · emailed: {u.remindersSent.map(k => k.replace('trial_', '')).join(', ')}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <input value={extend} onChange={e => setExtend(e.target.value)} type="number" min={1}
+                  className="w-16 px-2 py-1 rounded-lg border text-xs text-white" style={inputStyle} />
+                <button
+                  disabled={loading === `trial-${u.id}` || !(Number(extend) >= 1)}
+                  onClick={() => run(`trial-${u.id}`, { action: 'extend_trial', user_id: u.id, days: Number(extend) }, `Trial extended by ${extend} days`)}
+                  className="px-2.5 py-1 rounded-lg text-xs font-semibold transition hover:bg-white/10 disabled:opacity-40"
+                  style={{ border: '1px solid rgba(168,85,247,0.4)', color: '#a855f7' }}>
+                  {loading === `trial-${u.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Extend'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 flex-wrap items-center">
+            {u.planId && (
+              <span className="text-[11px] px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.5)' }}>
+                {u.planId}{u.billingCycle ? ` · ${u.billingCycle}` : ''}
+              </span>
+            )}
+            {u.status === 'paying' ? (
+              <button disabled={loading === `pro-${u.id}`}
+                onClick={() => {
+                  if (!confirm(`Cancel ${u.email}'s Paystack subscription and remove Pro?\n\nPaystack is cancelled first. If that fails, nothing changes and they keep access.`)) return
+                  run(`pro-${u.id}`, { action: 'deactivate_pro', user_id: u.id }, 'Cancelled at Paystack and removed Pro')
+                }}
+                className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10 disabled:opacity-40"
+                style={{ border: '1px solid rgba(239,68,68,0.4)', color: '#ef4444' }}>
+                {loading === `pro-${u.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Cancel subscription'}
+              </button>
+            ) : u.status === 'comped' ? (
+              <button disabled={loading === `pro-${u.id}`}
+                onClick={() => run(`pro-${u.id}`, { action: 'deactivate_pro', user_id: u.id }, 'Comp removed')}
+                className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10 disabled:opacity-40"
+                style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }}>
+                {loading === `pro-${u.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Remove comp'}
+              </button>
+            ) : (
+              <button disabled={loading === `pro-${u.id}`}
+                onClick={() => run(`pro-${u.id}`, { action: 'activate_pro', user_id: u.id, email: u.email }, `${u.email} comped to Pro`)}
+                className="text-xs px-2.5 py-1.5 rounded-lg font-bold text-white transition hover:opacity-90 disabled:opacity-40"
+                style={{ background: grad }}>
+                {loading === `pro-${u.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Sparkles className="w-3 h-3 inline mr-1" />Comp to Pro</>}
+              </button>
+            )}
+
+            <button disabled={loading === `admin-${u.id}`}
+              onClick={() => run(`admin-${u.id}`, { action: 'set_admin', user_id: u.id, value: !u.isAdmin }, u.isAdmin ? 'Admin removed' : 'Admin granted')}
+              className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10 disabled:opacity-40"
+              style={{ border: '1px solid rgba(168,85,247,0.35)', color: '#a855f7' }}>
+              <Shield className="w-3 h-3 inline mr-1" />{u.isAdmin ? 'Remove admin' : 'Make admin'}
+            </button>
+          </div>
+
+          {/* Labelled, not five identical icons with delete next to set-password. */}
+          <div className="flex gap-2 flex-wrap">
+            <SmallBtn icon={Mail} label="Resend confirmation" busy={loading === `conf-${u.id}`}
+              onClick={() => run(`conf-${u.id}`, { action: 'resend_confirmation', email: u.email }, 'Confirmation sent')} />
+            {!u.email_confirmed && (
+              <SmallBtn icon={MailCheck} label="Force confirm" busy={loading === `force-${u.id}`}
+                onClick={() => run(`force-${u.id}`, { action: 'force_confirm', user_id: u.id }, 'Email confirmed')} />
+            )}
+            <SmallBtn icon={KeyRound} label="Send reset link" busy={loading === `reset-${u.id}`}
+              onClick={() => run(`reset-${u.id}`, { action: 'send_password_reset', email: u.email }, 'Reset link sent')} />
+            <SmallBtn icon={Lock} label="Set password" busy={loading === `pw-${u.id}`}
+              onClick={() => {
+                const pw = window.prompt(`Set a new password for ${u.email}\n\nThey will not be told. Prefer "Send reset link" unless they asked for this.`)
+                if (!pw) return
+                if (pw.length < 8) { toast.error('At least 8 characters'); return }
+                run(`pw-${u.id}`, { action: 'set_password', user_id: u.id, password: pw }, 'Password set')
+              }} />
+            <SmallBtn icon={Trash2} label="Delete account" danger busy={loading === `del-${u.id}`}
+              onClick={() => {
+                if (!confirm(`Permanently delete ${u.email}?\n\nThis removes their cards, contacts, team cards, orders and subscription rows. It cannot be undone.`)) return
+                if (!confirm(`Last check: really delete ${u.email}?`)) return
+                run(`del-${u.id}`, { action: 'delete_user', user_id: u.id }, `${u.email} deleted`)
+              }} />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SmallBtn({ icon: Icon, label, onClick, busy, danger }: {
+  icon: any; label: string; onClick: () => void; busy?: boolean; danger?: boolean
+}) {
+  return (
+    <button onClick={onClick} disabled={busy}
+      className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-medium transition hover:bg-white/10 disabled:opacity-40"
+      style={danger
+        ? { border: '1px solid rgba(239,68,68,0.35)', color: '#ef4444' }
+        : { border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>
+      {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Icon className="w-3 h-3" />}
+      {label}
+    </button>
+  )
+}
+
+// ── NFC ───────────────────────────────────────────────────────────────────
+
+function NfcTab({ orders, run, loading }: { orders: any[]; run: any; loading: string | null }) {
+  const [tracking, setTracking] = useState<Record<string, string>>({})
+
+  return (
+    <Section title="NFC orders" sub={`${orders.length} total`}>
+      {orders.length === 0 ? (
+        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>No orders yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {orders.map(o => {
+            const st = (o.status as NfcStatus) || 'pending_payment'
+            const colour = NFC_STATUS_COLORS[st] || '#6b7280'
+            return (
+              <div key={o.id} className="rounded-xl border p-3" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                    style={{ background: `${colour}1f`, color: colour, border: `1px solid ${colour}55` }}>
+                    {NFC_STATUS_LABELS[st] || st}
+                  </span>
+                  <div className="flex-1 min-w-[180px]">
+                    <p className="text-sm text-white font-medium">{o.full_name || o.email || o.id.slice(0, 8)}</p>
+                    <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                      {fmtDate(o.created_at)}
+                      {o.quantity ? ` · ${o.quantity}x` : ''}
+                      {o.tracking_number ? ` · tracking ${o.tracking_number}` : ''}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Shipping detail. select('*') already loaded this and the old
+                    UI showed only city/province, so fulfilling an order meant
+                    opening the database. */}
+                {(o.address_line1 || o.city) && (
+                  <p className="text-[11px] mt-2 rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.5)' }}>
+                    {[o.address_line1, o.address_line2, o.city, o.province, o.postal_code].filter(Boolean).join(', ')}
+                    {o.phone ? ` · ${o.phone}` : ''}
+                  </p>
+                )}
+
+                <div className="flex gap-1.5 flex-wrap mt-2.5 items-center">
+                  {NFC_STATUSES.filter(s => s !== st).map(s => (
+                    <button key={s} disabled={loading === `nfc-${o.id}`}
+                      onClick={() => {
+                        if (s === 'cancelled' && !confirm('Cancel this order?')) return
+                        // Tracking is deliberately NOT sent. The route only
+                        // touches that column when a string is supplied, so a
+                        // status change can no longer wipe it.
+                        run(`nfc-${o.id}`, { action: 'update_nfc_status', order_id: o.id, status: s }, `Marked ${NFC_STATUS_LABELS[s]}`)
+                      }}
+                      className="text-[11px] px-2 py-1 rounded-lg font-medium transition hover:bg-white/10 disabled:opacity-40"
+                      style={{ border: `1px solid ${NFC_STATUS_COLORS[s]}44`, color: NFC_STATUS_COLORS[s] }}>
+                      {NFC_STATUS_LABELS[s]}
+                    </button>
+                  ))}
+                  {/* Editable at any status. It used to render only on 'paid',
+                      so tracking could never be corrected once shipped. */}
+                  <input
+                    value={tracking[o.id] ?? o.tracking_number ?? ''}
+                    onChange={e => setTracking(t => ({ ...t, [o.id]: e.target.value }))}
+                    placeholder="Tracking number"
+                    className="px-2 py-1 rounded-lg border text-[11px] text-white w-40" style={inputStyle} />
+                  <button disabled={loading === `nfc-${o.id}`}
+                    onClick={() => run(`nfc-${o.id}`, { action: 'update_nfc_status', order_id: o.id, status: o.status, tracking_number: tracking[o.id] ?? '' }, 'Tracking saved')}
+                    className="text-[11px] px-2 py-1 rounded-lg font-semibold transition hover:bg-white/10 disabled:opacity-40"
+                    style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }}>
+                    Save tracking
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </Section>
+  )
+}
+
+// ── Activity ──────────────────────────────────────────────────────────────
+
+function ActivityTab({ audit }: { audit: any[] }) {
+  return (
+    <Section title="Recent admin activity" sub="Every admin action runs with the service-role key. This is the only record of who did what.">
+      {audit.length === 0 ? (
+        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          Nothing logged yet. If this stays empty after you act, migration 028 has not been applied.
+        </p>
+      ) : (
+        <div className="space-y-1.5">
+          {audit.map(a => (
+            <div key={a.id} className="flex items-center gap-3 flex-wrap text-xs rounded-lg px-3 py-2"
+              style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <span className="px-2 py-0.5 rounded font-bold uppercase tracking-wider text-[10px]"
+                style={a.ok
+                  ? { background: 'rgba(34,197,94,0.14)', color: '#22c55e' }
+                  : { background: 'rgba(239,68,68,0.14)', color: '#ef4444' }}>
+                {a.action}
+              </span>
+              <span className="text-white">{a.target_email || a.target_user_id?.slice(0, 8) || '-'}</span>
+              <span style={{ color: 'rgba(255,255,255,0.35)' }}>by {a.actor_email || 'unknown'}</span>
+              <span className="ml-auto" style={{ color: 'rgba(255,255,255,0.3)' }}>{fmtWhen(a.created_at)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Section>
+  )
+}
+
+// ── Announcement ──────────────────────────────────────────────────────────
+
+function AnnouncementBox({ announcement, run, loading }: { announcement: any; run: any; loading: string | null }) {
+  const [msg, setMsg] = useState('')
+  const [linkUrl, setLinkUrl] = useState('')
+  const [linkText, setLinkText] = useState('')
+
+  return (
+    <Section title="App announcement" sub="Shows in the dashboard for every user."
+      right={announcement ? (
+        <button disabled={loading === 'ann-clear'}
+          onClick={() => run('ann-clear', { action: 'clear_announcement' }, 'Announcement cleared')}
+          className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10 disabled:opacity-40"
+          style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }}>
+          Clear
+        </button>
+      ) : undefined}>
+      {announcement && (
+        <p className="text-xs mb-3 rounded-lg px-3 py-2" style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.25)', color: '#0ea5e9' }}>
+          <Megaphone className="w-3 h-3 inline mr-1.5" />
+          Live: {announcement.message}
+        </p>
+      )}
+      <div className="space-y-2">
+        <input value={msg} onChange={e => setMsg(e.target.value)} placeholder="Message" className={inputClass} style={inputStyle} />
+        <div className="flex gap-2 flex-wrap">
+          <input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="Link URL (optional)" className={inputClass + ' flex-1 min-w-[160px]'} style={inputStyle} />
+          <input value={linkText} onChange={e => setLinkText(e.target.value)} placeholder="Link text" className={inputClass + ' flex-1 min-w-[120px]'} style={inputStyle} />
+          <button disabled={!msg.trim() || loading === 'ann-post'}
+            onClick={async () => {
+              const ok = await run('ann-post', { action: 'post_announcement', message: msg.trim(), link_url: linkUrl.trim() || null, link_text: linkText.trim() || null, variant: 'info', display_style: 'banner' }, 'Announcement posted')
+              if (ok) { setMsg(''); setLinkUrl(''); setLinkText('') }
+            }}
+            className="px-4 py-2 rounded-lg text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-40"
+            style={{ background: grad }}>
+            {loading === 'ann-post' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Post'}
+          </button>
+        </div>
+      </div>
+    </Section>
   )
 }

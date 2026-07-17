@@ -143,6 +143,44 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, paystackCancelled: cancelled.length })
   }
 
+  // Extend (or set) a user's trial.
+  //
+  // New. There was no way to do this at all: "give them another two weeks"
+  // meant opening the SQL editor against production, which is not something
+  // anyone should be doing to hand out a courtesy.
+  //
+  // Extends from whichever is later, now or their current end date, so
+  // extending an already-expired trial gives the full extra time rather than
+  // adding days to a date in the past.
+  if (action === 'extend_trial') {
+    const { user_id, days } = body
+    const n = Number(days)
+    if (!user_id) return NextResponse.json({ error: 'user_id required' }, { status: 400 })
+    if (!Number.isInteger(n) || n < 1 || n > 365) {
+      return NextResponse.json({ error: 'Days must be a whole number between 1 and 365' }, { status: 400 })
+    }
+
+    const { data: profile } = await admin
+      .from('profiles').select('trial_ends_at').eq('user_id', user_id).maybeSingle()
+
+    const current = profile?.trial_ends_at ? new Date(profile.trial_ends_at).getTime() : 0
+    const base = Math.max(Date.now(), Number.isFinite(current) ? current : 0)
+    const next = new Date(base + n * 24 * 60 * 60 * 1000).toISOString()
+
+    const { error } = await admin.from('profiles').update({ trial_ends_at: next }).eq('user_id', user_id)
+    if (error) {
+      console.error('extend_trial failed:', error)
+      return NextResponse.json({ error: `Could not extend the trial: ${error.message}` }, { status: 500 })
+    }
+
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email,
+      action: 'extend_trial', targetUserId: user_id,
+      detail: { days: n, from: profile?.trial_ends_at ?? null, to: next },
+    })
+    return NextResponse.json({ success: true, trial_ends_at: next })
+  }
+
   // Create or update org
   if (action === 'create_org') {
     const { user_id, org_name, seat_count } = body
