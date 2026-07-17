@@ -192,6 +192,82 @@ export async function POST(request: Request) {
   //
   // Never automatic. "Unpaid" is a judgement call, and a corporate 40 days
   // late on a debit order is normal.
+  // ── Departments ─────────────────────────────────────────────────────────
+  // Structure only here: create, rename, delete, assign a manager, move a
+  // card in. The department's LOOK is edited by its manager in the dashboard,
+  // so there is no brand editor in the admin.
+
+  if (action === 'create_department') {
+    const { org_id, name } = body
+    if (!org_id || !name || !String(name).trim()) {
+      return NextResponse.json({ error: 'A team and a department name are required' }, { status: 400 })
+    }
+    const { data, error } = await admin.from('departments')
+      .insert({ organization_id: org_id, name: String(name).trim() })
+      .select('id').maybeSingle()
+    if (error) {
+      console.error('create_department failed:', error)
+      return NextResponse.json({ error: `Could not create it: ${error.message}` }, { status: 500 })
+    }
+    await auditLog(admin, { actorUserId: user?.id, actorEmail: user?.email, action: 'create_department', detail: { org_id, name, department_id: data?.id } })
+    return NextResponse.json({ success: true, department_id: data?.id })
+  }
+
+  if (action === 'rename_department') {
+    const { department_id, name } = body
+    if (!department_id || !name || !String(name).trim()) {
+      return NextResponse.json({ error: 'A department and a name are required' }, { status: 400 })
+    }
+    const { error } = await admin.from('departments')
+      .update({ name: String(name).trim(), updated_at: new Date().toISOString() })
+      .eq('id', department_id)
+    if (error) return NextResponse.json({ error: `Could not rename: ${error.message}` }, { status: 500 })
+    await auditLog(admin, { actorUserId: user?.id, actorEmail: user?.email, action: 'rename_department', detail: { department_id, name } })
+    return NextResponse.json({ success: true })
+  }
+
+  if (action === 'delete_department') {
+    const { department_id } = body
+    if (!department_id) return NextResponse.json({ error: 'department_id required' }, { status: 400 })
+    // ON DELETE SET NULL on team_cards.department_id, so the cards survive and
+    // fall back to the org brand. Nobody loses a card by this.
+    const { count } = await admin.from('team_cards').select('id', { count: 'exact', head: true }).eq('department_id', department_id)
+    const { error } = await admin.from('departments').delete().eq('id', department_id)
+    if (error) return NextResponse.json({ error: `Could not delete: ${error.message}` }, { status: 500 })
+    await auditLog(admin, { actorUserId: user?.id, actorEmail: user?.email, action: 'delete_department', detail: { department_id, cards_freed: count ?? 0 } })
+    return NextResponse.json({ success: true, cardsFreed: count ?? 0 })
+  }
+
+  if (action === 'set_dept_manager') {
+    // add or remove (manage = false).
+    const { department_id, user_id, manage } = body
+    if (!department_id || !user_id) return NextResponse.json({ error: 'department_id and user_id required' }, { status: 400 })
+    if (manage === false) {
+      const { error } = await admin.from('department_managers').delete().eq('department_id', department_id).eq('user_id', user_id)
+      if (error) return NextResponse.json({ error: `Could not remove: ${error.message}` }, { status: 500 })
+      await auditLog(admin, { actorUserId: user?.id, actorEmail: user?.email, action: 'remove_dept_manager', targetUserId: user_id, detail: { department_id } })
+      return NextResponse.json({ success: true })
+    }
+    // Idempotent: unique(department_id, user_id) means a repeat is harmless.
+    const { error } = await admin.from('department_managers')
+      .upsert({ department_id, user_id }, { onConflict: 'department_id,user_id' })
+    if (error) return NextResponse.json({ error: `Could not assign: ${error.message}` }, { status: 500 })
+    await auditLog(admin, { actorUserId: user?.id, actorEmail: user?.email, action: 'assign_dept_manager', targetUserId: user_id, detail: { department_id } })
+    return NextResponse.json({ success: true })
+  }
+
+  if (action === 'move_card_to_department') {
+    const { team_card_id, department_id } = body
+    if (!team_card_id) return NextResponse.json({ error: 'team_card_id required' }, { status: 400 })
+    // department_id null moves the card back to the org level.
+    const { error } = await admin.from('team_cards')
+      .update({ department_id: department_id || null })
+      .eq('id', team_card_id)
+    if (error) return NextResponse.json({ error: `Could not move it: ${error.message}` }, { status: 500 })
+    await auditLog(admin, { actorUserId: user?.id, actorEmail: user?.email, action: 'move_card_to_department', detail: { team_card_id, department_id: department_id || null } })
+    return NextResponse.json({ success: true })
+  }
+
   if (action === 'set_org_suspended') {
     const { org_id, suspended, message } = body
     if (!org_id) return NextResponse.json({ error: 'org_id required' }, { status: 400 })

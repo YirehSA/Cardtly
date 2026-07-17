@@ -46,6 +46,14 @@ export interface AdminUserRow {
   repId: string | null
 }
 
+export interface DeptRow {
+  id: string
+  name: string
+  hasBrand: boolean
+  cardCount: number
+  managers: { userId: string; email: string | null }[]
+}
+
 export interface AdminOrgRow {
   id: string
   name: string
@@ -66,6 +74,7 @@ export interface AdminOrgRow {
   needsCollecting: boolean
   suspendedAt: string | null
   suspensionMessage: string | null
+  departments: DeptRow[]
   createdAt: string
 }
 
@@ -114,11 +123,13 @@ export async function loadAdminData(admin: any) {
     cardViews,
     { data: repRows },
     { data: payoutRows },
+    { data: deptRows },
+    { data: deptManagerRows },
   ] = await Promise.all([
     listAllUsers(admin),
     admin.from('whop_subscriptions').select('*').order('created_at', { ascending: false }),
     admin.from('cards').select('id, name, slug, user_id, view_count, created_at'),
-    admin.from('team_cards').select('id, name, slug, user_id, organization_id, view_count, claimed_at, created_at'),
+    admin.from('team_cards').select('id, name, slug, user_id, organization_id, department_id, view_count, claimed_at, created_at'),
     admin.from('organizations').select('*').order('created_at', { ascending: false }),
     admin.from('nfc_orders').select('*').order('created_at', { ascending: false }),
     // Was: fetch every contact row to call .length on it.
@@ -127,6 +138,8 @@ export async function loadAdminData(admin: any) {
     admin.from('trial_emails').select('user_id, kind'),
     admin.from('admin_audit_log').select('*').order('created_at', { ascending: false }).limit(50),
     pageRows(admin, 'card_events', 'card_id', (q: any) => q.eq('event_type', 'view').gte('created_at', since)),
+    admin.from('departments').select('id, organization_id, name, brand').order('created_at', { ascending: true }),
+    admin.from('department_managers').select('department_id, user_id'),
     admin.from('reps').select('*').order('created_at', { ascending: true }),
     admin.from('rep_payouts').select('*').order('period_start', { ascending: false }),
   ])
@@ -226,6 +239,30 @@ export async function loadAdminData(admin: any) {
     }
   })
 
+  // Departments per org, with their managers (by email) and how many cards
+  // sit in each. Loaded here so the admin can set the structure up; managers
+  // manage the look themselves in the dashboard.
+  const cardsInDept: Record<string, number> = {}
+  for (const tc of teamCards || []) {
+    if (tc.department_id) cardsInDept[tc.department_id] = (cardsInDept[tc.department_id] || 0) + 1
+  }
+  const managersByDept: Record<string, { userId: string; email: string | null }[]> = {}
+  for (const m of deptManagerRows || []) {
+    (managersByDept[m.department_id] ||= []).push({ userId: m.user_id, email: emailById[m.user_id] || null })
+  }
+  const deptsByOrg: Record<string, DeptRow[]> = {}
+  for (const d of deptRows || []) {
+    (deptsByOrg[d.organization_id] ||= []).push({
+      id: d.id,
+      name: d.name,
+      // Whether the department sets any brand of its own, so the UI can show
+      // "custom look" vs "inherits org".
+      hasBrand: !!d.brand && Object.keys(d.brand).length > 0,
+      cardCount: cardsInDept[d.id] || 0,
+      managers: managersByDept[d.id] || [],
+    })
+  }
+
   const orgRows: AdminOrgRow[] = (orgs || []).map((o: any) => {
     const b = cardsByOrg[o.id] || { created: 0, claimed: 0 }
     // Narrow once: anything unrecognised is treated as 'monthly', matching
@@ -253,6 +290,7 @@ export async function loadAdminData(admin: any) {
       needsCollecting: orgNeedsCollecting(mode, o.last_collected_on || null),
       suspendedAt: o.suspended_at || null,
       suspensionMessage: o.suspension_message || null,
+      departments: deptsByOrg[o.id] || [],
       createdAt: o.created_at,
     }
   }).sort((a: AdminOrgRow, b: AdminOrgRow) => b.maxSeats - a.maxSeats)

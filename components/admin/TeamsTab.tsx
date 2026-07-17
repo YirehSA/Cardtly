@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle, Flag, ExternalLink, MailQuestion, UserCheck } from 'lucide-react'
+import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle, Flag, ExternalLink, MailQuestion, UserCheck, Layers, UserCog, Palette } from 'lucide-react'
 import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
 import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, orgMonthlyRand, type OrgBillingMode } from '@/lib/org-billing'
 import type { AdminOrgRow, AdminUserRow } from '@/lib/admin-data'
@@ -25,6 +25,7 @@ interface Props {
   onAssignRep: (orgId: string, repId: string | null) => Promise<boolean>
   onMarkCollected: (orgId: string) => Promise<boolean>
   onSuspend: (orgId: string, suspended: boolean, message: string | null) => Promise<boolean>
+  onDept: (action: string, body: Record<string, any>, key: string, msg: string) => Promise<boolean>
   loading: string | null
 }
 
@@ -32,7 +33,7 @@ interface Props {
 // row and as a count tile, seat utilisation was invisible, and there was
 // nowhere to say how a team is billed, so every one of them defaulted to
 // "monthly" and reported revenue nobody collects.
-export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssignRep, onMarkCollected, onSuspend, loading }: Props) {
+export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssignRep, onMarkCollected, onSuspend, onDept, loading }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState<Form>({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '' })
@@ -217,7 +218,13 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
                           cards with nowhere to be seen. This is their home:
                           the question is always "who is in this team", not
                           "which users exist". */}
-                      <TeamMembers cards={teamCards.filter((c: any) => c.organization_id === o.id)} />
+                      <TeamMembers
+                        cards={teamCards.filter((c: any) => c.organization_id === o.id)}
+                        departments={o.departments}
+                        onMove={(cardId, deptId) => onDept('move_card_to_department', { team_card_id: cardId, department_id: deptId }, `movecard-${cardId}`, deptId ? 'Card moved' : 'Card moved to org level')}
+                        loading={loading} />
+
+                      <DepartmentsSection org={o} users={users} onDept={onDept} loading={loading} />
 
                       <SuspendControl org={o} onSuspend={onSuspend} busy={loading === `susp-${o.id}`} />
 
@@ -484,7 +491,12 @@ function SuspendControl({ org, onSuspend, busy }: {
 // open: it just has nobody signed in behind it yet. That distinction is the
 // whole point of showing this, because "invited but never claimed" is the
 // state you actually want to chase.
-function TeamMembers({ cards }: { cards: any[] }) {
+function TeamMembers({ cards, departments, onMove, loading }: {
+  cards: any[]
+  departments: AdminOrgRow['departments']
+  onMove: (cardId: string, deptId: string | null) => Promise<boolean>
+  loading: string | null
+}) {
   if (!cards.length) {
     return (
       <p className="text-xs mb-3 rounded-lg px-3 py-2"
@@ -510,10 +522,25 @@ function TeamMembers({ cards }: { cards: any[] }) {
             {c.user_id
               ? <UserCheck className="w-3 h-3 flex-shrink-0" style={{ color: '#22c55e' }} />
               : <MailQuestion className="w-3 h-3 flex-shrink-0" style={{ color: '#f59e0b' }} />}
-            <span className="text-white truncate max-w-[160px]">{c.name || 'Unnamed'}</span>
-            <span className="truncate max-w-[170px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <span className="text-white truncate max-w-[130px]">{c.name || 'Unnamed'}</span>
+            <span className="truncate max-w-[140px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
               {c.user_id ? 'claimed' : `invited ${c.email || '(no email)'}`}
             </span>
+            {/* Which department this card sits in. Only shown when the team has
+                departments, since otherwise there is nowhere to move it. */}
+            {departments.length > 0 && (
+              <select
+                value={c.department_id || ''}
+                disabled={loading === `movecard-${c.id}`}
+                onChange={e => onMove(c.id, e.target.value || null)}
+                className="text-[11px] px-1.5 py-0.5 rounded"
+                style={{ ...inputStyle, border: `1px solid ${c.department_id ? 'rgba(124,58,237,0.4)' : 'rgba(255,255,255,0.1)'}`, color: c.department_id ? '#a78bfa' : 'rgba(255,255,255,0.4)' }}>
+                <option value="" style={{ background: '#1a1a1a' }}>No department</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.id} style={{ background: '#1a1a1a' }}>{d.name}</option>
+                ))}
+              </select>
+            )}
             {c.slug && (
               <a href={`/card/${c.slug}`} target="_blank" rel="noreferrer"
                 className="ml-auto flex items-center gap-1 transition hover:text-white"
@@ -526,6 +553,121 @@ function TeamMembers({ cards }: { cards: any[] }) {
             </span>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+// Departments inside a team. Structure only here: create, name, delete,
+// assign a manager. The manager sets the department's LOOK in their own
+// dashboard, so there is no brand editor here, just a badge saying whether a
+// department has a custom look yet.
+function DepartmentsSection({ org, users, onDept, loading }: {
+  org: AdminOrgRow
+  users: AdminUserRow[]
+  onDept: (action: string, body: Record<string, any>, key: string, msg: string) => Promise<boolean>
+  loading: string | null
+}) {
+  const [newName, setNewName] = useState('')
+  const [managerFor, setManagerFor] = useState<string | null>(null)
+  const [userQ, setUserQ] = useState('')
+
+  const matches = useMemo(() => {
+    const n = userQ.trim().toLowerCase()
+    if (!n) return []
+    return users.filter(u => u.email?.toLowerCase().includes(n) || u.card?.name?.toLowerCase().includes(n)).slice(0, 5)
+  }, [users, userQ])
+
+  return (
+    <div className="mb-3 rounded-lg px-3 py-3" style={{ background: 'rgba(124,58,237,0.05)', border: '1px solid rgba(124,58,237,0.2)' }}>
+      <p className="text-[11px] font-semibold mb-2 flex items-center gap-1.5" style={{ color: '#a78bfa' }}>
+        <Layers className="w-3 h-3" />
+        Departments &middot; each can look different and have its own manager
+      </p>
+
+      {org.departments.length > 0 && (
+        <div className="space-y-1.5 mb-2.5">
+          {org.departments.map(d => (
+            <div key={d.id} className="rounded-lg px-2.5 py-2" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-semibold text-white">{d.name}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}>
+                  {d.cardCount} card{d.cardCount === 1 ? '' : 's'}
+                </span>
+                {d.hasBrand
+                  ? <span className="text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1" style={{ background: 'rgba(34,197,94,0.14)', color: '#22c55e' }}><Palette className="w-2.5 h-2.5" />custom look</span>
+                  : <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)' }}>inherits org look</span>}
+                <button onClick={() => { setManagerFor(managerFor === d.id ? null : d.id); setUserQ('') }}
+                  className="ml-auto text-[11px] px-2 py-0.5 rounded transition hover:bg-white/10"
+                  style={{ border: '1px solid rgba(168,85,247,0.35)', color: '#a855f7' }}>
+                  <UserCog className="w-3 h-3 inline mr-1" />
+                  {d.managers.length ? `${d.managers.length} manager${d.managers.length === 1 ? '' : 's'}` : 'Add manager'}
+                </button>
+                <button onClick={() => {
+                  if (!confirm(`Delete the "${d.name}" department?\n\nIts ${d.cardCount} card${d.cardCount === 1 ? '' : 's'} are NOT deleted; they fall back to the company look.`)) return
+                  onDept('delete_department', { department_id: d.id }, `deldept-${d.id}`, 'Department deleted')
+                }}
+                  className="text-[11px] p-1 rounded transition hover:bg-white/10" style={{ color: 'rgba(239,68,68,0.7)' }}>
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Managers */}
+              {d.managers.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {d.managers.map(m => (
+                    <span key={m.userId} className="text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1" style={{ background: 'rgba(168,85,247,0.12)', color: '#a78bfa' }}>
+                      {m.email || m.userId.slice(0, 8)}
+                      <button onClick={() => onDept('set_dept_manager', { department_id: d.id, user_id: m.userId, manage: false }, `mgr-${d.id}-${m.userId}`, 'Manager removed')}
+                        className="hover:text-white"><X className="w-2.5 h-2.5" /></button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {managerFor === d.id && (
+                <div className="mt-2">
+                  <input value={userQ} onChange={e => setUserQ(e.target.value)} placeholder="Search a user by email or name to make them manager"
+                    className={inputClass} style={inputStyle} />
+                  {matches.length > 0 && (
+                    <div className="mt-1 rounded-lg overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+                      {matches.map(u => (
+                        <button key={u.id} onClick={async () => {
+                          const ok = await onDept('set_dept_manager', { department_id: d.id, user_id: u.id, manage: true }, `mgr-${d.id}-${u.id}`, `${u.email} manages ${d.name}`)
+                          if (ok) { setManagerFor(null); setUserQ('') }
+                        }}
+                          className="w-full text-left px-3 py-2 text-xs transition hover:bg-white/10" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                          {u.email}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {userQ && matches.length === 0 && (
+                    <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                      No match. A manager needs a Cardtly account first.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="New department name, e.g. Sales"
+          className={inputClass} style={inputStyle} />
+        <button
+          disabled={!newName.trim() || loading === `newdept-${org.id}`}
+          onClick={async () => {
+            const ok = await onDept('create_department', { org_id: org.id, name: newName.trim() }, `newdept-${org.id}`, `${newName.trim()} added`)
+            if (ok) setNewName('')
+          }}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-40"
+          style={{ background: grad }}>
+          {loading === `newdept-${org.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+          Add
+        </button>
       </div>
     </div>
   )
