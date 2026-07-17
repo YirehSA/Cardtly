@@ -264,10 +264,15 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
         )}
 
         {tab === 'teams' && (
-          <TeamsTab orgs={orgs} loading={loading}
-            onSave={(o, name, seats) => run(`org-${o.adminUserId}`,
-              { action: 'create_org', user_id: o.adminUserId, org_name: name, seat_count: seats },
-              `${name}: ${seats} seats`)} />
+          <TeamsTab orgs={orgs} users={users} loading={loading}
+            onSave={(f) => run(`org-${f.userId}`, {
+              action: 'create_org',
+              user_id: f.userId,
+              org_name: f.name,
+              seat_count: Number(f.seats),
+              billing_period: f.mode,
+              billing_notes: f.notes || null,
+            }, `${f.name}: ${f.seats} seats, ${f.mode === 'comp' ? 'free' : f.mode.replace('_', ' ')}`)} />
         )}
 
         {tab === 'nfc' && <NfcTab orders={nfcOrders} run={run} loading={loading} />}

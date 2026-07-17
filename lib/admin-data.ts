@@ -1,5 +1,6 @@
 import { FOUNDER_ADMIN_USER_ID } from '@/lib/admin-check'
 import { isBillablePaystackSub, listActivePaystackSubs } from '@/lib/paystack'
+import { orgMonthlyRand, BILLING_MODE_META, isOrgBillingMode, type OrgBillingMode } from '@/lib/org-billing'
 
 // Everything the admin page needs, assembled in one place so the page stays a
 // thin shell and this stays testable.
@@ -53,7 +54,9 @@ export interface AdminOrgRow {
   cardsClaimed: number
   monthlyRand: number
   isEnterprise: boolean
-  billingPeriod: string | null
+  billingMode: OrgBillingMode
+  billingNotes: string | null
+  isRevenue: boolean
   createdAt: string
 }
 
@@ -211,6 +214,9 @@ export async function loadAdminData(admin: any) {
 
   const orgRows: AdminOrgRow[] = (orgs || []).map((o: any) => {
     const b = cardsByOrg[o.id] || { created: 0, claimed: 0 }
+    // Narrow once: anything unrecognised is treated as 'monthly', matching
+    // the DB default and the CHECK added in migration 029.
+    const mode: OrgBillingMode = isOrgBillingMode(o.billing_period) ? o.billing_period : 'monthly'
     return {
       id: o.id,
       name: o.name,
@@ -219,9 +225,13 @@ export async function loadAdminData(admin: any) {
       maxSeats: o.max_seats ?? 0,
       cardsCreated: b.created,
       cardsClaimed: b.claimed,
-      monthlyRand: (o.max_seats ?? 0) * SEAT_PRICE_RAND,
-      isEnterprise: (o.max_seats ?? 0) > MAX_SELF_SERVE_SEATS,
-      billingPeriod: o.billing_period || null,
+      // Worth 0 unless something is actually billing them. A seat count is
+      // not revenue.
+      monthlyRand: orgMonthlyRand(o.max_seats ?? 0, mode),
+      isEnterprise: mode === 'debit_order' || (o.max_seats ?? 0) > MAX_SELF_SERVE_SEATS,
+      billingMode: mode,
+      billingNotes: o.billing_notes || null,
+      isRevenue: BILLING_MODE_META[mode].isRevenue,
       createdAt: o.created_at,
     }
   }).sort((a: AdminOrgRow, b: AdminOrgRow) => b.maxSeats - a.maxSeats)

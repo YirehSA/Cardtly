@@ -1,55 +1,90 @@
 'use client'
 
-import { useState } from 'react'
-import { Building2, Loader2, AlertTriangle, Check } from 'lucide-react'
-import { Section, StatusPill, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
-import type { AdminOrgRow } from '@/lib/admin-data'
+import { useState, useMemo } from 'react'
+import { Building2, Loader2, AlertTriangle, Check, Plus, X } from 'lucide-react'
+import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
+import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, orgMonthlyRand, type OrgBillingMode } from '@/lib/org-billing'
+import type { AdminOrgRow, AdminUserRow } from '@/lib/admin-data'
 
-const SEAT_PRICE = 97
-const SELF_SERVE_CAP = 20
+interface Form {
+  userId: string
+  name: string
+  seats: string
+  mode: OrgBillingMode
+  notes: string
+}
 
 interface Props {
   orgs: AdminOrgRow[]
-  onSave: (org: AdminOrgRow, name: string, seats: number) => Promise<boolean>
+  users: AdminUserRow[]
+  onSave: (form: Form) => Promise<boolean>
   loading: string | null
 }
 
 // Teams had no home at all before: an org appeared as a suffix on its owner's
-// row and as a count tile, and seat utilisation was invisible. You could not
-// answer "is this 50-seat team actually using its seats?" without SQL.
-export default function TeamsTab({ orgs, onSave, loading }: Props) {
+// row and as a count tile, seat utilisation was invisible, and there was
+// nowhere to say how a team is billed, so every one of them defaulted to
+// "monthly" and reported revenue nobody collects.
+export default function TeamsTab({ orgs, users, onSave, loading }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
-  const [form, setForm] = useState<{ name: string; seats: string }>({ name: '', seats: '' })
+  const [creating, setCreating] = useState(false)
+  const [form, setForm] = useState<Form>({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '' })
 
-  function open(o: AdminOrgRow) {
+  function openEdit(o: AdminOrgRow) {
+    setCreating(false)
     if (editing === o.id) { setEditing(null); return }
     setEditing(o.id)
     // Seed from the org being edited. The old stepper was one shared
     // useState(5) that never read the org, so opening a 50-seat team showed
-    // "5" next to a label saying "currently 50 seats" and saving wiped 45.
-    setForm({ name: o.name, seats: String(o.maxSeats) })
+    // "5" next to a label saying "currently 50 seats", and saving wiped 45.
+    setForm({ userId: o.adminUserId, name: o.name, seats: String(o.maxSeats), mode: o.billingMode, notes: o.billingNotes || '' })
   }
 
+  function openCreate() {
+    setEditing(null)
+    setCreating(c => !c)
+    setForm({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '' })
+  }
+
+  const revenue = orgs.filter(o => o.isRevenue).reduce((n, o) => n + o.monthlyRand, 0)
   const totalSeats = orgs.reduce((n, o) => n + o.maxSeats, 0)
-  const totalClaimed = orgs.reduce((n, o) => n + o.cardsClaimed, 0)
 
   return (
     <div className="space-y-4">
       <Section
         title="Teams"
-        sub={`${orgs.length} ${orgs.length === 1 ? 'org' : 'orgs'} · ${totalSeats} seats sold · ${totalClaimed} claimed by a person`}
+        sub={`${orgs.length} orgs · ${totalSeats} seats · ${randFmt(revenue)}/month actually billed`}
+        right={
+          <button onClick={openCreate}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition hover:opacity-90"
+            style={{ background: grad }}>
+            {creating ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+            {creating ? 'Cancel' : 'New team'}
+          </button>
+        }
       >
-        {orgs.length === 0 ? (
+        {creating && (
+          <div className="rounded-xl border p-4 mb-4" style={{ borderColor: 'rgba(124,58,237,0.4)', background: 'rgba(124,58,237,0.06)' }}>
+            <p className="text-xs font-semibold mb-3" style={{ color: '#a78bfa' }}>
+              New team. The owner must already have a Cardtly account: they administer the team and invite the rest.
+            </p>
+            <TeamForm form={form} setForm={setForm} users={users} showUserPicker
+              busy={loading === `org-${form.userId}`}
+              onSave={async () => { const ok = await onSave(form); if (ok) setCreating(false) }} />
+          </div>
+        )}
+
+        {orgs.length === 0 && !creating ? (
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>No teams yet.</p>
         ) : (
           <div className="space-y-2">
             {orgs.map(o => {
               const idle = o.maxSeats - o.cardsCreated
               const busy = loading === `org-${o.adminUserId}`
-              const open_ = editing === o.id
+              const meta = BILLING_MODE_META[o.billingMode]
               return (
                 <div key={o.id} className="rounded-xl border" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
-                  <button onClick={() => open(o)} className="w-full text-left p-3.5 flex items-center gap-3 flex-wrap">
+                  <button onClick={() => openEdit(o)} className="w-full text-left p-3.5 flex items-center gap-3 flex-wrap">
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                       style={{ background: 'rgba(236,72,153,0.14)', border: '1px solid rgba(236,72,153,0.3)' }}>
                       <Building2 className="w-4 h-4" style={{ color: '#f472b6' }} />
@@ -58,30 +93,21 @@ export default function TeamsTab({ orgs, onSave, loading }: Props) {
                     <div className="flex-1 min-w-[180px]">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-semibold text-white text-sm">{o.name}</p>
-                        {o.isEnterprise && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
-                            title={`Above the ${SELF_SERVE_CAP}-seat self-serve cap. Paystack is not billing this; it should be on debit order.`}
-                            style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.4)' }}>
-                            Enterprise
-                          </span>
-                        )}
-                        {o.billingPeriod === 'comp' && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
-                            style={{ background: 'rgba(14,165,233,0.15)', color: '#0ea5e9', border: '1px solid rgba(14,165,233,0.4)' }}>
-                            Comped
-                          </span>
-                        )}
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                          title={meta.desc}
+                          style={{ background: `${meta.colour}1f`, color: meta.colour, border: `1px solid ${meta.colour}55` }}>
+                          {meta.short}
+                        </span>
                       </div>
                       <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{o.adminEmail || o.adminUserId.slice(0, 8)}</p>
                     </div>
 
-                    {/* Seat utilisation, which used to be invisible. used_seats
-                        exists in the table but nothing maintains it, so these
-                        are counted from the actual team_cards rows. */}
+                    {/* Counted from real team_cards rows. organizations.used_seats
+                        exists but nothing maintains it, so it is ignored. */}
                     <div className="flex items-center gap-4 text-xs">
                       <div className="text-center">
                         <p className="font-bold text-white text-sm">{o.maxSeats}</p>
-                        <p style={{ color: 'rgba(255,255,255,0.35)' }}>bought</p>
+                        <p style={{ color: 'rgba(255,255,255,0.35)' }}>seats</p>
                       </div>
                       <div className="text-center">
                         <p className="font-bold text-sm" style={{ color: o.cardsCreated > o.maxSeats ? '#ef4444' : '#fff' }}>{o.cardsCreated}</p>
@@ -91,64 +117,35 @@ export default function TeamsTab({ orgs, onSave, loading }: Props) {
                         <p className="font-bold text-sm" style={{ color: '#22c55e' }}>{o.cardsClaimed}</p>
                         <p style={{ color: 'rgba(255,255,255,0.35)' }}>claimed</p>
                       </div>
-                      <div className="text-center min-w-[64px]">
-                        <p className="font-bold text-sm" style={{ color: o.billingPeriod === 'comp' ? 'rgba(255,255,255,0.35)' : '#22c55e' }}>
-                          {o.billingPeriod === 'comp' ? '-' : randFmt(o.monthlyRand)}
+                      <div className="text-center min-w-[70px]">
+                        <p className="font-bold text-sm" style={{ color: o.isRevenue ? '#22c55e' : 'rgba(255,255,255,0.3)' }}>
+                          {o.isRevenue ? randFmt(o.monthlyRand) : 'free'}
                         </p>
-                        <p style={{ color: 'rgba(255,255,255,0.35)' }}>/month</p>
+                        <p style={{ color: 'rgba(255,255,255,0.35)' }}>{o.isRevenue ? '/month' : 'not billed'}</p>
                       </div>
                     </div>
                   </button>
 
-                  {open_ && (
+                  {editing === o.id && (
                     <div className="px-3.5 pb-3.5 pt-1 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-                      {idle > 0 && (
+                      {idle > 0 && o.isRevenue && (
                         <p className="text-xs mb-3 rounded-lg px-3 py-2"
                           style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: '#f59e0b' }}>
-                          Paying for {o.maxSeats} seats, only {o.cardsCreated} card{o.cardsCreated === 1 ? '' : 's'} created. {idle} seat{idle === 1 ? '' : 's'} idle.
+                          Billed for {o.maxSeats} seats, only {o.cardsCreated} card{o.cardsCreated === 1 ? '' : 's'} created. {idle} idle.
                         </p>
                       )}
-                      <div className="flex gap-3 flex-wrap items-end">
-                        <div className="flex-1 min-w-[180px]">
-                          <label className="text-[11px] font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Team name</label>
-                          <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                            className={inputClass} style={inputStyle} />
-                        </div>
-                        <div className="w-28">
-                          <label className="text-[11px] font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Seats</label>
-                          {/* A number field, not a ±1 stepper. Going 5 -> 50 used
-                              to be 45 clicks. */}
-                          <input type="number" min={1} value={form.seats}
-                            onChange={e => setForm(f => ({ ...f, seats: e.target.value }))}
-                            className={inputClass} style={inputStyle} />
-                        </div>
-                        <div className="text-xs pb-2.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                          {Number(form.seats) > 0 && (
-                            <>
-                              <span className="font-bold text-white">{randFmt(Number(form.seats) * SEAT_PRICE)}</span>/month
-                              {Number(form.seats) > SELF_SERVE_CAP && (
-                                <span className="block mt-0.5" style={{ color: '#f59e0b' }}>
-                                  <AlertTriangle className="w-3 h-3 inline mr-1" />
-                                  Above {SELF_SERVE_CAP} seats: Enterprise, bill by debit order
-                                </span>
-                              )}
-                            </>
-                          )}
-                        </div>
-                        <button
-                          disabled={busy || !form.name.trim() || !(Number(form.seats) >= 1)}
-                          onClick={async () => {
-                            const ok = await onSave(o, form.name.trim(), Number(form.seats))
-                            if (ok) setEditing(null)
-                          }}
-                          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-40"
-                          style={{ background: grad }}>
-                          {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                          Save
-                        </button>
-                      </div>
+                      {o.billingMode === 'debit_order' && (
+                        <p className="text-xs mb-3 rounded-lg px-3 py-2"
+                          style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: '#f59e0b' }}>
+                          <AlertTriangle className="w-3 h-3 inline mr-1" />
+                          Nothing collects this automatically. You invoice and collect {randFmt(o.monthlyRand)} yourself.
+                        </p>
+                      )}
+                      <TeamForm form={form} setForm={setForm} users={users}
+                        busy={busy}
+                        onSave={async () => { const ok = await onSave(form); if (ok) setEditing(null) }} />
                       <p className="text-[11px] mt-2.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                        Created {fmtDate(o.createdAt)}. Reducing seats below {o.cardsCreated} will block this team from adding cards.
+                        Created {fmtDate(o.createdAt)}. Dropping below {o.cardsCreated} seats blocks this team from adding cards.
                       </p>
                     </div>
                   )}
@@ -158,6 +155,135 @@ export default function TeamsTab({ orgs, onSave, loading }: Props) {
           </div>
         )}
       </Section>
+    </div>
+  )
+}
+
+function TeamForm({ form, setForm, users, onSave, busy, showUserPicker }: {
+  form: Form
+  setForm: (f: Form | ((f: Form) => Form)) => void
+  users: AdminUserRow[]
+  onSave: () => void
+  busy: boolean
+  showUserPicker?: boolean
+}) {
+  const [userQ, setUserQ] = useState('')
+  const seats = Number(form.seats)
+  const meta = BILLING_MODE_META[form.mode]
+  const monthly = orgMonthlyRand(seats, form.mode)
+
+  // Paystack self-serve stops at 20 seats. Anything larger is not billed by
+  // Paystack at all, so calling it monthly would claim money nothing collects.
+  const overCap = seats > MAX_SELF_SERVE_SEATS && (form.mode === 'monthly' || form.mode === 'yearly')
+
+  const matches = useMemo(() => {
+    const n = userQ.trim().toLowerCase()
+    if (!n) return []
+    return users.filter(u => u.email?.toLowerCase().includes(n) || u.card?.name?.toLowerCase().includes(n)).slice(0, 6)
+  }, [users, userQ])
+
+  const owner = users.find(u => u.id === form.userId)
+
+  return (
+    <div className="space-y-3">
+      {showUserPicker && (
+        <div>
+          <label className="text-[11px] font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Team owner</label>
+          {owner ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-white px-3 py-2 rounded-lg flex-1" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)' }}>
+                {owner.email}
+              </span>
+              <button onClick={() => { setForm(f => ({ ...f, userId: '' })); setUserQ('') }}
+                className="p-2 rounded-lg transition hover:bg-white/10"><X className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.5)' }} /></button>
+            </div>
+          ) : (
+            <>
+              <input value={userQ} onChange={e => setUserQ(e.target.value)} placeholder="Search by email or name"
+                className={inputClass} style={inputStyle} />
+              {matches.length > 0 && (
+                <div className="mt-1 rounded-lg overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+                  {matches.map(u => (
+                    <button key={u.id} onClick={() => { setForm(f => ({ ...f, userId: u.id })); setUserQ('') }}
+                      className="w-full text-left px-3 py-2 text-xs transition hover:bg-white/10 flex items-center justify-between gap-2"
+                      style={{ color: 'rgba(255,255,255,0.75)' }}>
+                      <span>{u.email}</span>
+                      {u.org && <span style={{ color: '#f59e0b' }}>already owns {u.org.name}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {userQ && matches.length === 0 && (
+                <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  No match. They need a Cardtly account first: ask them to sign up, then come back.
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-3 flex-wrap items-end">
+        <div className="flex-1 min-w-[170px]">
+          <label className="text-[11px] font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Company name</label>
+          <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            className={inputClass} style={inputStyle} placeholder="Acme (Pty) Ltd" />
+        </div>
+        <div className="w-24">
+          <label className="text-[11px] font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Seats</label>
+          {/* A number field, not a plus/minus stepper. 5 -> 50 used to be 45 clicks. */}
+          <input type="number" min={1} value={form.seats} onChange={e => setForm(f => ({ ...f, seats: e.target.value }))}
+            className={inputClass} style={inputStyle} />
+        </div>
+        <div className="min-w-[190px]">
+          <label className="text-[11px] font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Billing</label>
+          <select value={form.mode} onChange={e => setForm(f => ({ ...f, mode: e.target.value as OrgBillingMode }))}
+            className={inputClass} style={inputStyle}>
+            {ORG_BILLING_MODES.map(m => (
+              <option key={m} value={m} style={{ background: '#1a1a1a' }}>{BILLING_MODE_META[m].label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{meta.desc}</p>
+
+      {(form.mode === 'debit_order' || form.mode === 'comp') && (
+        <div>
+          <label className="text-[11px] font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            Billing notes {form.mode === 'debit_order' ? '(finance contact, PO number, mandate date)' : '(why this is free)'}
+          </label>
+          <input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+            className={inputClass} style={inputStyle}
+            placeholder={form.mode === 'debit_order' ? 'accounts@acme.co.za · PO 4471 · mandate signed 2026-07-17' : 'Promo partner, free forever'} />
+        </div>
+      )}
+
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          {seats >= 1 && (
+            meta.isRevenue
+              ? <><span className="font-bold text-white">{randFmt(monthly)}</span>/month at R{SEAT_PRICE_RAND} a seat</>
+              : <span style={{ color: '#0ea5e9' }}>Not billed. Will not appear in MRR.</span>
+          )}
+        </div>
+        <button
+          disabled={busy || !form.name.trim() || !(seats >= 1) || !form.userId || overCap}
+          onClick={onSave}
+          className="ml-auto flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-40"
+          style={{ background: grad }}>
+          {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+          Save team
+        </button>
+      </div>
+
+      {overCap && (
+        <p className="text-xs rounded-lg px-3 py-2"
+          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444' }}>
+          <AlertTriangle className="w-3 h-3 inline mr-1" />
+          {seats} seats is above the {MAX_SELF_SERVE_SEATS}-seat Paystack limit. Switch billing to Debit order (Enterprise) or Comped.
+        </p>
+      )}
     </div>
   )
 }

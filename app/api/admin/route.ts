@@ -6,6 +6,7 @@ import { sendPasswordResetEmail } from '@/lib/password-reset'
 import { auditLog } from '@/lib/admin-audit'
 import { cancelSubscriptionsFor, subscriptionCodeOf, isBillablePaystackSub } from '@/lib/paystack'
 import { NFC_STATUSES } from '@/lib/nfc'
+import { ORG_BILLING_MODES, MAX_SELF_SERVE_SEATS } from '@/lib/org-billing'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -181,24 +182,44 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, trial_ends_at: next })
   }
 
-  // Create or update org
+  // Create or update a team.
+  //
+  // billing_period is what decides whether this team shows up as revenue, so
+  // it is set explicitly here rather than defaulted to 'monthly' and forgotten
+  // (which is how Cardtly's own 50-seat org came to report R4,850/month).
   if (action === 'create_org') {
-    const { user_id, org_name, seat_count } = body
+    const { user_id, org_name, seat_count, billing_period, billing_notes } = body
 
     // Seats drive what the team can actually do (team/route.ts blocks
     // adding cards past max_seats), so refuse junk rather than writing
     // it. Admin deliberately has no upper bound: comped and enterprise
     // orgs sit above the 20-seat self-serve cap on purpose.
     const seats = Number(seat_count)
+    if (!user_id) {
+      return NextResponse.json({ error: 'Pick which user owns this team' }, { status: 400 })
+    }
     if (!Number.isInteger(seats) || seats < 1) {
       return NextResponse.json({ error: 'Seat count must be a whole number of 1 or more' }, { status: 400 })
     }
     if (!org_name || !String(org_name).trim()) {
       return NextResponse.json({ error: 'Org name is required' }, { status: 400 })
     }
+    const billing = billing_period || 'monthly'
+    if (!(ORG_BILLING_MODES as readonly string[]).includes(billing)) {
+      return NextResponse.json({ error: `Unknown billing mode "${billing}"` }, { status: 400 })
+    }
+    // Paystack self-serve tops out at 20 seats. Above that it is not billed
+    // through Paystack at all, so calling it 'monthly' would claim we are
+    // collecting money that nothing collects.
+    if (seats > MAX_SELF_SERVE_SEATS && (billing === 'monthly' || billing === 'yearly')) {
+      return NextResponse.json({
+        error: `${seats} seats is above the ${MAX_SELF_SERVE_SEATS}-seat Paystack limit. Set billing to Debit order (Enterprise) or Comped.`,
+      }, { status: 400 })
+    }
 
-    // Check if org exists
-    const { data: existing } = await admin.from('organizations').select('id').eq('admin_user_id', user_id).single()
+    // maybeSingle, not single: single throws on zero rows, and the error was
+    // discarded, so this only worked by accident.
+    const { data: existing } = await admin.from('organizations').select('id').eq('admin_user_id', user_id).maybeSingle()
 
     // Both branches capture their error. This used to return
     // success: true unconditionally, so a failed write reported
@@ -207,6 +228,8 @@ export async function POST(request: Request) {
       const { error } = await admin.from('organizations').update({
         name: org_name,
         max_seats: seats,
+        billing_period: billing,
+        billing_notes: billing_notes ?? null,
         business_plan_active: true,
         updated_at: new Date().toISOString(),
       }).eq('id', existing.id)
@@ -221,7 +244,8 @@ export async function POST(request: Request) {
         max_seats: seats,
         used_seats: 0,
         business_plan_active: true,
-        billing_period: 'monthly',
+        billing_period: billing,
+        billing_notes: billing_notes ?? null,
       })
       if (error) {
         console.error('admin create_org insert failed:', error)
