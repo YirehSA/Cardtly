@@ -182,6 +182,79 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, trial_ends_at: next })
   }
 
+  // Create or update a sales rep.
+  if (action === 'upsert_rep') {
+    const { rep_id, name, email, phone, target_cards, commission_rand, active, started_on, notes } = body
+    if (!name || !String(name).trim()) {
+      return NextResponse.json({ error: 'Rep name is required' }, { status: 400 })
+    }
+    const target = Number(target_cards ?? 250)
+    const rate = Number(commission_rand ?? 10)
+    if (!Number.isInteger(target) || target < 0) {
+      return NextResponse.json({ error: 'Target must be a whole number of 0 or more' }, { status: 400 })
+    }
+    if (!Number.isInteger(rate) || rate < 0) {
+      return NextResponse.json({ error: 'Commission must be a whole number of rand, 0 or more' }, { status: 400 })
+    }
+
+    const patch = {
+      name: String(name).trim(),
+      email: email || null,
+      phone: phone || null,
+      target_cards: target,
+      commission_rand: rate,
+      active: active !== false,
+      started_on: started_on || null,
+      notes: notes || null,
+      updated_at: new Date().toISOString(),
+    }
+
+    const { data, error } = rep_id
+      ? await admin.from('reps').update(patch).eq('id', rep_id).select('id').maybeSingle()
+      : await admin.from('reps').insert(patch).select('id').maybeSingle()
+    if (error) {
+      console.error('upsert_rep failed:', error)
+      return NextResponse.json({ error: `Could not save the rep: ${error.message}` }, { status: 500 })
+    }
+
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email,
+      action: rep_id ? 'update_rep' : 'create_rep',
+      detail: { rep_id: rep_id || data?.id, name: patch.name, target, rate },
+    })
+    return NextResponse.json({ success: true, rep_id: data?.id || rep_id })
+  }
+
+  // Link a client to a rep, or unlink (rep_id: null).
+  //
+  // Attribution decides who gets paid, so it is logged like any other action
+  // that moves money.
+  if (action === 'assign_rep') {
+    const { rep_id, user_id, org_id } = body
+    if (!user_id && !org_id) {
+      return NextResponse.json({ error: 'Pass a user_id or an org_id' }, { status: 400 })
+    }
+    if (user_id && org_id) {
+      return NextResponse.json({ error: 'Pass one of user_id or org_id, not both' }, { status: 400 })
+    }
+
+    const table = org_id ? 'organizations' : 'profiles'
+    const match = org_id ? { id: org_id } : { user_id }
+    const { error } = await admin.from(table).update({ rep_id: rep_id || null }).match(match)
+    if (error) {
+      console.error('assign_rep failed:', error)
+      return NextResponse.json({ error: `Could not assign: ${error.message}` }, { status: 500 })
+    }
+
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email,
+      action: rep_id ? 'assign_rep' : 'unassign_rep',
+      targetUserId: user_id || null,
+      detail: { rep_id: rep_id || null, org_id: org_id || null },
+    })
+    return NextResponse.json({ success: true })
+  }
+
   // Create or update a team.
   //
   // billing_period is what decides whether this team shows up as revenue, so

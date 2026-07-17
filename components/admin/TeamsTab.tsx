@@ -5,6 +5,7 @@ import { Building2, Loader2, AlertTriangle, Check, Plus, X } from 'lucide-react'
 import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
 import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, orgMonthlyRand, type OrgBillingMode } from '@/lib/org-billing'
 import type { AdminOrgRow, AdminUserRow } from '@/lib/admin-data'
+import type { RepStats } from '@/lib/reps'
 
 interface Form {
   userId: string
@@ -17,7 +18,9 @@ interface Form {
 interface Props {
   orgs: AdminOrgRow[]
   users: AdminUserRow[]
+  reps: RepStats[]
   onSave: (form: Form) => Promise<boolean>
+  onAssignRep: (orgId: string, repId: string | null) => Promise<boolean>
   loading: string | null
 }
 
@@ -25,7 +28,7 @@ interface Props {
 // row and as a count tile, seat utilisation was invisible, and there was
 // nowhere to say how a team is billed, so every one of them defaulted to
 // "monthly" and reported revenue nobody collects.
-export default function TeamsTab({ orgs, users, onSave, loading }: Props) {
+export default function TeamsTab({ orgs, users, reps, onSave, onAssignRep, loading }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState<Form>({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '' })
@@ -141,6 +144,29 @@ export default function TeamsTab({ orgs, users, onSave, loading }: Props) {
                           Nothing collects this automatically. You invoice and collect {randFmt(o.monthlyRand)} yourself.
                         </p>
                       )}
+                      {reps.length > 0 && (
+                        <div className="mb-3">
+                          <label className="text-[11px] font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                            Signed by
+                          </label>
+                          <select
+                            value={o.repId || ''}
+                            disabled={loading === `reporg-${o.id}`}
+                            onChange={e => onAssignRep(o.id, e.target.value || null)}
+                            className={inputClass} style={inputStyle}>
+                            <option value="" style={{ background: '#1a1a1a' }}>No rep</option>
+                            {reps.filter(r => r.active).map(r => (
+                              <option key={r.id} value={r.id} style={{ background: '#1a1a1a' }}>{r.name}</option>
+                            ))}
+                          </select>
+                          <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                            {o.isRevenue
+                              ? `All ${o.maxSeats} billed seats count toward their target.`
+                              : 'This team is comped, so it counts zero toward a target. Nothing is billed, so nothing is owed.'}
+                          </p>
+                        </div>
+                      )}
+
                       <TeamForm form={form} setForm={setForm} users={users}
                         busy={busy}
                         onSave={async () => { const ok = await onSave(form); if (ok) setEditing(null) }} />

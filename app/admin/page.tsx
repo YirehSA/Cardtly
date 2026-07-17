@@ -32,6 +32,7 @@ export default async function AdminPage() {
       teamCards={data.teamCards}
       nfcOrders={data.nfcOrders}
       audit={data.audit}
+      reps={data.reps}
       stats={data.stats}
       announcement={data.announcement}
     />

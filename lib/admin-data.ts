@@ -1,6 +1,7 @@
 import { FOUNDER_ADMIN_USER_ID } from '@/lib/admin-check'
 import { isBillablePaystackSub, listActivePaystackSubs } from '@/lib/paystack'
 import { orgMonthlyRand, BILLING_MODE_META, isOrgBillingMode, type OrgBillingMode } from '@/lib/org-billing'
+import { computeRep, type RepRow, type RepStats } from '@/lib/reps'
 
 // Everything the admin page needs, assembled in one place so the page stays a
 // thin shell and this stays testable.
@@ -42,6 +43,7 @@ export interface AdminUserRow {
   card: { id: string; name: string | null; slug: string | null; views: number } | null
   views: number
   remindersSent: string[]
+  repId: string | null
 }
 
 export interface AdminOrgRow {
@@ -57,6 +59,7 @@ export interface AdminOrgRow {
   billingMode: OrgBillingMode
   billingNotes: string | null
   isRevenue: boolean
+  repId: string | null
   createdAt: string
 }
 
@@ -103,6 +106,7 @@ export async function loadAdminData(admin: any) {
     { data: trialEmails },
     { data: auditRows },
     cardViews,
+    { data: repRows },
   ] = await Promise.all([
     listAllUsers(admin),
     admin.from('whop_subscriptions').select('*').order('created_at', { ascending: false }),
@@ -112,10 +116,11 @@ export async function loadAdminData(admin: any) {
     admin.from('nfc_orders').select('*').order('created_at', { ascending: false }),
     // Was: fetch every contact row to call .length on it.
     admin.from('contacts').select('id', { count: 'exact', head: true }),
-    admin.from('profiles').select('user_id, signup_country, signup_country_code, signup_city, is_admin, trial_ends_at'),
+    admin.from('profiles').select('user_id, signup_country, signup_country_code, signup_city, is_admin, trial_ends_at, rep_id'),
     admin.from('trial_emails').select('user_id, kind'),
     admin.from('admin_audit_log').select('*').order('created_at', { ascending: false }).limit(50),
     pageRows(admin, 'card_events', 'card_id', (q: any) => q.eq('event_type', 'view').gte('created_at', since)),
+    admin.from('reps').select('*').order('created_at', { ascending: true }),
   ])
 
   // Real subscription amounts, from Paystack. Never derived from our own
@@ -209,6 +214,7 @@ export async function loadAdminData(admin: any) {
       card: card ? { id: card.id, name: card.name, slug: card.slug, views: card.view_count || 0 } : null,
       views: card?.view_count || 0,
       remindersSent: remindersBy[u.id] || [],
+      repId: p.rep_id || null,
     }
   })
 
@@ -232,12 +238,34 @@ export async function loadAdminData(admin: any) {
       billingMode: mode,
       billingNotes: o.billing_notes || null,
       isRevenue: BILLING_MODE_META[mode].isRevenue,
+      repId: o.rep_id || null,
       createdAt: o.created_at,
     }
   }).sort((a: AdminOrgRow, b: AdminOrgRow) => b.maxSeats - a.maxSeats)
 
   const views30dByCard: Record<string, number> = {}
   for (const e of cardViews.rows) if (e?.card_id) views30dByCard[e.card_id] = (views30dByCard[e.card_id] || 0) + 1
+
+  // Reps. Each one is scored only on the clients attributed to them: their
+  // paying cards vs their target, with trials shown separately as pipeline
+  // rather than counted as money.
+  const reps: RepStats[] = ((repRows || []) as RepRow[]).map((rep) => computeRep(
+    rep,
+    rows.filter(r => r.repId === rep.id).map(r => ({
+      userId: r.id,
+      email: r.email,
+      name: r.card?.name ?? null,
+      // computeRep decides paying vs comped from the subscription itself, so
+      // hand it the raw row rather than our derived status.
+      sub: subBy[r.id] || null,
+      trialEndsAt: r.trialEndsAt,
+      hasCard: !!r.card,
+    })),
+    orgRows.filter(o => o.repId === rep.id).map(o => ({
+      id: o.id, name: o.name, maxSeats: o.maxSeats,
+      billingPeriod: o.billingMode,
+    })),
+  ))
 
   const byStatus = (s: UserStatus) => rows.filter(r => r.status === s).length
   // Only a real Paystack subscription is revenue. A comp is not, and neither
@@ -274,6 +302,7 @@ export async function loadAdminData(admin: any) {
   return {
     users: rows,
     orgs: orgRows,
+    reps,
     cards: (cards || []).map((c: any) => ({ ...c, views_30d: views30dByCard[c.id] || 0 }))
       .sort((a: any, b: any) => (b.views_30d - a.views_30d) || ((b.view_count || 0) - (a.view_count || 0))),
     teamCards: (teamCards || []).map((tc: any) => ({ ...tc, org_name: orgById[tc.organization_id]?.name || null }))

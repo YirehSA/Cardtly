@@ -7,12 +7,14 @@ import { toast } from 'sonner'
 import {
   Users as UsersIcon, Building2, Search, Loader2, Trash2, Mail, MailCheck,
   KeyRound, Lock, Shield, Sparkles, ChevronDown, ChevronUp, ExternalLink, Megaphone,
-  ScrollText, Wifi, AlertTriangle, CalendarClock, X, LayoutGrid,
+  ScrollText, Wifi, AlertTriangle, CalendarClock, X, LayoutGrid, UserCog,
 } from 'lucide-react'
 import TeamsTab from './TeamsTab'
+import RepsTab from './RepsTab'
 import { Stat, Section, StatusPill, STATUS_META, grad, inputClass, inputStyle, fmtDate, fmtWhen, randFmt } from './shared'
 import { NFC_STATUSES, NFC_STATUS_COLORS, NFC_STATUS_LABELS, type NfcStatus } from '@/lib/nfc'
 import type { AdminUserRow, AdminOrgRow, UserStatus } from '@/lib/admin-data'
+import type { RepStats } from '@/lib/reps'
 
 interface Stats {
   totalUsers: number; paying: number; comped: number; members: number
@@ -32,11 +34,12 @@ interface Props {
   teamCards: any[]
   nfcOrders: any[]
   audit: any[]
+  reps: RepStats[]
   stats: Stats
   announcement: any | null
 }
 
-type Tab = 'overview' | 'users' | 'teams' | 'nfc' | 'activity'
+type Tab = 'overview' | 'users' | 'teams' | 'reps' | 'nfc' | 'activity'
 type Filter = 'all' | UserStatus | 'admins' | 'unconfirmed'
 
 const FILTERS: { id: Filter; label: string }[] = [
@@ -51,7 +54,7 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'unconfirmed', label: 'Unconfirmed' },
 ]
 
-export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrders, audit, stats, announcement }: Props) {
+export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrders, audit, reps, stats, announcement }: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('overview')
   const [q, setQ] = useState('')
@@ -140,6 +143,7 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
             ['overview', 'Overview', LayoutGrid],
             ['users', 'Users', UsersIcon],
             ['teams', 'Teams', Building2],
+            ['reps', 'Reps', UserCog],
             ['nfc', 'NFC orders', Wifi],
             ['activity', 'Activity', ScrollText],
           ] as [Tab, string, any][]).map(([id, label, Icon]) => (
@@ -252,7 +256,7 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
 
             <div className="space-y-1.5">
               {filtered.map(u => (
-                <UserRow key={u.id} u={u} expanded={expanded === u.id}
+                <UserRow key={u.id} u={u} expanded={expanded === u.id} reps={reps}
                   onToggle={() => setExpanded(expanded === u.id ? null : u.id)}
                   run={run} loading={loading} />
               ))}
@@ -264,7 +268,8 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
         )}
 
         {tab === 'teams' && (
-          <TeamsTab orgs={orgs} users={users} loading={loading}
+          <TeamsTab orgs={orgs} users={users} reps={reps} loading={loading}
+            onAssignRep={(orgId, repId) => run(`reporg-${orgId}`, { action: 'assign_rep', org_id: orgId, rep_id: repId }, repId ? 'Team linked to rep' : 'Rep unlinked')}
             onSave={(f) => run(`org-${f.userId}`, {
               action: 'create_org',
               user_id: f.userId,
@@ -273,6 +278,22 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
               billing_period: f.mode,
               billing_notes: f.notes || null,
             }, `${f.name}: ${f.seats} seats, ${f.mode === 'comp' ? 'free' : f.mode.replace('_', ' ')}`)} />
+        )}
+
+        {tab === 'reps' && (
+          <RepsTab reps={reps} loading={loading}
+            onSave={(f) => run('rep-save', {
+              action: 'upsert_rep',
+              rep_id: f.repId,
+              name: f.name,
+              email: f.email || null,
+              phone: f.phone || null,
+              target_cards: Number(f.target),
+              commission_rand: Number(f.rate),
+              started_on: f.startedOn || null,
+              notes: f.notes || null,
+              active: f.active,
+            }, `${f.name} saved`)} />
         )}
 
         {tab === 'nfc' && <NfcTab orders={nfcOrders} run={run} loading={loading} />}
@@ -284,8 +305,8 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
 
 // ── User row ──────────────────────────────────────────────────────────────
 
-function UserRow({ u, expanded, onToggle, run, loading }: {
-  u: AdminUserRow; expanded: boolean; onToggle: () => void
+function UserRow({ u, expanded, onToggle, run, loading, reps }: {
+  u: AdminUserRow; expanded: boolean; onToggle: () => void; reps: RepStats[]
   run: (key: string, body: object, msg: string) => Promise<boolean>
   loading: string | null
 }) {
@@ -397,6 +418,21 @@ function UserRow({ u, expanded, onToggle, run, loading }: {
                 style={{ background: grad }}>
                 {loading === `pro-${u.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Sparkles className="w-3 h-3 inline mr-1" />Comp to Pro</>}
               </button>
+            )}
+
+            {reps.length > 0 && (
+              <select
+                value={u.repId || ''}
+                disabled={loading === `rep-${u.id}`}
+                onChange={e => run(`rep-${u.id}`, { action: 'assign_rep', user_id: u.id, rep_id: e.target.value || null },
+                  e.target.value ? 'Client linked to rep' : 'Rep unlinked')}
+                className="text-xs px-2.5 py-1.5 rounded-lg font-semibold"
+                style={{ ...inputStyle, border: `1px solid ${u.repId ? 'rgba(168,85,247,0.4)' : 'rgba(255,255,255,0.12)'}`, color: u.repId ? '#a855f7' : 'rgba(255,255,255,0.5)' }}>
+                <option value="" style={{ background: '#1a1a1a' }}>No rep</option>
+                {reps.filter(r => r.active).map(r => (
+                  <option key={r.id} value={r.id} style={{ background: '#1a1a1a' }}>Rep: {r.name}</option>
+                ))}
+              </select>
             )}
 
             <button disabled={loading === `admin-${u.id}`}
