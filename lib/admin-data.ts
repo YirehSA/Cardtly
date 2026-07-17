@@ -113,6 +113,7 @@ export async function loadAdminData(admin: any) {
     { data: auditRows },
     cardViews,
     { data: repRows },
+    { data: payoutRows },
   ] = await Promise.all([
     listAllUsers(admin),
     admin.from('whop_subscriptions').select('*').order('created_at', { ascending: false }),
@@ -127,6 +128,7 @@ export async function loadAdminData(admin: any) {
     admin.from('admin_audit_log').select('*').order('created_at', { ascending: false }).limit(50),
     pageRows(admin, 'card_events', 'card_id', (q: any) => q.eq('event_type', 'view').gte('created_at', since)),
     admin.from('reps').select('*').order('created_at', { ascending: true }),
+    admin.from('rep_payouts').select('*').order('period_start', { ascending: false }),
   ])
 
   // Real subscription amounts, from Paystack. Never derived from our own
@@ -277,6 +279,7 @@ export async function loadAdminData(admin: any) {
       id: o.id, name: o.name, maxSeats: o.maxSeats,
       billingPeriod: o.billingMode,
     })),
+    (payoutRows || []).filter((p: any) => p.rep_id === rep.id),
   ))
 
   const byStatus = (s: UserStatus) => rows.filter(r => r.status === s).length

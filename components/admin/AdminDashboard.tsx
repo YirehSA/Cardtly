@@ -350,6 +350,21 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
                 : `Delete ${r.name}?\n\nNo clients are linked, so nothing is lost.`)) return Promise.resolve(false)
               return run(`rep-del-${r.id}`, { action: 'delete_rep', rep_id: r.id }, `${r.name} deleted`)
             }}
+            onRecordPayout={(r, paid) => {
+              if (!confirm(`Record ${r.name}'s commission for ${r.period.label}?\n\n${r.billableCards} cards over target = R${r.commissionRand}.\n\nThis freezes the figure${paid ? ' and marks it PAID' : ''}. It cannot be recalculated later.`)) return Promise.resolve(false)
+              return run(`payout-${r.id}`, {
+                action: 'record_payout',
+                rep_id: r.id,
+                period_start: r.period.start.toISOString().slice(0, 10),
+                period_end: r.period.end.toISOString().slice(0, 10),
+                paying_cards: r.payingCards,
+                target_cards: r.target,
+                billable_cards: r.billableCards,
+                rate_rand: r.commission_rand,
+                commission_rand: r.commissionRand,
+                paid,
+              }, `Recorded ${r.period.label}: R${r.commissionRand}`)
+            }}
             onSave={(f) => run('rep-save', {
               action: 'upsert_rep',
               rep_id: f.repId,
@@ -358,6 +373,7 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
               phone: f.phone || null,
               target_cards: Number(f.target),
               commission_rand: Number(f.rate),
+              commission_day: Number(f.day),
               started_on: f.startedOn || null,
               notes: f.notes || null,
               active: f.active,

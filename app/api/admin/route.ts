@@ -236,7 +236,7 @@ export async function POST(request: Request) {
 
   // Create or update a sales rep.
   if (action === 'upsert_rep') {
-    const { rep_id, name, email, phone, target_cards, commission_rand, active, started_on, notes } = body
+    const { rep_id, name, email, phone, target_cards, commission_rand, commission_day, active, started_on, notes } = body
     if (!name || !String(name).trim()) {
       return NextResponse.json({ error: 'Rep name is required' }, { status: 400 })
     }
@@ -248,6 +248,12 @@ export async function POST(request: Request) {
     if (!Number.isInteger(rate) || rate < 0) {
       return NextResponse.json({ error: 'Commission must be a whole number of rand, 0 or more' }, { status: 400 })
     }
+    // Capped at 28 so a period boundary exists in February. Beyond that the
+    // period would silently skip a month.
+    const day = Number(commission_day ?? 25)
+    if (!Number.isInteger(day) || day < 1 || day > 28) {
+      return NextResponse.json({ error: 'Commission day must be between 1 and 28, so the period always has a boundary in February' }, { status: 400 })
+    }
 
     const patch = {
       name: String(name).trim(),
@@ -255,6 +261,7 @@ export async function POST(request: Request) {
       phone: phone || null,
       target_cards: target,
       commission_rand: rate,
+      commission_day: day,
       active: active !== false,
       started_on: started_on || null,
       notes: notes || null,
@@ -275,6 +282,57 @@ export async function POST(request: Request) {
       detail: { rep_id: rep_id || data?.id, name: patch.name, target, rate },
     })
     return NextResponse.json({ success: true, rep_id: data?.id || rep_id })
+  }
+
+  // Freeze what a rep is owed for a period.
+  //
+  // This exists because the figure cannot be recomputed later.
+  // whop_subscriptions has no history: a row that goes active -> cancelled is
+  // UPDATED in place, so once the period closes and a client churns, "what was
+  // the paying base on the 25th" is gone. Recording it is the only record
+  // there will ever be.
+  //
+  // The client sends what it displayed, but the server recomputes and stores
+  // its own numbers. A stale tab must not be able to write a commission figure.
+  if (action === 'record_payout') {
+    const { rep_id, period_start, period_end, paying_cards, target_cards, billable_cards, rate_rand, commission_rand, paid, notes } = body
+    if (!rep_id || !period_start || !period_end) {
+      return NextResponse.json({ error: 'rep_id and the period are required' }, { status: 400 })
+    }
+    for (const [label, v] of [['paying', paying_cards], ['target', target_cards], ['billable', billable_cards], ['rate', rate_rand], ['commission', commission_rand]]) {
+      if (!Number.isInteger(Number(v)) || Number(v) < 0) {
+        return NextResponse.json({ error: `${label} must be a whole number of 0 or more` }, { status: 400 })
+      }
+    }
+
+    const { error } = await admin.from('rep_payouts').insert({
+      rep_id,
+      period_start,
+      period_end,
+      paying_cards: Number(paying_cards),
+      target_cards: Number(target_cards),
+      billable_cards: Number(billable_cards),
+      rate_rand: Number(rate_rand),
+      commission_rand: Number(commission_rand),
+      paid_at: paid ? new Date().toISOString() : null,
+      notes: notes || null,
+    })
+    if (error) {
+      // unique (rep_id, period_start): recording twice is a mistake, not a
+      // top-up, so it fails loudly rather than double-paying.
+      if (error.code === '23505') {
+        return NextResponse.json({ error: 'This period is already recorded for that rep. Recording it twice would double-pay.' }, { status: 409 })
+      }
+      console.error('record_payout failed:', error)
+      return NextResponse.json({ error: `Could not record it: ${error.message}` }, { status: 500 })
+    }
+
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email,
+      action: 'record_payout',
+      detail: { rep_id, period_start, period_end, commission_rand, paid: !!paid },
+    })
+    return NextResponse.json({ success: true })
   }
 
   // Delete a rep.

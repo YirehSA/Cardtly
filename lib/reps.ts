@@ -22,9 +22,50 @@ export interface RepRow {
   phone: string | null
   target_cards: number
   commission_rand: number
+  commission_day: number
   active: boolean
   started_on: string | null
   notes: string | null
+}
+
+export interface CommissionPeriod {
+  start: Date
+  end: Date
+  daysLeft: number
+  label: string
+}
+
+// The commission period, e.g. the 25th to the 25th.
+//
+// If today is on or after the anchor day, the period that is currently OPEN
+// started this month; otherwise it started last month. On 17 July with a 25th
+// anchor, the open period is 25 Jun -> 25 Jul, closing in 8 days. That is the
+// one you are about to pay.
+//
+// Day is clamped to 28 at the DB (migration 033) so a boundary always exists
+// in February, and the arithmetic below never has to invent the 30th of Feb.
+export function commissionPeriod(day: number, now: Date = new Date()): CommissionPeriod {
+  const anchor = Math.min(Math.max(Math.trunc(day) || 25, 1), 28)
+
+  const start = new Date(now.getFullYear(), now.getMonth(), anchor)
+  // Before the anchor day, the open period began last month.
+  if (now.getDate() < anchor) start.setMonth(start.getMonth() - 1)
+  start.setHours(0, 0, 0, 0)
+
+  const end = new Date(start)
+  end.setMonth(end.getMonth() + 1)
+
+  const daysLeft = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)))
+  const fmt = (d: Date) => d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })
+  return { start, end, daysLeft, label: `${fmt(start)} to ${fmt(end)}` }
+}
+
+export function toDateOnly(d: Date): string {
+  // Local calendar date, not UTC: a period boundary is a date on a wall
+  // calendar, and toISOString would shift it either side of midnight.
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
 }
 
 export interface RepClient {
@@ -42,6 +83,10 @@ export interface RepClient {
 }
 
 export interface RepStats extends RepRow {
+  period: CommissionPeriod
+  // Already recorded as paid for the OPEN period, so it is not owed twice.
+  paidThisPeriod: boolean
+  payouts: RepPayout[]
   payingCards: number
   trialCards: number
   target: number
@@ -57,10 +102,22 @@ export interface RepStats extends RepRow {
 
 const PRO_RAND = 97
 
+export interface RepPayout {
+  id: string
+  period_start: string
+  period_end: string
+  paying_cards: number
+  billable_cards: number
+  commission_rand: number
+  paid_at: string | null
+  notes: string | null
+}
+
 export function computeRep(
   rep: RepRow,
   personal: Array<{ userId: string; email: string | null; name: string | null; sub: any; trialEndsAt: string | null; hasCard: boolean }>,
   orgs: Array<{ id: string; name: string; maxSeats: number; billingPeriod: string | null }>,
+  payouts: RepPayout[] = [],
 ): RepStats {
   const clients: RepClient[] = []
   const now = Date.now()
@@ -117,8 +174,14 @@ export function computeRep(
   // every card once the target is passed.
   const billableCards = Math.max(0, payingCards - target)
 
+  const period = commissionPeriod(rep.commission_day ?? 25)
+  const periodStart = toDateOnly(period.start)
+
   return {
     ...rep,
+    period,
+    paidThisPeriod: payouts.some(p => p.period_start === periodStart),
+    payouts: payouts.slice().sort((a, b) => b.period_start.localeCompare(a.period_start)),
     payingCards,
     trialCards,
     target,
