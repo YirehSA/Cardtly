@@ -10,6 +10,8 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
+import { waShareLink } from '@/lib/whatsapp'
+import { track } from '@/lib/track'
 import ContactExchangeModal from './ContactExchangeModal'
 import QuestionnaireForm from './QuestionnaireForm'
 import InAppBackButton from '@/components/InAppBackButton'
@@ -319,6 +321,34 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           <Share2 className="w-4 h-4" />Share
         </button>
       </div>
+
+      {/* Keep the link.
+          An NFC tap opens this page in a browser tab. Close the tab and the
+          card is gone: no app, no history they will dig through, nothing.
+          Save Contact solves it only for people who save contacts.
+          This sends the link to their own WhatsApp in one tap, which in South
+          Africa is the one app they will still have open tomorrow. */}
+      {card.slug && (
+        <button
+          onClick={() => {
+            // Built on click, not at render: window does not exist during SSR,
+            // and the card's URL is simply the page we are already on.
+            const url = window.location.origin + `/card/${card.slug}`
+            const text = `${card.name}${card.company ? ` (${card.company})` : ''}\n${url}`
+            track({
+              cardId: isTeamCard ? undefined : card.id,
+              teamCardId: isTeamCard ? (card as any)._team_card_id : undefined,
+              eventType: 'share',
+            })
+            window.open(waShareLink(text), '_blank', 'noopener')
+          }}
+          className="mt-3 w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold transition hover:opacity-90"
+          style={{ background: '#25D366', color: '#fff', fontSize: buttonFontSize }}
+        >
+          <MessageCircle className="w-4 h-4" />
+          Send this card to my WhatsApp
+        </button>
+      )}
 
       {contactExchangeOn && (
         <ContactExchangeModal

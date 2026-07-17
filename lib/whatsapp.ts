@@ -21,3 +21,18 @@ export function waLink(phone: string | null | undefined, text?: string): string 
   const base = `https://wa.me/${d}`
   return text ? `${base}?text=${encodeURIComponent(text)}` : base
 }
+
+// Opens WhatsApp with a message pre-filled and NO recipient, so the person
+// tapping picks who it goes to. Crucially, that includes themselves:
+// WhatsApp's "Message yourself" chat is a normal contact in the picker.
+//
+// This is the only honest way to get a card into a stranger's WhatsApp. You
+// cannot send TO someone who tapped an NFC card: a tap is just a URL opening
+// in their browser, so there is no number, no identity, nothing. And pushing
+// a WhatsApp to a number you were never given needs the Business API plus
+// prior opt-in, which a stranger tapping a card has not granted.
+//
+// So instead of us messaging them, they message themselves, in one tap.
+export function waShareLink(text: string): string {
+  return `https://wa.me/?text=${encodeURIComponent(text)}`
+}
