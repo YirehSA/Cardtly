@@ -15,6 +15,8 @@ import crypto from 'crypto'
 // resend=true means the email is being re-issued for an existing
 // invite (we reuse the existing token if it's still there).
 
+import { REPLY_TO } from '@/lib/email'
+
 const FROM_EMAIL = 'noreply@cardtly.com'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com'
 
@@ -117,6 +119,7 @@ export async function POST(request: Request) {
       await resend.emails.send({
         from: FROM_EMAIL,
         to: trimmedEmail,
+        replyTo: REPLY_TO,
         subject: `You're on the ${org.name} team on Cardtly`,
         html: buildInviteHtml({
           orgName: org.name,

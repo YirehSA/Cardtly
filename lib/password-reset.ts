@@ -21,6 +21,8 @@ import { Resend } from 'resend'
 // We email it ourselves via Resend so it's branded and we control the
 // link, and it works the same whether a user or an admin triggered it.
 
+import { REPLY_TO } from '@/lib/email'
+
 const FROM_EMAIL = 'Cardtly <noreply@cardtly.com>'
 
 export interface SendResetResult {
@@ -67,6 +69,7 @@ export async function sendPasswordResetEmail(email: string, origin: string): Pro
   const { error: sendError } = await resend.emails.send({
     from: FROM_EMAIL,
     to: email,
+    replyTo: REPLY_TO,
     subject: 'Reset your Cardtly password',
     html: `
       <div style="font-family:system-ui,-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#111">

@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { renderTrialEmail, type TrialEmailKind } from '@/lib/trial-email-templates'
 import { denyIfNotCron } from '@/lib/cron-auth'
+import { FROM_EMAIL, REPLY_TO } from '@/lib/email'
 
 // Trial reminder emails. Triggered daily by Vercel Cron (see vercel.json).
 //
@@ -22,7 +23,6 @@ import { denyIfNotCron } from '@/lib/cron-auth'
 
 export const maxDuration = 60
 
-const FROM_EMAIL = 'Cardtly <noreply@cardtly.com>'
 const DAY_MS = 24 * 60 * 60 * 1000
 
 type Kind = TrialEmailKind
@@ -144,7 +144,7 @@ export async function GET(request: Request) {
 
     try {
       const { subject, html } = renderTrialEmail(q)
-      await resend.emails.send({ from: FROM_EMAIL, to: q.to, subject, html })
+      await resend.emails.send({ from: FROM_EMAIL, to: q.to, replyTo: REPLY_TO, subject, html })
       delivered++
     } catch (e) {
       // Release the claim so tomorrow's run tries again. Missing someone's
