@@ -322,12 +322,12 @@ const GROUPS: Group[] = [
         how: 'Enable booking; requests arrive by email and save automatically to your Contacts.',
       },
       {
-        icon: ClipboardList, title: 'Custom questionnaire', tier: 'Add-on',
+        icon: ClipboardList, title: 'Custom questionnaire', tier: 'Included',
         desc: 'Add your own short form, up to five questions, so leads tell you exactly what you need to know.',
-        how: 'Build your questions in the dashboard; answers save alongside each captured lead.',
+        how: 'Switch it on and build your questions under Lead capture; answers save alongside each captured lead.',
       },
       {
-        icon: Repeat, title: 'Reciprocal contact exchange', tier: 'Add-on',
+        icon: Repeat, title: 'Reciprocal contact exchange', tier: 'Included',
         desc: 'After someone saves your details, prompt them to share theirs back. A two-way swap, not a one-way handout.',
         how: 'Turn it on and a share-your-details prompt appears right after someone saves your contact.',
       },
@@ -558,7 +558,7 @@ export default function FeaturesPage() {
                   Roll out consistent, on-brand cards across your whole team. Company branding stays locked, each member manages their own name, title and photo, and one admin dashboard shows every card&apos;s views and leads. Priced per seat.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-6 max-w-xl">
-                  {['Locked company branding', 'Member-managed details', 'Shared questionnaire & add-ons', 'One admin analytics dashboard', "Share any teammate's card in a tap"].map(t => (
+                  {['Locked company branding', 'Member-managed details', 'Shared questionnaire & lead capture', 'One admin analytics dashboard', "Share any teammate's card in a tap"].map(t => (
                     <div key={t} className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
                       <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#a78bfa' }} />{t}
                     </div>

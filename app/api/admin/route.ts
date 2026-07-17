@@ -3,7 +3,6 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { isAdminUser, FOUNDER_ADMIN_USER_ID } from '@/lib/admin-check'
 import { sendPasswordResetEmail } from '@/lib/password-reset'
-import { resolveAddonTarget } from '@/lib/addon-target'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -352,28 +351,6 @@ export async function POST(request: Request) {
       .upsert({ user_id, is_admin: value } as any, { onConflict: 'user_id' })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ success: true, is_admin: value })
-  }
-
-  // Enable/disable a paid add-on on a user's card. Add-ons are per
-  // client - this is how we switch one on for just the client who
-  // bought it. Sets the flag on their personal card, or their claimed
-  // team card if they have no personal card.
-  if (action === 'set_card_addon') {
-    const { user_id, addon, value } = body as { user_id?: string; addon?: string; value?: boolean }
-    const ALLOWED = ['contactExchange', 'questionnaireEnabled']
-    if (!user_id || !addon || !ALLOWED.includes(addon) || typeof value !== 'boolean') {
-      return NextResponse.json({ error: 'Missing or invalid fields' }, { status: 400 })
-    }
-
-    // For a team admin this targets the org (applies to all team
-    // cards); for a solo user, their card; for a member, their team card.
-    const target = await resolveAddonTarget(admin, user_id)
-    if (!target) return NextResponse.json({ error: 'No card or team found for this user' }, { status: 404 })
-
-    const nextAddons = { ...target.addons, [addon]: value }
-    const { error } = await admin.from(target.table).update({ addons: nextAddons }).eq('id', target.id)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ success: true, addons: nextAddons })
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 })

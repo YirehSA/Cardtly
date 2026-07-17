@@ -3,11 +3,13 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { sanitizeQuestionnaire, sanitizeLibrary } from '@/lib/questionnaire'
 import { resolveAddonTarget, loadOwnedTarget } from '@/lib/addon-target'
+import { getUserPlan } from '@/lib/plan-server'
 
-// Lets a client build/save their own questionnaire - but only if an
-// admin has switched the add-on on for them (addons.questionnaireEnabled).
-// Saves the question definitions into addons.questionnaire, preserving
-// the other addon flags.
+// Lets a Pro user build/save their own questionnaire. Saves the question
+// definitions into addons.questionnaire, preserving the other addon flags.
+//
+// Deliberately does NOT require questionnaireEnabled to be on: you can write
+// the form first and switch it live when it is ready (see /api/card/addons).
 export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -29,8 +31,9 @@ export async function POST(request: Request) {
     : await resolveAddonTarget(admin, user.id)
   if (!target) return NextResponse.json({ error: 'No card found' }, { status: 404 })
 
-  if (!target.addons.questionnaireEnabled) {
-    return NextResponse.json({ error: 'The questionnaire add-on is not enabled on your account.' }, { status: 403 })
+  const plan = await getUserPlan(user.id)
+  if (!(plan.tier === 'pro' && plan.isActive)) {
+    return NextResponse.json({ error: 'This is a Pro feature. Subscribe to switch it on.' }, { status: 403 })
   }
 
   // New shape: a library of up to 3 forms plus which one is live.

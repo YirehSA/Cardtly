@@ -52,10 +52,10 @@ const MORE_TABS: Tab[] = [
 
 interface Props {
   isAdmin?: boolean
-  hasQuestionnaire?: boolean
+  isPro?: boolean
 }
 
-export default function MobileBottomNav({ isAdmin = false, hasQuestionnaire = false }: Props) {
+export default function MobileBottomNav({ isAdmin = false, isPro = false }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const { theme, toggle } = useTheme()
@@ -64,10 +64,10 @@ export default function MobileBottomNav({ isAdmin = false, hasQuestionnaire = fa
   // Close the More sheet whenever we navigate away.
   useEffect(() => { setMoreOpen(false) }, [pathname])
 
-  // Visible More items = base + Questionnaire (if the add-on is on) + Admin (if granted)
+  // Visible More items = base + Lead capture (Pro) + Admin (if granted)
   const moreTabs: Tab[] = [
     ...MORE_TABS,
-    ...(hasQuestionnaire ? [{ href: '/dashboard/questionnaire', label: 'Questionnaire', icon: ClipboardList }] : []),
+    ...(isPro ? [{ href: '/dashboard/questionnaire', label: 'Lead capture', icon: ClipboardList }] : []),
     ...(isAdmin ? [{ href: '/admin', label: 'Admin', icon: Shield }] : []),
   ]
 

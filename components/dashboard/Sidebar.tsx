@@ -30,20 +30,20 @@ const NAV = [
 interface SidebarProps {
   isPro: boolean
   isAdmin?: boolean
-  hasQuestionnaire?: boolean
   userName: string
   userEmail: string
 }
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
-export default function Sidebar({ isPro, isAdmin = false, hasQuestionnaire = false, userName, userEmail }: SidebarProps) {
+export default function Sidebar({ isPro, isAdmin = false, userName, userEmail }: SidebarProps) {
   const pathname = usePathname()
   const { theme, toggle } = useTheme()
-  // The Questionnaire builder only appears for clients who have the
-  // add-on enabled.
-  const nav = hasQuestionnaire
-    ? [...NAV, { href: '/dashboard/questionnaire', label: 'Questionnaire', icon: ClipboardList, color: '#0ea5e9' }]
+  // Lead capture (contact popup + questionnaire) is standard on Pro. The
+  // user switches each one on inside; the link is always there so nobody has
+  // to know it exists before they can find it.
+  const nav = isPro
+    ? [...NAV, { href: '/dashboard/questionnaire', label: 'Lead capture', icon: ClipboardList, color: '#0ea5e9' }]
     : NAV
   const router = useRouter()
   const supabase = createClient()

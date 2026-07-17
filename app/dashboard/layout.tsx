@@ -24,15 +24,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   ])
 
   const isPro = plan.tier === 'pro' && plan.isActive
-  // Show the Questionnaire builder in the nav only for clients with
-  // the add-on on. Resolves to the org for team admins (team-wide),
-  // else the user's own card.
-  const addonAdmin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  ) as any
-  const addonTarget = await resolveAddonTarget(addonAdmin, user.id)
-  const hasQuestionnaire = !!addonTarget?.addons?.questionnaireEnabled
+  // Lead capture is standard on Pro and switched on by the user, so the nav
+  // item just follows the plan. This used to resolve the add-on target on
+  // every dashboard request with a service-role client purely to decide
+  // whether to render one link.
 
   return (
     <ThemeProvider>
@@ -40,7 +35,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <Sidebar
           isPro={isPro}
           isAdmin={isAdmin}
-          hasQuestionnaire={hasQuestionnaire}
           userName={card?.name || ''}
           userEmail={user.email || ''}
         />
@@ -58,7 +52,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <CommandPalette />
         <HeartbeatPing />
         <AnnouncementModal />
-        <MobileBottomNav isAdmin={isAdmin} hasQuestionnaire={hasQuestionnaire} />
+        <MobileBottomNav isAdmin={isAdmin} isPro={isPro} />
       </div>
     </ThemeProvider>
   )

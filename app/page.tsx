@@ -327,7 +327,7 @@ export default function HomePage() {
               desc="Edit, tidy and save any lead straight to your phone. Your Cardtly contacts stay organised and always within reach."
             />
 
-            {/* Reciprocal contact exchange (save-card popup add-on) */}
+            {/* Reciprocal contact exchange (save-card popup, standard on Pro) */}
             <BentoTile
               icon={<Repeat className="w-5 h-5" />}
               accent="#06b6d4"
