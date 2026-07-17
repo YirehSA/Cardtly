@@ -1,7 +1,68 @@
 import { ImageResponse } from 'next/og'
 import { createClient } from '@supabase/supabase-js'
+import { parseDesign, getAccentHex } from '@/types/design'
+import { resolveTeamBrand } from '@/lib/team-brand'
 
 export const runtime = 'edge'
+
+// ── Share-image theme ───────────────────────────────────────────────────────
+// The image follows the card's brand colour when one is set, and falls back to
+// the standard Cardtly look otherwise. A company sets their colour once (their
+// team or department brand), and every share of every card under it matches:
+// no separate setting to keep in sync.
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const h = hex.replace('#', '')
+  const s = h.length === 3 ? h.split('').map(c => c + c).join('') : h
+  if (s.length !== 6 || /[^0-9a-f]/i.test(s)) return null
+  return { r: parseInt(s.slice(0, 2), 16), g: parseInt(s.slice(2, 4), 16), b: parseInt(s.slice(4, 6), 16) }
+}
+function rgba(hex: string, a: number): string {
+  const c = hexToRgb(hex); if (!c) return `rgba(0,212,255,${a})`
+  return `rgba(${c.r},${c.g},${c.b},${a})`
+}
+// Mix a colour toward black; t=1 is fully black. Used for the brand-tinted
+// dark background so a blue brand gets a deep-blue corner, not pure black.
+function darken(hex: string, t: number): string {
+  const c = hexToRgb(hex); if (!c) return '#050510'
+  const m = (v: number) => Math.round(v * (1 - t))
+  return `rgb(${m(c.r)},${m(c.g)},${m(c.b)})`
+}
+
+interface ShareTheme {
+  bg: string; glow1: string; glow2: string
+  accent: string; avatarBorder: string; avatarFallback: string; divider: string
+}
+
+function buildTheme(colorTheme: string | null): ShareTheme {
+  const design = parseDesign(colorTheme)
+  // Only a deliberately-chosen custom colour re-themes the share. A default or
+  // preset card keeps the recognisable Cardtly look, which is the standard.
+  const branded = design.accentColor === 'custom' && !!design.customAccentColor
+  if (!branded) {
+    return {
+      bg: '#050510',
+      glow1: 'rgba(0,212,255,0.18)',
+      glow2: 'rgba(236,72,153,0.15)',
+      accent: '#00d4ff',
+      avatarBorder: 'rgba(0,212,255,0.6)',
+      avatarFallback: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
+      divider: 'linear-gradient(90deg, #00d4ff, #7c3aed, #ec4899)',
+    }
+  }
+  const accent = getAccentHex(design)
+  return {
+    // Brand colour as a deep corner tint fading to near-black: their own
+    // background, still dark enough to keep white text readable.
+    bg: `linear-gradient(160deg, ${darken(accent, 0.82)} 0%, #050510 62%)`,
+    glow1: rgba(accent, 0.24),
+    glow2: rgba(accent, 0.12),
+    accent,
+    avatarBorder: rgba(accent, 0.65),
+    avatarFallback: `linear-gradient(135deg, ${accent}, ${darken(accent, 0.35)})`,
+    divider: accent,
+  }
+}
 
 // Satori (the engine inside ImageResponse) has unreliable WebP support
 // in the edge runtime - it crashes silently and returns 0 bytes when
@@ -85,14 +146,34 @@ export async function GET(
     } else {
       const { data: teamCard } = await supabase
         .from('team_cards')
-        .select('name, title, company, profile_image_url, company_logo_url, color_theme')
+        .select('name, title, company, profile_image_url, company_logo_url, color_theme, use_team_brand, organization_id, department_id')
         .eq('slug', slug)
         .maybeSingle()
-      if (teamCard) card = teamCard
+      if (teamCard) {
+        card = teamCard
+        // A team card wearing the team brand takes its colour from the org (or
+        // its department), same cascade the public card page applies, so the
+        // share matches what the company actually chose.
+        if ((teamCard as any).use_team_brand && (teamCard as any).organization_id) {
+          const { data: org } = await supabase
+            .from('organizations').select('brand').eq('id', (teamCard as any).organization_id).maybeSingle()
+          let deptBrand: Record<string, any> = {}
+          if ((teamCard as any).department_id) {
+            const { data: dept } = await supabase
+              .from('departments').select('brand').eq('id', (teamCard as any).department_id).maybeSingle()
+            deptBrand = (dept as any)?.brand || {}
+          }
+          const resolved = resolveTeamBrand((org as any)?.brand || {}, deptBrand)
+          if (resolved.color_theme) card = { ...card, color_theme: resolved.color_theme }
+        }
+      }
     }
   } catch {
     // fall through and render generic Cardtly OG image
   }
+
+  // Theme the share from the (possibly brand-resolved) design.
+  const theme = buildTheme(card?.color_theme || null)
 
   const name    = card?.name    || 'Cardtly'
   const title   = card?.title   || ''
@@ -113,7 +194,7 @@ export async function GET(
           flexDirection: 'column',
           width: '100%',
           height: '100%',
-          background: '#050510',
+          background: theme.bg,
           position: 'relative',
         }}
       >
@@ -127,7 +208,7 @@ export async function GET(
             width: 500,
             height: 500,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(0,212,255,0.18) 0%, transparent 70%)',
+            background: `radial-gradient(circle, ${theme.glow1} 0%, transparent 70%)`,
           }}
         />
 
@@ -141,7 +222,7 @@ export async function GET(
             width: 400,
             height: 400,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(236,72,153,0.15) 0%, transparent 70%)',
+            background: `radial-gradient(circle, ${theme.glow2} 0%, transparent 70%)`,
           }}
         />
 
@@ -167,7 +248,7 @@ export async function GET(
                 style={{
                   borderRadius: '50%',
                   objectFit: 'cover',
-                  border: '5px solid rgba(0,212,255,0.6)',
+                  border: `5px solid ${theme.avatarBorder}`,
                 }}
               />
             ) : (
@@ -177,7 +258,7 @@ export async function GET(
                   width: 220,
                   height: 220,
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
+                  background: theme.avatarFallback,
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: 90,
@@ -196,7 +277,7 @@ export async function GET(
               {name}
             </div>
             {title ? (
-              <div style={{ display: 'flex', fontSize: 22, fontWeight: 600, color: '#00d4ff', textAlign: 'center' }}>
+              <div style={{ display: 'flex', fontSize: 22, fontWeight: 600, color: theme.accent, textAlign: 'center' }}>
                 {title}
               </div>
             ) : null}
@@ -205,7 +286,7 @@ export async function GET(
                 {company}
               </div>
             ) : null}
-            <div style={{ display: 'flex', height: 3, width: 80, background: 'linear-gradient(90deg, #00d4ff, #7c3aed, #ec4899)', borderRadius: 2, marginTop: 4 }} />
+            <div style={{ display: 'flex', height: 3, width: 80, background: theme.divider, borderRadius: 2, marginTop: 4 }} />
           </div>
 
           {/* Logo if available */}
