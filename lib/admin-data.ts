@@ -138,10 +138,14 @@ export async function loadAdminData(admin: any) {
     admin.from('trial_emails').select('user_id, kind'),
     admin.from('admin_audit_log').select('*').order('created_at', { ascending: false }).limit(50),
     pageRows(admin, 'card_events', 'card_id', (q: any) => q.eq('event_type', 'view').gte('created_at', since)),
-    admin.from('departments').select('id, organization_id, name, brand').order('created_at', { ascending: true }),
-    admin.from('department_managers').select('department_id, user_id'),
     admin.from('reps').select('*').order('created_at', { ascending: true }),
     admin.from('rep_payouts').select('*').order('period_start', { ascending: false }),
+    // These two MUST stay last, aligned with deptRows/deptManagerRows in the
+    // destructuring above. A Promise.all binds by position, so inserting them
+    // mid-array silently rebinds every result after them: departments landed
+    // in repRows, reps in deptRows, and the whole tab went quietly wrong.
+    admin.from('departments').select('id, organization_id, name, brand').order('created_at', { ascending: true }),
+    admin.from('department_managers').select('department_id, user_id'),
   ])
 
   // Real subscription amounts, from Paystack. Never derived from our own
