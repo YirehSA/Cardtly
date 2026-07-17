@@ -72,3 +72,48 @@ export async function cardDepartment(admin: any, teamCardId: string): Promise<{ 
   if (!card) return null
   return { organizationId: card.organization_id ?? null, departmentId: card.department_id ?? null }
 }
+
+// ── Owner-level checks ──────────────────────────────────────────────────────
+// Creating departments and appointing heads is a HIGHER privilege than
+// managing one. A department manager must never be able to do these: only the
+// org owner (the company's main admin) can. These are the gate for that.
+
+export interface OwnedOrg { id: string; name: string }
+
+export async function getOwnedOrgs(admin: any, userId: string): Promise<OwnedOrg[]> {
+  if (!userId) return []
+  const { data } = await admin.from('organizations').select('id, name').eq('admin_user_id', userId)
+  return (data || []).map((o: any) => ({ id: o.id, name: o.name }))
+}
+
+export async function isOrgOwner(admin: any, userId: string, orgId: string): Promise<boolean> {
+  if (!userId || !orgId) return false
+  const { data } = await admin.from('organizations').select('id').eq('id', orgId).eq('admin_user_id', userId).maybeSingle()
+  return !!data
+}
+
+// Does this user own the org that this department belongs to? The gate for
+// renaming, deleting, and appointing heads on a department.
+export async function ownsOrgOfDepartment(admin: any, userId: string, departmentId: string): Promise<boolean> {
+  if (!userId || !departmentId) return false
+  const { data: dept } = await admin.from('departments').select('organization_id').eq('id', departmentId).maybeSingle()
+  if (!dept) return false
+  return isOrgOwner(admin, userId, dept.organization_id)
+}
+
+// Find a Cardtly user by email, for appointing a head by email rather than
+// shipping the whole user list to an org owner's browser.
+export async function findUserByEmail(admin: any, email: string): Promise<{ id: string; email: string } | null> {
+  const want = String(email || '').trim().toLowerCase()
+  if (!want) return null
+  // listUsers is paged; at current scale one page covers everyone, but page
+  // through to be correct if it grows.
+  for (let page = 1; page <= 20; page++) {
+    const { data } = await admin.auth.admin.listUsers({ page, perPage: 200 })
+    const users = data?.users || []
+    const hit = users.find((u: any) => String(u.email || '').toLowerCase() === want)
+    if (hit) return { id: hit.id, email: hit.email }
+    if (users.length < 200) break
+  }
+  return null
+}

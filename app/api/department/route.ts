@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { BRAND_FIELDS } from '@/lib/team-brand'
-import { getManagedDepartments, canManageDepartment, cardDepartment } from '@/lib/department-perms'
+import { getManagedDepartments, canManageDepartment, cardDepartment, isOrgOwner, ownsOrgOfDepartment, findUserByEmail, getOwnedOrgs } from '@/lib/department-perms'
 import { newInviteToken, sendTeamInvite } from '@/lib/team-invite'
 
 // The department manager's own endpoint, separate from /api/admin (which is
@@ -28,6 +28,76 @@ export async function POST(request: Request) {
   let body: any
   try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid request' }, { status: 400 }) }
   const { action } = body
+
+  // ── Owner-only: run the org's department structure ────────────────────────
+  // These are the company's main-admin powers. A plain department manager must
+  // never reach them, so they gate on org ownership, not canManageDepartment.
+
+  if (action === 'create_department') {
+    const { org_id, name } = body
+    if (!org_id || !name || !String(name).trim()) {
+      return NextResponse.json({ error: 'A team and a name are required' }, { status: 400 })
+    }
+    if (!(await isOrgOwner(admin, user.id, org_id))) {
+      return NextResponse.json({ error: 'Only the company admin can create departments' }, { status: 403 })
+    }
+    const { data, error } = await admin.from('departments')
+      .insert({ organization_id: org_id, name: String(name).trim() }).select('id').maybeSingle()
+    if (error) return NextResponse.json({ error: `Could not create it: ${error.message}` }, { status: 500 })
+    return NextResponse.json({ success: true, department_id: data?.id })
+  }
+
+  if (action === 'rename_department') {
+    const { department_id, name } = body
+    if (!department_id || !name || !String(name).trim()) return NextResponse.json({ error: 'A department and a name are required' }, { status: 400 })
+    if (!(await ownsOrgOfDepartment(admin, user.id, department_id))) {
+      return NextResponse.json({ error: 'Only the company admin can rename a department' }, { status: 403 })
+    }
+    const { error } = await admin.from('departments').update({ name: String(name).trim(), updated_at: new Date().toISOString() }).eq('id', department_id)
+    if (error) return NextResponse.json({ error: `Could not rename: ${error.message}` }, { status: 500 })
+    return NextResponse.json({ success: true })
+  }
+
+  if (action === 'delete_department') {
+    const { department_id } = body
+    if (!department_id) return NextResponse.json({ error: 'department_id required' }, { status: 400 })
+    if (!(await ownsOrgOfDepartment(admin, user.id, department_id))) {
+      return NextResponse.json({ error: 'Only the company admin can delete a department' }, { status: 403 })
+    }
+    // ON DELETE SET NULL: the cards survive and fall back to the company look.
+    const { error } = await admin.from('departments').delete().eq('id', department_id)
+    if (error) return NextResponse.json({ error: `Could not delete: ${error.message}` }, { status: 500 })
+    return NextResponse.json({ success: true })
+  }
+
+  // Appoint (or remove) a department head, by email so the owner never gets a
+  // list of every Cardtly user.
+  if (action === 'appoint_head') {
+    const { department_id, email } = body
+    if (!department_id || !email) return NextResponse.json({ error: 'A department and an email are required' }, { status: 400 })
+    if (!(await ownsOrgOfDepartment(admin, user.id, department_id))) {
+      return NextResponse.json({ error: 'Only the company admin can appoint a head' }, { status: 403 })
+    }
+    const found = await findUserByEmail(admin, email)
+    if (!found) {
+      return NextResponse.json({ error: 'No Cardtly account with that email. Ask them to sign up first, then appoint them.' }, { status: 404 })
+    }
+    const { error } = await admin.from('department_managers')
+      .upsert({ department_id, user_id: found.id }, { onConflict: 'department_id,user_id' })
+    if (error) return NextResponse.json({ error: `Could not appoint: ${error.message}` }, { status: 500 })
+    return NextResponse.json({ success: true, email: found.email })
+  }
+
+  if (action === 'remove_head') {
+    const { department_id, user_id } = body
+    if (!department_id || !user_id) return NextResponse.json({ error: 'department_id and user_id required' }, { status: 400 })
+    if (!(await ownsOrgOfDepartment(admin, user.id, department_id))) {
+      return NextResponse.json({ error: 'Only the company admin can remove a head' }, { status: 403 })
+    }
+    const { error } = await admin.from('department_managers').delete().eq('department_id', department_id).eq('user_id', user_id)
+    if (error) return NextResponse.json({ error: `Could not remove: ${error.message}` }, { status: 500 })
+    return NextResponse.json({ success: true })
+  }
 
   // ── Set a department's look ───────────────────────────────────────────────
   if (action === 'set_brand') {
@@ -144,10 +214,14 @@ export async function POST(request: Request) {
     if (!team_card_id) return NextResponse.json({ error: 'team_card_id required' }, { status: 400 })
     const loc = await cardDepartment(admin, team_card_id)
     if (!loc) return NextResponse.json({ error: 'Card not found' }, { status: 404 })
-    // Must manage where it is now (you cannot pull a card out of a department
-    // you do not run, nor a card sitting at the org level).
-    if (!loc.departmentId || !(await canManageDepartment(admin, user.id, loc.departmentId))) {
-      return NextResponse.json({ error: 'You do not manage that card' }, { status: 403 })
+    // Must be allowed to take the card from where it is now. From a
+    // department: you manage it. From the org level (no department): you own
+    // the org. A manager cannot pull an org-level card in; only the owner can.
+    const fromOk = loc.departmentId
+      ? await canManageDepartment(admin, user.id, loc.departmentId)
+      : (loc.organizationId ? await isOrgOwner(admin, user.id, loc.organizationId) : false)
+    if (!fromOk) {
+      return NextResponse.json({ error: 'You cannot move that card' }, { status: 403 })
     }
     // And, unless releasing it to the org level, must manage the target too.
     if (to_department_id && !(await canManageDepartment(admin, user.id, to_department_id))) {
@@ -172,6 +246,9 @@ export async function GET() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
 
-  const managed = await getManagedDepartments(admin, user.id)
-  return NextResponse.json({ departments: managed })
+  const [managed, ownedOrgs] = await Promise.all([
+    getManagedDepartments(admin, user.id),
+    getOwnedOrgs(admin, user.id),
+  ])
+  return NextResponse.json({ departments: managed, ownedOrgs })
 }

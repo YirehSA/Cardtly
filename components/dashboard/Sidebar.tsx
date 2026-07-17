@@ -48,7 +48,7 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
     ...(isPro ? [...NAV, { href: '/dashboard/questionnaire', label: 'Lead capture', icon: ClipboardList, color: '#0ea5e9' }] : NAV),
     // Only a department manager sees this. Their whole scoped surface lives
     // behind it.
-    ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'My department', icon: Layers, color: '#a855f7' }] : []),
+    ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers, color: '#a855f7' }] : []),
   ]
   const router = useRouter()
   const supabase = createClient()

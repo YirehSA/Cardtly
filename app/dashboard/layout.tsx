@@ -3,7 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
 import { isAdminUser } from '@/lib/admin-check'
-import { getManagedDepartments } from '@/lib/department-perms'
+import { getManagedDepartments, getOwnedOrgs } from '@/lib/department-perms'
 import { ThemeProvider } from '@/components/dashboard/ThemeProvider'
 import Sidebar from '@/components/dashboard/Sidebar'
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
@@ -25,10 +25,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
     getUserPlan(user.id),
     supabase.from('cards').select('name, addons').eq('user_id', user.id).maybeSingle(),
     isAdminUser(user.id),
-    getManagedDepartments(deptAdmin, user.id),
+    Promise.all([getManagedDepartments(deptAdmin, user.id), getOwnedOrgs(deptAdmin, user.id)]),
   ])
-  // Show the department manager link only to someone who manages one.
-  const managesDepartments = managedDepts.length > 0
+  const [managedDeptsList, ownedOrgsList] = managedDepts
+  // Show the Departments link to anyone who manages a department OR owns a
+  // team. An owner with no departments yet still needs the entry point to
+  // create the first one, and getManagedDepartments is empty until one exists.
+  const managesDepartments = managedDeptsList.length > 0 || ownedOrgsList.length > 0
 
   const isPro = plan.tier === 'pro' && plan.isActive
   // Lead capture is standard on Pro and switched on by the user, so the nav
