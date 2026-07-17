@@ -61,12 +61,11 @@ export async function POST(request: Request) {
     const planCode = getPlanCode(seat_count)
     if (!planCode) return NextResponse.json({ error: 'Seat count must be between 1 and 50' }, { status: 400 })
 
-    const slug = generateSlug(org_name, Math.random().toString(36).slice(2, 6))
-
-    // Create org
+    // Create org. Note: organizations has no slug column (nothing reads an
+    // org slug), and inserting one used to fail the whole create.
     const { data: org, error: orgError } = await admin
       .from('organizations')
-      .insert({ admin_user_id: user.id, name: org_name, slug, max_seats: seat_count, business_plan_active: false })
+      .insert({ admin_user_id: user.id, name: org_name, max_seats: seat_count, business_plan_active: false })
       .select()
       .single()
 
