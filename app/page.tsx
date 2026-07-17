@@ -3,6 +3,7 @@ import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
 import Reveal from '@/components/marketing/Reveal'
 import NativeAppRedirect from '@/components/NativeAppRedirect'
+import { PROMOS_ENABLED } from '@/lib/promos'
 import HeroSection from '@/components/marketing/HeroSection'
 import ThreeWaysToShare from '@/components/marketing/ThreeWaysToShare'
 import TemplatesShowcase from '@/components/marketing/TemplatesShowcase'
@@ -554,11 +555,13 @@ export default function HomePage() {
             <div className="absolute inset-0 pointer-events-none"
               style={{ background: 'radial-gradient(ellipse at center, rgba(124,58,237,0.18) 0%, transparent 70%)' }} />
             <div className="relative">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest mb-6"
-                style={{ background: 'rgba(0,212,255,0.15)', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff' }}>
-                <Zap className="w-3 h-3" />
-                Win Pro for life — first 100 signups
-              </div>
+              {PROMOS_ENABLED && (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest mb-6"
+                  style={{ background: 'rgba(0,212,255,0.15)', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff' }}>
+                  <Zap className="w-3 h-3" />
+                  Win Pro for life, first 100 signups
+                </div>
+              )}
               <h2 className="text-4xl md:text-6xl font-black tracking-tight mb-4 leading-tight">
                 Turn every handshake<br /><span style={gradText}>into a sale.</span>
               </h2>
@@ -572,10 +575,10 @@ export default function HomePage() {
                   Create your free card
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </Link>
-                <Link href="/promotions"
+                <Link href={PROMOS_ENABLED ? '/promotions' : '/pricing'}
                   className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl text-base font-medium transition hover:bg-white/10"
                   style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }}>
-                  See the prize ladder
+                  {PROMOS_ENABLED ? 'See the prize ladder' : 'See pricing'}
                 </Link>
               </div>
               <p className="text-xs mt-6" style={{ color: 'rgba(255,255,255,0.35)' }}>No credit card · No catch · Free forever tier</p>

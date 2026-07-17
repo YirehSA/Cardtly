@@ -1,3 +1,4 @@
+import { PROMOS_ENABLED } from '@/lib/promos'
 import type { MetadataRoute } from 'next'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { POSTS } from './blog/posts'
@@ -31,7 +32,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/about`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/contact`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/signup`, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${BASE}/promotions`, changeFrequency: 'weekly', priority: 0.6 },
+    // Only advertise /promotions to Google while it actually resolves;
+    // it 404s when the programme is paused.
+    ...(PROMOS_ENABLED
+      ? [{ url: `${BASE}/promotions`, changeFrequency: 'weekly' as const, priority: 0.6 }]
+      : []),
     { url: `${BASE}/terms`, changeFrequency: 'yearly', priority: 0.2 },
     { url: `${BASE}/privacy`, changeFrequency: 'yearly', priority: 0.2 },
   ]

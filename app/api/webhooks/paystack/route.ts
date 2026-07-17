@@ -1,3 +1,4 @@
+import { PROMOS_ENABLED } from '@/lib/promos'
 import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
@@ -56,7 +57,8 @@ export async function POST(request: Request) {
         // Promotions: grant a 'paid' draw entry. Idempotent via the
         // Paystack reference so a retried webhook can't double-grant.
         // Capped at 10 total entries per user inside grant-entry.
-        try {
+        // Skipped entirely while promos are paused.
+        if (PROMOS_ENABLED) try {
           const paidIdemKey = `paid:${event.data.reference}`
           // Count check first - skip the API call if at cap to save a hop
           const { count: entryCount } = await admin
@@ -93,17 +95,23 @@ export async function POST(request: Request) {
               became_paid_at: new Date().toISOString(),
             }).eq('id', referralRow.id)
 
-            const referrerEntryKey = `referral:${referralRow.id}`
-            const { count: refEntryCount } = await admin
-              .from('promo_entries')
-              .select('id', { count: 'exact', head: true })
-              .eq('user_id', referralRow.referrer_user_id)
-            if ((refEntryCount ?? 0) < 10) {
-              await admin.from('promo_entries').insert({
-                user_id: referralRow.referrer_user_id,
-                source: 'referral',
-                idempotency_key: referrerEntryKey,
-              })
+            // Referral tracking above still runs while promos are
+            // paused (it's just attribution data, and it's worth having
+            // whenever we decide what to do next). Only the draw entry,
+            // which is the actual prize mechanic, is gated.
+            if (PROMOS_ENABLED) {
+              const referrerEntryKey = `referral:${referralRow.id}`
+              const { count: refEntryCount } = await admin
+                .from('promo_entries')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', referralRow.referrer_user_id)
+              if ((refEntryCount ?? 0) < 10) {
+                await admin.from('promo_entries').insert({
+                  user_id: referralRow.referrer_user_id,
+                  source: 'referral',
+                  idempotency_key: referrerEntryKey,
+                })
+              }
             }
           }
         } catch {

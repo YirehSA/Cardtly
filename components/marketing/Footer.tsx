@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { PROMOS_ENABLED } from '@/lib/promos'
 
 export default function Footer() {
   return (
@@ -32,7 +33,7 @@ export default function Footer() {
                 { href: '/pricing',       label: 'Digital business card pricing' },
                 { href: '/blog',          label: 'Digital business card blog' },
                 { href: '/#teams',        label: 'Cardtly for Teams' },
-                { href: '/promotions',    label: 'Win prizes 🏆' },
+                ...(PROMOS_ENABLED ? [{ href: '/promotions', label: 'Win prizes 🏆' }] : []),
                 { href: '/nfc',           label: 'NFC business cards 🇿🇦' },
                 { href: '/signup',        label: 'Create your free card' },
                 { href: '/login',         label: 'Sign in' },
@@ -55,7 +56,7 @@ export default function Footer() {
                 { href: '/contact',           label: 'Contact' },
                 { href: '/privacy',           label: 'Privacy policy' },
                 { href: '/terms',             label: 'Terms of service' },
-                { href: '/promotions/terms',  label: 'Promotion rules' },
+                ...(PROMOS_ENABLED ? [{ href: '/promotions/terms', label: 'Promotion rules' }] : []),
               ].map(({ href, label }) => (
                 <Link key={href} href={href}
                   className="block text-sm transition hover:text-white"

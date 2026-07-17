@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { PROMOS_ENABLED } from '@/lib/promos'
 
 // POST /api/promotions/grant-founder
 // Body: { user_id }
@@ -16,6 +17,15 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 // from 'founder_3m' to 'founder_lifetime' at that point.
 
 export async function POST(request: Request) {
+  // Promos paused. Signup still calls this (fire-and-forget), so answer
+  // 200 with granted:false rather than an error: the caller ignores the
+  // body and a 4xx would just add noise to the logs. No Pro is handed
+  // out while paused. founder_number itself is still assigned by the DB
+  // trigger, since that now drives the "N/100" badge.
+  if (!PROMOS_ENABLED) {
+    return NextResponse.json({ granted: false, reason: 'promotions_paused' })
+  }
+
   let body: { user_id?: string }
   try {
     body = await request.json()

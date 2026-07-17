@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
+import { PROMOS_ENABLED } from '@/lib/promos'
 
 // ============================================================
 // Cardtly Growth Promotions - Terms & Conditions
@@ -45,6 +47,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export default function PromotionsTermsPage() {
+  // Paused with the promo itself: T&Cs for a competition that isn't
+  // running would be the one page still claiming it exists.
+  if (!PROMOS_ENABLED) notFound()
+
   return (
     <div style={{ background: '#000', color: '#fff' }}>
       <Navbar />

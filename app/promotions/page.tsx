@@ -1,4 +1,6 @@
+import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { PROMOS_ENABLED } from '@/lib/promos'
 import PromotionsClient from './PromotionsClient'
 
 // Server component: fetches the initial state (founder count + the
@@ -15,6 +17,9 @@ export const metadata = {
 }
 
 export default async function PromotionsPage() {
+  // Promos paused: 404 rather than serve a prize ladder nobody can win.
+  if (!PROMOS_ENABLED) notFound()
+
   const supabase = await createClient() as any
 
   // Initial founder count - the client will poll for updates.

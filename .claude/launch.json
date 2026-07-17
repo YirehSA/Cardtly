@@ -5,13 +5,23 @@
       "name": "cardtly-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "port": 3000
+      "port": 3000,
+      "autoPort": true,
+      "env": {
+        "NODE_OPTIONS": "--use-system-ca"
+      }
     },
     {
       "name": "melectrical-preview",
       "runtimeExecutable": "node",
       "runtimeArgs": ["C:/Users/User/Desktop/Melectrical/.preview-server.js"],
       "port": 5599
+    },
+    {
+      "name": "cardtly-demo-static",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/Users/User/AppData/Local/Temp/claude/C--Users-User-Desktop-cardtly-cardtly/416332af-5579-46f8-8be4-d6c7d702ddf8/scratchpad/demo-server.js"],
+      "port": 5678
     }
   ]
 }

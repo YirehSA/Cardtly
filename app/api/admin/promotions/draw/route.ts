@@ -28,6 +28,12 @@ const VALID_TIERS = new Set([
 ])
 
 export async function POST(request: Request) {
+  // Promos paused: no draws can be run, not even by an admin. Running
+  // one would create winners for a programme that is publicly 404.
+  if (!PROMOS_ENABLED) {
+    return NextResponse.json({ error: 'Promotions are paused' }, { status: 409 })
+  }
+
   // 1. Auth gate
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

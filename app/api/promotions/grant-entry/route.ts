@@ -32,6 +32,11 @@ const VALID_SOURCES = new Set([
 const ENTRY_CAP = 10
 
 export async function POST(request: Request) {
+  // Promos paused: stop issuing draw entries.
+  if (!PROMOS_ENABLED) {
+    return NextResponse.json({ granted: false, reason: 'promotions_paused' })
+  }
+
   let body: { user_id?: string; source?: string; idempotency_key?: string; tier?: string }
   try {
     body = await request.json()

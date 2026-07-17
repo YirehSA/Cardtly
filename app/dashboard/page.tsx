@@ -7,6 +7,7 @@ import Link from 'next/link'
 import CopyLinkButton from '@/components/dashboard/CopyLinkButton'
 import AnimatedCounter from '@/components/dashboard/AnimatedCounter'
 import OnboardingTour from '@/components/dashboard/OnboardingTour'
+import { PROMOS_ENABLED } from '@/lib/promos'
 import ReferralCard from '@/components/dashboard/ReferralCard'
 import TapToShareButton from '@/components/nfc/TapToShareButton'
 import WidgetSync from '@/components/dashboard/WidgetSync'
@@ -267,9 +268,10 @@ export default async function DashboardPage() {
           personal users and nothing visual. */}
       <TeammatesCard />
 
-      {/* Referral card — surfaces the personal ?ref= link where users
-          actually land daily, instead of hiding it on /promotions */}
-      {referralCode && (
+      {/* Referral card. Every line of it sells prize-draw entries, so it
+          hides entirely while promos are paused rather than dangling a
+          share link with no reward behind it. */}
+      {PROMOS_ENABLED && referralCode && (
         <ReferralCard referralCode={referralCode} firstName={firstName} />
       )}
 
