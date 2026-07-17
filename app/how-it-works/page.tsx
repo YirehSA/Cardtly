@@ -24,7 +24,7 @@ const STEPS = [
   {
     n: '01',
     title: 'Sign up in seconds',
-    desc: "Create your free account with just your email. No credit card, no commitments. You're up in under a minute.",
+    desc: "Create your account with just your email. No credit card needed to start your 60-day trial. You're up in under a minute.",
     detail: "Your card is created automatically when you sign up. Just fill in your details and you're live.",
     color: '#00d4ff',
   },
@@ -32,13 +32,13 @@ const STEPS = [
     n: '02',
     title: 'Build your card',
     desc: 'Add your name, photo, contact details, social links, bio, and anything else you want people to see.',
-    detail: 'Pro users get 9 beautiful templates, custom colours, gallery images, certifications, custom links and more.',
+    detail: 'Every card gets 12 templates, custom colours, gallery images, certifications, custom links and more.',
     color: '#7c3aed',
   },
   {
     n: '03',
     title: 'Share your link',
-    desc: 'Your card lives at cardtly.com/card/yourname. Share it anywhere — WhatsApp, email, Instagram bio, LinkedIn.',
+    desc: 'Your card lives at cardtly.com/card/yourname. Share it anywhere: WhatsApp, email, Instagram bio, LinkedIn.',
     detail: 'You also get a unique QR code. Print it on your packaging, desk, or old-school paper cards.',
     color: '#a855f7',
   },
@@ -46,34 +46,29 @@ const STEPS = [
     n: '04',
     title: 'Make real connections',
     desc: 'People visit your card, save your contact, click your links, and reach out directly through your card.',
-    detail: 'Pro users see exactly how many people viewed their card, clicked their links, and saved their contact.',
+    detail: 'Your analytics dashboard shows how many people have viewed your card, so you can see what is working.',
     color: '#ec4899',
   },
 ]
 
-const FREE_FEATURES = [
-  'Your name, email, phone and company',
-  'Profile photo',
-  'Public card URL at cardtly.com/card/you',
-  'QR code download',
-  'Contact save button (vCard)',
-]
-
-const PRO_FEATURES = [
-  'Everything in Free, plus:',
-  '9 stunning card templates',
-  'Custom accent colours and fonts',
-  'Bio, title, address, WhatsApp',
+// Kept deliberately in step with the Pro list on /pricing, which is
+// the canonical page. There is no longer a free tier to compare
+// against: every card is Pro, free for the first 60 days.
+const PLAN_FEATURES = [
+  'Your own card URL at cardtly.com/card/you',
+  '12 card templates',
+  'Custom accent colour and fonts',
+  'Job title, bio, address, WhatsApp',
   'Up to 14 custom links',
-  'Social media profiles (LinkedIn, Instagram, X)',
-  'Gallery images (up to 5)',
+  'Social media profiles',
+  'Gallery (up to 5 images)',
   'Certifications and awards',
-  'Analytics — views, clicks, saves',
-  'Email signature generator (Gmail, Outlook, Apple Mail)',
-  'Virtual background — branded Zoom & Teams backgrounds with your QR',
-  'Contact form — capture leads directly from your card',
-  'QR code with your own logo',
-  'Remove Cardtly branding',
+  'Analytics dashboard',
+  'Email signature generator',
+  'Virtual background for Zoom & Teams',
+  'Contact capture form',
+  'Book meetings from your card',
+  'QR code with your logo',
 ]
 
 export default function HowItWorksPage() {
@@ -119,16 +114,16 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      {/* Free vs Pro */}
+      {/* What you get */}
       <section className="py-24 px-6" style={{ background: 'rgba(255,255,255,0.02)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-black tracking-tight mb-3">
-              Free is generous. <span style={gradText}>Pro is everything.</span>
+              One plan. <span style={gradText}>Everything included.</span>
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.45)' }}>No pressure to upgrade — but when you do, it's worth it.</p>
+            <p style={{ color: 'rgba(255,255,255,0.45)' }}>Try it free for 60 days. Keep it for R97 a month.</p>
           </div>
-          <GeoPricing freePlan={FREE_FEATURES} proPlan={PRO_FEATURES} />
+          <GeoPricing plan={PLAN_FEATURES} />
         </div>
       </section>
 
@@ -145,7 +140,7 @@ export default function HowItWorksPage() {
             <Link href="/signup"
               className="px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:opacity-90"
               style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.35)' }}>
-              Create your card free <ArrowRight className="w-4 h-4 inline ml-1" />
+              Start your 60-day trial <ArrowRight className="w-4 h-4 inline ml-1" />
             </Link>
             <Link href="/contact"
               className="px-8 py-4 rounded-2xl text-base font-medium transition hover:bg-white/05"

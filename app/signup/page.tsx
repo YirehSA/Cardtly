@@ -257,7 +257,7 @@ export default function SignupPage() {
             © {new Date().getFullYear()} Cardtly · Made in South Africa 🇿🇦
           </p>
           <div className="flex gap-3">
-            {['Free forever', 'QR included', 'NFC ready'].map(perk => (
+            {['60 days free', 'QR included', 'NFC ready'].map(perk => (
               <span key={perk} className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.45)' }}>
                 {perk}
@@ -316,7 +316,7 @@ export default function SignupPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest mb-5"
             style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff' }}>
             <Sparkles className="w-3 h-3" />
-            Free forever · No credit card
+            60 days free · No credit card
           </div>
           <h1 className="text-3xl font-black text-white tracking-tight mb-2">
             Create your <span style={gradText}>card</span>
@@ -413,7 +413,7 @@ export default function SignupPage() {
               {loading ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Creating your card...</>
               ) : (
-                <>{liveSlug ? `Claim cardtly.com/card/${liveSlug.slice(0, 24)}${liveSlug.length > 24 ? '…' : ''}` : 'Create free card'}
+                <>{liveSlug ? `Claim cardtly.com/card/${liveSlug.slice(0, 24)}${liveSlug.length > 24 ? '…' : ''}` : 'Start your 60-day trial'}
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" /></>
               )}
             </button>

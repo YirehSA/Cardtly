@@ -231,7 +231,7 @@ export default function NFCMarketingPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             {[
-              { n: '01', title: 'Upgrade to Pro',    desc: 'NFC cards are a Pro feature. Start with a free Cardtly account and upgrade when ready.' },
+              { n: '01', title: 'Create your card',  desc: 'Start your 60-day trial, no credit card needed, and get your Cardtly card set up first.' },
               { n: '02', title: 'Choose your card',  desc: 'Pick Black or White. Confirm your name, job title, and shipping address. Takes 2 minutes.' },
               { n: '03', title: 'We ship to you',    desc: 'Pay R250 (card + shipping) and your NFC card arrives within 5–7 business days anywhere in SA.' },
             ].map(({ n, title, desc }) => (
@@ -304,10 +304,10 @@ export default function NFCMarketingPage() {
           <Link href="/signup"
             className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:opacity-90"
             style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.4)' }}>
-            Get started free <ArrowRight className="w-4 h-4" />
+            Start your 60-day trial <ArrowRight className="w-4 h-4" />
           </Link>
           <p className="text-xs mt-4" style={{ color: 'rgba(255,255,255,0.25)' }}>
-            Free account · Upgrade to Pro · Order your NFC card
+            60 days free · Then R97 a month · Order your NFC card
           </p>
         </div>
       </section>

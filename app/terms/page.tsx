@@ -100,7 +100,7 @@ export default function TermsPage() {
 
           <Section title="5. Subscriptions and payment">
             <p>
-              Cardtly offers a free tier and a paid Pro tier. Pro subscriptions are billed in advance on a monthly or annual cycle through our payment processor Paystack. By subscribing you authorise Paystack to charge your card on each billing cycle until you cancel.
+              Cardtly is offered with a 60-day free trial, which requires no payment details to start. After the trial ends, a paid subscription is required to keep your card live. Subscriptions are billed in advance on a monthly or annual cycle through our payment processor Paystack. By subscribing you authorise Paystack to charge your card on each billing cycle until you cancel.
             </p>
             <p>
               You can cancel at any time from your account settings. Cancellation takes effect at the end of the current billing period. We do not offer refunds for partial periods, except where required by law.
@@ -109,7 +109,7 @@ export default function TermsPage() {
               We may change subscription prices with 30 days&apos; written notice to active subscribers. Continued use after a price change means you accept the new price.
             </p>
             <p>
-              If a payment fails we will attempt to retry. If we cannot collect payment within a reasonable period your account may be downgraded to the free tier and Pro features will become inaccessible.
+              If a payment fails we will attempt to retry. If we cannot collect payment within a reasonable period your card may be suspended and paid features will become inaccessible. Your content is retained so that your card can be restored if you resubscribe.
             </p>
           </Section>
 

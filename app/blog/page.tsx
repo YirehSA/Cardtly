@@ -82,12 +82,12 @@ export default function BlogIndexPage() {
               Ready for your own <span style={gradText}>card?</span>
             </h2>
             <p className="text-base mb-7" style={{ color: 'rgba(255,255,255,0.55)' }}>
-              Build a free digital business card in 2 minutes. No credit card needed.
+              Build a digital business card in 2 minutes, free for 60 days. No credit card needed.
             </p>
             <Link href="/signup"
               className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:scale-[1.03]"
               style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.5)' }}>
-              Create your free card
+              Start your 60-day trial
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>

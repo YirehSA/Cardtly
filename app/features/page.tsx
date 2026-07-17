@@ -13,7 +13,7 @@ import {
 export const metadata: Metadata = {
   title: 'Features — Everything Your Cardtly Digital Business Card Can Do',
   description:
-    'Explore every Cardtly feature with examples: NFC tap-to-share, QR codes, editable templates, lead capture and CRM, meeting booking, paper card scanner, WhatsApp follow-up, one-click Excel export, weekly performance digest and analytics. See what is free and what is Pro.',
+    'Explore every Cardtly feature with examples: NFC tap-to-share, QR codes, editable templates, lead capture and CRM, meeting booking, paper card scanner, WhatsApp follow-up, one-click Excel export, weekly performance digest and analytics. Every feature included, free for 60 days.',
   alternates: { canonical: '/features' },
 }
 
@@ -25,14 +25,17 @@ const gradText: React.CSSProperties = {
   backgroundClip: 'text',
 }
 
-type Tier = 'Free' | 'Pro' | 'Add-on' | 'Team'
+// 'Free' and 'Pro' collapsed into 'Included' when the free tier was
+// dropped: every card is Pro now, so splitting features across two
+// tiers described a choice that no longer exists. Add-on and Team are
+// still real distinctions and stay.
+type Tier = 'Included' | 'Add-on' | 'Team'
 
 // ── Small UI atoms ─────────────────────────────────────────────────────
 
 function TierPill({ tier }: { tier: Tier }) {
   const s = {
-    Free: { bg: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.65)', border: 'rgba(255,255,255,0.16)' },
-    Pro: { bg: 'rgba(124,58,237,0.15)', color: '#a78bfa', border: 'rgba(124,58,237,0.4)' },
+    Included: { bg: 'rgba(124,58,237,0.15)', color: '#a78bfa', border: 'rgba(124,58,237,0.4)' },
     'Add-on': { bg: 'rgba(0,212,255,0.12)', color: '#00d4ff', border: 'rgba(0,212,255,0.35)' },
     Team: { bg: 'rgba(236,72,153,0.14)', color: '#f472b6', border: 'rgba(236,72,153,0.35)' },
   }[tier]
@@ -240,17 +243,17 @@ const GROUPS: Group[] = [
         how: 'Order a card, we encode your link, then tap it to any phone to open your live profile.',
       },
       {
-        icon: Smartphone, title: 'Share in one tap', tier: 'Free',
+        icon: Smartphone, title: 'Share in one tap', tier: 'Included',
         desc: 'QR code, short link or NFC. Whichever way the person in front of you prefers to receive it.',
         how: 'Download your QR code or copy your cardtly.com link and share it anywhere, on or offline.',
       },
       {
-        icon: Globe, title: 'Always up to date', tier: 'Free',
+        icon: Globe, title: 'Always up to date', tier: 'Included',
         desc: 'Change your number, title or photo once. It updates everywhere your card lives. Never reprint a card again.',
         how: 'Edit your card in the dashboard and every shared link, QR code and NFC tap reflects it instantly.',
       },
       {
-        icon: Wallet, title: 'Add to Google Wallet', tier: 'Free',
+        icon: Wallet, title: 'Add to Google Wallet', tier: 'Included',
         desc: 'Save your card to Google Wallet so it sits with your boarding passes and loyalty cards, one swipe away, and updates itself when you edit your card.',
         how: 'Tap Add to Google Wallet on your card; edits you make later push to the saved pass automatically.',
       },
@@ -267,37 +270,37 @@ const GROUPS: Group[] = [
     heading: 'A card that does far more than contact details',
     features: [
       {
-        icon: LayoutTemplate, title: 'Designer templates', tier: 'Pro', visual: <TemplatesMock />,
+        icon: LayoutTemplate, title: 'Designer templates', tier: 'Included', visual: <TemplatesMock />,
         desc: 'Professionally designed layouts for every profession, and every one is fully editable to fit your brand.',
         how: 'Pick a template, then tweak colours, fonts, logo size and content in the design panel.',
       },
       {
-        icon: Palette, title: 'Custom colours & fonts', tier: 'Pro',
+        icon: Palette, title: 'Custom colours & fonts', tier: 'Included',
         desc: 'Match your brand exactly with custom accent colours, font choices and logo sizing.',
         how: 'Set your colour and font in the design panel; the whole card restyles live as you edit.',
       },
       {
-        icon: Images, title: 'Photo gallery', tier: 'Pro',
+        icon: Images, title: 'Photo gallery', tier: 'Included',
         desc: 'Show your work, products or portfolio with a built-in image gallery right on your card.',
         how: 'Upload up to six images; visitors swipe through them without leaving your card.',
       },
       {
-        icon: Link2, title: 'Custom links', tier: 'Pro',
+        icon: Link2, title: 'Custom links', tier: 'Included',
         desc: 'Add your own buttons linking anywhere: website, booking page, menu, catalogue, price list.',
         how: 'Add up to 14 custom link buttons and reorder them however you like.',
       },
       {
-        icon: Share2, title: 'Socials & WhatsApp', tier: 'Pro',
+        icon: Share2, title: 'Socials & WhatsApp', tier: 'Included',
         desc: 'Link every social profile and add a one-tap WhatsApp chat button to your card.',
         how: 'Drop in your handles and WhatsApp number; icons appear for people to tap.',
       },
       {
-        icon: Award, title: 'Certifications & awards', tier: 'Pro',
+        icon: Award, title: 'Certifications & awards', tier: 'Included',
         desc: 'Build instant trust by showcasing your qualifications and accreditations.',
         how: 'List your certifications in a dedicated section that renders as neat badges.',
       },
       {
-        icon: Sparkles, title: 'AI-written bio', tier: 'Pro',
+        icon: Sparkles, title: 'AI-written bio', tier: 'Included',
         desc: 'Let AI write a polished, professional bio for you from a few quick prompts.',
         how: 'Answer a couple of prompts and AI drafts your bio; edit it until it sounds like you.',
       },
@@ -309,12 +312,12 @@ const GROUPS: Group[] = [
     heading: 'Turn every tap into a lead',
     features: [
       {
-        icon: Users, title: 'Lead capture, built-in CRM', tier: 'Pro', visual: <ContactsMock />,
+        icon: Users, title: 'Lead capture, built-in CRM', tier: 'Included', visual: <ContactsMock />,
         desc: 'Visitors share their details through your card and every lead lands in your contacts: a pocket CRM that builds itself.',
         how: 'Switch on the capture form; every submission appears under Contacts and emails you instantly.',
       },
       {
-        icon: CalendarDays, title: 'Book meetings from your card', tier: 'Pro',
+        icon: CalendarDays, title: 'Book meetings from your card', tier: 'Included',
         desc: 'Visitors pick a date and time right on your card. You get the request by email and they land in your contacts.',
         how: 'Enable booking; requests arrive by email and save automatically to your Contacts.',
       },
@@ -329,7 +332,7 @@ const GROUPS: Group[] = [
         how: 'Turn it on and a share-your-details prompt appears right after someone saves your contact.',
       },
       {
-        icon: ScanLine, title: 'Paper business card scanner', tier: 'Pro',
+        icon: ScanLine, title: 'Paper business card scanner', tier: 'Included',
         desc: 'Snap a photo of someone’s paper card and AI pulls out their details, ready to save to your contacts or phone.',
         how: 'Photograph a paper card; AI reads the name, email and number and pre-fills a new contact.',
       },
@@ -341,22 +344,22 @@ const GROUPS: Group[] = [
     heading: 'Close the loop after the tap',
     features: [
       {
-        icon: MessageCircle, title: 'Follow up on WhatsApp', tier: 'Pro', isNew: true, visual: <ChatMock />,
+        icon: MessageCircle, title: 'Follow up on WhatsApp', tier: 'Included', isNew: true, visual: <ChatMock />,
         desc: 'Every lead comes with a one-tap WhatsApp button, so you can reply while you are still fresh in their mind.',
         how: 'Open any lead and tap WhatsApp; it opens a chat to their number, no copying required.',
       },
       {
-        icon: FileSpreadsheet, title: 'Export to Excel', tier: 'Pro', isNew: true, visual: <SheetMock />,
+        icon: FileSpreadsheet, title: 'Export to Excel', tier: 'Included', isNew: true, visual: <SheetMock />,
         desc: 'Turn every lead into a clean, colour-branded spreadsheet: names, emails, companies, sources and answers.',
         how: 'Hit Export on your Contacts page to download a styled .xlsx, ready for your CRM or mailing list.',
       },
       {
-        icon: CalendarClock, title: 'Weekly performance digest', tier: 'Pro', isNew: true, visual: <DigestMock />,
+        icon: CalendarClock, title: 'Weekly performance digest', tier: 'Included', isNew: true, visual: <DigestMock />,
         desc: 'Every Monday we email you how your card performed: views and new leads from the past 7 days.',
         how: 'Nothing to set up. If your card had activity that week, the summary lands in your inbox.',
       },
       {
-        icon: Contact, title: 'Manage your contacts', tier: 'Pro', isNew: true,
+        icon: Contact, title: 'Manage your contacts', tier: 'Included', isNew: true,
         desc: 'Edit, tidy and save any lead straight to your phone. Your Cardtly contacts stay organised and within reach.',
         how: 'Edit or delete any lead, or tap Save to phone to add them to your device in one step.',
       },
@@ -368,17 +371,17 @@ const GROUPS: Group[] = [
     heading: 'Know what works, look sharp everywhere',
     features: [
       {
-        icon: BarChart2, title: 'Analytics dashboard', tier: 'Pro', visual: <ChartMock />,
+        icon: BarChart2, title: 'Analytics dashboard', tier: 'Included', visual: <ChartMock />,
         desc: 'Track every view, click and save. Know exactly which leads engaged with your card and when.',
         how: 'Your dashboard charts views over time so you can see what is landing and what is not.',
       },
       {
-        icon: Mail, title: 'Email signature generator', tier: 'Pro',
+        icon: Mail, title: 'Email signature generator', tier: 'Included',
         desc: 'Generate a branded email signature straight from your card in seconds.',
         how: 'Generate the signature, copy it, and paste it into Gmail, Outlook or Apple Mail.',
       },
       {
-        icon: Monitor, title: 'Zoom & Teams backgrounds', tier: 'Pro',
+        icon: Monitor, title: 'Zoom & Teams backgrounds', tier: 'Included',
         desc: 'Branded virtual backgrounds with your name and QR code for video calls.',
         how: 'Download your background image and set it in Zoom or Teams; guests can scan your QR mid-call.',
       },
@@ -389,7 +392,7 @@ const GROUPS: Group[] = [
 const FAQS = [
   {
     q: 'Is Cardtly free?',
-    a: 'Cardtly is R97 per card per month, or R970 a year, and every feature is included. Teams are R97 a seat from 2 to 20 seats, and Enterprise above that is billed by debit order.',
+    a: 'Cardtly is free for your first 60 days, with no credit card needed to start. After that it is R97 per card per month, or R970 a year, and every feature is included. Teams are R97 a seat from 2 to 20 seats, and Enterprise above that is billed by debit order.',
   },
   {
     q: 'What is a digital business card?',
@@ -416,8 +419,8 @@ const FAQS = [
     a: 'Yes. Cardtly for Teams gives every member an on-brand card with locked company branding, member-managed details, and one admin dashboard showing every card’s views and leads. It is priced per seat.',
   },
   {
-    q: 'What is the difference between Free and Pro?',
-    a: 'Free covers the essentials: your profile, a public card URL, QR code and contact saving. Pro adds designer templates, custom branding, galleries and links, analytics, lead capture, meeting booking, the paper card scanner, WhatsApp follow-up, Excel export and the weekly digest.',
+    q: 'What happens when my 60-day trial ends?',
+    a: 'Your card keeps its URL, its design and every contact you have captured. To keep it live after 60 days, subscribe for R97 a month or R970 a year. There are no feature tiers to choose between, so nothing about your card changes when you subscribe.',
   },
 ]
 
@@ -447,12 +450,11 @@ export default function FeaturesPage() {
             Everything your card<br /><span style={gradText}>can do.</span>
           </h1>
           <p className="animate-fade-up-delayed text-lg max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            One digital business card that shares in a tap, captures leads, follows up for you and tells you what is working. Free to start, no credit card needed.
+            One digital business card that shares in a tap, captures leads, follows up for you and tells you what is working. Free for 60 days, no credit card needed.
           </p>
           {/* Tier legend */}
           <div className="animate-fade-up-delayed flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-8 text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            <span className="flex items-center gap-1.5"><TierPill tier="Free" /> included free</span>
-            <span className="flex items-center gap-1.5"><TierPill tier="Pro" /> with Pro</span>
+            <span className="flex items-center gap-1.5"><TierPill tier="Included" /> in every card</span>
             <span className="flex items-center gap-1.5"><TierPill tier="Add-on" /> optional extra</span>
             <span className="flex items-center gap-1.5"><TierPill tier="Team" /> Teams plan</span>
           </div>
@@ -460,7 +462,7 @@ export default function FeaturesPage() {
             <Link href="/signup"
               className="group inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl text-base font-bold text-white transition hover:scale-[1.03]"
               style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.45)' }}>
-              Create your free card
+              Start your 60-day trial
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Link>
             <Link href="/pricing"
@@ -620,7 +622,7 @@ export default function FeaturesPage() {
                 <Link href="/signup"
                   className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:scale-[1.03]"
                   style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.5)' }}>
-                  Create your free card
+                  Start your 60-day trial
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </Link>
                 <Link href="/how-it-works"

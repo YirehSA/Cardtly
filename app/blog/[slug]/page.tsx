@@ -121,15 +121,15 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           <div className="mt-14 rounded-3xl p-8 text-center relative overflow-hidden"
             style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.1), rgba(124,58,237,0.15), rgba(236,72,153,0.1))', border: '1px solid rgba(124,58,237,0.25)' }}>
             <h2 className="text-2xl md:text-3xl font-black tracking-tight mb-2">
-              Make your <span style={gradText}>free card</span>
+              Make your <span style={gradText}>card</span>
             </h2>
             <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.55)' }}>
-              Build a digital business card in 2 minutes. Free forever, no credit card.
+              Build a digital business card in 2 minutes. Free for 60 days, no credit card.
             </p>
             <Link href="/signup"
               className="group inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl text-base font-bold text-white transition hover:scale-[1.03]"
               style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.5)' }}>
-              Create your free card
+              Start your 60-day trial
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>

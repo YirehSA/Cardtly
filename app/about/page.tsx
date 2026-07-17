@@ -7,7 +7,7 @@ import { ArrowRight, Heart, Zap, Globe, Users } from 'lucide-react'
 export const metadata: Metadata = {
   title: 'About Cardtly — Digital Business Cards Made in South Africa',
   description:
-    'Cardtly is a South African digital business card platform on a mission to retire the paper card. ZAR pricing, local NFC card delivery, and a free-forever plan for every professional.',
+    'Cardtly is a South African digital business card platform on a mission to retire the paper card. ZAR pricing, local NFC card delivery, and a 60-day free trial for every professional.',
   alternates: { canonical: '/about' },
 }
 
@@ -41,7 +41,7 @@ export default function AboutPage() {
             We are killing<br /><span style={gradText}>the paper business card.</span>
           </h1>
           <p className="text-lg leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Paper cards get lost, go out of date, and kill trees. We built a better way — digital cards that are always current, always with you, and always free to start.
+            Paper cards get lost, go out of date, and kill trees. We built a better way: digital cards that are always current, always with you, and free to try for 60 days.
           </p>
         </div>
       </section>
