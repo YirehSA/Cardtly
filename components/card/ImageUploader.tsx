@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Upload, X, Loader2, Scissors } from 'lucide-react'
 import { toast } from 'sonner'
+import { optimiseImage, formatBytes } from '@/lib/image-optimise'
 
 interface Props {
   value: string
@@ -32,9 +33,13 @@ export default function ImageUploader({ value, onChange, bucket, userId, shape, 
       // calls are instant.
       const { removeBackground: imglyRemove } = await import('@imgly/background-removal')
       const blob = await imglyRemove(value, { output: { format: 'image/png', quality: 0.9 } })
-      const file = new File([blob], `${Date.now()}-nobg.png`, { type: 'image/png' })
-      const path = `${userId}/${Date.now()}-nobg.png`
-      const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true })
+      const png = new File([blob], `${Date.now()}-nobg.png`, { type: 'image/png' })
+      // A background-removed PNG is full-size with an alpha channel, which is
+      // the heaviest thing we ever store. WebP keeps the transparency and
+      // sheds most of the weight.
+      const opt = await optimiseImage(png)
+      const path = `${userId}/${Date.now()}-nobg.${opt.file.name.split('.').pop()}`
+      const { error } = await supabase.storage.from(bucket).upload(path, opt.file, { upsert: true, contentType: opt.file.type })
       if (error) throw error
       const { data } = supabase.storage.from(bucket).getPublicUrl(path)
       onChange(data.publicUrl)
@@ -58,12 +63,20 @@ export default function ImageUploader({ value, onChange, bucket, userId, shape, 
     }
 
     setUploading(true)
-    const ext = file.name.split('.').pop()
+
+    // Convert to WebP and cap the long edge BEFORE upload, so the original
+    // never reaches storage. Nothing to delete afterwards, because nothing
+    // oversized was ever stored. Falls back to the original untouched if the
+    // browser cannot encode WebP, or the file is an SVG or animated GIF.
+    const opt = await optimiseImage(file)
+    const upload = opt.file
+
+    const ext = upload.name.split('.').pop()
     const path = `${userId}/${Date.now()}.${ext}`
 
     const { error } = await supabase.storage
-  .from(bucket)
-  .upload(path, file, { upsert: true })
+      .from(bucket)
+      .upload(path, upload, { upsert: true, contentType: upload.type })
 
     if (error) {
       toast.error('Upload failed: ' + error.message)
@@ -74,7 +87,13 @@ export default function ImageUploader({ value, onChange, bucket, userId, shape, 
     const { data } = supabase.storage.from(bucket).getPublicUrl(path)
     onChange(data.publicUrl)
     setUploading(false)
-    toast.success('Image uploaded')
+
+    const saved = opt.originalBytes - opt.bytes
+    toast.success(
+      !opt.skipped && saved > 20 * 1024
+        ? `Image uploaded, ${formatBytes(opt.originalBytes)} down to ${formatBytes(opt.bytes)}`
+        : 'Image uploaded'
+    )
   }
 
   function handleDrop(e: React.DragEvent) {
