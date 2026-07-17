@@ -53,12 +53,18 @@ export default async function DashboardPage() {
   const referralCode = (profile as any)?.referral_code as string | null
 
   const isPro = plan.tier === 'pro' && plan.isActive
+  // A claimed team member's card is served by their organization and is never
+  // gated on their personal trial (see app/card/[slug]/page.tsx, where team
+  // cards render isPro unconditionally). Telling them their trial is ending,
+  // or that their card is offline, would simply be false. The trial only
+  // decides the fate of a personal card.
+  const isTeamMember = cardKind === 'team'
   // A trial has every Pro feature, so isPro is true throughout it. These two
   // separate "paying" from "on the clock" so we can warn before the card goes
   // offline instead of surprising someone on day 61.
-  const isTrial = !!plan.isTrial
-  const isPaid = isPro && !isTrial
-  const isExpired = plan.tier === 'expired'
+  const isTrial = !isTeamMember && !!plan.isTrial
+  const isPaid = isTeamMember || (isPro && !plan.isTrial)
+  const isExpired = !isTeamMember && plan.tier === 'expired'
   const trialDaysLeft = plan.trialDaysLeft ?? 0
 
   // Fetch analytics summary (last 30 days). Stats only render for
