@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { UserCog, Loader2, Plus, X, Check, TrendingUp, Users as UsersIcon, Building2 } from 'lucide-react'
+import { UserCog, Loader2, Plus, X, Check, TrendingUp, Users as UsersIcon, Building2, Trash2 } from 'lucide-react'
 import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
 import type { RepStats } from '@/lib/reps'
 
@@ -20,12 +20,13 @@ interface Form {
 interface Props {
   reps: RepStats[]
   onSave: (f: Form) => Promise<boolean>
+  onDelete: (rep: RepStats) => Promise<boolean>
   loading: string | null
 }
 
 const EMPTY: Form = { repId: null, name: '', email: '', phone: '', target: '250', rate: '10', startedOn: '', notes: '', active: true }
 
-export default function RepsTab({ reps, onSave, loading }: Props) {
+export default function RepsTab({ reps, onSave, onDelete, loading }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -160,6 +161,25 @@ export default function RepsTab({ reps, onSave, loading }: Props) {
                     <div className="px-3.5 pb-3.5 pt-1 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                       <RepForm form={form} setForm={setForm} busy={loading === 'rep-save'}
                         onSave={async () => { const ok = await onSave(form); if (ok) setEditing(null) }} />
+
+                      {/* Destructive, so it lives in the panel rather than on
+                          the row where the flag sits. Deactivating keeps the
+                          attribution; deleting throws it away. */}
+                      <div className="mt-3 pt-3 border-t flex items-center gap-3 flex-wrap" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                        <button
+                          disabled={loading === `rep-del-${r.id}`}
+                          onClick={async () => { const ok = await onDelete(r); if (ok) setEditing(null) }}
+                          className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10 disabled:opacity-40"
+                          style={{ border: '1px solid rgba(239,68,68,0.35)', color: '#ef4444' }}>
+                          {loading === `rep-del-${r.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                          Delete rep
+                        </button>
+                        <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                          {r.clients.length > 0
+                            ? `Unassigns ${r.clients.length} client${r.clients.length === 1 ? '' : 's'} and loses who signed them. Untick Active instead to keep the record.`
+                            : 'No clients linked, so nothing is lost.'}
+                        </p>
+                      </div>
                     </div>
                   )}
 

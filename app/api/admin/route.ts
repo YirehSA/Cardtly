@@ -277,6 +277,51 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, rep_id: data?.id || rep_id })
   }
 
+  // Delete a rep.
+  //
+  // The FK is ON DELETE SET NULL, so this can never cascade into a customer's
+  // profile or a company's team: it only unassigns them. Verified against the
+  // live DB. But unassigning is still a silent loss of who signed what, so a
+  // rep with clients is refused unless forced, and the count comes back so the
+  // UI can say exactly what is about to be thrown away.
+  //
+  // Deactivating is usually the right move for a rep who left: it keeps the
+  // attribution and stops them counting. Delete is for the one you created by
+  // mistake.
+  if (action === 'delete_rep') {
+    const { rep_id, force } = body
+    if (!rep_id) return NextResponse.json({ error: 'rep_id required' }, { status: 400 })
+
+    const { data: rep } = await admin.from('reps').select('name').eq('id', rep_id).maybeSingle()
+    if (!rep) return NextResponse.json({ error: 'That rep no longer exists' }, { status: 404 })
+
+    const [{ count: people }, { count: teams }] = await Promise.all([
+      admin.from('profiles').select('user_id', { count: 'exact', head: true }).eq('rep_id', rep_id),
+      admin.from('organizations').select('id', { count: 'exact', head: true }).eq('rep_id', rep_id),
+    ])
+    const linked = (people ?? 0) + (teams ?? 0)
+
+    if (linked > 0 && !force) {
+      return NextResponse.json({
+        error: `${rep.name} still has ${linked} client${linked === 1 ? '' : 's'} linked (${people ?? 0} personal, ${teams ?? 0} team). Deleting unassigns them and loses the record of who signed them. Deactivate instead to keep the history, or confirm to delete anyway.`,
+        needsForce: true,
+        linked,
+      }, { status: 409 })
+    }
+
+    const { error } = await admin.from('reps').delete().eq('id', rep_id)
+    if (error) {
+      console.error('delete_rep failed:', error)
+      return NextResponse.json({ error: `Could not delete: ${error.message}` }, { status: 500 })
+    }
+
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email,
+      action: 'delete_rep', detail: { rep_id, name: rep.name, unassigned: linked, forced: !!force },
+    })
+    return NextResponse.json({ success: true, unassigned: linked })
+  }
+
   // Link a client to a rep, or unlink (rep_id: null).
   //
   // Attribution decides who gets paid, so it is logged like any other action

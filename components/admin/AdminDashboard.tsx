@@ -343,6 +343,13 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
 
         {tab === 'reps' && (
           <RepsTab reps={reps} loading={loading}
+            onDelete={(r) => {
+              const n = r.clients.length
+              if (!confirm(n
+                ? `Delete ${r.name}?\n\n${n} client${n === 1 ? '' : 's'} will be unassigned and the record of who signed them is lost. Their cards and accounts are NOT touched.\n\nUntick "Active" instead if they have just left.`
+                : `Delete ${r.name}?\n\nNo clients are linked, so nothing is lost.`)) return Promise.resolve(false)
+              return run(`rep-del-${r.id}`, { action: 'delete_rep', rep_id: r.id }, `${r.name} deleted`)
+            }}
             onSave={(f) => run('rep-save', {
               action: 'upsert_rep',
               rep_id: f.repId,
