@@ -27,17 +27,23 @@ export async function GET(
     return new NextResponse('Not found', { status: 404 })
   }
 
-  // The Cardtly link goes IN the contact.
+  // The Cardtly link IS the website field, deliberately.
   //
-  // Without this, saving the contact captured a snapshot and nothing more:
-  // the only URL was the person's own website, so once the visitor closed the
-  // tab, the card itself was unreachable. That quietly undoes the whole point
-  // of a card that updates itself, because the saved contact could never
-  // reflect a change.
+  // Without it the saved contact was a snapshot and nothing more: the only URL
+  // was the person's own website, so once the visitor closed the tab the card
+  // was unreachable, which quietly undoes the point of a card that updates
+  // itself.
   //
-  // Ordered after the personal website so a phone's "Website" field still
-  // shows what the owner chose; the Cardtly link is labelled so it reads as
-  // what it is.
+  // It goes FIRST because the first URL is what a phone shows as "Website",
+  // and the card is the better thing to land on: it is always current and it
+  // already lists the personal website, whereas a saved website URL can never
+  // reflect a change. The personal site follows as a second URL so nothing is
+  // lost.
+  //
+  // Both are plain URL lines. An earlier attempt used `URL;TYPE=Cardtly:` to
+  // label it, which is not valid vCard 3.0 (RFC 2426 defines no TYPE for URL
+  // and would not accept that value), so parsers were free to drop the line
+  // entirely, i.e. exactly the field this is here to add.
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com'
   const cardUrl = `${appUrl}/card/${slug}`
 
@@ -49,11 +55,11 @@ export async function GET(
     card.title ? `TITLE:${card.title}` : null,
     card.email ? `EMAIL:${card.email}` : null,
     card.phone ? `TEL;TYPE=CELL:${card.phone}` : null,
+    `URL:${cardUrl}`,
     card.website ? `URL:${card.website}` : null,
-    `URL;TYPE=Cardtly:${cardUrl}`,
     card.address ? `ADR;TYPE=WORK:;;${card.address};;;;` : null,
-    // NOTE is the field every phone shows and none of them mangle, so the
-    // link survives even on an OS that drops the second URL.
+    // Belt and braces: NOTE is the one field every phone imports and none of
+    // them mangle, so the link survives even where a second URL does not.
     `NOTE:Digital business card: ${cardUrl}`,
     'END:VCARD',
   ]
