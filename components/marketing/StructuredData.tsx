@@ -71,17 +71,17 @@ const APP = {
   offers: [
     {
       '@type': 'Offer',
-      name: 'Free',
-      price: '0',
+      name: 'Pro',
+      price: '97',
       priceCurrency: 'ZAR',
-      description: 'Free digital business card with QR code and link sharing.',
+      description: 'Every Cardtly feature on one card. Billed monthly, or R970 a year.',
     },
     {
       '@type': 'Offer',
-      name: 'Pro',
-      price: '65',
+      name: 'Teams',
+      price: '97',
       priceCurrency: 'ZAR',
-      description: 'Premium templates, advanced analytics, and Pro features. Billed monthly.',
+      description: 'R97 per seat per month, 2 to 20 seats, with locked company branding and one admin dashboard.',
     },
   ],
 }

@@ -103,7 +103,7 @@ export default function HeroSection() {
 
         <p className="text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
           style={{ color: 'rgba(255,255,255,0.6)' }}>
-          Cardtly turns every handshake into a tracked lead. Your team shares one branded digital business card with a tap, the lead lands in your contacts, and the meeting books itself. <span className="text-white font-semibold">Free for one. R65 a seat for teams.</span>
+          Cardtly turns every handshake into a tracked lead. Your team shares one branded digital business card with a tap, the lead lands in your contacts, and the meeting books itself. <span className="text-white font-semibold">R97 a card, for one or for the whole team.</span>
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">

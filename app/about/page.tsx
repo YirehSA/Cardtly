@@ -60,7 +60,7 @@ export default function AboutPage() {
                 So we built something better. A card that lives on a link. One that updates instantly, shows you who viewed it, and lets people save your contact with a single tap — no paper, no printing, no waste.
               </p>
               <p>
-                We built Cardtly in South Africa, and we priced it for South Africa. Too many great SaaS tools price out the African market entirely. We don\'t. The free plan is genuinely useful and Pro starts at R65/month — a price that respects what people actually earn.
+                We built Cardtly in South Africa, and we priced it for South Africa. Too many great SaaS tools price out the African market entirely. We don\'t. Cardtly is R97 a card per month, a price that respects what people actually earn.
               </p>
               <p>
                 We are just getting started. The roadmap is full and the community is growing. If you have an idea, a complaint, or just want to say hello — we actually read our inbox.

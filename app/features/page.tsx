@@ -389,7 +389,7 @@ const GROUPS: Group[] = [
 const FAQS = [
   {
     q: 'Is Cardtly free?',
-    a: 'Yes. Creating and sharing a Cardtly digital business card is free forever, with no credit card required. Pro at R65 per month unlocks templates, custom branding, analytics, lead capture, follow-up tools and more.',
+    a: 'Cardtly is R97 per card per month, or R970 a year, and every feature is included. Teams are R97 a seat from 2 to 20 seats, and Enterprise above that is billed by debit order.',
   },
   {
     q: 'What is a digital business card?',

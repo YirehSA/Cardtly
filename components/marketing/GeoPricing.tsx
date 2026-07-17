@@ -13,7 +13,7 @@ interface GeoPricingProps {
 // the bank converts at checkout). No region detection needed - the
 // price is the same worldwide.
 export default function GeoPricing({ freePlan, proPlan }: GeoPricingProps) {
-  const price = 'R65'
+  const price = 'R97'
   const currency = 'ZAR'
   const payNote = 'Billed monthly via Paystack. Cancel anytime.'
 

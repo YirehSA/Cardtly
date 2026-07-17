@@ -35,9 +35,9 @@ export default function UpgradePage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  const price = billing === 'monthly' ? 'R65' : 'R600'
-  const perMonth = billing === 'monthly' ? 'R65/month' : 'R50/month'
-  const saving = billing === 'yearly' ? 'Save R180 — 2 months free' : null
+  const price = billing === 'monthly' ? 'R97' : 'R970'
+  const perMonth = billing === 'monthly' ? 'R97/month' : 'about R81/month'
+  const saving = billing === 'yearly' ? 'Save R194, 2 months free' : null
 
   async function handleCheckout() {
     setLoading(true)
