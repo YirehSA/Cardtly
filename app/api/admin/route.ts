@@ -3,6 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { isAdminUser, FOUNDER_ADMIN_USER_ID } from '@/lib/admin-check'
 import { sendPasswordResetEmail } from '@/lib/password-reset'
+import { auditLog } from '@/lib/admin-audit'
+import { cancelSubscriptionsFor, subscriptionCodeOf, isBillablePaystackSub } from '@/lib/paystack'
+import { NFC_STATUSES } from '@/lib/nfc'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -19,24 +22,42 @@ export async function POST(request: Request) {
   const body = await request.json()
   const { action } = body
 
-  // Activate Pro for a user. Uses delete-then-insert because the
-  // whop_subscriptions table has no unique constraint on user_id, so
-  // .upsert({...}, { onConflict: 'user_id' }) fails silently. The two
-  // statements below give us an idempotent "set this user to Pro"
-  // operation that works whether they had a previous subscription row
-  // (free, cancelled, expired) or none at all.
+  // Comp a user to Pro.
+  //
+  // This used to DELETE every whop_subscriptions row for the user before
+  // inserting the comp. On a paying customer that threw away receipt_id and
+  // the Paystack subscription code, so Paystack carried on charging them and
+  // we no longer had the reference to stop it. One misclick, unrecoverable.
+  //
+  // Now: never delete. Supersede old rows by marking them cancelled, which
+  // keeps the billing history, and refuse outright if the user has a LIVE
+  // Paystack subscription, since comping someone we are still charging is
+  // almost certainly a mistake. `force` exists for the rare case it isn't.
   if (action === 'activate_pro') {
-    const { user_id, email } = body
+    const { user_id, email, force } = body
     if (!user_id) {
       return NextResponse.json({ error: 'user_id required' }, { status: 400 })
     }
-    const { error: deleteError } = await admin
-      .from('whop_subscriptions')
-      .delete()
-      .eq('user_id', user_id)
-    if (deleteError) {
-      console.error('activate_pro delete error:', deleteError)
+
+    const { data: existing } = await admin
+      .from('whop_subscriptions').select('*').eq('user_id', user_id)
+
+    const live = (existing || []).find((s: any) => isBillablePaystackSub(s))
+    if (live && !force) {
+      return NextResponse.json({
+        error: 'This user has a live Paystack subscription that is still billing them. Cancel it with "Remove Pro" first, or re-send with force to comp them anyway.',
+        needsForce: true,
+      }, { status: 409 })
     }
+
+    // Supersede, do not destroy.
+    if ((existing || []).length) {
+      await admin.from('whop_subscriptions')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .eq('user_id', user_id)
+        .eq('status', 'active')
+    }
+
     const { error: insertError } = await admin
       .from('whop_subscriptions')
       .insert({
@@ -51,18 +72,60 @@ export async function POST(request: Request) {
       })
     if (insertError) {
       console.error('activate_pro insert error:', insertError)
+      await auditLog(admin, { actorUserId: user?.id, actorEmail: user?.email, action: 'activate_pro', targetUserId: user_id, targetEmail: email, ok: false, detail: { error: insertError.message } })
       return NextResponse.json({ error: insertError.message }, { status: 500 })
     }
+
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email,
+      action: 'activate_pro', targetUserId: user_id, targetEmail: email,
+      detail: { superseded: (existing || []).length, forced: !!force },
+    })
     return NextResponse.json({ success: true })
   }
 
-  // Deactivate Pro. Plain UPDATE works because we're matching by
-  // user_id, not relying on an upsert conflict path.
+  // Remove Pro.
+  //
+  // This used to flip our own row and stop there. No outbound Paystack cancel
+  // existed anywhere, so on a paying customer it removed their access and left
+  // Paystack billing them R97 a month indefinitely.
+  //
+  // Now Paystack is cancelled FIRST, and our row only changes if that worked.
+  // The order matters: if Paystack fails, the customer keeps access they are
+  // paying for, which is the harmless failure. The reverse is not.
   if (action === 'deactivate_pro') {
     const { user_id } = body
     if (!user_id) {
       return NextResponse.json({ error: 'user_id required' }, { status: 400 })
     }
+
+    const { data: subs } = await admin
+      .from('whop_subscriptions').select('*').eq('user_id', user_id).eq('status', 'active')
+
+    // Cancel at Paystack by the customer's EMAIL, not by our stored code.
+    // Our rows mostly hold a transaction reference rather than a SUB_ code
+    // (the verify path stores `subscription_code || reference`), so trusting
+    // the stored value would silently cancel nothing.
+    const billable = (subs || []).filter((s: any) => isBillablePaystackSub(s))
+    let cancelled: string[] = []
+    if (billable.length) {
+      const email = billable[0].email
+      const r = await cancelSubscriptionsFor(email, subscriptionCodeOf(billable[0]))
+      if (!r.ok) {
+        await auditLog(admin, {
+          actorUserId: user?.id, actorEmail: user?.email,
+          action: 'deactivate_pro', targetUserId: user_id, ok: false,
+          detail: { stage: 'paystack_cancel', email, error: r.error },
+        })
+        // Stop here. Do NOT take their access away while Paystack keeps
+        // charging them.
+        return NextResponse.json({
+          error: `Could not cancel their Paystack subscription (${r.error}). Their access is unchanged, because removing it while Paystack still bills them would be worse. Cancel it in the Paystack dashboard, then try again.`,
+        }, { status: 502 })
+      }
+      cancelled = r.cancelled
+    }
+
     const { error } = await admin.from('whop_subscriptions').update({
       status: 'cancelled',
       updated_at: new Date().toISOString(),
@@ -71,7 +134,13 @@ export async function POST(request: Request) {
       console.error('deactivate_pro error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
-    return NextResponse.json({ success: true })
+
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email,
+      action: 'deactivate_pro', targetUserId: user_id,
+      detail: { paystack_cancelled: cancelled, rows: (subs || []).length },
+    })
+    return NextResponse.json({ success: true, paystackCancelled: cancelled.length })
   }
 
   // Create or update org
@@ -124,15 +193,39 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true })
   }
 
-  // Update NFC order status
+  // Update NFC order status.
+  //
+  // Three bugs here, all fixed:
+  //  - `tracking_number: tracking_number || null` WIPED the tracking number
+  //    whenever the caller did not resend it, which the status buttons never
+  //    did. Marking an already-shipped order "shipped" again erased it, and
+  //    the UI kept displaying the number until reload. Now the field is only
+  //    written when it is actually supplied.
+  //  - the error was never captured, so it always returned success.
+  //  - `status` was unvalidated: any string went straight into the column.
   if (action === 'update_nfc_status') {
     const { order_id, status, tracking_number } = body
-    await admin.from('nfc_orders').update({
-      status,
-      tracking_number: tracking_number || null,
-      ...(status === 'shipped' ? { shipped_at: new Date().toISOString() } : {}),
-      updated_at: new Date().toISOString(),
-    }).eq('id', order_id)
+    if (!order_id) return NextResponse.json({ error: 'order_id required' }, { status: 400 })
+    if (!(NFC_STATUSES as readonly string[]).includes(status)) {
+      return NextResponse.json({ error: `Unknown status "${status}". Expected one of: ${NFC_STATUSES.join(', ')}` }, { status: 400 })
+    }
+
+    const patch: Record<string, any> = { status, updated_at: new Date().toISOString() }
+    // Only touch tracking when the caller actually sent one. Sending an empty
+    // string is how you deliberately clear it.
+    if (typeof tracking_number === 'string') patch.tracking_number = tracking_number.trim() || null
+    if (status === 'shipped') patch.shipped_at = new Date().toISOString()
+
+    const { error } = await admin.from('nfc_orders').update(patch).eq('id', order_id)
+    if (error) {
+      console.error('update_nfc_status failed:', error)
+      return NextResponse.json({ error: `Could not update the order: ${error.message}` }, { status: 500 })
+    }
+
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email,
+      action: 'update_nfc_status', detail: { order_id, status, tracking_touched: typeof tracking_number === 'string' },
+    })
     return NextResponse.json({ success: true })
   }
 
