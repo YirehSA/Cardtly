@@ -139,6 +139,10 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Cardtly for Teams — the primary audience, so it sits directly under
+             the hero. Locked branding, member-owned details, per-seat billing. */}
+      <TeamsSection />
+
       {/* Three ways to share */}
       <ThreeWaysToShare />
 
@@ -150,9 +154,9 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto relative">
           <Reveal>
             <div className="text-center mb-16">
-              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#7c3aed' }}>Everything you need</p>
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#7c3aed' }}>From tap to closed deal</p>
               <h2 className="text-4xl md:text-5xl font-black tracking-tight">
-                One card. <span style={gradText}>Infinite connections.</span>
+                One tap. <span style={gradText}>Every lead captured.</span>
               </h2>
             </div>
           </Reveal>
@@ -210,8 +214,8 @@ export default function HomePage() {
               span="md:col-span-2"
               icon={<BarChart2 className="w-5 h-5" />}
               accent="#f59e0b"
-              title="See who connected"
-              desc="Track every view, click, and save. Know exactly which leads engaged."
+              title="See what's working"
+              desc="Track every view of your card, by device and over time. Know when your card is pulling its weight."
               visual={
                 <div className="absolute right-6 top-6 bottom-6 flex items-end gap-1.5 pointer-events-none">
                   {[40, 65, 50, 80, 55, 90, 75, 100, 70, 85].map((h, i) => (
@@ -454,9 +458,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Cardtly for Teams — locked branding, member-owned details ────────── */}
-      <TeamsSection />
-
       {/* ── App download ─────────────────────────────────────────────────────── */}
       <section className="py-24 px-6">
         <div className="max-w-5xl mx-auto">
@@ -559,10 +560,10 @@ export default function HomePage() {
                 Win Pro for life — first 100 signups
               </div>
               <h2 className="text-4xl md:text-6xl font-black tracking-tight mb-4 leading-tight">
-                Ready to ditch<br /><span style={gradText}>paper cards?</span>
+                Turn every handshake<br /><span style={gradText}>into a sale.</span>
               </h2>
               <p className="text-lg mb-8" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                Join 10,000+ professionals sharing smarter. Takes 2 minutes. Free forever.
+                Arm your whole team, or start free on your own. Takes 2 minutes.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link href="/signup"

@@ -89,33 +89,34 @@ export default function HeroSection() {
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold mb-8 border animate-fade-in"
           style={{ border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff', background: 'rgba(0,212,255,0.08)', backdropFilter: 'blur(8px)' }}>
           <Sparkles className="w-3 h-3" />
-          The future of business cards is here
+          Now built for teams and sales
         </div>
 
-        {/* H1 carries the exact head term "digital business card" -
-            the single most important on-page SEO signal we control. */}
+        {/* H1 sells the outcome. The head term "digital business card" moves
+            into the subheadline directly below so we keep the on-page SEO
+            signal while the positioning leads with leads, meetings, sales. */}
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.0] mb-6">
-          Your digital business card.
+          More leads. More meetings.
           <br />
-          <span style={gradText}>One tap away.</span>
+          <span style={gradText}>More sales.</span>
         </h1>
 
         <p className="text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
           style={{ color: 'rgba(255,255,255,0.6)' }}>
-          Cardtly turns your business card into a living link. Share it with a tap, a scan, or a URL. Track who connects. Update it from anywhere. <span className="text-white font-semibold">Free, forever.</span>
+          Cardtly turns every handshake into a tracked lead. Your team shares one branded digital business card with a tap, the lead lands in your contacts, and the meeting books itself. <span className="text-white font-semibold">Free for one. R65 a seat for teams.</span>
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
-          <Link href="/signup"
+          <Link href="#teams"
             className="group flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition-all hover:scale-[1.03] hover:shadow-2xl"
             style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.5)' }}>
-            Create your free card
+            Cardtly for your team
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </Link>
-          <Link href="/how-it-works"
+          <Link href="/signup"
             className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-medium transition hover:bg-white/10"
             style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)' }}>
-            See how it works
+            Create your free card
           </Link>
         </div>
 
