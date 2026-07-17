@@ -8,8 +8,9 @@
 // This bit us on the trial heads-up: the email is signed "Andre" and invites
 // a response, but every reply would have bounced off noreply@.
 //
-// hello@cardtly.com is the public address already shown on /contact.
-// cardtly.com has a live MX (mx1.cpmx.co.za), so the domain does accept mail.
+// hello@cardtly.com is the public address already shown on /contact. Confirmed
+// receiving 2026-07-17 by sending a probe to it and reading the inbox, not
+// just by trusting the domain's MX (mx1.cpmx.co.za).
 //
 // NOTE: do NOT set REPLY_TO on mail that is already addressed TO us with a
 // customer's address in replyTo (the contact form, lead capture, booking

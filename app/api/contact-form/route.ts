@@ -8,9 +8,12 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM_EMAIL = 'noreply@cardtly.com'
-// Where contact-page messages land. info@yireh.co.za is the
-// monitored inbox; hello@cardtly.com (shown on the page) forwards
-// there if/when that mailbox is set up.
+// Where contact-page messages land. hello@cardtly.com (the address
+// shown on the page) was confirmed receiving on 2026-07-17, so the
+// old "if/when that mailbox is set up" caveat no longer applies.
+// Kept pointed at info@yireh.co.za deliberately: that is the inbox
+// actually being watched day to day. Switch it if hello@ becomes the
+// one you read.
 const TO_EMAIL = 'info@yireh.co.za'
 
 function esc(s: string): string {
