@@ -102,7 +102,7 @@ export default async function PublicCardPage({ params }: Props) {
         .maybeSingle(),
       admin
         .from('profiles')
-        .select('last_active_at, is_founder, founder_number, founder_lifetime_pro')
+        .select('last_active_at, is_founder, founder_number')
         .eq('user_id', (card as any).user_id)
         .maybeSingle(),
     ])
@@ -110,11 +110,10 @@ export default async function PublicCardPage({ params }: Props) {
     const isPro = (sub as any)?.subscription_tier === 'pro' && (sub as any)?.status === 'active'
     const lastActiveAt = (profile as any)?.last_active_at || null
     const founderNumber = (profile as any)?.is_founder ? (profile as any)?.founder_number ?? null : null
-    const founderLifetime = !!(profile as any)?.founder_lifetime_pro
 
     return (
       <CardTracker cardId={(card as any).id}>
-        <PublicCardView card={card as any} isPro={isPro} lastActiveAt={lastActiveAt} founderNumber={founderNumber} founderLifetime={founderLifetime} />
+        <PublicCardView card={card as any} isPro={isPro} lastActiveAt={lastActiveAt} founderNumber={founderNumber} />
       </CardTracker>
     )
   }
