@@ -7,37 +7,46 @@ function generateSlug(name: string, suffix: string) {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').slice(0, 20) + '-' + suffix
 }
 
-// Team plan codes — R65 per seat per month
+// Paystack plan code per seat count, R97 per seat per month. These codes are
+// the source of truth for what a customer is actually charged: Paystack bills
+// the plan's own amount, so these must match the Paystack dashboard exactly.
+// Self-serve stops at 20 seats; anything larger is Enterprise (debit order,
+// handled off-Paystack).
 const TEAM_PLANS: Record<number, string> = {
-  5:  'PLN_b4p142hqlmvi8s7',
-  10: 'PLN_3ajgivyuoolye2a',
-  15: 'PLN_zvhgl8924o8kjcx',
-  20: 'PLN_5a638dixfk2gt2w',
-  25: 'PLN_4mupq84flla16kp',
-  30: 'PLN_1d2cypagnp50abw',
-  40: 'PLN_o80bf3ve1def10q',
-  50: 'PLN_eqcge3ycapqbaow',
+  2:  'PLN_b4p142hqlmvi8s7',
+  3:  'PLN_3ajgivyuoolye2a',
+  4:  'PLN_zvhgl8924o8kjcx',
+  5:  'PLN_5a638dixfk2gt2w',
+  6:  'PLN_4mupq84flla16kp',
+  7:  'PLN_1d2cypagnp50abw',
+  8:  'PLN_o80bf3ve1def10q',
+  9:  'PLN_eqcge3ycapqbaow',
+  10: 'PLN_edkkgzz8yo8w6s5',
+  11: 'PLN_3kdvm8iwlzqzopf',
+  12: 'PLN_s99vwbzagovvwkq',
+  13: 'PLN_ex6p6x77dsnvcjo',
+  14: 'PLN_oq65eahxlbk5zjl',
+  15: 'PLN_2bzdrlydm3y4iyt',
+  16: 'PLN_l8ponbzsauxrnob',
+  17: 'PLN_omc0g8vbyhur9bt',
+  18: 'PLN_5qjtw37i2q0tykg',
+  19: 'PLN_0l6owsj7k9deuw1',
+  20: 'PLN_q07zajjnp7gdmv0',
 }
 
-// Seat tier amounts in kobo (R65 per seat)
-const TEAM_AMOUNTS: Record<number, number> = {
-  5:  32500,
-  10: 65000,
-  15: 97500,
-  20: 130000,
-  25: 162500,
-  30: 195000,
-  40: 260000,
-  50: 325000,
-}
+export const SEAT_PRICE_RAND = 97
+export const MAX_SELF_SERVE_SEATS = 20
 
-// Find plan code for exact seat tier
+// Find plan code for an exact seat count. Above MAX_SELF_SERVE_SEATS there is
+// no plan on purpose: those go to Enterprise.
 function getPlanCode(seats: number): string | null {
   return TEAM_PLANS[seats] || null
 }
 
+// Kobo. Paystack takes the amount from the plan for subscriptions, so this is
+// only a consistency check / fallback.
 function getPlanAmount(seats: number): number {
-  return TEAM_AMOUNTS[seats] || 0
+  return TEAM_PLANS[seats] ? seats * SEAT_PRICE_RAND * 100 : 0
 }
 
 export async function POST(request: Request) {
@@ -59,7 +68,7 @@ export async function POST(request: Request) {
     if (!org_name || !seat_count) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
 
     const planCode = getPlanCode(seat_count)
-    if (!planCode) return NextResponse.json({ error: 'Seat count must be between 1 and 50' }, { status: 400 })
+    if (!planCode) return NextResponse.json({ error: `Teams are 2 to ${MAX_SELF_SERVE_SEATS} seats. For more than ${MAX_SELF_SERVE_SEATS}, talk to us about Enterprise.` }, { status: 400 })
 
     // Create org. Note: organizations has no slug column (nothing reads an
     // org slug), and inserting one used to fail the whole create.
@@ -245,7 +254,7 @@ export async function POST(request: Request) {
     if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
 
     const planCode = getPlanCode(new_seat_count)
-    if (!planCode) return NextResponse.json({ error: 'Invalid seat count' }, { status: 400 })
+    if (!planCode) return NextResponse.json({ error: `Teams are 2 to ${MAX_SELF_SERVE_SEATS} seats. For more than ${MAX_SELF_SERVE_SEATS}, talk to us about Enterprise.` }, { status: 400 })
 
     const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/team/verify?org_id=${org_id}&user_id=${user.id}&new_seat_count=${new_seat_count}`
 

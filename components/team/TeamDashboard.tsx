@@ -49,8 +49,11 @@ const inputClass = "w-full px-4 py-2.5 rounded-xl border border-border bg-backgr
 
 // The only seat counts Paystack has plan codes for (see TEAM_PLANS in
 // app/api/team/route.ts). The picker must offer ONLY these - any other
-// count has no plan and checkout fails. R65 per seat per month.
-const SEAT_TIERS = [5, 10, 15, 20, 25, 30, 40, 50] as const
+// count has no plan and checkout fails. R97 per seat per month. Above 20
+// there is no plan on purpose: those are Enterprise, billed by debit order.
+const SEAT_PRICE = 97
+const MAX_SELF_SERVE_SEATS = 20
+const SEAT_TIERS = Array.from({ length: MAX_SELF_SERVE_SEATS - 1 }, (_, i) => i + 2) as readonly number[]
 
 export default function TeamDashboard({ user, org: initialOrg, teamCards: initialCards }: Props) {
   const searchParams = useSearchParams()
@@ -317,7 +320,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
         {/* Value prop */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: 'Per card/month', value: 'R65', sub: 'ZAR, billed monthly' },
+            { label: 'Per card/month', value: `R${SEAT_PRICE}`, sub: 'ZAR, billed monthly' },
             { label: 'Plans from', value: '5', sub: 'cards, scale to 50' },
             { label: 'Admin controls', value: '100%', sub: 'You manage all cards' },
           ].map(({ label, value, sub }) => (
@@ -341,7 +344,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
           <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-2">
-              Number of cards — <span className="text-foreground font-bold">{seatCount} cards × R65 = R{seatCount * 65}/month</span>
+              Number of cards — <span className="text-foreground font-bold">{seatCount} cards × R{SEAT_PRICE} = R{seatCount * SEAT_PRICE}/month</span>
             </label>
             {/* Tier buttons - only the seat counts Paystack has plans for */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -352,13 +355,13 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                     className={`px-3 py-2.5 rounded-xl border text-sm font-bold transition ${active ? 'border-transparent text-white' : 'border-border text-foreground hover:bg-muted'}`}
                     style={active ? { background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' } : undefined}>
                     {seats} cards
-                    <span className="block text-[11px] font-medium opacity-80">R{seats * 65}/mo</span>
+                    <span className="block text-[11px] font-medium opacity-80">R{seats * SEAT_PRICE}/mo</span>
                   </button>
                 )
               })}
             </div>
             {/* Live USD estimate of the team total for non-rand admins */}
-            <UsdEstimate zar={seatCount * 65} suffix="/mo" className="block text-sm font-medium text-muted-foreground mt-3" />
+            <UsdEstimate zar={seatCount * SEAT_PRICE} suffix="/mo" className="block text-sm font-medium text-muted-foreground mt-3" />
             <p className="text-xs text-muted-foreground mt-1">
               You can add more cards later. Billed monthly, cancel anytime.
             </p>
@@ -383,7 +386,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
             className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)', boxShadow: '0 4px 20px rgba(124,58,237,0.35)' }}>
             {loading
               ? <><Loader2 className="w-4 h-4 animate-spin" />Redirecting to payment...</>
-              : <><CreditCard className="w-4 h-4" />Pay R{seatCount * 65}/month — Start team plan</>}
+              : <><CreditCard className="w-4 h-4" />Pay R{seatCount * SEAT_PRICE}/month — Start team plan</>}
           </button>
         </div>
       </div>
@@ -454,7 +457,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
               <option value={0}>Select a plan...</option>
               {SEAT_TIERS.filter(seats => seats > seatsTotal).map(seats => (
                 <option key={seats} value={seats}>
-                  {seats} seats — R{seats * 65}/month
+                  {seats} seats — R{seats * SEAT_PRICE}/month
                 </option>
               ))}
             </select>
@@ -785,7 +788,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
         <div className="text-sm">
           <p className="font-semibold">{org.name} · Team plan</p>
           <p className="text-muted-foreground text-xs mt-0.5">
-            {seatsTotal} seats · R{seatsTotal * 65}/month
+            {seatsTotal} seats · R{seatsTotal * SEAT_PRICE}/month
             {org.billing_period && ` · ${org.billing_period} billing`}
           </p>
         </div>

@@ -8,8 +8,8 @@ const PLANS = {
 }
 
 const AMOUNTS = {
-  monthly: 6500,   // R65 in kobo
-  yearly:  60000,  // R600 in kobo
+  monthly: 9700,   // R97 in kobo
+  yearly:  97000,  // R970 in kobo
 }
 
 export async function POST(request: Request) {
