@@ -232,12 +232,20 @@ export type Contact = Database['public']['Tables']['contacts']['Row']
 export type DesignVariant = Database['public']['Tables']['design_variants']['Row']
 
 // Plan types
-export type PlanTier = 'free' | 'pro'
+// 'free' is legacy: nothing returns it any more. A new account is on a
+// 60-day trial that behaves exactly like Pro, and once that runs out with
+// no subscription the account is 'expired' and the card stops serving.
+export type PlanTier = 'free' | 'pro' | 'expired'
 
 export interface UserPlan {
   tier: PlanTier
   isActive: boolean
   billingCycle?: string
+  // True while the account is inside its trial rather than paying.
+  isTrial?: boolean
+  trialEndsAt?: string | null
+  // Whole days left in the trial, floored at 0. Only set while isTrial.
+  trialDaysLeft?: number
 }
 
 // Card with plan context

@@ -53,6 +53,13 @@ export default async function DashboardPage() {
   const referralCode = (profile as any)?.referral_code as string | null
 
   const isPro = plan.tier === 'pro' && plan.isActive
+  // A trial has every Pro feature, so isPro is true throughout it. These two
+  // separate "paying" from "on the clock" so we can warn before the card goes
+  // offline instead of surprising someone on day 61.
+  const isTrial = !!plan.isTrial
+  const isPaid = isPro && !isTrial
+  const isExpired = plan.tier === 'expired'
+  const trialDaysLeft = plan.trialDaysLeft ?? 0
 
   // Fetch analytics summary (last 30 days). Stats only render for
   // personal cards in v1 - team card events aren't tracked yet.
@@ -112,18 +119,54 @@ export default async function DashboardPage() {
             Hey, {firstName} 👋
           </h1>
           <p className="text-muted-foreground mt-1">
-            {isPro ? 'Your Pro card is live and looking great.' : 'Your card is live. Upgrade for the full experience.'}
+            {isExpired
+              ? 'Your trial has ended and your card is offline.'
+              : isTrial
+                ? `Your card is live. ${trialDaysLeft} ${trialDaysLeft === 1 ? 'day' : 'days'} left on your trial.`
+                : 'Your Pro card is live and looking great.'}
           </p>
         </div>
-        {!isPro && (
-          <Link href="/dashboard/settings"
+        {!isPaid && (
+          <Link href="/dashboard/upgrade"
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
             style={{ background: `linear-gradient(135deg, ${accentHex}, ${accentHex}cc)`, boxShadow: `0 4px 24px ${accentHex}44` }}>
             <Sparkles className="w-4 h-4" />
-            Upgrade to Pro
+            {isExpired ? 'Reactivate my card' : 'Subscribe now'}
           </Link>
         )}
       </div>
+
+      {/* Trial countdown / expired notice. Nobody should lose their card
+          without being told it was coming. */}
+      {(isTrial || isExpired) && (
+        <div className="rounded-2xl p-4 flex flex-wrap items-center gap-3"
+          style={isExpired
+            ? { background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.35)' }
+            : trialDaysLeft <= 7
+              ? { background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.35)' }
+              : { background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.28)' }}>
+          <p className="text-sm flex-1 min-w-[240px]">
+            {isExpired ? (
+              <>
+                <span className="font-bold">Your card is offline.</span>{' '}
+                <span className="text-muted-foreground">
+                  Your 60-day trial has ended, so {card?.slug ? `cardtly.com/card/${card.slug}` : 'your card link'} no longer opens.
+                  Subscribe for R97 a month and it goes straight back live, same link, nothing lost.
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="font-bold">
+                  {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'} left on your trial.
+                </span>{' '}
+                <span className="text-muted-foreground">
+                  You have every Pro feature until then. Subscribe for R97 a month to keep your card live after that.
+                </span>
+              </>
+            )}
+          </p>
+        </div>
+      )}
 
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-up">
@@ -131,7 +174,7 @@ export default async function DashboardPage() {
           { label: 'Total views', value: card?.view_count ?? 0, icon: Eye, color: accentHex, isText: false },
           { label: 'This month', value: viewsThisMonth ?? 0, icon: BarChart2, color: '#10b981', isText: false },
           { label: 'Contacts', value: contactCount ?? 0, icon: Users, color: '#f59e0b', isText: false },
-          { label: 'Plan', value: isPro ? 'Pro' : 'Free', icon: Sparkles, color: '#8b5cf6', isText: true },
+          { label: 'Plan', value: isExpired ? 'Expired' : isTrial ? 'Trial' : 'Pro', icon: Sparkles, color: '#8b5cf6', isText: true },
         ].map(({ label, value, icon: Icon, color, isText }) => (
           <div key={label}
             className="rounded-2xl p-5 border border-border bg-card lift group cursor-default"

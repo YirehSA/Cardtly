@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { PROMOS_ENABLED } from '@/lib/promos'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { isAdminUser } from '@/lib/admin-check'

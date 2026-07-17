@@ -150,14 +150,9 @@ export default function SignupPage() {
         .catch(() => {})
     }
 
-    // If the DB trigger flagged this user as one of the first 100
-    // founders, grant the 3-month Pro reward. Best-effort, no-op
-    // if they're not a founder.
-    fetch('/api/promotions/grant-founder', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId }),
-    }).catch(() => {})
+    // Being one of the first 100 no longer grants free Pro. The DB trigger
+    // still stamps founder_number, which is all the "N/100" badge needs, and
+    // they get the same 60-day trial as everyone else.
 
     // If Supabase returned a session, email confirmation is off and we
     // can take the user straight in. Otherwise the user must confirm

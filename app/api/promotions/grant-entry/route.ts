@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { PROMOS_ENABLED } from '@/lib/promos'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 
 // POST /api/promotions/grant-entry
