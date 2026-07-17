@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote } from 'lucide-react'
+import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle } from 'lucide-react'
 import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
 import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, orgMonthlyRand, type OrgBillingMode } from '@/lib/org-billing'
 import type { AdminOrgRow, AdminUserRow } from '@/lib/admin-data'
@@ -23,6 +23,7 @@ interface Props {
   onSave: (form: Form) => Promise<boolean>
   onAssignRep: (orgId: string, repId: string | null) => Promise<boolean>
   onMarkCollected: (orgId: string) => Promise<boolean>
+  onSuspend: (orgId: string, suspended: boolean, message: string | null) => Promise<boolean>
   loading: string | null
 }
 
@@ -30,7 +31,7 @@ interface Props {
 // row and as a count tile, seat utilisation was invisible, and there was
 // nowhere to say how a team is billed, so every one of them defaulted to
 // "monthly" and reported revenue nobody collects.
-export default function TeamsTab({ orgs, users, reps, onSave, onAssignRep, onMarkCollected, loading }: Props) {
+export default function TeamsTab({ orgs, users, reps, onSave, onAssignRep, onMarkCollected, onSuspend, loading }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState<Form>({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '' })
@@ -103,6 +104,13 @@ export default function TeamsTab({ orgs, users, reps, onSave, onAssignRep, onMar
                           style={{ background: `${meta.colour}1f`, color: meta.colour, border: `1px solid ${meta.colour}55` }}>
                           {meta.short}
                         </span>
+                        {o.suspendedAt && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                            title="Every card in this team shows a notice. They still work."
+                            style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.45)' }}>
+                            Suspended
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{o.adminEmail || o.adminUserId.slice(0, 8)}</p>
                     </div>
@@ -172,6 +180,8 @@ export default function TeamsTab({ orgs, users, reps, onSave, onAssignRep, onMar
                           Nothing collects this automatically. You invoice and collect {randFmt(o.monthlyRand)} yourself.
                         </p>
                       )}
+                      <SuspendControl org={o} onSuspend={onSuspend} busy={loading === `susp-${o.id}`} />
+
                       {reps.length > 0 && (
                         <div className="mb-3">
                           <label className="text-[11px] font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
@@ -351,6 +361,80 @@ function TeamForm({ form, setForm, users, onSave, busy, showUserPicker }: {
           {seats} seats is above the {MAX_SELF_SERVE_SEATS}-seat Paystack limit. Switch billing to Debit order (Enterprise) or Comped.
         </p>
       )}
+    </div>
+  )
+}
+
+// Suspending a team, and saying plainly what it does.
+//
+// The wording of the control matters as much as the banner. An admin reaching
+// for this needs to know it is NOT a kill switch: the cards keep working, and
+// the notice is what does the work. Nobody should discover that by trying it
+// on a real customer.
+function SuspendControl({ org, onSuspend, busy }: {
+  org: AdminOrgRow
+  onSuspend: (orgId: string, suspended: boolean, message: string | null) => Promise<boolean>
+  busy: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [msg, setMsg] = useState(org.suspensionMessage || '')
+
+  if (org.suspendedAt) {
+    return (
+      <div className="mb-3 rounded-lg px-3 py-2.5" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)' }}>
+        <p className="text-xs mb-2" style={{ color: '#f59e0b' }}>
+          <PauseCircle className="w-3 h-3 inline mr-1.5" />
+          Suspended {fmtDate(org.suspendedAt)}. All {org.cardsCreated} card{org.cardsCreated === 1 ? '' : 's'} show a notice and still work.
+        </p>
+        {org.suspensionMessage && (
+          <p className="text-[11px] mb-2 italic" style={{ color: 'rgba(255,255,255,0.5)' }}>&ldquo;{org.suspensionMessage}&rdquo;</p>
+        )}
+        <button onClick={() => onSuspend(org.id, false, null)} disabled={busy}
+          className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10 disabled:opacity-40"
+          style={{ border: '1px solid rgba(34,197,94,0.4)', color: '#22c55e' }}>
+          {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <PlayCircle className="w-3 h-3 inline mr-1" />}
+          Lift suspension
+        </button>
+      </div>
+    )
+  }
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)}
+        className="mb-3 text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10"
+        style={{ border: '1px solid rgba(245,158,11,0.35)', color: '#f59e0b' }}>
+        <PauseCircle className="w-3 h-3 inline mr-1" />
+        Suspend this team
+      </button>
+    )
+  }
+
+  return (
+    <div className="mb-3 rounded-lg px-3 py-2.5" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.3)' }}>
+      <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.6)' }}>
+        Puts a notice on all {org.cardsCreated} card{org.cardsCreated === 1 ? '' : 's'} in this team.
+        <strong className="text-white"> They keep working</strong>: the card opens, saves and scans as normal.
+        Their staff will ask about it, which is how it gets paid.
+      </p>
+      <input value={msg} onChange={e => setMsg(e.target.value)}
+        className={inputClass + ' mb-2'} style={inputStyle}
+        placeholder="This account needs attention. Please contact your administrator." />
+      <p className="text-[11px] mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        Their customers see this, not just their staff. Leave it blank for the default. Say what is needed, not what is owed.
+      </p>
+      <div className="flex gap-2">
+        <button onClick={async () => { const ok = await onSuspend(org.id, true, msg.trim() || null); if (ok) setOpen(false) }} disabled={busy}
+          className="text-xs px-2.5 py-1.5 rounded-lg font-bold text-white transition hover:opacity-90 disabled:opacity-40"
+          style={{ background: '#f59e0b' }}>
+          {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Suspend'}
+        </button>
+        <button onClick={() => setOpen(false)}
+          className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10"
+          style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)' }}>
+          Cancel
+        </button>
+      </div>
     </div>
   )
 }

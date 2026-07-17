@@ -64,6 +64,8 @@ export interface AdminOrgRow {
   trialDaysLeft: number | null
   lastCollectedOn: string | null
   needsCollecting: boolean
+  suspendedAt: string | null
+  suspensionMessage: string | null
   createdAt: string
 }
 
@@ -247,6 +249,8 @@ export async function loadAdminData(admin: any) {
       trialDaysLeft: orgTrialDaysLeft(mode, o.trial_ends_at || null),
       lastCollectedOn: o.last_collected_on || null,
       needsCollecting: orgNeedsCollecting(mode, o.last_collected_on || null),
+      suspendedAt: o.suspended_at || null,
+      suspensionMessage: o.suspension_message || null,
       createdAt: o.created_at,
     }
   }).sort((a: AdminOrgRow, b: AdminOrgRow) => b.maxSeats - a.maxSeats)
@@ -303,6 +307,7 @@ export async function loadAdminData(admin: any) {
     teamTrialsEnding: orgRows.filter((o: AdminOrgRow) => o.trialDaysLeft !== null && o.trialDaysLeft > 0 && o.trialDaysLeft <= 7).length,
     debitOrdersToCollect: orgRows.filter((o: AdminOrgRow) => o.needsCollecting).length,
     debitOrderRandDue: orgRows.filter((o: AdminOrgRow) => o.needsCollecting).reduce((n: number, o: AdminOrgRow) => n + o.monthlyRand, 0),
+    suspendedTeams: orgRows.filter((o: AdminOrgRow) => o.suspendedAt).length,
     totalContacts: contactsCount ?? 0,
     views30d: cardViews.rows.length,
     views30dTruncated: cardViews.truncated,

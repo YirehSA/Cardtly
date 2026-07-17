@@ -24,6 +24,7 @@ interface Stats {
   views30d: number; views30dTruncated: boolean
   teamTrialsLapsed: number; teamTrialsEnding: number
   debitOrdersToCollect: number; debitOrderRandDue: number
+  suspendedTeams: number
   mrrRand: number | null
   mrrError: string | null
   paystackSubs: { subscription_code: string; amount: number; email: string; next_payment_date: string | null }[]
@@ -295,6 +296,7 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
           <TeamsTab orgs={orgs} users={users} reps={reps} loading={loading}
             onAssignRep={(orgId, repId) => run(`reporg-${orgId}`, { action: 'assign_rep', org_id: orgId, rep_id: repId }, repId ? 'Team linked to rep' : 'Rep unlinked')}
             onMarkCollected={(orgId) => run(`collect-${orgId}`, { action: 'mark_collected', org_id: orgId }, 'Recorded as collected today')}
+            onSuspend={(orgId, suspended, message) => run(`susp-${orgId}`, { action: 'set_org_suspended', org_id: orgId, suspended, message }, suspended ? 'Team suspended. Their cards still work, with a notice.' : 'Suspension lifted')}
             onSave={(f) => run(`org-${f.userId}`, {
               action: 'create_org',
               user_id: f.userId,

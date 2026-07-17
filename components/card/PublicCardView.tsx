@@ -11,6 +11,7 @@ import {
 import { toast } from 'sonner'
 import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
 import { waShareLink } from '@/lib/whatsapp'
+import SuspendedBanner from '@/components/card/SuspendedBanner'
 import { track } from '@/lib/track'
 import ContactExchangeModal from './ContactExchangeModal'
 import QuestionnaireForm from './QuestionnaireForm'
@@ -27,6 +28,9 @@ interface Props {
   // near the share button so it shows on every template without
   // having to touch each template's layout individually.
   founderNumber?: number | null
+  // Set when the card's organization is suspended. An empty string means
+  // suspended with the default wording; null means not suspended.
+  suspendedMessage?: string | null
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -466,7 +470,22 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
 // Main component — only computes values and renders layout
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function PublicCardView({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Props) {
+// Wrapper exists purely so the suspension notice is rendered ONCE.
+//
+// The card body has twelve template branches, each with its own return. The
+// old founder ribbon was threaded through all twelve by hand, which is how it
+// ended up impossible to remove cleanly. Not repeating that: anything that
+// applies to every template goes here, above the body, in one place.
+export default function PublicCardView(props: Props) {
+  return (
+    <>
+      {props.suspendedMessage != null && <SuspendedBanner message={props.suspendedMessage} />}
+      <CardBody {...props} />
+    </>
+  )
+}
+
+function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Props) {
   const design = parseDesign(card.color_theme)
   const font = FONTS[design.fontId]
   const bg = getBgColors(design.bgMode, design.templateId, design.customBgColor)

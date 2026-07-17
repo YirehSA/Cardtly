@@ -145,6 +145,11 @@ export default async function PublicCardPage({ params }: Props) {
     // own (org wins). Service role: organizations is RLS-protected.
     let orgAddons: Record<string, any> = {}
     let orgBrand: Record<string, any> = {}
+    // A suspension shows a notice on every card in the team. It never takes
+    // them offline: the card opens, saves and scans exactly as before, it just
+    // no longer looks finished, so the person carrying it asks their finance
+    // team why. That is the lever.
+    let suspendedMessage: string | null = null
     if ((teamCard as any).organization_id) {
       const admin = createAdminClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -152,11 +157,12 @@ export default async function PublicCardPage({ params }: Props) {
       ) as any
       const { data: org } = await admin
         .from('organizations')
-        .select('addons, brand')
+        .select('addons, brand, suspended_at, suspension_message')
         .eq('id', (teamCard as any).organization_id)
         .maybeSingle()
       orgAddons = org?.addons || {}
       orgBrand = org?.brand || {}
+      if (org?.suspended_at) suspendedMessage = org.suspension_message || ''
     }
 
     // The team brand is merged over this card ONLY if the admin opted
@@ -191,7 +197,7 @@ export default async function PublicCardPage({ params }: Props) {
 
     return (
       <CardTracker teamCardId={(teamCard as any).id}>
-        <PublicCardView card={cardShaped as any} isPro={true} isTeamCard={true} />
+        <PublicCardView card={cardShaped as any} isPro={true} isTeamCard={true} suspendedMessage={suspendedMessage} />
       </CardTracker>
     )
   }

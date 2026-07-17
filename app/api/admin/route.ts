@@ -182,6 +182,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, trial_ends_at: next })
   }
 
+  // Suspend or unsuspend a team.
+  //
+  // Puts a notice on every card in the team. Deliberately does NOT take them
+  // offline: the cards keep opening, saving and scanning. The notice is the
+  // point, because it makes the person carrying the card ask their finance
+  // team what is going on, and their staff chasing it internally collects far
+  // better than we ever will chasing invoices.
+  //
+  // Never automatic. "Unpaid" is a judgement call, and a corporate 40 days
+  // late on a debit order is normal.
+  if (action === 'set_org_suspended') {
+    const { org_id, suspended, message } = body
+    if (!org_id) return NextResponse.json({ error: 'org_id required' }, { status: 400 })
+
+    const { error } = await admin.from('organizations').update({
+      suspended_at: suspended ? new Date().toISOString() : null,
+      suspension_message: suspended ? (message || null) : null,
+      updated_at: new Date().toISOString(),
+    }).eq('id', org_id)
+    if (error) {
+      console.error('set_org_suspended failed:', error)
+      return NextResponse.json({ error: `Could not do that: ${error.message}` }, { status: 500 })
+    }
+
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email,
+      action: suspended ? 'suspend_org' : 'unsuspend_org',
+      detail: { org_id, message: message || null },
+    })
+    return NextResponse.json({ success: true })
+  }
+
   // Record that a debit-order team was actually collected from.
   //
   // Nothing collects automatically, so without this a team can go months
