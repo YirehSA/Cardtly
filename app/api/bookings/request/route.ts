@@ -3,6 +3,7 @@ import { Resend } from 'resend'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { resolveCardOwner } from '@/lib/card-owner'
 import { waLink } from '@/lib/whatsapp'
+import { FROM_EMAIL } from '@/lib/email'
 
 // Public endpoint: a visitor on someone's card submits a meeting
 // request. We store it in the bookings table, fire an email to the
@@ -13,7 +14,6 @@ import { waLink } from '@/lib/whatsapp'
 // admin sees it in Team Contacts.
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-const FROM_EMAIL = 'noreply@cardtly.com'
 
 export async function POST(request: Request) {
   let body: {

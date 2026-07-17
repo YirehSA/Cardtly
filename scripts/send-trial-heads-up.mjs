@@ -28,9 +28,8 @@ const env = Object.fromEntries(
 )
 const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
 const resend = new Resend(env.RESEND_API_KEY)
-const FROM = 'Cardtly <noreply@cardtly.com>'
-// Keep in step with REPLY_TO in lib/email.ts (.mjs cannot import the TS module).
-const REPLY_TO = 'hello@cardtly.com'
+// Keep in step with FROM_EMAIL in lib/email.ts (.mjs cannot import the TS module).
+const FROM = 'Cardtly <hello@cardtly.com>'
 const APP_URL = 'https://cardtly.com'
 const KIND = 'trial_heads_up'
 
@@ -138,7 +137,7 @@ for (const q of queue) {
   if (claimErr) { console.log(`  skip ${q.to}: ${claimErr.message}`); continue }
   try {
     const { subject, html } = render(q)
-    const { error } = await resend.emails.send({ from: FROM, to: q.to, replyTo: REPLY_TO, subject, html })
+    const { error } = await resend.emails.send({ from: FROM, to: q.to, subject, html })
     if (error) throw new Error(error.message || JSON.stringify(error))
     sent++
     console.log(`  sent ${q.to}`)

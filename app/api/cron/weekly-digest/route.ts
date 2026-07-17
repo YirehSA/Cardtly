@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { denyIfNotCron } from '@/lib/cron-auth'
-import { FROM_EMAIL, REPLY_TO } from '@/lib/email'
+import { FROM_EMAIL } from '@/lib/email'
 
 // Weekly "your card this week" digest. Triggered by Vercel Cron (see
 // vercel.json). For every card with activity in the last 7 days, emails
@@ -63,7 +63,6 @@ export async function GET(request: Request) {
       await resend.emails.send({
         from: FROM_EMAIL,
         to,
-        replyTo: REPLY_TO,
         subject: `Your Cardtly week: ${v} view${v === 1 ? '' : 's'}${l ? `, ${l} new lead${l === 1 ? '' : 's'}` : ''}`,
         html: `
           <div style="font-family:system-ui,-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#111">

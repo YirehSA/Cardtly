@@ -3,13 +3,13 @@ import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { resolveCardOwner } from '@/lib/card-owner'
 import { waLink } from '@/lib/whatsapp'
+import { FROM_EMAIL } from '@/lib/email'
 
 // Public endpoint: a visitor fills in the "share your info" form on a
 // card. We store the lead and email the card owner. Works for both
 // personal and team cards; for team cards the lead is stored under
 // team_card_id so the team admin sees it in Team Contacts.
 
-const FROM_EMAIL = 'noreply@cardtly.com'
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')

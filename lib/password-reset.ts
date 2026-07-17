@@ -1,5 +1,6 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { FROM_EMAIL } from '@/lib/email'
 
 // Sends a password-reset email using the token_hash flow rather than
 // supabase-js resetPasswordForEmail. Why:
@@ -21,9 +22,6 @@ import { Resend } from 'resend'
 // We email it ourselves via Resend so it's branded and we control the
 // link, and it works the same whether a user or an admin triggered it.
 
-import { REPLY_TO } from '@/lib/email'
-
-const FROM_EMAIL = 'Cardtly <noreply@cardtly.com>'
 
 export interface SendResetResult {
   ok: boolean
@@ -69,7 +67,6 @@ export async function sendPasswordResetEmail(email: string, origin: string): Pro
   const { error: sendError } = await resend.emails.send({
     from: FROM_EMAIL,
     to: email,
-    replyTo: REPLY_TO,
     subject: 'Reset your Cardtly password',
     html: `
       <div style="font-family:system-ui,-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#111">

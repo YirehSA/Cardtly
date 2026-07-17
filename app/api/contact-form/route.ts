@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { FROM_EMAIL } from '@/lib/email'
 
 // Contact page form handler. Distinct from /api/contact, which is
 // the lead-capture endpoint for public card "share your details"
@@ -7,7 +8,6 @@ import { Resend } from 'resend'
 // Resend - previously the contact page only pretended to send.
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-const FROM_EMAIL = 'noreply@cardtly.com'
 // Where contact-page messages land. hello@cardtly.com (the address
 // shown on the page) was confirmed receiving on 2026-07-17, so the
 // old "if/when that mailbox is set up" caveat no longer applies.

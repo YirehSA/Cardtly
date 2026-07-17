@@ -101,7 +101,7 @@ export default function PrivacyPage() {
               <li><strong className="text-white">Supabase</strong> hosts our database and handles authentication. <a className="underline" href="https://supabase.com/privacy" style={{ color: '#00d4ff' }}>supabase.com/privacy</a></li>
               <li><strong className="text-white">Vercel</strong> hosts the website and serves card pages. <a className="underline" href="https://vercel.com/legal/privacy-policy" style={{ color: '#00d4ff' }}>vercel.com/legal/privacy-policy</a></li>
               <li><strong className="text-white">Paystack</strong> processes subscription payments. <a className="underline" href="https://paystack.com/privacy" style={{ color: '#00d4ff' }}>paystack.com/privacy</a></li>
-              <li><strong className="text-white">Resend</strong> delivers transactional email from noreply@cardtly.com. <a className="underline" href="https://resend.com/legal/privacy-policy" style={{ color: '#00d4ff' }}>resend.com/legal/privacy-policy</a></li>
+              <li><strong className="text-white">Resend</strong> delivers transactional email from hello@cardtly.com. <a className="underline" href="https://resend.com/legal/privacy-policy" style={{ color: '#00d4ff' }}>resend.com/legal/privacy-policy</a></li>
               <li><strong className="text-white">Google Play</strong> if you install our Android app, Google may collect install and crash data subject to their own policy.</li>
             </ul>
             <p>

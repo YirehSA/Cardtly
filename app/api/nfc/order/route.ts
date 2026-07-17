@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { FROM_EMAIL } from '@/lib/email'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const ADMIN_EMAIL = 'info@yireh.co.za'
-const FROM_EMAIL = 'noreply@cardtly.com'
 
 function buildOrderRow(line: any): string {
   const name = line.nameOnCard || ''

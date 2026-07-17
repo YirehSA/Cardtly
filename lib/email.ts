@@ -1,19 +1,20 @@
-// Shared addresses for outbound Cardtly mail.
+// The single From address for all outbound Cardtly mail.
 //
-// FROM stays noreply@ because it is the Resend-verified sending domain and
-// nothing receives there. REPLY_TO is what makes a reply reach a human: any
-// mail we send that a customer might sensibly answer must set it, or the
-// reply lands nowhere and the sender never knows.
+// hello@cardtly.com, not noreply@. Resend verifies the whole cardtly.com
+// domain (confirmed via the API: status=verified), so it can send as any
+// address there, and hello@ is a real mailbox that someone reads (confirmed
+// 2026-07-17 by sending a probe to it and finding it in the inbox).
 //
-// This bit us on the trial heads-up: the email is signed "Andre" and invites
-// a response, but every reply would have bounced off noreply@.
+// Sending as a real address is what makes a reply work: it arrives naturally,
+// with no reply-to header to remember. Every Cardtly email used to come from
+// noreply@ with nothing set, so a reply went nowhere and the sender never
+// found out. That was worst on mail signed "Andre" that invites a response.
 //
-// hello@cardtly.com is the public address already shown on /contact. Confirmed
-// receiving 2026-07-17 by sending a probe to it and reading the inbox, not
-// just by trusting the domain's MX (mx1.cpmx.co.za).
+// Because From is now the address we want replies at, a reply-to pointing to
+// the same place would be redundant, so those were removed.
 //
-// NOTE: do NOT set REPLY_TO on mail that is already addressed TO us with a
-// customer's address in replyTo (the contact form, lead capture, booking
-// requests). Those deliberately reply to the customer, which is correct.
-export const FROM_EMAIL = 'Cardtly <noreply@cardtly.com>'
-export const REPLY_TO = 'hello@cardtly.com'
+// The exception, deliberately untouched: mail addressed TO us that carries a
+// customer's address in replyTo (the contact form, card lead capture, booking
+// requests). There, replying should reach the customer, not us. Do not "tidy"
+// those to this constant.
+export const FROM_EMAIL = 'Cardtly <hello@cardtly.com>'
