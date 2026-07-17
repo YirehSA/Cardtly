@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og'
 import { createClient } from '@supabase/supabase-js'
-import { parseDesign, getAccentHex } from '@/types/design'
+import { parseDesign, getAccentHex, getBgColors, getReadableTextOn } from '@/types/design'
 import { resolveTeamBrand } from '@/lib/team-brand'
 import { CARDTLY_MARK } from '@/lib/og-cardtly-mark'
 
@@ -12,10 +12,11 @@ import { CARDTLY_MARK } from '@/lib/og-cardtly-mark'
 export const runtime = 'edge'
 
 // ── Share-image theme ───────────────────────────────────────────────────────
-// The image follows the card's brand colour when one is set, and falls back to
-// the standard Cardtly look otherwise. A company sets their colour once (their
-// team or department brand), and every share of every card under it matches:
-// no separate setting to keep in sync.
+// The image mirrors the card's own design: its accent colour (preset or custom),
+// its light or dark background, and its text colours. So every card's share
+// looks like the card - a light card gets a light share, a red card gets red -
+// with no separate setting to keep in sync. Team cards inherit their team or
+// department brand's colour, resolved before this runs.
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const h = hex.replace('#', '')
@@ -37,36 +38,44 @@ function darken(hex: string, t: number): string {
 
 interface ShareTheme {
   bg: string; glow1: string; glow2: string
-  accent: string; avatarBorder: string; avatarFallback: string; divider: string
+  accent: string; avatarBorder: string; avatarFallback: string; avatarText: string
+  divider: string
+  nameColor: string; titleColor: string; companyColor: string; urlColor: string; barBorder: string
 }
 
 function buildTheme(colorTheme: string | null): ShareTheme {
   const design = parseDesign(colorTheme)
-  // Only a deliberately-chosen custom colour re-themes the share. A default or
-  // preset card keeps the recognisable Cardtly look, which is the standard.
-  const branded = design.accentColor === 'custom' && !!design.customAccentColor
-  if (!branded) {
-    return {
-      bg: '#050510',
-      glow1: 'rgba(0,212,255,0.18)',
-      glow2: 'rgba(236,72,153,0.15)',
-      accent: '#00d4ff',
-      avatarBorder: 'rgba(0,212,255,0.6)',
-      avatarFallback: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
-      divider: 'linear-gradient(90deg, #00d4ff, #7c3aed, #ec4899)',
-    }
-  }
+  // The accent resolves for every card - a preset name (red, teal, ...) or a
+  // custom hex - so all cards, not just custom-branded ones, wear their colour.
   const accent = getAccentHex(design)
+  // The card's own background palette: light gives a light share, dark gives a
+  // dark one, and a custom card background colour comes through here too.
+  const bg = getBgColors(design.bgMode, design.templateId, design.customBgColor)
+  const light = design.bgMode === 'light'
+
+  // Background: a light card is a flat light page; a dark card keeps the premium
+  // accent-tinted corner fading to the card's own dark, unless the card sets a
+  // specific background colour, which we then honour flat.
+  const page = light || design.customBgColor
+    ? bg.page
+    : `linear-gradient(160deg, ${darken(accent, 0.82)} 0%, ${bg.page} 62%)`
+
   return {
-    // Brand colour as a deep corner tint fading to near-black: their own
-    // background, still dark enough to keep white text readable.
-    bg: `linear-gradient(160deg, ${darken(accent, 0.82)} 0%, #050510 62%)`,
-    glow1: rgba(accent, 0.24),
-    glow2: rgba(accent, 0.12),
+    bg: page,
+    glow1: rgba(accent, light ? 0.14 : 0.22),
+    glow2: rgba(accent, light ? 0.07 : 0.12),
     accent,
-    avatarBorder: rgba(accent, 0.65),
+    avatarBorder: rgba(accent, light ? 0.5 : 0.6),
     avatarFallback: `linear-gradient(135deg, ${accent}, ${darken(accent, 0.35)})`,
+    avatarText: getReadableTextOn(accent),
     divider: accent,
+    // Mirror the card's text colours, honouring any per-element overrides the
+    // way the card itself does (name -> text, title -> accent, company -> muted).
+    nameColor: design.nameColor || bg.text,
+    titleColor: design.titleColor || accent,
+    companyColor: design.companyColor || bg.subtext,
+    urlColor: bg.subtext,
+    barBorder: bg.border,
   }
 }
 
@@ -269,7 +278,7 @@ export async function GET(
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: 90,
-                  color: 'white',
+                  color: theme.avatarText,
                   fontWeight: 'bold',
                 }}
               >
@@ -280,16 +289,16 @@ export async function GET(
 
           {/* Text info */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-            <div style={{ display: 'flex', fontSize: 44, fontWeight: 'bold', color: 'white', lineHeight: 1.1, letterSpacing: '-1px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', fontSize: 44, fontWeight: 'bold', color: theme.nameColor, lineHeight: 1.1, letterSpacing: '-1px', textAlign: 'center' }}>
               {name}
             </div>
             {title ? (
-              <div style={{ display: 'flex', fontSize: 22, fontWeight: 600, color: theme.accent, textAlign: 'center' }}>
+              <div style={{ display: 'flex', fontSize: 22, fontWeight: 600, color: theme.titleColor, textAlign: 'center' }}>
                 {title}
               </div>
             ) : null}
             {company ? (
-              <div style={{ display: 'flex', fontSize: 20, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
+              <div style={{ display: 'flex', fontSize: 20, color: theme.companyColor, textAlign: 'center' }}>
                 {company}
               </div>
             ) : null}
@@ -303,9 +312,9 @@ export async function GET(
         </div>
 
         {/* Bottom bar — compact for square */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', borderTop: '1px solid rgba(255,255,255,0.06)', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', borderTop: `1px solid ${theme.barBorder}`, gap: 8 }}>
           <img src={CARDTLY_MARK} width={26} height={26} style={{ objectFit: 'contain' }} />
-          <div style={{ display: 'flex', fontSize: 16, fontWeight: 'bold', color: 'rgba(255,255,255,0.4)' }}>cardtly.com/card/{slug}</div>
+          <div style={{ display: 'flex', fontSize: 16, fontWeight: 'bold', color: theme.urlColor }}>cardtly.com/card/{slug}</div>
         </div>
       </div>
     ),
