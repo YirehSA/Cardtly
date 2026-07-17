@@ -5,6 +5,7 @@ import { Metadata } from 'next'
 import PublicCardView from '@/components/card/PublicCardView'
 import CardTracker from '@/components/card/CardTracker'
 import { mergeBrand } from '@/lib/team-brand'
+import { planFromTrial } from '@/lib/plan-server'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -102,12 +103,23 @@ export default async function PublicCardPage({ params }: Props) {
         .maybeSingle(),
       admin
         .from('profiles')
-        .select('last_active_at, is_founder, founder_number, founder_lifetime_pro')
+        .select('last_active_at, is_founder, founder_number, founder_lifetime_pro, trial_ends_at')
         .eq('user_id', (card as any).user_id)
         .maybeSingle(),
     ])
 
-    const isPro = (sub as any)?.subscription_tier === 'pro' && (sub as any)?.status === 'active'
+    const hasSubscription = (sub as any)?.subscription_tier === 'pro' && (sub as any)?.status === 'active'
+
+    // No subscription: the card only serves while the trial is still running.
+    // planFromTrial fails open on a missing/unreadable date, so a data gap can
+    // never take a live card down.
+    const trialPlan = planFromTrial((profile as any)?.trial_ends_at ?? null)
+    if (!hasSubscription && trialPlan.tier === 'expired') {
+      notFound()
+    }
+
+    // The trial is the full product, so it unlocks the same fields as Pro.
+    const isPro = hasSubscription || trialPlan.isActive
     const lastActiveAt = (profile as any)?.last_active_at || null
     const founderNumber = (profile as any)?.is_founder ? (profile as any)?.founder_number ?? null : null
     const founderLifetime = !!(profile as any)?.founder_lifetime_pro
