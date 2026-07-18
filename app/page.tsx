@@ -10,11 +10,11 @@ import TemplatesShowcase from '@/components/marketing/TemplatesShowcase'
 import FeaturedCards from '@/components/marketing/FeaturedCards'
 import FaqSection from '@/components/marketing/FaqSection'
 import StructuredData from '@/components/marketing/StructuredData'
-import CustomizeShowcase from '@/components/marketing/CustomizeShowcase'
 import TeamsSection from '@/components/marketing/TeamsSection'
 import {
   Smartphone, Globe, BarChart2, Mail, Monitor, Users, ArrowRight, Wifi, Sparkles, Zap, CalendarDays, ScanLine,
   FileSpreadsheet, CalendarClock, MessageCircle, Contact, Wallet, UserPlus, ClipboardList, Repeat,
+  Building2, Lock, Palette,
 } from 'lucide-react'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
@@ -46,6 +46,24 @@ const SALES_FLOW = [
     title: 'You can see what worked',
     text: 'Views, taps, link clicks and saves, per person. You find out which reps are getting opened and which links people actually press, instead of guessing.',
   },
+]
+
+// What a company actually controls, which the site never mentioned. Every item
+// here is a shipped feature: departments with heads, the nine choosable lock
+// groups, per-department brand, per-rep reporting and per-seat billing.
+const COMPANY_CONTROLS = [
+  { icon: Building2, colour: '#00d4ff', title: 'Departments, each with a head',
+    desc: 'Split the company into Sales, Support, whatever fits. Each department gets a head who runs their own people, invites them and sets their look.' },
+  { icon: Lock, colour: '#f59e0b', title: 'Lock exactly what you choose',
+    desc: 'Logo, company name, office number, website, address, socials, link buttons, gallery and card design. Lock any of them company-wide, and a department can tighten it further.' },
+  { icon: UserPlus, colour: '#22c55e', title: 'Their details stay theirs',
+    desc: 'Anything you have not locked belongs to the person: name, photo, job title, bio, mobile. Nobody in admin retypes forty phone numbers.' },
+  { icon: Palette, colour: '#ec4899', title: 'One brand, or one per team',
+    desc: 'Set the company look once and apply it to every card at once. A department can carry its own colours on top where it needs to.' },
+  { icon: BarChart2, colour: '#7c3aed', title: 'Reporting per person',
+    desc: 'Views, taps, link clicks and saved contacts for each rep, and every lead they capture in one place. You see who is actually being opened.' },
+  { icon: Users, colour: '#06b6d4', title: 'Per seat, change any time',
+    desc: 'R97 per card a month. Add people as you hire, and a card you have not handed out yet waits with an invite against it.' },
 ]
 
 // Synchronous pre-paint script.
@@ -360,7 +378,6 @@ export default function HomePage() {
 
             {/* WhatsApp follow-up — wider tile with chat visual */}
             <BentoTile
-              span="md:col-span-2"
               icon={<MessageCircle className="w-5 h-5" />}
               accent="#25D366"
               title="Follow up on WhatsApp"
@@ -434,6 +451,22 @@ export default function HomePage() {
               title="Share a teammate's card"
               desc="On a team, hand out a colleague's card on the spot. Every teammate's card is one tap away from your dashboard to send by WhatsApp or link."
             />
+
+            {/* Custom link (/api/slug, with redirects so old links keep working) */}
+            <BentoTile
+              icon={<Globe className="w-5 h-5" />}
+              accent="#00d4ff"
+              title="Your own short link"
+              desc="cardtly.com/card/yourname, yours to choose. Change it later and the old one keeps working, so anything already printed still lands."
+            />
+
+            {/* AI bio (/api/ai/bio) */}
+            <BentoTile
+              icon={<Sparkles className="w-5 h-5" />}
+              accent="#7c3aed"
+              title="AI writes your bio"
+              desc="Stuck on what to say about yourself? Give it your job and it drafts the short version for you. Edit it, or write your own."
+            />
           </div>
           </Reveal>
 
@@ -457,7 +490,53 @@ export default function HomePage() {
 
       {/* Interactive customization demo — extends the templates story:
           12 templates, and every one is fully editable */}
-      <CustomizeShowcase />
+
+      {/* ── Company controls: departments, locks, per-rep reporting ──────────
+             None of this was advertised anywhere on the site - not here, not on
+             the features page, and TeamsSection only said "locked company
+             branding" in passing. It is the reason a company with forty reps
+             buys this instead of telling everyone to make their own card. */}
+      <section className="py-24 px-6 lg:px-12">
+        <div className="max-w-[1400px] mx-auto">
+          <Reveal>
+            <div className="text-center mb-16">
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#00d4ff' }}>Run it properly</p>
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight">
+                Control what matters. <span style={gradText}>Leave the rest to them.</span>
+              </h2>
+              <p className="mt-4 max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                Forty people, one brand, and nobody putting the wrong logo on anything. You decide what is
+                fixed and what each person fills in themselves.
+              </p>
+            </div>
+          </Reveal>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {COMPANY_CONTROLS.map(({ icon: Icon, colour, title, desc }, i) => (
+              <Reveal key={title} delay={i * 70} className="h-full">
+                <div className="h-full p-6 rounded-3xl lift-card"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4"
+                    style={{ background: `${colour}1f`, border: `1px solid ${colour}44`, color: colour }}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">{title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>{desc}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+          <Reveal>
+            <div className="mt-10 text-center">
+              <Link href="/signup"
+                className="group inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition-all hover:scale-[1.03]"
+                style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.45)' }}>
+                Set your team up free
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
+          </Reveal>
+        </div>
+      </section>
 
       {/* ── How it works — kept simple ──────────────────────────────────────── */}
       <section className="py-24 px-6" style={{ background: 'rgba(255,255,255,0.02)' }}>
