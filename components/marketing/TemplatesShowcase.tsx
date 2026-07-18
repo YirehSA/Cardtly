@@ -72,7 +72,7 @@ export default function TemplatesShowcase() {
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none"
         style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%)' }} />
 
-      <div className="max-w-6xl mx-auto relative">
+      <div className="max-w-[1400px] mx-auto relative">
         <div className="text-center mb-12">
           <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#ec4899' }}>Pick your look</p>
           <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-3">

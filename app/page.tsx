@@ -154,7 +154,7 @@ export default function HomePage() {
 
       {/* ── Social proof bar — bigger, bolder ─────────────────────────────────── */}
       <section className="py-16 border-y" style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {/* Every one of these is checkable against the product or the
                 database. This bar used to read "10,000+ cards created" and
@@ -181,6 +181,39 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── How the sale actually happens ─────────────────────── */}
+      <section className="py-24 px-6">
+        <div className="max-w-[1400px] mx-auto">
+          <Reveal>
+            <div className="text-center mb-16">
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#f59e0b' }}>From handshake to sale</p>
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight">
+                One card. <span style={gradText}>Three fewer leaks.</span>
+              </h2>
+              <p className="mt-4 max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                Most leads are lost between meeting someone and following up. Here is where Cardtly closes the gap.
+              </p>
+            </div>
+          </Reveal>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {SALES_FLOW.map(({ step, title, text }, i) => (
+              <Reveal key={title} delay={i * 90} className="h-full">
+                <div className="h-full p-6 rounded-3xl lift-card relative"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black text-white flex-shrink-0"
+                      style={{ background: grad }}>{i + 1}</span>
+                    <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>{step}</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">{title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>{text}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── Cardtly for Teams — the primary audience, so it sits directly under
              the hero. Locked branding, member-owned details, per-seat billing. */}
       <TeamsSection />
@@ -189,11 +222,13 @@ export default function HomePage() {
       <ThreeWaysToShare />
 
       {/* ── Bento features grid ─────────────────────────────────────────────── */}
-      <section className="py-24 px-6 relative">
+      {/* Tinted so the run of Three ways -> Bento -> Real cards is not three
+          identical black sections back to back. */}
+      <section className="py-24 px-6 relative" style={{ background: 'rgba(255,255,255,0.02)' }}>
         <div className="absolute top-1/2 right-0 w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none"
           style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.10) 0%, transparent 70%)' }} />
 
-        <div className="max-w-6xl mx-auto relative">
+        <div className="max-w-[1400px] mx-auto relative">
           <Reveal>
             <div className="text-center mb-16">
               <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#7c3aed' }}>From tap to closed deal</p>
@@ -426,7 +461,7 @@ export default function HomePage() {
 
       {/* ── How it works — kept simple ──────────────────────────────────────── */}
       <section className="py-24 px-6" style={{ background: 'rgba(255,255,255,0.02)' }}>
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-[1400px] mx-auto">
           <Reveal>
             <div className="text-center mb-16">
               <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#00d4ff' }}>Simple as that</p>
@@ -465,42 +500,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Testimonials ─────────────────────────────────────────────────────── */}
-      <section className="py-24 px-6">
-        <div className="max-w-5xl mx-auto">
-          <Reveal>
-            <div className="text-center mb-16">
-              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#f59e0b' }}>From handshake to sale</p>
-              <h2 className="text-4xl md:text-5xl font-black tracking-tight">
-                One card. <span style={gradText}>Three fewer leaks.</span>
-              </h2>
-              <p className="mt-4 max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                Most leads are lost between meeting someone and following up. Here is where Cardtly closes the gap.
-              </p>
-            </div>
-          </Reveal>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {SALES_FLOW.map(({ step, title, text }, i) => (
-              <Reveal key={title} delay={i * 90} className="h-full">
-                <div className="h-full p-6 rounded-3xl lift-card relative"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black text-white flex-shrink-0"
-                      style={{ background: grad }}>{i + 1}</span>
-                    <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>{step}</span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">{title}</h3>
-                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>{text}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── App download ─────────────────────────────────────────────────────── */}
       <section className="py-24 px-6">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-[1400px] mx-auto">
           <Reveal>
             <div className="text-center mb-12">
               <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#00d4ff' }}>Mobile</p>

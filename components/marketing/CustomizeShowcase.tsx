@@ -55,7 +55,7 @@ export default function CustomizeShowcase() {
 
   return (
     <section className="py-24 px-6">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-[1400px] mx-auto">
         <div className="text-center mb-14">
           <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#ec4899' }}>
             Make it yours

@@ -19,7 +19,7 @@ export default function ThreeWaysToShare() {
       <div className="absolute top-0 left-1/3 w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none"
         style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.10) 0%, transparent 70%)' }} />
 
-      <div className="max-w-6xl mx-auto relative">
+      <div className="max-w-[1400px] mx-auto relative">
         <div className="text-center mb-16">
           <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#00d4ff' }}>Three ways. Zero apps.</p>
           <h2 className="text-4xl md:text-6xl font-black tracking-tight leading-tight mb-4">
