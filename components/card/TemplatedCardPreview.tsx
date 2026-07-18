@@ -6,7 +6,7 @@ import {
   getCardStyleEffect, TEXT_POSITION_TEMPLATES,
   calcNameSize, calcTitleSize, calcCompanySize, calcBioSize,
   getNameColor, getTitleColor, getCompanyColor, getBioColor,
-  getBodyFontSize, getButtonFontSize
+  getBodyFontSize, getButtonFontSize, isLightBg
 } from '@/types/design'
 import { Phone, Mail, Globe, MessageCircle, ExternalLink, ChevronRight, Twitter, Facebook } from 'lucide-react'
 
@@ -41,7 +41,8 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
   const buttonBorder = getButtonBorder(design)
   const font = FONTS[design.fontId]
   const bg = getBgColors(design.bgMode, design.templateId, design.customBgColor)
-  const isLight = design.bgMode === 'light'
+  // Mirrors PublicCardView: a custom background colour decides light vs dark.
+  const isLight = design.customBgColor ? isLightBg(design.customBgColor) : design.bgMode === 'light'
   const cardEffect = getCardStyleEffect(design.cardStyle, accentHex, bg.page)
 
   const certs = form.certifications ? form.certifications.split(',').map(c => c.trim()).filter(Boolean) : []

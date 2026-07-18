@@ -120,6 +120,16 @@ export function getReadableTextOn(hex: string): string {
   return L > 0.55 ? '#0a0a0a' : '#ffffff'
 }
 
+// Is this colour light enough that we should be layering dark things on it?
+// Shares the threshold with getReadableTextOn so the surface tints and the
+// text colour can never disagree about which way round the card is.
+// Non-hex values (gradients, rgba) are treated as dark, which is what every
+// template that uses them actually is.
+export function isLightBg(color: string | undefined): boolean {
+  if (!color) return false
+  return getReadableTextOn(color) === '#0a0a0a'
+}
+
 // Resolve the Save Contact button background. Falls back to accent if not set.
 export function getButtonBg(design: CardDesign): string {
   if (design.buttonBgColor) return design.buttonBgColor
@@ -175,6 +185,10 @@ export function getCardStyleEffect(style: CardStyle, accentHex: string, bgPage: 
   surfaceBg: string
   borderStyle: string
 } {
+  // These tints used to be white-only, which silently assumed the page behind
+  // them was dark. Pick a yellow background and the contact rows became a
+  // white wash on yellow - technically applied, effectively invisible.
+  const light = isLightBg(bgPage)
   switch (style) {
     case 'gradient':
       return {
@@ -185,14 +199,14 @@ export function getCardStyleEffect(style: CardStyle, accentHex: string, bgPage: 
     case 'glass':
       return {
         heroBg: `linear-gradient(135deg, ${accentHex}33 0%, ${accentHex}11 100%)`,
-        surfaceBg: `rgba(255,255,255,0.04)`,
-        borderStyle: `1px solid rgba(255,255,255,0.12)`,
+        surfaceBg: light ? `rgba(0,0,0,0.05)` : `rgba(255,255,255,0.04)`,
+        borderStyle: light ? `1px solid rgba(0,0,0,0.10)` : `1px solid rgba(255,255,255,0.12)`,
       }
     case 'flat':
     default:
       return {
         heroBg: `linear-gradient(180deg, ${accentHex}33 0%, ${bgPage} 100%)`,
-        surfaceBg: `rgba(255,255,255,0.06)`,
+        surfaceBg: light ? `rgba(0,0,0,0.07)` : `rgba(255,255,255,0.06)`,
         borderStyle: `1px solid transparent`,
       }
   }
@@ -206,7 +220,20 @@ export function getBgColors(mode: BgMode, templateId: TemplateId, customBgColor?
   // template/mode would otherwise use.
   const applyCustomBg = (colors: ReturnType<typeof getBgColors>) => {
     if (!customBgColor) return colors
-    return { ...colors, page: customBgColor, text: getReadableTextOn(customBgColor) }
+    // page and text were the only two overridden, so a light custom colour
+    // kept the dark palette's card, surface, subtext and border underneath it:
+    // grey-on-yellow subtext and panels that barely showed. Everything that
+    // sits on the page has to follow the page.
+    const light = isLightBg(customBgColor)
+    return {
+      ...colors,
+      page: customBgColor,
+      text: getReadableTextOn(customBgColor),
+      card: light ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)',
+      surface: light ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.08)',
+      subtext: light ? 'rgba(0,0,0,0.60)' : 'rgba(255,255,255,0.60)',
+      border: light ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)',
+    }
   }
   if (mode === 'light') {
     return applyCustomBg({ page: '#f8fafc', card: '#ffffff', surface: '#f1f5f9', text: '#0f172a', subtext: '#64748b', border: '#e2e8f0' })

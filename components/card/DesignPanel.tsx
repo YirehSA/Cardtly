@@ -16,6 +16,20 @@ interface Props {
   isPro: boolean
 }
 
+// Background colours that read well behind a whole card. Deliberately not the
+// same palette as the accent swatches - these are page colours, and half of
+// them are deep or muted in a way an accent never wants to be.
+const BG_PRESETS = [
+  { hex: '#0a0a0a', label: 'Black' },
+  { hex: '#0f172a', label: 'Navy' },
+  { hex: '#1c2e26', label: 'Forest' },
+  { hex: '#3b1f2b', label: 'Burgundy' },
+  { hex: '#f5d020', label: 'Yellow' },
+  { hex: '#f5f0e6', label: 'Cream' },
+  { hex: '#e8eef5', label: 'Ice' },
+  { hex: '#ffffff', label: 'White' },
+]
+
 // Sample form data used to render real mini-previews inside the template
 // picker tiles. Realistic-looking fake content so each tile shows what
 // the actual template will look like with a populated card.
@@ -233,56 +247,66 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
         </div>
       </div>
 
-      {/* Background mode: Dark / Light preset OR a fully custom hex.
-          When customBgColor is set, neither preset shows as active. */}
+      {/* Card background: Dark / Light preset, or any colour at all.
+          This used to be two buttons and a small unlabelled pipette, sitting
+          directly above a row of nine bright accent swatches. People reached
+          for the colourful row and changed their icons instead, so the third
+          option is now a full-width labelled choice with its own swatches. */}
       <div>
-        <label className="block text-sm font-semibold mb-3">Background</label>
-        <div className="flex gap-3">
+        <label className="block text-sm font-semibold mb-1">Card background</label>
+        <p className="text-xs text-muted-foreground mb-3">The colour behind everything on your card.</p>
+        <div className="grid grid-cols-3 gap-2">
           {([{ id: 'dark' as BgMode, label: 'Dark', icon: Moon }, { id: 'light' as BgMode, label: 'Light', icon: Sun }]).map(({ id, label, icon: Icon }) => {
             // Active only when this mode matches AND there's no custom override
             const active = design.bgMode === id && !design.customBgColor
             return (
               <button key={id}
-                onClick={() => update({ bgMode: id, customBgColor: undefined })}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-medium transition ${active ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
+                onClick={() => { update({ bgMode: id, customBgColor: undefined }); setShowBgPicker(false) }}
+                className={`flex flex-col items-center justify-center gap-1 py-3 rounded-xl border-2 text-sm font-medium transition ${active ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
                 <Icon className="w-4 h-4" />{label}
               </button>
             )
           })}
-          {/* Custom colour swatch button - shows current colour when set,
-              otherwise the Pipette icon. Same UI pattern as the accent
-              colour custom picker just below. */}
           <button
-            onClick={() => setShowBgPicker(!showBgPicker)}
-            title="Custom background colour"
-            className={`w-12 h-12 rounded-xl border-2 transition flex items-center justify-center ${design.customBgColor ? 'border-blue-500 scale-105' : 'border-border hover:border-foreground/20'}`}
-            style={{ backgroundColor: design.customBgColor || 'transparent' }}
-          >
-            {!design.customBgColor && <Pipette className="w-4 h-4 text-muted-foreground" />}
+            onClick={() => setShowBgPicker(true)}
+            className={`flex flex-col items-center justify-center gap-1 py-3 rounded-xl border-2 text-sm font-medium transition ${design.customBgColor ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
+            <span className="w-4 h-4 rounded-full border border-border"
+              style={{ background: design.customBgColor || 'linear-gradient(135deg,#f5d020,#f53803,#8b5cf6,#0ea5e9)' }} />
+            Colour
           </button>
         </div>
-        {/* Inline colour picker drawer. Live updates flow back to the
-            preview via onChange -> setDesign -> re-render. */}
-        {showBgPicker && (
-          <div className="flex items-center gap-3 p-3 mt-3 bg-muted rounded-xl">
-            <input
-              type="color"
-              value={design.customBgColor || '#0a0a0a'}
-              onChange={e => update({ customBgColor: e.target.value })}
-              className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent"
-            />
-            <div className="flex-1">
-              <p className="text-xs font-semibold">Custom background</p>
-              <p className="text-xs text-muted-foreground font-mono">{design.customBgColor || '— pick a colour —'}</p>
+
+        {(showBgPicker || design.customBgColor) && (
+          <div className="mt-3 p-3 bg-muted rounded-xl">
+            <p className="text-xs font-semibold mb-2">Pick a background colour</p>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {BG_PRESETS.map(c => (
+                <button key={c.hex} title={c.label}
+                  onClick={() => update({ customBgColor: c.hex })}
+                  className={`w-9 h-9 rounded-full border-2 transition hover:scale-110 ${design.customBgColor?.toLowerCase() === c.hex.toLowerCase() ? 'border-blue-500 scale-110' : 'border-border'}`}
+                  style={{ backgroundColor: c.hex }} />
+              ))}
             </div>
-            {design.customBgColor && (
-              <button
-                onClick={() => { update({ customBgColor: undefined }); setShowBgPicker(false) }}
-                className="text-xs text-muted-foreground hover:text-foreground underline"
-              >
-                Reset
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={design.customBgColor || '#0a0a0a'}
+                onChange={e => update({ customBgColor: e.target.value })}
+                className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent"
+              />
+              <div className="flex-1">
+                <p className="text-xs font-medium">Or any colour you like</p>
+                <p className="text-xs text-muted-foreground font-mono">{design.customBgColor || '— none picked —'}</p>
+              </div>
+              {design.customBgColor && (
+                <button
+                  onClick={() => { update({ customBgColor: undefined }); setShowBgPicker(false) }}
+                  className="text-xs text-muted-foreground hover:text-foreground underline"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -309,7 +333,8 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
 
       {/* Accent colour + custom colour picker */}
       <div>
-        <label className="block text-sm font-semibold mb-3">Accent colour</label>
+        <label className="block text-sm font-semibold mb-1">Accent colour</label>
+        <p className="text-xs text-muted-foreground mb-3">Buttons, icons and highlights. Not the background.</p>
 
         {/* Preset swatches */}
         <div className="flex flex-wrap gap-3 mb-3">

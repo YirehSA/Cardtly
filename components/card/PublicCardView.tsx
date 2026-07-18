@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Card, extractLinks } from '@/types/database'
-import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize } from '@/types/design'
+import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg } from '@/types/design'
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
@@ -533,7 +533,10 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
   const textNudge = TEXT_POSITION_TEMPLATES.includes(design.templateId)
     ? { transform: `translate(${design.textX ?? 0}px, ${design.textY ?? 0}px)` }
     : {}
-  const isLight = design.bgMode === 'light'
+  // A custom background colour decides which way round the card is, whatever
+  // the dark/light toggle says. Without this, picking a pale custom colour left
+  // every glass surface and tile styled for a dark page: white on near-white.
+  const isLight = design.customBgColor ? isLightBg(design.customBgColor) : design.bgMode === 'light'
 
   const links = isPro ? extractLinks(card) : []
   const certifications = isPro && card.certifications
@@ -633,10 +636,15 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
       <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden', minHeight: '100vh' }} className="animate-fade-up">
         {/* Floating gradient orbs - absolute positioned so they render
             relative to the card container. Three orbs at different
-            spots / colours / sizes plus a subtle slow drift animation. */}
-        <div style={{ position: 'absolute', top: -120, left: -120, width: 460, height: 460, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}88 0%, transparent 65%)`, filter: 'blur(40px)', animation: 'modernOrb1 28s ease-in-out infinite', pointerEvents: 'none', zIndex: 0 }} />
-        <div style={{ position: 'absolute', top: '20%', right: -160, width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.55) 0%, transparent 65%)', filter: 'blur(40px)', animation: 'modernOrb2 36s ease-in-out infinite', pointerEvents: 'none', zIndex: 0 }} />
-        <div style={{ position: 'absolute', bottom: -100, left: 40, width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.55) 0%, transparent 65%)', filter: 'blur(40px)', animation: 'modernOrb3 32s ease-in-out infinite', pointerEvents: 'none', zIndex: 0 }} />
+            spots / colours / sizes plus a subtle slow drift animation.
+
+            Two of the three are a fixed pink and purple at 0.55, which is
+            Modern's signature on its own dark page but swamps a background
+            the user chose - pick cream and you got a pink card. When a custom
+            background is set the orbs step back so that colour still reads. */}
+        <div style={{ position: 'absolute', top: -120, left: -120, width: 460, height: 460, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}88 0%, transparent 65%)`, filter: 'blur(40px)', animation: 'modernOrb1 28s ease-in-out infinite', opacity: design.customBgColor ? 0.28 : 1, pointerEvents: 'none', zIndex: 0 }} />
+        <div style={{ position: 'absolute', top: '20%', right: -160, width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.55) 0%, transparent 65%)', filter: 'blur(40px)', animation: 'modernOrb2 36s ease-in-out infinite', opacity: design.customBgColor ? 0.28 : 1, pointerEvents: 'none', zIndex: 0 }} />
+        <div style={{ position: 'absolute', bottom: -100, left: 40, width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.55) 0%, transparent 65%)', filter: 'blur(40px)', animation: 'modernOrb3 32s ease-in-out infinite', opacity: design.customBgColor ? 0.28 : 1, pointerEvents: 'none', zIndex: 0 }} />
         <style>{`
           @keyframes modernOrb1 { 0%,100% { transform: translate(0,0) scale(1) } 50% { transform: translate(60px,40px) scale(1.1) } }
           @keyframes modernOrb2 { 0%,100% { transform: translate(0,0) scale(1) } 50% { transform: translate(-40px,80px) scale(1.05) } }
