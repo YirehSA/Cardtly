@@ -2,6 +2,7 @@ import { PROMOS_ENABLED } from '@/lib/promos'
 import type { MetadataRoute } from 'next'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { POSTS } from './blog/posts'
+import { planFromTrial } from '@/lib/plan-server'
 
 // Sitemap: static marketing pages + every public card page.
 // Card pages are included deliberately - each one is an indexable
@@ -51,11 +52,34 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (url && key) {
       const admin = createAdminClient(url, key) as any
-      const [{ data: cards }, { data: teamCards }] = await Promise.all([
-        admin.from('cards').select('slug, updated_at').not('slug', 'is', null),
+      const [{ data: cards }, { data: teamCards }, { data: profiles }, { data: subs }] = await Promise.all([
+        admin.from('cards').select('slug, updated_at, user_id').not('slug', 'is', null),
         admin.from('team_cards').select('slug, updated_at').not('slug', 'is', null).eq('is_active', true),
+        admin.from('profiles').select('user_id, trial_ends_at'),
+        admin.from('whop_subscriptions').select('user_id, subscription_tier, status').eq('status', 'active'),
       ])
-      const all = [...(cards || []), ...(teamCards || [])]
+
+      // A personal card 404s once its owner's trial ends without a
+      // subscription - /card/[slug] calls notFound() in exactly that case. The
+      // sitemap listed every card with a slug regardless, so the first lapsed
+      // trial would have started advertising a dead URL to Google. Apply the
+      // same gate here, including its fail-open behaviour: a missing or
+      // unreadable trial date keeps the card listed rather than dropping it.
+      const trialByUser = new Map<string, string | null>(
+        (profiles || []).map((p: any) => [p.user_id, p.trial_ends_at ?? null])
+      )
+      const paidUsers = new Set(
+        (subs || [])
+          .filter((x: any) => x.subscription_tier === 'pro')
+          .map((x: any) => x.user_id)
+      )
+      const servesPublicly = (c: any) => {
+        if (paidUsers.has(c.user_id)) return true
+        if (!trialByUser.has(c.user_id)) return true      // no profile row: fail open
+        return planFromTrial(trialByUser.get(c.user_id) ?? null).tier !== 'expired'
+      }
+
+      const all = [...(cards || []).filter(servesPublicly), ...(teamCards || [])]
       cardPages = all
         .filter((c: any) => c.slug)
         .map((c: any) => ({
