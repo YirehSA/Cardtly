@@ -18,7 +18,8 @@ interface Props {
     subscription_tier: string
     status: string
     created_at: string
-    whop_user_id: string | null
+    billing_cycle: string | null
+    seats: number | null
   } | null
 }
 
@@ -37,29 +38,43 @@ export default function SettingsTabs({ user, profile, plan, subscription, card }
   const router = useRouter()
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
-      <div>
-        <h1 className="font-display text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground text-sm mt-1">Manage your account and preferences</p>
+    <div className="max-w-3xl mx-auto space-y-5 animate-fade-in pb-16">
+      {/* Header */}
+      <div className="rounded-3xl border border-border overflow-hidden">
+        <div className="p-6 sm:p-8" style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.14), transparent 65%)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
+              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+              <User className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="font-display text-2xl font-bold leading-tight">Your account</h1>
+              <p className="text-muted-foreground text-sm">Your details, your password, your plan.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Tab bar — 2 columns on mobile so every tab including Danger is
           visible without scrolling, 4 columns on desktop. */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-muted p-1 rounded-xl">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-muted p-1 rounded-2xl">
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition justify-center ${tab === t.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition justify-center ${tab === t.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
             {t.icon}{t.label}
           </button>
         ))}
       </div>
 
       {/* Tab content */}
-      <div className="bg-card border border-border rounded-2xl p-6">
+      <div className="bg-card border border-border rounded-3xl p-6">
         {tab === 'profile' && <ProfileTab user={user} profile={profile} card={card || undefined} supabase={supabase} />}
         {tab === 'security' && <SecurityTab user={user} supabase={supabase} />}
         {tab === 'billing' && <BillingTab plan={plan} subscription={subscription} />}
-        {tab === 'danger' && <DangerTab user={user} supabase={supabase} router={router} />}
+        {tab === 'danger' && (
+          <DangerTab user={user} supabase={supabase} router={router}
+            isPaying={billingState(plan, subscription) === 'paid'} />
+        )}
       </div>
     </div>
   )
@@ -412,70 +427,118 @@ function BiometricSection({ user, supabase }: { user: Props['user']; supabase: a
 
 // ── Billing tab ────────────────────────────────────────────────────────────────
 
-function BillingTab({ plan, subscription }: { plan: UserPlan; subscription: Props['subscription'] }) {
-  const isPro = plan.tier === 'pro' && plan.isActive
+const PRO_FEATURES = [
+  '12 card templates', 'Custom accent colour', 'Custom links and social profiles',
+  'Gallery and media', 'Analytics dashboard', 'Email signature generator',
+  'Virtual background generator', 'Contact form and leads', 'QR code with your logo',
+]
 
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })
-  }
+function formatDay(iso: string) {
+  return new Date(iso).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+// An account is in exactly one of four states, and they used to collapse into
+// two. A trial reports tier 'pro' and isActive true - by design, so the trial
+// is the real product - which meant this tab told someone on a free trial that
+// they had an active subscription "billed in ZAR via Paystack". They had never
+// paid, and their card was days from going offline. Comped accounts were told
+// the same thing, and an expired account was called a "Free plan" rather than
+// what it is: a card that has stopped serving.
+function billingState(plan: UserPlan, subscription: Props['subscription']) {
+  if (plan.tier === 'expired') return 'expired' as const
+  if (plan.isTrial) return 'trial' as const
+  if (subscription?.billing_cycle === 'comp') return 'comped' as const
+  return 'paid' as const
+}
+
+function BillingTab({ plan, subscription }: { plan: UserPlan; subscription: Props['subscription'] }) {
+  const state = billingState(plan, subscription)
+  const daysLeft = plan.trialDaysLeft ?? 0
+
+  const HEADER = {
+    trial:  { badge: 'Trial', title: 'Free trial', tone: daysLeft <= 7 ? '#f59e0b' : '#8b5cf6',
+              sub: plan.trialEndsAt ? `Ends ${formatDay(plan.trialEndsAt)}` : 'Every Pro feature included' },
+    paid:   { badge: 'Pro', title: 'Pro plan', tone: '#22c55e',
+              sub: subscription?.created_at ? `Paying since ${formatDay(subscription.created_at)}` : 'Active' },
+    comped: { badge: 'Pro', title: 'Pro, on the house', tone: '#22c55e',
+              sub: subscription?.created_at ? `Active since ${formatDay(subscription.created_at)}` : 'Active' },
+    expired:{ badge: 'Off', title: 'Your card is offline', tone: '#ef4444',
+              sub: 'Your trial has ended, so your card link no longer opens' },
+  }[state]
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-semibold text-lg mb-1">Billing & plan</h2>
-        <p className="text-sm text-muted-foreground">Your current plan and subscription details</p>
+        <h2 className="font-semibold text-lg mb-1">Billing and plan</h2>
+        <p className="text-sm text-muted-foreground">Where your account stands right now</p>
       </div>
 
-      {/* Plan badge */}
-      <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/30">
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${isPro ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-            {isPro ? 'Pro' : 'Free'}
-          </div>
-          <div>
-            <p className="font-semibold">{isPro ? 'Pro plan' : 'Free plan'}</p>
-            <p className="text-xs text-muted-foreground">
-              {isPro
-                ? subscription?.created_at ? `Active since ${formatDate(subscription.created_at)}` : 'Active'
-                : 'Limited features'}
-            </p>
-          </div>
-        </div>
-        {isPro && (
-          <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-green-500/15 text-green-600">
-            Active
-          </span>
-        )}
-      </div>
-
-      {/* Plan features */}
-      <div className="space-y-2">
-        {isPro ? (
-          [
-            '12 card templates', 'Custom accent colour', 'Custom links and social profiles',
-            'Gallery and media', 'Analytics dashboard', 'Email signature generator',
-            'Virtual background generator', 'Contact form and leads', 'QR code with your logo',
-          ].map(f => (
-            <div key={f} className="flex items-center gap-2 text-sm">
-              <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-              {f}
+      {/* Where you stand */}
+      <div className="rounded-2xl border p-5" style={{ borderColor: HEADER.tone + '55', background: HEADER.tone + '0f' }}>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl grid place-items-center font-bold text-sm text-white"
+              style={{ background: HEADER.tone }}>
+              {HEADER.badge}
             </div>
-          ))
-        ) : (
-          <div className="rounded-xl border border-border p-5 text-center space-y-3">
-            <p className="text-sm text-muted-foreground">Upgrade to Pro to unlock all features</p>
-            <a href="/dashboard/upgrade"
-              className="inline-flex items-center gap-2 bg-foreground text-background px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-foreground/90 transition">
-              Upgrade to Pro
-            </a>
+            <div>
+              <p className="font-semibold">{HEADER.title}</p>
+              <p className="text-xs text-muted-foreground">{HEADER.sub}</p>
+            </div>
           </div>
+          {state === 'trial' && (
+            <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background: HEADER.tone + '22', color: HEADER.tone }}>
+              {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
+            </span>
+          )}
+        </div>
+
+        {state === 'trial' && (
+          <p className="text-sm text-muted-foreground mt-4">
+            You have every Pro feature until then, and you have not been charged anything.
+            To keep your card live after your trial, subscribe for R97 a month.
+          </p>
+        )}
+        {state === 'expired' && (
+          <p className="text-sm text-muted-foreground mt-4">
+            Subscribe for R97 a month and your card goes straight back live on the same link, with nothing lost.
+          </p>
+        )}
+        {state === 'comped' && (
+          <p className="text-sm text-muted-foreground mt-4">
+            This account is on Cardtly at no charge. There is no subscription and no card on file, so nothing will ever be billed.
+          </p>
+        )}
+
+        {(state === 'trial' || state === 'expired') && (
+          <a href="/dashboard/upgrade"
+            className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
+            style={{ background: HEADER.tone }}>
+            {state === 'expired' ? 'Bring my card back' : 'Subscribe now'}
+          </a>
         )}
       </div>
 
-      {isPro && (
+      {/* What is included */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          {state === 'expired' ? 'What you get back' : "What's included"}
+        </p>
+        {PRO_FEATURES.map(f => (
+          <div key={f} className="flex items-center gap-2 text-sm">
+            <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+            {f}
+          </div>
+        ))}
+      </div>
+
+      {/* Only a real payer is told they are being billed. */}
+      {state === 'paid' && (
         <div className="pt-2 border-t border-border">
           <p className="text-sm text-muted-foreground mb-3">
-            Your Pro subscription is billed in ZAR via Paystack. To cancel or change it, get in touch and we'll sort it out right away.
+            Billed {subscription?.billing_cycle === 'monthly' ? 'monthly' : subscription?.billing_cycle || 'monthly'} in ZAR via Paystack
+            {subscription?.seats && subscription.seats > 1 ? `, for ${subscription.seats} seats` : ''}.
+            To cancel or change it, get in touch and we&apos;ll sort it out right away.
           </p>
           <a href="/contact"
             className="inline-flex items-center gap-2 border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition">
@@ -490,7 +553,7 @@ function BillingTab({ plan, subscription }: { plan: UserPlan; subscription: Prop
 
 // ── Danger zone tab ────────────────────────────────────────────────────────────
 
-function DangerTab({ user, supabase, router }: { user: Props['user']; supabase: any; router: any }) {
+function DangerTab({ user, supabase, router, isPaying }: { user: Props['user']; supabase: any; router: any; isPaying?: boolean }) {
   const [confirm, setConfirm] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -542,13 +605,32 @@ function DangerTab({ user, supabase, router }: { user: Props['user']; supabase: 
         </div>
       </div>
 
+      {/* Deleting the account removes our record of the subscription but does
+          not cancel it at Paystack, so an active subscriber who deletes could
+          keep being charged for an account that no longer exists. Say so
+          before they do it, not after. */}
+      {isPaying && (
+        <div className="p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 flex items-start gap-3">
+          <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-medium text-sm">Cancel your subscription first</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Deleting your account here does not stop your Paystack subscription, so you could keep
+              being charged. <a href="/contact" className="underline hover:text-foreground">Get in touch</a> to
+              cancel it, then come back and delete.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Delete account */}
       <div className="p-4 rounded-xl border border-destructive/40 bg-destructive/5">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <p className="font-medium text-sm text-destructive">Delete account</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Permanently delete your account and all card data. This cannot be undone.
+              Permanently deletes your account, your card and everyone who left their details.
+              Your card link stops working. This cannot be undone.
             </p>
           </div>
           {!showConfirm && (

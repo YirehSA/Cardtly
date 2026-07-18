@@ -25,9 +25,13 @@ export default async function SettingsPage() {
     getPrimaryCard<CardSummary>(user.id, 'id, slug, name, allow_homepage_feature'),
   ])
 
+  // This asked for whop_user_id, which does not exist on the table, so the
+  // query errored and sub came back null for everybody - including paying
+  // subscribers, who could never see when their subscription started.
+  // billing_cycle is what separates a real payer from a comped account.
   const { data: sub } = await supabase
     .from('whop_subscriptions')
-    .select('subscription_tier, status, created_at, whop_user_id')
+    .select('subscription_tier, status, created_at, billing_cycle, seats')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(1)
