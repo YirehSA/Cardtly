@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, UserPlan } from '@/types/database'
 import { isPro } from '@/lib/plan'
@@ -23,6 +23,12 @@ interface Props {
 }
 
 type TabId = 'basic' | 'contact' | 'links' | 'media' | 'design'
+
+// One comparable string for "everything the user can change", so unsaved work
+// is detected without tracking each field by hand.
+function snapshotOf(form: Record<string, unknown>, design: CardDesign): string {
+  return JSON.stringify({ form, design })
+}
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode; proOnly?: boolean }[] = [
   { id: 'basic',   label: 'Profile', icon: <User className="w-4 h-4" /> },
@@ -86,6 +92,39 @@ export default function CardEditor({ card, plan, userId }: Props) {
     setForm(prev => ({ ...prev, [field]: value }))
   }, [])
 
+  // Everything on this page lives in local state until Save is pressed, so
+  // leaving without saving threw the work away without a word. Compare what is
+  // on screen against what was last stored, and refuse to let it go quietly.
+  const [savedSnapshot, setSavedSnapshot] = useState(() => snapshotOf(form, design))
+  const dirty = snapshotOf(form, design) !== savedSnapshot
+
+  // Covers closing the tab and reloading.
+  useEffect(() => {
+    if (!dirty) return
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty])
+
+  // Covers clicking away inside the app, which beforeunload never sees and is
+  // how this actually happens - someone edits, taps Dashboard, and it is gone.
+  useEffect(() => {
+    if (!dirty) return
+    function onClick(e: MouseEvent) {
+      const a = (e.target as HTMLElement)?.closest?.('a') as HTMLAnchorElement | null
+      if (!a) return
+      const href = a.getAttribute('href') || ''
+      // Leave new tabs and non-navigations alone: they do not lose anything.
+      if (!href.startsWith('/') || a.target === '_blank') return
+      if (!window.confirm('You have unsaved changes to your card. Leave without saving?')) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+    document.addEventListener('click', onClick, true)
+    return () => document.removeEventListener('click', onClick, true)
+  }, [dirty])
+
   async function saveSlug() {
     if (!slug || slug.length < 3) { setSlugError('Min 3 characters'); return }
     if (!card?.id) {
@@ -119,8 +158,15 @@ export default function CardEditor({ card, plan, userId }: Props) {
     const isFirst = !hasCelebratedFirstSave()
 
     // All design settings (including bold controls) live in color_theme JSON
-    // Never send design-only fields as DB columns
-    const { error } = await supabase
+    // Never send design-only fields as DB columns.
+    //
+    // .select() is what makes this honest. An update that matches no rows -
+    // which is exactly what happens when RLS cannot see a row created by
+    // another path, the case this page's own loader works around - comes back
+    // with no error at all. Without checking that a row came back we told the
+    // user "Card saved" and even "Your card is live!" while saving nothing,
+    // and they would only find out later that their edits were gone.
+    const { data: updated, error } = await supabase
       .from('cards')
       .update({
         ...form,
@@ -128,10 +174,16 @@ export default function CardEditor({ card, plan, userId }: Props) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', card.id)
+      .select('id')
 
     if (error) toast.error('Failed to save: ' + error.message)
+    else if (!updated || updated.length === 0) {
+      toast.error('Your changes were not saved. Please refresh and try again, or email andre@cardtly.com.')
+    }
     else {
       toast.success(isFirst ? 'Your card is live! 🎉' : 'Card saved')
+      // Only now is what is on screen genuinely what is stored.
+      setSavedSnapshot(snapshotOf(form, design))
       if (isFirst) {
         markFirstSaveCelebrated()
         celebrateFirstSave()
@@ -174,44 +226,77 @@ export default function CardEditor({ card, plan, userId }: Props) {
     <div className="flex flex-col xl:flex-row gap-6 max-w-7xl mx-auto">
       <div className="flex-1 min-w-0">
 
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="font-display text-xl font-bold">My Card</h1>
-            {cardUrl && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <a
-                  href={cardUrl}
-                  {...(isNativeApp() ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
-                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-                  cardtly.com{cardUrl} <ExternalLink className="w-3 h-3" />
-                </a>
-                <button onClick={copyLink} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border border-border text-muted-foreground hover:text-foreground transition">
-                  {copied ? <><Check className="w-3 h-3 text-green-500" />Copied!</> : <><Copy className="w-3 h-3" />Copy</>}
+        <div className="rounded-3xl border border-border overflow-hidden mb-5">
+          <div className="p-5 sm:p-6" style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.12), transparent 65%)' }}>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
+                  style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                  <User className="w-5 h-5" />
+                </div>
+                <div>
+                  <h1 className="font-display text-2xl font-bold leading-tight">Your card</h1>
+                  <p className="text-muted-foreground text-sm">Change anything here, then press save to put it live.</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Says out loud whether what is on screen is actually stored. */}
+                <span className={`text-xs font-medium flex items-center gap-1.5 ${dirty ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                  {dirty
+                    ? <><span className="w-1.5 h-1.5 rounded-full bg-amber-500" />Not saved yet</>
+                    : <><Check className="w-3.5 h-3.5 text-green-500" />All saved</>}
+                </span>
+                <button onClick={save} disabled={saving || !dirty}
+                  className="flex items-center gap-2 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition hover:opacity-90 disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                  <Save className="w-4 h-4" />
+                  {saving ? 'Saving...' : dirty ? 'Save changes' : 'Saved'}
                 </button>
               </div>
-            )}
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <div className="flex items-center px-2 py-1.5 rounded-l-lg border border-r-0 border-border bg-muted text-xs text-muted-foreground whitespace-nowrap">
-                cardtly.com/card/
+            </div>
+
+            {/* The card's address, and how to change it. */}
+            <div className="mt-5 rounded-2xl border border-border bg-card/60 backdrop-blur p-3.5">
+              {cardUrl && (
+                <div className="flex items-center gap-2 flex-wrap mb-3">
+                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Your link</span>
+                  <a
+                    href={cardUrl}
+                    {...(isNativeApp() ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+                    className="text-xs font-mono text-muted-foreground hover:text-foreground flex items-center gap-1">
+                    cardtly.com{cardUrl} <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <button onClick={copyLink} className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-border text-muted-foreground hover:text-foreground transition">
+                    {copied ? <><Check className="w-3 h-3 text-green-500" />Copied</> : <><Copy className="w-3 h-3" />Copy</>}
+                  </button>
+                </div>
+              )}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center px-2.5 py-2 rounded-l-xl border border-r-0 border-border bg-muted text-xs text-muted-foreground whitespace-nowrap">
+                  cardtly.com/card/
+                </div>
+                <input
+                  value={slug}
+                  onChange={e => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setSlugError(''); setSlugSuccess(false) }}
+                  placeholder="your-name"
+                  className="px-3 py-2 rounded-r-xl border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring transition w-44 -ml-2"
+                />
+                <button onClick={saveSlug} disabled={slugSaving || !slug || slug === savedSlug}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold border border-border hover:bg-muted transition disabled:opacity-50 whitespace-nowrap">
+                  {slugSaving ? 'Saving...' : slugSuccess ? '✓ Updated' : 'Change link'}
+                </button>
+                {slugError && <span className="text-xs text-destructive">{slugError}</span>}
               </div>
-              <input
-                value={slug}
-                onChange={e => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setSlugError(''); setSlugSuccess(false) }}
-                placeholder="yireh-your-name"
-                className="px-3 py-1.5 rounded-r-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring transition w-44"
-              />
-              <button onClick={saveSlug} disabled={slugSaving || !slug || slug === savedSlug}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
-                style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-                {slugSaving ? '...' : slugSuccess ? '✓ Saved' : 'Update URL'}
-              </button>
-              {slugError && <span className="text-xs text-destructive">{slugError}</span>}
+              {/* Changing a slug writes a slug_redirects row and the card page
+                  follows it, so anything already printed keeps working. Worth
+                  saying, because otherwise this looks like the scary button. */}
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Safe to change. Your old link keeps working and sends people to the new one, so cards
+                you have already printed are fine.
+              </p>
             </div>
           </div>
-          <button onClick={save} disabled={saving} className="flex items-center gap-2 text-white px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90 disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-            <Save className="w-4 h-4" />
-            {saving ? 'Saving...' : 'Save'}
-          </button>
         </div>
 
         <div className="flex flex-wrap gap-1 bg-muted p-1 rounded-xl mb-6">
@@ -351,10 +436,16 @@ export default function CardEditor({ card, plan, userId }: Props) {
           )}
         </div>
 
-        <div className="mt-4 flex justify-end">
-          <button onClick={save} disabled={saving} className="flex items-center gap-2 bg-foreground text-background px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-foreground/90 transition disabled:opacity-50">
+        <div className="mt-4 flex items-center justify-end gap-3">
+          {dirty && (
+            <p className="text-xs text-muted-foreground">
+              You have changes that are not on your live card yet.
+            </p>
+          )}
+          <button onClick={save} disabled={saving || !dirty}
+            className="flex items-center gap-2 bg-foreground text-background px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-foreground/90 transition disabled:opacity-50">
             <Save className="w-4 h-4" />
-            {saving ? 'Saving...' : 'Save changes'}
+            {saving ? 'Saving...' : dirty ? 'Save changes' : 'Saved'}
           </button>
         </div>
       </div>
