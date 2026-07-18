@@ -209,7 +209,14 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
     const bg = color === 'black' ? '#0a0a0a' : '#ffffff'
     const text = color === 'black' ? '#ffffff' : '#111827'
     const subtext = color === 'black' ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)'
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`https://${cardUrl}`)}&bgcolor=${color === 'black' ? '0a0a0a' : 'ffffff'}&color=${color === 'black' ? 'ffffff' : '111827'}&margin=2`
+    // Our own QR endpoint rather than api.qrserver.com. This one ends up
+    // printed on a physical card, so it must not depend on a third party being
+    // reachable when the artwork is produced. Asked for larger than it is
+    // displayed so it stays sharp on a retina screen and in print.
+    const qrSlug = previewCard?.slug || 'yourname'
+    const qrUrl = `/api/qr/${encodeURIComponent(qrSlug)}?size=480`
+      + `&dark=${color === 'black' ? 'ffffff' : '111827'}`
+      + `&light=${color === 'black' ? '0a0a0a' : 'ffffff'}`
 
     return (
       <div

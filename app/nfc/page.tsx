@@ -170,10 +170,13 @@ export default function NFCMarketingPage() {
                 style={{ aspectRatio: '1.586', background: '#ffffff', border: '1px solid rgba(0,0,0,0.08)' }}>
                 <div className="absolute inset-0 pointer-events-none"
                   style={{ background: 'linear-gradient(135deg, transparent 40%, rgba(124,58,237,0.05) 100%)' }} />
+                {/* Our own QR endpoint, not api.qrserver.com. This is on a
+                    public marketing page, so it should not hand a third party
+                    a request from every visitor who loads it. */}
                 <img
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://cardtly.com/card/demo&bgcolor=ffffff&color=111827&margin=2"
+                  src="/api/qr/demo?size=240&dark=111827&light=ffffff"
                   style={{ width: 80, height: 80, borderRadius: 6 }}
-                  alt="QR preview"
+                  alt="Example QR code on the back of a Cardtly NFC card"
                 />
                 <div className="text-center">
                   <p className="text-xs font-bold text-gray-800">Scan to connect</p>
