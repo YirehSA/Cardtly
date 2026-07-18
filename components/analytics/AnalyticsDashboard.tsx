@@ -1,360 +1,334 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Eye, MousePointer, UserCheck, QrCode, TrendingUp, Smartphone, Monitor, Tablet } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import Link from 'next/link'
+import { parseDesign, getAccentHex } from '@/types/design'
+import {
+  Eye, Users, Share2, TrendingUp, TrendingDown, Minus, Smartphone, Monitor,
+  Tablet, Globe, QrCode, ArrowUpRight, BarChart3,
+} from 'lucide-react'
 
-interface Props {
-  card: { id: string; name: string; slug: string; view_count: number | null }
-}
-
-type Period = 7 | 30 | 90
-type EventRow = {
+interface EventRow {
   event_type: string
-  link_title: string | null
   device: string | null
   browser: string | null
   os: string | null
+  referrer: string | null
   created_at: string
 }
 
-interface Stats {
-  views: number
-  linkClicks: number
-  contactSaves: number
-  qrScans: number
-  shares: number
-  byDay: { date: string; views: number; clicks: number }[]
-  byDevice: { device: string; count: number }[]
-  byBrowser: { browser: string; count: number }[]
-  byOS: { os: string; count: number }[]
-  topLinks: { title: string; count: number }[]
+interface Props {
+  card: { name: string; slug: string; colorTheme: string | null; totalViews: number }
+  isTeam: boolean
+  events: EventRow[]
+  contactDates: string[]
 }
 
+type Period = 7 | 30 | 90
+
 const PERIODS: { label: string; value: Period }[] = [
-  { label: '7 days', value: 7 },
-  { label: '30 days', value: 30 },
-  { label: '90 days', value: 90 },
+  { label: 'Last 7 days', value: 7 },
+  { label: 'Last 30 days', value: 30 },
+  { label: 'Last 90 days', value: 90 },
 ]
 
-export default function AnalyticsDashboard({ card }: Props) {
-  const [period, setPeriod] = useState<Period>(30)
-  const [stats, setStats] = useState<Stats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+// Bucket by LOCAL date. Grouping on the raw ISO string put anything before
+// 02:00 South African time into the previous day, which quietly shifted a
+// chunk of every evening's activity onto the wrong bar.
+function dayKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
-  useEffect(() => {
-    fetchStats()
-  }, [period])
+function startOfLocalDay(offsetDays: number): Date {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() - offsetDays)
+  return d
+}
 
-  async function fetchStats() {
-    setLoading(true)
-    const since = new Date()
-    since.setDate(since.getDate() - period)
-
-    const { data, error } = await supabase
-      .from('card_events')
-      .select('event_type, link_title, device, browser, os, created_at')
-      .eq('card_id', card.id)
-      .gte('created_at', since.toISOString())
-      .order('created_at', { ascending: true })
-
-    if (error || !data) {
-      setLoading(false)
-      return
-    }
-
-    const events = data as EventRow[]
-
-    // Counts
-    const views = events.filter(e => e.event_type === 'view').length
-    const linkClicks = events.filter(e => e.event_type === 'link_click').length
-    const contactSaves = events.filter(e => e.event_type === 'contact_save').length
-    const qrScans = events.filter(e => e.event_type === 'qr_scan').length
-    const shares = events.filter(e => e.event_type === 'share').length
-
-    // By day
-    const dayMap = new Map<string, { views: number; clicks: number }>()
-    for (let i = period - 1; i >= 0; i--) {
-      const d = new Date()
-      d.setDate(d.getDate() - i)
-      const key = d.toISOString().slice(0, 10)
-      dayMap.set(key, { views: 0, clicks: 0 })
-    }
-    events.forEach(e => {
-      const key = e.created_at.slice(0, 10)
-      const day = dayMap.get(key)
-      if (day) {
-        if (e.event_type === 'view') day.views++
-        if (e.event_type === 'link_click') day.clicks++
-      }
-    })
-    const byDay = Array.from(dayMap.entries()).map(([date, v]) => ({ date, ...v }))
-
-    // By device
-    const deviceMap = new Map<string, number>()
-    events.forEach(e => {
-      if (e.device) deviceMap.set(e.device, (deviceMap.get(e.device) || 0) + 1)
-    })
-    const byDevice = Array.from(deviceMap.entries()).map(([device, count]) => ({ device, count })).sort((a, b) => b.count - a.count)
-
-    // By browser
-    const browserMap = new Map<string, number>()
-    events.forEach(e => {
-      if (e.browser) browserMap.set(e.browser, (browserMap.get(e.browser) || 0) + 1)
-    })
-    const byBrowser = Array.from(browserMap.entries()).map(([browser, count]) => ({ browser, count })).sort((a, b) => b.count - a.count)
-
-    // By OS
-    const osMap = new Map<string, number>()
-    events.forEach(e => {
-      if (e.os) osMap.set(e.os, (osMap.get(e.os) || 0) + 1)
-    })
-    const byOS = Array.from(osMap.entries()).map(([os, count]) => ({ os, count })).sort((a, b) => b.count - a.count)
-
-    // Top links
-    const linkMap = new Map<string, number>()
-    events.filter(e => e.event_type === 'link_click' && e.link_title).forEach(e => {
-      linkMap.set(e.link_title!, (linkMap.get(e.link_title!) || 0) + 1)
-    })
-    const topLinks = Array.from(linkMap.entries()).map(([title, count]) => ({ title, count })).sort((a, b) => b.count - a.count).slice(0, 5)
-
-    setStats({ views, linkClicks, contactSaves, qrScans, shares, byDay, byDevice, byBrowser, byOS, topLinks })
-    setLoading(false)
+// Where a visit came from. Our own domain covers a QR scan, an NFC tap, a
+// typed link or a reload - all of them "they opened the link", with no
+// referring site - so they are grouped rather than listed as cardtly.com.
+function sourceLabel(referrer: string | null): string {
+  if (!referrer) return 'Direct link, QR or NFC'
+  try {
+    const host = new URL(referrer).hostname.replace(/^www\./, '').toLowerCase()
+    if (host.endsWith('cardtly.com') || host === 'localhost') return 'Direct link, QR or NFC'
+    if (host.includes('whatsapp')) return 'WhatsApp'
+    if (host.includes('facebook') || host.includes('fb.')) return 'Facebook'
+    if (host.includes('instagram')) return 'Instagram'
+    if (host.includes('linkedin') || host.includes('lnkd.')) return 'LinkedIn'
+    if (host.includes('google')) return 'Google'
+    if (host === 't.co' || host.includes('twitter') || host === 'x.com') return 'X'
+    if (host.includes('tiktok')) return 'TikTok'
+    if (host.includes('mail') || host.includes('outlook')) return 'Email'
+    return host
+  } catch {
+    return 'Direct link, QR or NFC'
   }
+}
 
-  const maxDayValue = stats ? Math.max(...stats.byDay.map(d => Math.max(d.views, d.clicks)), 1) : 1
+function countBy<T>(rows: T[], pick: (r: T) => string | null): { key: string; count: number }[] {
+  const m = new Map<string, number>()
+  for (const r of rows) {
+    const k = pick(r)
+    if (k) m.set(k, (m.get(k) || 0) + 1)
+  }
+  return [...m.entries()].map(([key, count]) => ({ key, count })).sort((a, b) => b.count - a.count)
+}
+
+function Trend({ now, prev, days }: { now: number; prev: number; days: number }) {
+  if (prev === 0 && now === 0) {
+    return <span className="text-[11px] text-muted-foreground">No activity yet</span>
+  }
+  if (prev === 0) {
+    return <span className="text-[11px] font-medium text-green-500">New this period</span>
+  }
+  const pct = Math.round(((now - prev) / prev) * 100)
+  const flat = pct === 0
+  const up = pct > 0
+  const Icon = flat ? Minus : up ? TrendingUp : TrendingDown
+  const tone = flat ? 'text-muted-foreground' : up ? 'text-green-500' : 'text-red-500'
+  return (
+    <span className={`text-[11px] font-medium flex items-center gap-1 ${tone}`}>
+      <Icon className="w-3 h-3" />
+      {flat ? 'Same as' : `${up ? '+' : ''}${pct}% vs`} the previous {days} days
+    </span>
+  )
+}
+
+function Bars({ rows, total, colour }: { rows: { key: string; count: number }[]; total: number; colour: string }) {
+  if (rows.length === 0) return <p className="text-xs text-muted-foreground">Nothing yet</p>
+  return (
+    <div className="space-y-3">
+      {rows.slice(0, 5).map(({ key, count }) => {
+        const pct = total ? Math.round((count / total) * 100) : 0
+        return (
+          <div key={key}>
+            <div className="flex items-center justify-between mb-1 gap-2">
+              {/* No capitalize here: these labels are already written the way
+                  they should read, and title-casing turned "Direct link, QR or
+                  NFC" into "Direct Link, QR Or NFC". */}
+              <span className="text-xs font-medium truncate">{key}</span>
+              <span className="text-xs text-muted-foreground shrink-0">{pct}%</span>
+            </div>
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: colour }} />
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+export default function AnalyticsDashboard({ card, isTeam, events, contactDates }: Props) {
+  const [period, setPeriod] = useState<Period>(30)
+  const accent = useMemo(() => getAccentHex(parseDesign(card.colorTheme)), [card.colorTheme])
+
+  const stats = useMemo(() => {
+    const startNow = startOfLocalDay(period - 1).getTime()
+    const startPrev = startOfLocalDay(period * 2 - 1).getTime()
+
+    const inNow = <T extends { created_at: string }>(r: T) => new Date(r.created_at).getTime() >= startNow
+    const inPrev = <T extends { created_at: string }>(r: T) => {
+      const t = new Date(r.created_at).getTime()
+      return t >= startPrev && t < startNow
+    }
+
+    const viewsAll = events.filter(e => e.event_type === 'view')
+    const sharesAll = events.filter(e => e.event_type === 'share')
+    const contacts = contactDates.map(created_at => ({ created_at }))
+
+    const views = viewsAll.filter(inNow)
+    const prevViews = viewsAll.filter(inPrev).length
+    const shares = sharesAll.filter(inNow).length
+    const prevShares = sharesAll.filter(inPrev).length
+    const leads = contacts.filter(inNow).length
+    const prevLeads = contacts.filter(inPrev).length
+
+    // One bar per day in the window, in local time.
+    const dayMap = new Map<string, number>()
+    for (let i = period - 1; i >= 0; i--) dayMap.set(dayKey(startOfLocalDay(i)), 0)
+    for (const v of views) {
+      const k = dayKey(new Date(v.created_at))
+      if (dayMap.has(k)) dayMap.set(k, dayMap.get(k)! + 1)
+    }
+    const byDay = [...dayMap.entries()].map(([date, count]) => ({ date, count }))
+    const peak = byDay.reduce((best, d) => (d.count > best.count ? d : best), { date: '', count: 0 })
+
+    return {
+      views: views.length, prevViews,
+      shares, prevShares,
+      leads, prevLeads,
+      byDay, peak,
+      byDevice: countBy(views, v => v.device),
+      byBrowser: countBy(views, v => v.browser),
+      bySource: countBy(views, v => sourceLabel(v.referrer)),
+    }
+  }, [events, contactDates, period])
+
+  const maxDay = Math.max(...stats.byDay.map(d => d.count), 1)
+  const prettyDate = (iso: string) =>
+    new Date(iso + 'T12:00:00').toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })
+
+  const HEADLINE = [
+    { label: 'Times your card was opened', value: stats.views, prev: stats.prevViews, icon: Eye, colour: accent },
+    { label: 'People who left their details', value: stats.leads, prev: stats.prevLeads, icon: Users, colour: '#f59e0b' },
+    { label: 'Times your card was shared', value: stats.shares, prev: stats.prevShares, icon: Share2, colour: '#10b981' },
+  ]
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
+    <div className="max-w-5xl mx-auto space-y-6 animate-fade-in pb-16">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold">Analytics</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {card.name} — cardtly.com/card/{card.slug}
-          </p>
-        </div>
-        {/* Period selector */}
-        <div className="flex gap-1 bg-muted p-1 rounded-xl">
-          {PERIODS.map(p => (
-            <button
-              key={p.value}
-              onClick={() => setPeriod(p.value)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${period === p.value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              {p.label}
-            </button>
-          ))}
+      <div className="rounded-3xl border border-border overflow-hidden">
+        <div className="p-6 sm:p-8" style={{ background: `linear-gradient(135deg, ${accent}1f, transparent 65%)` }}>
+          <div className="flex items-start justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
+                style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                <BarChart3 className="w-5 h-5" />
+              </div>
+              <div>
+                <h1 className="font-display text-2xl font-bold leading-tight">How your card is doing</h1>
+                <p className="text-muted-foreground text-sm">
+                  {card.name}
+                  {isTeam && <span className="ml-2 text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded"
+                    style={{ background: accent + '20', color: accent }}>Team</span>}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-1 bg-muted p-1 rounded-2xl">
+              {PERIODS.map(p => (
+                <button key={p.value} onClick={() => setPeriod(p.value)}
+                  className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition ${period === p.value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[1,2,3,4].map(i => (
-            <div key={i} className="bg-card border border-border rounded-2xl p-5 animate-pulse">
-              <div className="h-4 bg-muted rounded w-2/3 mb-3" />
-              <div className="h-8 bg-muted rounded w-1/2" />
-            </div>
-          ))}
-        </div>
-      ) : stats ? (
-        <>
-          {/* Stat cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[
-              { label: 'Card views', value: stats.views, icon: Eye, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-              { label: 'Link clicks', value: stats.linkClicks, icon: MousePointer, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-              { label: 'Contact saves', value: stats.contactSaves, icon: UserCheck, color: 'text-green-500', bg: 'bg-green-500/10' },
-              { label: 'QR scans', value: stats.qrScans, icon: QrCode, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-            ].map(({ label, value, icon: Icon, color, bg }) => (
-              <div key={label} className="bg-card border border-border rounded-2xl p-5">
-                <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center mb-3`}>
-                  <Icon className={`w-5 h-5 ${color}`} />
-                </div>
-                <p className="text-2xl font-bold font-display">{value.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+      {/* Headline numbers */}
+      <div className="grid sm:grid-cols-3 gap-3">
+        {HEADLINE.map(({ label, value, prev, icon: Icon, colour }) => (
+          <div key={label} className="rounded-3xl border border-border bg-card p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-2xl grid place-items-center" style={{ background: colour + '18' }}>
+                <Icon className="w-5 h-5" style={{ color: colour }} />
               </div>
-            ))}
+            </div>
+            <p className="text-3xl font-black tracking-tight" style={{ color: colour }}>{value.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground mt-1 mb-2">{label}</p>
+            <Trend now={value} prev={prev} days={period} />
           </div>
+        ))}
+      </div>
 
-          {/* Views over time chart */}
-          <div className="bg-card border border-border rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-semibold">Activity over time</h2>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500 inline-block" />Views</span>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-purple-500 inline-block" />Clicks</span>
-              </div>
-            </div>
-            {stats.byDay.every(d => d.views === 0 && d.clicks === 0) ? (
-              <div className="h-40 flex items-center justify-center">
-                <p className="text-sm text-muted-foreground">No data yet for this period</p>
-              </div>
-            ) : (
-              <div className="relative h-40">
-                <div className="absolute inset-0 flex items-end gap-px">
-                  {stats.byDay.map((day, i) => {
-                    const showLabel = period <= 30 || i % Math.ceil(period / 12) === 0
-                    return (
-                      <div key={day.date} className="flex-1 flex flex-col items-center gap-0.5 group relative">
-                        {/* Bars */}
-                        <div className="w-full flex items-end gap-px h-32">
-                          <div
-                            className="flex-1 bg-blue-500 rounded-t-sm transition-all hover:bg-blue-400"
-                            style={{ height: `${(day.views / maxDayValue) * 100}%`, minHeight: day.views > 0 ? 2 : 0 }}
-                          />
-                          <div
-                            className="flex-1 bg-purple-500 rounded-t-sm transition-all hover:bg-purple-400"
-                            style={{ height: `${(day.clicks / maxDayValue) * 100}%`, minHeight: day.clicks > 0 ? 2 : 0 }}
-                          />
-                        </div>
-                        {/* Tooltip */}
-                        <div className="absolute bottom-full mb-2 hidden group-hover:block bg-foreground text-background text-xs rounded-lg px-2.5 py-1.5 whitespace-nowrap z-10 pointer-events-none">
-                          <p className="font-medium">{new Date(day.date).toLocaleDateString('en', { month: 'short', day: 'numeric' })}</p>
-                          <p>{day.views} views · {day.clicks} clicks</p>
-                        </div>
-                        {/* X axis label */}
-                        {showLabel && (
-                          <span className="text-xs text-muted-foreground mt-1 hidden sm:block">
-                            {new Date(day.date).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
-                          </span>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+      {stats.views === 0 ? (
+        /* Nothing to show yet - say what to do about it rather than "no data". */
+        <div className="rounded-3xl border border-border bg-card p-10 text-center">
+          <div className="w-14 h-14 rounded-3xl grid place-items-center mx-auto mb-4"
+            style={{ background: accent + '18' }}>
+            <TrendingUp className="w-6 h-6" style={{ color: accent }} />
+          </div>
+          <p className="font-semibold mb-1">Nobody has opened your card in this period</p>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-5">
+            As soon as someone opens your link, you will see when they did it, what they used and how they found you.
+          </p>
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <Link href="/dashboard/qr"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
+              style={{ background: accent }}>
+              <QrCode className="w-4 h-4" /> Get my QR code
+            </Link>
+            {card.slug && (
+              <a href={`/card/${card.slug}`} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-border hover:bg-muted transition">
+                Open my card <ArrowUpRight className="w-4 h-4" />
+              </a>
             )}
           </div>
-
-          {/* Device + Browser + OS */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Device */}
-            <div className="bg-card border border-border rounded-2xl p-5">
-              <h3 className="font-semibold text-sm mb-4">Device</h3>
-              {stats.byDevice.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No data yet</p>
-              ) : (
-                <div className="space-y-3">
-                  {stats.byDevice.map(({ device, count }) => {
-                    const total = stats.byDevice.reduce((s, d) => s + d.count, 0)
-                    const pct = Math.round((count / total) * 100)
-                    const Icon = device === 'mobile' ? Smartphone : device === 'tablet' ? Tablet : Monitor
-                    return (
-                      <div key={device}>
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="text-xs font-medium capitalize">{device}</span>
-                          </div>
-                          <span className="text-xs text-muted-foreground">{pct}%</span>
-                        </div>
-                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-blue-500 rounded-full" style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+        </div>
+      ) : (
+        <>
+          {/* When people opened it */}
+          <div className="rounded-3xl border border-border bg-card p-5 sm:p-6">
+            <div className="flex items-start justify-between flex-wrap gap-2 mb-5">
+              <div>
+                <h2 className="font-semibold text-sm">When people opened it</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {stats.peak.count > 0
+                    ? `Busiest day was ${prettyDate(stats.peak.date)}, with ${stats.peak.count} ${stats.peak.count === 1 ? 'open' : 'opens'}.`
+                    : 'One bar per day.'}
+                </p>
+              </div>
+              <span className="text-xs text-muted-foreground">{stats.views.toLocaleString()} opens</span>
             </div>
 
-            {/* Browser */}
-            <div className="bg-card border border-border rounded-2xl p-5">
-              <h3 className="font-semibold text-sm mb-4">Browser</h3>
-              {stats.byBrowser.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No data yet</p>
-              ) : (
-                <div className="space-y-3">
-                  {stats.byBrowser.slice(0, 5).map(({ browser, count }) => {
-                    const total = stats.byBrowser.reduce((s, d) => s + d.count, 0)
-                    const pct = Math.round((count / total) * 100)
-                    return (
-                      <div key={browser}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium">{browser}</span>
-                          <span className="text-xs text-muted-foreground">{pct}%</span>
-                        </div>
-                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-purple-500 rounded-full" style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+            <div className="flex items-end gap-[2px] h-36">
+              {stats.byDay.map(day => {
+                const h = (day.count / maxDay) * 100
+                const isPeak = day.count === stats.peak.count && day.count > 0
+                return (
+                  <div key={day.date} className="flex-1 h-full flex items-end"
+                    title={`${prettyDate(day.date)}: ${day.count} ${day.count === 1 ? 'open' : 'opens'}`}>
+                    <div className="w-full rounded-t-sm transition-all"
+                      style={{
+                        height: `${Math.max(h, day.count > 0 ? 3 : 0)}%`,
+                        background: isPeak ? accent : accent + '66',
+                      }} />
+                  </div>
+                )
+              })}
             </div>
-
-            {/* OS */}
-            <div className="bg-card border border-border rounded-2xl p-5">
-              <h3 className="font-semibold text-sm mb-4">Operating system</h3>
-              {stats.byOS.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No data yet</p>
-              ) : (
-                <div className="space-y-3">
-                  {stats.byOS.slice(0, 5).map(({ os, count }) => {
-                    const total = stats.byOS.reduce((s, d) => s + d.count, 0)
-                    const pct = Math.round((count / total) * 100)
-                    return (
-                      <div key={os}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium">{os}</span>
-                          <span className="text-xs text-muted-foreground">{pct}%</span>
-                        </div>
-                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-green-500 rounded-full" style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+            <div className="flex justify-between mt-2 text-[11px] text-muted-foreground">
+              <span>{prettyDate(stats.byDay[0]?.date || '')}</span>
+              <span>{prettyDate(stats.byDay[stats.byDay.length - 1]?.date || '')}</span>
             </div>
           </div>
 
-          {/* Top links */}
-          {stats.topLinks.length > 0 && (
-            <div className="bg-card border border-border rounded-2xl p-6">
-              <h2 className="font-semibold mb-4">Top clicked links</h2>
-              <div className="space-y-3">
-                {stats.topLinks.map(({ title, count }, i) => {
-                  const max = stats.topLinks[0].count
-                  const pct = Math.round((count / max) * 100)
+          {/* How they found you + what they used */}
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="rounded-3xl border border-border bg-card p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <Globe className="w-4 h-4 text-muted-foreground" />
+                <h3 className="font-semibold text-sm">How they found you</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">
+                Where people were just before they opened your card.
+              </p>
+              <Bars rows={stats.bySource} total={stats.views} colour={accent} />
+            </div>
+
+            <div className="rounded-3xl border border-border bg-card p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <Smartphone className="w-4 h-4 text-muted-foreground" />
+                <h3 className="font-semibold text-sm">What they opened it on</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">
+                Worth knowing your card looks right on whatever they use.
+              </p>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {(['mobile', 'desktop', 'tablet'] as const).map(kind => {
+                  const found = stats.byDevice.find(d => d.key === kind)
+                  const pct = stats.views ? Math.round(((found?.count || 0) / stats.views) * 100) : 0
+                  const Icon = kind === 'mobile' ? Smartphone : kind === 'tablet' ? Tablet : Monitor
+                  const nice = kind === 'mobile' ? 'Phone' : kind === 'desktop' ? 'Computer' : 'Tablet'
                   return (
-                    <div key={title} className="flex items-center gap-4">
-                      <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium">{title}</span>
-                          <span className="text-xs text-muted-foreground">{count} click{count !== 1 ? 's' : ''}</span>
-                        </div>
-                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-orange-500 rounded-full" style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
+                    <div key={kind} className="rounded-2xl bg-muted/50 p-3 text-center">
+                      <Icon className="w-4 h-4 mx-auto mb-1.5 text-muted-foreground" />
+                      <p className="text-lg font-black leading-none" style={{ color: accent }}>{pct}%</p>
+                      <p className="text-[11px] text-muted-foreground mt-1">{nice}</p>
                     </div>
                   )
                 })}
               </div>
+              <Bars rows={stats.byBrowser} total={stats.views} colour="#8b5cf6" />
             </div>
-          )}
-
-          {/* Empty state for links */}
-          {stats.topLinks.length === 0 && stats.views === 0 && (
-            <div className="bg-card border border-border rounded-2xl p-10 text-center">
-              <TrendingUp className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-              <p className="font-semibold mb-1">No data yet</p>
-              <p className="text-sm text-muted-foreground">
-                Share your card to start seeing analytics. Data will appear here as people view and interact with your card.
-              </p>
-            </div>
-          )}
+          </div>
         </>
-      ) : (
-        <div className="bg-card border border-border rounded-2xl p-10 text-center">
-          <p className="text-sm text-muted-foreground">Failed to load analytics. Please refresh.</p>
-        </div>
       )}
     </div>
   )
