@@ -46,12 +46,14 @@ const LOGO_POSITIONS: { id: LogoPosition; label: string; icon: React.ReactNode }
 
 type DesignTabId = 'template' | 'colours' | 'text' | 'profile' | 'button'
 
-const DESIGN_TABS: { id: DesignTabId; label: string }[] = [
-  { id: 'template', label: 'Template' },
-  { id: 'colours',  label: 'Colours' },
-  { id: 'text',     label: 'Text' },
-  { id: 'profile',  label: 'Profile' },
-  { id: 'button',   label: 'Button' },
+// Coloured to match the editor's tabs, so a section is somewhere you recognise
+// rather than one of five identical grey words.
+const DESIGN_TABS: { id: DesignTabId; label: string; colour: string }[] = [
+  { id: 'template', label: 'Layout',  colour: '#ec4899' },
+  { id: 'colours',  label: 'Colours', colour: '#f59e0b' },
+  { id: 'text',     label: 'Text',    colour: '#3b82f6' },
+  { id: 'profile',  label: 'Photo',   colour: '#22c55e' },
+  { id: 'button',   label: 'Button',  colour: '#8b5cf6' },
 ]
 
 export default function DesignPanel({ design, onChange, isPro }: Props) {
@@ -73,13 +75,17 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
   return (
     <div className="space-y-6">
       {/* Tab bar at the top - wraps on narrow widths */}
-      <div className="flex flex-wrap gap-1 bg-muted p-1 rounded-xl">
-        {DESIGN_TABS.map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap text-center ${activeTab === tab.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-            {tab.label}
-          </button>
-        ))}
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+        {DESIGN_TABS.map(tab => {
+          const on = activeTab === tab.id
+          return (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              className={`px-3 py-2.5 rounded-xl text-sm font-bold transition whitespace-nowrap text-center border-2 ${on ? '' : 'border-border text-muted-foreground hover:text-foreground hover:-translate-y-0.5'}`}
+              style={on ? { borderColor: tab.colour, background: tab.colour + '14', color: tab.colour } : undefined}>
+              {tab.label}
+            </button>
+          )
+        })}
       </div>
       {/* Tab content - everything below this line is wrapped in
           conditional rendering based on activeTab. The space-y-8

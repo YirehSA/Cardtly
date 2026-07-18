@@ -11,7 +11,10 @@ import FlippableCardPreview from './FlippableCardPreview'
 import DesignPanel from './DesignPanel'
 import ProGate from './ProGate'
 import ImageUploader from './ImageUploader'
-import { Save, ExternalLink, Lock, User, Phone, Link2, Image, Palette, Copy, Check, Sparkles } from 'lucide-react'
+import {
+  Save, ExternalLink, Lock, User, Phone, Link2, Image, Palette, Copy, Check, Sparkles,
+  Camera, MapPin, Plus, Building2, Linkedin, Twitter, Instagram, Facebook,
+} from 'lucide-react'
 import AIBioModal from './AIBioModal'
 import { isNativeApp } from '@/lib/capacitor'
 import { celebrateFirstSave, hasCelebratedFirstSave, markFirstSaveCelebrated } from '@/lib/celebrate'
@@ -30,13 +33,63 @@ function snapshotOf(form: Record<string, unknown>, design: CardDesign): string {
   return JSON.stringify({ form, design })
 }
 
-const TABS: { id: TabId; label: string; icon: React.ReactNode; proOnly?: boolean }[] = [
-  { id: 'basic',   label: 'Profile', icon: <User className="w-4 h-4" /> },
-  { id: 'contact', label: 'Contact', icon: <Phone className="w-4 h-4" /> },
-  { id: 'links',   label: 'Links',   icon: <Link2 className="w-4 h-4" />,   proOnly: true },
-  { id: 'media',   label: 'Media',   icon: <Image className="w-4 h-4" />,   proOnly: true },
-  { id: 'design',  label: 'Design',  icon: <Palette className="w-4 h-4" />, proOnly: true },
+// Each tab owns a colour, and that colour is used consistently: the tab, its
+// heading, its icons. It turns five identical grey words into five places you
+// can recognise at a glance and point at.
+const TABS: {
+  id: TabId; label: string; hint: string; icon: React.ReactNode; colour: string; proOnly?: boolean
+}[] = [
+  { id: 'basic',   label: 'You',     hint: 'Photo, name, what you do', icon: <User className="w-4 h-4" />,   colour: '#3b82f6' },
+  { id: 'contact', label: 'Contact', hint: 'How people reach you',     icon: <Phone className="w-4 h-4" />,  colour: '#22c55e' },
+  { id: 'links',   label: 'Links',   hint: 'Send people anywhere',     icon: <Link2 className="w-4 h-4" />,  colour: '#8b5cf6', proOnly: true },
+  { id: 'media',   label: 'Photos',  hint: 'Your logo and pictures',   icon: <Image className="w-4 h-4" />,  colour: '#f59e0b', proOnly: true },
+  { id: 'design',  label: 'Design',  hint: 'Colours and layout',       icon: <Palette className="w-4 h-4" />, colour: '#ec4899', proOnly: true },
 ]
+
+// Which fields each tab is responsible for, so every tab can show how much of
+// itself is filled in. Someone who does not know what to do next can simply
+// look for the tab that is not full yet.
+const TAB_FIELDS: Record<TabId, string[]> = {
+  basic:   ['profile_image_url', 'name', 'title', 'company', 'bio', 'certifications'],
+  contact: ['email', 'phone', 'work_phone', 'whatsapp', 'address', 'website',
+            'linkedin_url', 'twitter_url', 'instagram_url', 'facebook_url'],
+  links:   ['link_1_url', 'link_2_url', 'link_3_url', 'link_4_url', 'link_5_url'],
+  media:   ['company_logo_url', 'image_1_url', 'image_2_url', 'image_3_url',
+            'image_4_url', 'image_5_url', 'image_6_url'],
+  design:  [],
+}
+
+const TAB_COLOUR: Record<TabId, string> = Object.fromEntries(
+  TABS.map(t => [t.id, t.colour])
+) as Record<TabId, string>
+
+// Each social in its own brand colour, so the row is scannable by logo rather
+// than by reading four near-identical labels.
+const SOCIALS: { key: string; label: string; placeholder: string; colour: string; icon: React.ReactNode }[] = [
+  { key: 'linkedin_url',  label: 'LinkedIn',    placeholder: 'https://linkedin.com/in/you',  colour: '#0A66C2', icon: <Linkedin className="w-3 h-3" /> },
+  { key: 'facebook_url',  label: 'Facebook',    placeholder: 'https://facebook.com/yourpage', colour: '#1877F2', icon: <Facebook className="w-3 h-3" /> },
+  { key: 'instagram_url', label: 'Instagram',   placeholder: 'https://instagram.com/you',     colour: '#E4405F', icon: <Instagram className="w-3 h-3" /> },
+  { key: 'twitter_url',   label: 'Twitter / X', placeholder: 'https://x.com/you',             colour: '#0f172a', icon: <Twitter className="w-3 h-3" /> },
+]
+
+// A titled block of related fields, in the tab's colour.
+function Section({ title, hint, colour, icon, children }: {
+  title: string; hint?: string; colour: string; icon?: React.ReactNode; children: React.ReactNode
+}) {
+  return (
+    <section className="rounded-2xl border border-border p-4 sm:p-5" style={{ background: colour + '08' }}>
+      <div className="flex items-center gap-2.5 mb-1">
+        {icon && (
+          <span className="w-7 h-7 rounded-xl grid place-items-center shrink-0"
+            style={{ background: colour + '1f', color: colour }}>{icon}</span>
+        )}
+        <h3 className="font-semibold text-sm">{title}</h3>
+      </div>
+      {hint && <p className="text-xs text-muted-foreground mb-4 ml-9">{hint}</p>}
+      <div className={`space-y-4 ${hint ? '' : 'mt-4'}`}>{children}</div>
+    </section>
+  )
+}
 
 export default function CardEditor({ card, plan, userId }: Props) {
   const supabase = createClient()
@@ -203,6 +256,13 @@ export default function CardEditor({ card, plan, userId }: Props) {
     setSaving(false)
   }
 
+  // Five empty link boxes and six empty photo boxes is a wall. Show what is
+  // filled plus one waiting slot, and let people ask for more.
+  const [linkSlots, setLinkSlots] = useState(() =>
+    Math.max(1, [1, 2, 3, 4, 5].filter(i => (card as any)?.[`link_${i}_url`] || (card as any)?.[`link_${i}_title`]).length + 0))
+  const [photoSlots, setPhotoSlots] = useState(() =>
+    Math.max(1, [1, 2, 3, 4, 5, 6].filter(i => (card as any)?.[`image_${i}_url`]).length + 0))
+
   const [slug, setSlug] = useState(card?.slug || '')
   // Track the saved slug separately from the input value so the displayed
   // URL above the input updates immediately after a successful save,
@@ -299,14 +359,35 @@ export default function CardEditor({ card, plan, userId }: Props) {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1 bg-muted p-1 rounded-xl mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mb-5">
           {TABS.map(tab => {
             const locked = tab.proOnly && !pro
+            const on = activeTab === tab.id
+            const fields = TAB_FIELDS[tab.id]
+            const done = fields.filter(f => String((form as any)[f] || '').trim()).length
+            const complete = fields.length > 0 && done === fields.length
             return (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap flex-1 min-w-[120px] justify-center ${activeTab === tab.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} ${locked ? 'opacity-60' : ''}`}>
-                {tab.icon}{tab.label}
-                {locked && <Lock className="w-3 h-3" />}
+                className={`relative rounded-2xl border-2 p-3 text-left transition-all ${on ? '' : 'border-border hover:-translate-y-0.5'} ${locked ? 'opacity-60' : ''}`}
+                style={on
+                  ? { borderColor: tab.colour, background: tab.colour + '14' }
+                  : undefined}>
+                <span className="w-8 h-8 rounded-xl grid place-items-center mb-2"
+                  style={{ background: tab.colour + (on ? '2b' : '18'), color: tab.colour }}>
+                  {tab.icon}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="text-sm font-bold block" style={on ? { color: tab.colour } : undefined}>{tab.label}</span>
+                  {locked && <Lock className="w-3 h-3 text-muted-foreground" />}
+                </span>
+                <span className="text-[11px] text-muted-foreground block leading-tight mt-0.5">{tab.hint}</span>
+                {/* How full this tab is, so the next thing to do is obvious. */}
+                {!locked && fields.length > 0 && (
+                  <span className="text-[10px] font-bold mt-1.5 flex items-center gap-1"
+                    style={{ color: complete ? '#22c55e' : 'hsl(var(--muted-foreground))' }}>
+                    {complete ? <><Check className="w-3 h-3" />All done</> : `${done} of ${fields.length} filled`}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -315,118 +396,154 @@ export default function CardEditor({ card, plan, userId }: Props) {
         <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
 
           {activeTab === 'basic' && (<>
-            <div>
-              <label className="block text-sm font-medium mb-2">Profile Photo</label>
+            <Section title="Your photo" colour={TAB_COLOUR.basic} icon={<Camera className="w-4 h-4" />}
+              hint="A friendly face gets saved far more often than a logo.">
               <ImageUploader value={form.profile_image_url} onChange={url => update('profile_image_url', url)} bucket="card-images" userId={userId} shape="circle" allowBackgroundRemoval={pro} />
-            </div>
-            <Field label="Full name" required>
-              <Input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Andre Nel" />
-            </Field>
-            <ProField label="Job title" pro={pro}>
-              <Input value={form.title} onChange={e => update('title', e.target.value)} placeholder="Founder & CEO" disabled={!pro} />
-            </ProField>
-            <Field label="Company">
-              <Input value={form.company} onChange={e => update('company', e.target.value)} placeholder="Yireh Business Solutions" />
-            </Field>
-            <ProField label="Bio" pro={pro}>
-              <div className="relative">
-                <textarea value={form.bio} onChange={e => update('bio', e.target.value)} placeholder="Tell people about yourself..." disabled={!pro} rows={4}
-                  className="w-full px-4 py-2.5 pr-32 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition resize-none disabled:opacity-50 disabled:cursor-not-allowed" />
-                {pro && (
-                  <button type="button" onClick={() => setAiBioOpen(true)}
-                    className="absolute top-2 right-2 flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-white transition hover:opacity-90"
-                    style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-                    <Sparkles className="w-3 h-3" />
-                    Write with AI
-                  </button>
-                )}
-              </div>
-            </ProField>
-            <ProField label="Certifications / Tags" pro={pro} hint="Comma separated e.g. Web Design, SEO, Marketing">
-              <Input value={form.certifications} onChange={e => update('certifications', e.target.value)} placeholder="Web Design, SEO, Digital Marketing" disabled={!pro} />
-            </ProField>
+            </Section>
+
+            <Section title="Who you are" colour={TAB_COLOUR.basic} icon={<User className="w-4 h-4" />}
+              hint="This is the big writing at the top of your card.">
+              <Field label="Your name" required>
+                <Input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Andre Nel" />
+              </Field>
+              <ProField label="What you do" pro={pro} hint="Your job title, like Founder or Electrician.">
+                <Input value={form.title} onChange={e => update('title', e.target.value)} placeholder="Founder & CEO" disabled={!pro} />
+              </ProField>
+              <Field label="Where you work">
+                <Input value={form.company} onChange={e => update('company', e.target.value)} placeholder="Yireh Business Solutions" />
+              </Field>
+            </Section>
+
+            <Section title="A bit about you" colour={TAB_COLOUR.basic} icon={<Sparkles className="w-4 h-4" />}
+              hint="A line or two so people remember why they met you. Stuck? Let the AI write it.">
+              <ProField label="Your intro" pro={pro}>
+                <div className="relative">
+                  <textarea value={form.bio} onChange={e => update('bio', e.target.value)} placeholder="Tell people about yourself..." disabled={!pro} rows={4}
+                    className="w-full px-4 py-2.5 pr-32 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition resize-none disabled:opacity-50 disabled:cursor-not-allowed" />
+                  {pro && (
+                    <button type="button" onClick={() => setAiBioOpen(true)}
+                      className="absolute top-2 right-2 flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-white transition hover:opacity-90"
+                      style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                      <Sparkles className="w-3 h-3" />
+                      Write with AI
+                    </button>
+                  )}
+                </div>
+              </ProField>
+              <ProField label="What you are good at" pro={pro} hint="Separate with commas. These show as little tags on your card.">
+                <Input value={form.certifications} onChange={e => update('certifications', e.target.value)} placeholder="Web Design, SEO, Digital Marketing" disabled={!pro} />
+              </ProField>
+            </Section>
           </>)}
 
           {activeTab === 'contact' && (<>
-            <Field label="Email" required>
-              <Input type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="you@company.com" />
-            </Field>
-            <Field label="Phone">
-              <Input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="+27 82 000 0000" />
-            </Field>
-            <ProField label="Work phone" pro={pro}>
-              <Input type="tel" value={form.work_phone} onChange={e => update('work_phone', e.target.value)} placeholder="+27 11 000 0000" disabled={!pro} />
-            </ProField>
-            <ProField label="WhatsApp" pro={pro}>
-              <Input type="tel" value={form.whatsapp} onChange={e => update('whatsapp', e.target.value)} placeholder="+27 82 000 0000" disabled={!pro} />
-            </ProField>
-            <ProField label="Address" pro={pro}>
-              <Input value={form.address} onChange={e => update('address', e.target.value)} placeholder="Johannesburg, South Africa" disabled={!pro} />
-            </ProField>
-            <Field label="Website">
-              <Input type="url" value={form.website} onChange={e => update('website', e.target.value)} placeholder="https://yoursite.com" />
-            </Field>
-            <ProField label="LinkedIn URL" pro={pro}>
-              <Input type="url" value={form.linkedin_url} onChange={e => update('linkedin_url', e.target.value)} placeholder="https://linkedin.com/in/you" disabled={!pro} />
-            </ProField>
-            <ProField label="Twitter / X URL" pro={pro}>
-              <Input type="url" value={form.twitter_url} onChange={e => update('twitter_url', e.target.value)} placeholder="https://twitter.com/you" disabled={!pro} />
-            </ProField>
-            <ProField label="Instagram URL" pro={pro}>
-              <Input type="url" value={form.instagram_url} onChange={e => update('instagram_url', e.target.value)} placeholder="https://instagram.com/you" disabled={!pro} />
-            </ProField>
-            <ProField label="Facebook URL" pro={pro}>
-              <Input type="url" value={form.facebook_url} onChange={e => update('facebook_url', e.target.value)} placeholder="https://facebook.com/yourpage" disabled={!pro} />
-            </ProField>
+            <Section title="How people reach you" colour={TAB_COLOUR.contact} icon={<Phone className="w-4 h-4" />}
+              hint="These become the big tappable buttons on your card.">
+              <Field label="Email" required>
+                <Input type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="you@company.com" />
+              </Field>
+              <Field label="Phone number">
+                <Input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="+27 82 000 0000" />
+              </Field>
+              <ProField label="WhatsApp number" pro={pro} hint="Usually the same as your phone. Gives people a one-tap chat.">
+                <Input type="tel" value={form.whatsapp} onChange={e => update('whatsapp', e.target.value)} placeholder="+27 82 000 0000" disabled={!pro} />
+              </ProField>
+              <ProField label="Office phone" pro={pro}>
+                <Input type="tel" value={form.work_phone} onChange={e => update('work_phone', e.target.value)} placeholder="+27 11 000 0000" disabled={!pro} />
+              </ProField>
+            </Section>
+
+            <Section title="Where to find you" colour={TAB_COLOUR.contact} icon={<MapPin className="w-4 h-4" />}
+              hint="Your address opens directly in Maps when someone taps it.">
+              <Field label="Website">
+                <Input type="url" value={form.website} onChange={e => update('website', e.target.value)} placeholder="https://yoursite.com" />
+              </Field>
+              <ProField label="Address" pro={pro}>
+                <Input value={form.address} onChange={e => update('address', e.target.value)} placeholder="Johannesburg, South Africa" disabled={!pro} />
+              </ProField>
+            </Section>
+
+            <Section title="Your social profiles" colour={TAB_COLOUR.contact} icon={<Link2 className="w-4 h-4" />}
+              hint="Paste the full link to each one. Leave blank any you do not use.">
+              {SOCIALS.map(({ key, label, placeholder, colour, icon }) => (
+                <ProField key={key} pro={pro} label={
+                  <span className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-md grid place-items-center shrink-0"
+                      style={{ background: colour + '22', color: colour }}>{icon}</span>
+                    {label}
+                  </span>
+                }>
+                  <Input type="url" value={(form as any)[key]} onChange={e => update(key, e.target.value)}
+                    placeholder={placeholder} disabled={!pro} />
+                </ProField>
+              ))}
+            </Section>
           </>)}
 
           {activeTab === 'links' && (
             pro ? (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">Add up to 5 custom links to your card.</p>
-                {[1,2,3,4,5].map(i => (
-                  <div key={i} className="rounded-xl border border-border p-4 space-y-2.5 bg-muted/30">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Link {i}</p>
-                    <div>
-                      <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Label</label>
-                      <Input value={form[`link_${i}_title` as keyof typeof form]} onChange={e => update(`link_${i}_title`, e.target.value)} placeholder="e.g. Our Website" />
+              <Section title="Buttons that send people somewhere" colour={TAB_COLOUR.links} icon={<Link2 className="w-4 h-4" />}
+                hint="A menu, a booking page, a price list, your Google reviews. Up to five.">
+                {[1, 2, 3, 4, 5].slice(0, linkSlots).map(i => (
+                  <div key={i} className="rounded-2xl border border-border p-4 space-y-3 bg-card">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg grid place-items-center text-[11px] font-bold shrink-0"
+                        style={{ background: TAB_COLOUR.links + '1f', color: TAB_COLOUR.links }}>{i}</span>
+                      <p className="text-xs font-semibold text-muted-foreground">Link {i}</p>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1.5 text-muted-foreground">URL</label>
+                      <label className="block text-xs font-medium mb-1.5 text-muted-foreground">What should the button say?</label>
+                      <Input value={form[`link_${i}_title` as keyof typeof form]} onChange={e => update(`link_${i}_title`, e.target.value)} placeholder="See our prices" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Where should it go?</label>
                       <Input type="url" value={form[`link_${i}_url` as keyof typeof form]} onChange={e => update(`link_${i}_url`, e.target.value)} placeholder="https://..." />
                     </div>
                   </div>
                 ))}
-              </div>
+                {linkSlots < 5 && (
+                  <button type="button" onClick={() => setLinkSlots(n => Math.min(5, n + 1))}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-border text-sm font-semibold text-muted-foreground hover:border-foreground/30 hover:text-foreground transition">
+                    <Plus className="w-4 h-4" />Add another button
+                  </button>
+                )}
+              </Section>
             ) : <ProGate feature="Custom links" />
           )}
 
           {activeTab === 'media' && (
-            pro ? (
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Company Logo</label>
-                  <p className="text-xs text-muted-foreground mb-3">Resize and position it in the Design tab</p>
-                  <ImageUploader value={form.company_logo_url} onChange={url => update('company_logo_url', url)} bucket="company-logos" userId={userId} shape="square" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Gallery Images</label>
-                  <p className="text-xs text-muted-foreground mb-3">Up to 6 images shown on your card</p>
-                  <div className="grid grid-cols-1 gap-4">
-                    {[1,2,3,4,5,6].map(i => (
-                      <div key={i} className="rounded-xl border border-border p-3 space-y-2 bg-muted/20">
-                        <p className="text-xs font-semibold text-muted-foreground">Image {i}</p>
-                        <ImageUploader value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" />
-                        <div>
-                          <label className="block text-xs font-medium mb-1 text-muted-foreground">Link (optional)</label>
-                          <Input type="url" value={(form as any)[`image_${i}_link`] || ''} onChange={e => update(`image_${i}_link`, e.target.value)} placeholder="https://... (tap image to open)" />
-                        </div>
-                      </div>
-                    ))}
+            pro ? (<>
+              <Section title="Your company logo" colour={TAB_COLOUR.media} icon={<Building2 className="w-4 h-4" />}
+                hint="Shown on your card and in the middle of your QR code. Resize it in Design.">
+                <ImageUploader value={form.company_logo_url} onChange={url => update('company_logo_url', url)} bucket="company-logos" userId={userId} shape="square" />
+              </Section>
+
+              <Section title="Photos of your work" colour={TAB_COLOUR.media} icon={<Image className="w-4 h-4" />}
+                hint="Up to six. Finished jobs, your shop, your products - whatever proves you are good at it.">
+                {[1, 2, 3, 4, 5, 6].slice(0, photoSlots).map(i => (
+                  <div key={i} className="rounded-2xl border border-border p-4 space-y-3 bg-card">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg grid place-items-center text-[11px] font-bold shrink-0"
+                        style={{ background: TAB_COLOUR.media + '1f', color: TAB_COLOUR.media }}>{i}</span>
+                      <p className="text-xs font-semibold text-muted-foreground">Photo {i}</p>
+                    </div>
+                    <ImageUploader value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" />
+                    <div>
+                      <label className="block text-xs font-medium mb-1.5 text-muted-foreground">
+                        Open a page when this photo is tapped (optional)
+                      </label>
+                      <Input type="url" value={(form as any)[`image_${i}_link`] || ''} onChange={e => update(`image_${i}_link`, e.target.value)} placeholder="https://..." />
+                    </div>
                   </div>
-                </div>
-              </div>
-            ) : <ProGate feature="Gallery and media" />
+                ))}
+                {photoSlots < 6 && (
+                  <button type="button" onClick={() => setPhotoSlots(n => Math.min(6, n + 1))}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-border text-sm font-semibold text-muted-foreground hover:border-foreground/30 hover:text-foreground transition">
+                    <Plus className="w-4 h-4" />Add another photo
+                  </button>
+                )}
+              </Section>
+            </>) : <ProGate feature="Gallery and media" />
           )}
 
           {activeTab === 'design' && (
@@ -490,7 +607,7 @@ function Field({ label, children, required, hint }: { label: string; children: R
   )
 }
 
-function ProField({ label, children, pro, hint }: { label: string; children: React.ReactNode; pro: boolean; hint?: string }) {
+function ProField({ label, children, pro, hint }: { label: React.ReactNode; children: React.ReactNode; pro: boolean; hint?: string }) {
   return (
     <div className={pro ? '' : 'opacity-60'}>
       <label className="block text-sm font-medium mb-1.5 flex items-center gap-1.5">
