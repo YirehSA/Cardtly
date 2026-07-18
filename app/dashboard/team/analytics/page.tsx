@@ -2,7 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Eye, Users, TrendingUp, ExternalLink } from 'lucide-react'
+import {
+  ArrowLeft, Eye, Users, TrendingUp, ExternalLink, MousePointerClick, BarChart3, AlertCircle,
+} from 'lucide-react'
 
 export const metadata = { title: 'Team Analytics' }
 
@@ -16,9 +18,16 @@ export default async function TeamAnalyticsPage() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
 
-  // Admin only - the org owner.
+  // Prefer the live org. An abandoned team checkout can leave a second row
+  // against the same admin, and .single() returns nothing when it does.
   const { data: org } = await admin
-    .from('organizations').select('id, name').eq('admin_user_id', user.id).maybeSingle()
+    .from('organizations')
+    .select('id, name')
+    .eq('admin_user_id', user.id)
+    .order('business_plan_active', { ascending: false })
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
   if (!org) redirect('/dashboard/team')
 
   const { data: teamCards } = await admin
@@ -31,17 +40,27 @@ export default async function TeamAnalyticsPage() {
   const cards = teamCards || []
   const ids = cards.map((c: any) => c.id)
 
-  // 30-day views + total contacts per card.
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  // All event types, not just views. Taps and contact saves are now actually
+  // recorded, and they say something views cannot: whether the people opening
+  // a card do anything once they are there.
   const [{ data: events }, { data: contacts }] = ids.length > 0
     ? await Promise.all([
-        admin.from('team_card_events').select('team_card_id').eq('event_type', 'view').gte('created_at', thirtyDaysAgo).in('team_card_id', ids),
+        admin.from('team_card_events').select('team_card_id, event_type').gte('created_at', thirtyDaysAgo).in('team_card_id', ids),
         admin.from('contacts').select('team_card_id').in('team_card_id', ids),
       ])
     : [{ data: [] }, { data: [] }]
 
-  const views30: Record<string, number> = {}
-  for (const e of (events as any[]) || []) views30[e.team_card_id] = (views30[e.team_card_id] || 0) + 1
+  const bucket = (type: string) => {
+    const out: Record<string, number> = {}
+    for (const e of (events as any[]) || []) {
+      if (e.event_type === type && e.team_card_id) out[e.team_card_id] = (out[e.team_card_id] || 0) + 1
+    }
+    return out
+  }
+  const views30 = bucket('view')
+  const taps30 = bucket('link_click')
+
   const leadsByCard: Record<string, number> = {}
   for (const c of (contacts as any[]) || []) if (c.team_card_id) leadsByCard[c.team_card_id] = (leadsByCard[c.team_card_id] || 0) + 1
 
@@ -49,98 +68,124 @@ export default async function TeamAnalyticsPage() {
     .map((c: any) => ({
       ...c,
       views30: views30[c.id] || 0,
+      taps30: taps30[c.id] || 0,
       allTime: c.view_count || 0,
       leads: leadsByCard[c.id] || 0,
     }))
     .sort((a: any, b: any) => (b.views30 - a.views30) || (b.allTime - a.allTime))
 
-  const totalAllTime = rows.reduce((s: number, r: any) => s + r.allTime, 0)
-  const total30 = rows.reduce((s: number, r: any) => s + r.views30, 0)
-  const totalLeads = rows.reduce((s: number, r: any) => s + r.leads, 0)
+  const sum = (k: string) => rows.reduce((s: number, r: any) => s + r[k], 0)
+  const quiet = rows.filter((r: any) => r.allTime === 0).length
 
   const stats = [
-    { label: 'Views, last 30 days', value: total30, icon: TrendingUp, color: '#00d4ff' },
-    { label: 'Views, all time', value: totalAllTime, icon: Eye, color: '#a855f7' },
-    { label: 'Contacts captured', value: totalLeads, icon: Users, color: '#22c55e' },
+    { label: 'Opens, last 30 days', value: sum('views30'), icon: TrendingUp, color: '#00d4ff' },
+    { label: 'Opens, all time', value: sum('allTime'), icon: Eye, color: '#a855f7' },
+    { label: 'Buttons tapped, 30 days', value: sum('taps30'), icon: MousePointerClick, color: '#8b5cf6' },
+    { label: 'People who left details', value: sum('leads'), icon: Users, color: '#22c55e' },
   ]
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-5 animate-fade-in pb-16">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/dashboard/team" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition">
-          <ArrowLeft className="w-4 h-4" />{org.name}
-        </Link>
-        <span className="text-muted-foreground">/</span>
-        <div>
-          <h1 className="font-display text-2xl font-bold">Team Analytics</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Views and leads for every card in your team</p>
+      <div className="rounded-3xl border border-border overflow-hidden">
+        <div className="p-6 sm:p-8" style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.14), transparent 65%)' }}>
+          <Link href="/dashboard/team"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition mb-3">
+            <ArrowLeft className="w-3.5 h-3.5" />{org.name}
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
+              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+              <BarChart3 className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="font-display text-2xl font-bold leading-tight">How your team is doing</h1>
+              <p className="text-muted-foreground text-sm">Who is getting their card in front of people, and who needs a nudge.</p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {stats.map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-card border border-border rounded-2xl p-5">
-            <Icon className="w-5 h-5 mb-2" style={{ color }} />
-            <p className="text-3xl font-black tabular-nums">{value.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+          <div key={label} className="rounded-3xl border border-border bg-card p-5">
+            <div className="w-10 h-10 rounded-2xl grid place-items-center mb-3" style={{ background: color + '18' }}>
+              <Icon className="w-5 h-5" style={{ color }} />
+            </div>
+            <p className="text-3xl font-black tracking-tight tabular-nums" style={{ color }}>{value.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground mt-1">{label}</p>
           </div>
         ))}
       </div>
 
-      {/* Per-member */}
+      {/* A card nobody has opened is a seat being paid for and not used. */}
+      {quiet > 0 && rows.length > 0 && (
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 flex items-start gap-3">
+          <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+          <p className="text-sm">
+            <span className="font-medium">{quiet} {quiet === 1 ? 'card has' : 'cards have'} never been opened.</span>{' '}
+            <span className="text-muted-foreground">
+              You are paying for those seats. Check they have been invited and know how to share their card.
+            </span>
+          </p>
+        </div>
+      )}
+
+      {/* Per member. A list rather than a table, so it reads properly on a
+          phone instead of forcing a sideways scroll. */}
       {rows.length === 0 ? (
-        <div className="bg-card border border-border rounded-2xl p-16 text-center">
+        <div className="rounded-3xl border border-border bg-card p-16 text-center">
           <Users className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">No active team cards yet.</p>
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-2xl overflow-x-auto">
-          <table className="w-full text-sm min-w-[560px]">
-            <thead>
-              <tr className="border-b border-border">
-                {['Team member', 'Last 30d', 'All-time', 'Contacts', ''].map(h => (
-                  <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground">{h}</th>
+        <div className="space-y-2">
+          <p className="text-sm font-semibold px-1">Every card, busiest first</p>
+          {rows.map((r: any) => (
+            <div key={r.id} className="rounded-2xl border border-border bg-card p-4">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm truncate">{r.name || 'Unnamed'}</p>
+                  {r.title && <p className="text-xs text-muted-foreground truncate">{r.title}</p>}
+                </div>
+                {r.slug && (
+                  <a href={`/card/${r.slug}`} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition shrink-0">
+                    <ExternalLink className="w-3.5 h-3.5" />View card
+                  </a>
+                )}
+              </div>
+              <div className="grid grid-cols-4 gap-2 mt-3">
+                {[
+                  { k: 'Last 30 days', v: r.views30, tone: r.views30 > 0 ? '#00d4ff' : undefined },
+                  { k: 'All time', v: r.allTime, tone: undefined },
+                  { k: 'Taps', v: r.taps30, tone: r.taps30 > 0 ? '#8b5cf6' : undefined },
+                  { k: 'Contacts', v: r.leads, tone: r.leads > 0 ? '#22c55e' : undefined },
+                ].map(({ k, v, tone }) => (
+                  <div key={k} className="rounded-xl bg-muted/50 p-2.5 text-center">
+                    <p className="text-lg font-black leading-none tabular-nums"
+                      style={tone ? { color: tone } : { color: 'hsl(var(--muted-foreground))' }}>
+                      {v.toLocaleString()}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{k}</p>
+                  </div>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r: any) => (
-                <tr key={r.id} className="border-b border-border last:border-0">
-                  <td className="px-5 py-3">
-                    <p className="font-semibold">{r.name || 'Unnamed'}</p>
-                    {r.title && <p className="text-xs text-muted-foreground">{r.title}</p>}
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold tabular-nums"
-                      style={r.views30 > 0 ? { background: 'rgba(0,212,255,0.12)', color: '#0891b2' } : { background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
-                      {r.views30.toLocaleString()}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 tabular-nums text-muted-foreground">{r.allTime.toLocaleString()}</td>
-                  <td className="px-5 py-3 tabular-nums">
-                    {r.leads > 0
-                      ? <Link href="/dashboard/team/contacts" className="font-semibold text-primary hover:underline">{r.leads}</Link>
-                      : <span className="text-muted-foreground">0</span>}
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    {r.slug && (
-                      <a href={`/card/${r.slug}`} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition">
-                        <ExternalLink className="w-3.5 h-3.5" />View
-                      </a>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </div>
+              {r.leads > 0 && (
+                <Link href="/dashboard/team/contacts"
+                  className="inline-block mt-3 text-xs font-semibold text-primary hover:underline">
+                  See who they met
+                </Link>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
       <p className="text-xs text-muted-foreground text-center">
-        Views are tracked from when team analytics launched. &ldquo;Last 30 days&rdquo; is a rolling window.
+        Opens are counted from when team analytics launched. Taps are counted from when tap tracking launched.
+        Both 30-day figures are rolling windows.
       </p>
     </div>
   )

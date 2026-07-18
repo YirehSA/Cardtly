@@ -7,8 +7,15 @@ import EmptyState from '@/components/EmptyState'
 import { Search, Users, X, Inbox, CalendarClock } from 'lucide-react'
 
 interface Props {
-  rows: ContactRow[]
+  // `_via` is the team member whose card captured the lead. Present only on
+  // the team view; when it is there the list gains a per-member filter, so an
+  // admin can pull up one person's leads without reading the whole team's.
+  rows: (ContactRow & { _via?: string | null })[]
   ownerName?: string
+  // Rendered above the results when set, e.g. the team export button.
+  headerAction?: React.ReactNode
+  emptyTitle?: string
+  emptyDescription?: string
 }
 
 function daysAgo(n: number): number {
@@ -18,9 +25,17 @@ function daysAgo(n: number): number {
   return d.getTime()
 }
 
-export default function ContactsList({ rows, ownerName }: Props) {
+export default function ContactsList({ rows, ownerName, headerAction, emptyTitle, emptyDescription }: Props) {
   const [query, setQuery] = useState('')
   const [source, setSource] = useState('all')
+  const [member, setMember] = useState('all')
+
+  // Only meaningful on the team view, where a lead belongs to one member.
+  const members = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const r of rows) if (r._via) counts.set(r._via, (counts.get(r._via) || 0) + 1)
+    return [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count)
+  }, [rows])
 
   const stats = useMemo(() => {
     const week = daysAgo(6)
@@ -52,22 +67,26 @@ export default function ContactsList({ rows, ownerName }: Props) {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return rows.filter(r => {
+      if (member !== 'all' && r._via !== member) return false
       if (source !== 'all') {
         const key = r.source === 'contact_form' ? 'card_form' : r.source
         if (key !== source) return false
       }
       if (!q) return true
-      return [r.name, r.email, r.phone, r.company, r.title, r.message]
+      // Searching the member's name too, so "Dwain" finds his leads whether
+      // you use the filter chips or just type it.
+      return [r.name, r.email, r.phone, r.company, r.title, r.message, r._via]
         .some(v => (v || '').toLowerCase().includes(q))
     })
-  }, [rows, query, source])
+  }, [rows, query, source, member])
 
   if (rows.length === 0) {
     return (
       <EmptyState
         icon={Users}
-        title="Nobody has left their details yet"
-        description="When someone fills in the form on your card, books a meeting or answers your questions, they land here with their contact details ready to save."
+        title={emptyTitle || 'Nobody has left their details yet'}
+        description={emptyDescription
+          || 'When someone fills in the form on your card, books a meeting or answers your questions, they land here with their contact details ready to save.'}
         action={{ label: 'Get my QR code to share', href: '/dashboard/qr' }}
         accent="#f59e0b"
       />
@@ -113,6 +132,21 @@ export default function ContactsList({ rows, ownerName }: Props) {
           )}
         </div>
 
+        {members.length > 1 && (
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={() => setMember('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition ${member === 'all' ? 'border-primary bg-primary/5 text-primary' : 'border-border hover:border-foreground/20'}`}>
+              Whole team ({rows.length})
+            </button>
+            {members.map(m => (
+              <button key={m.name} onClick={() => setMember(m.name)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition ${member === m.name ? 'border-primary bg-primary/5 text-primary' : 'border-border hover:border-foreground/20'}`}>
+                {m.name.split(' ·')[0]} ({m.count})
+              </button>
+            ))}
+          </div>
+        )}
+
         {sourceTabs.length > 1 && (
           <div className="flex gap-2 flex-wrap">
             <button onClick={() => setSource('all')}
@@ -137,7 +171,7 @@ export default function ContactsList({ rows, ownerName }: Props) {
           <p className="text-sm text-muted-foreground mb-4">
             Try part of a name, an email address or a company.
           </p>
-          <button onClick={() => { setQuery(''); setSource('all') }}
+          <button onClick={() => { setQuery(''); setSource('all'); setMember('all') }}
             className="text-sm font-semibold px-4 py-2 rounded-xl border border-border hover:bg-muted transition">
             Show everyone
           </button>
@@ -150,11 +184,11 @@ export default function ContactsList({ rows, ownerName }: Props) {
                 ? `${rows.length} ${rows.length === 1 ? 'person' : 'people'}, newest first`
                 : `Showing ${filtered.length} of ${rows.length}`}
             </p>
-            <ExportContactsButton contacts={filtered as any} ownerName={ownerName} />
+            {headerAction ?? <ExportContactsButton contacts={filtered as any} ownerName={ownerName} />}
           </div>
           <div className="space-y-3">
             {filtered.map(contact => (
-              <ContactCard key={contact.id} contact={contact} />
+              <ContactCard key={contact.id} contact={contact} viaLabel={contact._via} />
             ))}
           </div>
         </>
