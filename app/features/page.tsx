@@ -500,7 +500,7 @@ export default function FeaturesPage() {
           positioned over the top of it. The absolute version clipped its upper
           card against the section edge and dropped the lower one on top of the
           tier legend, and both faults moved around with the viewport width. */}
-      <section className="relative overflow-hidden px-6 lg:px-12 xl:px-16 pt-24 pb-16 lg:pt-28 lg:pb-20">
+      <section className="relative overflow-hidden px-6 lg:px-12 xl:px-16 pt-32 pb-16 lg:pt-40 lg:pb-20">
         <div className="blob-drift absolute -top-32 left-[10%] w-[700px] h-[560px] rounded-full blur-[140px] pointer-events-none"
           style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.18) 0%, rgba(0,212,255,0.10) 55%, transparent 72%)' }} />
         <div className="absolute -bottom-48 right-0 w-[560px] h-[560px] rounded-full blur-[130px] pointer-events-none"
@@ -512,7 +512,7 @@ export default function FeaturesPage() {
           {/* Left: the pitch */}
           <div className="text-center lg:text-left">
             <p className="animate-fade-up text-sm font-bold uppercase tracking-widest mb-4" style={{ color: '#7c3aed' }}>Features</p>
-            <h1 className="animate-fade-up font-black tracking-[-0.02em] leading-[0.95] mb-6"
+            <h1 className="animate-fade-up font-black tracking-[-0.02em] leading-[1.06] mb-6"
               style={{ fontSize: 'clamp(2.5rem, 4.4vw, 4.25rem)' }}>
               Everything your<br />card <span style={gradText}>can do.</span>
             </h1>

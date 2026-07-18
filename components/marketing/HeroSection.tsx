@@ -64,7 +64,7 @@ export default function HeroSection() {
   const ry = hovering ? tilt.ry : ambient * 0.6
 
   return (
-    <section className="relative overflow-hidden px-6 lg:px-12 xl:px-16 pt-24 pb-20 lg:pt-28 lg:pb-24">
+    <section className="relative overflow-hidden px-6 lg:px-12 xl:px-16 pt-32 pb-20 lg:pt-40 lg:pb-24">
       {/* Ambient light */}
       <div className="absolute -top-40 left-[8%] w-[760px] h-[760px] rounded-full blur-[150px] pointer-events-none animate-pulse-slow"
         style={{ background: 'radial-gradient(circle, rgba(0,212,255,0.18) 0%, rgba(124,58,237,0.10) 50%, transparent 72%)' }} />
@@ -76,7 +76,7 @@ export default function HeroSection() {
 
         {/* ── Left: the pitch ─────────────────────────────────────────── */}
         <div className="text-center lg:text-left">
-          <h1 className="font-black tracking-[-0.02em] leading-[0.95] mb-6"
+          <h1 className="font-black tracking-[-0.02em] leading-[1.04] mb-6"
             style={{ fontSize: 'clamp(2.5rem, 4.4vw, 4.25rem)' }}>
             More leads.<br />
             More meetings.<br />
