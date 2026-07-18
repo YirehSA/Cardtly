@@ -3,6 +3,9 @@ import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
 import { Wifi, ArrowRight, Check, Smartphone, Zap, Shield, Package } from 'lucide-react'
+import CardSamples, { type CardSample } from '@/components/marketing/CardSamples'
+import { existsSync } from 'fs'
+import { join } from 'path'
 
 export const metadata: Metadata = {
   title: 'NFC Business Cards South Africa — Tap to Share | R150 Once-off',
@@ -10,6 +13,23 @@ export const metadata: Metadata = {
     'Order your NFC business card in South Africa. One tap opens your full digital business card on any modern phone - no app needed. R150 once-off plus R100 shipping, delivered in 5-7 business days nationwide.',
   alternates: { canonical: '/nfc' },
 }
+
+// Real printed cards, front and back. Files live in public/nfc-samples.
+// The section only renders for samples whose images are actually present, so
+// dropping the files in makes it appear and a missing file can never ship as a
+// broken image on the marketing page.
+const CARD_SAMPLES: CardSample[] = [
+  { name: 'André Nel',      role: 'Yireh Business Solutions',
+    front: '/nfc-samples/yireh-front.png',   back: '/nfc-samples/yireh-back.png' },
+  { name: 'Tio Geldenhuys', role: 'Cardtly',
+    front: '/nfc-samples/cardtly-front.png', back: '/nfc-samples/cardtly-back.png' },
+  { name: 'Dwain Atterbury', role: 'Sicon Group',
+    front: '/nfc-samples/sicon-front.png',   back: '/nfc-samples/sicon-back.png' },
+]
+
+const AVAILABLE_SAMPLES = CARD_SAMPLES.filter(s =>
+  [s.front, s.back].every(src => existsSync(join(process.cwd(), 'public', src)))
+)
 
 // Product schema: the NFC card is a physical product with a price,
 // which makes it eligible for product rich results in search.
@@ -223,6 +243,23 @@ export default function NFCMarketingPage() {
           </div>
         </div>
       </section>
+
+      {/* Real printed cards. Front shows the brand, back carries the QR. */}
+      {AVAILABLE_SAMPLES.length > 0 && (
+      <section className="py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-black tracking-tight">
+              Cards we&apos;ve <span style={gradText}>actually printed.</span>
+            </h2>
+            <p className="mt-3" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              Your design, your logo, your colours. Tap any card to see the back.
+            </p>
+          </div>
+          <CardSamples samples={AVAILABLE_SAMPLES} />
+        </div>
+      </section>
+      )}
 
       {/* How it works */}
       <section className="py-24 px-6">
