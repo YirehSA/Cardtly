@@ -1498,14 +1498,19 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
   // Serif typography on warm paper bg. Newspaper-style: massive name, drop
   // capital lead, classical contact list with rules.
   if (design.templateId === 'editorial') {
+    // Editorial prints straight onto the page - no panel, no glass, nothing
+    // between the type and the background. Ink, rules and muted text were all
+    // fixed dark, so choosing a dark background left the masthead and the name
+    // near-invisible. The ink follows the paper.
     const paper = design.customBgColor || '#fafaf9'
-    const ink = '#1c1917'
-    const rule = '#a8a29e'
-    const muted = '#78716c'
+    const darkPaper = !isLightBg(paper)
+    const ink = darkPaper ? '#f5f5f4' : '#1c1917'
+    const rule = darkPaper ? '#57534e' : '#a8a29e'
+    const muted = darkPaper ? '#a8a29e' : '#78716c'
     return (
       <div style={{ ...pageStyle, backgroundColor: paper }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
-        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(28,25,23,0.08)' }}>
+        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: darkPaper ? 'rgba(255,255,255,0.10)' : 'rgba(28,25,23,0.08)' }}>
           <Share2 className="w-4 h-4" style={{ color: ink }} />
         </button>
         <div className="max-w-md mx-auto px-6 py-12">
@@ -1527,7 +1532,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
           <LogoZone {...shared} />
           {/* Bio as a leading paragraph with drop-cap first letter */}
           {card.bio && (
-            <p style={{ fontSize: calcBioSize(15, design), color: getBioColor(design, '#3c2c20'), lineHeight: 1.75, margin: '0 0 28px', fontFamily: 'Georgia, serif', textAlign: 'justify' }}>
+            <p style={{ fontSize: calcBioSize(15, design), color: getBioColor(design, darkPaper ? '#e7e5e4' : '#3c2c20'), lineHeight: 1.75, margin: '0 0 28px', fontFamily: 'Georgia, serif', textAlign: 'justify' }}>
               <span style={{ float: 'left', fontSize: 56, fontFamily: 'Georgia, serif', fontWeight: 900, lineHeight: 0.85, marginRight: 8, marginTop: 6, color: accentHex }}>{card.bio.charAt(0)}</span>
               {card.bio.slice(1)}
             </p>

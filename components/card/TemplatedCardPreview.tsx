@@ -769,10 +769,13 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
 
   // ── 12. EDITORIAL ─────────────────────────────────────────────────────────
   if (design.templateId === 'editorial') {
+    // Mirrors PublicCardView: this template prints straight onto the page, so
+    // the ink has to follow the paper or a dark background hides the type.
     const paper = design.customBgColor || '#fafaf9'
-    const ink = '#1c1917'
-    const rule = '#a8a29e'
-    const muted = '#78716c'
+    const darkPaper = !isLightBg(paper)
+    const ink = darkPaper ? '#f5f5f4' : '#1c1917'
+    const rule = darkPaper ? '#57534e' : '#a8a29e'
+    const muted = darkPaper ? '#a8a29e' : '#78716c'
     return (
       <div style={{ ...pageStyle, backgroundColor: paper, padding: '18px 16px' }}>
         <div style={{ textAlign: 'center', marginBottom: 10 }}>
@@ -791,7 +794,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         </div>
         {/* Both render on the live card; the preview was dropping them. */}
         <LogoZone />
-        {isPro && form.bio && <p style={{ fontSize: calcBioSize(9, design), color: getBioColor(design, '#3c2c20'), lineHeight: 1.7, marginBottom: 10, textAlign: 'center', fontFamily: 'Georgia, serif' }}>{form.bio}</p>}
+        {isPro && form.bio && <p style={{ fontSize: calcBioSize(9, design), color: getBioColor(design, darkPaper ? '#e7e5e4' : '#3c2c20'), lineHeight: 1.7, marginBottom: 10, textAlign: 'center', fontFamily: 'Georgia, serif' }}>{form.bio}</p>}
         <div style={{ borderTop: `1px solid ${rule}`, paddingTop: 8 }}>
           <p style={{ margin: '0 0 5px', fontSize: 6, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.3em' }}>Correspondence</p>
           {form.phone && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: `1px solid ${rule}`, fontFamily: 'Georgia, serif' }}><span style={{ fontSize: 7, color: muted, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Tel</span><span style={{ fontSize: getBodyFontSize(design) - 5, color: ink }}>{form.phone}</span></div>}
