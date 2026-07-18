@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect, notFound } from 'next/navigation'
 import TeamCardEditor from '@/components/team/TeamCardEditor'
+import { canManageDepartment } from '@/lib/department-perms'
+import { resolveLocks } from '@/lib/team-locks'
 
 export const metadata = { title: 'Edit Team Card' }
 
@@ -35,16 +37,45 @@ export default async function TeamCardPage({ params }: { params: Promise<{ id: s
 
   if (!org) notFound()
 
-  // Two valid editor identities:
+  // Three valid editor identities:
   //   admin   - the org's admin_user_id. Can edit everything.
-  //   member  - the team card's claimed user_id (their own card).
-  //             Personal fields editable, branded fields locked.
+  //   head    - the head of this card's department. Also edits everything,
+  //             because they are the one who sets the locks for this team.
+  //   member  - the team card's claimed user_id (their own card). Edits
+  //             everything the org and department have not locked.
   // Anyone else gets bounced to the dashboard.
+  //
+  // The department head case used to be missing here while /api/team/card/save
+  // already granted it, so a head could save changes they were never allowed to
+  // open the editor to make.
   const isOrgAdmin = org.admin_user_id === user.id
+  const isDeptHead = !isOrgAdmin && card.department_id
+    ? await canManageDepartment(admin, user.id, card.department_id)
+    : false
   const isCardOwner = (card as any).user_id === user.id
-  if (!isOrgAdmin && !isCardOwner) redirect('/dashboard')
+  if (!isOrgAdmin && !isDeptHead && !isCardOwner) redirect('/dashboard')
 
-  const role: 'admin' | 'member' = isOrgAdmin ? 'admin' : 'member'
+  const role: 'admin' | 'member' = (isOrgAdmin || isDeptHead) ? 'admin' : 'member'
+
+  // The locks the member is actually working under. Only they are constrained,
+  // so only they need them resolved. Reading these has to be tolerant: the
+  // locked_fields columns arrive with a hand-applied migration, and a missing
+  // column must read as "nothing locked" rather than locking someone out of
+  // their own card.
+  let lockedGroups: string[] = []
+  if (role === 'member') {
+    const readLocks = async (table: string, rowId: string | null) => {
+      if (!rowId) return []
+      const { data, error } = await admin.from(table).select('locked_fields').eq('id', rowId).maybeSingle()
+      if (error) return []
+      return (data as any)?.locked_fields ?? []
+    }
+    const [orgLocks, deptLocks] = await Promise.all([
+      readLocks('organizations', card.organization_id),
+      readLocks('departments', card.department_id),
+    ])
+    lockedGroups = resolveLocks(orgLocks, deptLocks)
+  }
 
   return (
     <TeamCardEditor
@@ -53,6 +84,7 @@ export default async function TeamCardPage({ params }: { params: Promise<{ id: s
       userId={user.id}
       role={role}
       orgBrand={(org as any).brand || {}}
+      lockedGroups={lockedGroups}
     />
   )
 }
