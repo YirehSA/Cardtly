@@ -57,6 +57,51 @@ export function isBillablePaystackSub(sub: any): boolean {
   return String(sub.plan_id || '').startsWith('paystack')
 }
 
+const PER_PAGE = 100
+// 100 per page, so this is 5 000 subscriptions. Reaching it means something is
+// wrong; we fail loudly rather than return a truncated list, because in this
+// file a short list reads as "nothing to cancel".
+const MAX_PAGES = 50
+
+function toSub(s: any): PaystackSub {
+  return {
+    subscription_code: s.subscription_code,
+    status: s.status,
+    amount: s.amount,
+    email: s.customer?.email,
+    next_payment_date: s.next_payment_date ?? null,
+  }
+}
+
+// Walks every page of /subscription.
+//
+// This used to be a single ?perPage=100 with no paging, which silently capped
+// the answer at the first 100 subscriptions. Everything here treats a missing
+// subscription as "nothing to cancel", so past 100 subscribers that cap would
+// have quietly reintroduced the exact bug this file exists to prevent: a
+// cancellation reporting success while the customer kept being billed.
+async function fetchSubscriptionPages(key: string, extraQuery = ''): Promise<{ ok: boolean; rows: any[]; error?: string }> {
+  const rows: any[] = []
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const res = await fetch(`${PAYSTACK_API}/subscription?perPage=${PER_PAGE}&page=${page}${extraQuery}`, {
+      headers: { Authorization: `Bearer ${key}` },
+    })
+    const out = await res.json()
+    if (!res.ok || !out?.status) {
+      return { ok: false, rows, error: out?.message || `Paystack list failed (${res.status})` }
+    }
+    const batch: any[] = out.data || []
+    rows.push(...batch)
+
+    const pageCount = Number(out?.meta?.pageCount) || 1
+    if (batch.length === 0 || page >= pageCount) return { ok: true, rows }
+    if (page === MAX_PAGES) {
+      return { ok: false, rows, error: `More than ${MAX_PAGES * PER_PAGE} subscriptions to page through` }
+    }
+  }
+  return { ok: true, rows }
+}
+
 // Every active subscription on the account, with its real amount.
 //
 // The amount matters: a Paystack subscription locks in the plan price at
@@ -67,19 +112,9 @@ export async function listActivePaystackSubs(): Promise<{ ok: boolean; subs: Pay
   const key = secret()
   if (!key) return { ok: false, subs: [], error: 'PAYSTACK_SECRET_KEY is not configured' }
   try {
-    const res = await fetch(`${PAYSTACK_API}/subscription?perPage=100`, { headers: { Authorization: `Bearer ${key}` } })
-    const out = await res.json()
-    if (!res.ok || !out?.status) return { ok: false, subs: [], error: out?.message || `Paystack list failed (${res.status})` }
-    const subs: PaystackSub[] = (out.data || [])
-      .filter((s: any) => s?.status === 'active')
-      .map((s: any) => ({
-        subscription_code: s.subscription_code,
-        status: s.status,
-        amount: s.amount,
-        email: s.customer?.email,
-        next_payment_date: s.next_payment_date ?? null,
-      }))
-    return { ok: true, subs }
+    const all = await fetchSubscriptionPages(key)
+    if (!all.ok) return { ok: false, subs: [], error: all.error }
+    return { ok: true, subs: all.rows.filter((s: any) => s?.status === 'active').map(toSub) }
   } catch (e: any) {
     return { ok: false, subs: [], error: e?.message || 'Could not reach Paystack' }
   }
@@ -87,29 +122,40 @@ export async function listActivePaystackSubs(): Promise<{ ok: boolean; subs: Pay
 
 // Every active subscription Paystack holds for an email address. This is the
 // authority, because our own records cannot be trusted to have the code.
+//
+// Resolves the customer first and asks Paystack for that customer's
+// subscriptions, rather than listing everyone's and filtering by email here.
+// It is one small request instead of a full scan, and it cannot be defeated by
+// the subscriber count growing.
 export async function findActivePaystackSubs(email: string): Promise<{ ok: boolean; subs: PaystackSub[]; error?: string }> {
   const key = secret()
   if (!key) return { ok: false, subs: [], error: 'PAYSTACK_SECRET_KEY is not configured' }
   if (!email) return { ok: true, subs: [] }
 
   try {
-    const res = await fetch(`${PAYSTACK_API}/subscription?perPage=100`, {
+    const lookup = await fetch(`${PAYSTACK_API}/customer/${encodeURIComponent(email.trim())}`, {
       headers: { Authorization: `Bearer ${key}` },
     })
-    const out = await res.json()
-    if (!res.ok || !out?.status) {
-      return { ok: false, subs: [], error: out?.message || `Paystack list failed (${res.status})` }
+    // No such customer is a real answer: they have never paid us, so there is
+    // nothing to cancel. Any other failure is NOT an answer and must say so,
+    // or the caller will read it as "no subscription" and delete regardless.
+    if (lookup.status === 404) return { ok: true, subs: [] }
+    const found = await lookup.json()
+    if (!lookup.ok || !found?.status) {
+      return { ok: false, subs: [], error: found?.message || `Paystack customer lookup failed (${lookup.status})` }
     }
+    const customerId = found?.data?.id
+    if (!customerId) return { ok: false, subs: [], error: 'Paystack returned no customer id' }
+
+    const all = await fetchSubscriptionPages(key, `&customer=${encodeURIComponent(String(customerId))}`)
+    if (!all.ok) return { ok: false, subs: [], error: all.error }
+
+    // Still match on email: ?customer= is the filter, but this is the field the
+    // caller is actually reasoning about, and it costs nothing to confirm.
     const want = email.trim().toLowerCase()
-    const subs: PaystackSub[] = (out.data || [])
+    const subs = all.rows
       .filter((s: any) => s?.status === 'active' && String(s?.customer?.email || '').toLowerCase() === want)
-      .map((s: any) => ({
-        subscription_code: s.subscription_code,
-        status: s.status,
-        amount: s.amount,
-        email: s.customer?.email,
-        next_payment_date: s.next_payment_date ?? null,
-      }))
+      .map(toSub)
     return { ok: true, subs }
   } catch (e: any) {
     return { ok: false, subs: [], error: e?.message || 'Could not reach Paystack' }
