@@ -119,18 +119,25 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
   }
 
   function SaveBtn({ label = 'Save Contact', outline = false }: { label?: string; outline?: boolean }) {
+    // The fill is spread in as either `background` or `backgroundColor`, never
+    // both. Listing `background: undefined` alongside `backgroundColor` looks
+    // harmless but is not: React writes an undefined style as the empty string,
+    // and clearing the `background` shorthand also clears the background-color
+    // set just above it. That left this button fully transparent on every
+    // non-gradient card, so the button colour picker appeared to do nothing.
+    const useGradient = !outline && design.cardStyle === 'gradient'
+    const fill: React.CSSProperties = useGradient
+      ? { background: `linear-gradient(135deg, ${buttonBg}, ${buttonBg}bb)` }
+      : { backgroundColor: outline ? 'transparent' : buttonBg }
     return (
       <div style={{
         marginTop: 12, padding: '10px 0', borderRadius: 12, textAlign: 'center',
         fontSize: getButtonFontSize(design) - 2, fontWeight: 700, fontFamily: font.heading,
         color: outline ? accentHex : buttonText,
-        backgroundColor: outline ? 'transparent' : buttonBg,
+        ...fill,
         border: outline
           ? `2px solid ${accentHex}`
           : (buttonBorder ? `2px solid ${buttonBorder}` : 'none'),
-        background: !outline && design.cardStyle === 'gradient'
-          ? `linear-gradient(135deg, ${buttonBg}, ${buttonBg}bb)`
-          : undefined,
         boxShadow: design.cardStyle === 'glass' ? `0 0 12px ${accentHex}44` : undefined,
       }}>
         {label}
@@ -682,13 +689,13 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         {/* Black top band */}
         <div style={{ backgroundColor: black, padding: '14px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
           {form.company_logo_url ? (
-            <div style={{ width: 28, height: 28, backgroundColor: '#fff', borderRadius: 5, padding: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: calcLogoHeight(28, design), height: calcLogoHeight(28, design), backgroundColor: '#fff', borderRadius: 5, padding: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <img src={form.company_logo_url} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
             </div>
           ) : (
-            <div style={{ width: 28, height: 28, backgroundColor: accentHex, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 800, color: '#fff' }}>{(form.company || form.name || 'C')[0].toUpperCase()}</div>
+            <div style={{ width: calcLogoHeight(28, design), height: calcLogoHeight(28, design), backgroundColor: accentHex, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 800, color: '#fff' }}>{(form.company || form.name || 'C')[0].toUpperCase()}</div>
           )}
-          {form.company && <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1, wordBreak: 'break-word' }}>{form.company}</p>}
+          {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(9, design), fontWeight: 800, color: getCompanyColor(design, '#fff'), textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1, wordBreak: 'break-word' }}>{form.company}</p>}
         </div>
         {/* Photo on black */}
         <div style={{ backgroundColor: black, padding: '4px 12px 20px', display: 'flex', justifyContent: 'center' }}>
@@ -704,6 +711,8 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         <div style={{ padding: '0 14px 12px', textAlign: 'center', backgroundColor: lightArea }}>
           <h2 style={{ margin: '0 0 4px', fontSize: calcNameSize(18, design), fontWeight: 900, color: getNameColor(design, '#0a0a0a'), textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.05, fontFamily: font.heading }}>{form.name || 'Your Name'}</h2>
           {isPro && form.title && <p style={{ margin: 0, fontSize: calcTitleSize(8, design), fontWeight: 700, color: getTitleColor(design, '#0a0a0a'), textTransform: 'uppercase', letterSpacing: '0.18em' }}>{form.title}</p>}
+          {/* The live card shows the bio here. The preview used to drop it. */}
+          {isPro && form.bio && <p style={{ margin: '6px 0 0', fontSize: calcBioSize(9, design), color: getBioColor(design, '#525252'), lineHeight: 1.6, fontStyle: 'italic' }}>{form.bio}</p>}
         </div>
         {/* Accent diagonal section */}
         <div style={{ position: 'relative', backgroundColor: lightArea, padding: '10px 12px 16px', overflow: 'hidden' }}>
@@ -714,6 +723,11 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
             {form.website && <Mini color="#374151"><Globe style={{ width: 11, height: 11 }} /></Mini>}
             {isPro && form.whatsapp && <Mini color="#22c55e"><MessageCircle style={{ width: 11, height: 11 }} /></Mini>}
           </div>
+        </div>
+        {/* The live card ends with the Save Contact button. Without it here the
+            button colour and size controls had nothing to act on. */}
+        <div style={{ padding: '0 12px 14px', backgroundColor: lightArea }}>
+          <SaveBtn />
         </div>
       </div>
     )
@@ -736,11 +750,16 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
             <h2 style={{ margin: '0 0 3px', fontSize: calcNameSize(15, design), fontWeight: 800, color: getNameColor(design, '#0f172a'), textAlign: 'center', fontFamily: font.heading }}>{form.name || 'Your Name'}</h2>
             {isPro && form.title && <p style={{ margin: 0, fontSize: calcTitleSize(9, design), fontWeight: 600, color: getTitleColor(design, accentHex), textAlign: 'center' }}>{form.title}</p>}
             {form.company && <p style={{ margin: '3px 0 8px', fontSize: calcCompanySize(8, design), color: getCompanyColor(design, '#64748b'), textAlign: 'center' }}>{form.company}</p>}
+            {/* Logo and bio both render on the live card. The preview showed
+                neither, so a user's logo was invisible until they published. */}
+            <LogoZone />
+            {isPro && form.bio && <p style={{ fontSize: calcBioSize(9, design), color: getBioColor(design, '#475569'), lineHeight: 1.6, marginBottom: 8, textAlign: 'center' }}>{form.bio}</p>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {form.phone && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Phone style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: getBodyFontSize(design) - 6, color: '#0f172a' }}>{form.phone}</span></div>}
               {form.email && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Mail style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: getBodyFontSize(design) - 6, color: '#0f172a' }}>{form.email}</span></div>}
-              {form.website && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Globe style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: 8, color: '#0f172a' }}>{form.website.replace(/^https?:\/\//, '')}</span></div>}
+              {form.website && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Globe style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: getBodyFontSize(design) - 6, color: '#0f172a' }}>{form.website.replace(/^https?:\/\//, '')}</span></div>}
             </div>
+            <SaveBtn />
           </div>
         </div>
       </div>
@@ -769,12 +788,16 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
             <Avatar base={64} />
           </div>
         </div>
+        {/* Both render on the live card; the preview was dropping them. */}
+        <LogoZone />
+        {isPro && form.bio && <p style={{ fontSize: calcBioSize(9, design), color: getBioColor(design, '#3c2c20'), lineHeight: 1.7, marginBottom: 10, textAlign: 'center', fontFamily: 'Georgia, serif' }}>{form.bio}</p>}
         <div style={{ borderTop: `1px solid ${rule}`, paddingTop: 8 }}>
           <p style={{ margin: '0 0 5px', fontSize: 6, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.3em' }}>Correspondence</p>
           {form.phone && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: `1px solid ${rule}`, fontFamily: 'Georgia, serif' }}><span style={{ fontSize: 7, color: muted, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Tel</span><span style={{ fontSize: getBodyFontSize(design) - 5, color: ink }}>{form.phone}</span></div>}
           {form.email && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: `1px solid ${rule}`, fontFamily: 'Georgia, serif' }}><span style={{ fontSize: 7, color: muted, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Email</span><span style={{ fontSize: getBodyFontSize(design) - 5, color: ink }}>{form.email}</span></div>}
-          {form.website && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: `1px solid ${rule}`, fontFamily: 'Georgia, serif' }}><span style={{ fontSize: 7, color: muted, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Web</span><span style={{ fontSize: 9, color: ink }}>{form.website.replace(/^https?:\/\//, '')}</span></div>}
+          {form.website && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: `1px solid ${rule}`, fontFamily: 'Georgia, serif' }}><span style={{ fontSize: 7, color: muted, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Web</span><span style={{ fontSize: getBodyFontSize(design) - 5, color: ink }}>{form.website.replace(/^https?:\/\//, '')}</span></div>}
         </div>
+        <SaveBtn />
       </div>
     )
   }

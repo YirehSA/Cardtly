@@ -1270,13 +1270,13 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
             <div style={{ position: 'relative', padding: '50px 20px 0', zIndex: 2 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                 {card.company_logo_url ? (
-                  <img src={card.company_logo_url} style={{ height: 60, maxWidth: 140, objectFit: 'contain', flexShrink: 0 }} />
+                  <img src={card.company_logo_url} style={{ height: calcLogoHeight(60, design), maxWidth: 140, objectFit: 'contain', flexShrink: 0 }} />
                 ) : (
                   <div style={{ width: 76, height: 76, border: '2px dashed rgba(255,255,255,0.3)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 600, textAlign: 'center', lineHeight: 1.2 }}>
                     Your<br />Logo
                   </div>
                 )}
-                {card.company && <p style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.04em', wordBreak: 'break-word', flex: 1, lineHeight: 1.1 }}>{card.company}</p>}
+                {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(22, design), fontWeight: 800, color: getCompanyColor(design, '#ffffff'), textTransform: 'uppercase', letterSpacing: '0.04em', wordBreak: 'break-word', flex: 1, lineHeight: 1.1 }}>{card.company}</p>}
               </div>
             </div>
           </div>
@@ -1414,7 +1414,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
           {/* Bio sits BELOW the action arc as per the reference image */}
           {card.bio && (
             <div style={{ backgroundColor: lightArea, padding: '24px 24px 8px', textAlign: 'center' }}>
-              <p style={{ margin: 0, fontSize: 14, color: '#525252', lineHeight: 1.7, fontStyle: 'italic' }}>{card.bio}</p>
+              <p style={{ margin: 0, fontSize: calcBioSize(14, design), color: getBioColor(design, '#525252'), lineHeight: 1.7, fontStyle: 'italic' }}>{card.bio}</p>
             </div>
           )}
           {/* Footer with custom links / save contact / share / contact form */}
