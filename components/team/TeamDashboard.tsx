@@ -73,8 +73,10 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   )
 
   // Create org form
-  const [orgName, setOrgName] = useState('')
-  const [seatCount, setSeatCount] = useState(5)
+  // Prefilled from an org that was started but never paid for, so resuming
+  // shows what they already chose instead of an empty form.
+  const [orgName, setOrgName] = useState(initialOrg?.name || '')
+  const [seatCount, setSeatCount] = useState(Number(initialOrg?.max_seats) || 5)
 
   // Add card form
   const [showAddCard, setShowAddCard] = useState(false)
@@ -304,7 +306,21 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   const seatsTotal = Number(org?.max_seats) || 0
   const seatsAvailable = seatsTotal - seatsUsed
 
-  // ── No org yet — setup screen ────────────────────────────────────────────────
+  // Uses the same rule as the per-card badge, so the summary and the list can
+  // never disagree.
+  const activation = {
+    claimed: cards.filter(c => getInviteStatus(c) === 'claimed').length,
+    invited: cards.filter(c => getInviteStatus(c) === 'invited').length,
+    notInvited: cards.filter(c => getInviteStatus(c) === 'not_invited').length,
+  }
+
+  // ── No org yet, or one started and never paid for ───────────────────────────
+  // These are different situations and used to look identical: someone who
+  // abandoned checkout was shown a blank "set up your team" form, with no sign
+  // their team already existed and no hint that submitting it again just made
+  // another one.
+  const resuming = !!org && !org.business_plan_active
+
   if (!org || !org.business_plan_active) {
     return (
       <div className="max-w-2xl mx-auto space-y-8">
@@ -316,6 +332,19 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
             Give your whole team a professional digital business card.
           </p>
         </div>
+
+        {resuming && (
+          <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 flex items-start gap-3">
+            <CreditCard className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium text-sm">You started setting up {org?.name}, but the payment did not go through</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Nothing was charged. Check the details below and finish it, and your team goes live straight away.
+                You will not end up with two teams.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Value prop */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -334,7 +363,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
         {/* Setup form */}
         <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
-          <h2 className="font-semibold text-lg">Set up your team</h2>
+          <h2 className="font-semibold text-lg">{resuming ? 'Finish setting up your team' : 'Set up your team'}</h2>
 
           <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Company name</label>
@@ -386,7 +415,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
             className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)', boxShadow: '0 4px 20px rgba(124,58,237,0.35)' }}>
             {loading
               ? <><Loader2 className="w-4 h-4 animate-spin" />Redirecting to payment...</>
-              : <><CreditCard className="w-4 h-4" />Pay R{seatCount * SEAT_PRICE}/month — Start team plan</>}
+              : <><CreditCard className="w-4 h-4" />Pay R{seatCount * SEAT_PRICE}/month — {resuming ? 'Finish setup' : 'Start team plan'}</>}
           </button>
         </div>
       </div>
@@ -398,49 +427,73 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
     <div className="max-w-5xl mx-auto space-y-8">
 
       {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold flex items-center gap-2">
-            <Building2 className="w-6 h-6" />{org.name}
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">Team Cards · Admin Dashboard</p>
-        </div>
+      <div className="rounded-3xl border border-border overflow-hidden">
+        <div className="p-5 sm:p-6" style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.12), transparent 65%)' }}>
+          <div className="flex items-start justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
+                style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                <Building2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h1 className="font-display text-2xl font-bold leading-tight">{org.name}</h1>
+                <p className="text-muted-foreground text-sm">
+                  {seatsUsed} of {seatsTotal} cards used
+                  {seatsAvailable > 0
+                    ? ` · ${seatsAvailable} still free`
+                    : seatsTotal > 0 ? ' · all seats taken' : ''}
+                </p>
+              </div>
+            </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Quick links */}
-          <Link href="/dashboard/team/brand"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
-            <Sparkles className="w-4 h-4" />Brand
-          </Link>
-          <Link href="/dashboard/team/analytics"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
-            <BarChart2 className="w-4 h-4" />Analytics
-          </Link>
-          <Link href="/dashboard/team/contacts"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
-            <Mail className="w-4 h-4" />Contacts
-          </Link>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Quick links */}
+              <Link href="/dashboard/team/brand"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
+                <Sparkles className="w-4 h-4" />Brand
+              </Link>
+              <Link href="/dashboard/team/analytics"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
+                <BarChart2 className="w-4 h-4" />Analytics
+              </Link>
+              <Link href="/dashboard/team/contacts"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
+                <Mail className="w-4 h-4" />Contacts
+              </Link>
 
-          {/* Seat usage */}
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm">
-            <Users className="w-4 h-4 text-muted-foreground" />
-            <span className="font-semibold">{seatsUsed}</span>
-            <span className="text-muted-foreground">/ {seatsTotal} cards</span>
+              {/* Add seats */}
+              <button onClick={() => setShowAddSeats(p => !p)}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
+                <Plus className="w-4 h-4" />Add seats
+                {showAddSeats ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+
+              {/* Add card */}
+              {(seatsAvailable > 0 || seatsTotal === 0) && (
+                <button onClick={() => setShowAddCard(p => !p)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90" style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                  <Plus className="w-4 h-4" />Add card
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Add seats */}
-          <button onClick={() => setShowAddSeats(p => !p)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
-            <Plus className="w-4 h-4" />Add seats
-            {showAddSeats ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          </button>
-
-          {/* Add card */}
-          {(seatsAvailable > 0 || seatsTotal === 0) && (
-            <button onClick={() => setShowAddCard(p => !p)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90" style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-              <Plus className="w-4 h-4" />Add card
-            </button>
+          {/* Whether the team is actually using the cards. A card nobody has
+              opened is a seat being paid for and not used, and that was only
+              visible by reading down the list one card at a time. */}
+          {cards.length > 0 && (
+            <div className="grid grid-cols-3 gap-2 mt-5">
+              {[
+                { label: 'Using their card', value: activation.claimed, tone: '#22c55e' },
+                { label: 'Invited, not opened', value: activation.invited, tone: '#f59e0b' },
+                { label: 'Not invited yet', value: activation.notInvited, tone: '#94a3b8' },
+              ].map(({ label, value, tone }) => (
+                <div key={label} className="rounded-2xl bg-card/60 backdrop-blur border border-border p-3">
+                  <p className="text-xl font-black leading-none" style={{ color: tone }}>{value}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">{label}</p>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>

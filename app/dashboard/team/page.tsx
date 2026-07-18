@@ -9,11 +9,22 @@ export default async function TeamPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // Not .single(). Starting team setup creates the org row before payment, so
+  // abandoning checkout leaves an inactive org behind - and the old code then
+  // showed the setup screen again, which created a second row. From two rows
+  // onward .single() returns nothing at all, so the admin was locked out of
+  // their own team permanently, including after they had paid.
+  //
+  // Take the live org if there is one, otherwise the oldest attempt, so the
+  // page always resolves to something.
   const { data: org } = await supabase
     .from('organizations')
     .select('*')
     .eq('admin_user_id', user.id)
-    .single()
+    .order('business_plan_active', { ascending: false })
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
 
   const { data: teamCards } = org
     ? await supabase

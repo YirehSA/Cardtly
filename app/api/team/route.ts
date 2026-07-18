@@ -70,13 +70,40 @@ export async function POST(request: Request) {
     const planCode = getPlanCode(seat_count)
     if (!planCode) return NextResponse.json({ error: `Teams are 2 to ${MAX_SELF_SERVE_SEATS} seats. For more than ${MAX_SELF_SERVE_SEATS}, talk to us about Enterprise.` }, { status: 400 })
 
-    // Create org. Note: organizations has no slug column (nothing reads an
-    // org slug), and inserting one used to fail the whole create.
-    const { data: org, error: orgError } = await admin
+    // The org row is created before payment, so every abandoned checkout used
+    // to leave one behind and every retry inserted another. Two rows was
+    // enough to lock the admin out of their own team entirely, so reuse the
+    // attempt they already started instead of stacking up new ones.
+    const { data: existing } = await admin
       .from('organizations')
-      .insert({ admin_user_id: user.id, name: org_name, max_seats: seat_count, business_plan_active: false })
-      .select()
-      .single()
+      .select('id, business_plan_active')
+      .eq('admin_user_id', user.id)
+      .order('business_plan_active', { ascending: false })
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    if (existing?.business_plan_active) {
+      return NextResponse.json(
+        { error: 'You already have a team. Use Add seats to make it bigger, rather than starting a second one.' },
+        { status: 400 }
+      )
+    }
+
+    // Note: organizations has no slug column (nothing reads an org slug), and
+    // inserting one used to fail the whole create.
+    const { data: org, error: orgError } = existing
+      ? await admin
+          .from('organizations')
+          .update({ name: org_name, max_seats: seat_count, updated_at: new Date().toISOString() })
+          .eq('id', existing.id)
+          .select()
+          .single()
+      : await admin
+          .from('organizations')
+          .insert({ admin_user_id: user.id, name: org_name, max_seats: seat_count, business_plan_active: false })
+          .select()
+          .single()
 
     if (orgError) return NextResponse.json({ error: orgError.message }, { status: 500 })
 
