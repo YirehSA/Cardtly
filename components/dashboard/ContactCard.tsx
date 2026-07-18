@@ -29,6 +29,23 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+// How each contact reached you, in plain words. Every source gets a badge:
+// the old code only labelled the rare ones, so the two most common - the card
+// form and its legacy name - showed nothing at all, which is most of everyone's
+// list. 'contact_form' is what the card form used to write before it was
+// renamed, so it maps to the same thing rather than looking like a lost source.
+export const SOURCE_META: Record<string, { label: string; tone: string }> = {
+  card_form:     { label: 'Filled in your form',   tone: 'bg-emerald-500/15 text-emerald-400' },
+  contact_form:  { label: 'Filled in your form',   tone: 'bg-emerald-500/15 text-emerald-400' },
+  questionnaire: { label: 'Answered your questions', tone: 'bg-sky-500/15 text-sky-400' },
+  booking:       { label: 'Asked for a meeting',   tone: 'bg-amber-500/15 text-amber-500' },
+  scanned:       { label: 'You scanned their card', tone: 'bg-violet-500/15 text-violet-400' },
+}
+
+export function sourceMeta(source?: string | null) {
+  return (source && SOURCE_META[source]) || null
+}
+
 const FIELDS: { key: keyof ContactRow; label: string; placeholder: string; type?: string }[] = [
   { key: 'name',    label: 'Name',    placeholder: 'Full name' },
   { key: 'title',   label: 'Title',   placeholder: 'Job title' },
@@ -161,21 +178,16 @@ export default function ContactCard({ contact, viaLabel }: { contact: ContactRow
               via {viaLabel}
             </span>
           )}
-          {contact.source === 'booking' && (
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-500 flex items-center gap-1">
-              <Calendar className="w-3 h-3" />Meeting request
-            </span>
-          )}
-          {contact.source === 'scanned' && (
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-400 flex items-center gap-1">
-              <ScanLine className="w-3 h-3" />Scanned
-            </span>
-          )}
-          {contact.source === 'questionnaire' && (
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-sky-500/15 text-sky-400">
-              Questionnaire
-            </span>
-          )}
+          {(() => {
+            const meta = sourceMeta(contact.source)
+            if (!meta) return null
+            const Icon = contact.source === 'booking' ? Calendar : contact.source === 'scanned' ? ScanLine : null
+            return (
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 ${meta.tone}`}>
+                {Icon && <Icon className="w-3 h-3" />}{meta.label}
+              </span>
+            )
+          })()}
           {contact.email && (
             <a href={`mailto:${contact.email}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition">
               <Mail className="w-3.5 h-3.5 flex-shrink-0" />{contact.email}
