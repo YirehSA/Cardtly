@@ -496,77 +496,70 @@ export default function FeaturesPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       <Navbar />
 
-      {/* Hero. Was a centred max-w-3xl column - eyebrow, headline, paragraph,
-          legend, buttons - stacked down the middle of a 1440 screen with the
-          sides empty. Same arrangement, same problem as the homepage hero. */}
+      {/* Hero. A real two-column grid, not a headline with cards absolutely
+          positioned over the top of it. The absolute version clipped its upper
+          card against the section edge and dropped the lower one on top of the
+          tier legend, and both faults moved around with the viewport width. */}
       <section className="relative overflow-hidden px-6 lg:px-12 xl:px-16 pt-24 pb-16 lg:pt-28 lg:pb-20">
-        <div className="blob-drift absolute -top-32 left-[10%] w-[760px] h-[620px] rounded-full blur-[140px] pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.20) 0%, rgba(0,212,255,0.10) 55%, transparent 72%)' }} />
-        <div className="absolute -bottom-48 right-0 w-[600px] h-[600px] rounded-full blur-[130px] pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.16) 0%, transparent 72%)' }} />
+        <div className="blob-drift absolute -top-32 left-[10%] w-[700px] h-[560px] rounded-full blur-[140px] pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.18) 0%, rgba(0,212,255,0.10) 55%, transparent 72%)' }} />
+        <div className="absolute -bottom-48 right-0 w-[560px] h-[560px] rounded-full blur-[130px] pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.14) 0%, transparent 72%)' }} />
 
-        <div className="relative mx-auto" style={{ maxWidth: 1600, zIndex: 2 }}>
-          <div className="relative">
-            {/* Two real printed cards, composed into the headline block. */}
-            <div className="hidden lg:block absolute pointer-events-none select-none"
-              style={{ right: 0, top: -56, width: 620, height: 360, zIndex: 1 }}>
+        <div className="relative mx-auto grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-12 xl:gap-16 items-center"
+          style={{ maxWidth: 1500, zIndex: 2 }}>
+
+          {/* Left: the pitch */}
+          <div className="text-center lg:text-left">
+            <p className="animate-fade-up text-sm font-bold uppercase tracking-widest mb-4" style={{ color: '#7c3aed' }}>Features</p>
+            <h1 className="animate-fade-up font-black tracking-[-0.02em] leading-[0.95] mb-6"
+              style={{ fontSize: 'clamp(2.5rem, 4.4vw, 4.25rem)' }}>
+              Everything your<br />card <span style={gradText}>can do.</span>
+            </h1>
+            <p className="animate-fade-up-delayed text-lg xl:text-xl leading-relaxed max-w-xl mx-auto lg:mx-0 mb-8"
+              style={{ color: 'rgba(255,255,255,0.62)' }}>
+              One card that shares in a tap, captures the lead, follows up for you and tells you what is working -
+              for one person, or for a company of forty with the branding locked down.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8">
+              <Link href="/signup"
+                className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:scale-[1.03]"
+                style={{ background: grad, boxShadow: '0 10px 44px rgba(124,58,237,0.5)' }}>
+                Start your 60-day trial
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <Link href="/pricing"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-medium transition hover:bg-white/10"
+                style={{ border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.82)' }}>
+                See pricing
+              </Link>
+            </div>
+            {/* The legend lives with the copy now, so no card can land on it. */}
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-sm"
+              style={{ color: 'rgba(255,255,255,0.5)' }}>
+              <span className="flex items-center gap-2"><TierPill tier="Included" /> in every card</span>
+              <span className="flex items-center gap-2"><TierPill tier="Add-on" /> optional extra</span>
+              <span className="flex items-center gap-2"><TierPill tier="Team" /> on the Teams plan</span>
+            </div>
+          </div>
+
+          {/* Right: two real printed cards, inside their own cell */}
+          <div className="hidden lg:flex justify-center">
+            <div className="relative" style={{ width: 470, height: 330 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/nfc-samples/cardtly-front.jpg"
                 alt="A printed Cardtly NFC business card"
                 width={1200} height={767}
-                className="absolute rounded-3xl"
-                style={{ width: 320, right: 262, top: 0, transform: 'rotateZ(-13deg)',
-                  border: '1px solid rgba(255,255,255,0.16)', boxShadow: '0 34px 80px rgba(0,0,0,0.8)' }} />
+                className="absolute rounded-2xl"
+                style={{ width: 270, left: 0, top: 12, transform: 'rotateZ(-11deg)',
+                  border: '1px solid rgba(255,255,255,0.16)', boxShadow: '0 30px 70px rgba(0,0,0,0.8)' }} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/nfc-samples/sicon-front.jpg"
                 alt="A printed Cardtly NFC business card with full-bleed custom artwork"
                 width={1200} height={767}
-                className="absolute rounded-3xl"
-                style={{ width: 396, right: 8, top: 74, transform: 'rotateZ(7deg)',
-                  border: '1px solid rgba(255,255,255,0.18)', boxShadow: '0 40px 90px rgba(0,0,0,0.85)' }} />
-            </div>
-
-            <p className="animate-fade-up text-sm font-bold uppercase tracking-widest mb-5" style={{ color: '#7c3aed' }}>Features</p>
-            <h1 className="animate-fade-up relative font-black tracking-[-0.03em] leading-[0.86] lg:max-w-[56%]"
-              style={{ fontSize: 'clamp(3rem, 7.2vw, 6.75rem)', zIndex: 3 }}>
-              Everything your<br />card <span style={gradText}>can do.</span>
-            </h1>
-          </div>
-
-          <div className="relative grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] gap-10 xl:gap-16 items-start mt-8 lg:mt-10"
-            style={{ zIndex: 3 }}>
-            <div>
-              <p className="animate-fade-up-delayed text-lg xl:text-xl leading-relaxed max-w-2xl mb-8"
-                style={{ color: 'rgba(255,255,255,0.6)' }}>
-                One card that shares in a tap, captures the lead, follows up for you and tells you what is working -
-                for one person, or for a company of forty with the branding locked down.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/signup"
-                  className="group inline-flex items-center justify-center gap-2 px-9 py-5 rounded-2xl text-lg font-bold text-white transition hover:scale-[1.03]"
-                  style={{ background: grad, boxShadow: '0 10px 46px rgba(124,58,237,0.5)' }}>
-                  Start your 60-day trial
-                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-                </Link>
-                <Link href="/pricing"
-                  className="inline-flex items-center justify-center gap-2 px-9 py-5 rounded-2xl text-lg font-medium transition hover:bg-white/10"
-                  style={{ border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.82)' }}>
-                  See pricing
-                </Link>
-              </div>
-            </div>
-
-            {/* The legend belongs beside the copy, not centred under a headline. */}
-            <div className="rounded-3xl p-5 w-full lg:w-auto lg:min-w-[280px]"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                What the labels mean
-              </p>
-              <div className="flex flex-col gap-2.5 text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>
-                <span className="flex items-center gap-2"><TierPill tier="Included" /> in every card</span>
-                <span className="flex items-center gap-2"><TierPill tier="Add-on" /> optional extra</span>
-                <span className="flex items-center gap-2"><TierPill tier="Team" /> on the Teams plan</span>
-              </div>
+                className="absolute rounded-2xl"
+                style={{ width: 300, right: 0, top: 118, transform: 'rotateZ(7deg)',
+                  border: '1px solid rgba(255,255,255,0.18)', boxShadow: '0 34px 80px rgba(0,0,0,0.85)' }} />
             </div>
           </div>
         </div>
