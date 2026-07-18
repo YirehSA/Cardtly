@@ -169,7 +169,10 @@ export default function HomePage() {
             ].map(({ n, label }, i) => (
               <Reveal key={label} delay={i * 90}>
                 <div className="text-center">
-                  <p className="text-4xl md:text-6xl font-black tracking-tight" style={gradText}>{n}</p>
+                  {/* nowrap: "5-7 days" was breaking after the number and
+                      dropping "days" onto a second line, so that one tile sat
+                      a row taller than the other three. */}
+                  <p className="text-4xl md:text-6xl font-black tracking-tight whitespace-nowrap" style={gradText}>{n}</p>
                   <p className="text-xs md:text-sm mt-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>{label}</p>
                 </div>
               </Reveal>

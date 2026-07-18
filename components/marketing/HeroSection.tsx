@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Sparkles, Zap, QrCode, Wand2 } from 'lucide-react'
+import { ArrowRight, Sparkles, Zap, QrCode, Wand2, Check } from 'lucide-react'
 
 // Cinematic hero with a card that responds to mouse movement (3D tilt),
 // floating "live" notification pills, and ambient animated orbs.
@@ -75,74 +75,104 @@ export default function HeroSection() {
   const ry = hovering ? tilt.ry : ambient * 0.6
 
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-24 pb-20 overflow-hidden">
+    <section className="relative px-6 lg:px-12 xl:px-16 pt-28 pb-24 lg:pt-32 lg:pb-28 overflow-hidden">
       {/* Animated ambient orbs */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full blur-[140px] pointer-events-none animate-pulse-slow"
-        style={{ background: 'radial-gradient(circle, rgba(0,212,255,0.20) 0%, rgba(124,58,237,0.12) 50%, transparent 70%)' }} />
-      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full blur-[120px] pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.15) 0%, transparent 70%)' }} />
-      <div className="absolute top-1/3 left-0 w-[300px] h-[300px] rounded-full blur-[100px] pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(0,212,255,0.10) 0%, transparent 70%)' }} />
+      <div className="absolute top-0 left-[15%] w-[700px] h-[700px] rounded-full blur-[140px] pointer-events-none animate-pulse-slow"
+        style={{ background: 'radial-gradient(circle, rgba(0,212,255,0.18) 0%, rgba(124,58,237,0.10) 50%, transparent 70%)' }} />
+      <div className="absolute -bottom-40 right-0 w-[620px] h-[620px] rounded-full blur-[120px] pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.16) 0%, transparent 70%)' }} />
 
-      <div className="relative max-w-4xl mx-auto" style={{ zIndex: 2 }}>
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold mb-8 border animate-fade-in"
-          style={{ border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff', background: 'rgba(0,212,255,0.08)', backdropFilter: 'blur(8px)' }}>
-          <Sparkles className="w-3 h-3" />
-          Now built for teams and sales
-        </div>
+      {/* Two columns on desktop instead of one centred stack. The old hero put
+          the badge, headline, copy, buttons, input and card in a single narrow
+          column down the middle of a min-h-screen section, which left the sides
+          empty and pushed everything below the card off the first screen. */}
+      <div className="relative mx-auto grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-14 xl:gap-20 items-center"
+        style={{ zIndex: 2, maxWidth: 1500 }}>
 
-        {/* H1 sells the outcome. The head term "digital business card" moves
-            into the subheadline directly below so we keep the on-page SEO
-            signal while the positioning leads with leads, meetings, sales. */}
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.0] mb-6">
-          More leads. More meetings.
-          <br />
-          <span style={gradText}>More sales.</span>
-        </h1>
+        {/* ── Left: the pitch ─────────────────────────────────────────── */}
+        <div className="text-center lg:text-left">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold mb-7 border animate-fade-in"
+            style={{ border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff', background: 'rgba(0,212,255,0.08)', backdropFilter: 'blur(8px)' }}>
+            <Sparkles className="w-3 h-3" />
+            Now built for teams and sales
+          </div>
 
-        <p className="text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
-          style={{ color: 'rgba(255,255,255,0.6)' }}>
-          Cardtly turns every handshake into a tracked lead. Your team shares one branded digital business card with a tap, the lead lands in your contacts, and the meeting books itself. <span className="text-white font-semibold">R97 a card, for one or for the whole team.</span>
-        </p>
+          {/* H1 sells the outcome. The head term "digital business card" moves
+              into the subheadline directly below so we keep the on-page SEO
+              signal while the positioning leads with leads, meetings, sales. */}
+          <h1 className="font-black tracking-tight leading-[0.95] mb-6"
+            style={{ fontSize: 'clamp(2.75rem, 5.2vw, 5rem)' }}>
+            More leads.<br />
+            More meetings.<br />
+            <span style={gradText}>More sales.</span>
+          </h1>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
-          <Link href="#teams"
-            className="group flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition-all hover:scale-[1.03] hover:shadow-2xl"
-            style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.5)' }}>
-            Cardtly for your team
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-          </Link>
-          <Link href="/signup"
-            className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-medium transition hover:bg-white/10"
-            style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)' }}>
-            Start your 60-day trial
-          </Link>
-        </div>
+          <p className="text-lg xl:text-xl mb-9 leading-relaxed max-w-xl mx-auto lg:mx-0"
+            style={{ color: 'rgba(255,255,255,0.6)' }}>
+            One branded <strong className="text-white font-semibold">digital business card</strong> for everyone on your
+            team. They tap, the lead lands in your contacts, and you can see which reps are getting opened.
+          </p>
 
-        {/* Try-it-live input: types straight onto the demo card below */}
-        <div className="max-w-sm mx-auto mb-12 animate-fade-in">
-          <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl border transition-all"
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              borderColor: trimmedName ? 'rgba(0,212,255,0.5)' : 'rgba(255,255,255,0.12)',
-              backdropFilter: 'blur(12px)',
-              boxShadow: trimmedName ? '0 0 30px rgba(0,212,255,0.25)' : 'none',
-            }}>
-            <Wand2 className="w-4 h-4 flex-shrink-0" style={{ color: trimmedName ? '#00d4ff' : 'rgba(255,255,255,0.4)' }} />
-            <input
-              type="text"
-              value={visitorName}
-              onChange={e => setVisitorName(e.target.value)}
-              maxLength={50}
-              placeholder="Type your name — watch the card change"
-              aria-label="Type your name to preview your digital business card"
-              className="w-full bg-transparent text-sm text-white placeholder:text-white/35 focus:outline-none"
-            />
+          <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-7">
+            <Link href="/signup"
+              className="group flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition-all hover:scale-[1.03] hover:shadow-2xl"
+              style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.5)' }}>
+              Get your card free
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <Link href="#teams"
+              className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-medium transition hover:bg-white/10"
+              style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)' }}>
+              Cardtly for teams
+            </Link>
+          </div>
+
+          {/* The objections people have at this exact moment, answered inline. */}
+          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-sm mb-9"
+            style={{ color: 'rgba(255,255,255,0.42)' }}>
+            {['60 days free', 'No credit card', 'R97 a card after', 'Live in 2 minutes'].map(t => (
+              <span key={t} className="flex items-center gap-1.5 whitespace-nowrap">
+                <Check className="w-3.5 h-3.5" style={{ color: '#22c55e' }} />{t}
+              </span>
+            ))}
+          </div>
+
+          {/* Try-it-live input: types straight onto the demo card alongside */}
+          <div className="max-w-sm mx-auto lg:mx-0 animate-fade-in">
+            <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl border transition-all"
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                borderColor: trimmedName ? 'rgba(0,212,255,0.5)' : 'rgba(255,255,255,0.12)',
+                backdropFilter: 'blur(12px)',
+                boxShadow: trimmedName ? '0 0 30px rgba(0,212,255,0.25)' : 'none',
+              }}>
+              <Wand2 className="w-4 h-4 flex-shrink-0" style={{ color: trimmedName ? '#00d4ff' : 'rgba(255,255,255,0.4)' }} />
+              <input
+                type="text"
+                value={visitorName}
+                onChange={e => setVisitorName(e.target.value)}
+                maxLength={50}
+                placeholder="Type your name — watch the card change"
+                aria-label="Type your name to preview your digital business card"
+                className="w-full bg-transparent text-sm text-white placeholder:text-white/35 focus:outline-none"
+              />
+            </div>
+            {previewSlug && (
+              <div className="mt-4 animate-fade-in">
+                <Link
+                  href={`/signup?name=${encodeURIComponent(trimmedName)}`}
+                  className="group inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold text-white transition-all hover:scale-[1.03]"
+                  style={{ background: grad, boxShadow: '0 8px 40px rgba(0,212,255,0.4)' }}>
+                  Claim cardtly.com/card/{previewSlug}
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ── Interactive card stage ─────────────────────────────────── */}
+        {/* ── Right: the card stage ───────────────────────────────────── */}
+        <div className="flex justify-center">
         <div
           className="relative inline-block"
           style={{ perspective: '1200px' }}
@@ -150,25 +180,35 @@ export default function HeroSection() {
           onMouseEnter={() => setHovering(true)}
           onMouseLeave={handleLeave}
         >
-          {/* Background card silhouettes (depth) */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div
-              className="absolute w-64 rounded-3xl"
+          {/* A real printed card behind the digital one, instead of the two
+              empty rectangles that used to sit there. It makes the physical
+              product part of the promise rather than a page further on. */}
+          <div className="absolute inset-0 hidden sm:flex items-center justify-center pointer-events-none">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/nfc-samples/yireh-front.jpg"
+              alt="A printed Cardtly NFC business card"
+              width={1200} height={767}
+              className="absolute rounded-2xl"
               style={{
-                height: 400,
-                background: 'linear-gradient(135deg, rgba(0,212,255,0.06), rgba(124,58,237,0.06))',
-                border: '1px solid rgba(255,255,255,0.06)',
-                transform: `translateX(-110px) translateY(20px) rotateZ(-12deg) rotateY(${ry * 0.4}deg)`,
+                width: 230,
+                transform: `translateX(-150px) translateY(-96px) rotateZ(-15deg) rotateY(${ry * 0.4}deg)`,
+                border: '1px solid rgba(255,255,255,0.12)',
+                boxShadow: '0 26px 60px rgba(0,0,0,0.7)',
                 transition: hovering ? 'none' : 'transform 0.6s ease-out',
               }}
             />
-            <div
-              className="absolute w-64 rounded-3xl"
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/nfc-samples/cardtly-front.jpg"
+              alt="A printed Cardtly NFC business card"
+              width={1200} height={767}
+              className="absolute rounded-2xl"
               style={{
-                height: 400,
-                background: 'linear-gradient(135deg, rgba(236,72,153,0.06), rgba(124,58,237,0.06))',
-                border: '1px solid rgba(255,255,255,0.06)',
-                transform: `translateX(110px) translateY(20px) rotateZ(12deg) rotateY(${ry * 0.4}deg)`,
+                width: 215,
+                transform: `translateX(152px) translateY(122px) rotateZ(14deg) rotateY(${ry * 0.4}deg)`,
+                border: '1px solid rgba(255,255,255,0.12)',
+                boxShadow: '0 26px 60px rgba(0,0,0,0.7)',
                 transition: hovering ? 'none' : 'transform 0.6s ease-out',
               }}
             />
@@ -228,28 +268,28 @@ export default function HeroSection() {
 
           {/* Floating "live" pills */}
           <FloatingPill
-            position={{ top: 30, right: -90 }}
+            position={{ top: 10, left: '100%', marginLeft: 14 }}
             color="#00d4ff"
             icon={<span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{ background: '#22c55e' }} />}
             text="Just updated"
             delay={0}
           />
           <FloatingPill
-            position={{ top: 160, right: -110 }}
+            position={{ top: 148, left: '100%', marginLeft: 14 }}
             color="#ec4899"
             icon={<span style={{ fontSize: 12 }}>📊</span>}
             text="47 views today"
             delay={0.4}
           />
           <FloatingPill
-            position={{ bottom: 80, left: -120 }}
+            position={{ bottom: 104, right: '100%', marginRight: 14 }}
             color="#7c3aed"
             icon={<Zap className="w-3 h-3" />}
             text="Tap to share"
             delay={0.8}
           />
           <FloatingPill
-            position={{ bottom: 180, left: -100 }}
+            position={{ bottom: 208, right: '100%', marginRight: 14 }}
             color="#22c55e"
             icon={<span style={{ fontSize: 12 }}>✨</span>}
             text="3 new connections"
@@ -257,27 +297,7 @@ export default function HeroSection() {
           />
         </div>
 
-        {/* Claim CTA appears once they've typed - their URL is right
-            there, one click from being theirs. Falls back to the
-            interaction hint when the input is empty. */}
-        {previewSlug ? (
-          <div className="mt-10 animate-fade-in">
-            <Link
-              href={`/signup?name=${encodeURIComponent(trimmedName)}`}
-              className="group inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold text-white transition-all hover:scale-[1.03]"
-              style={{ background: grad, boxShadow: '0 8px 40px rgba(0,212,255,0.4)' }}>
-              Claim cardtly.com/card/{previewSlug}
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-            <p className="mt-3 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              No credit card. Live in 2 minutes.
-            </p>
-          </div>
-        ) : (
-          <p className="mt-12 text-xs hidden md:block" style={{ color: 'rgba(255,255,255,0.3)' }}>
-            ✦ Move your mouse over the card, or type your name above
-          </p>
-        )}
+        </div>
       </div>
 
       {/* Inline keyframes (Tailwind doesn't ship these by default) */}
@@ -314,7 +334,7 @@ function FloatingPill({
   text,
   delay,
 }: {
-  position: { top?: number; bottom?: number; left?: number; right?: number }
+  position: React.CSSProperties
   color: string
   icon: React.ReactNode
   text: string
@@ -322,7 +342,9 @@ function FloatingPill({
 }) {
   return (
     <div
-      className="absolute hidden md:flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white shadow-2xl"
+      // nowrap: anchored to the card's edge the pills have a fixed slot, and
+      // without this "3 new connections" broke onto three lines.
+      className="absolute hidden md:flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white shadow-2xl whitespace-nowrap"
       style={{
         ...position,
         background: `${color}22`,
