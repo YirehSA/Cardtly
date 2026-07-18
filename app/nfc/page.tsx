@@ -97,7 +97,7 @@ const SPECS = [
   '85.6 × 54mm — standard credit card size',
   'NFC chip — tap to share, no app required',
   'Premium PVC print, matte finish',
-  'Available in Black or White',
+  'Your own artwork, printed edge to edge',
   'Front: Logo, full name, job title',
   'Back: QR code linking to your Cardtly card',
   'Compatible with iPhone 7+ and all NFC-enabled Android phones',
@@ -275,12 +275,8 @@ export default function NFCMarketingPage() {
             <h2 className="text-4xl font-black tracking-tight">
               Cards we&apos;ve <span style={gradText}>actually printed.</span>
             </h2>
-            {/* Deliberately does not promise custom artwork. The samples plainly
-                are custom, but the ordering steps still say "Black or White",
-                and the page should not quietly offer something the checkout may
-                not cover. Flagged for Andre to settle. */}
             <p className="mt-3" style={{ color: 'rgba(255,255,255,0.45)' }}>
-              Real cards we&apos;ve printed and shipped. Tap any card to see the back.
+              Your design, your logo, your colours - included in the R250. Tap any card to see the back.
             </p>
           </div>
           <CardSamples samples={AVAILABLE_SAMPLES} />
@@ -299,7 +295,7 @@ export default function NFCMarketingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             {[
               { n: '01', title: 'Create your card',  desc: 'Start your 60-day trial, no credit card needed, and get your Cardtly card set up first.' },
-              { n: '02', title: 'Choose your card',  desc: 'Pick Black or White. Confirm your name, job title, and shipping address. Takes 2 minutes.' },
+              { n: '02', title: 'Send us your design', desc: 'Your logo and colours, or tell us what you want and we design it. Confirm your name, job title and shipping address.' },
               { n: '03', title: 'We ship to you',    desc: 'Pay R250 (card + shipping) and your NFC card arrives within 5–7 business days anywhere in SA.' },
             ].map(({ n, title, desc }) => (
               <div key={n}>

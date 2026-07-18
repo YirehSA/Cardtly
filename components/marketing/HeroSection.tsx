@@ -180,38 +180,40 @@ export default function HeroSection() {
           onMouseEnter={() => setHovering(true)}
           onMouseLeave={handleLeave}
         >
-          {/* A real printed card behind the digital one, instead of the two
-              empty rectangles that used to sit there. It makes the physical
-              product part of the promise rather than a page further on. */}
-          <div className="absolute inset-0 hidden sm:flex items-center justify-center pointer-events-none">
+          {/* The physical card, big enough to be the thing you want. It used
+              to be two small photos tucked behind the mockup, which made the
+              real product the background of a drawing of it. */}
+          <div className="absolute inset-0 hidden sm:block pointer-events-none">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/nfc-samples/yireh-front.jpg"
-              alt="A printed Cardtly NFC business card"
+              src="/nfc-samples/sicon-front.jpg"
+              alt="A printed Cardtly NFC business card with full-bleed custom artwork"
               width={1200} height={767}
               className="absolute rounded-2xl"
               style={{
-                width: 230,
-                transform: `translateX(-150px) translateY(-96px) rotateZ(-15deg) rotateY(${ry * 0.4}deg)`,
-                border: '1px solid rgba(255,255,255,0.12)',
-                boxShadow: '0 26px 60px rgba(0,0,0,0.7)',
+                width: 360,
+                left: -205, top: -104,
+                transform: `rotateZ(-13deg) rotateY(${ry * 0.5}deg)`,
+                border: '1px solid rgba(255,255,255,0.16)',
+                boxShadow: '0 34px 80px rgba(0,0,0,0.8)',
                 transition: hovering ? 'none' : 'transform 0.6s ease-out',
               }}
             />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/nfc-samples/cardtly-front.jpg"
-              alt="A printed Cardtly NFC business card"
-              width={1200} height={767}
-              className="absolute rounded-2xl"
-              style={{
-                width: 215,
-                transform: `translateX(152px) translateY(122px) rotateZ(14deg) rotateY(${ry * 0.4}deg)`,
-                border: '1px solid rgba(255,255,255,0.12)',
-                boxShadow: '0 26px 60px rgba(0,0,0,0.7)',
-                transition: hovering ? 'none' : 'transform 0.6s ease-out',
-              }}
-            />
+            {/* Light sweeping across the card, the way it would if you turned
+                it in your hand. */}
+            <div className="absolute overflow-hidden rounded-2xl"
+              style={{ width: 360, height: 230, left: -205, top: -104,
+                transform: `rotateZ(-13deg) rotateY(${ry * 0.5}deg)`,
+                transition: hovering ? 'none' : 'transform 0.6s ease-out' }}>
+              <div className="hero-sheen" />
+            </div>
+
+            {/* The tap itself: rings coming off the corner of the card. */}
+            <div className="absolute" style={{ left: -95, top: -34 }}>
+              {[0, 1, 2].map(i => (
+                <span key={i} className="hero-ripple" style={{ animationDelay: `${i * 0.9}s` }} />
+              ))}
+            </div>
           </div>
 
           {/* Main interactive card */}
@@ -275,25 +277,11 @@ export default function HeroSection() {
             delay={0}
           />
           <FloatingPill
-            position={{ top: 148, left: '100%', marginLeft: 14 }}
-            color="#ec4899"
-            icon={<span style={{ fontSize: 12 }}>📊</span>}
-            text="47 views today"
-            delay={0.4}
-          />
-          <FloatingPill
             position={{ bottom: 104, right: '100%', marginRight: 14 }}
             color="#7c3aed"
             icon={<Zap className="w-3 h-3" />}
             text="Tap to share"
             delay={0.8}
-          />
-          <FloatingPill
-            position={{ bottom: 208, right: '100%', marginRight: 14 }}
-            color="#22c55e"
-            icon={<span style={{ fontSize: 12 }}>✨</span>}
-            text="3 new connections"
-            delay={1.2}
           />
         </div>
 
@@ -317,6 +305,29 @@ export default function HeroSection() {
         @keyframes fade-in {
           from { opacity: 0; transform: translateY(8px); }
           to   { opacity: 1; transform: translateY(0);    }
+        }
+        @keyframes hero-sheen {
+          0%   { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
+          12%  { opacity: 0.55; }
+          55%  { opacity: 0; }
+          100% { transform: translateX(240%) skewX(-18deg); opacity: 0; }
+        }
+        .hero-sheen {
+          position: absolute; top: -20%; left: 0; width: 42%; height: 140%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+          animation: hero-sheen 5.5s ease-in-out infinite;
+        }
+        @keyframes hero-ripple {
+          0%   { transform: scale(0.35); opacity: 0.65; }
+          100% { transform: scale(1.9);  opacity: 0;    }
+        }
+        .hero-ripple {
+          position: absolute; width: 120px; height: 120px; margin: -60px 0 0 -60px;
+          border-radius: 9999px; border: 1.5px solid rgba(0,212,255,0.55);
+          animation: hero-ripple 2.7s ease-out infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .hero-sheen, .hero-ripple { animation: none; opacity: 0; }
         }
         .animate-pulse-dot  { animation: pulse-dot 1.8s ease-in-out infinite; }
         .animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
