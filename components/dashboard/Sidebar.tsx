@@ -9,7 +9,6 @@ import {
   Layers,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { hasBiometricEnabled } from '@/lib/biometric'
 
 // Each nav item gets its own brand-pillar colour. Icons render
 // inside a small chip - desaturated by default, fully lit on
@@ -54,19 +53,9 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
   const supabase = createClient()
 
   async function signOut() {
-    // Biometric credentials are NOT cleared on sign-out (so we don't
-    // re-prompt "Enable biometric?" every login). To explicitly clear
-    // them the user toggles biometric OFF from /dashboard/settings.
-    //
-    // When biometric IS enabled, we sign out LOCAL-ONLY - Supabase
-    // clears the browser session but leaves the refresh token alive
-    // on the server. Without this, the next biometric sign-in would
-    // try to redeem a server-invalidated token and fail with
-    // "session expired".
-    //
-    // When biometric is NOT enabled, we do a full ('global') sign-out
-    // so the refresh token is invalidated server-side too.
-    const scope: 'local' | 'global' = hasBiometricEnabled() ? 'local' : 'global'
+    // Sign out everywhere. Biometric sign-in was removed, so there is no
+    // longer a reason to keep the server session alive for this device.
+    const scope: 'local' | 'global' = 'global'
     await supabase.auth.signOut({ scope })
     router.push('/login')
   }

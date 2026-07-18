@@ -8,7 +8,6 @@ import {
 } from 'lucide-react'
 import { useTheme } from './dashboard/ThemeProvider'
 import { createClient } from '@/lib/supabase/client'
-import { hasBiometricEnabled } from '@/lib/biometric'
 
 interface Command {
   id: string
@@ -72,10 +71,9 @@ export default function CommandPalette() {
 
   async function signOut() {
     const supabase = createClient()
-    // Local-only scope when biometric is enabled. See Sidebar.signOut
-    // for the full rationale (keeps the server refresh token alive
-    // so biometric can mint a new session next time).
-    const scope: 'local' | 'global' = hasBiometricEnabled() ? 'local' : 'global'
+    // Sign out everywhere. Biometric sign-in was removed, so there is no
+    // longer a reason to keep the server session alive for this device.
+    const scope: 'local' | 'global' = 'global'
     await supabase.auth.signOut({ scope })
     router.push('/login')
   }

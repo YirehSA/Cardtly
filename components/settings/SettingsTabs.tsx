@@ -5,9 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { UserPlan } from '@/types/database'
 import { toast } from 'sonner'
 import { useEffect } from 'react'
-import { User, Lock, CreditCard, AlertTriangle, Check, Eye, EyeOff, Fingerprint } from 'lucide-react'
+import { User, Lock, CreditCard, AlertTriangle, Check, Eye, EyeOff } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { getBiometricStatus, hasBiometricEnabled, enableBiometric, disableBiometric } from '@/lib/biometric'
 
 interface Props {
   user: { id: string; email: string }
@@ -345,87 +344,9 @@ function SecurityTab({ user, supabase }: { user: Props['user']; supabase: any })
         </button>
       </div>
 
-      <BiometricSection user={user} supabase={supabase} />
     </div>
   )
 }
-
-// Biometric login toggle. Only renders if the device supports biometric
-// hardware. Hidden entirely on the web build and on phones without
-// fingerprint or face unlock enrolled.
-function BiometricSection({ user, supabase }: { user: Props['user']; supabase: any }) {
-  const [available, setAvailable] = useState(false)
-  const [label, setLabel] = useState('')
-  const [enabled, setEnabled] = useState(false)
-  const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    async function check() {
-      const status = await getBiometricStatus()
-      if (cancelled) return
-      setAvailable(status.available)
-      setLabel(status.label)
-      setEnabled(hasBiometricEnabled())
-    }
-    check()
-    return () => { cancelled = true }
-  }, [])
-
-  if (!available) return null
-
-  async function handleToggle() {
-    setBusy(true)
-    try {
-      if (enabled) {
-        await disableBiometric()
-        setEnabled(false)
-        toast.success(`${label.charAt(0).toUpperCase() + label.slice(1)} sign in disabled`)
-      } else {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.refresh_token) {
-          toast.error('Session not found. Please sign in again.')
-          setBusy(false)
-          return
-        }
-        await enableBiometric(user.email, session.refresh_token)
-        setEnabled(true)
-        toast.success(`Sign in with ${label} next time`)
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Could not update biometric setting'
-      toast.error(msg)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="pt-8 border-t border-border">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.15), rgba(124,58,237,0.15))' }}>
-            <Fingerprint className="w-4 h-4" style={{ color: '#00d4ff' }} />
-          </div>
-          <div>
-            <p className="font-semibold text-sm">Sign in with {label}</p>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              Use your {label} to sign in without typing your password. Your session token is encrypted and stored only on this device.
-            </p>
-          </div>
-        </div>
-        <button onClick={handleToggle} disabled={busy}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition flex-shrink-0 ${enabled ? '' : 'bg-muted'} disabled:opacity-50`}
-          style={enabled ? { background: 'linear-gradient(135deg, #00d4ff, #7c3aed)' } : {}}>
-          <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ── Billing tab ────────────────────────────────────────────────────────────────
 
 const PRO_FEATURES = [
   '12 card templates', 'Custom accent colour', 'Custom links and social profiles',

@@ -8,8 +8,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import { ArrowRight, Wifi, Fingerprint, Eye, EyeOff, Mail, Lock } from 'lucide-react'
-import { getBiometricStatus, hasBiometricEnabled, signInWithBiometric, enableBiometric, disableBiometric } from '@/lib/biometric'
+import { ArrowRight, Wifi, Eye, EyeOff, Mail, Lock } from 'lucide-react'
 
 const schema = z.object({
   email:    z.string().email('Enter a valid email'),
@@ -32,8 +31,6 @@ function LoginForm() {
   const redirectTo = searchParams.get('redirectTo') || '/dashboard'
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [biometricLabel, setBiometricLabel] = useState<string>('')
-  const [postLoginPrompt, setPostLoginPrompt] = useState<{ email: string; refreshToken: string } | null>(null)
   const [magicMode, setMagicMode] = useState(false)
   const [magicSent, setMagicSent] = useState<string | null>(null)
   const supabase = createClient()
@@ -41,34 +38,6 @@ function LoginForm() {
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
-
-  // On mount: if biometric is available and already enabled on this
-  // device, sign in automatically. No manual button - the app does it
-  // itself. Silent by design: if the user cancels the prompt (e.g. to
-  // switch accounts) we just show the normal email/password form. On web
-  // (no native biometric) this is a no-op.
-  useEffect(() => {
-    let cancelled = false
-    async function auto() {
-      const status = await getBiometricStatus()
-      if (cancelled) return
-      setBiometricLabel(status.label)
-      if (!(status.available && hasBiometricEnabled())) return
-      const result = await signInWithBiometric()
-      if (cancelled || !result.ok || !result.refreshToken) return
-      const { error } = await supabase.auth.refreshSession({ refresh_token: result.refreshToken })
-      if (error) {
-        // Stored refresh token is dead - clear it so we don't keep
-        // prompting; a fresh password sign-in re-enables biometric.
-        try { await disableBiometric() } catch { /* noop */ }
-        return
-      }
-      router.push(redirectTo)
-      router.refresh()
-    }
-    auto()
-    return () => { cancelled = true }
-  }, [])
 
   async function sendMagicLink(email: string) {
     setLoading(true)
@@ -100,35 +69,6 @@ function LoginForm() {
       setLoading(false)
       return
     }
-    // Offer biometric opt-in if available and not already enabled
-    const status = await getBiometricStatus()
-    if (status.available && !hasBiometricEnabled() && authData.session?.refresh_token) {
-      setPostLoginPrompt({
-        email: data.email,
-        refreshToken: authData.session.refresh_token,
-      })
-      setLoading(false)
-      return
-    }
-    router.push(redirectTo)
-    router.refresh()
-  }
-
-  async function acceptBiometric() {
-    if (!postLoginPrompt) return
-    try {
-      await enableBiometric(postLoginPrompt.email, postLoginPrompt.refreshToken)
-      toast.success(`Saved. Use ${biometricLabel || 'biometric'} next time.`)
-    } catch {
-      toast.error('Could not save biometric. You can try again from Settings.')
-    }
-    setPostLoginPrompt(null)
-    router.push(redirectTo)
-    router.refresh()
-  }
-
-  function declineBiometric() {
-    setPostLoginPrompt(null)
     router.push(redirectTo)
     router.refresh()
   }
@@ -153,35 +93,6 @@ function LoginForm() {
           className="text-sm font-medium text-white/60 hover:text-white transition">
           Use a different email
         </button>
-      </div>
-    )
-  }
-
-  // Post-login prompt asking the user to enable biometric login
-  if (postLoginPrompt) {
-    return (
-      <div className="space-y-5 text-center">
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
-          style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(124,58,237,0.2))' }}>
-          <Fingerprint className="w-8 h-8" style={{ color: '#00d4ff' }} />
-        </div>
-        <div>
-          <h2 className="text-xl font-bold text-white mb-2">Use {biometricLabel || 'biometric'} next time?</h2>
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Sign in faster by using your {biometricLabel || 'fingerprint or face'}. We store an encrypted session token on this device only.
-          </p>
-        </div>
-        <div className="space-y-2">
-          <button onClick={acceptBiometric}
-            className="w-full py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
-            style={{ background: grad, boxShadow: '0 8px 32px rgba(124,58,237,0.35)' }}>
-            Enable {biometricLabel || 'biometric'} sign in
-          </button>
-          <button onClick={declineBiometric}
-            className="w-full py-3 rounded-xl text-sm font-medium text-white/70 hover:text-white transition">
-            Not now
-          </button>
-        </div>
       </div>
     )
   }

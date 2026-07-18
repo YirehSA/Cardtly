@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTheme } from './ThemeProvider'
 import { createClient } from '@/lib/supabase/client'
-import { hasBiometricEnabled } from '@/lib/biometric'
 import {
   Home, CreditCard, QrCode, BarChart2,
   Users, Mail, Monitor, Wifi, Building2, Settings as SettingsIcon,
@@ -76,11 +75,10 @@ export default function MobileBottomNav({ isAdmin = false, isPro = false }: Prop
 
   async function signOut() {
     // See the Sidebar's signOut comment for why we don't clear
-    // biometric here and why the scope depends on it. Same logic:
-    // local-only sign-out when biometric is on keeps the server
-    // refresh token alive for the next biometric restore.
+    // Sign out everywhere. Biometric sign-in was removed, so there is no
+    // longer a reason to keep the server session alive for this device.
     const supabase = createClient()
-    const scope: 'local' | 'global' = hasBiometricEnabled() ? 'local' : 'global'
+    const scope: 'local' | 'global' = 'global'
     await supabase.auth.signOut({ scope })
     router.push('/login')
   }

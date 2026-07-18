@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { hasBiometricEnabled } from '@/lib/biometric'
 import { UserPlan } from '@/types/database'
 import { LogOut, User } from 'lucide-react'
 import { toast } from 'sonner'
@@ -19,10 +18,9 @@ export default function DashboardHeader({ user, plan }: Props) {
   const isPro = plan.tier === 'pro' && plan.isActive
 
   async function signOut() {
-    // Local-only scope when biometric is enabled so the next
-    // biometric login can refresh the session without "session
-    // expired". See Sidebar.signOut for the full rationale.
-    const scope: 'local' | 'global' = hasBiometricEnabled() ? 'local' : 'global'
+    // Sign out everywhere. Biometric sign-in was removed, so there is no
+    // longer a reason to keep the server session alive for this device.
+    const scope: 'local' | 'global' = 'global'
     await supabase.auth.signOut({ scope })
     toast.success('Signed out')
     router.push('/login')
