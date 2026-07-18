@@ -16,7 +16,7 @@ interface Dept {
   brand: Record<string, any>; hasBrand: boolean; heads: Head[]; cards: Card[]
   lockedFields: string[]
 }
-interface OwnedOrg { id: string; name: string }
+interface OwnedOrg { id: string; name: string; lockedFields: string[] }
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
@@ -78,6 +78,12 @@ export default function DepartmentManager({ departments, ownedOrgs }: { departme
   const selected = departments.find(d => d.id === selId) || null
   const idxOf = (id: string) => departments.findIndex(d => d.id === id)
 
+  // A company admin always needs a way back, even with a single department:
+  // the overview is where "New department" and the company rules live. With
+  // exactly one department this opened straight into the detail view and gave
+  // no way out, so an admin could not reach either of them.
+  const canGoBack = departments.length > 1 || isCompanyAdmin
+
   // ── Detail view of a single department ──────────────────────────────────
   if (selected) {
     return (
@@ -85,7 +91,8 @@ export default function DepartmentManager({ departments, ownedOrgs }: { departme
         dept={selected}
         accent={accentFor(idxOf(selected.id))}
         departments={departments}
-        onBack={departments.length > 1 ? () => setSelId(null) : undefined}
+        orgLocks={ownedOrgs.find(o => o.id === selected.organizationId)?.lockedFields || []}
+        onBack={canGoBack ? () => setSelId(null) : undefined}
         call={call} loading={loading} />
     )
   }
@@ -171,8 +178,63 @@ export default function DepartmentManager({ departments, ownedOrgs }: { departme
 
             {isCompanyAdmin && <NewDeptTile ownedOrgs={ownedOrgs} call={call} loading={loading} />}
           </div>
+
+          {/* Company-wide rules. The API has always supported these - the
+              company level is what a department can only ever add to - but
+              nothing in the app called it, so the only way to lock anything
+              was department by department, and a company with six teams had
+              to set the same rule six times. */}
+          {isCompanyAdmin && ownedOrgs.map(org => (
+            <CompanyRules key={org.id} org={org} call={call} loading={loading} />
+          ))}
         </>
       )}
+    </div>
+  )
+}
+
+// ── Company-wide locks (org admin) ──────────────────────────────────────────
+function CompanyRules({ org, call, loading }: {
+  org: OwnedOrg; call: (k: string, b: object, m: string) => Promise<boolean>; loading: string | null
+}) {
+  const locked = org.lockedFields || []
+  const key = `orglocks-${org.id}`
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-center gap-2 mb-1">
+        <Lock className="w-4 h-4 text-amber-500" />
+        <h2 className="font-bold text-sm">Company rules{org.name ? ` for ${org.name}` : ''}</h2>
+      </div>
+      <p className="text-sm text-muted-foreground mb-4">
+        Tap anything that should stay the same on every card in the company. This applies to every
+        department at once. A department head can lock more for their own team, but cannot unlock
+        anything you set here.
+      </p>
+      <div className="grid sm:grid-cols-2 gap-2">
+        {LOCK_GROUPS.map(g => {
+          const on = locked.includes(g.id)
+          return (
+            <button key={g.id} disabled={loading === key}
+              onClick={() => {
+                const next = on ? locked.filter(id => id !== g.id) : [...locked, g.id]
+                call(key, { action: 'set_org_locks', org_id: org.id, locked: next },
+                  on ? `${g.label} unlocked company-wide` : `${g.label} locked company-wide`)
+              }}
+              className={`text-left rounded-2xl border-2 p-3 transition-all disabled:opacity-40 ${on ? '' : 'border-border hover:border-foreground/20 hover:-translate-y-0.5'}`}
+              style={on ? { borderColor: '#f59e0b', background: '#f59e0b14' } : undefined}>
+              <span className="flex items-center gap-2">
+                {on
+                  ? <Lock className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+                  : <LockOpen className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
+                <span className={`text-sm font-bold ${on ? 'text-amber-500' : ''}`}>{g.label}</span>
+              </span>
+              <span className="text-[11px] text-muted-foreground block mt-0.5 ml-5.5">
+                {on ? g.hint : 'Each department decides'}
+              </span>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -274,8 +336,8 @@ function NewDeptTile({ ownedOrgs, call, loading }: {
 }
 
 // ── One department's full detail ────────────────────────────────────────────
-function DepartmentDetail({ dept, accent, departments, onBack, call, loading }: {
-  dept: Dept; accent: string; departments: Dept[]; onBack?: () => void
+function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, call, loading }: {
+  dept: Dept; accent: string; departments: Dept[]; orgLocks?: string[]; onBack?: () => void
   call: (k: string, b: object, m: string) => Promise<boolean>; loading: string | null
 }) {
   const [inviteName, setInviteName] = useState('')
@@ -424,17 +486,27 @@ function DepartmentDetail({ dept, accent, departments, onBack, call, loading }: 
         </p>
         <div className="grid sm:grid-cols-2 gap-2">
           {LOCK_GROUPS.map(g => {
-            const on = (dept.lockedFields || []).includes(g.id)
+            const own = (dept.lockedFields || []).includes(g.id)
+            // A company-wide lock already applies to this team - the save
+            // endpoint unions the two sets. This tile used to read only the
+            // department's own list, so anything the company had locked showed
+            // here as "Anyone can change this", which was simply untrue. It is
+            // shown as locked and cannot be toggled off from inside a
+            // department, because a department can tighten but never loosen.
+            const fromCompany = orgLocks.includes(g.id)
+            const on = own || fromCompany
             return (
-              <button key={g.id} disabled={loading === `locks-${dept.id}`}
+              <button key={g.id} disabled={loading === `locks-${dept.id}` || fromCompany}
+                title={fromCompany ? 'Locked for the whole company. Change it in Company rules.' : undefined}
                 onClick={() => {
-                  const next = on
+                  if (fromCompany) return
+                  const next = own
                     ? (dept.lockedFields || []).filter(id => id !== g.id)
                     : [...(dept.lockedFields || []), g.id]
                   call(`locks-${dept.id}`, { action: 'set_locks', department_id: dept.id, locked: next },
-                    on ? `${g.label} unlocked` : `${g.label} locked`)
+                    own ? `${g.label} unlocked` : `${g.label} locked`)
                 }}
-                className={`text-left rounded-2xl border-2 p-3 transition-all disabled:opacity-40 ${on ? '' : 'border-border hover:border-foreground/20 hover:-translate-y-0.5'}`}
+                className={`text-left rounded-2xl border-2 p-3 transition-all disabled:opacity-60 ${on ? '' : 'border-border hover:border-foreground/20 hover:-translate-y-0.5'} ${fromCompany ? 'cursor-not-allowed' : ''}`}
                 style={on ? { borderColor: accent, background: accent + '14' } : undefined}>
                 <span className="flex items-center gap-2">
                   {on
@@ -443,7 +515,7 @@ function DepartmentDetail({ dept, accent, departments, onBack, call, loading }: 
                   <span className="text-sm font-bold" style={on ? { color: accent } : undefined}>{g.label}</span>
                 </span>
                 <span className="text-[11px] text-muted-foreground block mt-0.5 ml-5.5">
-                  {on ? g.hint : 'Anyone can change this'}
+                  {fromCompany ? 'Locked company-wide' : on ? g.hint : 'Anyone can change this'}
                 </span>
               </button>
             )

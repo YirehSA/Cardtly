@@ -94,12 +94,23 @@ export async function cardDepartment(admin: any, teamCardId: string): Promise<{ 
 // managing one. A department manager must never be able to do these: only the
 // org owner (the company's main admin) can. These are the gate for that.
 
-export interface OwnedOrg { id: string; name: string }
+export interface OwnedOrg { id: string; name: string; lockedFields: string[] }
 
 export async function getOwnedOrgs(admin: any, userId: string): Promise<OwnedOrg[]> {
   if (!userId) return []
+  // locked_fields arrives with a hand-applied migration. Select it separately so
+  // a database that has not had 035 applied yet still returns the orgs rather
+  // than failing the whole query on an unknown column.
   const { data } = await admin.from('organizations').select('id, name').eq('admin_user_id', userId)
-  return (data || []).map((o: any) => ({ id: o.id, name: o.name }))
+  const orgs = (data || []).map((o: any) => ({ id: o.id, name: o.name, lockedFields: [] as string[] }))
+  if (orgs.length === 0) return orgs
+  const { data: locks } = await admin
+    .from('organizations').select('id, locked_fields').eq('admin_user_id', userId)
+  if (locks) {
+    const byId = new Map(locks.map((l: any) => [l.id, l.locked_fields || []]))
+    for (const o of orgs) o.lockedFields = (byId.get(o.id) as string[]) || []
+  }
+  return orgs
 }
 
 export async function isOrgOwner(admin: any, userId: string, orgId: string): Promise<boolean> {
