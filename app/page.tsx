@@ -13,7 +13,7 @@ import StructuredData from '@/components/marketing/StructuredData'
 import CustomizeShowcase from '@/components/marketing/CustomizeShowcase'
 import TeamsSection from '@/components/marketing/TeamsSection'
 import {
-  Smartphone, Globe, BarChart2, Mail, Monitor, Users, Star, ArrowRight, Wifi, Sparkles, Zap, CalendarDays, ScanLine,
+  Smartphone, Globe, BarChart2, Mail, Monitor, Users, ArrowRight, Wifi, Sparkles, Zap, CalendarDays, ScanLine,
   FileSpreadsheet, CalendarClock, MessageCircle, Contact, Wallet, UserPlus, ClipboardList, Repeat,
 } from 'lucide-react'
 
@@ -25,10 +25,27 @@ const gradText: React.CSSProperties = {
   backgroundClip: 'text',
 }
 
-const TESTIMONIALS = [
-  { name: 'Sarah M.', role: 'Sales Director',     text: 'I handed out 200 paper cards a year. Now I just tap my phone. Best upgrade I\'ve made.' },
-  { name: 'James K.', role: 'Freelance Designer', text: 'My clients always have my latest portfolio. The card updates itself as I add new work.' },
-  { name: 'Priya N.', role: 'Real Estate Agent',  text: 'The analytics tell me exactly which properties people clicked after viewing my card.' },
+// What a rep's week actually looks like on Cardtly. This replaced three
+// testimonials attributed to "Sarah M.", "James K." and "Priya N." - names and
+// quotes that were written for the page rather than said by anyone. Invented
+// reviews on a page that takes payment are not a small thing, and there is a
+// real story to tell without them.
+const SALES_FLOW = [
+  {
+    step: 'At the meeting',
+    title: 'They tap, they have you',
+    text: 'One tap of the card or a scan of the QR. Your number, your website, your booking link - on their phone before you sit down. Nothing to type, nothing to lose.',
+  },
+  {
+    step: 'The same minute',
+    title: 'The lead captures itself',
+    text: 'They fill in the short form on your card and it lands in your contacts, emailed to the rep and copied to whoever runs the team. No business card in a jacket pocket.',
+  },
+  {
+    step: 'The week after',
+    title: 'You can see what worked',
+    text: 'Views, taps, link clicks and saves, per person. You find out which reps are getting opened and which links people actually press, instead of guessing.',
+  },
 ]
 
 // Synchronous pre-paint script.
@@ -96,10 +113,26 @@ const PREVENT_FLASH_SCRIPT = `(function(){
   } catch (e) { /* fail-open: do nothing, show the page */ }
 })();`
 
-// The homepage inherits the root layout's title, description and OG.
-// It only needs its own canonical - without one it has none, since the
-// root layout deliberately omits a canonical (see layout.tsx).
-export const metadata = { alternates: { canonical: '/' } }
+// The homepage used to set only a canonical, so it inherited the site-wide
+// title and description - which describe Cardtly for individuals. This is the
+// page teams and companies land on, so it gets its own, aimed at them and at
+// what the cards do rather than what they are.
+//
+// title.absolute skips the "%s | Cardtly" template: with the template applied
+// the string runs past the length Google will show.
+export const metadata = {
+  title: { absolute: 'Digital Business Cards for Teams South Africa | Cardtly' },
+  // Kept under ~155 characters so Google shows the whole line rather than
+  // cutting it mid-sentence.
+  description:
+    'One branded digital business card per rep. Tap to share, capture leads into your contacts, see which reps get opened. R97 a card, 60 days free.',
+  alternates: { canonical: '/' },
+  openGraph: {
+    title: 'Digital Business Cards for Teams | Cardtly',
+    description:
+      'One branded card per rep. Tap to share, capture leads automatically, track what happens next. R97 a card, 60 days free, NFC cards delivered across South Africa.',
+  },
+}
 
 export default function HomePage() {
   return (
@@ -123,11 +156,16 @@ export default function HomePage() {
       <section className="py-16 border-y" style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {/* Every one of these is checkable against the product or the
+                database. This bar used to read "10,000+ cards created" and
+                "500K+ views served"; the real figures at the time of writing
+                were 66 cards and 1,695 views. Numbers on a sales page have to
+                be ones we could stand behind if somebody asked. */}
             {[
-              { n: '10,000+',  label: 'Cards created' },
-              { n: '500K+',    label: 'Views served' },
+              { n: 'R97',      label: 'Per card, per month' },
+              { n: '60 days',  label: 'Free, no card needed' },
               { n: '12',       label: 'Designed templates' },
-              { n: '60 days',  label: 'Free to try' },
+              { n: '5–7 days', label: 'NFC card delivery, SA' },
             ].map(({ n, label }, i) => (
               <Reveal key={label} delay={i * 90}>
                 <div className="text-center">
@@ -429,29 +467,27 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto">
           <Reveal>
             <div className="text-center mb-16">
-              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#f59e0b' }}>The people speak</p>
-              <h2 className="text-4xl md:text-5xl font-black tracking-tight">Loved by <span style={gradText}>professionals.</span></h2>
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#f59e0b' }}>From handshake to sale</p>
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight">
+                One card. <span style={gradText}>Three fewer leaks.</span>
+              </h2>
+              <p className="mt-4 max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                Most leads are lost between meeting someone and following up. Here is where Cardtly closes the gap.
+              </p>
             </div>
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {TESTIMONIALS.map(({ name, role, text }, i) => (
-              <Reveal key={name} delay={i * 90} className="h-full">
-                <div className="h-full p-6 rounded-3xl lift-card"
+            {SALES_FLOW.map(({ step, title, text }, i) => (
+              <Reveal key={title} delay={i * 90} className="h-full">
+                <div className="h-full p-6 rounded-3xl lift-card relative"
                   style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <div className="flex gap-1 mb-4">
-                    {[...Array(5)].map((_, s) => <Star key={s} className="w-3.5 h-3.5 fill-current" style={{ color: '#f59e0b' }} />)}
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black text-white flex-shrink-0"
+                      style={{ background: grad }}>{i + 1}</span>
+                    <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>{step}</span>
                   </div>
-                  <p className="text-base leading-relaxed mb-5" style={{ color: 'rgba(255,255,255,0.75)' }}>&ldquo;{text}&rdquo;</p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-black text-white"
-                      style={{ background: grad }}>
-                      {name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm text-white">{name}</p>
-                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{role}</p>
-                    </div>
-                  </div>
+                  <h3 className="font-bold text-lg mb-2">{title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>{text}</p>
                 </div>
               </Reveal>
             ))}
