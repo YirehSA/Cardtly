@@ -7,7 +7,7 @@ interface TrackOptions {
   // card; teamCardId for a team card.
   cardId?: string
   teamCardId?: string
-  eventType: 'view' | 'link_click' | 'contact_save' | 'qr_scan' | 'share'
+  eventType: 'view' | 'link_click' | 'contact_save' | 'qr_scan' | 'nfc_tap' | 'share'
   linkTitle?: string
 }
 

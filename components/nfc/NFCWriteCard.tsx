@@ -51,7 +51,10 @@ export default function NFCWriteCard({ cardUrl, cardName }: Props) {
     setWriting(true)
     setShowModal(true)
     try {
-      await writeNFCTag(cardUrl)
+      // Marked the same way the QR is, so a tap and a scan can be told apart
+      // in analytics. The visitor still lands on exactly this card; the marker
+      // is only a hint about how they got here.
+      await writeNFCTag(`${cardUrl}?s=nfc`)
       setSuccess(true)
       toast.success('Tag written. Tap your phone on any device to share.')
       setTimeout(() => setShowModal(false), 1500)

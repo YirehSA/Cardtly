@@ -170,6 +170,13 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
 
   const cardUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://cardtly.com'}/card/${card.slug}`
 
+  // The QR encodes a marked URL so a scan can be told apart from someone
+  // typing the link or tapping an NFC card - otherwise every route into the
+  // card looks identical and "how they found you" cannot separate them. Only
+  // the code carries the marker: the link people copy and share stays clean,
+  // so a WhatsApp share is never miscounted as a scan.
+  const qrUrl = `${cardUrl}?s=qr`
+
   useEffect(() => {
     savePrefs({ selectedId, logoChoice, logoShape, colour, size })
   }, [selectedId, logoChoice, logoShape, colour, size])
@@ -204,7 +211,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
     if (!ctx) return
 
     const temp = document.createElement('canvas')
-    await QRCode.toCanvas(temp, cardUrl, {
+    await QRCode.toCanvas(temp, qrUrl, {
       width: px,
       margin: 2,
       errorCorrectionLevel: ecLevel,
@@ -294,7 +301,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
   // True vector QR: the modules stay crisp at any print size, unlike a PNG.
   async function qrSvg(px: number): Promise<string> {
     const QRCode = (await import('qrcode')).default
-    return QRCode.toString(cardUrl, {
+    return QRCode.toString(qrUrl, {
       type: 'svg',
       width: px,
       margin: 2,

@@ -47,14 +47,18 @@ function startOfLocalDay(offsetDays: number): Date {
   return d
 }
 
-// Where a visit came from. Our own domain covers a QR scan, an NFC tap, a
-// typed link or a reload - all of them "they opened the link", with no
-// referring site - so they are grouped rather than listed as cardtly.com.
+// Everything that arrives without a referring site: a QR scan, an NFC tap, a
+// typed link, a reload. Our own domain lands here too, since a self-referral
+// means "they opened the link" rather than "they came from cardtly.com". Named
+// once because the source panel splits this bucket back apart using the ?s=
+// markers the QR and NFC tag carry.
+const DIRECT_BUCKET = 'Direct link, QR or NFC'
+
 function sourceLabel(referrer: string | null): string {
-  if (!referrer) return 'Direct link, QR or NFC'
+  if (!referrer) return DIRECT_BUCKET
   try {
     const host = new URL(referrer).hostname.replace(/^www\./, '').toLowerCase()
-    if (host.endsWith('cardtly.com') || host === 'localhost') return 'Direct link, QR or NFC'
+    if (host.endsWith('cardtly.com') || host === 'localhost') return DIRECT_BUCKET
     if (host.includes('whatsapp')) return 'WhatsApp'
     if (host.includes('facebook') || host.includes('fb.')) return 'Facebook'
     if (host.includes('instagram')) return 'Instagram'
@@ -65,7 +69,7 @@ function sourceLabel(referrer: string | null): string {
     if (host.includes('mail') || host.includes('outlook')) return 'Email'
     return host
   } catch {
-    return 'Direct link, QR or NFC'
+    return DIRECT_BUCKET
   }
 }
 
@@ -141,6 +145,8 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
     const sharesAll = events.filter(e => e.event_type === 'share')
     const clicksAll = events.filter(e => e.event_type === 'link_click')
     const savesAll = events.filter(e => e.event_type === 'contact_save')
+    const qrAll = events.filter(e => e.event_type === 'qr_scan')
+    const nfcAll = events.filter(e => e.event_type === 'nfc_tap')
     const contacts = contactDates.map(created_at => ({ created_at }))
 
     const views = viewsAll.filter(inNow)
@@ -153,6 +159,8 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
     const prevSaves = savesAll.filter(inPrev).length
     const leads = contacts.filter(inNow).length
     const prevLeads = contacts.filter(inPrev).length
+    const qrScans = qrAll.filter(inNow).length
+    const nfcTaps = nfcAll.filter(inNow).length
 
     // One bar per day in the window, in local time.
     const dayMap = new Map<string, number>()
@@ -174,7 +182,23 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
       byDay, peak,
       byDevice: countBy(views, v => v.device),
       byBrowser: countBy(views, v => v.browser),
-      bySource: countBy(views, v => sourceLabel(v.referrer)),
+      // A scan or a tap arrives with no referring site, so both land in the
+      // untagged bucket. Pull them back out using the markers the QR and NFC
+      // tag carry, and only rename what is left when there was something to
+      // separate - older opens genuinely cannot be told apart.
+      bySource: (() => {
+        const raw = countBy(views, v => sourceLabel(v.referrer))
+        const split = qrScans + nfcTaps
+        const out: { key: string; count: number }[] = []
+        for (const row of raw) {
+          if (row.key !== DIRECT_BUCKET) { out.push(row); continue }
+          if (qrScans) out.push({ key: 'QR code scan', count: qrScans })
+          if (nfcTaps) out.push({ key: 'NFC card tap', count: nfcTaps })
+          const rest = Math.max(0, row.count - split)
+          if (rest) out.push({ key: split > 0 ? 'Other direct opens' : DIRECT_BUCKET, count: rest })
+        }
+        return out.sort((a, b) => b.count - a.count)
+      })(),
     }
   }, [events, contactDates, period])
 
