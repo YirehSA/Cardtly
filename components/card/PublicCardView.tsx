@@ -93,6 +93,19 @@ const SOCIAL_BRAND_COLORS = {
   whatsapp: '#25D366',
 }
 
+// Mixes a hex toward black. Used by the templates that build a gradient or a
+// second wash from the single accent colour the user picked.
+function darkenHex(hex: string, amount: number): string {
+  const h = hex.replace('#', '')
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h
+  if (full.length !== 6) return hex
+  const mix = (v: number) => Math.max(0, Math.min(255, Math.round(v * (1 - amount))))
+  const r = mix(parseInt(full.slice(0, 2), 16))
+  const g = mix(parseInt(full.slice(2, 4), 16))
+  const b = mix(parseInt(full.slice(4, 6), 16))
+  return `#${[r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')}`
+}
+
 // ── ContactBtn ────────────────────────────────────────────────────────────────
 function ContactBtn({ icon, label, sublabel, href, accentHex, bg, cardEffect }: {
   icon: React.ReactNode; label: string; sublabel?: string; href: string
@@ -940,14 +953,31 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
   if (design.templateId === 'creative') {
     return (
       <div style={{ ...pageStyle, overflow: 'hidden', position: 'relative' }} className="animate-fade-up">
-        <div style={{ position: 'fixed', top: -80, right: -80, width: 300, height: 300, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}44 0%, transparent 70%)`, pointerEvents: 'none' }} />
-        <div style={{ position: 'fixed', bottom: -60, left: -60, width: 200, height: 200, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}33 0%, transparent 70%)`, pointerEvents: 'none' }} />
+        {/* Colour-field backdrop: three overlapping washes rather than two flat
+            radials, so the background has depth and movement instead of looking
+            like a gradient someone forgot to finish. */}
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: '-18%', right: '-22%', width: '75vw', height: '75vw', maxWidth: 460, maxHeight: 460, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}55 0%, transparent 68%)`, filter: 'blur(28px)' }} />
+          <div style={{ position: 'absolute', bottom: '-14%', left: '-24%', width: '68vw', height: '68vw', maxWidth: 420, maxHeight: 420, borderRadius: '50%', background: `radial-gradient(circle, ${darkenHex(accentHex, 0.25)}44 0%, transparent 70%)`, filter: 'blur(32px)' }} />
+          <div style={{ position: 'absolute', top: '34%', left: '38%', width: '52vw', height: '52vw', maxWidth: 320, maxHeight: 320, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}22 0%, transparent 72%)`, filter: 'blur(36px)' }} />
+        </div>
+
         <InAppBackButton bgMode={design.bgMode} />
         <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
+
         <div className="max-w-md mx-auto px-6 py-8 relative">
-          <div className="mb-5" style={{ position: 'relative', zIndex: 2 }}>
+          <div className="mb-5" style={{ position: 'relative', zIndex: 2, display: 'inline-block' }}>
+            {/* A hand-drawn-feeling arc behind the photo. Purely decorative, and
+                the one thing that makes this template read as "creative"
+                rather than "centred card with a glow". */}
+            <svg viewBox="0 0 200 200" style={{ position: 'absolute', inset: -18, width: 'calc(100% + 36px)', height: 'calc(100% + 36px)', pointerEvents: 'none' }}>
+              <circle cx="100" cy="100" r="92" fill="none" stroke={accentHex} strokeWidth="3"
+                strokeLinecap="round" strokeDasharray="150 420" opacity="0.85" transform="rotate(-35 100 100)" />
+              <circle cx="100" cy="100" r="92" fill="none" stroke={accentHex} strokeWidth="3"
+                strokeLinecap="round" strokeDasharray="60 500" opacity="0.45" transform="rotate(150 100 100)" />
+            </svg>
             {(() => {
               const photoSize = calcPhotoSize(96, design)
               const inner = (
@@ -958,15 +988,36 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                 </div>
               )
               return design.profileBorder === false ? inner : (
-                <div style={{ display: 'inline-block', padding: 4, borderRadius: '50%', background: `linear-gradient(135deg, ${accentHex}, ${accentHex}55)` }}>{inner}</div>
+                <div style={{ display: 'inline-block', padding: 4, borderRadius: '50%', background: `conic-gradient(from 140deg, ${accentHex}, ${darkenHex(accentHex, 0.3)}, ${accentHex})`, boxShadow: `0 12px 40px ${accentHex}40`, position: 'relative' }}>{inner}</div>
               )
             })()}
           </div>
-          <h1 className="font-bold leading-tight" style={{ fontFamily: font.heading, fontSize: calcNameSize(24, design), color: getNameColor(design, bg.text) }}>{card.name}</h1>
-          {isPro && card.title && <p className="font-semibold mt-1" style={{ fontSize: calcTitleSize(14, design), color: getTitleColor(design, accentHex) }}>{card.title}</p>}
-          {card.company && <p className="mt-0.5" style={{ fontSize: calcCompanySize(14, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
+
+          {/* The name carries the accent as a gradient rather than a flat fill,
+              which is what gives this template its signature look. */}
+          <h1 className="font-bold leading-tight" style={{
+            fontFamily: font.heading, fontSize: calcNameSize(28, design),
+            letterSpacing: '-0.02em',
+            ...(design.nameColor
+              ? { color: design.nameColor }
+              : {
+                  background: `linear-gradient(120deg, ${bg.text} 12%, ${accentHex} 92%)`,
+                  WebkitBackgroundClip: 'text', backgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent', color: 'transparent',
+                }),
+          }}>{card.name}</h1>
+
+          {isPro && card.title && (
+            <span style={{
+              display: 'inline-block', marginTop: 8, padding: '5px 13px', borderRadius: 999,
+              fontSize: calcTitleSize(13, design), fontWeight: 700,
+              color: getTitleColor(design, accentHex),
+              background: accentHex + '1f', border: `1px solid ${accentHex}44`,
+            }}>{card.title}</span>
+          )}
+          {card.company && <p className="mt-2" style={{ fontSize: calcCompanySize(14, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
           <LogoZone {...shared} />
-          {card.bio && <p className="mt-2 mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
+          {card.bio && <p className="mt-3 mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
           <AllContacts {...shared} socialLinks={socialLinks} />
           <BottomSection {...bottomProps} />
         </div>
@@ -1076,12 +1127,31 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
   if (design.templateId === 'neon') {
     const glow = `0 0 12px ${accentHex}66`
     return (
-      <div style={{ ...pageStyle, backgroundColor: design.customBgColor || '#050510' }} className="animate-fade-up">
+      <div style={{ ...pageStyle, backgroundColor: design.customBgColor || '#050510', position: 'relative', overflow: 'hidden' }} className="animate-fade-up">
+        {/* The room the neon sits in: a horizon glow, a perspective grid, and a
+            fine scanline wash. Previously this template was a dark page with a
+            couple of coloured borders - the name said neon, the card did not. */}
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '140%', height: 260, background: `radial-gradient(ellipse at top, ${accentHex}33 0%, transparent 70%)` }} />
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, height: '38%',
+            backgroundImage: `linear-gradient(${accentHex}22 1px, transparent 1px), linear-gradient(90deg, ${accentHex}22 1px, transparent 1px)`,
+            backgroundSize: '44px 44px',
+            transform: 'perspective(340px) rotateX(62deg)', transformOrigin: 'bottom',
+            maskImage: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)',
+            WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)',
+          }} />
+          <div style={{
+            position: 'absolute', inset: 0, opacity: 0.5,
+            backgroundImage: 'repeating-linear-gradient(180deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 3px)',
+          }} />
+        </div>
+
         <InAppBackButton bgMode={design.bgMode} />
-        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ border: `1px solid ${accentHex}44`, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ border: `1px solid ${accentHex}66`, backgroundColor: 'rgba(0,0,0,0.5)', boxShadow: `0 0 14px ${accentHex}55` }}>
           <Share2 className="w-4 h-4" style={{ color: accentHex }} />
         </button>
-        <div className="max-w-md mx-auto px-6 py-8">
+        <div className="max-w-md mx-auto px-6 py-8" style={{ position: 'relative' }}>
           <div className="flex items-center gap-4 mb-4" style={{ position: 'relative', zIndex: 2 }}>
             {(() => {
               const photoSize = calcPhotoSize(80, design)
@@ -1093,16 +1163,21 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                 </div>
               )
               return design.profileBorder === false ? inner : (
-                <div style={{ borderRadius: '50%', padding: 3, background: `linear-gradient(135deg, ${accentHex}, ${accentHex}44)`, boxShadow: glow, flexShrink: 0 }}>{inner}</div>
+                <div style={{ borderRadius: '50%', padding: 3, background: `linear-gradient(135deg, ${accentHex}, ${accentHex}44)`, boxShadow: `${glow}, 0 0 34px ${accentHex}55`, flexShrink: 0 }}>{inner}</div>
               )
             })()}
             <div className="flex-1 min-w-0" style={textNudge}>
-              <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(22, design), fontWeight: 700, fontFamily: font.heading, color: getNameColor(design, '#e8e8ff') }}>{card.name}</h1>
-              {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), color: getTitleColor(design, accentHex), fontWeight: 600, textShadow: `0 0 8px ${accentHex}` }}>{card.title}</p>}
-              {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), color: getCompanyColor(design, '#404070') }}>{card.company}</p>}
+              {/* The name is the sign. Give it the tube glow. */}
+              <h1 style={{
+                margin: '0 0 4px', fontSize: calcNameSize(22, design), fontWeight: 700,
+                fontFamily: font.heading, color: getNameColor(design, '#e8e8ff'),
+                textShadow: design.nameColor ? undefined : `0 0 6px ${accentHex}88, 0 0 22px ${accentHex}55`,
+              }}>{card.name}</h1>
+              {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), color: getTitleColor(design, accentHex), fontWeight: 600, textShadow: `0 0 8px ${accentHex}`, textTransform: 'uppercase', letterSpacing: '0.14em' }}>{card.title}</p>}
+              {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), color: getCompanyColor(design, '#6a6aa8') }}>{card.company}</p>}
             </div>
           </div>
-          <div style={{ height: 1, background: `linear-gradient(90deg, ${accentHex}, transparent)`, marginBottom: 16, boxShadow: `0 0 6px ${accentHex}` }} />
+          <div style={{ height: 2, background: `linear-gradient(90deg, transparent, ${accentHex}, transparent)`, marginBottom: 16, boxShadow: `0 0 12px ${accentHex}, 0 0 30px ${accentHex}66` }} />
           <LogoZone {...shared} />
           {card.bio && <p className="mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), color: getBioColor(design, '#6060a0') }}>{card.bio}</p>}
           <div className="space-y-3">

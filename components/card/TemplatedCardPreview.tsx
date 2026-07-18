@@ -21,6 +21,19 @@ interface PreviewData {
 
 interface Props { form: PreviewData; isPro: boolean; design: CardDesign }
 
+// Mixes a hex toward black. Kept identical to the copy in PublicCardView so the
+// Creative backdrop and ring resolve to the same colours in both places.
+function darkenHex(hex: string, amount: number): string {
+  const h = hex.replace('#', '')
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h
+  if (full.length !== 6) return hex
+  const mix = (v: number) => Math.max(0, Math.min(255, Math.round(v * (1 - amount))))
+  const r = mix(parseInt(full.slice(0, 2), 16))
+  const g = mix(parseInt(full.slice(2, 4), 16))
+  const b = mix(parseInt(full.slice(4, 6), 16))
+  return `#${[r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')}`
+}
+
 export default function TemplatedCardPreview({ form, isPro, design }: Props) {
   const accentHex = getAccentHex(design)
   const buttonBg = getButtonBg(design)
@@ -429,28 +442,55 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
     const photoSize = calcPhotoSize(72, design)
     return (
       <div style={{ ...pageStyle, overflow: 'hidden', position: 'relative' }}>
-        <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}55 0%, transparent 70%)`, pointerEvents: 'none' }} />
-        {design.cardStyle === 'gradient' && <div style={{ position: 'absolute', bottom: -40, left: -40, width: 150, height: 150, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}33 0%, transparent 70%)`, pointerEvents: 'none' }} />}
+        {/* Same three-wash colour field as the live card, sized to the preview
+            box. Absolute rather than fixed, since this renders inside a frame. */}
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: '-18%', right: '-22%', width: 230, height: 230, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}55 0%, transparent 68%)`, filter: 'blur(18px)' }} />
+          <div style={{ position: 'absolute', bottom: '-14%', left: '-24%', width: 210, height: 210, borderRadius: '50%', background: `radial-gradient(circle, ${darkenHex(accentHex, 0.25)}44 0%, transparent 70%)`, filter: 'blur(20px)' }} />
+          <div style={{ position: 'absolute', top: '34%', left: '38%', width: 160, height: 160, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}22 0%, transparent 72%)`, filter: 'blur(22px)' }} />
+        </div>
         <div style={{ padding: 16, position: 'relative' }}>
-          {design.profileBorder === false ? (
-            <div style={{ marginBottom: 6, display: 'inline-block', borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize }}>
-              {form.profile_image_url
-                ? <img src={form.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
-                : <div style={{ width: photoSize, height: photoSize, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700 }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
-            </div>
-          ) : (
-            <div style={{ marginBottom: 6, display: 'inline-block', padding: design.cardStyle === 'glass' ? 4 : 3, borderRadius: '50%',
-              background: `linear-gradient(135deg, ${accentHex}, ${accentHex}55)`,
-              boxShadow: design.cardStyle === 'glass' ? `0 0 20px ${accentHex}66` : undefined }}>
-              <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, border: `3px solid ${bg.page}` }}>
+          <div style={{ marginBottom: 6, display: 'inline-block', position: 'relative', zIndex: 2 }}>
+            {/* The decorative arc that gives Creative its signature. */}
+            <svg viewBox="0 0 200 200" style={{ position: 'absolute', inset: -13, width: 'calc(100% + 26px)', height: 'calc(100% + 26px)', pointerEvents: 'none' }}>
+              <circle cx="100" cy="100" r="92" fill="none" stroke={accentHex} strokeWidth="4"
+                strokeLinecap="round" strokeDasharray="150 420" opacity="0.85" transform="rotate(-35 100 100)" />
+              <circle cx="100" cy="100" r="92" fill="none" stroke={accentHex} strokeWidth="4"
+                strokeLinecap="round" strokeDasharray="60 500" opacity="0.45" transform="rotate(150 100 100)" />
+            </svg>
+            {design.profileBorder === false ? (
+              <div style={{ display: 'inline-block', borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, position: 'relative' }}>
                 {form.profile_image_url
                   ? <img src={form.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
                   : <div style={{ width: photoSize, height: photoSize, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700 }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
               </div>
-            </div>
+            ) : (
+              <div style={{ display: 'inline-block', padding: 3, borderRadius: '50%', position: 'relative',
+                background: `conic-gradient(from 140deg, ${accentHex}, ${darkenHex(accentHex, 0.3)}, ${accentHex})`,
+                boxShadow: `0 8px 26px ${accentHex}40` }}>
+                <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, border: `3px solid ${bg.page}` }}>
+                  {form.profile_image_url
+                    ? <img src={form.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
+                    : <div style={{ width: photoSize, height: photoSize, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700 }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
+                </div>
+              </div>
+            )}
+          </div>
+          <h2 style={{ margin: '4px 0 3px', fontSize: calcNameSize(20, design), fontWeight: 800, fontFamily: font.heading, letterSpacing: '-0.02em',
+            ...(design.nameColor
+              ? { color: design.nameColor }
+              : {
+                  background: `linear-gradient(120deg, ${bg.text} 12%, ${accentHex} 92%)`,
+                  WebkitBackgroundClip: 'text', backgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent', color: 'transparent',
+                }),
+          }}>{form.name || 'Your Name'}</h2>
+          {isPro && form.title && (
+            <span style={{ display: 'inline-block', marginTop: 4, marginBottom: 2, padding: '3px 9px', borderRadius: 999,
+              fontSize: calcTitleSize(11, design), fontWeight: 700,
+              color: getTitleColor(design, accentHex),
+              background: accentHex + '1f', border: `1px solid ${accentHex}44` }}>{form.title}</span>
           )}
-          <h2 style={{ margin: '4px 0 3px', fontSize: calcNameSize(20, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text) }}>{form.name || 'Your Name'}</h2>
-          {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentHex) }}>{form.title}</p>}
           {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(11, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
           <LogoZone />
           {isPro && form.bio && <p style={{ fontSize: calcBioSize(11, design), color: getBioColor(design, bg.subtext), lineHeight: 1.5, marginBottom: 10 }}>{form.bio}</p>}
@@ -565,11 +605,25 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
     const photoSize = calcPhotoSize(60, design)
     const neonBorder = design.cardStyle === 'glass' ? `0 0 20px ${accentHex}44` : glow
     return (
-      <div style={{ ...pageStyle, backgroundColor: design.customBgColor || '#050510' }}>
-        {design.cardStyle === 'gradient' && (
-          <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at top, ${accentHex}11 0%, transparent 60%)`, pointerEvents: 'none' }} />
-        )}
-        <div style={{ padding: 16 }}>
+      <div style={{ ...pageStyle, backgroundColor: design.customBgColor || '#050510', position: 'relative', overflow: 'hidden' }}>
+        {/* The room the neon sits in, mirrored from the live card: horizon glow,
+            perspective grid floor, scanline wash. */}
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '140%', height: 150, background: `radial-gradient(ellipse at top, ${accentHex}33 0%, transparent 70%)` }} />
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, height: '38%',
+            backgroundImage: `linear-gradient(${accentHex}22 1px, transparent 1px), linear-gradient(90deg, ${accentHex}22 1px, transparent 1px)`,
+            backgroundSize: '26px 26px',
+            transform: 'perspective(200px) rotateX(62deg)', transformOrigin: 'bottom',
+            maskImage: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)',
+            WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)',
+          }} />
+          <div style={{
+            position: 'absolute', inset: 0, opacity: 0.5,
+            backgroundImage: 'repeating-linear-gradient(180deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 3px)',
+          }} />
+        </div>
+        <div style={{ padding: 16, position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
             {design.profileBorder === false ? (
               <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, backgroundColor: '#0a0a1a', flexShrink: 0 }}>
@@ -578,7 +632,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
                   : <div style={{ width: photoSize, height: photoSize, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700, color: accentHex }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
               </div>
             ) : (
-              <div style={{ borderRadius: '50%', padding: 2, background: `linear-gradient(135deg, ${accentHex}, ${accentHex}44)`, boxShadow: neonBorder, flexShrink: 0 }}>
+              <div style={{ borderRadius: '50%', padding: 2, background: `linear-gradient(135deg, ${accentHex}, ${accentHex}44)`, boxShadow: `${neonBorder}, 0 0 24px ${accentHex}55`, flexShrink: 0 }}>
                 <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, backgroundColor: '#0a0a1a' }}>
                   {form.profile_image_url
                     ? <img src={form.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
@@ -587,12 +641,13 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
               </div>
             )}
             <div style={{ flex: 1, minWidth: 0, ...textNudge }}>
-              <h2 style={{ margin: '0 0 3px', fontSize: calcNameSize(16, design), fontWeight: 700, fontFamily: font.heading, color: getNameColor(design, '#e8e8ff') }}>{form.name || 'Your Name'}</h2>
-              {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: calcTitleSize(10, design), color: getTitleColor(design, accentHex), fontWeight: 600, textShadow: `0 0 8px ${accentHex}` }}>{form.title}</p>}
-              {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(10, design), color: getCompanyColor(design, '#404070') }}>{form.company}</p>}
+              <h2 style={{ margin: '0 0 3px', fontSize: calcNameSize(16, design), fontWeight: 700, fontFamily: font.heading, color: getNameColor(design, '#e8e8ff'),
+                textShadow: design.nameColor ? undefined : `0 0 6px ${accentHex}88, 0 0 22px ${accentHex}55` }}>{form.name || 'Your Name'}</h2>
+              {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: calcTitleSize(10, design), color: getTitleColor(design, accentHex), fontWeight: 600, textShadow: `0 0 8px ${accentHex}`, textTransform: 'uppercase' as any, letterSpacing: '0.14em' }}>{form.title}</p>}
+              {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(10, design), color: getCompanyColor(design, '#6a6aa8') }}>{form.company}</p>}
             </div>
           </div>
-          <div style={{ height: 1, background: `linear-gradient(90deg, ${accentHex}, transparent)`, marginBottom: 8, boxShadow: `0 0 4px ${accentHex}` }} />
+          <div style={{ height: 2, background: `linear-gradient(90deg, transparent, ${accentHex}, transparent)`, marginBottom: 10, boxShadow: `0 0 10px ${accentHex}, 0 0 24px ${accentHex}66` }} />
           <LogoZone filter="brightness(2) saturate(0.5)" />
           {isPro && form.bio && <p style={{ fontSize: calcBioSize(10, design), color: getBioColor(design, '#6060a0'), lineHeight: 1.6, marginBottom: 12 }}>{form.bio}</p>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
