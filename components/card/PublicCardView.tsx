@@ -107,11 +107,12 @@ function darkenHex(hex: string, amount: number): string {
 }
 
 // ── ContactBtn ────────────────────────────────────────────────────────────────
-function ContactBtn({ icon, label, sublabel, href, accentHex, bg, cardEffect }: {
+function ContactBtn({ icon, label, sublabel, href, accentHex, bg, cardEffect, bodyFontSize }: {
   icon: React.ReactNode; label: string; sublabel?: string; href: string
   accentHex: string
   bg: Shared['bg']
   cardEffect: Shared['cardEffect']
+  bodyFontSize?: number
 }) {
   return (
     <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
@@ -120,7 +121,7 @@ function ContactBtn({ icon, label, sublabel, href, accentHex, bg, cardEffect }: 
       <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
         style={{ backgroundColor: accentHex + '22', color: accentHex }}>{icon}</div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate" style={{ color: bg.text }}>{label}</p>
+        <p className="text-sm font-medium truncate" style={{ color: bg.text, fontSize: bodyFontSize }}>{label}</p>
         {sublabel && <p className="text-xs" style={{ color: bg.subtext }}>{sublabel}</p>}
       </div>
       <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: bg.subtext }} />
@@ -129,18 +130,21 @@ function ContactBtn({ icon, label, sublabel, href, accentHex, bg, cardEffect }: 
 }
 
 // ── AllContacts ───────────────────────────────────────────────────────────────
-function AllContacts({ card, isPro, accentHex, bg, cardEffect, socialLinks }: Pick<Shared, 'card' | 'isPro' | 'accentHex' | 'bg' | 'cardEffect'> & {
+function AllContacts({ card, isPro, accentHex, bg, cardEffect, design, socialLinks }: Pick<Shared, 'card' | 'isPro' | 'accentHex' | 'bg' | 'cardEffect' | 'design'> & {
   socialLinks: { platform: string; url: string; icon: React.ReactNode; color?: string }[]
 }) {
+  // bodySize was wired into the design panel but never read here, so the
+  // control moved the editor preview and left the real card alone.
+  const bodyFontSize = getBodyFontSize(design)
   return (
     <div className="space-y-2.5">
-      {card.phone && <ContactBtn icon={<Phone className="w-4 h-4" />} label={card.phone} href={`tel:${card.phone}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
-      {isPro && card.work_phone && <ContactBtn icon={<Phone className="w-4 h-4" />} label={card.work_phone} sublabel="Work" href={`tel:${card.work_phone}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
+      {card.phone && <ContactBtn icon={<Phone className="w-4 h-4" />} label={card.phone} href={`tel:${card.phone}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={bodyFontSize} />}
+      {isPro && card.work_phone && <ContactBtn icon={<Phone className="w-4 h-4" />} label={card.work_phone} sublabel="Work" href={`tel:${card.work_phone}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={bodyFontSize} />}
       {/* WhatsApp moved to socialLinks (brand-coloured pill) so it doesn't double-up here */}
-      {card.email && <ContactBtn icon={<Mail className="w-4 h-4" />} label={card.email} href={`mailto:${card.email}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
-      {isPro && card.address && <ContactBtn icon={<MapPin className="w-4 h-4" />} label={card.address} href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
-      {card.website && <ContactBtn icon={<Globe className="w-4 h-4" />} label={card.website.replace(/^https?:\/\//, '')} href={card.website.startsWith('http') ? card.website : `https://${card.website}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
-      {socialLinks.map(s => <ContactBtn key={s.platform} icon={s.icon} label={`${s.platform} Profile`} href={s.url} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />)}
+      {card.email && <ContactBtn icon={<Mail className="w-4 h-4" />} label={card.email} href={`mailto:${card.email}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={bodyFontSize} />}
+      {isPro && card.address && <ContactBtn icon={<MapPin className="w-4 h-4" />} label={card.address} href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={bodyFontSize} />}
+      {card.website && <ContactBtn icon={<Globe className="w-4 h-4" />} label={card.website.replace(/^https?:\/\//, '')} href={card.website.startsWith('http') ? card.website : `https://${card.website}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={bodyFontSize} />}
+      {socialLinks.map(s => <ContactBtn key={s.platform} icon={s.icon} label={`${s.platform} Profile`} href={s.url} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={bodyFontSize} />)}
     </div>
   )
 }
@@ -809,9 +813,9 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
           </div>
           {/* Pro extras that don't fit in the circle row */}
           <div className="space-y-2.5">
-            {isPro && card.work_phone && <ContactBtn icon={<Phone className="w-4 h-4" />} label={card.work_phone} sublabel="Work" href={`tel:${card.work_phone}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
-            {isPro && card.whatsapp && <ContactBtn icon={<MessageCircle className="w-4 h-4" />} label={card.whatsapp} sublabel="WhatsApp" href={`https://wa.me/${card.whatsapp.replace(/\D/g, '')}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
-            {isPro && card.address && <ContactBtn icon={<MapPin className="w-4 h-4" />} label={card.address} href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} />}
+            {isPro && card.work_phone && <ContactBtn icon={<Phone className="w-4 h-4" />} label={card.work_phone} sublabel="Work" href={`tel:${card.work_phone}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={getBodyFontSize(design)} />}
+            {isPro && card.whatsapp && <ContactBtn icon={<MessageCircle className="w-4 h-4" />} label={card.whatsapp} sublabel="WhatsApp" href={`https://wa.me/${card.whatsapp.replace(/\D/g, '')}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={getBodyFontSize(design)} />}
+            {isPro && card.address && <ContactBtn icon={<MapPin className="w-4 h-4" />} label={card.address} href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={getBodyFontSize(design)} />}
           </div>
           <BottomSection {...bottomProps} />
           {/* URL footer in gradient */}

@@ -98,7 +98,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, backgroundColor: cardEffect.surfaceBg, borderRadius: 10, padding: '8px 12px', border: cardEffect.borderStyle }}>
         <span style={{ color: accentHex, flexShrink: 0 }}>{icon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 11, fontWeight: 500, margin: 0, color: bg.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</p>
+          <p style={{ fontSize: getBodyFontSize(design) - 3, fontWeight: 500, margin: 0, color: bg.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</p>
           {sublabel && <p style={{ fontSize: 10, margin: 0, color: bg.subtext }}>{sublabel}</p>}
         </div>
         <ChevronRight style={{ width: 12, height: 12, color: bg.subtext, flexShrink: 0 }} />
@@ -122,7 +122,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
     return (
       <div style={{
         marginTop: 12, padding: '10px 0', borderRadius: 12, textAlign: 'center',
-        fontSize: 12, fontWeight: 700, fontFamily: font.heading,
+        fontSize: getButtonFontSize(design) - 2, fontWeight: 700, fontFamily: font.heading,
         color: outline ? accentHex : buttonText,
         backgroundColor: outline ? 'transparent' : buttonBg,
         border: outline
@@ -338,7 +338,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           </div>
           <Certs />
           {/* Save Contact action button */}
-          <div style={{ marginTop: 10, padding: '10px 0', textAlign: 'center', fontSize: 11, fontWeight: 700,
+          <div style={{ marginTop: 10, padding: '10px 0', textAlign: 'center', fontSize: getButtonFontSize(design) - 3, fontWeight: 700,
             color: design.buttonTextColor || '#ffffff',
             backgroundColor: design.buttonBgColor || accentHex,
             border: design.buttonBorderColor ? `1px solid ${design.buttonBorderColor}` : 'none',
@@ -495,7 +495,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           <LogoZone />
           {isPro && form.bio && <p style={{ fontSize: calcBioSize(11, design), color: getBioColor(design, bg.subtext), lineHeight: 1.5, marginBottom: 10 }}>{form.bio}</p>}
           <ContactList /><Certs />
-          <div style={{ marginTop: 12, padding: '10px 0', borderRadius: 12, textAlign: 'center', fontSize: 12, fontWeight: 700, color: buttonText,
+          <div style={{ marginTop: 12, padding: '10px 0', borderRadius: 12, textAlign: 'center', fontSize: getButtonFontSize(design) - 2, fontWeight: 700, color: buttonText,
             background: `linear-gradient(135deg, ${buttonBg}, ${buttonBg}aa)`,
             border: buttonBorder ? `2px solid ${buttonBorder}` : 'none',
             boxShadow: design.cardStyle === 'glass' ? `0 0 12px ${accentHex}66` : undefined }}>Save Contact</div>
@@ -587,13 +587,13 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           <LogoZone />
           {isPro && form.bio && <p style={{ fontSize: calcBioSize(10, design), color: getBioColor(design, bg.subtext), lineHeight: 1.6, marginBottom: 10 }}>{form.bio}</p>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
-            {form.phone && <span style={{ fontSize: 10, color: bg.text }}>{form.phone}</span>}
-            {form.email && <span style={{ fontSize: 10, color: bg.text }}>{form.email}</span>}
+            {form.phone && <span style={{ fontSize: getBodyFontSize(design) - 4, color: bg.text }}>{form.phone}</span>}
+            {form.email && <span style={{ fontSize: getBodyFontSize(design) - 4, color: bg.text }}>{form.email}</span>}
             {form.website && <span style={{ fontSize: 10, color: bg.text }}>{form.website.replace(/^https?:\/\//, '')}</span>}
-            {links.map(l => <span key={l.title} style={{ fontSize: 10, color: accentHex }}>{l.title}</span>)}
+            {links.map(l => <span key={l.title} style={{ fontSize: getBodyFontSize(design) - 4, color: accentHex }}>{l.title}</span>)}
           </div>
           <Certs />
-          <div style={{ marginTop: 10, padding: '8px 0', borderRadius: 8, textAlign: 'center', fontSize: 11, fontWeight: 700, color: buttonText, backgroundColor: buttonBg, border: buttonBorder ? `2px solid ${buttonBorder}` : 'none' }}>Save Contact</div>
+          <div style={{ marginTop: 10, padding: '8px 0', borderRadius: 8, textAlign: 'center', fontSize: getButtonFontSize(design) - 3, fontWeight: 700, color: buttonText, backgroundColor: buttonBg, border: buttonBorder ? `2px solid ${buttonBorder}` : 'none' }}>Save Contact</div>
         </div>
       </div>
     )
@@ -659,12 +659,12 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
             ].filter(Boolean).map((item: any, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, backgroundColor: accentHex + '0d', borderRadius: 8, padding: '7px 10px', border: `1px solid ${accentHex}33` }}>
                 <span style={{ color: accentHex }}>{item.icon}</span>
-                <span style={{ fontSize: 10, color: '#c0c0e8' }}>{item.label}</span>
+                <span style={{ fontSize: getBodyFontSize(design) - 4, color: '#c0c0e8' }}>{item.label}</span>
               </div>
             ))}
           </div>
           <Certs />
-          <div style={{ marginTop: 12, padding: '10px 0', borderRadius: 8, textAlign: 'center', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: design.buttonTextColor || accentHex, backgroundColor: design.buttonBgColor || 'transparent', border: `1px solid ${design.buttonBorderColor || accentHex}`, boxShadow: neonBorder, fontFamily: font.heading, textTransform: 'uppercase' as any }}>SAVE CONTACT</div>
+          <div style={{ marginTop: 12, padding: '10px 0', borderRadius: 8, textAlign: 'center', fontSize: getButtonFontSize(design) - 3, fontWeight: 700, letterSpacing: '0.08em', color: design.buttonTextColor || accentHex, backgroundColor: design.buttonBgColor || 'transparent', border: `1px solid ${design.buttonBorderColor || accentHex}`, boxShadow: neonBorder, fontFamily: font.heading, textTransform: 'uppercase' as any }}>SAVE CONTACT</div>
         </div>
       </div>
     )
@@ -737,8 +737,8 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
             {isPro && form.title && <p style={{ margin: 0, fontSize: calcTitleSize(9, design), fontWeight: 600, color: getTitleColor(design, accentHex), textAlign: 'center' }}>{form.title}</p>}
             {form.company && <p style={{ margin: '3px 0 8px', fontSize: calcCompanySize(8, design), color: getCompanyColor(design, '#64748b'), textAlign: 'center' }}>{form.company}</p>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {form.phone && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Phone style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: 8, color: '#0f172a' }}>{form.phone}</span></div>}
-              {form.email && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Mail style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: 8, color: '#0f172a' }}>{form.email}</span></div>}
+              {form.phone && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Phone style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: getBodyFontSize(design) - 6, color: '#0f172a' }}>{form.phone}</span></div>}
+              {form.email && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Mail style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: getBodyFontSize(design) - 6, color: '#0f172a' }}>{form.email}</span></div>}
               {form.website && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Globe style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: 8, color: '#0f172a' }}>{form.website.replace(/^https?:\/\//, '')}</span></div>}
             </div>
           </div>
@@ -771,8 +771,8 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         </div>
         <div style={{ borderTop: `1px solid ${rule}`, paddingTop: 8 }}>
           <p style={{ margin: '0 0 5px', fontSize: 6, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.3em' }}>Correspondence</p>
-          {form.phone && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: `1px solid ${rule}`, fontFamily: 'Georgia, serif' }}><span style={{ fontSize: 7, color: muted, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Tel</span><span style={{ fontSize: 9, color: ink }}>{form.phone}</span></div>}
-          {form.email && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: `1px solid ${rule}`, fontFamily: 'Georgia, serif' }}><span style={{ fontSize: 7, color: muted, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Email</span><span style={{ fontSize: 9, color: ink }}>{form.email}</span></div>}
+          {form.phone && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: `1px solid ${rule}`, fontFamily: 'Georgia, serif' }}><span style={{ fontSize: 7, color: muted, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Tel</span><span style={{ fontSize: getBodyFontSize(design) - 5, color: ink }}>{form.phone}</span></div>}
+          {form.email && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: `1px solid ${rule}`, fontFamily: 'Georgia, serif' }}><span style={{ fontSize: 7, color: muted, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Email</span><span style={{ fontSize: getBodyFontSize(design) - 5, color: ink }}>{form.email}</span></div>}
           {form.website && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: `1px solid ${rule}`, fontFamily: 'Georgia, serif' }}><span style={{ fontSize: 7, color: muted, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Web</span><span style={{ fontSize: 9, color: ink }}>{form.website.replace(/^https?:\/\//, '')}</span></div>}
         </div>
       </div>
