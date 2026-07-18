@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { BRAND_FIELDS } from '@/lib/team-brand'
+import { LOCK_GROUP_IDS } from '@/lib/team-locks'
 import { getManagedDepartments, canManageDepartment, cardDepartment, isOrgOwner, ownsOrgOfDepartment, findUserByEmail, getOwnedOrgs } from '@/lib/department-perms'
 import { newInviteToken, sendTeamInvite } from '@/lib/team-invite'
 
@@ -100,6 +101,42 @@ export async function POST(request: Request) {
   }
 
   // ── Set a department's look ───────────────────────────────────────────────
+  // ── What a department's members may not change on their own card ──────────
+  // The head of a department decides this for their own team, and the company
+  // admin decides it for everyone. Enforced in /api/team/card/save, not here.
+  if (action === 'set_locks') {
+    const { department_id, locked } = body
+    if (!department_id) return NextResponse.json({ error: 'department_id required' }, { status: 400 })
+    if (!(await canManageDepartment(admin, user.id, department_id))) {
+      return NextResponse.json({ error: 'You do not manage that department' }, { status: 403 })
+    }
+    // Only ids we recognise are stored, so nothing arbitrary lands in the jsonb.
+    const clean = Array.isArray(locked)
+      ? [...new Set(locked.filter((id: unknown) => typeof id === 'string' && LOCK_GROUP_IDS.includes(id)))]
+      : []
+    const { error } = await admin.from('departments')
+      .update({ locked_fields: clean, updated_at: new Date().toISOString() }).eq('id', department_id)
+    if (error) return NextResponse.json({ error: `Could not save: ${error.message}` }, { status: 500 })
+    return NextResponse.json({ success: true, locked: clean })
+  }
+
+  // Company-wide version, for the org admin. A department can add to this but
+  // never remove from it.
+  if (action === 'set_org_locks') {
+    const { org_id, locked } = body
+    if (!org_id) return NextResponse.json({ error: 'org_id required' }, { status: 400 })
+    if (!(await isOrgOwner(admin, user.id, org_id))) {
+      return NextResponse.json({ error: 'Only the company admin can set this' }, { status: 403 })
+    }
+    const clean = Array.isArray(locked)
+      ? [...new Set(locked.filter((id: unknown) => typeof id === 'string' && LOCK_GROUP_IDS.includes(id)))]
+      : []
+    const { error } = await admin.from('organizations')
+      .update({ locked_fields: clean, updated_at: new Date().toISOString() }).eq('id', org_id)
+    if (error) return NextResponse.json({ error: `Could not save: ${error.message}` }, { status: 500 })
+    return NextResponse.json({ success: true, locked: clean })
+  }
+
   if (action === 'set_brand') {
     const { department_id, brand } = body
     if (!department_id) return NextResponse.json({ error: 'department_id required' }, { status: 400 })

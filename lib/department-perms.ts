@@ -19,6 +19,7 @@ export interface ManagedDept {
   organization_id: string
   name: string
   brand: Record<string, any>
+  locked_fields: string[]
   // True when the user reaches it as the org owner rather than a named
   // manager, so the UI can say "you own this whole team".
   viaOwner: boolean
@@ -42,16 +43,31 @@ export async function getManagedDepartments(admin: any, userId: string): Promise
 
   // Pull every candidate department in one query: those in owned orgs, or those
   // named. Then tag how each was reached.
-  const { data: depts } = await admin
-    .from('departments')
-    .select('id, organization_id, name, brand')
+  // locked_fields arrives with migration 035. Migrations are applied by hand,
+  // so this must not depend on the deploy and the migration landing in a
+  // particular order - if the column is not there yet, carry on without it and
+  // treat everything as unlocked, which is exactly how it behaved before.
+  let depts: any[] | null = null
+  {
+    const withLocks = await admin
+      .from('departments')
+      .select('id, organization_id, name, brand, locked_fields')
+    if (withLocks.error) {
+      const fallback = await admin
+        .from('departments')
+        .select('id, organization_id, name, brand')
+      depts = fallback.data
+    } else {
+      depts = withLocks.data
+    }
+  }
 
   const out: ManagedDept[] = []
   for (const d of depts || []) {
     const viaOwner = ownedOrgIds.has(d.organization_id)
     const viaManager = managedDeptIds.has(d.id)
     if (!viaOwner && !viaManager) continue
-    out.push({ id: d.id, organization_id: d.organization_id, name: d.name, brand: d.brand || {}, viaOwner })
+    out.push({ id: d.id, organization_id: d.organization_id, name: d.name, brand: d.brand || {}, locked_fields: d.locked_fields || [], viaOwner })
   }
   return out
 }

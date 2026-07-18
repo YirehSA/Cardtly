@@ -71,6 +71,7 @@ export default async function DepartmentsPage() {
     isOwner: d.viaOwner,
     brand: d.brand,
     hasBrand: Object.keys(d.brand || {}).length > 0,
+    lockedFields: d.locked_fields || [],
     heads: headsByDept[d.id] || [],
     cards: (cards || []).filter((c: any) => c.department_id === d.id).map((c: any) => ({
       id: c.id, name: c.name, slug: c.slug, claimed: !!c.claimed_at, inviteEmail: c.invite_email || null,

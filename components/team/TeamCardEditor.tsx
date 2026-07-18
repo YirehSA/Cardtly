@@ -186,31 +186,30 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
   async function save() {
     setSaving(true)
 
-    // Members can't write the locked fields or the design JSON, so
-    // we strip them from the payload before sending. Defense in
-    // depth: even if a member tampered with the client, the
-    // service-role RLS bypass means we should ideally also enforce
-    // this server-side - but the team_cards table currently only
-    // gets writes from the editor, so client-side filtering is
-    // sufficient for v1.
-    const payload: Record<string, any> = { ...form, updated_at: new Date().toISOString() }
-    if (isAdmin) {
-      payload.color_theme = serializeDesign(design)
-    } else if (usesBrand) {
-      // Member on a brand-managed card: strip the brand fields they
-      // can't change. On a card with its own branding, members edit
-      // freely.
-      for (const f of MEMBER_LOCKED_FIELDS) delete payload[f]
-    }
+    // The save goes through the API, which decides what may actually be
+    // written. This used to update team_cards straight from the browser after
+    // stripping locked fields here - which meant the locks only held for people
+    // who did not look. Sending everything and letting the server strip it is
+    // both simpler and the only version that is true.
+    const payload: Record<string, any> = { ...form }
+    if (isAdmin) payload.color_theme = serializeDesign(design)
 
-    const { error } = await supabase
-      .from('team_cards')
-      .update(payload)
-      .eq('id', card.id)
+    const res = await fetch('/api/team/card/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ card_id: card.id, fields: payload }),
+    })
+    const result = await res.json().catch(() => ({}))
 
-    if (error) toast.error('Failed to save: ' + error.message)
-    else {
-      toast.success('Card saved')
+    if (!res.ok || !result.success) {
+      toast.error(result.error || 'Failed to save')
+    } else {
+      // Say so when the company kept something, rather than pretending it saved.
+      if (result.removed?.length) {
+        toast.success('Saved. Some details are set by your company and were left as they are.')
+      } else {
+        toast.success('Card saved')
+      }
       // Keep any saved Google Wallet passes for this team card in sync.
       // Best-effort and non-blocking; no-ops if nobody saved it.
       const slug = (card as any).slug

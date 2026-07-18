@@ -3,11 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import {
-  Layers, Palette, Loader2, UserPlus, X, ExternalLink, Eye, Users, Check,
-  RefreshCw, Building2, Crown, Plus, Pencil, Trash2, ShieldCheck, ArrowRight,
-  Sparkles, Mail, ChevronLeft,
-} from 'lucide-react'
+import { LOCK_GROUPS } from '@/lib/team-locks'
+import { Layers, Palette, Loader2, UserPlus, X, ExternalLink, Eye, Users, Check, RefreshCw, Building2, Crown, Plus, Pencil, Trash2, ShieldCheck, ArrowRight, Sparkles, Mail, ChevronLeft, Lock, LockOpen } from 'lucide-react'
 
 interface Card {
   id: string; name: string | null; slug: string | null; claimed: boolean
@@ -17,6 +14,7 @@ interface Head { userId: string; email: string | null }
 interface Dept {
   id: string; name: string; organizationId: string; isOwner: boolean
   brand: Record<string, any>; hasBrand: boolean; heads: Head[]; cards: Card[]
+  lockedFields: string[]
 }
 interface OwnedOrg { id: string; name: string }
 
@@ -410,6 +408,47 @@ function DepartmentDetail({ dept, accent, departments, onBack, call, loading }: 
             None of your people has designed their card yet. Once one does (under My Card), you can copy that look for the whole department here.
           </p>
         )}
+      </div>
+
+      {/* What the team may change. This is the department head's version of
+          the company rules: they can add locks for their own team, and the
+          company's own locks always apply on top. */}
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <Lock className="w-4 h-4" style={{ color: accent }} />
+          <h2 className="font-bold text-sm">What your team can change</h2>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Tap anything you want kept the same on every card in this department. Your people can still
+          edit everything else - their name, photo, job title and phone number.
+        </p>
+        <div className="grid sm:grid-cols-2 gap-2">
+          {LOCK_GROUPS.map(g => {
+            const on = (dept.lockedFields || []).includes(g.id)
+            return (
+              <button key={g.id} disabled={loading === `locks-${dept.id}`}
+                onClick={() => {
+                  const next = on
+                    ? (dept.lockedFields || []).filter(id => id !== g.id)
+                    : [...(dept.lockedFields || []), g.id]
+                  call(`locks-${dept.id}`, { action: 'set_locks', department_id: dept.id, locked: next },
+                    on ? `${g.label} unlocked` : `${g.label} locked`)
+                }}
+                className={`text-left rounded-2xl border-2 p-3 transition-all disabled:opacity-40 ${on ? '' : 'border-border hover:border-foreground/20 hover:-translate-y-0.5'}`}
+                style={on ? { borderColor: accent, background: accent + '14' } : undefined}>
+                <span className="flex items-center gap-2">
+                  {on
+                    ? <Lock className="w-3.5 h-3.5 shrink-0" style={{ color: accent }} />
+                    : <LockOpen className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
+                  <span className="text-sm font-bold" style={on ? { color: accent } : undefined}>{g.label}</span>
+                </span>
+                <span className="text-[11px] text-muted-foreground block mt-0.5 ml-5.5">
+                  {on ? g.hint : 'Anyone can change this'}
+                </span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* The people */}
