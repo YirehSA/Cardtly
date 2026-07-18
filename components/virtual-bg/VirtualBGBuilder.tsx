@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { parseDesign, getAccentHex } from '@/types/design'
-import { Download, Upload, Check } from 'lucide-react'
+import { Download, Upload, Check, Monitor } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Card {
@@ -80,6 +80,10 @@ export default function VirtualBGBuilder({ cards, defaultCardId }: Props) {
   const [rendering, setRendering] = useState(false)
 
   const cardUrl = `https://cardtly.com/card/${card.slug}`
+  // The code carries the same marker the downloadable QR uses, so someone
+  // scanning your background off a video call is counted as a scan rather than
+  // an anonymous visit. The URL shown as text stays clean.
+  const qrTarget = `${cardUrl}?s=qr`
 
   // Parse accent hex to RGB components
   function hexToRGB(hex: string) {
@@ -297,36 +301,47 @@ export default function VirtualBGBuilder({ cards, defaultCardId }: Props) {
     }
 
     // ── QR code (bottom right) ─────────────────────────────────────────────
+    //
+    // Always dark modules on a solid white tile, whatever the background.
+    // It used to invert on dark backgrounds - white modules on a panel only
+    // 12% white - which is close to the worst thing you can do to a code that
+    // has to survive webcam resolution, video compression and someone
+    // scanning it across a room at an angle. A solid white tile is also the
+    // one thing that reads deliberately on every background.
     if (showQR) {
       const QRCode = (await import('qrcode')).default
       const qrCanvas = document.createElement('canvas')
-      await QRCode.toCanvas(qrCanvas, cardUrl, {
+      await QRCode.toCanvas(qrCanvas, qrTarget, {
         width: 160,
-        margin: 1,
-        color: {
-          dark: isDark ? '#ffffff' : '#000000',
-          light: '#00000000',
-        },
+        margin: 0,
+        errorCorrectionLevel: 'M',
+        color: { dark: '#111827', light: '#ffffff' },
       })
 
-      // White rounded background
       const qrX = W - 220
       const qrY = H - 220
-      ctx.fillStyle = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)'
-      roundRect(ctx, qrX - 10, qrY - 10, 180, 200, 12)
+      const pad = 14
+
+      ctx.save()
+      ctx.shadowColor = 'rgba(0,0,0,0.35)'
+      ctx.shadowBlur = 24
+      ctx.shadowOffsetY = 6
+      ctx.fillStyle = '#ffffff'
+      roundRect(ctx, qrX - pad, qrY - pad, 160 + pad * 2, 160 + pad * 2 + 30, 16)
       ctx.fill()
+      ctx.restore()
 
       ctx.drawImage(qrCanvas, qrX, qrY, 160, 160)
 
-      ctx.font = '18px system-ui, Arial, sans-serif'
-      ctx.fillStyle = isDark ? 'rgba(255,255,255,0.6)' : '#64748b'
+      ctx.font = '600 18px system-ui, Arial, sans-serif'
+      ctx.fillStyle = '#475569'
       ctx.textAlign = 'center'
-      ctx.fillText('Scan to connect', qrX + 80, qrY + 178)
+      ctx.fillText('Scan to connect', qrX + 80, qrY + 160 + 22)
       ctx.textAlign = 'left'
     }
 
     setRendering(false)
-  }, [bgDesign, stockImage, showName, showLogo, showQR, customBg, card, accentHex, cardUrl])
+  }, [bgDesign, stockImage, showName, showLogo, showQR, customBg, card, accentHex, cardUrl, qrTarget])
 
   useEffect(() => { render() }, [render])
 
@@ -347,11 +362,19 @@ export default function VirtualBGBuilder({ cards, defaultCardId }: Props) {
   function download() {
     const canvas = canvasRef.current
     if (!canvas) return
-    const link = document.createElement('a')
-    link.download = `${card.name.replace(/\s+/g, '-')}-virtual-bg.png`
-    link.href = canvas.toDataURL('image/png')
-    link.click()
-    toast.success('Background downloaded — 1920×1080 PNG')
+    // toDataURL throws if anything drawn here ever came from a source without
+    // CORS headers. The success toast used to fire regardless, so a failed
+    // export looked exactly like a successful one.
+    try {
+      const href = canvas.toDataURL('image/png')
+      const link = document.createElement('a')
+      link.download = `${card.name.replace(/\s+/g, '-')}-virtual-bg.png`
+      link.href = href
+      link.click()
+      toast.success('Downloaded - 1920x1080, ready for Zoom, Teams or Meet')
+    } catch {
+      toast.error('Could not export the image. Try a different background, or remove the logo and try again.')
+    }
   }
 
   function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -369,10 +392,18 @@ export default function VirtualBGBuilder({ cards, defaultCardId }: Props) {
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold">Virtual Background</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Create a branded background for Zoom, Teams, Google Meet and more.
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
+              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+              <Monitor className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="font-display text-2xl font-bold leading-tight">Your video call background</h1>
+              <p className="text-muted-foreground text-sm">
+                Everyone on the call can scan your card without you saying a word.
+              </p>
+            </div>
+          </div>
         </div>
         {cards.length > 1 && (
           <div className="flex items-center gap-2">
