@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from 'react'
 import { parseDesign, getAccentHex } from '@/types/design'
-import { Copy, Download, Check, Mail, Phone, Globe, Linkedin, Twitter, Instagram } from 'lucide-react'
+import { Copy, Download, Check, Mail, Phone, Globe, Linkedin, Twitter, Instagram, Code } from 'lucide-react'
 import { toast } from 'sonner'
 
-interface Card {
+export interface SignatureCard {
   id: string
   name: string
   title: string | null
@@ -20,18 +20,23 @@ interface Card {
   company_logo_url: string | null
   color_theme: string | null
   slug: string
+  // Set by the page when it merges personal and team cards into one list. The
+  // component already rendered _label; it just was not declared, so the type
+  // disagreed with the code on both sides of the boundary.
+  _type?: string
+  _label?: string
 }
 
 type Style = 'minimal' | 'modern' | 'compact' | 'bold'
 
 interface Props {
-  cards: Card[]
+  cards: SignatureCard[]
   defaultCardId: string
 }
 
 export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
   const [selectedCardId, setSelectedCardId] = useState<string>(defaultCardId)
-  const card = cards.find(c => c.id === selectedCardId) || cards[0]
+  const card = cards.find((c: SignatureCard) => c.id === selectedCardId) || cards[0]
   const design = parseDesign(card.color_theme)
   const accentHex = getAccentHex(design)
 
@@ -43,7 +48,12 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
   const [copied, setCopied] = useState(false)
 
   const cardUrl = `https://cardtly.com/card/${card.slug}`
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(cardUrl)}`
+  // Served by us, not api.qrserver.com. This image ends up inside every email
+  // the customer sends, so it cannot depend on a free third party still being
+  // there in a year - and it should not tell anyone else that the mail was
+  // opened. It also carries the ?s=qr marker, so scans from a signature are
+  // counted as scans.
+  const qrUrl = `https://cardtly.com/api/qr/${card.slug}?size=160`
 
   // ── Generate HTML ─────────────────────────────────────────────────────────
   const html = useMemo(() => {
@@ -179,11 +189,56 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
 </table>`
   }, [style, includePhoto, includeLogo, includeQR, includeSocials, accentHex, card, cardUrl, qrUrl])
 
-  async function copyHTML() {
-    await navigator.clipboard.writeText(html)
-    setCopied(true)
-    toast.success('HTML copied to clipboard')
-    setTimeout(() => setCopied(false), 2000)
+  // What lands anywhere that cannot accept rich content, so the fallback is a
+  // readable signature rather than a page of markup.
+  const plainText = useMemo(() => [
+    card.name,
+    [card.title, card.company].filter(Boolean).join(', '),
+    card.phone,
+    card.email,
+    card.website,
+    cardUrl,
+  ].filter(Boolean).join('\n'), [card, cardUrl])
+
+  // Copy the signature ITSELF, not its source code.
+  //
+  // This used to writeText the raw HTML, so pasting into Gmail gave you a wall
+  // of <table> markup rather than a signature - which is why the instructions
+  // told people to download a file, open it in a browser, select it and copy
+  // from there. Putting a text/html flavour on the clipboard makes one click
+  // paste a formatted signature straight into Gmail, Outlook or Apple Mail.
+  async function copySignature() {
+    try {
+      const item = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        // Plain-text fallback for anywhere that cannot take rich content.
+        'text/plain': new Blob([plainText], { type: 'text/plain' }),
+      })
+      await navigator.clipboard.write([item])
+      setCopied(true)
+      toast.success('Signature copied. Paste it into your email settings.')
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Older browsers, or a page without clipboard permission: fall back to
+      // the old behaviour rather than failing, and say what was copied.
+      try {
+        await navigator.clipboard.writeText(html)
+        setCopied(true)
+        toast.success('Copied the HTML code. Use the paste-as-code option in your email settings.')
+        setTimeout(() => setCopied(false), 2000)
+      } catch {
+        toast.error('Could not copy. Try the download button instead.')
+      }
+    }
+  }
+
+  async function copyCode() {
+    try {
+      await navigator.clipboard.writeText(html)
+      toast.success('HTML code copied')
+    } catch {
+      toast.error('Could not copy the code')
+    }
   }
 
   function downloadHTML() {
@@ -206,8 +261,18 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold">Email Signature</h1>
-          <p className="text-muted-foreground text-sm mt-1">Generate a professional email signature from your card.</p>
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
+              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+              <Mail className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="font-display text-2xl font-bold leading-tight">Your email signature</h1>
+              <p className="text-muted-foreground text-sm">
+                Every email you send becomes a way to save your card.
+              </p>
+            </div>
+          </div>
         </div>
         {cards.length > 1 && (
           <div className="flex items-center gap-2">
@@ -271,18 +336,31 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-3">
-            <button onClick={copyHTML}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm bg-foreground text-background hover:bg-foreground/90 transition">
+          {/* Actions. Copying the signature itself is the main path now, so it
+              is the big button and the code is tucked behind a small one. */}
+          <div className="space-y-2">
+            <button onClick={copySignature}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm text-white transition hover:opacity-90"
+              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              {copied ? 'Copied!' : 'Copy HTML'}
+              {copied ? 'Copied - now paste it' : 'Copy my signature'}
             </button>
-            <button onClick={downloadHTML}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm border border-border hover:bg-muted transition">
-              <Download className="w-4 h-4" />
-              Download
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={copyCode}
+                className="flex items-center justify-center gap-2 py-2.5 rounded-xl font-medium text-sm border border-border hover:bg-muted transition">
+                <Code className="w-4 h-4" />
+                Copy the code
+              </button>
+              <button onClick={downloadHTML}
+                className="flex items-center justify-center gap-2 py-2.5 rounded-xl font-medium text-sm border border-border hover:bg-muted transition">
+                <Download className="w-4 h-4" />
+                Download file
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground text-center">
+              &ldquo;Copy my signature&rdquo; copies the finished signature, so you can paste it straight in.
+              The code is only needed if your email asks for HTML.
+            </p>
           </div>
 
           {/* Install instructions */}
@@ -292,22 +370,21 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
               <div>
                 <p className="font-semibold text-foreground mb-1">Gmail</p>
                 <ol className="space-y-1 list-decimal list-inside">
-                  <li>Click Copy HTML above</li>
-                  <li>Open Gmail Settings → See all settings</li>
-                  <li>Go to General → Signature → Create new</li>
-                  <li>Click the source code button (&lt;&gt;) and paste the HTML</li>
-                  <li>Save changes</li>
+                  <li>Press <strong>Copy my signature</strong> above</li>
+                  <li>In Gmail, open Settings → See all settings</li>
+                  <li>Under General, scroll to Signature → Create new</li>
+                  <li>Click in the box and paste (Ctrl+V, or Cmd+V on a Mac)</li>
+                  <li>Scroll down and Save changes</li>
                 </ol>
               </div>
               <div>
                 <p className="font-semibold text-foreground mb-1">Outlook</p>
                 <ol className="space-y-1 list-decimal list-inside">
-                  <li>Download the HTML file</li>
-                  <li>Open the downloaded file in your browser</li>
-                  <li>Press Ctrl+A to select all, then Ctrl+C to copy</li>
-                  <li>Open Outlook → File → Options → Mail → Signatures</li>
-                  <li>Create new → paste (Ctrl+V)</li>
-                  <li>Set as default and save</li>
+                  <li>Press <strong>Copy my signature</strong> above</li>
+                  <li>In Outlook, go to File → Options → Mail → Signatures</li>
+                  <li>Click New, give it a name</li>
+                  <li>Click in the big box and paste (Ctrl+V)</li>
+                  <li>Set it as your default and save</li>
                 </ol>
               </div>
               <div>
