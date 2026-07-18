@@ -7,14 +7,23 @@ import {
   Wifi, Smartphone, Globe, LayoutTemplate, Palette, Images, Link2, Share2, Award, Sparkles,
   Users, CalendarDays, ClipboardList, Repeat, ScanLine,
   MessageCircle, Contact, FileSpreadsheet, CalendarClock,
-  BarChart2, Mail, Monitor, Building2, ArrowRight, Zap, Check, Wallet, UserPlus,
+  BarChart2, Mail, Monitor, Building2, ArrowRight, Zap, Check, Wallet, UserPlus, Lock,
 } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'Features — Everything Your Cardtly Digital Business Card Can Do',
+  // The old title ran to 73 characters once the "%s | Cardtly" template was
+  // applied, so Google cut it. absolute skips the template; this is 52.
+  title: { absolute: 'Features: Digital Business Cards for Teams | Cardtly' },
+  // 153 characters, and it leads with the team controls the page now covers
+  // rather than listing individual-user features only.
   description:
-    'Explore every Cardtly feature with examples: NFC tap-to-share, QR codes, editable templates, lead capture and CRM, meeting booking, paper card scanner, WhatsApp follow-up, one-click Excel export, weekly performance digest and analytics. Every feature included, free for 60 days.',
+    'Every Cardtly feature: NFC tap, QR, lead capture, meeting booking, per-rep analytics, and team controls - departments, locked branding, per-seat billing.',
   alternates: { canonical: '/features' },
+  openGraph: {
+    title: 'Every Cardtly feature, for one person or forty',
+    description:
+      'NFC and QR sharing, lead capture, meeting booking, analytics per rep, and the company controls: departments, choosable field locks and one brand across every card.',
+  },
 }
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
@@ -258,6 +267,16 @@ const GROUPS: Group[] = [
         how: 'Tap Add to Google Wallet on your card; edits you make later push to the saved pass automatically.',
       },
       {
+        icon: Link2, title: 'Your own short link', tier: 'Included',
+        desc: 'cardtly.com/card/yourname, yours to pick. Change it later and the old one keeps redirecting, so business cards already in someone’s wallet still land in the right place.',
+        how: 'Set your link in the card editor. Old links keep working automatically.',
+      },
+      {
+        icon: Share2, title: 'A QR code that never goes stale', tier: 'Included',
+        desc: 'Download your QR as a PNG or vector and put it on a poster, a van, a name badge or a slide. It points at your live card, so the details behind it change without reprinting anything.',
+        how: 'QR Code in the dashboard: pick a size and colour, download, print.',
+      },
+      {
         icon: UserPlus, title: "Share a teammate's card", tier: 'Team',
         desc: 'On a team, hand out a colleague’s card on the spot. "Let me give you our sales director’s card" is now a single tap from your dashboard.',
         how: 'Your dashboard lists every teammate’s card with copy and share buttons, ready to send by WhatsApp or link.',
@@ -362,6 +381,43 @@ const GROUPS: Group[] = [
         icon: Contact, title: 'Manage your contacts', tier: 'Included', isNew: true,
         desc: 'Edit, tidy and save any lead straight to your phone. Your Cardtly contacts stay organised and within reach.',
         how: 'Edit or delete any lead, or tap Save to phone to add them to your device in one step.',
+      },
+    ],
+  },
+  {
+    eyebrow: 'Run a team',
+    color: '#f59e0b',
+    heading: 'Give forty people one brand without chasing anyone',
+    features: [
+      {
+        icon: Building2, title: 'Departments, each with a head', tier: 'Team',
+        desc: 'Split the company into Sales, Support, Joburg, whatever fits. Each department gets a head who invites their own people, sets their look and sees their numbers - without touching anyone else’s team.',
+        how: 'Make a department, appoint a head by email, and they run it from their own dashboard.',
+      },
+      {
+        icon: Lock, title: 'Lock exactly what you choose', tier: 'Team',
+        desc: 'Company logo, company name, office number, website, address, social profiles, link buttons, gallery photos and card design. Lock any of them for the whole company, and a department head can tighten it further for their own team - never loosen it.',
+        how: 'Departments, then Company rules. Tap anything that should stay the same on every card.',
+      },
+      {
+        icon: UserPlus, title: 'Their details stay theirs', tier: 'Team',
+        desc: 'Whatever you have not locked belongs to the person: their name, photo, job title, bio and mobile number. Nobody in admin retypes forty phone numbers, and a locked field is shown to them as locked rather than silently ignored when they save.',
+        how: 'Each person claims their card by email and edits everything the company has left open.',
+      },
+      {
+        icon: Palette, title: 'One brand, or one per team', tier: 'Team',
+        desc: 'Set the company look once - logo, colours, template, links - and apply it to every card at once. A department can carry its own colours on top of that where it needs to.',
+        how: 'Team Brand, then “Update brand from my card”, then apply it to everyone or card by card.',
+      },
+      {
+        icon: BarChart2, title: 'Reporting per person', tier: 'Team',
+        desc: 'Views, taps, link clicks and saved contacts for every rep, and each lead they capture in one shared list. You find out who is actually being opened instead of asking how it is going.',
+        how: 'Team, then Analytics or Contacts, for the whole company or one department.',
+      },
+      {
+        icon: Users, title: 'Per seat, change any time', tier: 'Team',
+        desc: 'R97 per card a month. Add seats as you hire; a card you have not handed out yet sits ready with an invite against it, so a new starter is live on their first morning.',
+        how: 'Add cards from the team dashboard and invite people whenever you are ready.',
       },
     ],
   },
@@ -480,7 +536,7 @@ export default function FeaturesPage() {
         const compact = group.features.filter(f => !f.visual)
         return (
           <section key={group.eyebrow} className="py-14 px-6" style={gi % 2 === 1 ? { background: 'rgba(255,255,255,0.02)' } : undefined}>
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-[1400px] mx-auto">
               <Reveal>
                 <div className="mb-10">
                   <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: group.color }}>{group.eyebrow}</p>
@@ -544,7 +600,7 @@ export default function FeaturesPage() {
 
       {/* Teams callout */}
       <section className="py-14 px-6">
-        <Reveal className="max-w-6xl mx-auto">
+        <Reveal className="max-w-[1400px] mx-auto">
           <div className="rounded-3xl p-8 md:p-10 relative overflow-hidden"
             style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.12), rgba(0,212,255,0.06))', border: '1px solid rgba(124,58,237,0.25)' }}>
             <div className="flex items-start gap-5 flex-wrap">
@@ -555,19 +611,27 @@ export default function FeaturesPage() {
               <div className="flex-1 min-w-[260px]">
                 <h2 className="text-2xl md:text-3xl font-black tracking-tight mb-2">Cardtly for teams</h2>
                 <p className="text-base leading-relaxed mb-5 max-w-2xl" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                  Roll out consistent, on-brand cards across your whole team. Company branding stays locked, each member manages their own name, title and photo, and one admin dashboard shows every card&apos;s views and leads. Priced per seat.
+                  Roll out one brand across the whole company, decide exactly which parts people may not change, and give each department a head who runs their own team. R97 per card a month, and the first 60 days are free.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-6 max-w-xl">
-                  {['Locked company branding', 'Member-managed details', 'Shared questionnaire & lead capture', 'One admin analytics dashboard', "Share any teammate's card in a tap"].map(t => (
+                  {['Lock only what you choose', 'Departments with their own head', 'Their name, photo and title stay theirs', 'Reporting and leads per rep', 'One brand, or one per department', 'Add seats as you hire'].map(t => (
                     <div key={t} className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
                       <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#a78bfa' }} />{t}
                     </div>
                   ))}
                 </div>
-                <Link href="/contact" className="text-sm font-semibold inline-flex items-center gap-1.5 transition hover:opacity-80"
-                  style={{ color: '#a78bfa' }}>
-                  Talk to us about Teams <ArrowRight className="w-4 h-4" />
-                </Link>
+                <div className="flex flex-wrap items-center gap-4">
+                  <Link href="/signup"
+                    className="group inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white transition-all hover:scale-[1.03]"
+                    style={{ background: grad, boxShadow: '0 6px 26px rgba(124,58,237,0.4)' }}>
+                    Set your team up free
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                  <Link href="/contact" className="text-sm font-semibold inline-flex items-center gap-1.5 transition hover:opacity-80"
+                    style={{ color: '#a78bfa' }}>
+                    Or talk to us <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
