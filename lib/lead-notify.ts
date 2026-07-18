@@ -1,13 +1,19 @@
 import { Resend } from 'resend'
 import { waLink } from '@/lib/whatsapp'
 import { FROM_EMAIL } from '@/lib/email'
-import type { CardOwner } from '@/lib/card-owner'
+import { resolveTeamAdminEmails, type CardOwner } from '@/lib/card-owner'
 
-// Emails the card owner about a new lead. Every public lead source uses this,
-// so whichever form a visitor fills in - the card's contact form, a booking
-// request, or a questionnaire - the person whose card it is gets the same
-// email, at the same inboxes resolveCardOwner found (their card's display
-// address and, for a claimed card, their account address).
+// Emails everyone who should see a new lead. Every public lead source uses this,
+// so whichever form a visitor fills in - the card's contact form or a
+// questionnaire - the same people hear about it in the same way:
+//
+//   - the person whose card it is, at the inboxes resolveCardOwner found (their
+//     card's display address and, for a claimed card, their account address)
+//   - for a team card, a copy to the company admin and to the head of the
+//     card's department, who manage that person
+//
+// The two get different wording: the card holder is told it is their card, the
+// admins are told whose card it is and why they are seeing it.
 //
 // replyTo is the visitor, deliberately: this is mail addressed to us on their
 // behalf, so replying must reach them and not hello@cardtly.com. See lib/email.
@@ -25,6 +31,17 @@ export interface LeadDetails {
   answers?: { label: string; value: string }[] | null
 }
 
+export interface LeadCopy {
+  // Owner-facing wording.
+  subject: string
+  heading: string
+  intro: string
+  // Admin copy: short noun for the subject ('contact', 'questionnaire reply')
+  // and what the visitor did ('filled in the contact form on').
+  adminNoun: string
+  adminAction: string
+}
+
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
@@ -33,14 +50,14 @@ function row(label: string, value: string): string {
   return `<p style="margin:0 0 6px"><strong>${esc(label)}:</strong> ${esc(value)}</p>`
 }
 
-export async function notifyCardOwnerOfLead(
-  owner: CardOwner,
-  lead: LeadDetails,
-  // What the visitor did, so the email says the right thing per source.
-  source: { subject: string; heading: string; intro: string }
+async function send(
+  to: string[],
+  subject: string,
+  heading: string,
+  intro: string,
+  footer: string,
+  lead: LeadDetails
 ): Promise<void> {
-  if (!process.env.RESEND_API_KEY || owner.ownerEmails.length === 0) return
-
   const firstName = lead.name.split(' ')[0]
   const wa = waLink(lead.phone, `Hi ${firstName}, thanks for reaching out via my Cardtly card.`)
 
@@ -54,31 +71,70 @@ export async function notifyCardOwnerOfLead(
        </div>`
     : ''
 
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY)
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: owner.ownerEmails,
-      replyTo: lead.email,
-      subject: source.subject,
-      html: `
-        <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111">
-          <h2 style="margin:0 0 16px;font-size:20px">${esc(source.heading)}</h2>
-          <p style="margin:0 0 16px;color:#555">${esc(source.intro)} Reply to this email to reach them.</p>
-          <div style="background:#f6f6f6;border-radius:12px;padding:18px;margin-bottom:16px">
-            ${row('Name', lead.name)}
-            ${row('Email', lead.email)}
-            ${lead.phone ? row('Phone', lead.phone) : ''}
-            ${lead.company ? row('Company', lead.company) : ''}
-            ${lead.message ? `<p style="margin:12px 0 0;white-space:pre-wrap"><strong>Message:</strong> ${esc(lead.message)}</p>` : ''}
-          </div>
-          ${answersBlock}
-          ${wa ? `<a href="${wa}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 22px;border-radius:10px;margin-bottom:8px">Reply on WhatsApp</a>` : ''}
-          <p style="font-size:12px;color:#888;margin:24px 0 0">Card: ${esc(owner.cardName)}. Sent via Cardtly.${owner.isTeam ? ' Your team admin can also see this in Team Contacts.' : ''}</p>
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    replyTo: lead.email,
+    subject,
+    html: `
+      <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111">
+        <h2 style="margin:0 0 16px;font-size:20px">${esc(heading)}</h2>
+        <p style="margin:0 0 16px;color:#555">${esc(intro)} Reply to this email to reach them.</p>
+        <div style="background:#f6f6f6;border-radius:12px;padding:18px;margin-bottom:16px">
+          ${row('Name', lead.name)}
+          ${row('Email', lead.email)}
+          ${lead.phone ? row('Phone', lead.phone) : ''}
+          ${lead.company ? row('Company', lead.company) : ''}
+          ${lead.message ? `<p style="margin:12px 0 0;white-space:pre-wrap"><strong>Message:</strong> ${esc(lead.message)}</p>` : ''}
         </div>
-      `,
-    })
+        ${answersBlock}
+        ${wa ? `<a href="${wa}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 22px;border-radius:10px;margin-bottom:8px">Reply on WhatsApp</a>` : ''}
+        <p style="font-size:12px;color:#888;margin:24px 0 0">${esc(footer)}</p>
+      </div>
+    `,
+  })
+}
+
+export async function notifyLeadRecipients(
+  admin: any,
+  owner: CardOwner,
+  lead: LeadDetails,
+  copy: LeadCopy
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY) return
+
+  // The person whose card it is.
+  if (owner.ownerEmails.length > 0) {
+    try {
+      await send(
+        owner.ownerEmails,
+        copy.subject,
+        copy.heading,
+        copy.intro,
+        `Card: ${owner.cardName}. Sent via Cardtly.${owner.isTeam ? ' Your team admin can also see this in Team Contacts.' : ''}`,
+        lead
+      )
+    } catch {
+      // Lead is already saved and visible in the dashboard.
+    }
+  }
+
+  // A copy to whoever manages them, for team cards only.
+  if (!owner.isTeam || !owner.teamCardId) return
+  try {
+    const admins = await resolveTeamAdminEmails(admin, owner.teamCardId, owner.ownerEmails)
+    if (admins.length === 0) return
+    const who = owner.cardName || 'a team member'
+    await send(
+      admins,
+      `New ${copy.adminNoun} from ${lead.name} for ${who}`,
+      `A lead came in for ${who}`,
+      `A visitor ${copy.adminAction} ${who}'s Cardtly card, which is on your team.`,
+      `Card: ${owner.cardName}. Sent via Cardtly. You are getting a copy because you manage this team - ${who} was notified too.`,
+      lead
+    )
   } catch {
-    // Lead is already saved and visible in the dashboard.
+    // The card holder has already been told; the admin copy is a bonus.
   }
 }

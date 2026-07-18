@@ -1,7 +1,7 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { resolveCardOwner } from '@/lib/card-owner'
-import { notifyCardOwnerOfLead } from '@/lib/lead-notify'
+import { notifyLeadRecipients } from '@/lib/lead-notify'
 
 // Public endpoint: a visitor fills in the "share your info" form on a
 // card. We store the lead and email the card owner. Works for both
@@ -48,15 +48,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Email the card owner so the lead reaches them immediately - not
-    // just the dashboard. Non-fatal: the lead is already saved.
-    await notifyCardOwnerOfLead(
+    // Email the card owner so the lead reaches them immediately - not just the
+    // dashboard - and copy their team admin. Non-fatal: the lead is saved.
+    await notifyLeadRecipients(
+      admin,
       owner,
       { name, email, phone, message },
       {
         subject: `New contact from ${name} on your Cardtly card`,
         heading: 'Someone shared their details with you',
         intro: 'A visitor filled in the contact form on your Cardtly card.',
+        adminNoun: 'contact',
+        adminAction: 'filled in the contact form on',
       }
     )
 

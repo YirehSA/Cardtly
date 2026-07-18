@@ -86,3 +86,60 @@ export async function resolveCardOwner(admin: any, id: string): Promise<CardOwne
 
   return EMPTY
 }
+
+// Who else should see a lead that came in on a team card: the company's admin,
+// and the head of the card's department when it sits in one. Both manage the
+// person whose card it is, so the lead is their business too - the card holder
+// stays the primary recipient and these are copies.
+//
+// `exclude` drops anyone already notified as the card owner, so an admin who
+// is also the card holder does not get the same lead twice.
+export async function resolveTeamAdminEmails(
+  admin: any,
+  teamCardId: string,
+  exclude: string[] = []
+): Promise<string[]> {
+  if (!teamCardId) return []
+  try {
+    const { data: card } = await admin
+      .from('team_cards')
+      .select('organization_id, department_id')
+      .eq('id', teamCardId)
+      .maybeSingle()
+    if (!card) return []
+
+    const userIds = new Set<string>()
+
+    if (card.organization_id) {
+      const { data: org } = await admin
+        .from('organizations')
+        .select('admin_user_id')
+        .eq('id', card.organization_id)
+        .maybeSingle()
+      if (org?.admin_user_id) userIds.add(org.admin_user_id)
+    }
+
+    if (card.department_id) {
+      const { data: heads } = await admin
+        .from('department_managers')
+        .select('user_id')
+        .eq('department_id', card.department_id)
+      for (const h of heads || []) if (h?.user_id) userIds.add(h.user_id)
+    }
+
+    const skip = new Set(exclude.filter(Boolean).map(e => e.toLowerCase()))
+    const emails = new Set<string>()
+    for (const uid of userIds) {
+      try {
+        const { data } = await admin.auth.admin.getUserById(uid)
+        const e = data?.user?.email
+        if (e && !skip.has(e.toLowerCase())) emails.add(e)
+      } catch {
+        // An admin we cannot resolve is skipped, never fatal.
+      }
+    }
+    return [...emails]
+  } catch {
+    return []
+  }
+}

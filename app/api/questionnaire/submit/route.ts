@@ -1,7 +1,7 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { resolveCardOwner } from '@/lib/card-owner'
-import { notifyCardOwnerOfLead } from '@/lib/lead-notify'
+import { notifyLeadRecipients } from '@/lib/lead-notify'
 
 // Public endpoint: a visitor submits a card's custom questionnaire.
 // Saves a contact (source='questionnaire') with the standard fields
@@ -66,13 +66,16 @@ export async function POST(request: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // Non-fatal: the lead is saved either way.
-  await notifyCardOwnerOfLead(
+  await notifyLeadRecipients(
+    admin,
     owner,
     { name, email, phone, company, message, answers },
     {
       subject: `New questionnaire reply from ${name} on your Cardtly card`,
       heading: 'Someone completed your questionnaire',
       intro: 'A visitor filled in the questionnaire on your Cardtly card.',
+      adminNoun: 'questionnaire reply',
+      adminAction: 'filled in the questionnaire on',
     }
   )
 
