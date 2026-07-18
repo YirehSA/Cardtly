@@ -1,9 +1,15 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { resolveCardOwner } from '@/lib/card-owner'
+import { notifyCardOwnerOfLead } from '@/lib/lead-notify'
 
 // Public endpoint: a visitor submits a card's custom questionnaire.
 // Saves a contact (source='questionnaire') with the standard fields
-// plus the custom answers, so it shows in the owner's Contacts.
+// plus the custom answers, so it shows in the owner's Contacts, and
+// emails the card owner - the same as the card contact form and a
+// booking request. A questionnaire is a lead like any other, and it
+// used to save silently, so the owner only found it if they went
+// looking in the dashboard.
 export async function POST(request: Request) {
   let body: {
     card_id?: string | null
@@ -33,18 +39,42 @@ export async function POST(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
 
+  // Resolve the owner from whichever id we were given. This also decides the
+  // correct storage column rather than trusting what the client sent, so the
+  // lead lands in the right dashboard.
+  const owner = await resolveCardOwner(admin, body.card_id || body.team_card_id || '')
+  if (!owner.found) return NextResponse.json({ error: 'Card not found' }, { status: 404 })
+
+  const name = body.name.trim()
+  const email = body.email.trim()
+  const phone = body.phone?.trim() || null
+  const company = body.company?.trim() || null
+  const message = body.message?.trim() || null
+
   const { error } = await admin.from('contacts').insert({
-    card_id: body.card_id || null,
-    team_card_id: body.team_card_id || null,
-    name: body.name.trim(),
-    email: body.email.trim(),
-    phone: body.phone?.trim() || null,
-    company: body.company?.trim() || null,
-    message: body.message?.trim() || null,
+    card_id: owner.personalCardId,
+    team_card_id: owner.teamCardId,
+    name,
+    email,
+    phone,
+    company,
+    message,
     answers: answers.length ? answers : null,
     source: 'questionnaire',
   })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Non-fatal: the lead is saved either way.
+  await notifyCardOwnerOfLead(
+    owner,
+    { name, email, phone, company, message, answers },
+    {
+      subject: `New questionnaire reply from ${name} on your Cardtly card`,
+      heading: 'Someone completed your questionnaire',
+      intro: 'A visitor filled in the questionnaire on your Cardtly card.',
+    }
+  )
+
   return NextResponse.json({ success: true })
 }
