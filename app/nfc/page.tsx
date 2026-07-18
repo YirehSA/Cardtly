@@ -20,11 +20,11 @@ export const metadata: Metadata = {
 // broken image on the marketing page.
 const CARD_SAMPLES: CardSample[] = [
   { name: 'André Nel',      role: 'Yireh Business Solutions',
-    front: '/nfc-samples/yireh-front.png',   back: '/nfc-samples/yireh-back.png' },
+    front: '/nfc-samples/yireh-front.jpg',   back: '/nfc-samples/yireh-back.jpg' },
   { name: 'Tio Geldenhuys', role: 'Cardtly',
-    front: '/nfc-samples/cardtly-front.png', back: '/nfc-samples/cardtly-back.png' },
+    front: '/nfc-samples/cardtly-front.jpg', back: '/nfc-samples/cardtly-back.jpg' },
   { name: 'Dwain Atterbury', role: 'Sicon Group',
-    front: '/nfc-samples/sicon-front.png',   back: '/nfc-samples/sicon-back.png' },
+    front: '/nfc-samples/sicon-front.jpg',   back: '/nfc-samples/sicon-back.jpg' },
 ]
 
 const AVAILABLE_SAMPLES = CARD_SAMPLES.filter(s =>
