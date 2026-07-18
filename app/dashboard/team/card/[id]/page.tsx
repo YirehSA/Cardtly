@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation'
 import TeamCardEditor from '@/components/team/TeamCardEditor'
 import { canManageDepartment } from '@/lib/department-perms'
 import { resolveLocks } from '@/lib/team-locks'
+import { resolveTeamBrand } from '@/lib/team-brand'
 
 export const metadata = { title: 'Edit Team Card' }
 
@@ -62,6 +63,15 @@ export default async function TeamCardPage({ params }: { params: Promise<{ id: s
   // locked_fields columns arrive with a hand-applied migration, and a missing
   // column must read as "nothing locked" rather than locking someone out of
   // their own card.
+  // The brand the preview must show is the same one the public card resolves:
+  // department over org. Passing only the org brand meant anyone in a
+  // department with its own look previewed the company's brand while their
+  // real card wore the department's.
+  const { data: dept } = card.department_id
+    ? await admin.from('departments').select('brand').eq('id', card.department_id).maybeSingle()
+    : { data: null }
+  const resolvedBrand = resolveTeamBrand((org as any).brand || {}, (dept as any)?.brand || {})
+
   let lockedGroups: string[] = []
   if (role === 'member') {
     const readLocks = async (table: string, rowId: string | null) => {
@@ -83,7 +93,7 @@ export default async function TeamCardPage({ params }: { params: Promise<{ id: s
       org={org}
       userId={user.id}
       role={role}
-      orgBrand={(org as any).brand || {}}
+      orgBrand={resolvedBrand}
       lockedGroups={lockedGroups}
     />
   )

@@ -32,6 +32,17 @@ export default async function TeamBrandPage() {
   const brand = org.brand || {}
   const hasBrand = Object.keys(brand).length > 0
 
+  // How many cards are actually wearing the brand. The panel used to claim
+  // "Live on all team cards" purely because a brand object existed, but the
+  // per-card toggle is off by default - so that badge could sit above a brand
+  // no card in the company was using.
+  const { data: cardRows } = await admin
+    .from('team_cards')
+    .select('use_team_brand')
+    .eq('organization_id', org.id)
+  const totalCards = cardRows?.length ?? 0
+  const brandedCards = (cardRows || []).filter((c: any) => c.use_team_brand).length
+
   return (
     <div className="max-w-3xl mx-auto space-y-5 animate-fade-in pb-16">
       {/* Header */}
@@ -56,7 +67,8 @@ export default async function TeamBrandPage() {
         </div>
       </div>
 
-      <TeamBrandPanel orgId={org.id} brand={brand} hasBrand={hasBrand} />
+      <TeamBrandPanel orgId={org.id} brand={brand} hasBrand={hasBrand}
+        totalCards={totalCards} brandedCards={brandedCards} />
     </div>
   )
 }
