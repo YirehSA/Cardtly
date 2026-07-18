@@ -15,6 +15,7 @@ interface TeamCard {
   name: string
   title: string | null
   company: string | null
+  bio: string | null
   email: string | null
   phone: string | null
   slug: string | null
@@ -71,6 +72,12 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
     Array.isArray(qAddons.questionnaire?.questions) &&
     qAddons.questionnaire.questions.length > 0
   )
+
+  // The same reasoning applies to the brand toggle, which was never gated.
+  // mergeBrand leaves a card untouched when the brand is empty, so switching
+  // "Use team brand" on before a brand exists reported success and changed
+  // nothing at all - the card looked identical and the toast said otherwise.
+  const hasTeamBrand = Object.keys((org as any)?.brand || {}).length > 0
 
   // Create org form
   // Prefilled from an org that was started but never paid for, so resuming
@@ -193,13 +200,26 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
     if (status === 'error') toast.error('Something went wrong. Contact support if you were charged.')
   }, [status])
 
-  async function api(body: object) {
-    const res = await fetch('/api/team', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    return res.json()
+  // Never throws. It used to call res.json() bare, so a dropped connection or
+  // an HTML error page rejected inside the caller's await - which meant the
+  // caller's setLoading(false) never ran and the whole panel sat spinning with
+  // no message, and the optimistic toggles never reverted. Every caller already
+  // handles data.error, so failures are funnelled into that shape.
+  async function api(body: object): Promise<any> {
+    try {
+      const res = await fetch('/api/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok && !data?.error) {
+        return { error: `Something went wrong (${res.status}). Please try again.` }
+      }
+      return data ?? {}
+    } catch {
+      return { error: 'No connection. Check your internet and try again.' }
+    }
   }
 
   // Create org + pay
@@ -277,7 +297,16 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   }
 
   async function handleDelete(cardId: string, name: string) {
-    if (!confirm(`Delete ${name}'s card? This cannot be undone.`)) return
+    // Deleting a claimed card is a different act from deleting an unused one:
+    // somebody is using it, their public link dies with it, and any printed
+    // card or NFC tag pointing at that link stops working. The warning used to
+    // read the same for both.
+    const card = cards.find(c => c.id === cardId)
+    const claimed = !!card?.claimed_at
+    const msg = claimed
+      ? `Delete ${name}'s card?\n\nThey are already using it. Their card link stops working straight away, and any printed cards or NFC tags pointing at it will stop working too. This cannot be undone.`
+      : `Delete ${name}'s card? This cannot be undone.`
+    if (!confirm(msg)) return
     setLoading(true)
     const data = await api({ action: 'delete_card', org_id: org!.id, card_id: cardId })
     if (data.success) {
@@ -714,21 +743,30 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                   )
                 })()}
 
-                {/* Team brand toggle */}
+                {/* Team brand toggle. Disabled until a brand exists, because
+                    without one it is a switch that does nothing. */}
                 <div className="flex items-center justify-between pt-3 border-t border-border">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5" />Use team brand
+                  <span className={`text-xs flex items-center gap-1.5 ${hasTeamBrand ? 'text-muted-foreground' : 'text-muted-foreground/60'}`}>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    {hasTeamBrand ? 'Use team brand' : (
+                      <>No team brand yet &middot;{' '}
+                        <Link href="/dashboard/team/brand" className="underline hover:text-foreground">Set one up</Link>
+                      </>
+                    )}
                   </span>
                   <button
                     type="button"
                     role="switch"
+                    disabled={!hasTeamBrand}
                     aria-checked={!!card.use_team_brand}
-                    onClick={() => toggleCardBrand(card)}
-                    title={card.use_team_brand ? 'This card shows the team brand. Tap to use its own branding.' : 'This card uses its own branding. Tap to apply the team brand.'}
-                    className="relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition"
-                    style={{ background: card.use_team_brand ? 'linear-gradient(135deg, #00d4ff, #7c3aed)' : 'hsl(var(--muted))' }}>
+                    onClick={() => hasTeamBrand && toggleCardBrand(card)}
+                    title={!hasTeamBrand
+                      ? 'Set up a team brand first, otherwise this changes nothing.'
+                      : card.use_team_brand ? 'This card shows the team brand. Tap to use its own branding.' : 'This card uses its own branding. Tap to apply the team brand.'}
+                    className="relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{ background: card.use_team_brand && hasTeamBrand ? 'linear-gradient(135deg, #00d4ff, #7c3aed)' : 'hsl(var(--muted))' }}>
                     <span className="inline-block h-4 w-4 rounded-full bg-white transition"
-                      style={{ transform: card.use_team_brand ? 'translateX(18px)' : 'translateX(2px)' }} />
+                      style={{ transform: card.use_team_brand && hasTeamBrand ? 'translateX(18px)' : 'translateX(2px)' }} />
                   </button>
                 </div>
 

@@ -186,6 +186,21 @@ export async function POST(request: Request) {
     const { data: org } = await admin.from('organizations').select('id').eq('id', org_id).eq('admin_user_id', user.id).single()
     if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
 
+    // Whatever the browser sends used to be spread straight into the update.
+    // The WHERE clause scopes which row is hit, but not which columns are set,
+    // so a crafted request could move a card into another organisation by
+    // setting organization_id, or change the slug without writing the redirect
+    // that keeps printed cards and NFC tags working. Same list as the one
+    // /api/team/card/save enforces.
+    for (const key of ['id', 'user_id', 'organization_id', 'department_id', 'slug',
+                       'claimed_at', 'invite_email', 'invite_sent_at', 'view_count',
+                       'is_active', 'created_at']) {
+      delete fields[key]
+    }
+    if (Object.keys(fields).length === 0) {
+      return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
+    }
+
     const { error } = await admin.from('team_cards').update({ ...fields, updated_at: new Date().toISOString() }).eq('id', card_id).eq('organization_id', org_id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ success: true })
