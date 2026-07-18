@@ -37,10 +37,14 @@ const NFC_PRODUCT_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'Product',
   name: 'Cardtly NFC Business Card',
-  // Google's Merchant listing rich results REQUIRE an image - the
-  // schema is invalid without one. Brand badge for now; swap for a
-  // real product photo of the physical card when we shoot one.
-  image: ['https://cardtly.com/cardtly-icon.png'],
+  // Google's Merchant listing rich results REQUIRE an image. This was the
+  // brand badge with a note to swap it for a real product photo once we had
+  // one - we do now, so search results show the actual card rather than a logo.
+  image: [
+    'https://cardtly.com/nfc-samples/yireh-front.jpg',
+    'https://cardtly.com/nfc-samples/cardtly-front.jpg',
+    'https://cardtly.com/nfc-samples/sicon-front.jpg',
+  ],
   description:
     'Physical NFC business card linked to your Cardtly digital business card. Tap any modern smartphone to share your details instantly - no app required.',
   brand: { '@type': 'Brand', name: 'Cardtly' },
@@ -157,58 +161,37 @@ export default function NFCMarketingPage() {
               </div>
             </div>
 
-            {/* Card mockup */}
-            <div className="relative flex flex-col gap-6">
-              {/* Black card — front */}
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl"
-                style={{ aspectRatio: '1.586', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div className="absolute inset-0 pointer-events-none"
-                  style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.1) 0%, transparent 60%)' }} />
-                <div className="absolute top-4 right-4 opacity-20">
-                  <Wifi className="w-5 h-5 text-white rotate-90" />
-                </div>
-                {/* Logo placeholder */}
-                <div className="absolute top-5 left-5">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-sm"
-                    style={{ background: grad }}>C</div>
-                </div>
-                {/* Name */}
-                <div className="absolute bottom-5 left-5">
-                  <p className="font-black text-base text-white">Andre Nel</p>
-                  <p className="text-xs mt-0.5" style={{ color: '#00d4ff' }}>Founder & CEO</p>
-                </div>
-                <div className="absolute bottom-5 right-5">
-                  <p className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.2)' }}>Cardtly</p>
-                </div>
-                {/* Front label */}
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 text-xs font-bold px-2 py-0.5 rounded-full"
-                  style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}>Front</div>
-              </div>
-
-              {/* White card — back */}
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl flex flex-col items-center justify-center gap-3"
-                style={{ aspectRatio: '1.586', background: '#ffffff', border: '1px solid rgba(0,0,0,0.08)' }}>
-                <div className="absolute inset-0 pointer-events-none"
-                  style={{ background: 'linear-gradient(135deg, transparent 40%, rgba(124,58,237,0.05) 100%)' }} />
-                {/* Our own QR endpoint, not api.qrserver.com. This is on a
-                    public marketing page, so it should not hand a third party
-                    a request from every visitor who loads it. */}
-                <img
-                  src="/api/qr/demo?size=240&dark=111827&light=ffffff"
-                  style={{ width: 80, height: 80, borderRadius: 6 }}
-                  alt="Example QR code on the back of a Cardtly NFC card"
-                />
-                <div className="text-center">
-                  <p className="text-xs font-bold text-gray-800">Scan to connect</p>
-                  <p className="text-xs mt-0.5 text-gray-400">cardtly.com/card/yourname</p>
-                </div>
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 text-xs font-bold px-2 py-0.5 rounded-full"
-                  style={{ background: 'rgba(0,0,0,0.06)', color: 'rgba(0,0,0,0.35)' }}>Back</div>
+            {/* Real cards, not a drawing of one. This used to be two divs
+                styled to look like a card - a placeholder "C" logo, a made-up
+                name and a demo QR - which is a strange thing to lead with when
+                selling a physical object we have actually printed. */}
+            <div className="relative pb-10">
+              {/* Three real cards, fanned. A single black card on a black page
+                  reads as an outline and nothing else, and one card cannot show
+                  that the artwork is yours - three different ones do both. */}
+              <div className="relative mx-auto" style={{ maxWidth: 470, aspectRatio: '1.08' }}>
+                {[
+                  { src: '/nfc-samples/sicon-front.jpg',   alt: 'Printed Cardtly NFC card for Sicon Group',
+                    style: { top: '0%',  left: '14%', transform: 'rotate(-11deg)', width: '80%', zIndex: 1 } },
+                  { src: '/nfc-samples/cardtly-front.jpg', alt: 'Printed Cardtly NFC card for Cardtly',
+                    style: { top: '25%', left: '0%',  transform: 'rotate(-1deg)',  width: '80%', zIndex: 2 } },
+                  { src: '/nfc-samples/yireh-front.jpg',   alt: 'Printed Cardtly NFC card for Yireh Business Solutions',
+                    style: { top: '50%', left: '17%', transform: 'rotate(7deg)',   width: '80%', zIndex: 3 } },
+                ].map(({ src, alt, style }) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={src} src={src} alt={alt} width={1200} height={767}
+                    className="absolute rounded-2xl"
+                    style={{
+                      ...style,
+                      border: '1px solid rgba(255,255,255,0.14)',
+                      boxShadow: '0 26px 60px rgba(0,0,0,0.75)',
+                    }} />
+                ))}
               </div>
 
               {/* Floating tap indicator */}
-              <div className="absolute -right-4 top-1/2 -translate-y-1/2 px-4 py-2.5 rounded-2xl text-sm font-bold text-white shadow-xl"
-                style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.3), rgba(124,58,237,0.3))', border: '1px solid rgba(0,212,255,0.3)', backdropFilter: 'blur(12px)' }}>
+              <div className="absolute right-0 top-2 px-4 py-2.5 rounded-2xl text-sm font-bold text-white shadow-xl"
+                style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.3), rgba(124,58,237,0.3))', border: '1px solid rgba(0,212,255,0.3)', backdropFilter: 'blur(12px)', zIndex: 4 }}>
                 <Wifi className="w-4 h-4 inline mr-1.5" />
                 Tap to share
               </div>
@@ -244,16 +227,60 @@ export default function NFCMarketingPage() {
         </div>
       </section>
 
+      {/* What goes on each side. The two lines about front and back used to be
+          buried in the spec list; a photo of each side says it immediately. */}
+      <section className="py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-4xl font-black tracking-tight">
+              Two sides, <span style={gradText}>both working.</span>
+            </h2>
+            <p className="mt-3" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              Tap it against a phone, or let them scan the back. Either way they land on your card.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            {[
+              { src: '/nfc-samples/sicon-front.jpg', label: 'Front',
+                alt: 'The front of a printed Cardtly NFC card for Sicon Group',
+                title: 'Your brand, full bleed',
+                desc: 'Logo, name and job title on your own artwork. The NFC chip sits inside - one tap opens your card, no app.' },
+              { src: '/nfc-samples/sicon-back.jpg', label: 'Back',
+                alt: 'The back of a printed Cardtly NFC card, showing the QR code',
+                title: 'A QR for everyone else',
+                desc: 'Older phones and locked-down work devices can still scan. The code points at your live card, so it never goes stale.' },
+            ].map(({ src, label, alt, title, desc }) => (
+              <div key={label}>
+                {/* Label sits above the card, not on it - overlaid it landed on
+                    the Cardtly mark in the corner of the artwork. */}
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] mb-3"
+                  style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</p>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt={alt} width={1200} height={767}
+                  className="w-full rounded-2xl"
+                  style={{ border: '1px solid rgba(255,255,255,0.10)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }} />
+                <h3 className="font-bold text-lg mt-5 mb-2">{title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Real printed cards. Front shows the brand, back carries the QR. */}
       {AVAILABLE_SAMPLES.length > 0 && (
-      <section className="py-24 px-6">
+      <section className="py-24 px-6" style={{ background: 'rgba(255,255,255,0.02)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-black tracking-tight">
               Cards we&apos;ve <span style={gradText}>actually printed.</span>
             </h2>
+            {/* Deliberately does not promise custom artwork. The samples plainly
+                are custom, but the ordering steps still say "Black or White",
+                and the page should not quietly offer something the checkout may
+                not cover. Flagged for Andre to settle. */}
             <p className="mt-3" style={{ color: 'rgba(255,255,255,0.45)' }}>
-              Your design, your logo, your colours. Tap any card to see the back.
+              Real cards we&apos;ve printed and shipped. Tap any card to see the back.
             </p>
           </div>
           <CardSamples samples={AVAILABLE_SAMPLES} />
