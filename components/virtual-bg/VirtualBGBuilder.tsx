@@ -20,7 +20,7 @@ interface Card {
 }
 
 type BGDesign = 'gradient' | 'dark' | 'mesh' | 'split' | 'minimal' | 'neon'
-type StockImage = 'office' | 'sea' | 'mountain' | 'city'
+type StockImage = 'office' | 'sea' | 'mountain' | 'city' | 'library' | 'studio'
 
 // Unsplash stock photos — free to use, 1920x1080
 const STOCK_IMAGES: { id: StockImage; label: string; desc: string; url: string }[] = [
@@ -47,6 +47,18 @@ const STOCK_IMAGES: { id: StockImage; label: string; desc: string; url: string }
     label: 'City Skyline',
     desc: 'Urban evening view',
     url: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=1920&h=1080&fit=crop&q=80',
+  },
+  {
+    id: 'library',
+    label: 'Bookshelves',
+    desc: 'Warm study, reads as expertise',
+    url: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=1920&h=1080&fit=crop&q=80',
+  },
+  {
+    id: 'studio',
+    label: 'Soft Studio',
+    desc: 'Plain backdrop, keeps focus on you',
+    url: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1920&h=1080&fit=crop&q=80',
   },
 ]
 

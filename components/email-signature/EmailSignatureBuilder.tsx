@@ -27,7 +27,7 @@ export interface SignatureCard {
   _label?: string
 }
 
-type Style = 'minimal' | 'modern' | 'compact' | 'bold'
+type Style = 'minimal' | 'modern' | 'compact' | 'bold' | 'classic' | 'stacked'
 
 interface Props {
   cards: SignatureCard[]
@@ -142,6 +142,81 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
   </tr>
 </table>`
     }
+
+    // Understated: a single accent rule down the left, everything stacked.
+    // The one that suits accountants, attorneys and anyone whose signature
+    // should not look like an advert.
+    if (style === 'classic') {
+      return `<table cellpadding="0" cellspacing="0" border="0" style="font-family: Georgia, 'Times New Roman', serif; font-size: 13px; color: #1f2937;">
+  <tr>
+    <td style="border-left: 3px solid ${accentHex}; padding: 2px 0 2px 14px;">
+      <p style="margin: 0 0 1px; font-size: 17px; font-weight: bold; color: #111827; letter-spacing: 0.01em;">${card.name}</p>
+      ${card.title ? `<p style="margin: 0 0 1px; font-size: 12px; color: #4b5563; font-style: italic;">${card.title}</p>` : ''}
+      ${card.company ? `<p style="margin: 0 0 9px; font-size: 12px; font-weight: bold; color: ${accentHex}; text-transform: uppercase; letter-spacing: 0.08em;">${card.company}</p>` : ''}
+      <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif;">
+        ${card.phone ? `<tr><td style="font-size: 11px; color: #6b7280; padding-right: 8px;">T</td><td style="font-size: 12px; padding-bottom: 2px;"><a href="tel:${card.phone}" style="color: #374151; text-decoration: none;">${card.phone}</a></td></tr>` : ''}
+        ${card.email ? `<tr><td style="font-size: 11px; color: #6b7280; padding-right: 8px;">E</td><td style="font-size: 12px; padding-bottom: 2px;"><a href="mailto:${card.email}" style="color: #374151; text-decoration: none;">${card.email}</a></td></tr>` : ''}
+        ${card.website ? `<tr><td style="font-size: 11px; color: #6b7280; padding-right: 8px;">W</td><td style="font-size: 12px;"><a href="${card.website}" style="color: ${accentHex}; text-decoration: none;">${card.website.replace(/^https?:\/\//, '')}</a></td></tr>` : ''}
+      </table>
+      ${includeSocials && socials.length > 0 ? `
+      <p style="margin: 9px 0 0; font-family: Arial, sans-serif;">
+        ${socials.map(s => `<a href="${s.url}" style="color: ${s.color}; text-decoration: none; font-size: 11px; font-weight: bold; margin-right: 12px;">${s.label}</a>`).join('')}
+      </p>` : ''}
+      ${(includeLogo && card.company_logo_url) || includeQR ? `
+      <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 10px;">
+        <tr>
+          ${includeLogo && card.company_logo_url ? `<td style="padding-right: 12px; vertical-align: middle;"><img src="${card.company_logo_url}" height="26" style="display: block; object-fit: contain;" alt="${card.company || ''}" /></td>` : ''}
+          ${includeQR ? `<td style="vertical-align: middle;"><a href="${cardUrl}"><img src="${qrUrl}" width="48" height="48" alt="Scan to connect" style="display: block;" /></a></td>` : ''}
+        </tr>
+      </table>` : ''}
+    </td>
+  </tr>
+</table>`
+    }
+
+    // Everything centred in one narrow column. Built for phones, where the
+    // side-by-side layouts get squeezed into an unreadable mess.
+    if (style === 'stacked') {
+      return `<table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; max-width: 300px; text-align: center;">
+  ${includeLogo && card.company_logo_url ? `
+  <tr>
+    <td style="text-align: center; padding-bottom: 10px;">
+      <img src="${card.company_logo_url}" height="30" style="display: inline-block; object-fit: contain;" alt="${card.company || ''}" />
+    </td>
+  </tr>` : ''}
+  ${includePhoto && card.profile_image_url ? `
+  <tr>
+    <td style="text-align: center; padding-bottom: 8px;">
+      <img src="${card.profile_image_url}" width="72" height="72" style="border-radius: 50%; display: inline-block; object-fit: cover; border: 3px solid ${accentHex}33;" />
+    </td>
+  </tr>` : ''}
+  <tr>
+    <td style="text-align: center;">
+      <p style="margin: 0 0 2px; font-size: 17px; font-weight: bold; color: #111827;">${card.name}</p>
+      ${card.title ? `<p style="margin: 0 0 2px; font-size: 12px; font-weight: 600; color: ${accentHex};">${card.title}</p>` : ''}
+      ${card.company ? `<p style="margin: 0 0 10px; font-size: 12px; color: #6b7280;">${card.company}</p>` : ''}
+      <div style="height: 2px; width: 40px; background: ${accentHex}; margin: 0 auto 10px;"></div>
+      <p style="margin: 0; font-size: 12px; color: #6b7280; line-height: 1.9;">
+        ${card.phone ? `<a href="tel:${card.phone}" style="color: #374151; text-decoration: none;">${card.phone}</a><br>` : ''}
+        ${card.email ? `<a href="mailto:${card.email}" style="color: #374151; text-decoration: none;">${card.email}</a><br>` : ''}
+        ${card.website ? `<a href="${card.website}" style="color: ${accentHex}; text-decoration: none; font-weight: 600;">${card.website.replace(/^https?:\/\//, '')}</a>` : ''}
+      </p>
+      ${includeSocials && socials.length > 0 ? `
+      <p style="margin: 9px 0 0;">
+        ${socials.map(s => `<a href="${s.url}" style="display: inline-block; background: ${s.color}; color: #fff; font-size: 11px; font-weight: bold; padding: 3px 10px; border-radius: 20px; text-decoration: none; margin: 0 3px;">${s.label}</a>`).join('')}
+      </p>` : ''}
+      ${includeQR ? `
+      <p style="margin: 12px 0 0;">
+        <a href="${cardUrl}" style="text-decoration: none;">
+          <img src="${qrUrl}" width="64" height="64" alt="Scan to connect" style="display: inline-block;" />
+          <span style="font-size: 10px; color: #9ca3af; display: block; margin-top: 3px;">Scan to connect</span>
+        </a>
+      </p>` : ''}
+    </td>
+  </tr>
+</table>`
+    }
+
 
     // Modern style
     return `<table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; max-width: 500px;">
@@ -303,6 +378,8 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
                 { id: 'minimal' as Style, label: 'Minimal', desc: 'Clean with accent divider' },
                 { id: 'compact' as Style, label: 'Compact', desc: 'Single line, space efficient' },
                 { id: 'bold'    as Style, label: 'Bold',    desc: 'Large name, strong accent' },
+                { id: 'classic' as Style, label: 'Classic', desc: 'Serif, understated, formal' },
+                { id: 'stacked' as Style, label: 'Stacked', desc: 'Centred column, best on phones' },
               ]).map(({ id, label, desc }) => (
                 <button key={id} onClick={() => setStyle(id)}
                   className={`p-3 rounded-xl border-2 text-left transition ${style === id ? 'border-blue-500 bg-blue-500/10' : 'border-border hover:border-foreground/20'}`}>
@@ -530,6 +607,64 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
                 {includeLogo && card.company_logo_url && (
                   <div style={{ margin: '0 20px 16px', paddingTop: 12, borderTop: '1px solid #1e293b' }}>
                     <img src={card.company_logo_url} style={{ height: 24, width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)', opacity: 0.7 }} alt="" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {style === 'classic' && (
+              <div style={{ borderLeft: `3px solid ${accentHex}`, paddingLeft: 14, fontFamily: 'Georgia, serif' }}>
+                <p style={{ margin: '0 0 1px', fontSize: 17, fontWeight: 700, color: '#111827' }}>{card.name}</p>
+                {card.title && <p style={{ margin: '0 0 1px', fontSize: 12, color: '#4b5563', fontStyle: 'italic' }}>{card.title}</p>}
+                {card.company && <p style={{ margin: '0 0 9px', fontSize: 12, fontWeight: 700, color: accentHex, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{card.company}</p>}
+                <div style={{ fontFamily: 'Arial, sans-serif', fontSize: 12, lineHeight: 1.7 }}>
+                  {card.phone && <div><span style={{ color: '#6b7280', marginRight: 8 }}>T</span><span style={{ color: '#374151' }}>{card.phone}</span></div>}
+                  {card.email && <div><span style={{ color: '#6b7280', marginRight: 8 }}>E</span><span style={{ color: '#374151' }}>{card.email}</span></div>}
+                  {card.website && <div><span style={{ color: '#6b7280', marginRight: 8 }}>W</span><span style={{ color: accentHex }}>{card.website.replace(/^https?:\/\//, '')}</span></div>}
+                </div>
+                {includeSocials && (card.linkedin_url || card.twitter_url || card.instagram_url) && (
+                  <p style={{ margin: '9px 0 0', fontFamily: 'Arial, sans-serif' }}>
+                    {card.linkedin_url && <span style={{ color: '#0A66C2', fontSize: 11, fontWeight: 700, marginRight: 12 }}>LinkedIn</span>}
+                    {card.twitter_url && <span style={{ color: '#000', fontSize: 11, fontWeight: 700, marginRight: 12 }}>X</span>}
+                    {card.instagram_url && <span style={{ color: '#E1306C', fontSize: 11, fontWeight: 700 }}>Instagram</span>}
+                  </p>
+                )}
+                {((includeLogo && card.company_logo_url) || includeQR) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
+                    {includeLogo && card.company_logo_url && <img src={card.company_logo_url} style={{ height: 26, objectFit: 'contain' }} alt="" />}
+                    {includeQR && <img src={qrUrl} style={{ width: 48, height: 48 }} alt="QR" />}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {style === 'stacked' && (
+              <div style={{ maxWidth: 300, margin: '0 auto', textAlign: 'center' }}>
+                {includeLogo && card.company_logo_url && (
+                  <img src={card.company_logo_url} style={{ height: 30, objectFit: 'contain', marginBottom: 10 }} alt="" />
+                )}
+                {includePhoto && card.profile_image_url && (
+                  <img src={card.profile_image_url} style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${accentHex}33`, marginBottom: 8 }} />
+                )}
+                <p style={{ margin: '0 0 2px', fontSize: 17, fontWeight: 700, color: '#111827' }}>{card.name}</p>
+                {card.title && <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 600, color: accentHex }}>{card.title}</p>}
+                {card.company && <p style={{ margin: '0 0 10px', fontSize: 12, color: '#6b7280' }}>{card.company}</p>}
+                <div style={{ height: 2, width: 40, background: accentHex, margin: '0 auto 10px' }} />
+                <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.9 }}>
+                  {card.phone && <div style={{ color: '#374151' }}>{card.phone}</div>}
+                  {card.email && <div style={{ color: '#374151' }}>{card.email}</div>}
+                  {card.website && <div style={{ color: accentHex, fontWeight: 600 }}>{card.website.replace(/^https?:\/\//, '')}</div>}
+                </div>
+                {includeSocials && (card.linkedin_url || card.twitter_url || card.instagram_url) && (
+                  <p style={{ margin: '9px 0 0' }}>
+                    {card.linkedin_url && <span style={{ display: 'inline-block', background: '#0A66C2', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, margin: '0 3px' }}>LinkedIn</span>}
+                    {card.twitter_url && <span style={{ display: 'inline-block', background: '#000', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, margin: '0 3px' }}>X</span>}
+                  </p>
+                )}
+                {includeQR && (
+                  <div style={{ marginTop: 12 }}>
+                    <img src={qrUrl} style={{ width: 64, height: 64 }} alt="QR" />
+                    <p style={{ fontSize: 10, color: '#9ca3af', margin: '3px 0 0' }}>Scan to connect</p>
                   </div>
                 )}
               </div>
