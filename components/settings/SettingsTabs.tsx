@@ -605,19 +605,18 @@ function DangerTab({ user, supabase, router, isPaying }: { user: Props['user']; 
         </div>
       </div>
 
-      {/* Deleting the account removes our record of the subscription but does
-          not cancel it at Paystack, so an active subscriber who deletes could
-          keep being charged for an account that no longer exists. Say so
-          before they do it, not after. */}
+      {/* Deletion now cancels the Paystack subscription first and refuses to
+          delete anything if that fails, so this states what will happen rather
+          than asking the subscriber to go and cancel it themselves. */}
       {isPaying && (
         <div className="p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 flex items-start gap-3">
           <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="font-medium text-sm">Cancel your subscription first</p>
+            <p className="font-medium text-sm">Your subscription gets cancelled too</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Deleting your account here does not stop your Paystack subscription, so you could keep
-              being charged. <a href="/contact" className="underline hover:text-foreground">Get in touch</a> to
-              cancel it, then come back and delete.
+              Deleting your account cancels your Paystack subscription first, so you will not be
+              charged again. If we cannot reach Paystack we will stop and delete nothing, rather
+              than leave you paying for an account you can no longer open.
             </p>
           </div>
         </div>

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { cancelSubscriptionsFor, subscriptionCodeOf, isBillablePaystackSub, findActivePaystackSubs } from '@/lib/paystack'
+import { auditLog } from '@/lib/admin-audit'
 
 // Real account deletion endpoint. Wipes all user-scoped data from
 // Supabase and then deletes the auth user. Used by the in-app
@@ -23,6 +25,61 @@ export async function POST() {
   ) as any
 
   try {
+    // Stop the money before touching anything else.
+    //
+    // Deleting the account used to remove our own whop_subscriptions row while
+    // leaving the subscription live at Paystack, so the card kept being charged
+    // every month for an account that no longer existed - and once the row was
+    // gone we no longer held the email or code needed to find it. Cancelling
+    // has to happen first, and it has to be able to stop the deletion.
+    //
+    // Cancelling goes by the customer's EMAIL rather than our stored code: the
+    // verify path stores `subscription_code || reference`, so our rows usually
+    // hold a transaction reference that cannot be cancelled. See lib/paystack.
+    const { data: activeSubs } = await admin
+      .from('whop_subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+
+    const billable = (activeSubs || []).filter((s: any) => isBillablePaystackSub(s))
+    const billingEmail = billable[0]?.email || user.email || ''
+
+    // Our rows say nothing is billable - but they are exactly the thing that
+    // has been unreliable, so ask Paystack directly before trusting them. If
+    // that lookup cannot run (Paystack down), carry on and delete: we have no
+    // evidence of a subscription, and blocking someone from deleting their own
+    // account over an outage is the worse failure.
+    let mustCancel = billable.length > 0
+    if (!mustCancel && billingEmail) {
+      const found = await findActivePaystackSubs(billingEmail)
+      mustCancel = found.ok && found.subs.length > 0
+    }
+
+    if (mustCancel) {
+      const result = await cancelSubscriptionsFor(billingEmail, billable[0] ? subscriptionCodeOf(billable[0]) : null)
+      if (!result.ok) {
+        await auditLog(admin, {
+          actorUserId: userId, actorEmail: user.email,
+          action: 'delete_account', targetUserId: userId, targetEmail: billingEmail, ok: false,
+          detail: { stage: 'paystack_cancel', error: result.error },
+        })
+        // Refuse to delete. An account that no longer exists cannot be used to
+        // find and stop a subscription later, so deleting now would leave them
+        // paying with no way back in to fix it.
+        return NextResponse.json({
+          error: 'We could not cancel your Paystack subscription just now, so we have not deleted anything - '
+            + 'deleting while you are still being billed would leave you paying for an account you cannot reach. '
+            + 'Please try again shortly, or email andre@cardtly.com and we will cancel it and delete your account for you.',
+        }, { status: 502 })
+      }
+      await auditLog(admin, {
+        actorUserId: userId, actorEmail: user.email,
+        action: 'delete_account', targetUserId: userId, targetEmail: billingEmail, ok: true,
+        detail: { stage: 'paystack_cancel', cancelled: result.cancelled, skipped: result.skipped },
+      })
+    }
+
     // Fetch the user's card IDs first so we can clean up records linked
     // by card_id rather than user_id.
     const { data: userCards } = await admin
