@@ -74,9 +74,9 @@ export default async function AnalyticsPage() {
   // small, and it makes switching period instant instead of a round trip.
   const [{ data: events }, { data: contacts }] = await Promise.all([
     isTeam
-      ? db.from('team_card_events').select('event_type, device, browser, os, referrer, created_at')
+      ? db.from('team_card_events').select('event_type, link_title, device, browser, os, referrer, created_at')
           .eq('team_card_id', card.id).gte('created_at', since).order('created_at')
-      : db.from('card_events').select('event_type, device, browser, os, referrer, created_at')
+      : db.from('card_events').select('event_type, link_title, device, browser, os, referrer, created_at')
           .eq('card_id', card.id).gte('created_at', since).order('created_at'),
     isTeam
       ? db.from('contacts').select('created_at').eq('team_card_id', card.id).gte('created_at', since)

@@ -12,7 +12,7 @@ import { toast } from 'sonner'
 import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
 import { waShareLink } from '@/lib/whatsapp'
 import SuspendedBanner from '@/components/card/SuspendedBanner'
-import { track } from '@/lib/track'
+import { track, useTrackLinkClicks } from '@/lib/track'
 import ContactExchangeModal from './ContactExchangeModal'
 import QuestionnaireForm from './QuestionnaireForm'
 import InAppBackButton from '@/components/InAppBackButton'
@@ -201,6 +201,15 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
     ? addons.questionnaire
     : null
 
+  // "Saved your contact" is one of the few things on a card that shows real
+  // intent, so it is counted where it actually happens: after a confirmed
+  // native save, and as the web vCard download fires.
+  const trackContactSave = () => track({
+    cardId: isTeamCard ? undefined : card.id,
+    teamCardId: isTeamCard ? (card as any)._team_card_id : undefined,
+    eventType: 'contact_save',
+  })
+
   async function submitContact(e: React.FormEvent) {
     e.preventDefault()
     setSubmitting(true)
@@ -288,6 +297,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
                 address: card.address,
               })
               toast.success('Saved to contacts')
+              trackContactSave()
               // Native save confirmed -> offer reciprocal exchange.
               if (contactExchangeOn) setExchangeOpen(true)
             } catch (err) {
@@ -299,6 +309,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           // Web: trigger the vCard download, then offer the exchange.
           // We can't confirm the OS saved it, so we prompt right after
           // the download starts.
+          trackContactSave()
           if (contactExchangeOn) {
             const a = document.createElement('a')
             a.href = `/api/vcf/${card.slug}`
@@ -486,6 +497,14 @@ export default function PublicCardView(props: Props) {
 }
 
 function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Props) {
+  // Counts taps on the cardholder's own links, across every template, from a
+  // single delegated listener. Attaching to the document rather than wrapping
+  // the card means no template's markup or layout changes to get this.
+  useTrackLinkClicks(
+    isTeamCard ? undefined : card.id,
+    isTeamCard ? (card as any)._team_card_id : undefined
+  )
+
   const design = parseDesign(card.color_theme)
   const font = FONTS[design.fontId]
   const bg = getBgColors(design.bgMode, design.templateId, design.customBgColor)

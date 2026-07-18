@@ -4,12 +4,13 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { parseDesign, getAccentHex } from '@/types/design'
 import {
-  Eye, Users, Share2, TrendingUp, TrendingDown, Minus, Smartphone, Monitor,
-  Tablet, Globe, QrCode, ArrowUpRight, BarChart3,
+  Eye, Users, TrendingUp, TrendingDown, Minus, Smartphone, Monitor,
+  Tablet, Globe, QrCode, ArrowUpRight, BarChart3, MousePointerClick, UserPlus,
 } from 'lucide-react'
 
 interface EventRow {
   event_type: string
+  link_title: string | null
   device: string | null
   browser: string | null
   os: string | null
@@ -138,12 +139,18 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
 
     const viewsAll = events.filter(e => e.event_type === 'view')
     const sharesAll = events.filter(e => e.event_type === 'share')
+    const clicksAll = events.filter(e => e.event_type === 'link_click')
+    const savesAll = events.filter(e => e.event_type === 'contact_save')
     const contacts = contactDates.map(created_at => ({ created_at }))
 
     const views = viewsAll.filter(inNow)
     const prevViews = viewsAll.filter(inPrev).length
     const shares = sharesAll.filter(inNow).length
     const prevShares = sharesAll.filter(inPrev).length
+    const clicks = clicksAll.filter(inNow)
+    const prevClicks = clicksAll.filter(inPrev).length
+    const saves = savesAll.filter(inNow).length
+    const prevSaves = savesAll.filter(inPrev).length
     const leads = contacts.filter(inNow).length
     const prevLeads = contacts.filter(inPrev).length
 
@@ -160,7 +167,10 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
     return {
       views: views.length, prevViews,
       shares, prevShares,
+      clicks: clicks.length, prevClicks,
+      saves, prevSaves,
       leads, prevLeads,
+      topLinks: countBy(clicks, c => c.link_title),
       byDay, peak,
       byDevice: countBy(views, v => v.device),
       byBrowser: countBy(views, v => v.browser),
@@ -174,8 +184,9 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
 
   const HEADLINE = [
     { label: 'Times your card was opened', value: stats.views, prev: stats.prevViews, icon: Eye, colour: accent },
+    { label: 'Buttons and links tapped', value: stats.clicks, prev: stats.prevClicks, icon: MousePointerClick, colour: '#8b5cf6' },
+    { label: 'Saved your contact', value: stats.saves, prev: stats.prevSaves, icon: UserPlus, colour: '#10b981' },
     { label: 'People who left their details', value: stats.leads, prev: stats.prevLeads, icon: Users, colour: '#f59e0b' },
-    { label: 'Times your card was shared', value: stats.shares, prev: stats.prevShares, icon: Share2, colour: '#10b981' },
   ]
 
   return (
@@ -211,7 +222,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
       </div>
 
       {/* Headline numbers */}
-      <div className="grid sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {HEADLINE.map(({ label, value, prev, icon: Icon, colour }) => (
           <div key={label} className="rounded-3xl border border-border bg-card p-5">
             <div className="flex items-center justify-between mb-3">
@@ -264,7 +275,10 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
                     : 'One bar per day.'}
                 </p>
               </div>
-              <span className="text-xs text-muted-foreground">{stats.views.toLocaleString()} opens</span>
+              <span className="text-xs text-muted-foreground">
+                {stats.views.toLocaleString()} opens
+                {stats.shares > 0 && ` · shared ${stats.shares}×`}
+              </span>
             </div>
 
             <div className="flex items-end gap-[2px] h-36">
@@ -288,6 +302,41 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
               <span>{prettyDate(stats.byDay[stats.byDay.length - 1]?.date || '')}</span>
             </div>
           </div>
+
+          {/* What they tapped. Only appears once there is something to show,
+              rather than sitting there as a permanent row of zeros. */}
+          {stats.topLinks.length > 0 && (
+            <div className="rounded-3xl border border-border bg-card p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <MousePointerClick className="w-4 h-4 text-muted-foreground" />
+                <h3 className="font-semibold text-sm">What they tapped most</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">
+                Which of your buttons and links people actually used.
+              </p>
+              <div className="space-y-3">
+                {stats.topLinks.slice(0, 6).map(({ key, count }, i) => {
+                  const pct = Math.round((count / stats.topLinks[0].count) * 100)
+                  return (
+                    <div key={key} className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1 gap-2">
+                          <span className="text-sm font-medium truncate">{key}</span>
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            {count} {count === 1 ? 'tap' : 'taps'}
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: '#8b5cf6' }} />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* How they found you + what they used */}
           <div className="grid sm:grid-cols-2 gap-3">
