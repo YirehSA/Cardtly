@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getUserPlan } from '@/lib/plan-server'
+import { getMemberTeamCard } from '@/lib/card-server'
+import ProGate from '@/components/card/ProGate'
 import { fetchNetworkCards, groupIntoCompanies } from '@/lib/network'
 import NetworkDirectory from '@/components/network/NetworkDirectory'
 
@@ -14,14 +17,32 @@ export default async function NetworkPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // The Network is a Pro feature, and /network says so publicly. It was
+  // reachable by anyone signed in, which made that claim untrue for an expired
+  // account. Trial counts as Pro, so this only stops accounts that have
+  // actually lapsed. A claimed team member is served by their organisation and
+  // is never gated on their own plan, matching Analytics and Contacts.
+  const [plan, teamCard] = await Promise.all([
+    getUserPlan(user.id),
+    getMemberTeamCard<{ id: string }>(user.id, 'id'),
+  ])
+  const isTeamMember = !!teamCard
+  if (!isTeamMember && (plan.tier !== 'pro' || !plan.isActive)) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <ProGate feature="Network" />
+      </div>
+    )
+  }
+
   const admin = createServiceClient() as any
   const { cards, brandLogos, ready } = await fetchNetworkCards(admin)
 
   if (!ready) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold text-slate-900">Network is nearly ready</h1>
-        <p className="mt-3 text-slate-600">
+        <h1 className="text-2xl font-bold">Network is nearly ready</h1>
+        <p className="mt-3 text-muted-foreground">
           The directory is waiting on a database update. It will appear here as soon
           as that is applied.
         </p>

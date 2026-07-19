@@ -12,7 +12,7 @@
 // stay that way.
 
 const BASE = process.argv[2] || 'http://localhost:3000'
-const PAGES = ['/', '/features', '/pricing', '/nfc', '/how-it-works', '/blog',
+const PAGES = ['/', '/features', '/network', '/pricing', '/nfc', '/how-it-works', '/blog',
   '/blog/what-is-a-digital-business-card', '/blog/digital-business-cards-south-africa',
   '/blog/nfc-vs-paper-business-cards', '/blog/how-to-make-a-free-digital-business-card',
   '/about', '/contact', '/terms', '/privacy', '/signup']

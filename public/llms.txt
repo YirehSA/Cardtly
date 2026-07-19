@@ -21,6 +21,7 @@ A digital business card is an online profile that replaces a paper business card
 - Your own short link (cardtly.com/card/yourname). Change it later and the old link keeps redirecting, so anything already printed still works.
 - 12 card templates, fully customisable: accent colours (any hex), fonts, logo, light/dark mode, a custom background colour, and per-element text colours and sizes.
 - Photo galleries, custom links, WhatsApp, social profiles, certifications, and an AI-written bio.
+- Cardtly Network: a searchable directory of everyone on Cardtly, inside the dashboard. Search by company, person or job title, filter by any of 45 industries, open a company to see its people, and open any card. Included with Pro. Signed-in only, never public. Listings show name, position, company and photo, never a phone number or email address, and anyone can switch their listing off.
 - Analytics per card: views, taps, link clicks and saved contacts.
 - Lead capture with a built-in contacts CRM - visitors share their details and every lead lands in the owner's dashboard and inbox.
 - Book-a-meeting button: visitors request a time from the card; the owner is emailed and the requester is saved to contacts.
@@ -42,12 +43,14 @@ Cardtly is built for a company rolling cards out to a whole team, not just indiv
 - Whatever is not locked stays with the person: their name, photo, job title, bio and mobile number.
 - One brand, or one per department. Set the company look once and apply it to every card; a department can carry its own colours on top.
 - Reporting per person: views, taps, clicks and saved contacts for each team member, and every lead they capture in one shared list.
+- Network control. A team appears in the directory as one company under one logo. The admin switches individual cards in or out of the Network; the staff member keeps their own switch, and either side can remove a card while neither can force one back in.
 - Per-seat billing. Add cards as you hire; an unclaimed card waits with an invite against it.
 
 ## Pages
 
 - [Home](https://cardtly.com/): what Cardtly does for a team - more leads, more meetings, more sales.
 - [Features](https://cardtly.com/features): every feature grouped, with what is included, what is an add-on, and what needs the Teams plan.
+- [Network](https://cardtly.com/network): the in-dashboard business networking directory - search companies by name or industry, see who works there, open their card.
 - [How it works](https://cardtly.com/how-it-works): create a card, get your link and QR, share by tap, scan, or URL.
 - [Pricing](https://cardtly.com/pricing): R97 a card a month, with a live USD estimate for international visitors.
 - [NFC cards](https://cardtly.com/nfc): the physical tap-to-share card, with photos of cards actually printed.

@@ -29,6 +29,7 @@ export default function Footer() {
             <div className="space-y-2.5">
               {[
                 { href: '/features',      label: 'Features' },
+                { href: '/network', label: 'Business networking' },
                 { href: '/how-it-works', label: 'How digital cards work' },
                 { href: '/pricing',       label: 'Digital business card pricing' },
                 { href: '/blog',          label: 'Digital business card blog' },
