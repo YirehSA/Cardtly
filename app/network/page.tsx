@@ -302,7 +302,7 @@ export default function NetworkPage() {
         {/* How it works */}
         <section className="py-20 border-t border-white/10">
           <div className="max-w-6xl mx-auto px-6">
-            <h2 className="font-display text-3xl sm:text-4xl font-black text-center">
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight text-center">
               How networking works on Cardtly
             </h2>
             <p className="mt-4 text-white/60 text-center max-w-2xl mx-auto leading-relaxed">
@@ -339,7 +339,7 @@ export default function NetworkPage() {
         <section className="py-20 border-t border-white/10">
           <div className="max-w-6xl mx-auto px-6">
             <div className="max-w-2xl">
-              <h2 className="font-display text-3xl sm:text-4xl font-black">
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight">
                 Built for companies, not just individuals
               </h2>
               <p className="mt-4 text-white/60 leading-relaxed">
@@ -399,7 +399,7 @@ export default function NetworkPage() {
               >
                 <Lock className="w-5 h-5" aria-hidden="true" />
               </span>
-              <h2 className="mt-6 font-display text-2xl sm:text-3xl font-black">
+              <h2 className="mt-6 text-2xl md:text-3xl font-black tracking-tight">
                 A members&rsquo; directory, not a public list
               </h2>
               <div className="mt-6 space-y-4 text-white/70 leading-relaxed">
@@ -428,7 +428,7 @@ export default function NetworkPage() {
         {/* FAQ */}
         <section className="py-20 border-t border-white/10">
           <div className="max-w-3xl mx-auto px-6">
-            <h2 className="font-display text-3xl sm:text-4xl font-black text-center">
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight text-center">
               Networking questions, answered
             </h2>
             <div className="mt-10 space-y-3">
@@ -454,7 +454,7 @@ export default function NetworkPage() {
         {/* Close */}
         <section className="py-24 border-t border-white/10">
           <div className="max-w-3xl mx-auto px-6 text-center">
-            <h2 className="font-display text-3xl sm:text-4xl font-black">
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight">
               Get listed, and get found
             </h2>
             <p className="mt-4 text-white/60 leading-relaxed">
