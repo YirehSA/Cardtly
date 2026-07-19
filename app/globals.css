@@ -13,7 +13,12 @@
     --input:            220 15% 88%;
     --ring:             220 80% 55%;
     --muted:            220 15% 93%;
-    --muted-foreground: 220 12% 48%;
+    /* 43%, not 48%. At 48% this measured 3.87:1 on --muted and 4.28:1 on
+       --background, under the 4.5:1 WCAG AA minimum, which put every piece of
+       secondary text on every page just below readable. Chosen by solving for
+       the worst background it actually sits on (--muted); the result clears
+       4.67:1 everywhere. */
+    --muted-foreground: 220 12% 43%;
     --accent:           220 80% 55%;      /* electric blue */
     --accent-foreground:0 0% 100%;
     --primary:          220 80% 55%;
@@ -46,7 +51,10 @@
     --input:            222 22% 18%;
     --ring:             217 91% 60%;
     --muted:            222 25% 15%;
-    --muted-foreground: 218 15% 52%;
+    /* 56%, not 52% - same fix as light mode, in the other direction. At 52%
+       this was 3.97:1 on --muted and 4.40:1 on --card. 56% clears 4.56:1 on
+       all of them. */
+    --muted-foreground: 218 15% 56%;
     --accent:           217 91% 60%;
     --accent-foreground:0 0% 100%;
     --primary:          217 91% 60%;
