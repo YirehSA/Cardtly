@@ -1,8 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
 import { getPrimaryCard, getMemberTeamCard } from '@/lib/card-server'
+import IndustryPrompt from '@/components/dashboard/IndustryPrompt'
+import { fetchCardNetworkPrefs } from '@/lib/network'
 import { parseDesign, getAccentHex } from '@/types/design'
 import Link from 'next/link'
 import CopyLinkButton from '@/components/dashboard/CopyLinkButton'
@@ -105,6 +107,12 @@ export default async function DashboardPage() {
   const design = card ? parseDesign(card.color_theme) : null
   const accentHex = design ? getAccentHex(design) : '#3b82f6'
   const firstName = (card?.name || 'there').split(' ')[0]
+
+  // Asked for separately from the main card query - see fetchCardNetworkPrefs
+  // for why naming these columns in CARD_FIELDS would be dangerous.
+  const netPrefs = card
+    ? await fetchCardNetworkPrefs(createServiceClient() as any, card.id, cardKind === 'team')
+    : null
 
   // Team members edit their card on the team-card editor (so the locked-field
   // UI kicks in). Personal users go to the standard /dashboard/card editor.
@@ -328,6 +336,16 @@ export default async function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* Ask for the industry once, only while it is missing. Someone who has
+          opted out of the Network is not nagged for a field that only feeds it. */}
+      {card && netPrefs?.ready && !netPrefs.industry && !netPrefs.hideFromNetwork && (
+        <IndustryPrompt
+          cardId={card.id}
+          isTeamCard={cardKind === 'team'}
+          accentHex={accentHex}
+        />
+      )}
 
       {/* Finish your card - the "what do I do next" answer */}
       <div className="rounded-3xl border border-border bg-card p-5 sm:p-6">

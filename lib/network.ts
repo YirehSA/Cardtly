@@ -120,6 +120,35 @@ export async function fetchNetworkCards(admin: any): Promise<NetworkData> {
   }
 }
 
+// The two Network fields for one card, fetched on their own.
+//
+// Deliberately not folded into the dashboard's main card query: that query
+// runs through getPrimaryCard, which swallows errors and returns no row at
+// all, so naming a column that does not exist yet would not throw - it would
+// silently log every user out of their own dashboard, placeholder card and
+// all. Asking separately means the worst case is that this one prompt does
+// not render.
+export async function fetchCardNetworkPrefs(
+  admin: any,
+  cardId: string,
+  isTeamCard: boolean
+): Promise<{ industry: string | null; hideFromNetwork: boolean; ready: boolean }> {
+  const { data, error } = await admin
+    .from(isTeamCard ? 'team_cards' : 'cards')
+    .select('industry, hide_from_network')
+    .eq('id', cardId)
+    .maybeSingle()
+
+  if (error || !data) {
+    return { industry: null, hideFromNetwork: false, ready: false }
+  }
+  return {
+    industry: data.industry ?? null,
+    hideFromNetwork: !!data.hide_from_network,
+    ready: true,
+  }
+}
+
 // Group cards into companies, splitting off the people who never set one.
 //
 // Grouping is by company name and deliberately not by organization_id: a
