@@ -192,9 +192,9 @@ export const POSTS: BlogPost[] = [
 
   {
     slug: 'nfc-vs-paper-business-cards',
-    title: 'NFC vs Paper Business Cards: Which Is Better in 2026?',
+    title: 'NFC vs Paper Business Cards: Which Wins in 2026?',
     description:
-      'NFC vs paper business cards compared on cost, updates, sustainability, analytics and reach. See why NFC digital cards win for South African professionals in 2026.',
+      'NFC vs paper business cards on cost, updates, sustainability, analytics and reach - and why NFC wins for South African professionals in 2026.',
     excerpt:
       'A fair 2026 comparison of NFC and paper business cards across cost, updates, waste, analytics and reach, and why digital usually wins.',
     date: '2026-07-02',
@@ -253,7 +253,7 @@ export const POSTS: BlogPost[] = [
 
   {
     slug: 'how-to-make-a-free-digital-business-card',
-    title: 'How to Make a Free Digital Business Card (Step by Step)',
+    title: 'How to Make a Free Digital Business Card',
     description:
       'Learn how to create a free digital business card in South Africa. A simple step-by-step guide: sign up, pick a template, add details, share by link, QR or NFC.',
     excerpt:

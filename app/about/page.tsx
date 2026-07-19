@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   // it. absolute skips the template; this is 51.
   title: { absolute: 'About Cardtly | Digital Business Cards, South Africa' },
   description:
-    'Cardtly is a South African digital business card platform on a mission to retire the paper card. ZAR pricing, local NFC card delivery, and a 60-day free trial for every professional.',
+    'Cardtly is a South African digital business card platform out to retire the paper card. Rand pricing, local NFC delivery, and 60 days free to start.',
   alternates: { canonical: '/about' },
 }
 

@@ -6,9 +6,9 @@ import GeoPricing from '@/components/marketing/GeoPricing'
 import { ArrowRight } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'How Digital Business Cards Work — Set Up in 2 Minutes',
+  title: { absolute: 'How Digital Business Cards Work | Set Up in 2 Minutes' },
   description:
-    'See how a Cardtly digital business card works: create your card, get your link and QR code, then share by NFC tap, scan, or URL. Update anytime - everyone always sees your latest details.',
+    'Create your card, get your link and QR code, then share by NFC tap, scan or URL. Update it once and everyone who has your card sees the new version.',
   alternates: { canonical: '/how-it-works' },
 }
 

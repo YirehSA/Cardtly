@@ -8,9 +8,10 @@ import { existsSync } from 'fs'
 import { join } from 'path'
 
 export const metadata: Metadata = {
-  title: 'NFC Business Cards South Africa — Tap to Share | R150 Once-off',
+  // 72 characters with the "%s | Cardtly" template applied, so Google cut it.
+  title: { absolute: 'NFC Business Cards South Africa | Tap to Share | Cardtly' },
   description:
-    'Order your NFC business card in South Africa. One tap opens your full digital business card on any modern phone - no app needed. R150 once-off plus R100 shipping, delivered in 5-7 business days nationwide.',
+    'Order an NFC business card in South Africa. One tap opens your digital card on any phone, no app needed. R150 once-off plus R100 shipping, 5-7 days.',
   alternates: { canonical: '/nfc' },
 }
 

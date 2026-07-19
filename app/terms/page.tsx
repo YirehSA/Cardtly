@@ -4,7 +4,11 @@ import Footer from '@/components/marketing/Footer'
 
 export const metadata: Metadata = {
   title: 'Terms of Service',
-  description: 'The agreement between you and Cardtly when you use our service.',
+  description:
+    'The terms you agree to when using Cardtly: your account and card, billing in rand, the 60-day trial, cancellation, and how the service is run.',
+  // The root layout deliberately omits a canonical so it cannot point every
+  // page at the homepage, which means pages without one have none at all.
+  alternates: { canonical: '/terms' },
 }
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'

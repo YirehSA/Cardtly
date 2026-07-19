@@ -4,7 +4,9 @@ import Footer from '@/components/marketing/Footer'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
-  description: 'How Cardtly collects, uses, and protects your personal information.',
+  description:
+    'How Cardtly collects, uses and protects your personal information: what we store on your card and your leads, and how to request or delete your data.',
+  alternates: { canonical: '/privacy' },
 }
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
