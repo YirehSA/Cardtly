@@ -8,13 +8,19 @@ import { FROM_EMAIL } from '@/lib/email'
 // Resend - previously the contact page only pretended to send.
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-// Where contact-page messages land. hello@cardtly.com (the address
-// shown on the page) was confirmed receiving on 2026-07-17, so the
-// old "if/when that mailbox is set up" caveat no longer applies.
-// Kept pointed at info@yireh.co.za deliberately: that is the inbox
-// actually being watched day to day. Switch it if hello@ becomes the
-// one you read.
-const TO_EMAIL = 'info@yireh.co.za'
+// Where contact-page messages land. Moved off info@yireh.co.za on
+// Andre's instruction (2026-07-19): contact-page mail should arrive on
+// the Cardtly domain rather than the Yireh one.
+//
+// cardtly.com accepts inbound mail - its MX points at mx1.cpmx.co.za -
+// so this is deliverable at the domain level. What that does not prove
+// is that this particular mailbox or alias exists on that server. If it
+// does not, Resend reports a send with no error here and the message is
+// bounced afterwards, out of sight: every contact-form submission would
+// be lost silently. Send a test message through /contact after any change
+// here and confirm it arrives, rather than assuming a green response
+// means delivered.
+const TO_EMAIL = 'andre@cardtly.com'
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
