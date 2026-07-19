@@ -69,7 +69,7 @@ export default function Navbar() {
         <div className="md:hidden px-6 pb-6 pt-2 space-y-1" style={{ background: 'rgba(0,0,0,0.95)' }}>
           {LINKS.map(({ href, label, badge }) => (
             <Link key={href} href={href} onClick={() => setOpen(false)}
-              className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/05 transition">
+              className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition">
               {label}{badge && <span className="text-xs">{badge}</span>}
             </Link>
           ))}

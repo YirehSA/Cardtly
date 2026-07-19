@@ -63,7 +63,7 @@ export default async function UpgradeSuccessPage({
               Go to dashboard <ArrowRight className="w-5 h-5" />
             </Link>
             <Link href="/dashboard/card"
-              className="py-3 rounded-2xl text-sm font-medium transition hover:bg-white/05 text-center"
+              className="py-3 rounded-2xl text-sm font-medium transition hover:bg-white/5 text-center"
               style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>
               Customise my card now
             </Link>

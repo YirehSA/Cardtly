@@ -36,7 +36,7 @@ export default async function UpgradeCancelPage({
             Try again <ArrowRight className="w-4 h-4" />
           </Link>
           <Link href="/dashboard"
-            className="flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium transition hover:bg-white/05"
+            className="flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium transition hover:bg-white/5"
             style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>
             <ArrowLeft className="w-4 h-4" />Back to dashboard
           </Link>
