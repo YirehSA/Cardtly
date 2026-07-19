@@ -3,15 +3,25 @@
 import { useState, useMemo } from 'react'
 import { Search, Building2, ArrowLeft, ExternalLink, Users, X } from 'lucide-react'
 import { INDUSTRIES } from '@/lib/industries'
-import { searchCompanies, type NetworkCompany, type NetworkCard } from '@/lib/network'
+import {
+  searchCompanies,
+  searchIndependents,
+  type NetworkCompany,
+  type NetworkCard,
+} from '@/lib/network'
 import { parseDesign, getAccentHex } from '@/types/design'
 
 interface Props {
   companies: NetworkCompany[]
+  independents: NetworkCard[]
   totalCards: number
 }
 
-export default function NetworkDirectory({ companies, totalCards }: Props) {
+export default function NetworkDirectory({
+  companies,
+  independents,
+  totalCards,
+}: Props) {
   const [query, setQuery] = useState('')
   const [industry, setIndustry] = useState<string | null>(null)
   const [selected, setSelected] = useState<NetworkCompany | null>(null)
@@ -21,12 +31,32 @@ export default function NetworkDirectory({ companies, totalCards }: Props) {
     [companies, query, industry]
   )
 
+  const soloResults = useMemo(
+    () => searchIndependents(independents, query, industry),
+    [independents, query, industry]
+  )
+
+  const nothingFound = results.length === 0 && soloResults.length === 0
+
+  // Count what someone can actually browse to, not every grouped key: the
+  // low-signal one-person entries are hidden from the grid, so counting them
+  // would promise more than the page shows.
+  const listedCount = useMemo(
+    () => companies.filter(c => !c.lowSignal).length,
+    [companies]
+  )
+
   // Only offer industries that somebody is actually in. A filter list full of
   // options that return nothing is worse than a short one.
   const availableIndustries = useMemo(() => {
-    const present = new Set(companies.map(c => c.industry).filter(Boolean))
+    const present = new Set(
+      [
+        ...companies.map(c => c.industry),
+        ...independents.map(c => c.industry),
+      ].filter(Boolean)
+    )
     return INDUSTRIES.filter(i => present.has(i.id))
-  }, [companies])
+  }, [companies, independents])
 
   if (selected) {
     return <CompanyDetail company={selected} onBack={() => setSelected(null)} />
@@ -37,8 +67,8 @@ export default function NetworkDirectory({ companies, totalCards }: Props) {
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900">Network</h1>
         <p className="mt-2 text-slate-600">
-          {totalCards} {totalCards === 1 ? 'card' : 'cards'} across {companies.length}{' '}
-          {companies.length === 1 ? 'company' : 'companies'}. Search for a company, a
+          {totalCards} {totalCards === 1 ? 'card' : 'cards'} across {listedCount}{' '}
+          {listedCount === 1 ? 'company' : 'companies'}. Search for a company, a
           person or a job title.
         </p>
       </header>
@@ -66,7 +96,9 @@ export default function NetworkDirectory({ companies, totalCards }: Props) {
                 type="button"
                 onClick={() => setQuery('')}
                 aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                // 44px square inside the 48px input: the icon stays small but
+                // the tap target meets the minimum.
+                className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 grid place-items-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <X className="w-4 h-4" aria-hidden="true" />
               </button>
@@ -94,13 +126,13 @@ export default function NetworkDirectory({ companies, totalCards }: Props) {
         </div>
       </div>
 
-      {results.length === 0 ? (
+      {nothingFound ? (
         <EmptyState
           title="Nothing matched"
           body={
             query
               ? `No company, person or position matches "${query}".`
-              : 'No cards in this industry yet.'
+              : 'Nobody has set this industry on their card yet.'
           }
           action={
             <button
@@ -116,35 +148,56 @@ export default function NetworkDirectory({ companies, totalCards }: Props) {
           }
         />
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {results.map(company => (
-            <li key={company.key}>
-              <button
-                type="button"
-                onClick={() => setSelected(company)}
-                className="group w-full h-full text-left p-5 rounded-2xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                <div className="flex items-start gap-4">
-                  <CompanyLogo company={company} />
-                  <div className="min-w-0 flex-1">
-                    <h2 className="font-semibold text-slate-900 truncate group-hover:text-blue-700 transition-colors">
-                      {company.name}
-                    </h2>
-                    {company.industryLabel && (
-                      <p className="mt-1 text-xs text-slate-500 truncate">
-                        {company.industryLabel}
-                      </p>
-                    )}
-                    <p className="mt-3 inline-flex items-center gap-1.5 text-sm text-slate-600">
-                      <Users className="w-4 h-4 text-slate-400" aria-hidden="true" />
-                      {company.cardCount} {company.cardCount === 1 ? 'person' : 'people'}
-                    </p>
-                  </div>
-                </div>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          {results.length > 0 && (
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {results.map(company => (
+                <li key={company.key}>
+                  <button
+                    type="button"
+                    onClick={() => setSelected(company)}
+                    className="group w-full h-full text-left p-5 rounded-2xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  >
+                    <div className="flex items-start gap-4">
+                      <CompanyLogo company={company} />
+                      <div className="min-w-0 flex-1">
+                        <h2 className="font-semibold text-slate-900 truncate group-hover:text-blue-700 transition-colors">
+                          {company.name}
+                        </h2>
+                        {company.industryLabel && (
+                          <p className="mt-1 text-xs text-slate-500 truncate">
+                            {company.industryLabel}
+                          </p>
+                        )}
+                        <p className="mt-3 inline-flex items-center gap-1.5 text-sm text-slate-600">
+                          <Users className="w-4 h-4 text-slate-400" aria-hidden="true" />
+                          {company.cardCount}{' '}
+                          {company.cardCount === 1 ? 'person' : 'people'}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {soloResults.length > 0 && (
+            <section className={results.length > 0 ? 'mt-12' : ''}>
+              <h2 className="text-lg font-semibold text-slate-900">Independent</h2>
+              <p className="mt-1 mb-4 text-sm text-slate-600">
+                Members who have not set a company on their card.
+              </p>
+              <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {soloResults.map(card => (
+                  <li key={card.id}>
+                    <PersonCard card={card} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
       )}
     </div>
   )

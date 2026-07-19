@@ -15,7 +15,7 @@ export default async function NetworkPage() {
   if (!user) redirect('/login')
 
   const admin = createServiceClient() as any
-  const { cards, ready } = await fetchNetworkCards(admin)
+  const { cards, brandLogos, ready } = await fetchNetworkCards(admin)
 
   if (!ready) {
     return (
@@ -29,7 +29,13 @@ export default async function NetworkPage() {
     )
   }
 
-  const companies = groupIntoCompanies(cards)
+  const { companies, independents } = groupIntoCompanies(cards, brandLogos)
 
-  return <NetworkDirectory companies={companies} totalCards={cards.length} />
+  return (
+    <NetworkDirectory
+      companies={companies}
+      independents={independents}
+      totalCards={cards.length}
+    />
+  )
 }

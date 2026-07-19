@@ -29,6 +29,18 @@ export interface NetworkCompany {
   industryLabel: string | null
   cardCount: number
   cards: NetworkCard[]
+  // One person, no logo. Almost always a typo, a test row or a phone number
+  // typed into the company field, so these are kept out of the browsable grid
+  // but still turn up when someone searches for them by name.
+  lowSignal: boolean
+}
+
+export interface NetworkGroups {
+  companies: NetworkCompany[]
+  // People with no company set at all. Real members worth finding, but they
+  // are not companies and they make a wall of logos look broken, so they get
+  // their own section.
+  independents: NetworkCard[]
 }
 
 // Contact details are deliberately absent from this shape. The directory is
@@ -41,6 +53,10 @@ const CARD_FIELDS =
 
 export interface NetworkData {
   cards: NetworkCard[]
+  // companyKey -> the org's own brand logo. A team that has set a brand has
+  // one authoritative logo; without this the directory shows whichever staff
+  // member's upload happened to be read first.
+  brandLogos: Record<string, string>
   // False when the 036 columns are not in the database yet. Code deploys on
   // commit but migrations are applied by hand, so there is a window where this
   // query names columns that do not exist - the page shows a "not set up yet"
@@ -49,7 +65,7 @@ export interface NetworkData {
 }
 
 export async function fetchNetworkCards(admin: any): Promise<NetworkData> {
-  const [personal, team] = await Promise.all([
+  const [personal, team, orgs] = await Promise.all([
     admin
       .from('cards')
       .select(CARD_FIELDS)
@@ -61,6 +77,7 @@ export async function fetchNetworkCards(admin: any): Promise<NetworkData> {
       .not('slug', 'is', null)
       .eq('hide_from_network', false)
       .eq('is_active', true),
+    admin.from('organizations').select('brand'),
   ])
 
   const map = (rows: any[], isTeamCard: boolean): NetworkCard[] =>
@@ -82,46 +99,70 @@ export async function fetchNetworkCards(admin: any): Promise<NetworkData> {
   const missingColumns = [personal.error, team.error].some(
     (e: any) => e && e.code === '42703'
   )
-  if (missingColumns) return { cards: [], ready: false }
+  if (missingColumns) return { cards: [], brandLogos: {}, ready: false }
 
   const realError = [personal.error, team.error].find(Boolean)
   if (realError) throw realError
 
+  // An org brand only helps if it names the company it belongs to - that name
+  // is the only thing tying it to the cards, which group by company text.
+  const brandLogos: Record<string, string> = {}
+  for (const row of orgs.data || []) {
+    const brand = (row as any).brand
+    if (!brand?.company || !brand?.company_logo_url) continue
+    brandLogos[companyKey(brand.company)] = brand.company_logo_url
+  }
+
   return {
     cards: [...map(personal.data, false), ...map(team.data, true)],
+    brandLogos,
     ready: true,
   }
 }
 
-// Group cards into companies. Cards with no company name are their own
-// single-person entries under the person's name, so a freelancer is findable
-// too rather than dropped from the directory entirely.
-export function groupIntoCompanies(cards: NetworkCard[]): NetworkCompany[] {
+// Group cards into companies, splitting off the people who never set one.
+//
+// Grouping is by company name and deliberately not by organization_id: a
+// Cardtly org is a billing account, not a company. One org here holds four
+// unrelated businesses, and grouping by org would file all four under the
+// account holder's name.
+export function groupIntoCompanies(
+  cards: NetworkCard[],
+  brandLogos: Record<string, string> = {}
+): NetworkGroups {
   const byKey = new Map<string, NetworkCompany>()
+  const independents: NetworkCard[] = []
 
   for (const card of cards) {
-    const named = !!(card.company && card.company.trim())
-    const key = named ? companyKey(card.company) : `solo:${card.slug}`
-    if (!key) continue
+    if (!card.company || !card.company.trim()) {
+      independents.push(card)
+      continue
+    }
+    const key = companyKey(card.company)
+    if (!key) {
+      independents.push(card)
+      continue
+    }
 
     let entry = byKey.get(key)
     if (!entry) {
       entry = {
         key,
-        name: named ? card.company!.trim() : card.name,
-        logoUrl: null,
+        name: card.company.trim(),
+        logoUrl: brandLogos[key] ?? null,
         industry: null,
         industryLabel: null,
         cardCount: 0,
         cards: [],
+        lowSignal: false,
       }
       byKey.set(key, entry)
     }
 
     entry.cards.push(card)
     entry.cardCount++
-    // First logo wins, so a company whose staff have uploaded the logo
-    // inconsistently still shows one.
+    // A card's own upload only fills the gap when the org has no brand logo,
+    // so a team that has set its brand always shows that one.
     if (!entry.logoUrl && card.companyLogoUrl) entry.logoUrl = card.companyLogoUrl
     if (!entry.industry && card.industry) {
       entry.industry = card.industry
@@ -131,13 +172,18 @@ export function groupIntoCompanies(cards: NetworkCard[]): NetworkCompany[] {
 
   for (const entry of byKey.values()) {
     entry.cards.sort((a, b) => a.name.localeCompare(b.name))
+    entry.lowSignal = entry.cardCount === 1 && !entry.logoUrl
   }
+
+  independents.sort((a, b) => a.name.localeCompare(b.name))
 
   // Companies with more people first - they are the more useful result - then
   // alphabetically so the order is stable between loads.
-  return [...byKey.values()].sort(
+  const companies = [...byKey.values()].sort(
     (a, b) => b.cardCount - a.cardCount || a.name.localeCompare(b.name)
   )
+
+  return { companies, independents }
 }
 
 // One search box covers company, person and job title, because people do not
@@ -149,6 +195,9 @@ export function searchCompanies(
 ): NetworkCompany[] {
   const q = query.trim().toLowerCase()
   return companies.filter(c => {
+    // Browsing shows the real companies; typing a query reaches everything,
+    // so a one-person entry is hidden from the grid but never unfindable.
+    if (c.lowSignal && !q) return false
     if (industry && c.industry !== industry) return false
     if (!q) return true
     if (c.name.toLowerCase().includes(q)) return true
@@ -156,6 +205,22 @@ export function searchCompanies(
       card =>
         card.name.toLowerCase().includes(q) ||
         (card.title || '').toLowerCase().includes(q)
+    )
+  })
+}
+
+export function searchIndependents(
+  independents: NetworkCard[],
+  query: string,
+  industry: string | null
+): NetworkCard[] {
+  const q = query.trim().toLowerCase()
+  return independents.filter(card => {
+    if (industry && card.industry !== industry) return false
+    if (!q) return true
+    return (
+      card.name.toLowerCase().includes(q) ||
+      (card.title || '').toLowerCase().includes(q)
     )
   })
 }
