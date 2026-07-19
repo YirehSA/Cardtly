@@ -76,6 +76,9 @@ export async function fetchNetworkCards(admin: any): Promise<NetworkData> {
       .select(CARD_FIELDS)
       .not('slug', 'is', null)
       .eq('hide_from_network', false)
+      // The manager's separate veto. A team card is listed only when the
+      // member and their org both allow it.
+      .eq('org_hide_from_network', false)
       .eq('is_active', true),
     admin.from('organizations').select('brand'),
   ])

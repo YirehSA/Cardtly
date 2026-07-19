@@ -20,6 +20,11 @@ import { resolveLocks, stripLocked } from '@/lib/team-locks'
 const NEVER_WRITABLE = new Set([
   'id', 'user_id', 'organization_id', 'department_id', 'slug', 'claimed_at',
   'invite_email', 'invite_sent_at', 'view_count', 'is_active', 'created_at',
+  // Listing flags belong to /api/cards/visibility, which is the only place
+  // that knows whether the caller is the member or the org admin. Left
+  // writable here, a member could clear their manager's org_hide_from_network
+  // by posting it as an ordinary field and undo the exclusion entirely.
+  'hide_from_network', 'org_hide_from_network', 'allow_homepage_feature',
 ])
 
 export async function POST(request: Request) {

@@ -25,6 +25,7 @@ export async function POST(request: Request) {
     card_id?: string
     allow_homepage_feature?: boolean
     hide_from_network?: boolean
+    org_hide_from_network?: boolean
   }
   try {
     body = await request.json()
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
   }
 
-  const { card_id, allow_homepage_feature, hide_from_network } = body
+  const { card_id, allow_homepage_feature, hide_from_network, org_hide_from_network } = body
   if (!card_id) {
     return NextResponse.json({ error: 'Missing card_id' }, { status: 400 })
   }
@@ -48,29 +49,42 @@ export async function POST(request: Request) {
   if (typeof hide_from_network === 'boolean') {
     patch.hide_from_network = hide_from_network
   }
-  if (Object.keys(patch).length === 1) {
+  // org_hide_from_network is the org admin's veto over a team card and is
+  // handled further down, where we know whether the caller is that admin. It
+  // is never applied to a personal card, which has no org.
+  const wantsOrgFlag = typeof org_hide_from_network === 'boolean'
+  if (Object.keys(patch).length === 1 && !wantsOrgFlag) {
     return NextResponse.json(
-      { error: 'Nothing to update: send allow_homepage_feature or hide_from_network' },
+      { error: 'Nothing to update: send allow_homepage_feature, hide_from_network or org_hide_from_network' },
       { status: 400 }
     )
   }
-  const result = { allow_homepage_feature, hide_from_network }
+  const result = { allow_homepage_feature, hide_from_network, org_hide_from_network }
 
-  // 1. Personal card owned by the caller.
-  const { data: personal, error: personalErr } = await supabase
-    .from('cards')
-    .update(patch as any)
-    .eq('id', card_id)
-    .eq('user_id', user.id)
-    .select('id')
-    .maybeSingle()
+  // 1. Personal card owned by the caller. Skipped when the request carries
+  //    only the org flag, which no personal card has a column for.
+  if (Object.keys(patch).length > 1) {
+    const { data: personal, error: personalErr } = await supabase
+      .from('cards')
+      .update(patch as any)
+      .eq('id', card_id)
+      .eq('user_id', user.id)
+      .select('id')
+      .maybeSingle()
 
-  if (personalErr) {
-    console.error('visibility update error (personal)', personalErr)
-    return NextResponse.json({ error: personalErr.message }, { status: 500 })
-  }
-  if (personal) {
-    return NextResponse.json({ success: true, ...result })
+    if (personalErr) {
+      console.error('visibility update error (personal)', personalErr)
+      return NextResponse.json({ error: personalErr.message }, { status: 500 })
+    }
+    if (personal) {
+      // Without org_hide_from_network: a personal card has no org and no such
+      // column, so echoing it back would report applying something we did not.
+      return NextResponse.json({
+        success: true,
+        allow_homepage_feature,
+        hide_from_network,
+      })
+    }
   }
 
   // 2. Team card. Authorize the caller as the claimed member OR the
@@ -88,19 +102,32 @@ export async function POST(request: Request) {
     .maybeSingle()
 
   if (teamCard) {
-    let authorized = teamCard.user_id === user.id
-    if (!authorized) {
-      const { data: org } = await admin
-        .from('organizations')
-        .select('id')
-        .eq('id', teamCard.organization_id)
-        .eq('admin_user_id', user.id)
-        .maybeSingle()
-      authorized = !!org
-    }
+    const { data: org } = await admin
+      .from('organizations')
+      .select('id')
+      .eq('id', teamCard.organization_id)
+      .eq('admin_user_id', user.id)
+      .maybeSingle()
+    const isOrgAdmin = !!org
+    const authorized = teamCard.user_id === user.id || isOrgAdmin
     if (!authorized) {
       return NextResponse.json({ error: 'Not authorized for this card' }, { status: 403 })
     }
+
+    // The org veto is the admin's alone. A member may hide themselves via
+    // hide_from_network, but must not be able to clear their manager's
+    // decision - and a manager must not be able to clear the member's, which
+    // is why these are two columns and not one.
+    if (wantsOrgFlag) {
+      if (!isOrgAdmin) {
+        return NextResponse.json(
+          { error: 'Only the team admin can change who from the team is listed' },
+          { status: 403 }
+        )
+      }
+      patch.org_hide_from_network = org_hide_from_network
+    }
+
     const { error: teamErr } = await admin
       .from('team_cards')
       .update(patch)

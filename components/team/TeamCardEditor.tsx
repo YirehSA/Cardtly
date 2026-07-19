@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react'
 import { CardDesign, parseDesign, serializeDesign } from '@/types/design'
 import { mergeBrand } from '@/lib/team-brand'
 import { lockedColumns, LOCK_GROUPS } from '@/lib/team-locks'
+import { INDUSTRIES } from '@/lib/industries'
 import { toast } from 'sonner'
 import TemplatedCardPreview from '@/components/card/TemplatedCardPreview'
 import DesignPanel from '@/components/card/DesignPanel'
@@ -44,6 +45,9 @@ interface TeamCard {
   link_4_title: string | null; link_4_url: string | null
   link_5_title: string | null; link_5_url: string | null
   allow_homepage_feature?: boolean | null
+  industry?: string | null
+  hide_from_network?: boolean | null
+  org_hide_from_network?: boolean | null
 }
 
 interface Org { id: string; name: string }
@@ -150,6 +154,53 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
       toast.error('Could not update. Try again.')
     }
     setFeatureSaving(false)
+  }
+
+  // Network listing. Two separate switches on purpose: this one is the card
+  // holder's own choice, and org_hide_from_network is the team admin's. Both
+  // must allow it for the card to appear, so this toggle shows as off - and
+  // says why - when the admin has excluded the card.
+  const orgExcluded = !!card.org_hide_from_network
+  const [inNetwork, setInNetwork] = useState(!card.hide_from_network)
+  const [networkSaving, setNetworkSaving] = useState(false)
+  const [industry, setIndustry] = useState(card.industry || '')
+  const [industrySaving, setIndustrySaving] = useState(false)
+
+  async function toggleNetwork(next: boolean) {
+    setNetworkSaving(true)
+    setInNetwork(next)
+    try {
+      const res = await fetch('/api/cards/visibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ card_id: card.id, hide_from_network: !next }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success(next ? 'This card is listed in the Network' : 'This card is no longer listed')
+    } catch {
+      setInNetwork(!next) // revert
+      toast.error('Could not update. Try again.')
+    }
+    setNetworkSaving(false)
+  }
+
+  async function saveIndustry(next: string) {
+    const prev = industry
+    setIndustry(next)
+    setIndustrySaving(true)
+    try {
+      const res = await fetch('/api/team/card/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ card_id: card.id, fields: { industry: next || null } }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success('Industry saved')
+    } catch {
+      setIndustry(prev)
+      toast.error('Could not save industry. Try again.')
+    }
+    setIndustrySaving(false)
   }
 
   const [form, setForm] = useState({
@@ -593,6 +644,55 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
             <span className="inline-block h-5 w-5 transform rounded-full bg-white transition"
               style={{ transform: allowFeature ? 'translateX(22px)' : 'translateX(2px)' }} />
           </button>
+        </div>
+
+        {/* Network listing + industry. Saves instantly, like the toggle above. */}
+        <div className="mt-4 rounded-xl border border-border p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold mb-1">List this card in the Cardtly Network</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                The Network is a directory other signed-in Cardtly members can search to find people by company, name or position. It shows name, position, company and photo, never a phone number or email address.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={inNetwork && !orgExcluded}
+              disabled={networkSaving || orgExcluded}
+              onClick={() => !networkSaving && !orgExcluded && toggleNetwork(!inNetwork)}
+              className="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition disabled:opacity-50"
+              style={{ background: inNetwork && !orgExcluded ? 'linear-gradient(135deg, #00d4ff, #7c3aed)' : 'rgba(255,255,255,0.15)' }}>
+              <span className="inline-block h-5 w-5 transform rounded-full bg-white transition"
+                style={{ transform: inNetwork && !orgExcluded ? 'translateX(22px)' : 'translateX(2px)' }} />
+            </button>
+          </div>
+
+          {orgExcluded && (
+            <p className="mt-3 text-xs text-muted-foreground flex items-start gap-1.5">
+              <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
+              {org.name} has chosen to keep this card out of the Network. Only a team admin can change that.
+            </p>
+          )}
+
+          <div className="mt-4 pt-4 border-t border-border">
+            <label htmlFor="team-industry" className="block text-sm font-semibold mb-1">Industry</label>
+            <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
+              Lets people filter the Network down to this line of work.
+            </p>
+            <select
+              id="team-industry"
+              value={industry}
+              onChange={e => saveIndustry(e.target.value)}
+              disabled={industrySaving}
+              className="w-full sm:w-72 min-h-[44px] px-3 rounded-lg border border-border bg-background text-sm disabled:opacity-50"
+            >
+              <option value="">Not set</option>
+              {INDUSTRIES.map(i => (
+                <option key={i.id} value={i.id}>{i.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="mt-4 flex justify-end">

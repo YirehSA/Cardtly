@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import {
   Users, Plus, Edit2, Trash2, ExternalLink, Loader2,
-  CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail, UserCheck, Send, BarChart2, Sparkles, ClipboardList
+  CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail, UserCheck, Send, BarChart2, Sparkles, ClipboardList, Network
 } from 'lucide-react'
 import UsdEstimate from '@/components/marketing/UsdEstimate'
 
@@ -29,6 +29,11 @@ interface TeamCard {
   claimed_at?: string | null
   use_team_brand?: boolean | null
   use_team_questionnaire?: boolean | null
+  // Network listing (migrations 036, 039). Two flags: hide_from_network is
+  // the member's own choice, org_hide_from_network is the admin's. Listed
+  // only when both are false.
+  hide_from_network?: boolean | null
+  org_hide_from_network?: boolean | null
 }
 
 interface Org {
@@ -275,6 +280,32 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
       toast.success(next ? `Team brand applied to ${card.name.split(' ')[0]}'s card` : `${card.name.split(' ')[0]}'s card now uses its own branding`)
     } else {
       setCards(prev => prev.map(c => c.id === card.id ? { ...c, use_team_brand: !next } : c)) // revert
+      toast.error(data.error || 'Could not update')
+    }
+  }
+
+  // The admin's veto over a single card's Network listing. Goes through the
+  // visibility endpoint rather than the team API, because that is the only
+  // route that checks the caller is the org admin before touching this flag.
+  //
+  // This cannot force a card to be listed - a member who has switched
+  // themselves off stays off. It only decides whether the org allows it.
+  async function toggleCardNetwork(card: TeamCard) {
+    const nextListed = !!card.org_hide_from_network // currently excluded -> allow
+    setCards(prev => prev.map(c => c.id === card.id ? { ...c, org_hide_from_network: !nextListed } : c))
+    const res = await fetch('/api/cards/visibility', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ card_id: card.id, org_hide_from_network: !nextListed }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (res.ok) {
+      const who = card.name.split(' ')[0]
+      if (!nextListed) toast.success(`${who} will not appear in the Network`)
+      else if (card.hide_from_network) toast.success(`${who} is allowed in the Network, but has switched it off for themselves`)
+      else toast.success(`${who} will appear in the Network`)
+    } else {
+      setCards(prev => prev.map(c => c.id === card.id ? { ...c, org_hide_from_network: nextListed } : c)) // revert
       toast.error(data.error || 'Could not update')
     }
   }
@@ -769,6 +800,35 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                       style={{ transform: card.use_team_brand && hasTeamBrand ? 'translateX(18px)' : 'translateX(2px)' }} />
                   </button>
                 </div>
+
+                {/* Network listing. The admin decides whether the org allows
+                    this card in the directory; the member has their own switch
+                    and can still opt out, which is what the note below says
+                    rather than leaving the admin wondering why someone the
+                    toggle says is allowed does not show up. */}
+                <div className="flex items-center justify-between pt-3 border-t border-border">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Network className="w-3.5 h-3.5" />In the Network
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={!card.org_hide_from_network}
+                    onClick={() => toggleCardNetwork(card)}
+                    title={card.org_hide_from_network
+                      ? 'This card is kept out of the Network directory. Tap to allow it.'
+                      : 'This card may appear in the Network directory. Tap to keep it out.'}
+                    className="relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition"
+                    style={{ background: !card.org_hide_from_network ? 'linear-gradient(135deg, #00d4ff, #7c3aed)' : 'hsl(var(--muted))' }}>
+                    <span className="inline-block h-4 w-4 rounded-full bg-white transition"
+                      style={{ transform: !card.org_hide_from_network ? 'translateX(18px)' : 'translateX(2px)' }} />
+                  </button>
+                </div>
+                {!card.org_hide_from_network && card.hide_from_network && (
+                  <p className="text-[11px] text-muted-foreground/80 mt-1.5 leading-relaxed">
+                    Allowed, but {card.name.split(' ')[0]} has switched the Network off on their own card.
+                  </p>
+                )}
 
                 {/* Team questionnaire toggle - only shown when the org add-on
                     is on and a form is built. Lets the admin pick which cards
