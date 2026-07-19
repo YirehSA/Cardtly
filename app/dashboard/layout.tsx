@@ -9,6 +9,7 @@ import Sidebar from '@/components/dashboard/Sidebar'
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
 import CommandPalette from '@/components/CommandPalette'
 import AnnouncementBanner from '@/components/AnnouncementBanner'
+import PastDueBanner from '@/components/dashboard/PastDueBanner'
 import AnnouncementModal from '@/components/AnnouncementModal'
 import HeartbeatPing from '@/components/dashboard/HeartbeatPing'
 
@@ -55,6 +56,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
               the original spacing on desktop where the bar is hidden. */}
           <div className="max-w-6xl mx-auto px-4 sm:px-8 pt-16 lg:pt-10 pb-28 lg:pb-10">
             <AnnouncementBanner />
+            {/* A failed payment used to be invisible in here: the card went
+                dark and nothing in the product said why. Rendered from the
+                layout rather than one page, because the person who needs to
+                see it may land anywhere in the dashboard. */}
+            {plan.isPastDue && <PastDueBanner graceDaysLeft={plan.graceDaysLeft} />}
             <div className="animate-fade-in-page">
               {children}
             </div>

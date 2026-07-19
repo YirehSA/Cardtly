@@ -5,7 +5,7 @@ import { Metadata } from 'next'
 import PublicCardView from '@/components/card/PublicCardView'
 import CardTracker from '@/components/card/CardTracker'
 import { mergeBrand, resolveTeamBrand } from '@/lib/team-brand'
-import { planFromTrial } from '@/lib/plan-server'
+import { planFromTrial, subscriptionState } from '@/lib/plan-server'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -93,11 +93,13 @@ export default async function PublicCardPage({ params }: Props) {
     ) as any
 
     const [{ data: sub }, { data: profile }] = await Promise.all([
+      // Not filtered to status = 'active': a past_due subscription still
+      // serves inside its grace window, and filtering it out here would have
+      // made a single declined charge look exactly like never having paid.
       admin
         .from('whop_subscriptions')
-        .select('subscription_tier, status')
+        .select('subscription_tier, status, past_due_since')
         .eq('user_id', (card as any).user_id)
-        .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
@@ -108,7 +110,7 @@ export default async function PublicCardPage({ params }: Props) {
         .maybeSingle(),
     ])
 
-    const hasSubscription = (sub as any)?.subscription_tier === 'pro' && (sub as any)?.status === 'active'
+    const hasSubscription = subscriptionState(sub as any).serves
 
     // No subscription: the card only serves while the trial is still running.
     // planFromTrial fails open on a missing/unreadable date, so a data gap can

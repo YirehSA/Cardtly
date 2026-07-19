@@ -117,6 +117,32 @@ export async function POST(request: Request) {
         } catch {
           // Same - don't fail the webhook on entry-grant errors
         }
+      } else {
+        // No user_id in the metadata. That metadata is attached when the
+        // customer first checks out, so every later charge on the same
+        // subscription - every renewal, and every successful retry after a
+        // decline - arrives without it and used to fall straight through this
+        // handler doing nothing. The row therefore stayed past_due after
+        // Paystack had actually been paid, and the card went dark at the end
+        // of the grace window despite the money having arrived.
+        //
+        // Recover by email, the same key subscription.disabled and
+        // invoice.payment_failed already use.
+        const { data: existing } = await admin
+          .from('whop_subscriptions')
+          .select('user_id')
+          .eq('email', customer.email)
+          .maybeSingle()
+
+        if (existing) {
+          await admin.from('whop_subscriptions').update({
+            status: 'active',
+            past_due_since: null,
+            updated_at: new Date().toISOString(),
+          }).eq('user_id', existing.user_id)
+        } else {
+          console.error('Paystack charge.success with no user_id and no row for', customer.email)
+        }
       }
     }
 
@@ -144,13 +170,16 @@ export async function POST(request: Request) {
 
       const { data: sub } = await admin
         .from('whop_subscriptions')
-        .select('user_id')
+        .select('user_id, past_due_since')
         .eq('email', customer.email)
-        .single()
+        .maybeSingle()
 
       if (sub) {
+        // coalesce, so a second failed retry does not restart the grace clock
+        // and hand out another full window.
         await admin.from('whop_subscriptions').update({
           status: 'past_due',
+          past_due_since: sub.past_due_since ?? new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }).eq('user_id', sub.user_id)
       }

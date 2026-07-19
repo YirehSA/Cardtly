@@ -246,6 +246,11 @@ export interface UserPlan {
   trialEndsAt?: string | null
   // Whole days left in the trial, floored at 0. Only set while isTrial.
   trialDaysLeft?: number
+  // A payment failed and the account is inside its grace window: still fully
+  // entitled, but it ends unless the charge succeeds. See PAYMENT_GRACE_DAYS.
+  isPastDue?: boolean
+  graceEndsAt?: string | null
+  graceDaysLeft?: number
 }
 
 // Card with plan context
