@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { UserPlan } from '@/types/database'
-import { INDUSTRIES } from '@/lib/industries'
+import { INDUSTRIES_BY_GROUP } from '@/lib/industries'
 import { toast } from 'sonner'
 import { useEffect } from 'react'
 import { User, Lock, CreditCard, AlertTriangle, Check, Eye, EyeOff } from 'lucide-react'
@@ -328,8 +328,12 @@ function ProfileTab({ user, profile, card, supabase }: { user: Props['user']; pr
                   className="w-full sm:w-72 min-h-[44px] px-3 rounded-lg border border-border bg-background text-sm disabled:opacity-50"
                 >
                   <option value="">Not set</option>
-                  {INDUSTRIES.map(i => (
-                    <option key={i.id} value={i.id}>{i.label}</option>
+                  {INDUSTRIES_BY_GROUP.map(g => (
+                    <optgroup key={g.group} label={g.group}>
+                      {g.items.map(i => (
+                        <option key={i.id} value={i.id}>{i.label}</option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>

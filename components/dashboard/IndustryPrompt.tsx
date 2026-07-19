@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Network, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
-import { INDUSTRIES } from '@/lib/industries'
+import { INDUSTRIES_BY_GROUP } from '@/lib/industries'
 
 interface Props {
   cardId: string
@@ -91,10 +91,12 @@ export default function IndustryPrompt({ cardId, isTeamCard, accentHex }: Props)
             className="w-full min-h-[44px] px-3 rounded-xl border border-border bg-background text-sm disabled:opacity-50"
           >
             <option value="">{saving ? 'Saving...' : 'Choose your industry'}</option>
-            {INDUSTRIES.map(i => (
-              <option key={i.id} value={i.id}>
-                {i.label}
-              </option>
+            {INDUSTRIES_BY_GROUP.map(g => (
+              <optgroup key={g.group} label={g.group}>
+                {g.items.map(i => (
+                  <option key={i.id} value={i.id}>{i.label}</option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>

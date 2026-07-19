@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react'
 import { CardDesign, parseDesign, serializeDesign } from '@/types/design'
 import { mergeBrand } from '@/lib/team-brand'
 import { lockedColumns, LOCK_GROUPS } from '@/lib/team-locks'
-import { INDUSTRIES } from '@/lib/industries'
+import { INDUSTRIES_BY_GROUP } from '@/lib/industries'
 import { toast } from 'sonner'
 import TemplatedCardPreview from '@/components/card/TemplatedCardPreview'
 import DesignPanel from '@/components/card/DesignPanel'
@@ -688,8 +688,12 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
               className="w-full sm:w-72 min-h-[44px] px-3 rounded-lg border border-border bg-background text-sm disabled:opacity-50"
             >
               <option value="">Not set</option>
-              {INDUSTRIES.map(i => (
-                <option key={i.id} value={i.id}>{i.label}</option>
+              {INDUSTRIES_BY_GROUP.map(g => (
+                <optgroup key={g.group} label={g.group}>
+                  {g.items.map(i => (
+                    <option key={i.id} value={i.id}>{i.label}</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
