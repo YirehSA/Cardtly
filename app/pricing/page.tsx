@@ -10,7 +10,7 @@ import { Check, ArrowRight, Zap, Building2 } from 'lucide-react'
 export const metadata: Metadata = {
   title: 'Digital Business Card Pricing, R97 a Month',
   description:
-    'Cardtly pricing in South African rand. R97 per card per month, or R970 a year. Teams from 2 to 20 seats at R97 a seat, with locked company branding and one admin dashboard. Enterprise for bigger teams. NFC card R150 once-off.',
+    'Free for 60 days, then R97 per card a month or R970 a year. Teams of 2 to 20 seats at R97 each, with departments and branding locks. NFC card R150.',
   alternates: { canonical: '/pricing' },
 }
 
@@ -26,9 +26,9 @@ const PRO = [
   '12 card templates',
   'Custom accent colour and fonts',
   'Job title, bio, address, WhatsApp',
-  'Up to 14 custom links',
+  'Up to 5 custom link buttons',
   'Social media profiles',
-  'Gallery (up to 5 images)',
+  'Gallery of up to 6 images',
   'Certifications and awards',
   'Analytics dashboard',
   'Email signature generator',
@@ -45,10 +45,11 @@ const PRO = [
 
 const TEAMS = [
   'Everything in Pro, for every member',
-  'Locked company branding on every card',
+  'Lock only what you choose: logo, company name, website, address, socials, links, gallery, design',
   'Invite by email, members keep their own details current',
   'One admin dashboard for the whole team',
-  'Team-wide analytics per member',
+  'Departments, each with their own head',
+  'Analytics and leads per member',
   'Branded Excel export of every lead',
   'Anyone can share a teammate\'s card',
   'Add seats whenever you grow',
@@ -77,18 +78,56 @@ export default function PricingPage() {
     <div style={{ background: '#000', color: '#fff' }}>
       <Navbar />
 
-      {/* Hero */}
-      <section className="pt-32 pb-16 px-6 text-center relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full blur-[100px] pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.15) 0%, transparent 70%)' }} />
-        <div className="relative max-w-2xl mx-auto">
-          <p className="animate-fade-up text-sm font-bold uppercase tracking-widest mb-4" style={{ color: '#ec4899' }}>Pricing</p>
-          <h1 className="animate-fade-up text-5xl md:text-6xl font-black tracking-tight mb-6">
-            One price.<br /><span style={gradText}>Everything included.</span>
-          </h1>
-          <p className="animate-fade-up-delayed text-lg" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            R97 a card per month, whether it is just you or your whole team. No feature tiers, no surprises.
-          </p>
+      {/* Hero. Left-aligned and capped in rem, matching the home and features
+          heroes. The 60-day trial was not mentioned anywhere on this page -
+          the strongest thing in the offer, absent from the page where people
+          decide. */}
+      <section className="relative overflow-hidden px-6 lg:px-12 xl:px-16 pt-32 pb-16 lg:pt-40 lg:pb-20">
+        <div className="absolute -top-32 left-[10%] w-[700px] h-[560px] rounded-full blur-[140px] pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.16) 0%, rgba(124,58,237,0.10) 55%, transparent 72%)' }} />
+
+        <div className="relative mx-auto grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-12 xl:gap-16 items-center"
+          style={{ maxWidth: 1500, zIndex: 2 }}>
+          <div className="text-center lg:text-left">
+            <p className="animate-fade-up text-sm font-bold uppercase tracking-widest mb-4" style={{ color: '#ec4899' }}>Pricing</p>
+            <h1 className="animate-fade-up font-black tracking-[-0.02em] leading-[1.04] mb-6"
+              style={{ fontSize: 'clamp(2.5rem, 4.4vw, 4.25rem)' }}>
+              One price.<br /><span style={gradText}>Everything included.</span>
+            </h1>
+            <p className="animate-fade-up-delayed text-lg xl:text-xl leading-relaxed max-w-xl mx-auto lg:mx-0 mb-8"
+              style={{ color: 'rgba(255,255,255,0.6)' }}>
+              R97 a card per month, whether it is just you or your whole team. No feature tiers, no surprises -
+              and the first 60 days are free.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+              <Link href="/signup"
+                className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:scale-[1.03]"
+                style={{ background: grad, boxShadow: '0 10px 44px rgba(124,58,237,0.5)' }}>
+                Start your 60-day trial
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <Link href="/features"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-medium transition hover:bg-white/10"
+                style={{ border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.82)' }}>
+                See what is included
+              </Link>
+            </div>
+          </div>
+
+          {/* The three things people actually want to know before scrolling. */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-4">
+            {[
+              { k: '60 days', v: 'Free to start, no credit card' },
+              { k: 'R97', v: 'Per card, per month, everything included' },
+              { k: 'Cancel anytime', v: 'No lock-in, no cancellation fee' },
+            ].map(({ k, v }) => (
+              <div key={k} className="rounded-2xl p-5"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <p className="text-2xl font-black tracking-tight whitespace-nowrap" style={gradText}>{k}</p>
+                <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.55)' }}>{v}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
