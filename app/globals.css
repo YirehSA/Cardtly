@@ -133,12 +133,21 @@
     border: 1px solid hsl(var(--border) / 0.6);
   }
 
-  /* Sidebar link hover - smooth bg fade plus left-edge accent on hover */
-  .sidebar-link:hover .sidebar-link-bg {
-    opacity: 1 !important;
+  /* Sidebar tile hover. The nav used to be full-width rows, where nudging
+     right on hover read naturally; the tiles are centred in a two-column
+     grid, so a sideways nudge looks like a misalignment. They lift instead. */
+  .sidebar-tile[data-active="false"]:hover {
+    background: hsl(var(--sidebar-fg) / 0.08);
+    transform: translateY(-1px);
   }
-  .sidebar-link[data-active="false"]:hover {
-    transform: translateX(2px);
+  .sidebar-tile:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sidebar-tile[data-active="false"]:hover {
+      transform: none;
+    }
   }
 
   /* Fade-in entrance for page content */

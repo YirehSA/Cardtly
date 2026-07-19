@@ -93,158 +93,94 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
         )}
       </div>
 
-      {/* Nav — colour-chip icons, animated active state */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin">
-        {nav.map(({ href, label, icon: Icon, color }) => {
-          const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
-          return (
-            <Link
-              key={href}
-              href={href}
-              prefetch={true}
-              className="sidebar-link group relative flex items-center gap-3 px-2 py-2 rounded-xl text-sm font-medium overflow-hidden"
-              data-active={active}
-            >
-              {/* Active row background — soft gradient using the item's colour */}
-              <span
-                aria-hidden
-                className="absolute inset-0 rounded-xl pointer-events-none transition-opacity duration-300"
-                style={{
-                  background: `linear-gradient(90deg, ${color}22 0%, ${color}08 60%, transparent 100%)`,
-                  opacity: active ? 1 : 0,
-                }}
+      {/* Nav - two tiles per row.
+          A single column of full-width rows ran past the bottom of the
+          viewport and made the whole nav scroll, which hides the last few
+          destinations behind a gesture nobody thinks to make. Stacking the
+          icon above a small label halves the rows and lets every item fit
+          without scrolling. overflow-y-auto stays as a fallback for very
+          short windows rather than as the normal state. */}
+      <nav className="flex-1 px-3 py-2 overflow-y-auto scrollbar-thin">
+        <div className="grid grid-cols-2 gap-1">
+          {nav.map(({ href, label, icon: Icon, color }) => {
+            const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+            return (
+              <NavTile
+                key={href}
+                href={href}
+                label={label}
+                Icon={Icon}
+                color={color}
+                active={active}
               />
-              {/* Active left bar with glow */}
-              {active && (
-                <span
-                  aria-hidden
-                  className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full"
-                  style={{ background: color, boxShadow: `0 0 12px ${color}` }}
-                />
-              )}
-              {/* Icon chip — lights up on hover/active */}
-              <span
-                className="relative z-10 w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 group-hover:scale-105"
-                style={{
-                  background: active ? color : `${color}1f`,
-                  boxShadow: active ? `0 4px 14px ${color}66` : 'none',
-                }}
-              >
-                <Icon
-                  className="w-4 h-4 transition-colors"
-                  style={{ color: active ? '#fff' : color }}
-                />
-                {/* Subtle outer pulse on hover (only when not active) */}
-                {!active && (
-                  <span
-                    aria-hidden
-                    className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    style={{ background: `${color}26`, boxShadow: `0 0 16px ${color}40` }}
-                  />
-                )}
-              </span>
-              {/* Label */}
-              <span
-                className="relative z-10 transition-all duration-200 group-hover:translate-x-0.5"
-                style={{
-                  color: active ? 'hsl(var(--sidebar-active))' : 'hsl(var(--sidebar-fg))',
-                  fontWeight: active ? 700 : 500,
-                }}
-              >
-                {label}
-              </span>
-            </Link>
-          )
-        })}
+            )
+          })}
+        </div>
 
-        {/* Admin link — same chip pattern, gold gradient chip,
-            subtle separator above so it reads as its own section. */}
+        {/* Admin - its own section, full width so it does not read as just
+            another destination. */}
         {isAdmin && (
           <>
-            <div className="my-3 h-px" style={{ background: 'linear-gradient(90deg, transparent, hsl(var(--sidebar-border)), transparent)' }} />
-            <Link
+            <div className="my-2 h-px" style={{ background: 'linear-gradient(90deg, transparent, hsl(var(--sidebar-border)), transparent)' }} />
+            <NavTile
               href="/admin"
-              prefetch={true}
-              className="sidebar-link group relative flex items-center gap-3 px-2 py-2 rounded-xl text-sm font-medium overflow-hidden"
-              data-active={pathname.startsWith('/admin')}
-            >
-              <span
-                aria-hidden
-                className="absolute inset-0 rounded-xl pointer-events-none transition-opacity duration-300"
-                style={{
-                  background: 'linear-gradient(90deg, rgba(251,191,36,0.18) 0%, rgba(251,191,36,0.05) 60%, transparent 100%)',
-                  opacity: pathname.startsWith('/admin') ? 1 : 0,
-                }}
-              />
-              {pathname.startsWith('/admin') && (
-                <span
-                  aria-hidden
-                  className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full"
-                  style={{ background: '#fbbf24', boxShadow: '0 0 12px #fbbf24' }}
-                />
-              )}
-              <span
-                className="relative z-10 w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 group-hover:scale-105"
-                style={{
-                  background: pathname.startsWith('/admin')
-                    ? 'linear-gradient(135deg, #fbbf24, #f59e0b)'
-                    : 'rgba(251,191,36,0.16)',
-                  boxShadow: pathname.startsWith('/admin') ? '0 4px 14px rgba(251,191,36,0.5)' : 'none',
-                }}
-              >
-                <Shield
-                  className="w-4 h-4 transition-colors"
-                  style={{ color: pathname.startsWith('/admin') ? '#fff' : '#fbbf24' }}
-                />
-              </span>
-              <span
-                className="relative z-10 font-semibold transition-all duration-200 group-hover:translate-x-0.5"
-                style={{ color: pathname.startsWith('/admin') ? 'hsl(var(--sidebar-active))' : 'hsl(var(--sidebar-fg))' }}
-              >
-                Admin
-              </span>
-            </Link>
+              label="Admin"
+              Icon={Shield}
+              color="#fbbf24"
+              active={pathname.startsWith('/admin')}
+              wide
+            />
           </>
         )}
       </nav>
 
-      {/* Bottom section — theme toggle, sign out, user card */}
-      <div className="px-3 pb-4 space-y-1" style={{ borderTop: '1px solid hsl(var(--sidebar-border))', paddingTop: '12px' }}>
-        {/* Theme toggle */}
-        <button
-          onClick={toggle}
-          className="w-full group relative flex items-center gap-3 px-2 py-2 rounded-xl text-sm font-medium overflow-hidden transition-all hover:bg-white/5"
-          style={{ color: 'hsl(var(--sidebar-fg))' }}
-        >
-          <span
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-105"
-            style={{ background: theme === 'dark' ? 'rgba(251,191,36,0.16)' : 'rgba(99,102,241,0.16)' }}
+      {/* Bottom section - theme toggle and sign out sit side by side for the
+          same reason the nav is a grid: two full-width rows here cost about
+          fifty pixels that the nav needs to fit. */}
+      <div className="px-3 pb-4 space-y-1.5" style={{ borderTop: '1px solid hsl(var(--sidebar-border))', paddingTop: '12px' }}>
+        <div className="grid grid-cols-2 gap-1">
+          {/* Theme toggle */}
+          <button
+            onClick={toggle}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="sidebar-tile group relative flex flex-col items-center justify-center gap-1 px-1.5 py-2 rounded-xl overflow-hidden"
+            data-active="false"
+            style={{ color: 'hsl(var(--sidebar-fg))' }}
           >
-            {theme === 'dark'
-              ? <Sun className="w-4 h-4" style={{ color: '#fbbf24' }} />
-              : <Moon className="w-4 h-4" style={{ color: '#6366f1' }} />}
-          </span>
-          {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-        </button>
+            <span
+              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105"
+              style={{ background: theme === 'dark' ? 'rgba(251,191,36,0.16)' : 'rgba(99,102,241,0.16)' }}
+            >
+              {theme === 'dark'
+                ? <Sun className="w-4 h-4" style={{ color: '#fbbf24' }} />
+                : <Moon className="w-4 h-4" style={{ color: '#6366f1' }} />}
+            </span>
+            <span className="text-[11px] font-medium leading-tight">
+              {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            </span>
+          </button>
 
-        {/* Sign out */}
-        <button
-          onClick={signOut}
-          className="w-full group relative flex items-center gap-3 px-2 py-2 rounded-xl text-sm font-medium overflow-hidden transition-all hover:bg-white/5"
-          style={{ color: 'hsl(var(--sidebar-fg))' }}
-        >
-          <span
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-105"
-            style={{ background: 'rgba(239,68,68,0.14)' }}
+          {/* Sign out */}
+          <button
+            onClick={signOut}
+            title="Sign out"
+            className="sidebar-tile group relative flex flex-col items-center justify-center gap-1 px-1.5 py-2 rounded-xl overflow-hidden"
+            data-active="false"
+            style={{ color: 'hsl(var(--sidebar-fg))' }}
           >
-            <LogOut className="w-4 h-4" style={{ color: '#ef4444' }} />
-          </span>
-          Sign out
-        </button>
+            <span
+              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105"
+              style={{ background: 'rgba(239,68,68,0.14)' }}
+            >
+              <LogOut className="w-4 h-4" style={{ color: '#ef4444' }} />
+            </span>
+            <span className="text-[11px] font-medium leading-tight">Sign out</span>
+          </button>
+        </div>
 
         {/* User card with gradient avatar ring */}
         <div
-          className="flex items-center gap-3 px-2 py-3 rounded-xl mt-1"
+          className="flex items-center gap-3 px-2 py-2 rounded-xl mt-0.5"
           style={{ background: 'hsl(var(--sidebar-border) / 0.4)' }}
         >
           <div
@@ -270,5 +206,62 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
         </div>
       </div>
     </aside>
+  )
+}
+
+// One nav destination. Stacked icon-over-label so two fit side by side in a
+// 240px sidebar; `wide` spans both columns for the admin entry.
+function NavTile({
+  href,
+  label,
+  Icon,
+  color,
+  active,
+  wide = false,
+}: {
+  href: string
+  label: string
+  Icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
+  color: string
+  active: boolean
+  wide?: boolean
+}) {
+  return (
+    <Link
+      href={href}
+      prefetch={true}
+      title={label}
+      data-active={active}
+      className={`sidebar-tile group relative flex rounded-xl overflow-hidden transition-all duration-200 ${
+        wide
+          ? 'flex-row items-center gap-3 px-3 py-2'
+          : 'flex-col items-center justify-center gap-1 px-1.5 py-1.5'
+      }`}
+      style={{
+        background: active ? `${color}1f` : 'transparent',
+        boxShadow: active ? `inset 0 0 0 1px ${color}59` : 'none',
+      }}
+    >
+      <span
+        className="relative z-10 w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105"
+        style={{
+          background: active ? color : `${color}1f`,
+          boxShadow: active ? `0 4px 14px ${color}66` : 'none',
+        }}
+      >
+        <Icon className="w-4 h-4" style={{ color: active ? '#fff' : color }} />
+      </span>
+      <span
+        className={`relative z-10 leading-tight transition-colors ${
+          wide ? 'text-sm' : 'text-[11px] text-center'
+        }`}
+        style={{
+          color: active ? 'hsl(var(--sidebar-active))' : 'hsl(var(--sidebar-fg))',
+          fontWeight: active ? 700 : 500,
+        }}
+      >
+        {label}
+      </span>
+    </Link>
   )
 }
