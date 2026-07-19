@@ -138,6 +138,9 @@ export async function POST(request: Request) {
           await admin.from('whop_subscriptions').update({
             status: 'active',
             past_due_since: null,
+            // Cleared with it, so a failure months from now warns again rather
+            // than being silently treated as already-notified.
+            past_due_email_sent_at: null,
             updated_at: new Date().toISOString(),
           }).eq('user_id', existing.user_id)
         } else {

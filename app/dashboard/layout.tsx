@@ -10,6 +10,7 @@ import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
 import CommandPalette from '@/components/CommandPalette'
 import AnnouncementBanner from '@/components/AnnouncementBanner'
 import PastDueBanner from '@/components/dashboard/PastDueBanner'
+import NetworkNotice from '@/components/dashboard/NetworkNotice'
 import AnnouncementModal from '@/components/AnnouncementModal'
 import HeartbeatPing from '@/components/dashboard/HeartbeatPing'
 
@@ -22,11 +23,28 @@ export default async function DashboardLayout({ children }: { children: React.Re
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
-  const [plan, { data: card }, isAdmin, managedDepts] = await Promise.all([
+  const [plan, { data: card }, isAdmin, managedDepts, noticeSeen] = await Promise.all([
     getUserPlan(user.id),
-    supabase.from('cards').select('name, addons').eq('user_id', user.id).maybeSingle(),
+    supabase.from('cards').select('name, addons, hide_from_network').eq('user_id', user.id).maybeSingle(),
     isAdminUser(user.id),
     Promise.all([getManagedDepartments(deptAdmin, user.id), getOwnedOrgs(deptAdmin, user.id)]),
+    // Asked on its own and tolerantly. This column arrives with migration 042
+    // while the code deploys on commit, and the dashboard layout is the last
+    // place that should throw on a column that is not there yet - treating it
+    // as "already seen" just means the notice waits for the migration.
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('network_notice_seen_at')
+          .eq('user_id', user.id)
+          .maybeSingle()
+        if (error) return true
+        return !!(data as any)?.network_notice_seen_at
+      } catch {
+        return true
+      }
+    })(),
   ])
   const [managedDeptsList, ownedOrgsList] = managedDepts
   // Show the Departments link to anyone who manages a department OR owns a
@@ -61,6 +79,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 layout rather than one page, because the person who needs to
                 see it may land anywhere in the dashboard. */}
             {plan.isPastDue && <PastDueBanner graceDaysLeft={plan.graceDaysLeft} />}
+            {/* One-time: the Network lists people by default, so it only works
+                as a fair deal if they are actually told. Not shown to anyone
+                who has already switched their listing off. */}
+            {!noticeSeen && !(card as any)?.hide_from_network && <NetworkNotice />}
             <div className="animate-fade-in-page">
               {children}
             </div>

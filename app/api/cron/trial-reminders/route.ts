@@ -5,6 +5,7 @@ import { renderTrialEmail, type TrialEmailKind } from '@/lib/trial-email-templat
 import { denyIfNotCron } from '@/lib/cron-auth'
 import { sendOpsDigest } from '@/lib/ops-digest'
 import { FROM_EMAIL } from '@/lib/email'
+import { sendPaymentFailedEmails } from '@/lib/payment-reminders'
 
 // Trial reminder emails. Triggered daily by Vercel Cron (see vercel.json).
 //
@@ -127,6 +128,7 @@ export async function GET(request: Request) {
       would_send: queue.length,
       breakdown: queue.reduce((a: Record<string, number>, q) => ({ ...a, [q.kind]: (a[q.kind] || 0) + 1 }), {}),
       recipients: queue.map(q => ({ to: q.to, kind: q.kind, daysLeft: q.daysLeft })),
+      payments: await sendPaymentFailedEmails(admin, resendKey, true),
     })
   }
 
@@ -161,5 +163,10 @@ export async function GET(request: Request) {
   // reminders above; a failure here is reported, not thrown.
   const ops = await sendOpsDigest(admin, resendKey)
 
-  return NextResponse.json({ ok: true, delivered, failed: failed.length, considered: queue.length, ops })
+  // Same ride-along shape: a failed-payment warning for anyone inside the
+  // grace window who has not been told yet. Runs after the trial reminders and
+  // never affects them.
+  const payments = await sendPaymentFailedEmails(admin, resendKey)
+
+  return NextResponse.json({ ok: true, delivered, failed: failed.length, considered: queue.length, ops, payments })
 }

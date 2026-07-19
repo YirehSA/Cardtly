@@ -5,7 +5,7 @@ import Footer from '@/components/marketing/Footer'
 import { INDUSTRIES } from '@/lib/industries'
 import {
   Search, Building2, Users, ShieldCheck, Filter, ArrowRight,
-  IdCard, Lock, ChevronDown,
+  IdCard, Lock, ChevronDown, Check,
 } from 'lucide-react'
 
 // The public page for the Network, the in-dashboard directory built in
@@ -34,6 +34,26 @@ const gradText: React.CSSProperties = {
   WebkitTextFillColor: 'transparent',
   backgroundClip: 'text',
 }
+
+// Trust row, mirroring the homepage's. The industry count reads from the list
+// so it cannot rot when the list grows.
+const TRUST = [
+  'Included with Pro',
+  `${INDUSTRIES.length} industries`,
+  'Signed-in only',
+  'Opt out any time',
+]
+
+const MOCK_CHIPS = ['Construction', 'Legal', 'Travel', 'IT & Software']
+
+const AVATAR_TINTS = ['66', '44', '2e']
+
+const MOCK_COMPANIES = [
+  { name: 'Sicon Group', trade: 'Construction', people: 11, hue: '#f59e0b' },
+  { name: 'BST Tours', trade: 'Travel', people: 6, hue: '#06b6d4' },
+  { name: 'Yireh', trade: 'IT & Software', people: 3, hue: '#8b5cf6' },
+  { name: 'Verf', trade: 'Construction', people: 1, hue: '#22c55e' },
+]
 
 const STEPS = [
   {
@@ -117,44 +137,164 @@ export default function NetworkPage() {
       <Navbar />
 
       <main className="bg-black text-white">
-        {/* Hero */}
-        <section className="relative overflow-hidden pt-32 lg:pt-40 pb-20">
+        {/* Hero. Deliberately the same shape and type scale as the homepage
+            hero (components/marketing/HeroSection.tsx): the same clamp, the
+            same -0.02em tracking and 1.04 leading, the same three-line stack
+            with the gradient on the last line, and the same trust row. Two
+            marketing pages that set their headlines differently read as two
+            different products. */}
+        <section className="relative overflow-hidden px-6 lg:px-12 xl:px-16 pt-32 pb-20 lg:pt-40 lg:pb-24">
           <div
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: 'radial-gradient(60% 50% at 50% 0%, rgba(0,212,255,0.16), transparent 70%)' }}
+            className="absolute -top-40 left-[8%] w-[760px] h-[760px] rounded-full blur-[150px] pointer-events-none animate-pulse-slow"
+            style={{ background: 'radial-gradient(circle, rgba(0,212,255,0.18) 0%, rgba(124,58,237,0.10) 50%, transparent 72%)' }}
             aria-hidden="true"
           />
-          <div className="relative max-w-5xl mx-auto px-6 text-center">
-            <p className="text-xs font-bold tracking-[0.2em] uppercase text-white/50">
-              Included with Cardtly Pro
-            </p>
-            <h1
-              className="mt-5 font-display font-black leading-[1.05]"
-              style={{ fontSize: 'clamp(2.15rem, 4.4vw, 4rem)' }}
-            >
-              Business networking that{' '}
-              <span style={gradText}>starts with the right person</span>
-            </h1>
-            <p className="mt-6 text-lg text-white/70 max-w-2xl mx-auto leading-relaxed">
-              The Cardtly Network is a searchable directory of the businesses and
-              people already using Cardtly. Find a company, see who works there, and
-              open their card. No feed, no requests, no waiting to be accepted.
-            </p>
-            <div className="mt-9 flex flex-col sm:flex-row gap-3 justify-center">
-              <Link
-                href="/signup"
-                className="inline-flex items-center justify-center gap-2 min-h-[52px] px-7 rounded-2xl font-bold transition hover:opacity-90"
-                style={{ background: grad }}
+          <div
+            className="absolute -bottom-56 right-[2%] w-[640px] h-[640px] rounded-full blur-[130px] pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.16) 0%, transparent 72%)' }}
+            aria-hidden="true"
+          />
+
+          <div
+            className="relative mx-auto grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-12 xl:gap-16 items-center"
+            style={{ maxWidth: 1500, zIndex: 2 }}
+          >
+            {/* Left: the pitch */}
+            <div className="text-center lg:text-left">
+              <p className="text-xs font-bold tracking-[0.2em] uppercase mb-5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                Included with Cardtly Pro
+              </p>
+
+              <h1
+                className="font-black tracking-[-0.02em] leading-[1.04] mb-6"
+                style={{ fontSize: 'clamp(2.5rem, 4.4vw, 4.25rem)' }}
               >
-                Start your free trial
-                <ArrowRight className="w-4 h-4" aria-hidden="true" />
-              </Link>
-              <Link
-                href="/pricing"
-                className="inline-flex items-center justify-center min-h-[52px] px-7 rounded-2xl font-bold border border-white/15 hover:bg-white/5 transition"
+                Find the company.<br />
+                Find the person.<br />
+                <span style={gradText}>Open their card.</span>
+              </h1>
+
+              <p
+                className="text-lg xl:text-xl mb-8 leading-relaxed max-w-xl mx-auto lg:mx-0"
+                style={{ color: 'rgba(255,255,255,0.62)' }}
               >
-                See pricing
-              </Link>
+                The <strong className="text-white font-semibold">Cardtly Network</strong> is a searchable
+                directory of the businesses already on Cardtly, built into your dashboard.
+                No feed, no connection requests, no waiting to be accepted.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-7">
+                <Link
+                  href="/signup"
+                  className="group flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition-all hover:scale-[1.03]"
+                  style={{ background: grad, boxShadow: '0 10px 44px rgba(124,58,237,0.5)' }}
+                >
+                  Start your free trial
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+                <Link
+                  href="/pricing"
+                  className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-medium transition hover:bg-white/10"
+                  style={{ border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(8px)' }}
+                >
+                  See pricing
+                </Link>
+              </div>
+
+              <div
+                className="flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-sm"
+                style={{ color: 'rgba(255,255,255,0.45)' }}
+              >
+                {TRUST.map(t => (
+                  <span key={t} className="flex items-center gap-1.5 whitespace-nowrap">
+                    <Check className="w-3.5 h-3.5" style={{ color: '#22c55e' }} aria-hidden="true" />
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: the directory itself. An illustration rather than a
+                screenshot, so it cannot go stale when the real page changes and
+                so it carries no real member's name or company. */}
+            <div className="relative" aria-hidden="true">
+              <div
+                className="rounded-3xl border p-5 sm:p-6"
+                style={{
+                  borderColor: 'rgba(255,255,255,0.10)',
+                  background: 'linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
+                  boxShadow: '0 30px 90px rgba(0,0,0,0.55)',
+                  backdropFilter: 'blur(8px)',
+                }}
+              >
+                <div
+                  className="flex items-center gap-3 rounded-xl px-4 h-12 mb-4"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+                >
+                  <Search className="w-4 h-4 shrink-0" style={{ color: 'rgba(255,255,255,0.4)' }} />
+                  <span className="text-sm truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                    Search a company, a person or a job title
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-5">
+                  {MOCK_CHIPS.map((c, i) => (
+                    <span
+                      key={c}
+                      className="text-[11px] font-semibold px-3 py-1.5 rounded-full"
+                      style={
+                        i === 0
+                          ? { background: grad, color: '#fff' }
+                          : { border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.55)' }
+                      }
+                    >
+                      {c}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {MOCK_COMPANIES.map(c => (
+                    <div
+                      key={c.name}
+                      className="rounded-2xl p-4"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className="w-9 h-9 rounded-xl grid place-items-center text-xs font-black shrink-0"
+                          style={{ background: c.hue + '26', color: c.hue }}
+                        >
+                          {c.name.slice(0, 2).toUpperCase()}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold truncate">{c.name}</span>
+                          <span className="block text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.42)' }}>
+                            {c.trade}
+                          </span>
+                        </span>
+                      </div>
+                      <div
+                        className="mt-3 pt-3 flex items-center justify-between"
+                        style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}
+                      >
+                        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                          {c.people} {c.people === 1 ? 'person' : 'people'}
+                        </span>
+                        <span className="flex -space-x-1.5">
+                          {AVATAR_TINTS.slice(0, Math.min(3, c.people)).map((tint, i) => (
+                            <span
+                              key={i}
+                              className="w-5 h-5 rounded-full"
+                              style={{ background: c.hue + tint, border: '1.5px solid #0a0a0a' }}
+                            />
+                          ))}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </section>
