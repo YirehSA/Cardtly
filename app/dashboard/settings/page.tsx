@@ -9,6 +9,8 @@ interface CardSummary {
   slug: string | null
   name: string | null
   allow_homepage_feature?: boolean | null
+  hide_from_network?: boolean | null
+  industry?: string | null
 }
 
 export const metadata = { title: 'Settings' }
@@ -22,7 +24,7 @@ export default async function SettingsPage() {
 
   const [{ data: profile }, card] = await Promise.all([
     supabase.from('profiles').select('name').eq('user_id', user.id).maybeSingle(),
-    getPrimaryCard<CardSummary>(user.id, 'id, slug, name, allow_homepage_feature'),
+    getPrimaryCard<CardSummary>(user.id, 'id, slug, name, allow_homepage_feature, hide_from_network, industry'),
   ])
 
   // This asked for whop_user_id, which does not exist on the table, so the

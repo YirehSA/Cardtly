@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { UserPlan } from '@/types/database'
+import { INDUSTRIES } from '@/lib/industries'
 import { toast } from 'sonner'
 import { useEffect } from 'react'
 import { User, Lock, CreditCard, AlertTriangle, Check, Eye, EyeOff } from 'lucide-react'
@@ -11,7 +12,7 @@ import { useRouter } from 'next/navigation'
 interface Props {
   user: { id: string; email: string }
   profile: { fullName: string }
-  card?: { id: string; slug: string; allow_homepage_feature?: boolean | null } | null
+  card?: { id: string; slug: string; allow_homepage_feature?: boolean | null; hide_from_network?: boolean | null; industry?: string | null } | null
   plan: UserPlan
   subscription: {
     subscription_tier: string
@@ -90,6 +91,54 @@ function ProfileTab({ user, profile, card, supabase }: { user: Props['user']; pr
   const [saving, setSaving] = useState(false)
   const [allowFeature, setAllowFeature] = useState(!!card?.allow_homepage_feature)
   const [featureSaving, setFeatureSaving] = useState(false)
+  // Stored as hide_from_network, shown as "list me" - a switch that is on when
+  // you are listed reads better than one you turn on to disappear.
+  const [inNetwork, setInNetwork] = useState(!card?.hide_from_network)
+  const [networkSaving, setNetworkSaving] = useState(false)
+  const [industry, setIndustry] = useState(card?.industry || '')
+  const [industrySaving, setIndustrySaving] = useState(false)
+
+  async function toggleNetwork(next: boolean) {
+    if (!card?.id) return
+    setNetworkSaving(true)
+    const prev = inNetwork
+    setInNetwork(next) // optimistic
+    const res = await fetch('/api/cards/visibility', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ card_id: card.id, hide_from_network: !next }),
+    })
+    if (!res.ok) {
+      setInNetwork(prev)
+      const data = await res.json().catch(() => ({}))
+      toast.error(data.error || 'Could not save')
+    } else {
+      toast.success(next ? 'You are listed in the Cardtly Network' : 'You are no longer listed in the Network')
+    }
+    setNetworkSaving(false)
+  }
+
+  async function saveIndustry(next: string) {
+    if (!card?.id) return
+    setIndustrySaving(true)
+    const prev = industry
+    setIndustry(next) // optimistic
+    // Select a row back rather than trusting a missing error: an update that
+    // matches nothing reports success and saves nothing, which is how the card
+    // editor once told people their edits were live when they were not.
+    const { data: updated, error } = await supabase
+      .from('cards')
+      .update({ industry: next || null, updated_at: new Date().toISOString() })
+      .eq('id', card.id)
+      .select('id')
+    if (error || !updated?.length) {
+      setIndustry(prev)
+      toast.error('Could not save industry' + (error ? ': ' + error.message : ''))
+    } else {
+      toast.success('Industry saved')
+    }
+    setIndustrySaving(false)
+  }
 
   async function toggleFeature(next: boolean) {
     if (!card?.id) return
@@ -229,6 +278,61 @@ function ProfileTab({ user, profile, card, supabase }: { user: Props['user']; pr
               <p className="text-[11px] text-muted-foreground mt-3 italic">
                 Note: your card is already publicly viewable at its own URL. This setting only controls whether we may include it in our homepage showcase.
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* Cardtly Network listing */}
+        {card && (
+          <div className="pt-2">
+            <div className="rounded-xl border border-border p-4 bg-background">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold mb-1">List me in the Cardtly Network</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    The Network is a directory other signed-in Cardtly members can search to find you by company, name or position. It shows your name, position, company and photo, and links to your card. It never lists your phone number or email address.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={inNetwork}
+                  onClick={() => !networkSaving && toggleNetwork(!inNetwork)}
+                  disabled={networkSaving}
+                  className="relative shrink-0 inline-flex h-7 w-12 items-center rounded-full transition disabled:opacity-50"
+                  style={{
+                    background: inNetwork
+                      ? 'linear-gradient(135deg, #00d4ff, #7c3aed)'
+                      : 'rgba(120, 120, 120, 0.3)',
+                  }}
+                >
+                  <span
+                    className="inline-block h-5 w-5 bg-white rounded-full shadow transition-transform"
+                    style={{ transform: inNetwork ? 'translateX(22px)' : 'translateX(4px)' }}
+                  />
+                </button>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-border">
+                <label htmlFor="network-industry-select" className="block text-sm font-semibold mb-1">
+                  My industry
+                </label>
+                <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
+                  Lets people filter the Network down to your line of work.
+                </p>
+                <select
+                  id="network-industry-select"
+                  value={industry}
+                  onChange={e => saveIndustry(e.target.value)}
+                  disabled={industrySaving || !inNetwork}
+                  className="w-full sm:w-72 min-h-[44px] px-3 rounded-lg border border-border bg-background text-sm disabled:opacity-50"
+                >
+                  <option value="">Not set</option>
+                  {INDUSTRIES.map(i => (
+                    <option key={i.id} value={i.id}>{i.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         )}

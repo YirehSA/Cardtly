@@ -6,7 +6,7 @@ import { useTheme } from './ThemeProvider'
 import {
   CreditCard, BarChart2, Mail, Monitor, Users,
   Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi, Building2, Shield, ScanLine, ClipboardList,
-  Layers,
+  Layers, Network,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -20,6 +20,7 @@ const NAV = [
   { href: '/dashboard/analytics',       label: 'Analytics',       icon: BarChart2,   color: '#06b6d4' }, // cyan
   { href: '/dashboard/contacts',        label: 'Contacts',        icon: Users,       color: '#22c55e' }, // green
   { href: '/dashboard/scan',            label: 'Scan Card',       icon: ScanLine,    color: '#a855f7' }, // violet
+  { href: '/dashboard/network',         label: 'Network',         icon: Network,     color: '#0ea5e9' }, // sky
   { href: '/dashboard/email-signature', label: 'Email Signature', icon: Mail,        color: '#f59e0b' }, // amber
   { href: '/dashboard/virtual-bg',      label: 'Virtual BG',      icon: Monitor,     color: '#6366f1' }, // indigo
   { href: '/dashboard/nfc',             label: 'NFC Cards',       icon: Wifi,        color: '#14b8a6' }, // teal
