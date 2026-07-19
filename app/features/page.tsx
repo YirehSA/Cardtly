@@ -306,7 +306,7 @@ const GROUPS: Group[] = [
       {
         icon: Link2, title: 'Custom links', tier: 'Included',
         desc: 'Add your own buttons linking anywhere: website, booking page, menu, catalogue, price list.',
-        how: 'Add up to 14 custom link buttons and reorder them however you like.',
+        how: 'Add up to 5 custom link buttons and reorder them however you like.',
       },
       {
         icon: Share2, title: 'Socials & WhatsApp', tier: 'Included',

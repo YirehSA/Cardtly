@@ -9,7 +9,8 @@
 // Run by `prebuild`, so `npm run build` refuses to ship a contradiction.
 // Run it directly with: node scripts/check-facts.mjs
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { join, relative } from 'node:path'
 
 const read = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8')
 
@@ -68,6 +69,60 @@ if (/free[- ]forever|free forever/i.test(llms)) {
   note('llms.txt claims a free-forever plan. There is a 60-day trial, not a free tier.')
 }
 
+
+// ── 5. Feature counts quoted in marketing copy ──────────────────────────────
+// "Up to 14 custom links" sat on the pricing page for a long time. It was true
+// of the schema - cards has link_1..link_14 and extractLinks renders them all -
+// and false of the product, which offers five slots in the editor. Someone
+// paying on the strength of that line got five. The same wrong number had
+// already been corrected on the upgrade page and was missed here, so the check
+// covers every marketing file rather than the one that was noticed.
+const design = read('types/design.ts')
+const maxLinks = Number(design.match(/MAX_CUSTOM_LINKS\s*=\s*(\d+)/)?.[1])
+const maxImages = Number(design.match(/MAX_GALLERY_IMAGES\s*=\s*(\d+)/)?.[1])
+
+if (!Number.isFinite(maxLinks) || !Number.isFinite(maxImages)) {
+  console.error('check-facts: could not read MAX_CUSTOM_LINKS / MAX_GALLERY_IMAGES from types/design.ts')
+  process.exit(1)
+}
+
+const MARKETING_DIRS = ['app', 'components/marketing']
+const SKIP = ['app/dashboard', 'app/admin', 'app/api']
+
+function marketingFiles(dir, acc = []) {
+  const abs = new URL(`../${dir}`, import.meta.url)
+  for (const entry of readdirSync(abs)) {
+    const rel = `${dir}/${entry}`
+    if (SKIP.some(s => rel.startsWith(s))) continue
+    const st = statSync(new URL(`../${rel}`, import.meta.url))
+    if (st.isDirectory()) marketingFiles(rel, acc)
+    else if (/\.(tsx?|txt|md)$/.test(entry)) acc.push(rel)
+  }
+  return acc
+}
+
+const COUNT_CLAIMS = [
+  { what: 'custom links', actual: maxLinks,
+    re: /(\d+)\s+(?:custom\s+)?link(?:\s+button)?s/gi },
+  { what: 'gallery images', actual: maxImages,
+    re: /(?:gallery of up to|up to)\s+(\d+)\s+(?:gallery\s+)?(?:images|photos)/gi },
+]
+
+for (const file of [...marketingFiles('app'), ...marketingFiles('components/marketing'), 'public/llms.txt']) {
+  let text
+  try { text = read(file) } catch { continue }
+  for (const { what, actual, re } of COUNT_CLAIMS) {
+    re.lastIndex = 0
+    let m
+    while ((m = re.exec(text))) {
+      const n = Number(m[1])
+      // Ignore counts that are plainly about something else (a year, a price).
+      if (n === actual || n > 100) continue
+      note(`${file} claims "${m[0].trim()}" but a card supports ${actual} ${what}.`)
+    }
+  }
+}
+
 if (fail.length) {
   console.error('\ncheck-facts: public/llms.txt contradicts the code.\n')
   for (const f of fail) console.error('  - ' + f)
@@ -75,4 +130,4 @@ if (fail.length) {
   process.exit(1)
 }
 
-console.log(`check-facts: llms.txt agrees with the code (R${seatPrice}/card, up to ${maxSeats} seats, NFC R${nfcPrice} + R${nfcShipping}).`)
+console.log(`check-facts: copy agrees with the code (R${seatPrice}/card, up to ${maxSeats} seats, NFC R${nfcPrice} + R${nfcShipping}, ${maxLinks} links, ${maxImages} gallery images).`)

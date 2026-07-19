@@ -1,3 +1,12 @@
+// What a person can actually create through the editor, which is not the same
+// as what the database can hold. cards has link_1..link_14 columns and
+// extractLinks will render all fourteen, but the editor only ever offers five
+// slots - so "up to 14 custom links" was true of the schema and false of the
+// product, and it sat on three marketing pages. Copy is checked against these
+// by scripts/check-facts.mjs.
+export const MAX_CUSTOM_LINKS = 5
+export const MAX_GALLERY_IMAGES = 6
+
 export type TemplateId = 'classic' | 'modern' | 'bold' | 'minimal' | 'executive' | 'creative' | 'wave' | 'split' | 'neon' | 'studio' | 'frost' | 'editorial'
 export type FontId = 'sans' | 'serif' | 'modern' | 'rounded' | 'mono'
 export type AccentColor = 'blue' | 'purple' | 'green' | 'red' | 'orange' | 'pink' | 'teal' | 'gold' | 'custom'

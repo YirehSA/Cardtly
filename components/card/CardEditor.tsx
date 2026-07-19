@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, UserPlan } from '@/types/database'
 import { isPro } from '@/lib/plan'
-import { CardDesign, DEFAULT_DESIGN, parseDesign, serializeDesign } from '@/types/design'
+import { CardDesign, DEFAULT_DESIGN, parseDesign, serializeDesign, MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES } from '@/types/design'
 import { toast } from 'sonner'
 import TemplatedCardPreview from './TemplatedCardPreview'
 import FlippableCardPreview from './FlippableCardPreview'
@@ -259,9 +259,9 @@ export default function CardEditor({ card, plan, userId }: Props) {
   // Five empty link boxes and six empty photo boxes is a wall. Show what is
   // filled plus one waiting slot, and let people ask for more.
   const [linkSlots, setLinkSlots] = useState(() =>
-    Math.max(1, [1, 2, 3, 4, 5].filter(i => (card as any)?.[`link_${i}_url`] || (card as any)?.[`link_${i}_title`]).length + 0))
+    Math.max(1, Array.from({ length: MAX_CUSTOM_LINKS }, (_, i) => i + 1).filter(i => (card as any)?.[`link_${i}_url`] || (card as any)?.[`link_${i}_title`]).length + 0))
   const [photoSlots, setPhotoSlots] = useState(() =>
-    Math.max(1, [1, 2, 3, 4, 5, 6].filter(i => (card as any)?.[`image_${i}_url`]).length + 0))
+    Math.max(1, Array.from({ length: MAX_GALLERY_IMAGES }, (_, i) => i + 1).filter(i => (card as any)?.[`image_${i}_url`]).length + 0))
 
   const [slug, setSlug] = useState(card?.slug || '')
   // Track the saved slug separately from the input value so the displayed
@@ -484,7 +484,7 @@ export default function CardEditor({ card, plan, userId }: Props) {
             pro ? (
               <Section title="Buttons that send people somewhere" colour={TAB_COLOUR.links} icon={<Link2 className="w-4 h-4" />}
                 hint="A menu, a booking page, a price list, your Google reviews. Up to five.">
-                {[1, 2, 3, 4, 5].slice(0, linkSlots).map(i => (
+                {Array.from({ length: MAX_CUSTOM_LINKS }, (_, i) => i + 1).slice(0, linkSlots).map(i => (
                   <div key={i} className="rounded-2xl border border-border p-4 space-y-3 bg-card">
                     <div className="flex items-center gap-2">
                       <span className="w-6 h-6 rounded-lg grid place-items-center text-[11px] font-bold shrink-0"
@@ -501,7 +501,7 @@ export default function CardEditor({ card, plan, userId }: Props) {
                     </div>
                   </div>
                 ))}
-                {linkSlots < 5 && (
+                {linkSlots < MAX_CUSTOM_LINKS && (
                   <button type="button" onClick={() => setLinkSlots(n => Math.min(5, n + 1))}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-border text-sm font-semibold text-muted-foreground hover:border-foreground/30 hover:text-foreground transition">
                     <Plus className="w-4 h-4" />Add another button
@@ -520,7 +520,7 @@ export default function CardEditor({ card, plan, userId }: Props) {
 
               <Section title="Photos of your work" colour={TAB_COLOUR.media} icon={<Image className="w-4 h-4" />}
                 hint="Up to six. Finished jobs, your shop, your products - whatever proves you are good at it.">
-                {[1, 2, 3, 4, 5, 6].slice(0, photoSlots).map(i => (
+                {Array.from({ length: MAX_GALLERY_IMAGES }, (_, i) => i + 1).slice(0, photoSlots).map(i => (
                   <div key={i} className="rounded-2xl border border-border p-4 space-y-3 bg-card">
                     <div className="flex items-center gap-2">
                       <span className="w-6 h-6 rounded-lg grid place-items-center text-[11px] font-bold shrink-0"
@@ -536,7 +536,7 @@ export default function CardEditor({ card, plan, userId }: Props) {
                     </div>
                   </div>
                 ))}
-                {photoSlots < 6 && (
+                {photoSlots < MAX_GALLERY_IMAGES && (
                   <button type="button" onClick={() => setPhotoSlots(n => Math.min(6, n + 1))}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-border text-sm font-semibold text-muted-foreground hover:border-foreground/30 hover:text-foreground transition">
                     <Plus className="w-4 h-4" />Add another photo
