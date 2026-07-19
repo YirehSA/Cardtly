@@ -73,24 +73,30 @@ export default function ContactPage() {
     <div style={{ background: '#000', color: '#fff' }}>
       <Navbar />
 
-      {/* Hero */}
-      <section className="pt-32 pb-16 px-6 text-center relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[300px] rounded-full blur-[100px] pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.2) 0%, transparent 70%)' }} />
-        <div className="relative max-w-2xl mx-auto">
-          <p className="text-sm font-bold uppercase tracking-widest mb-4" style={{ color: '#7c3aed' }}>Contact us</p>
-          <h1 className="text-5xl md:text-6xl font-black tracking-tight mb-6">
-            We actually<br /><span style={gradText}>read our inbox.</span>
-          </h1>
-          <p className="text-lg" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Questions, ideas, complaints, compliments — send them all. We respond within one business day.
-          </p>
+      {/* Hero. Left-aligned and capped like the rest of the site. Kept short -
+          the form below is the point of this page, not the headline. */}
+      <section className="relative overflow-hidden px-6 lg:px-12 xl:px-16 pt-32 pb-10 lg:pt-40 lg:pb-12">
+        <div className="absolute -top-32 left-[10%] w-[620px] h-[480px] rounded-full blur-[140px] pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 72%)' }} />
+        <div className="relative mx-auto" style={{ maxWidth: 1500, zIndex: 2 }}>
+          <div className="max-w-3xl text-center lg:text-left">
+            <p className="text-sm font-bold uppercase tracking-widest mb-4" style={{ color: '#7c3aed' }}>Contact us</p>
+            <h1 className="font-black tracking-[-0.02em] leading-[1.04] mb-6"
+              style={{ fontSize: 'clamp(2.5rem, 4.4vw, 4.25rem)' }}>
+              We actually<br /><span style={gradText}>read our inbox.</span>
+            </h1>
+            <p className="text-lg xl:text-xl leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              Questions, ideas, complaints, compliments - send them all. We respond within one business day,
+              Monday to Friday, South African time.
+            </p>
+          </div>
         </div>
       </section>
 
+
       {/* Form + info */}
-      <section className="py-16 px-6">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-10">
+      <section className="py-16 px-6 lg:px-12 xl:px-16">
+        <div className="max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-5 gap-10">
 
           {/* Left — info */}
           <div className="lg:col-span-2 space-y-8">
