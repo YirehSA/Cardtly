@@ -26,13 +26,14 @@ update public.cards
    -- Cardtly's own demonstration accounts, listed under the Cardtly company
    -- and inflating its head count from 4 real people to 6.
    'demo',               -- "Demo" / "Demo Title", demo@cardtly.com
-   'play-review-tzy29'   -- "Cardtly Demo", play-review@cardtly.com
+   'play-review-tzy29',  -- "Cardtly Demo", play-review@cardtly.com
+   -- Andre's own test card: title "Test", no company set, so it was the one
+   -- entry in the Independent section that was not a real member.
+   'iweb-piet'
  );
 
 -- Left alone on purpose, flagged rather than actioned:
 --
---   iweb-piet  Andre's own card, title "Test", no company set. It would show
---              in the Independent section. It is his account to decide on.
 --   nelly      "Test Job" at "Test Company", but a real user's account
 --              (ntvm0412@gmail.com), so not ours to hide. Already kept out of
 --              the grid by the one-person-no-logo rule, and only reachable by
