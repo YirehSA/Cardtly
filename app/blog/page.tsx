@@ -56,8 +56,28 @@ export default function BlogIndexPage() {
           {posts.map((post, i) => (
             <Reveal key={post.slug} delay={i * 70} className="h-full">
               <Link href={`/blog/${post.slug}`}
-                className="group block h-full rounded-2xl p-7 lift-card"
+                className="group block h-full rounded-2xl overflow-hidden lift-card"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                {/* Cover, drawn per post by /api/og/blog/[slug], at 600 wide
+                    rather than the full 1200 so eight of them cost roughly a
+                    third of the bytes.
+
+                    Deliberately not loading="lazy". These sit inside Reveal,
+                    which starts at opacity 0 - and an image that is not visible
+                    is one the lazy loader may never request at all, leaving a
+                    grid of empty boxes. CardSamples hit exactly this inside a
+                    transformed container. Width and height are declared so the
+                    row reserves its space and nothing shifts as they arrive. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/api/og/blog/${post.slug}?w=600`}
+                  alt=""
+                  width={600}
+                  height={315}
+                  className="w-full h-auto block"
+                  style={{ aspectRatio: '1200 / 630', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+                />
+                <div className="p-7">
                 <div className="flex items-center gap-3 text-xs mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
                   <span>{fmtDate(post.date)}</span>
                   <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{post.readMins} min read</span>
@@ -67,6 +87,7 @@ export default function BlogIndexPage() {
                 <span className="inline-flex items-center gap-1.5 text-sm font-semibold" style={{ color: '#00d4ff' }}>
                   Read guide <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </span>
+                </div>
               </Link>
             </Reveal>
           ))}

@@ -32,6 +32,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title: post.title,
       description: post.description,
       publishedTime: post.date,
+      images: [{ url: `/api/og/blog/${post.slug}`, width: 1200, height: 630, alt: post.title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.description,
+      images: [`/api/og/blog/${post.slug}`],
     },
   }
 }
@@ -59,7 +66,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     dateModified: post.date,
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
     url,
-    image: 'https://cardtly.com/cardtly-icon.png',
+    // Per-post, drawn by /api/og/blog/[slug]. This was the Cardtly logo on
+    // every post, which gives Google nothing to distinguish one article from
+    // another and nothing worth showing in a result.
+    image: `https://cardtly.com/api/og/blog/${post.slug}`,
     author: { '@type': 'Organization', name: 'Cardtly', url: 'https://cardtly.com' },
     publisher: {
       '@type': 'Organization',
