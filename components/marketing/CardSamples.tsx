@@ -14,6 +14,11 @@ export interface CardSample {
 
 // Real cards we have printed. Front shows the brand, back carries the QR, so
 // both sides are worth seeing - hence the flip rather than one static photo.
+//
+// Colours come from the theme tokens, not hardcoded white. This started on the
+// public /nfc page, which is always dark, so rgba(255,255,255,...) was fine
+// there. It is now also used in the dashboard, which has a light mode - and
+// near-white secondary text on a white card is invisible.
 export default function CardSamples({ samples }: { samples: CardSample[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -51,10 +56,9 @@ function Flip({ sample }: { sample: CardSample }) {
       <div className="mt-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-bold truncate">{sample.name}</p>
-          <p className="text-sm truncate" style={{ color: 'rgba(255,255,255,0.45)' }}>{sample.role}</p>
+          <p className="text-sm truncate text-muted-foreground">{sample.role}</p>
         </div>
-        <span className="inline-flex items-center gap-1.5 text-xs whitespace-nowrap mt-0.5"
-          style={{ color: 'rgba(255,255,255,0.35)' }}>
+        <span className="inline-flex items-center gap-1.5 text-xs whitespace-nowrap mt-0.5 text-muted-foreground">
           <RotateCcw className="w-3 h-3" />
           {flipped ? 'Back' : 'Tap to flip'}
         </span>
@@ -80,7 +84,7 @@ function Face({ src, alt, back }: { src: string; alt: string; back?: boolean }) 
         backfaceVisibility: 'hidden',
         WebkitBackfaceVisibility: 'hidden',
         transform: back ? 'rotateY(180deg)' : undefined,
-        border: '1px solid rgba(255,255,255,0.10)',
+        border: '1px solid hsl(var(--border))',
         boxShadow: '0 18px 40px rgba(0,0,0,0.45)',
       }}
     />

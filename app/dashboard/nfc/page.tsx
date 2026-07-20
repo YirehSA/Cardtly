@@ -6,6 +6,8 @@ import { getPrimaryCard } from '@/lib/card-server'
 import NFCOrderPage from '@/components/nfc/NFCOrderPage'
 import NFCWriteCard from '@/components/nfc/NFCWriteCard'
 import ProGate from '@/components/card/ProGate'
+import NFCSamplesSection from '@/components/nfc/NFCSamplesSection'
+import { availableSamples } from '@/lib/nfc-samples'
 
 export const metadata = { title: 'NFC Cards' }
 
@@ -63,6 +65,10 @@ export default async function NFCPage() {
   return (
     <>
       <NFCWriteCard cardUrl={cardUrl} cardName={cardName} />
+      {/* Above the order form on purpose: seeing what the printing actually
+          looks like is what makes someone order, so it comes before the form
+          rather than after it. */}
+      <NFCSamplesSection samples={availableSamples()} />
       <NFCOrderPage
         card={card as any}
         user={{ id: user.id, email: user.email || '' }}

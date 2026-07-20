@@ -3,9 +3,8 @@ import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
 import { Wifi, ArrowRight, Check, Smartphone, Zap, Shield, Package } from 'lucide-react'
-import CardSamples, { type CardSample } from '@/components/marketing/CardSamples'
-import { existsSync } from 'fs'
-import { join } from 'path'
+import CardSamples from '@/components/marketing/CardSamples'
+import { availableSamples } from '@/lib/nfc-samples'
 
 export const metadata: Metadata = {
   // 72 characters with the "%s | Cardtly" template applied, so Google cut it.
@@ -19,18 +18,7 @@ export const metadata: Metadata = {
 // The section only renders for samples whose images are actually present, so
 // dropping the files in makes it appear and a missing file can never ship as a
 // broken image on the marketing page.
-const CARD_SAMPLES: CardSample[] = [
-  { name: 'André Nel',      role: 'Yireh Business Solutions',
-    front: '/nfc-samples/yireh-front.jpg',   back: '/nfc-samples/yireh-back.jpg' },
-  { name: 'Tio Geldenhuys', role: 'Cardtly',
-    front: '/nfc-samples/cardtly-front.jpg', back: '/nfc-samples/cardtly-back.jpg' },
-  { name: 'Dwain Atterbury', role: 'Sicon Group',
-    front: '/nfc-samples/sicon-front.jpg',   back: '/nfc-samples/sicon-back.jpg' },
-]
-
-const AVAILABLE_SAMPLES = CARD_SAMPLES.filter(s =>
-  [s.front, s.back].every(src => existsSync(join(process.cwd(), 'public', src)))
-)
+const AVAILABLE_SAMPLES = availableSamples()
 
 // Product schema: the NFC card is a physical product with a price,
 // which makes it eligible for product rich results in search.
