@@ -343,6 +343,377 @@ export const POSTS: BlogPost[] = [
       { q: 'Do I need the physical NFC card to get started?', a: 'No. The NFC card is optional and costs R150 once-off plus R100 shipping in South Africa. Your link and QR code work on their own, so you can share your card straight away without any hardware.' },
     ],
   },
+  {
+    slug: 'digital-business-cards-for-teams',
+    title: 'Digital Business Cards for Teams: A Rollout Guide',
+    description:
+      'How to roll out digital business cards across a team: seats, branding control, department structure, and what it costs per person in South Africa.',
+    excerpt:
+      'Ordering cards for one person is easy. Doing it for thirty, keeping them on brand, and handling the people who join and leave is the actual job.',
+    date: '2026-07-20',
+    readMins: 8,
+    body: `<p>Buying a <strong>digital business card</strong> for yourself takes about two minutes. Rolling them out across a team is a different problem: you have thirty people, half of them will never open the settings screen, two are leaving next month, and the marketing manager wants every card to look the same.</p>
+
+<p>This is a practical guide to doing that properly, written around what actually goes wrong.</p>
+
+<h2>Decide who controls what, before you invite anyone</h2>
+
+<p>This is the decision that determines whether the rollout holds together six months later. On any team card there are two kinds of field:</p>
+
+<ul>
+<li><strong>Company fields.</strong> Logo, company name, office number, website, address, social profiles, link buttons, gallery photos, and the card design itself. These should look identical on every card.</li>
+<li><strong>Personal fields.</strong> Name, photo, job title, bio, mobile number. These belong to the individual and should stay editable.</li>
+</ul>
+
+<p>Cardtly lets an admin lock any of those company fields so members cannot change them. The important part is that locking is enforced on the server, not just hidden in the editor - a member cannot get around it with developer tools. Whatever you do not lock stays fully theirs to edit.</p>
+
+<p>Get this right at the start. Unlocking later is easy; retrofitting consistency onto forty cards that have already drifted is not.</p>
+
+<h2>Structure by department if you are more than about ten people</h2>
+
+<p>A flat team works fine up to a point. Past that, one person approving every change becomes the bottleneck.</p>
+
+<p>Departments give each area - Sales, Support, a branch office - its own head who invites their own people, applies their own look on top of the company brand, and sees their own numbers. A department head can lock more fields for their team, but cannot unlock anything the company has set. That ordering matters: it means delegation never weakens the company standard.</p>
+
+<h2>What it costs, and where the line is</h2>
+
+<p>Cardtly is <strong>R97 per card per month</strong>. Self-serve billing covers 2 to 20 seats and is collected automatically. Above 20 seats it moves to a debit order arrangement rather than card payment, which is usually what a company that size wants anyway.</p>
+
+<p>Every account gets a 60-day free trial first, and that trial is the full product rather than a stripped-down preview. For a rollout that matters more than it sounds: two months is long enough to get everyone onboarded, sort out the branding, and see real numbers before anyone is billed.</p>
+
+<p>If you want physical cards too, an NFC card is R150 once-off plus R100 shipping in South Africa, delivered in 5 to 7 business days. Your artwork is included in that price. The physical card is optional - the digital card works by QR code and link without it.</p>
+
+<h2>Invite in waves, not all at once</h2>
+
+<p>The failure mode with a big-bang rollout is that twenty people hit the same confusion on the same afternoon and you spend a day answering the same question.</p>
+
+<p>Start with one department. Get their cards right, note what confused them, then use that to write two or three lines of guidance for everyone else. An unclaimed card sits waiting with an invite against it, so you can create cards ahead of time and send invites when each group is ready.</p>
+
+<h2>Plan for people leaving</h2>
+
+<p>This is the part most teams do not think about until it happens. When someone leaves, their card is still out in the world - on other people's phones, in email signatures, possibly printed on an NFC card in a drawer.</p>
+
+<p>Revoking a member removes their access but keeps the card, so the admin still controls what it says. That is usually what you want: the link someone saved six months ago should not break, it should show whoever took over the role.</p>
+
+<h2>Measure whether it is actually being used</h2>
+
+<p>The honest question after a rollout is whether people are sharing their cards at all. Per-person analytics answer it: views, taps, link clicks, and saved contacts for each team member, plus every lead they capture in one shared list.</p>
+
+<p>If a rep has ten views in a month, they are not sharing their card, and no feature will fix that - it is a conversation, not a product problem. Seeing it in the numbers is what lets you have that conversation.</p>
+
+<h2>The bits people forget to set up</h2>
+
+<ul>
+<li><strong>Email signatures.</strong> Every person on the team sends email all day. A signature with the card link and a QR code turns that into a sharing channel that needs no effort from anyone.</li>
+<li><strong>Virtual backgrounds.</strong> On video calls, a background carrying a QR code lets anyone on the call get the card without asking.</li>
+<li><strong>Industry.</strong> Setting it takes seconds and it is what makes a company findable by niche in the <a href="/network">Cardtly Network</a>, the directory other members search.</li>
+</ul>
+
+<h2>A rollout checklist</h2>
+
+<ol>
+<li>Decide which fields are company-controlled and lock them.</li>
+<li>Set the team brand once - logo, colours, company details.</li>
+<li>Create departments if you are over ten people, and appoint heads.</li>
+<li>Roll out to one department first, then the rest.</li>
+<li>Set up email signatures at the same time, not later.</li>
+<li>Check per-person numbers after a month and act on the quiet ones.</li>
+</ol>
+
+<p>See <a href="/features">every feature grouped by what it does</a>, or <a href="/pricing">what a team of your size costs</a>.</p>`,
+    faq: [
+      {
+        q: 'How many people can I have on a team account?',
+        a: 'Self-serve billing covers 2 to 20 seats at R97 per card per month, collected automatically. Above 20 seats it moves to a debit order arrangement, which is usually what a company that size prefers anyway.',
+      },
+      {
+        q: 'Can I stop staff changing the company logo on their card?',
+        a: 'Yes. An admin chooses which fields are locked - company logo, company name, office number, website, address, social profiles, link buttons, gallery photos and the card design. Locking is enforced on the server, so a member cannot work around it. Everything you do not lock stays theirs to edit, including their name, photo, job title, bio and mobile number.',
+      },
+      {
+        q: 'What happens to someone’s card when they leave the company?',
+        a: 'Revoking their access removes their control of the card but keeps the card itself, so the admin decides what it shows. Links people saved months ago keep working and can point at whoever takes over the role, rather than breaking.',
+      },
+      {
+        q: 'Do we have to pay before we can try it with the team?',
+        a: 'No. Every account starts with a 60-day free trial and it is the complete product, not a limited preview. That is generally long enough to onboard everyone and settle the branding before any billing starts.',
+      },
+      {
+        q: 'Can different departments have their own branding?',
+        a: 'Yes. Each department can carry its own colours on top of the company look, and its head invites their own people and sees their own numbers. A department head can lock more fields for their team but cannot unlock anything the company has already locked.',
+      },
+    ],
+  },
+  {
+    slug: 'business-card-costs-for-sales-teams',
+    title: 'What Business Cards Really Cost a Sales Team',
+    description:
+      'Printed cards look cheap until you count reprints, staff changes and leads that never arrive. Here is the honest maths for a South African sales team.',
+    excerpt:
+      'The print quote is the smallest number in this calculation. The expensive parts are the reprint you did not plan and the lead that never reached your CRM.',
+    date: '2026-07-20',
+    readMins: 7,
+    body: `<p>Printed business cards are cheap. That is the whole argument for them, and on the print quote alone it is a good one.</p>
+
+<p>The problem is that the print quote is not the cost. This is an attempt to write down the rest of it honestly, including the parts that are hard to put a number on.</p>
+
+<h2>The part you can price exactly</h2>
+
+<p>Say a ten-person sales team, and say you pay R900 for a box of 500 cards. Use your own figure here - print prices vary enormously by finish and quantity, and any article quoting a single national rate is guessing.</p>
+
+<p>Ten people, one box each, is R9 000. That is the number that goes in the budget.</p>
+
+<p>For comparison, ten Cardtly cards at <strong>R97 per card per month</strong> is R970 a month, or R11 640 a year. On the print quote alone, paper wins comfortably. If cards were printed once and never reprinted, the conversation would end here.</p>
+
+<h2>The part everyone forgets: reprints</h2>
+
+<p>Cards get reprinted for reasons nobody schedules:</p>
+
+<ul>
+<li>Someone is promoted and the job title is wrong.</li>
+<li>The office moves.</li>
+<li>The company rebrands, or the logo changes slightly.</li>
+<li>A phone number or domain changes.</li>
+<li>Somebody joins.</li>
+</ul>
+
+<p>Any one of those invalidates a box that is 80% full. Two reprints in a year and the R9 000 is R27 000, and you have thrown away roughly 800 printed cards.</p>
+
+<p>A digital card has no equivalent event. You change the title once and every card already in circulation shows the new one, including the ones handed out last year.</p>
+
+<h2>The part that actually costs money: leads that go nowhere</h2>
+
+<p>This is the expensive one, and it is worth being careful rather than dramatic about it.</p>
+
+<p>When you hand someone a paper card, what happens next is entirely out of your hands. They keep it or they do not. They type your details in correctly or they do not. They follow up or they forget. You will never know which, because a paper card sends no signal back.</p>
+
+<p>You cannot put a confident number on that, and anyone who tells you they can is making it up. What you can say precisely is what the alternative gives you:</p>
+
+<ul>
+<li><strong>They save your details correctly.</strong> One tap adds you to their phone as a contact, so your number is not retyped wrong.</li>
+<li><strong>You can see it happened.</strong> Views, taps, link clicks and saved contacts, per person on the team.</li>
+<li><strong>The lead lands somewhere.</strong> A visitor who shares their details back appears in the owner’s dashboard and inbox, not on the back of a card in a jacket pocket.</li>
+<li><strong>You can follow up the same day.</strong> Every captured lead has a one-tap WhatsApp button, which in South Africa is usually the channel that gets answered.</li>
+</ul>
+
+<p>The honest framing is not "digital cards win you X% more deals". It is that one of these two options tells you what happened after the handshake and the other does not.</p>
+
+<h2>The staff turnover problem</h2>
+
+<p>Sales teams turn over faster than most. Every departure leaves printed cards in circulation with a phone number that now rings a person who does not work there, and every arrival needs a new print run before they can attend anything.</p>
+
+<p>With a digital card, a new starter has a working card the day they start, and a leaver’s card can be reassigned so the link keeps working and points at whoever took the accounts over.</p>
+
+<h2>Where paper still makes sense</h2>
+
+<p>Not everything favours digital, and it is worth saying so.</p>
+
+<p>A physical card is still the more natural object to hand over. It works with no phone, no signal and no explanation. Some industries and some age groups simply expect one.</p>
+
+<p>Which is why the useful answer is usually both: an NFC card is R150 once-off plus R100 shipping in South Africa, with your artwork included. You hand over a physical card, it opens a digital one, and the details behind it stay current. See <a href="/nfc">what those look like printed</a>.</p>
+
+<h2>The summary</h2>
+
+<p>On a one-year view for ten people, printed cards start cheaper and stay cheaper only if nothing changes. In a sales team, something always changes. Add two reprints and the gap closes; add the fact that one option reports back and the other does not, and the comparison stops being about the print quote at all.</p>
+
+<p>Work out your own number on the <a href="/pricing">pricing page</a>, or read the <a href="/blog/digital-business-cards-for-teams">team rollout guide</a>.</p>`,
+    faq: [
+      {
+        q: 'Are digital business cards cheaper than printed ones?',
+        a: 'Not on the print quote. Ten Cardtly cards cost R970 a month against a one-off print run that may be under R1 000. Digital gets cheaper once you count reprints - a promotion, an office move or a rebrand invalidates a box that is mostly full, and two reprints a year roughly triples the printing cost while a digital card updates for nothing.',
+      },
+      {
+        q: 'What does a Cardtly card cost per person?',
+        a: 'R97 per card per month. Self-serve billing covers 2 to 20 seats; above that it moves to a debit order arrangement. Every account starts with a 60-day free trial of the full product.',
+      },
+      {
+        q: 'Do I still need printed cards?',
+        a: 'Often yes, and that is fine. A physical card needs no phone, no signal and no explanation, and some industries still expect one. An NFC card is R150 once-off plus R100 shipping in South Africa with your artwork included, and it opens your digital card when tapped, so the details behind it stay current.',
+      },
+      {
+        q: 'How do I know whether my team is actually using their cards?',
+        a: 'Per-person analytics show views, taps, link clicks and saved contacts for each team member, plus every lead they capture in one shared list. A rep with almost no views is not sharing their card, which is a management conversation rather than a product problem - but you have to be able to see it first.',
+      },
+    ],
+  },
+  {
+    slug: 'employee-business-card-brand-consistency',
+    title: 'Keeping Every Employee Business Card On Brand',
+    description:
+      'Logos drift, job titles go stale and everyone edits their own card. How to lock company branding across a team while leaving people their own details.',
+    excerpt:
+      'Brand guidelines do not survive contact with thirty people editing their own cards. Locking the company fields does, and it leaves the personal ones alone.',
+    date: '2026-07-20',
+    readMins: 6,
+    body: `<p>Every company with more than about ten staff has the same quiet problem. Somebody has an old version of the logo. Somebody else wrote their job title in a way nobody else uses. One card lists the switchboard, another lists a mobile, a third lists both. None of it is anyone’s fault and all of it is visible to customers.</p>
+
+<p>Brand guidelines do not fix this, because guidelines rely on people reading them. What fixes it is making the branded fields not editable in the first place.</p>
+
+<h2>Separate the two kinds of field</h2>
+
+<p>The useful distinction is between what represents the company and what represents the person.</p>
+
+<p><strong>Company fields</strong> should be identical everywhere: company logo, company name, office number, website, address, social profiles, link buttons, gallery photos, and the card design itself. There is no good reason for these to differ between two people at the same business.</p>
+
+<p><strong>Personal fields</strong> should stay with the individual: their name, photo, job title, bio and mobile number. Locking these achieves nothing and irritates people.</p>
+
+<p>Cardtly lets an admin choose exactly which company fields are locked. Members see locked fields marked as set by the company rather than hidden, which matters - a field that silently disappears reads as a bug, while one that says who set it reads as a decision.</p>
+
+<h2>Enforce it on the server, not in the interface</h2>
+
+<p>This sounds like an implementation detail and is not. If the only thing stopping a member editing a locked field is that the input is disabled in their browser, then anyone who opens developer tools can send the change anyway - and the admin will believe the lock is holding when it is not.</p>
+
+<p>A lock nobody can rely on is worse than no lock, because it produces false confidence. Cardtly enforces locks on the save endpoint, so what the browser sends is irrelevant to what reaches the card.</p>
+
+<p>It is a fair question to ask of any tool you are evaluating: if I disable this field, what actually stops a determined member changing it?</p>
+
+<h2>Let departments tighten, never loosen</h2>
+
+<p>In a bigger company one person cannot approve everything, so department heads need real control. The ordering that keeps this safe is simple: a department head can lock <em>more</em> fields for their team, but cannot unlock anything the company has locked.</p>
+
+<p>That way delegation never weakens the company standard. Sales can standardise their link buttons without being able to undo the logo lock.</p>
+
+<h2>Set the brand once and apply it</h2>
+
+<p>Rather than asking thirty people to upload the same logo, set the team brand once - logo, company name, website, colours - and apply it to every card. A department can carry its own colours on top of that if it needs to.</p>
+
+<p>The practical benefit shows up at rebrand time. Changing the company logo becomes one change rather than a request to thirty people, of whom four will not do it and two will use the wrong file.</p>
+
+<h2>The stale title problem</h2>
+
+<p>Job titles go out of date faster than anything else on a card, and on paper they stay wrong until the next print run.</p>
+
+<p>Leave job title unlocked - it is a personal field and people should maintain it - but understand what changes: on a digital card, when someone updates their title, every person who already has their card sees the new one. The correction reaches the people who received the card last year, which printing never does.</p>
+
+<h2>What good looks like</h2>
+
+<ul>
+<li>One logo file, on every card, that you can change in one place.</li>
+<li>Company phone, address and website identical everywhere.</li>
+<li>Card design consistent, so two colleagues’ cards look related.</li>
+<li>Name, photo, title, bio and mobile owned by the person.</li>
+<li>Department heads able to tighten their own team’s standard.</li>
+<li>Nothing relying on people remembering a PDF of guidelines.</li>
+</ul>
+
+<p>See <a href="/features">how the locks and team brand work</a>, or read the <a href="/blog/digital-business-cards-for-teams">rollout guide</a> for the order to do this in.</p>`,
+    faq: [
+      {
+        q: 'Which fields can a company lock on an employee card?',
+        a: 'Company logo, company name, office number, website, address, social profiles, link buttons, gallery photos and the card design. Anything not locked stays editable by the member, which normally means their name, photo, job title, bio and mobile number.',
+      },
+      {
+        q: 'Can a staff member get around a locked field?',
+        a: 'No. Locks are enforced on the save endpoint rather than only in the editor, so it does not matter what the browser sends. That distinction is worth checking in any tool you evaluate - a lock enforced only by a disabled input can be bypassed by anyone who opens developer tools, while the admin believes it is holding.',
+      },
+      {
+        q: 'Can a department set its own branding?',
+        a: 'Yes, on top of the company look. A department head can also lock further fields for their own team, but cannot unlock anything the company has locked, so delegating control never weakens the company standard.',
+      },
+      {
+        q: 'What happens to cards already handed out when we rebrand?',
+        a: 'They update. A digital card is a live page, so changing the company logo or details once changes every card already in circulation, including ones shared a year ago. There is no reprint and nothing to reissue.',
+      },
+    ],
+  },
+  {
+    slug: 'trade-show-lead-capture',
+    title: 'Trade Show Lead Capture That Survives Follow-Up',
+    description:
+      'Most expo leads die between the stand and the CRM. A practical system for capturing, qualifying and following up B2B leads from a South African trade show.',
+    excerpt:
+      'The leads are not lost at the stand. They are lost in the three days afterwards, in a pile of paper cards nobody has typed up yet.',
+    date: '2026-07-20',
+    readMins: 7,
+    body: `<p>Every stand at every expo runs the same way. Three good days, a fishbowl of business cards, a stack of scribbled notes, and then everyone goes back to their normal job. Two weeks later somebody finds the cards and cannot remember which conversations were worth having.</p>
+
+<p>The leads were not lost at the show. They were lost in the week afterwards. This is a system for not losing them.</p>
+
+<h2>Fix the direction of the exchange</h2>
+
+<p>The instinct at a stand is to hand out as many cards as possible. It feels productive and it is almost exactly backwards.</p>
+
+<p>A card you hand out is a lead you do not have. You have given them the ability to contact you and kept nothing. Whether anything happens next is entirely their decision, and mostly nothing happens - not out of rudeness, but because they went to forty other stands that day.</p>
+
+<p>The exchange you want is the other way round: they get your details, <em>and</em> you get theirs, in a form you still have on Monday.</p>
+
+<h2>Capture on the spot, not afterwards</h2>
+
+<p>Anything that relies on someone typing up notes later will not happen. The capture has to be finished before the conversation ends.</p>
+
+<p>Practically, that means:</p>
+
+<ul>
+<li><strong>They open your card</strong> by tapping an NFC card or scanning a QR code. No app to install, which matters when someone is standing in a noisy hall holding a coffee.</li>
+<li><strong>They save your details</strong> to their phone in one tap, so your number is stored correctly rather than typed in wrong.</li>
+<li><strong>They share theirs back.</strong> After saving your details, the visitor is prompted to leave their own - and that lead lands in your dashboard and your inbox immediately, not in a fishbowl.</li>
+</ul>
+
+<p>The point is that the record exists before they walk away, while you still remember the conversation.</p>
+
+<h2>Qualify while you can still remember</h2>
+
+<p>Fifty leads with no context are barely more useful than none, because on Monday they are fifty identical names.</p>
+
+<p>A short questionnaire on the card - up to five of your own questions - captures the context at the moment it is fresh. What are they looking for, what size is the project, when do they need it. The answers save against each lead, so the list you work through afterwards is sorted by something real rather than by the order the cards came out of the bowl.</p>
+
+<p>Keep it to two or three questions at a stand. Nobody fills in a form standing up.</p>
+
+<h2>Collect the paper cards anyway - then photograph them</h2>
+
+<p>Plenty of people will still hand you a printed card, and refusing it is rude. Take it, then deal with it before you leave the hall.</p>
+
+<p>Photographing a paper card and having the details extracted turns it into a saved contact in seconds. Do it at the stand between conversations rather than saving a pile for later, because later is exactly where these die.</p>
+
+<h2>Follow up within 48 hours, on the channel they use</h2>
+
+<p>Expo follow-up has a short half-life. After a week, they have forgotten which stand you were.</p>
+
+<p>In South Africa the practical channel is usually WhatsApp rather than email - it gets read and it gets answered. Every captured lead has a one-tap WhatsApp button for exactly that reason.</p>
+
+<p>The message that works is short and refers to something specific from the conversation. That is only possible if you captured context at the stand, which is the whole argument for the questionnaire.</p>
+
+<h2>Work out afterwards whether the show was worth it</h2>
+
+<p>Most exhibitors cannot answer this, which is why the decision to rebook is usually a feeling rather than a number.</p>
+
+<p>If every lead is timestamped and attributed, you can count what the three days actually produced: how many people opened a card, how many saved your details, how many left theirs. Export the lot to Excel with sources and questionnaire answers, and the rebook conversation has evidence in it.</p>
+
+<h2>A stand checklist</h2>
+
+<ol>
+<li>Everyone working the stand has a working card, tested that morning.</li>
+<li>NFC cards and a printed QR code on the stand itself, not just on phones.</li>
+<li>Two or three qualifying questions set up, no more.</li>
+<li>Paper cards photographed at the stand, not taken home.</li>
+<li>Follow-up started within 48 hours, on WhatsApp.</li>
+<li>Numbers exported and reviewed before the rebook decision.</li>
+</ol>
+
+<p>See <a href="/features">how lead capture and the contacts list work</a>, or <a href="/nfc">order NFC cards for the stand</a> - R150 once-off plus R100 shipping, delivered in 5 to 7 business days, so allow time before the show.</p>`,
+    faq: [
+      {
+        q: 'How do I capture leads at a trade show without an app?',
+        a: 'The visitor taps an NFC card or scans a QR code to open your digital business card in their browser - nothing to install. They save your details in one tap, and are then prompted to share their own. That lead arrives in your dashboard and inbox straight away, so the record exists before the conversation ends.',
+      },
+      {
+        q: 'What should I ask visitors at a stand?',
+        a: 'Two or three questions, no more, because nobody completes a form standing up in a hall. What they are looking for, rough size or budget, and timing are usually enough to sort the list afterwards. Cardtly allows up to five of your own questions and saves the answers against each lead.',
+      },
+      {
+        q: 'What do I do with the paper cards people hand me?',
+        a: 'Take them - refusing is rude - then photograph them at the stand and let the details be extracted into your contacts. Doing it between conversations rather than saving a pile for the office is the difference between a usable list and a drawer.',
+      },
+      {
+        q: 'How soon should I follow up after an expo?',
+        a: 'Within 48 hours, while they can still place which stand you were. In South Africa WhatsApp usually gets answered where email does not, and every captured lead has a one-tap WhatsApp button. Referring to something specific from the conversation is what makes the message land, which is why capturing context at the stand matters.',
+      },
+      {
+        q: 'How do I tell whether a trade show was worth the money?',
+        a: 'Count what it produced rather than how it felt. Card opens, saved contacts and captured leads are all timestamped, and the full list exports to Excel with sources and questionnaire answers, so the decision to rebook can be made against evidence.',
+      },
+    ],
+  },
 ]
 
 export function getPost(slug: string): BlogPost | undefined {

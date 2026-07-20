@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs'
 // Audits titles, descriptions, canonicals and h1s on every indexable page.
 //
 // Needs a running server, so it cannot be a build gate like check-facts. Run it
@@ -12,9 +13,15 @@
 // stay that way.
 
 const BASE = process.argv[2] || 'http://localhost:3000'
+// Blog URLs are read out of app/blog/posts.ts rather than listed here. A
+// hand-kept copy silently stops covering new posts, which is exactly when the
+// check matters most - a post ships, its title is 70 characters, and nothing
+// says so because the checker never knew the page existed.
+const blogSlugs = [...readFileSync(new URL('../app/blog/posts.ts', import.meta.url), 'utf8')
+  .matchAll(/slug: '([^']+)'/g)].map(m => '/blog/' + m[1])
+
 const PAGES = ['/', '/features', '/network', '/pricing', '/nfc', '/how-it-works', '/blog',
-  '/blog/what-is-a-digital-business-card', '/blog/digital-business-cards-south-africa',
-  '/blog/nfc-vs-paper-business-cards', '/blog/how-to-make-a-free-digital-business-card',
+  ...blogSlugs,
   '/about', '/contact', '/terms', '/privacy', '/signup']
 const pick = (h, re) => (h.match(re)?.[1] || '').replace(/&amp;/g,'&').replace(/&#x27;|&apos;/g,"'").replace(/&quot;/g,'"').trim()
 
