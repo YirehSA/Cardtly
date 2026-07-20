@@ -8,19 +8,25 @@ import { FROM_EMAIL } from '@/lib/email'
 // Resend - previously the contact page only pretended to send.
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-// Where contact-page messages land. Moved off info@yireh.co.za on
-// Andre's instruction (2026-07-19): contact-page mail should arrive on
-// the Cardtly domain rather than the Yireh one.
+// Where contact-page messages land. Two addresses, on purpose.
 //
-// cardtly.com accepts inbound mail - its MX points at mx1.cpmx.co.za -
-// so this is deliverable at the domain level. What that does not prove
-// is that this particular mailbox or alias exists on that server. If it
-// does not, Resend reports a send with no error here and the message is
-// bounced afterwards, out of sight: every contact-form submission would
-// be lost silently. Send a test message through /contact after any change
-// here and confirm it arrives, rather than assuming a green response
-// means delivered.
-const TO_EMAIL = 'andre@cardtly.com'
+// andre@cardtly.com is the intended one, moved here from info@yireh.co.za on
+// 2026-07-19. It then appeared not to be arriving. Resend's own logs say
+// otherwise: both the contact message and that morning's weekly digest show
+// last_event "delivered" to that address, SPF on send.cardtly.com and the
+// resend._domainkey DKIM record are both present, and the domain is verified.
+// So the mail is being accepted by mx1.cpmx.co.za and something past that
+// point - a spam folder, a forwarder, a catch-all - is where it goes.
+//
+// info@yireh.co.za rides along until that is settled. It was the recipient
+// until the day before and delivers reliably, so it exposes nothing new and
+// costs a duplicate email; a contact form silently dropping leads costs a
+// customer. Drop it once the cardtly.com mailbox is confirmed being read.
+//
+// Worth remembering generally: Resend returning no error means accepted for
+// delivery, not delivered. Anything that fails after that fails out of sight,
+// so confirm arrival by looking in the inbox, not at the response.
+const TO_EMAILS = ['andre@cardtly.com', 'info@yireh.co.za']
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -53,7 +59,7 @@ export async function POST(request: Request) {
 
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
-      to: TO_EMAIL,
+      to: TO_EMAILS,
       replyTo: cleanEmail,
       subject: `Contact form: ${cleanTopic} — ${cleanName}`,
       html: `
