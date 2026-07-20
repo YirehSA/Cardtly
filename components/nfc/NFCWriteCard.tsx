@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Wifi, Loader2, CheckCircle, X, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { isNativeApp, isNFCSupported, writeNFCTag } from '@/lib/capacitor'
+import { SOURCE_NFC } from '@/lib/card-sources'
 
 interface Props {
   cardUrl: string
@@ -54,7 +55,7 @@ export default function NFCWriteCard({ cardUrl, cardName }: Props) {
       // Marked the same way the QR is, so a tap and a scan can be told apart
       // in analytics. The visitor still lands on exactly this card; the marker
       // is only a hint about how they got here.
-      await writeNFCTag(`${cardUrl}?s=nfc`)
+      await writeNFCTag(`${cardUrl}?s=${SOURCE_NFC}`)
       setSuccess(true)
       toast.success('Tag written. Tap your phone on any device to share.')
       setTimeout(() => setShowModal(false), 1500)

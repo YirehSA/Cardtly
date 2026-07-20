@@ -1,4 +1,5 @@
 import QRCode from 'qrcode'
+import { isKnownSource, SOURCE_QR } from '@/lib/card-sources'
 
 export const runtime = 'nodejs'
 
@@ -11,8 +12,11 @@ export const runtime = 'nodejs'
 // reach back into sent mail and fix it. It also told a third party the card
 // URL every time one of those emails was opened.
 //
-// This encodes the same ?s=qr marker the downloadable QR uses, so a scan from
-// an email signature is attributed as a scan rather than a plain visit.
+// The encoded URL carries an ?s= marker so the scan is attributed. Callers pass
+// ?s= to say which surface the code is printed on - an email signature QR and a
+// downloaded QR are both scans, but they are not the same channel, and lumping
+// them together is what made the QR figure unreadable. Unknown values fall back
+// to plain 'qr' rather than inventing an event type.
 
 const MAX = 600
 const DEFAULT_SIZE = 240
@@ -51,7 +55,9 @@ export async function GET(
   const light = colour(url.searchParams.get('light'), '#ffffff')
 
   const base = process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com'
-  const target = `${base.replace(/\/$/, '')}/card/${slug}?s=qr`
+  const requested = url.searchParams.get('s')
+  const source = isKnownSource(requested) ? requested : SOURCE_QR
+  const target = `${base.replace(/\/$/, '')}/card/${slug}?s=${source}`
 
   try {
     const png = await QRCode.toBuffer(target, {

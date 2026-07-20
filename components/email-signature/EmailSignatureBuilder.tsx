@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { parseDesign, getAccentHex } from '@/types/design'
 import { Copy, Download, Check, Mail, Phone, Globe, Linkedin, Twitter, Instagram, Code } from 'lucide-react'
 import { toast } from 'sonner'
+import { SOURCE_EMAIL_LINK, SOURCE_EMAIL_QR } from '@/lib/card-sources'
 
 export interface SignatureCard {
   id: string
@@ -47,13 +48,16 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
   const [includeSocials, setIncludeSocials] = useState(true)
   const [copied, setCopied] = useState(false)
 
-  const cardUrl = `https://cardtly.com/card/${card.slug}`
+  // The clickable link carries its own marker. Without one, every click from a
+  // signature landed in the same bucket as a link pasted into WhatsApp.
+  const cardUrl = `https://cardtly.com/card/${card.slug}?s=${SOURCE_EMAIL_LINK}`
   // Served by us, not api.qrserver.com. This image ends up inside every email
   // the customer sends, so it cannot depend on a free third party still being
   // there in a year - and it should not tell anyone else that the mail was
-  // opened. It also carries the ?s=qr marker, so scans from a signature are
-  // counted as scans.
-  const qrUrl = `https://cardtly.com/api/qr/${card.slug}?size=160`
+  // opened. It carries its own marker so a scan off a signature is separable
+  // from a scan off a printed card - both are scans, but they say different
+  // things about how the card is being shared.
+  const qrUrl = `https://cardtly.com/api/qr/${card.slug}?size=160&s=${SOURCE_EMAIL_QR}`
 
   // ── Generate HTML ─────────────────────────────────────────────────────────
   const html = useMemo(() => {

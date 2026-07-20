@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { parseDesign, getAccentHex } from '@/types/design'
 import { Download, Upload, Check, Monitor } from 'lucide-react'
 import { toast } from 'sonner'
+import { SOURCE_VIRTUAL_BG } from '@/lib/card-sources'
 
 interface Card {
   id: string
@@ -92,10 +93,11 @@ export default function VirtualBGBuilder({ cards, defaultCardId }: Props) {
   const [rendering, setRendering] = useState(false)
 
   const cardUrl = `https://cardtly.com/card/${card.slug}`
-  // The code carries the same marker the downloadable QR uses, so someone
-  // scanning your background off a video call is counted as a scan rather than
-  // an anonymous visit. The URL shown as text stays clean.
-  const qrTarget = `${cardUrl}?s=qr`
+  // Its own marker, not the generic one. Sharing the downloadable QR's marker
+  // meant a scan off a video call and a scan off a printed card were the same
+  // number, which is the one thing this panel exists to tell apart. The URL
+  // shown as text stays clean - someone typing it cannot be attributed anyway.
+  const qrTarget = `${cardUrl}?s=${SOURCE_VIRTUAL_BG}`
 
   // Parse accent hex to RGB components
   function hexToRGB(hex: string) {

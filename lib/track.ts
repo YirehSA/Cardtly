@@ -1,5 +1,6 @@
 'use client'
 
+import type { CardSourceEventType } from './card-sources'
 import { useEffect, useRef } from 'react'
 
 interface TrackOptions {
@@ -7,7 +8,10 @@ interface TrackOptions {
   // card; teamCardId for a team card.
   cardId?: string
   teamCardId?: string
-  eventType: 'view' | 'link_click' | 'contact_save' | 'qr_scan' | 'nfc_tap' | 'share'
+  // Arrival events (qr_scan, nfc_tap, email_click, email_qr_scan, vbg_scan)
+  // are defined in lib/card-sources.ts and typed from it, so adding a source
+  // there cannot leave this union behind.
+  eventType: 'view' | 'link_click' | 'contact_save' | 'share' | CardSourceEventType
   linkTitle?: string
 }
 

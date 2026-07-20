@@ -1,5 +1,6 @@
 'use client'
 
+import { CARD_SOURCES } from '@/lib/card-sources'
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { parseDesign, getAccentHex } from '@/types/design'
@@ -47,12 +48,14 @@ function startOfLocalDay(offsetDays: number): Date {
   return d
 }
 
-// Everything that arrives without a referring site: a QR scan, an NFC tap, a
-// typed link, a reload. Our own domain lands here too, since a self-referral
-// means "they opened the link" rather than "they came from cardtly.com". Named
-// once because the source panel splits this bucket back apart using the ?s=
-// markers the QR and NFC tag carry.
-const DIRECT_BUCKET = 'Direct link, QR or NFC'
+// Everything that arrives without a referring site: a scan, a tap, a typed
+// link, a reload. Our own domain lands here too, since a self-referral means
+// "they opened the link" rather than "they came from cardtly.com".
+//
+// This used to be named "Direct link, QR or NFC" because the panel split it
+// back apart. It no longer does - how someone got the card is its own panel
+// now - so the name says only what this bucket actually means: no referrer.
+const DIRECT_BUCKET = 'No referring site'
 
 function sourceLabel(referrer: string | null): string {
   if (!referrer) return DIRECT_BUCKET
@@ -102,11 +105,15 @@ function Trend({ now, prev, days }: { now: number; prev: number; days: number })
   )
 }
 
-function Bars({ rows, total, colour }: { rows: { key: string; count: number }[]; total: number; colour: string }) {
+// limit defaults to 5, which suits a long tail of referring hosts. The channel
+// breakdown is a fixed set instead, and truncating that hides a whole channel
+// rather than a minor one - the smallest row, which is precisely the one someone
+// checks when asking whether anybody used it at all.
+function Bars({ rows, total, colour, limit = 5 }: { rows: { key: string; count: number }[]; total: number; colour: string; limit?: number }) {
   if (rows.length === 0) return <p className="text-xs text-muted-foreground">Nothing yet</p>
   return (
     <div className="space-y-3">
-      {rows.slice(0, 5).map(({ key, count }) => {
+      {rows.slice(0, limit).map(({ key, count }) => {
         const pct = total ? Math.round((count / total) * 100) : 0
         return (
           <div key={key}>
@@ -145,8 +152,6 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
     const sharesAll = events.filter(e => e.event_type === 'share')
     const clicksAll = events.filter(e => e.event_type === 'link_click')
     const savesAll = events.filter(e => e.event_type === 'contact_save')
-    const qrAll = events.filter(e => e.event_type === 'qr_scan')
-    const nfcAll = events.filter(e => e.event_type === 'nfc_tap')
     const contacts = contactDates.map(created_at => ({ created_at }))
 
     const views = viewsAll.filter(inNow)
@@ -159,8 +164,6 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
     const prevSaves = savesAll.filter(inPrev).length
     const leads = contacts.filter(inNow).length
     const prevLeads = contacts.filter(inPrev).length
-    const qrScans = qrAll.filter(inNow).length
-    const nfcTaps = nfcAll.filter(inNow).length
 
     // One bar per day in the window, in local time.
     const dayMap = new Map<string, number>()
@@ -182,22 +185,33 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
       byDay, peak,
       byDevice: countBy(views, v => v.device),
       byBrowser: countBy(views, v => v.browser),
-      // A scan or a tap arrives with no referring site, so both land in the
-      // untagged bucket. Pull them back out using the markers the QR and NFC
-      // tag carry, and only rename what is left when there was something to
-      // separate - older opens genuinely cannot be told apart.
-      bySource: (() => {
-        const raw = countBy(views, v => sourceLabel(v.referrer))
-        const split = qrScans + nfcTaps
-        const out: { key: string; count: number }[] = []
-        for (const row of raw) {
-          if (row.key !== DIRECT_BUCKET) { out.push(row); continue }
-          if (qrScans) out.push({ key: 'QR code scan', count: qrScans })
-          if (nfcTaps) out.push({ key: 'NFC card tap', count: nfcTaps })
-          const rest = Math.max(0, row.count - split)
-          if (rest) out.push({ key: split > 0 ? 'Other direct opens' : DIRECT_BUCKET, count: rest })
-        }
-        return out.sort((a, b) => b.count - a.count)
+      // Referrer only: which site or app they were on just before opening.
+      // This used to also carve QR and NFC out of the no-referrer bucket, which
+      // could not extend to the other channels - an email-signature click often
+      // does carry a referrer (mail.google.com), so subtracting it from the
+      // direct bucket would have counted it twice. How they got the card is a
+      // different question from which site sent them, and it now has its own
+      // panel rather than being folded into this one.
+      bySource: countBy(views, v => sourceLabel(v.referrer)).sort((a, b) => b.count - a.count),
+
+      // How they got hold of the card, from the ?s= markers. Each channel is an
+      // exact count of its own event; what is left over is everything that
+      // arrived unmarked - a pasted link, a typed URL, or a code printed before
+      // its marker existed. That residual is the only honest way to report a
+      // shared link, since nothing in the request can positively identify one.
+      byChannel: (() => {
+        // Typed wide: CARD_SOURCES is `as const`, so the labels infer as a
+        // literal union and the residual row would not fit it.
+        const rows: { key: string; count: number }[] = CARD_SOURCES
+          .map(src => ({
+            key: src.label as string,
+            count: events.filter(e => e.event_type === src.eventType).filter(inNow).length,
+          }))
+          .filter(r => r.count > 0)
+        const marked = rows.reduce((a, r) => a + r.count, 0)
+        const rest = Math.max(0, views.length - marked)
+        if (rest) rows.push({ key: 'Shared link or direct', count: rest })
+        return rows.sort((a, b) => b.count - a.count)
       })(),
     }
   }, [events, contactDates, period])
@@ -362,15 +376,32 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
             </div>
           )}
 
-          {/* How they found you + what they used */}
-          <div className="grid sm:grid-cols-2 gap-3">
+          {/* How they got the card, where they came from, what they used */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="rounded-3xl border border-border bg-card p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <QrCode className="w-4 h-4 text-muted-foreground" />
+                <h3 className="font-semibold text-sm">How they got your card</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">
+                Scans, taps and clicks, each counted separately.
+              </p>
+              {/* Every channel plus the residual, sized from the list so adding
+                  a source cannot start silently truncating this panel. */}
+              <Bars rows={stats.byChannel} total={stats.views} colour={accent} limit={CARD_SOURCES.length + 1} />
+              <p className="text-[11px] text-muted-foreground mt-4 leading-relaxed">
+                Anything that arrives without a marker counts as a shared link,
+                including codes printed or tags written before this was added.
+              </p>
+            </div>
+
             <div className="rounded-3xl border border-border bg-card p-5">
               <div className="flex items-center gap-2 mb-1">
                 <Globe className="w-4 h-4 text-muted-foreground" />
-                <h3 className="font-semibold text-sm">How they found you</h3>
+                <h3 className="font-semibold text-sm">Where they came from</h3>
               </div>
               <p className="text-xs text-muted-foreground mb-4">
-                Where people were just before they opened your card.
+                The site or app they were on just before opening your card.
               </p>
               <Bars rows={stats.bySource} total={stats.views} colour={accent} />
             </div>
