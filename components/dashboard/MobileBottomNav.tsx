@@ -51,17 +51,22 @@ const MORE_TABS: Tab[] = [
   { href: '/dashboard/email-signature',  label: 'Email Signature', icon: Mail         },
   { href: '/dashboard/virtual-bg',       label: 'Virtual BG',      icon: Monitor      },
   { href: '/dashboard/nfc',              label: 'NFC Cards',       icon: Wifi         },
-  { href: '/dashboard/team',             label: 'Team Cards',      icon: Building2    },
   { href: '/dashboard/settings',         label: 'Settings',        icon: SettingsIcon },
 ]
+
+// Team Cards, which not everybody should be offered. Kept in step with the
+// sidebar's TEAM_TAB by scripts/check-nav.mjs, which now compares the guard as
+// well as the destination.
+const TEAM_TAB: Tab = { href: '/dashboard/team', label: 'Team Cards', icon: Building2 }
 
 interface Props {
   isAdmin?: boolean
   isPro?: boolean
   managesDepartments?: boolean
+  showTeamCards?: boolean
 }
 
-export default function MobileBottomNav({ isAdmin = false, isPro = false, managesDepartments = false }: Props) {
+export default function MobileBottomNav({ isAdmin = false, isPro = false, managesDepartments = false, showTeamCards = true }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const { theme, toggle } = useTheme()
@@ -74,6 +79,8 @@ export default function MobileBottomNav({ isAdmin = false, isPro = false, manage
   const moreTabs: Tab[] = [
     ...MORE_TABS,
     ...(isPro ? [{ href: '/dashboard/questionnaire', label: 'Lead capture', icon: ClipboardList }] : []),
+    // Same gate as the sidebar: hidden from anyone in a team they do not own.
+    ...(showTeamCards ? [TEAM_TAB] : []),
     // Departments was in the sidebar's conditional list but never here, so a
     // department head on a phone had no way to reach the page at all.
     ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers }] : []),

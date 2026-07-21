@@ -24,21 +24,24 @@ const NAV = [
   { href: '/dashboard/email-signature', label: 'Email Signature', icon: Mail,        color: '#f59e0b' }, // amber
   { href: '/dashboard/virtual-bg',      label: 'Virtual BG',      icon: Monitor,     color: '#6366f1' }, // indigo
   { href: '/dashboard/nfc',             label: 'NFC Cards',       icon: Wifi,        color: '#14b8a6' }, // teal
-  { href: '/dashboard/team',            label: 'Team Cards',      icon: Building2,   color: '#fb923c' }, // orange
   { href: '/dashboard/settings',        label: 'Settings',        icon: Settings,    color: '#94a3b8' }, // slate
 ]
+
+// Team Cards, which not everybody should be offered. See showTeamCards below.
+const TEAM_TAB = { href: '/dashboard/team', label: 'Team Cards', icon: Building2, color: '#fb923c' } // orange
 
 interface SidebarProps {
   isPro: boolean
   isAdmin?: boolean
   managesDepartments?: boolean
+  showTeamCards?: boolean
   userName: string
   userEmail: string
 }
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
-export default function Sidebar({ isPro, isAdmin = false, managesDepartments = false, userName, userEmail }: SidebarProps) {
+export default function Sidebar({ isPro, isAdmin = false, managesDepartments = false, showTeamCards = true, userName, userEmail }: SidebarProps) {
   const pathname = usePathname()
   const { theme, toggle } = useTheme()
   // Lead capture (contact popup + questionnaire) is standard on Pro. The
@@ -46,6 +49,12 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
   // to know it exists before they can find it.
   const nav = [
     ...(isPro ? [...NAV, { href: '/dashboard/questionnaire', label: 'Lead capture', icon: ClipboardList, color: '#0ea5e9' }] : NAV),
+    // Hidden from anyone who is in a team they do not own. Team Cards is the
+    // payer's console - seats, billing, every card in the company - so for a
+    // department head or a member it is somebody else's page, and clicking it
+    // only ever produced a notice explaining that. Their equivalent is
+    // Departments, right below.
+    ...(showTeamCards ? [TEAM_TAB] : []),
     // Only a department manager sees this. Their whole scoped surface lives
     // behind it.
     ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers, color: '#a855f7' }] : []),

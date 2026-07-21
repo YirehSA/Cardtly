@@ -76,6 +76,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // create the first one, and getManagedDepartments is empty until one exists.
   const managesDepartments = managedDeptsList.length > 0 || ownedOrgsList.length > 0
 
+  // Team Cards is the account owner's console: seats, billing, and every card
+  // in the company. Hide it from anyone who sits inside a team they do not own,
+  // because for them it was never their page - it renders a notice saying so.
+  // A department head clicking it is looking for their people's cards, and
+  // those live under Departments.
+  //
+  // The test is deliberately NOT "owns no org". A user with no team at all
+  // must keep this link: for them /dashboard/team is the team upsell, and
+  // hiding it would quietly remove the only route into selling a team.
+  const inSomeoneElsesTeam =
+    ownedOrgsList.length === 0 && (managedDeptsList.length > 0 || plan.viaTeam === true)
+  const showTeamCards = !inSomeoneElsesTeam
+
   const isPro = plan.tier === 'pro' && plan.isActive
   // Lead capture is standard on Pro and switched on by the user, so the nav
   // item just follows the plan. This used to resolve the add-on target on
@@ -89,6 +102,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           isPro={isPro}
           isAdmin={isAdmin}
           managesDepartments={managesDepartments}
+          showTeamCards={showTeamCards}
           userName={card?.name || ''}
           userEmail={user.email || ''}
         />
@@ -118,7 +132,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <CommandPalette />
         <HeartbeatPing />
         <AnnouncementModal />
-        <MobileBottomNav isAdmin={isAdmin} isPro={isPro} managesDepartments={managesDepartments} />
+        <MobileBottomNav isAdmin={isAdmin} isPro={isPro} managesDepartments={managesDepartments} showTeamCards={showTeamCards} />
       </div>
     </ThemeProvider>
   )
