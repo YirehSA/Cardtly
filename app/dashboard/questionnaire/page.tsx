@@ -52,6 +52,21 @@ export default async function LeadCapturePage({ searchParams }: { searchParams: 
 
   const isTeamWide = !!selected?.isOrg
   const { library, activeId } = selected ? deriveLibrary(selected.addons) : { library: [] as any[], activeId: null as string | null }
+
+  // Forms that already exist on the user's OTHER cards, so one built for the
+  // team can be reused on a personal card and the other way round without
+  // typing it out twice.
+  //
+  // Offered as a copy rather than a live link on purpose. Sharing one form
+  // across targets would mean every read - the public card, the submit
+  // handler, the contact export - resolving a reference and deciding what to
+  // do when the source is deleted or the user loses access to it. A copy is
+  // understandable from the UI alone: you can see which form is on which card,
+  // and editing one never silently changes another.
+  const importable = allTargets
+    .filter(t => keyOf(t) !== selKey)
+    .map(t => ({ label: t.label || (t.isOrg ? 'Team' : 'Card'), forms: deriveLibrary(t.addons).library }))
+    .filter(t => t.forms.length > 0)
   const questionnaireOn = !!selected?.addons?.questionnaireEnabled
 
   // Not Pro: nothing to configure, so say so plainly rather than pretend.
@@ -150,6 +165,7 @@ export default async function LeadCapturePage({ searchParams }: { searchParams: 
           initial={{ questionnaires: library, activeId }}
           teamWide={isTeamWide}
           target={{ table: selected.table, id: selected.id }}
+          importable={importable}
         />
       </div>
     </div>

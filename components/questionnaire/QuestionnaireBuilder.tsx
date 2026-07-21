@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, Trash2, GripVertical, Loader2, Save, Check, Radio } from 'lucide-react'
+import { Plus, Trash2, GripVertical, Loader2, Save, Check, Radio, Copy } from 'lucide-react'
 import { MAX_QUESTIONS, MAX_QUESTIONNAIRES, type Question, type QuestionType, type SavedQuestionnaire } from '@/lib/questionnaire'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
@@ -31,9 +31,14 @@ interface Props {
   teamWide?: boolean
   // Which card/org this builder is saving to (from the page's switcher).
   target?: { table: string; id: string }
+  // Forms already built on the user's other cards, so a team form can be
+  // reused on a personal card without retyping it. Copied in, not linked -
+  // see the page for why.
+  importable?: { label: string; forms: SavedQuestionnaire[] }[]
 }
 
-export default function QuestionnaireBuilder({ initial, teamWide, target }: Props) {
+export default function QuestionnaireBuilder({ initial, teamWide, target, importable = [] }: Props) {
+  const [importOpen, setImportOpen] = useState(false)
   // Every form keeps at least one (possibly empty) question row so the
   // editor is never blank.
   const seeded: SavedQuestionnaire[] = initial.questionnaires.length
@@ -73,6 +78,21 @@ export default function QuestionnaireBuilder({ initial, teamWide, target }: Prop
     setForms(fs => [...fs, f])
     setSelectedId(f.id)
   }
+  // Copy a form off another card into this one. A fresh id, so it is a
+  // genuinely separate form here and saving cannot overwrite the original.
+  function importForm(form: SavedQuestionnaire, from: string) {
+    if (forms.length >= MAX_QUESTIONNAIRES) return
+    const copy: SavedQuestionnaire = {
+      id: `form_${Date.now().toString(36)}`,
+      title: form.title?.trim() || `From ${from}`,
+      questions: form.questions.map(q => ({ ...q })),
+    }
+    setForms(fs => [...fs, copy])
+    setSelectedId(copy.id)
+    setImportOpen(false)
+    toast.success(`Copied in from ${from}. Save to keep it.`)
+  }
+
   function deleteForm(id: string) {
     if (forms.length <= 1) return
     const remaining = forms.filter(f => f.id !== id)
@@ -154,7 +174,43 @@ export default function QuestionnaireBuilder({ initial, teamWide, target }: Prop
               <Plus className="w-4 h-4" />New form
             </button>
           )}
+          {forms.length < MAX_QUESTIONNAIRES && importable.length > 0 && (
+            <button type="button" onClick={() => setImportOpen(o => !o)}
+              aria-expanded={importOpen}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-border text-sm font-medium text-muted-foreground hover:bg-muted transition">
+              <Copy className="w-4 h-4" />Copy from another card
+            </button>
+          )}
         </div>
+
+        {importOpen && (
+          <div className="mt-3 rounded-xl border border-border bg-background p-3">
+            <p className="text-xs text-muted-foreground mb-2">
+              Copies the questions across. The two stay separate afterwards, so
+              editing one does not change the other.
+            </p>
+            <div className="space-y-3">
+              {importable.map(src => (
+                <div key={src.label}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                    {src.label}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {src.forms.map((f, i) => (
+                      <button key={f.id} type="button" onClick={() => importForm(f, src.label)}
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-sm hover:bg-muted transition min-h-[44px]">
+                        <span className="max-w-[11rem] truncate">{f.title?.trim() || `Form ${i + 1}`}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">
+                          {f.questions.length} {f.questions.length === 1 ? 'question' : 'questions'}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Live / delete controls for the form being edited */}
         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
