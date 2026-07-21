@@ -7,6 +7,8 @@ import { auditLog } from '@/lib/admin-audit'
 import { cancelSubscriptionsFor, subscriptionCodeOf, isBillablePaystackSub } from '@/lib/paystack'
 import { NFC_STATUSES } from '@/lib/nfc'
 import { ORG_BILLING_MODES, MAX_SELF_SERVE_SEATS, orgBillingStartsInDays } from '@/lib/org-billing'
+import { findUserByEmail } from '@/lib/department-perms'
+import { sendTeamOwnerWelcome } from '@/lib/team-owner-invite'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -492,15 +494,16 @@ export async function POST(request: Request) {
   // it is set explicitly here rather than defaulted to 'monthly' and forgotten
   // (which is how Cardtly's own 50-seat org came to report R4,850/month).
   if (action === 'create_org') {
-    const { user_id, org_name, seat_count, billing_period, billing_notes, trial_ends_at, billing_starts_on } = body
+    const { user_id, owner_email, send_welcome, org_name, seat_count, billing_period, billing_notes, trial_ends_at, billing_starts_on } = body
 
     // Seats drive what the team can actually do (team/route.ts blocks
     // adding cards past max_seats), so refuse junk rather than writing
     // it. Admin deliberately has no upper bound: comped and enterprise
     // orgs sit above the 20-seat self-serve cap on purpose.
     const seats = Number(seat_count)
-    if (!user_id) {
-      return NextResponse.json({ error: 'Pick which user owns this team' }, { status: 400 })
+    const wantsNewOwner = !user_id && !!String(owner_email || '').trim()
+    if (!user_id && !wantsNewOwner) {
+      return NextResponse.json({ error: 'Pick who owns this team, or type their email address' }, { status: 400 })
     }
     if (!Number.isInteger(seats) || seats < 1) {
       return NextResponse.json({ error: 'Seat count must be a whole number of 1 or more' }, { status: 400 })
@@ -540,9 +543,52 @@ export async function POST(request: Request) {
       if (days === null || days < 0) startsOn = null
     }
 
+    // Who will own this. An enterprise client is signed before they have ever
+    // touched the product, so the owner usually does not exist yet: the deal
+    // is done over a call, and the first thing they should see is a working
+    // team, not a signup form.
+    //
+    // Deliberately after every validation above. Creating the account first
+    // would leave a real person with a real Cardtly login and no team behind
+    // it every time a seat count or billing mode was rejected.
+    let ownerId: string = user_id
+    let createdAccount = false
+    let ownerEmail = ''
+
+    if (wantsNewOwner) {
+      ownerEmail = String(owner_email).trim().toLowerCase()
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(ownerEmail)) {
+        return NextResponse.json({ error: `"${ownerEmail}" does not look like an email address` }, { status: 400 })
+      }
+      // Reuse an existing account rather than failing on the duplicate. Typing
+      // the email of somebody who already signed up is the likeliest way to
+      // use this field, and it should just work.
+      const existing = await findUserByEmail(admin, ownerEmail)
+      if (existing) {
+        ownerId = existing.id
+      } else {
+        // email_confirm: true because we are the ones vouching for the
+        // address - we just agreed a contract against it. No password is set;
+        // the welcome email below carries a link for them to choose one.
+        const { data: created, error: createErr } = await admin.auth.admin.createUser({
+          email: ownerEmail,
+          email_confirm: true,
+          user_metadata: { created_by: 'admin_team_setup' },
+        })
+        if (createErr || !created?.user) {
+          console.error('create_org createUser failed:', createErr)
+          return NextResponse.json({
+            error: `Could not create an account for ${ownerEmail}: ${createErr?.message || 'unknown error'}`,
+          }, { status: 500 })
+        }
+        ownerId = created.user.id
+        createdAccount = true
+      }
+    }
+
     // maybeSingle, not single: single throws on zero rows, and the error was
     // discarded, so this only worked by accident.
-    const { data: existing } = await admin.from('organizations').select('id').eq('admin_user_id', user_id).maybeSingle()
+    const { data: existing } = await admin.from('organizations').select('id').eq('admin_user_id', ownerId).maybeSingle()
 
     // Seats cannot be cut below the cards that already exist. Nothing deletes
     // cards to fit a smaller number, so the org would just sit over its cap:
@@ -580,7 +626,7 @@ export async function POST(request: Request) {
     async function write(): Promise<{ error: any; degraded: boolean }> {
       const run = (f: Record<string, any>) => existing
         ? admin.from('organizations').update({ ...f, updated_at: new Date().toISOString() }).eq('id', existing.id)
-        : admin.from('organizations').insert({ ...f, admin_user_id: user_id, used_seats: 0 })
+        : admin.from('organizations').insert({ ...f, admin_user_id: ownerId, used_seats: 0 })
       const { error } = await run(fields)
       if (error?.code !== '42703') return { error, degraded: false }
       const { billing_starts_on: _dropped, ...rest } = fields
@@ -594,15 +640,43 @@ export async function POST(request: Request) {
     const { error, degraded } = await write()
     if (error) {
       console.error(`admin create_org ${existing ? 'update' : 'insert'} failed:`, error)
-      return NextResponse.json({ error: `Could not ${existing ? 'update' : 'create'} team: ${error.message}` }, { status: 500 })
-    }
-    if (degraded) {
       return NextResponse.json({
-        success: true,
-        warning: 'Saved, but the debit order start date was not: migration 043 has not been run on this database yet.',
-      })
+        error: `Could not ${existing ? 'update' : 'create'} team: ${error.message}`
+          // The account is real even though the team is not. Say so, otherwise
+          // the next attempt looks like it is creating a duplicate.
+          + (createdAccount ? ` The account for ${ownerEmail} was created and is still there - try again and it will be reused.` : ''),
+      }, { status: 500 })
     }
-    return NextResponse.json({ success: true })
+
+    // Only now, with a team behind it. Sending "your team is ready" before the
+    // org exists would be a lie told to a paying customer.
+    const notes: string[] = []
+    if (degraded) {
+      notes.push('The debit order start date was not saved: migration 043 has not been run on this database yet.')
+    }
+    if (createdAccount) {
+      if (send_welcome === false) {
+        notes.push(`Account created for ${ownerEmail}. No email sent - they will need a password reset link before they can sign in.`)
+      } else {
+        const origin = new URL(request.url).origin
+        const sent = await sendTeamOwnerWelcome(ownerEmail, String(org_name), seats, origin)
+        notes.push(sent.ok
+          ? `Account created and a set-your-password email sent to ${ownerEmail}.`
+          : `Account created for ${ownerEmail}, but the email did NOT send (${sent.error || sent.reason}). Send them a password reset instead.`)
+      }
+      await auditLog(admin, {
+        actorUserId: user?.id, actorEmail: user?.email,
+        action: 'create_team_owner_account', targetUserId: ownerId,
+        detail: { email: ownerEmail, org_name, seats },
+      })
+    } else if (wantsNewOwner) {
+      notes.push(`${ownerEmail} already had an account, so the team was linked to it.`)
+    }
+
+    return NextResponse.json({
+      success: true,
+      ...(notes.length ? { warning: notes.join(' ') } : {}),
+    })
   }
 
   // Update NFC order status.

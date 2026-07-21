@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle, Flag, ExternalLink, MailQuestion, UserCheck, Layers, UserCog, Palette, Pencil } from 'lucide-react'
+import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle, Flag, ExternalLink, MailQuestion, UserCheck, UserPlus, Layers, UserCog, Palette, Pencil } from 'lucide-react'
 import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
 import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, DEFAULT_ENTERPRISE_FREE_DAYS, orgMonthlyRand, orgBillingStartsInDays, type OrgBillingMode } from '@/lib/org-billing'
 import type { AdminOrgRow, AdminUserRow } from '@/lib/admin-data'
@@ -15,6 +15,15 @@ interface Form {
   notes: string
   trialEndsAt: string
   billingStartsOn: string
+  /** Set instead of userId when the owner has no Cardtly account yet. */
+  ownerEmail: string
+  sendWelcome: boolean
+}
+
+// Loose on purpose. This only decides whether to offer "create an account for
+// this address"; the server validates properly before creating anything.
+function looksLikeEmail(s: string): boolean {
+  return /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(s.trim())
 }
 
 // A date input wants YYYY-MM-DD in local time. toISOString() converts to UTC
@@ -50,7 +59,7 @@ interface Props {
 export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssignRep, onMarkCollected, onSuspend, onDept, loading }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
-  const [form, setForm] = useState<Form>({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '', billingStartsOn: '' })
+  const [form, setForm] = useState<Form>({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '', billingStartsOn: '', ownerEmail: '', sendWelcome: true })
 
   function openEdit(o: AdminOrgRow) {
     setCreating(false)
@@ -59,13 +68,13 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
     // Seed from the org being edited. The old stepper was one shared
     // useState(5) that never read the org, so opening a 50-seat team showed
     // "5" next to a label saying "currently 50 seats", and saving wiped 45.
-    setForm({ userId: o.adminUserId, name: o.name, seats: String(o.maxSeats), mode: o.billingMode, notes: o.billingNotes || '', trialEndsAt: o.trialEndsAt ? o.trialEndsAt.slice(0, 10) : '', billingStartsOn: o.billingStartsOn ? o.billingStartsOn.slice(0, 10) : '' })
+    setForm({ userId: o.adminUserId, name: o.name, seats: String(o.maxSeats), mode: o.billingMode, notes: o.billingNotes || '', trialEndsAt: o.trialEndsAt ? o.trialEndsAt.slice(0, 10) : '', billingStartsOn: o.billingStartsOn ? o.billingStartsOn.slice(0, 10) : '', ownerEmail: '', sendWelcome: true })
   }
 
   function openCreate() {
     setEditing(null)
     setCreating(c => !c)
-    setForm({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '', billingStartsOn: '' })
+    setForm({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '', billingStartsOn: '', ownerEmail: '', sendWelcome: true })
   }
 
   const revenue = orgs.filter(o => o.isRevenue).reduce((n, o) => n + o.monthlyRand, 0)
@@ -88,10 +97,10 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
         {creating && (
           <div className="rounded-xl border p-4 mb-4" style={{ borderColor: 'rgba(124,58,237,0.4)', background: 'rgba(124,58,237,0.06)' }}>
             <p className="text-xs font-semibold mb-3" style={{ color: '#a78bfa' }}>
-              New team. The owner must already have a Cardtly account: they administer the team and invite the rest.
+              New team. Search for the owner, or type their email and we will create the account for them.
             </p>
             <TeamForm form={form} setForm={setForm} users={users} showUserPicker
-              busy={loading === `org-${form.userId}`}
+              busy={loading === `org-${form.userId || form.ownerEmail}`}
               onSave={async () => { const ok = await onSave(form); if (ok) setCreating(false) }} />
           </div>
         )}
@@ -345,6 +354,36 @@ function TeamForm({ form, setForm, users, onSave, busy, showUserPicker }: {
               <button onClick={() => { setForm(f => ({ ...f, userId: '' })); setUserQ('') }}
                 className="p-2 rounded-lg transition hover:bg-white/10"><X className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.5)' }} /></button>
             </div>
+          ) : form.ownerEmail ? (
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-white px-3 py-2 rounded-lg flex-1" style={{ background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.35)' }}>
+                  {form.ownerEmail}
+                  <span className="ml-2 text-[11px]" style={{ color: '#0ea5e9' }}>new account</span>
+                </span>
+                <button onClick={() => setForm(f => ({ ...f, ownerEmail: '' }))}
+                  className="p-2 rounded-lg transition hover:bg-white/10"><X className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.5)' }} /></button>
+              </div>
+              {/* Sending is an email to a real customer, so it is a choice
+                  rather than a side effect. Off is legitimate: you may be
+                  setting the team up days before the kickoff call. */}
+              <label className="flex items-start gap-2 mt-2 cursor-pointer">
+                <input type="checkbox" checked={form.sendWelcome} className="mt-0.5"
+                  onChange={e => setForm(f => ({ ...f, sendWelcome: e.target.checked }))} />
+                <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  {form.sendWelcome
+                    ? <>Email them now to choose a password. They can sign in straight away.</>
+                    : <>No email. They cannot sign in until you send them a password reset from the Users tab.</>}
+                </span>
+              </label>
+              {/* Typing an email that already has an account is the likeliest
+                  way to use this, so it links rather than fails. Say so first. */}
+              {users.some(u => u.email?.toLowerCase() === form.ownerEmail) && (
+                <p className="text-[11px] mt-1.5" style={{ color: '#f59e0b' }}>
+                  This address already has an account. The team will be linked to it instead of a new one.
+                </p>
+              )}
+            </div>
           ) : (
             <>
               <input value={userQ} onChange={e => setUserQ(e.target.value)} placeholder="Search by email or name"
@@ -361,10 +400,25 @@ function TeamForm({ form, setForm, users, onSave, busy, showUserPicker }: {
                   ))}
                 </div>
               )}
+              {/* An enterprise client is signed before they have ever touched
+                  the product, so the owner usually does not exist yet. This
+                  used to say "ask them to sign up, then come back", which
+                  meant the person who just signed a contract had to go and
+                  register themselves before we could set up what they bought. */}
               {userQ && matches.length === 0 && (
-                <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  No match. They need a Cardtly account first: ask them to sign up, then come back.
-                </p>
+                looksLikeEmail(userQ) ? (
+                  <button
+                    onClick={() => { setForm(f => ({ ...f, ownerEmail: userQ.trim().toLowerCase(), userId: '' })); setUserQ('') }}
+                    className="mt-1.5 w-full text-left px-3 py-2.5 rounded-lg text-xs transition hover:bg-white/5 flex items-center gap-2"
+                    style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.35)', color: '#0ea5e9' }}>
+                    <UserPlus className="w-3.5 h-3.5 shrink-0" />
+                    <span>Create an account for <strong>{userQ.trim().toLowerCase()}</strong></span>
+                  </button>
+                ) : (
+                  <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                    No match. Type their full email address to set an account up for them.
+                  </p>
+                )
               )}
             </>
           )}
@@ -476,7 +530,7 @@ function TeamForm({ form, setForm, users, onSave, busy, showUserPicker }: {
           )}
         </div>
         <button
-          disabled={busy || !form.name.trim() || !(seats >= 1) || !form.userId || overCap || (form.mode === 'trial' && !form.trialEndsAt)}
+          disabled={busy || !form.name.trim() || !(seats >= 1) || (!form.userId && !form.ownerEmail) || overCap || (form.mode === 'trial' && !form.trialEndsAt)}
           onClick={onSave}
           className="ml-auto flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-40"
           style={{ background: grad }}>

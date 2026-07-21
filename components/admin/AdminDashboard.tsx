@@ -335,9 +335,14 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
             onMarkCollected={(orgId) => run(`collect-${orgId}`, { action: 'mark_collected', org_id: orgId }, 'Recorded as collected today')}
             onDept={(action, body, key, msg) => run(key, { action, ...body }, msg)}
             onSuspend={(orgId, suspended, message) => run(`susp-${orgId}`, { action: 'set_org_suspended', org_id: orgId, suspended, message }, suspended ? 'Team suspended. Their cards still work, with a notice.' : 'Suspension lifted')}
-            onSave={(f) => run(`org-${f.userId}`, {
+            onSave={(f) => run(`org-${f.userId || f.ownerEmail}`, {
               action: 'create_org',
               user_id: f.userId,
+              // Set instead of user_id when the owner has no account yet. The
+              // server creates one, or links to an existing account if that
+              // address already has one.
+              owner_email: f.ownerEmail || null,
+              send_welcome: f.sendWelcome,
               org_name: f.name,
               seat_count: Number(f.seats),
               billing_period: f.mode,
