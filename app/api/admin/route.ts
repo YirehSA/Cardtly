@@ -8,6 +8,7 @@ import { cancelSubscriptionsFor, subscriptionCodeOf, isBillablePaystackSub } fro
 import { NFC_STATUSES } from '@/lib/nfc'
 import { ORG_BILLING_MODES, MAX_SELF_SERVE_SEATS, orgBillingStartsInDays } from '@/lib/org-billing'
 import { findUserByEmail } from '@/lib/department-perms'
+import { orgSlugPrefix } from '@/lib/card-slug'
 import { sendTeamOwnerWelcome } from '@/lib/team-owner-invite'
 
 export async function POST(request: Request) {
@@ -618,18 +619,30 @@ export async function POST(request: Request) {
       business_plan_active: true,
     }
 
+    // A new team gets its card-link prefix now, so every card it creates
+    // carries the company name from the first one. Only on insert: on update
+    // this would overwrite a prefix the owner had deliberately edited on the
+    // Brand page, silently changing the URLs of every card they create next.
+    if (!existing) fields.card_slug_prefix = orgSlugPrefix(String(org_name))
+
     // Migrations here are applied by hand, after the deploy. Without this, the
-    // window between pushing 043 and running it would break saving ANY team -
+    // window between pushing and running one would break saving ANY team -
     // comps and monthlies included - with a 42703 about a column that has
-    // nothing to do with them. Retry without it and say so, rather than
+    // nothing to do with them. Retry without them and say so, rather than
     // failing a seat change over an unrelated feature.
+    const LATE_COLUMNS = ['billing_starts_on', 'card_slug_prefix'] as const
     async function write(): Promise<{ error: any; degraded: boolean }> {
       const run = (f: Record<string, any>) => existing
         ? admin.from('organizations').update({ ...f, updated_at: new Date().toISOString() }).eq('id', existing.id)
         : admin.from('organizations').insert({ ...f, admin_user_id: ownerId, used_seats: 0 })
       const { error } = await run(fields)
       if (error?.code !== '42703') return { error, degraded: false }
-      const { billing_starts_on: _dropped, ...rest } = fields
+      // Drop every column that arrives with a hand-applied migration, not just
+      // the one this route happened to add first. Retrying with only one of
+      // them removed fails again on the next, which reads to the user as the
+      // retry not working at all.
+      const rest = { ...fields }
+      for (const c of LATE_COLUMNS) delete rest[c]
       const { error: retryError } = await run(rest)
       return { error: retryError, degraded: !retryError }
     }
@@ -652,7 +665,7 @@ export async function POST(request: Request) {
     // org exists would be a lie told to a paying customer.
     const notes: string[] = []
     if (degraded) {
-      notes.push('The debit order start date was not saved: migration 043 has not been run on this database yet.')
+      notes.push('Saved, but the debit order start date and card-link prefix were not: migrations 043 and 044 have not both been run on this database yet.')
     }
     if (createdAccount) {
       if (send_welcome === false) {

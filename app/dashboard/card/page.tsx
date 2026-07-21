@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/plan-server'
 import { redirect } from 'next/navigation'
 import CardEditor from '@/components/card/CardEditor'
+import { userOrgSlugPrefix, newPersonalCardSlug } from '@/lib/card-slug-server'
 
 export const metadata = { title: 'My Card' }
 
@@ -55,9 +56,17 @@ export default async function CardPage() {
     }
   }
 
+  // The company this person belongs to, if any. Needed both to name a new
+  // card and to show the fixed half of the link in the editor.
+  const slugPrefix = await userOrgSlugPrefix(admin, user.id)
+
   if (!card) {
     const firstName = user.email?.split('@')[0] || 'user'
-    const slug = `${firstName}-${Math.random().toString(36).slice(2, 7)}`
+    // A fourth copy of the slug rule used to live right here, inline: the
+    // email local-part plus five random characters. That is where slugs like
+    // "andre-gqapw" came from - a company owner's own card, the one most
+    // likely to be handed to a customer, published under a random string.
+    const slug = await newPersonalCardSlug(admin, slugPrefix, firstName)
     const { data: newCard, error: insertError } = await admin
       .from('cards')
       // assigned_user_id is what stops the card being archived on sight.
@@ -96,5 +105,5 @@ export default async function CardPage() {
     card = newCard
   }
 
-  return <CardEditor card={card} plan={plan} userId={user.id} />
+  return <CardEditor card={card} plan={plan} userId={user.id} slugPrefix={slugPrefix} />
 }

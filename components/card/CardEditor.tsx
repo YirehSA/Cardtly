@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, UserPlan } from '@/types/database'
 import { isPro } from '@/lib/plan'
 import { CardDesign, DEFAULT_DESIGN, parseDesign, serializeDesign, MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES } from '@/types/design'
+import { composeCardSlug, slugifyPart } from '@/lib/card-slug'
 import { toast } from 'sonner'
 import TemplatedCardPreview from './TemplatedCardPreview'
 import FlippableCardPreview from './FlippableCardPreview'
@@ -23,6 +24,9 @@ interface Props {
   card: Card | null
   plan: UserPlan
   userId: string
+  /** The company half of this person's card link, when they belong to one.
+   *  Null for an individual, whose card is just their name. */
+  slugPrefix?: string | null
 }
 
 type TabId = 'basic' | 'contact' | 'links' | 'media' | 'design'
@@ -91,7 +95,7 @@ function Section({ title, hint, colour, icon, children }: {
   )
 }
 
-export default function CardEditor({ card, plan, userId }: Props) {
+export default function CardEditor({ card, plan, userId, slugPrefix = null }: Props) {
   const supabase = createClient()
   const pro = isPro(plan)
   const [saving, setSaving] = useState(false)
@@ -179,17 +183,19 @@ export default function CardEditor({ card, plan, userId }: Props) {
   }, [dirty])
 
   async function saveSlug() {
-    if (!slug || slug.length < 3) { setSlugError('Min 3 characters'); return }
+    if (!slug || slug.length < 2) { setSlugError('Min 2 characters'); return }
     if (!card?.id) {
       setSlugError('Your card is still loading. Refresh and try again.')
       return
     }
     setSlugSaving(true)
     setSlugError('')
+    // Sends the person's half only. The server composes the company half, so
+    // it cannot be edited away from here.
     const res = await fetch('/api/slug', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug, card_id: card.id }),
+      body: JSON.stringify({ person: slug, card_id: card.id }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -263,11 +269,25 @@ export default function CardEditor({ card, plan, userId }: Props) {
   const [photoSlots, setPhotoSlots] = useState(() =>
     Math.max(1, Array.from({ length: MAX_GALLERY_IMAGES }, (_, i) => i + 1).filter(i => (card as any)?.[`image_${i}_url`]).length + 0))
 
-  const [slug, setSlug] = useState(card?.slug || '')
+  // When this person belongs to a company, their link carries its name and
+  // they only fill in their own half. An individual has no company, so
+  // slugPrefix is null and the box is the whole link, exactly as before.
+  //
+  // If the current slug already follows the convention, strip the company off
+  // and show the rest. If it does not - and no existing card does, since these
+  // were random until now - fall back to their NAME rather than the old slug,
+  // otherwise "andre-gqapw" would become "cardtly-andre-gqapw".
+  const personFromSlug = slugPrefix && card?.slug?.startsWith(slugPrefix + '-')
+    ? card.slug.slice(slugPrefix.length + 1)
+    : null
+  const [slug, setSlug] = useState(
+    personFromSlug ?? (slugPrefix ? slugifyPart(card?.name || '') : (card?.slug || ''))
+  )
   // Track the saved slug separately from the input value so the displayed
   // URL above the input updates immediately after a successful save,
   // instead of staying stale until the page is reloaded.
   const [savedSlug, setSavedSlug] = useState(card?.slug || '')
+  const nextSlug = composeCardSlug(slugPrefix, slug)
   // Drive the displayed URL from local savedSlug state so it refreshes
   // immediately when the slug changes, without needing a page reload.
   const cardUrl = savedSlug ? `/card/${savedSlug}` : null
@@ -334,15 +354,16 @@ export default function CardEditor({ card, plan, userId }: Props) {
               )}
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="flex items-center px-2.5 py-2 rounded-l-xl border border-r-0 border-border bg-muted text-xs text-muted-foreground whitespace-nowrap">
-                  cardtly.com/card/
+                  cardtly.com/card/{slugPrefix && <span className="font-semibold text-foreground">{slugPrefix}-</span>}
                 </div>
                 <input
                   value={slug}
                   onChange={e => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setSlugError(''); setSlugSuccess(false) }}
-                  placeholder="your-name"
+                  placeholder={slugPrefix ? 'john-smith' : 'your-name'}
+                  aria-label="Your part of the card link"
                   className="px-3 py-2 rounded-r-xl border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring transition w-44 -ml-2"
                 />
-                <button onClick={saveSlug} disabled={slugSaving || !slug || slug === savedSlug}
+                <button onClick={saveSlug} disabled={slugSaving || !slug || nextSlug === savedSlug}
                   className="px-3 py-2 rounded-xl text-xs font-semibold border border-border hover:bg-muted transition disabled:opacity-50 whitespace-nowrap">
                   {slugSaving ? 'Saving...' : slugSuccess ? '✓ Updated' : 'Change link'}
                 </button>

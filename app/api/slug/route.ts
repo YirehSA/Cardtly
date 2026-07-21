@@ -1,28 +1,26 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { userOrgSlugPrefix } from '@/lib/card-slug-server'
+import { composeCardSlug, slugifyPart, isReservedSlug } from '@/lib/card-slug'
 
-function sanitizeSlug(input: string): string {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, '')  // remove special chars
-    .replace(/\s+/g, '-')           // spaces to hyphens
-    .replace(/-+/g, '-')            // collapse multiple hyphens
-    .slice(0, 50)                   // max 50 chars
-}
-
+// Setting a personal card's URL.
+//
+// A personal card carries no organisation, so the company has to be found
+// through the person - see userOrgSlugPrefix. Someone who runs a company
+// usually has a personal card rather than a team card (team cards are the
+// seats they hand out), so without this the card most likely to be handed to a
+// customer was the only one in the company not carrying the company name.
+//
+// Somebody with no company gets no prefix, which is most people, and is
+// exactly how this behaved before.
 export async function POST(request: Request) {
   try {
     const supabase = await createClient() as any
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { slug: rawSlug, card_id } = await request.json()
-    const slug = sanitizeSlug(rawSlug)
-
-    if (!slug || slug.length < 3) {
-      return NextResponse.json({ error: 'Slug must be at least 3 characters' }, { status: 400 })
-    }
+    const body = await request.json()
+    const { card_id } = body
 
     // card_id must be a real UUID, not undefined or empty. Postgres will
     // throw "invalid input syntax for type uuid: 'undefined'" if we pass
@@ -35,46 +33,48 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check it's not taken by another card
-    const { data: existing } = await supabase
-      .from('cards')
-      .select('id')
-      .eq('slug', slug)
-      .neq('id', card_id)
-      .maybeSingle()
+    // Service role for the lookups below. The taken-check has to see cards
+    // this user cannot: asking through their own client means any slug owned
+    // by somebody else reads as free, and the check passes on exactly the
+    // collision it exists to catch.
+    const admin = createServiceClient() as any
 
-    if (existing) {
-      return NextResponse.json({ error: 'That URL is already taken. Try another.' }, { status: 409 })
+    const prefix = await userOrgSlugPrefix(admin, user.id)
+
+    // `person` is what the UI sends; `slug` is accepted so a client mid-deploy
+    // still works. Either way it is the person's half, never the whole URL -
+    // the company half is composed here so it cannot be edited away.
+    const person = slugifyPart(String(body.person ?? body.slug ?? ''), 40)
+    if (!person || person.length < 2) {
+      return NextResponse.json({ error: 'Your link needs at least 2 characters' }, { status: 400 })
     }
 
-    // Also check team_cards
-    const { data: existingTeam } = await supabase
-      .from('team_cards')
-      .select('id')
-      .eq('slug', slug)
-      .maybeSingle()
-
-    if (existingTeam) {
-      return NextResponse.json({ error: 'That URL is already taken. Try another.' }, { status: 409 })
+    const slug = composeCardSlug(prefix, person)
+    if (isReservedSlug(slug)) {
+      return NextResponse.json({ error: 'That link is reserved. Try another.' }, { status: 409 })
     }
 
-    // Save old slug for redirect
-    const { data: currentCard } = await supabase
+    const { data: currentCard } = await admin
       .from('cards')
       .select('slug')
       .eq('id', card_id)
       .maybeSingle()
 
-    // Insert redirect from old slug
-    if (currentCard?.slug && currentCard.slug !== slug) {
-      await supabase
-        .from('slug_redirects')
-        .upsert({ old_slug: currentCard.slug, new_slug: slug })
-        .select()
+    if (currentCard?.slug === slug) {
+      return NextResponse.json({ success: true, slug, unchanged: true })
     }
 
-    // Update the card slug
-    const { error } = await supabase
+    const [{ data: takenPersonal }, { data: takenTeam }] = await Promise.all([
+      admin.from('cards').select('id').eq('slug', slug).neq('id', card_id).maybeSingle(),
+      admin.from('team_cards').select('id').eq('slug', slug).maybeSingle(),
+    ])
+    if (takenPersonal || takenTeam) {
+      return NextResponse.json({ error: 'That link is already taken. Try another.' }, { status: 409 })
+    }
+
+    // Still scoped by user_id: the service client bypasses RLS, so ownership
+    // has to be enforced here rather than assumed.
+    const { error } = await admin
       .from('cards')
       .update({ slug, updated_at: new Date().toISOString() })
       .eq('id', card_id)
@@ -82,7 +82,18 @@ export async function POST(request: Request) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    return NextResponse.json({ success: true, slug })
+    // Only after the card actually moved. Writing the redirect first would
+    // point the old URL at a slug that does not exist if the update failed.
+    let redirected = false
+    if (currentCard?.slug) {
+      const { error: redirectError } = await admin
+        .from('slug_redirects')
+        .upsert({ old_slug: currentCard.slug, new_slug: slug })
+      if (redirectError) console.error('slug redirect failed:', redirectError)
+      else redirected = true
+    }
+
+    return NextResponse.json({ success: true, slug, previous: currentCard?.slug || null, redirected })
   } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
