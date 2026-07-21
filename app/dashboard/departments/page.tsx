@@ -84,6 +84,15 @@ export default async function DepartmentsPage() {
   // but only where they do not already have one, since the API refuses a second
   // and a button that always fails is worse than no button.
   const orgIds = [...new Set(managed.map(d => d.organization_id))]
+
+  // The company look, so a head can start their department from it. Without
+  // this the only source was a card already designed inside the department -
+  // so a new department, whose people have not built anything yet, could not
+  // be given any look at all.
+  const { data: orgRows } = orgIds.length
+    ? await admin.from('organizations').select('id, brand').in('id', orgIds)
+    : { data: [] }
+  const orgBrandById = Object.fromEntries((orgRows || []).map((o: any) => [o.id, o.brand || {}]))
   const { data: ownCards } = orgIds.length
     ? await admin.from('team_cards').select('organization_id').eq('user_id', user.id).in('organization_id', orgIds)
     : { data: [] }
@@ -91,7 +100,11 @@ export default async function DepartmentsPage() {
 
   return (
     <DepartmentManager
-      departments={departments.map(d => ({ ...d, viewerHasCard: hasCardInOrg.has(d.organizationId) }))}
+      departments={departments.map(d => ({
+        ...d,
+        viewerHasCard: hasCardInOrg.has(d.organizationId),
+        orgBrand: orgBrandById[d.organizationId] || {},
+      }))}
       ownedOrgs={ownedOrgs}
     />
   )

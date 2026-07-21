@@ -19,6 +19,8 @@ interface Dept {
   // Heads are appointed without one, so the offer to make theirs only appears
   // when they genuinely have none.
   viewerHasCard?: boolean
+  // The company look, offered as a starting point for this department.
+  orgBrand?: Record<string, any>
 }
 interface OwnedOrg { id: string; name: string; lockedFields: string[] }
 
@@ -352,6 +354,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
   const leads = dept.cards.reduce((n, c) => n + c.leads, 0)
   const claimed = dept.cards.filter(c => c.claimed).length
   const brandCards = dept.cards.filter(c => Object.keys(c.brand).length > 0)
+  const orgBrandFields = Object.keys(dept.orgBrand || {}).length
 
   return (
     <div className="space-y-5">
@@ -451,27 +454,48 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
             ? 'These cards have their own look, different from the rest of the company.'
             : 'Right now these cards use the company look. Want them to stand out? Copy a card you like.'}
         </p>
-        {brandCards.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {brandCards.map(c => (
-              <button key={c.id} disabled={loading === `brand-${dept.id}`}
-                onClick={() => call(`brand-${dept.id}`, { action: 'set_brand', department_id: dept.id, brand: c.brand }, `Look copied from ${c.name || 'that card'}`)}
-                className="text-sm px-3.5 py-2 rounded-xl font-semibold border border-border transition hover:bg-muted disabled:opacity-40 flex items-center gap-2">
-                {loading === `brand-${dept.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Palette className="w-3.5 h-3.5" style={{ color: accent }} />}
-                Use {c.name || 'this card'}&apos;s look
-              </button>
-            ))}
-            {dept.hasBrand && (
-              <button disabled={loading === `brand-${dept.id}`}
-                onClick={() => call(`brand-${dept.id}`, { action: 'set_brand', department_id: dept.id, brand: {} }, 'Back to the company look')}
-                className="text-sm px-3.5 py-2 rounded-xl font-semibold border border-border text-muted-foreground transition hover:bg-muted disabled:opacity-40">
-                Back to company look
-              </button>
-            )}
-          </div>
-        ) : (
+        {/* Sources: the company look first, then any card in this department
+            that has been designed. Previously only the department's own cards
+            were offered, so a department whose people had not designed
+            anything yet could not be given a look at all - which is exactly
+            the state a new department starts in. */}
+        <div className="flex flex-wrap gap-2">
+          {orgBrandFields > 0 && (
+            <button disabled={loading === `brand-${dept.id}`}
+              onClick={() => call(`brand-${dept.id}`, { action: 'set_brand', department_id: dept.id, brand: dept.orgBrand }, 'Started from the company look')}
+              className="text-sm px-3.5 min-h-[44px] rounded-xl font-semibold border transition hover:bg-muted disabled:opacity-40 flex items-center gap-2"
+              style={{ borderColor: `${accent}55`, color: accent }}>
+              {loading === `brand-${dept.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Building2 className="w-3.5 h-3.5" />}
+              Start from the company look
+            </button>
+          )}
+          {brandCards.map(c => (
+            <button key={c.id} disabled={loading === `brand-${dept.id}`}
+              onClick={() => call(`brand-${dept.id}`, { action: 'set_brand', department_id: dept.id, brand: c.brand }, `Look copied from ${c.name || 'that card'}`)}
+              className="text-sm px-3.5 min-h-[44px] rounded-xl font-semibold border border-border transition hover:bg-muted disabled:opacity-40 flex items-center gap-2">
+              {loading === `brand-${dept.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Palette className="w-3.5 h-3.5" style={{ color: accent }} />}
+              Use {c.name || 'this card'}&apos;s look
+            </button>
+          ))}
+          {/* Outside the card list on purpose. This used to sit inside it, so
+              a department with a custom look but no designed cards left had no
+              way back to the company look. */}
+          {dept.hasBrand && (
+            <button disabled={loading === `brand-${dept.id}`}
+              onClick={() => call(`brand-${dept.id}`, { action: 'set_brand', department_id: dept.id, brand: {} }, 'Back to the company look')}
+              className="text-sm px-3.5 min-h-[44px] rounded-xl font-semibold border border-border text-muted-foreground transition hover:bg-muted disabled:opacity-40">
+              Back to company look
+            </button>
+          )}
+        </div>
+        {brandCards.length === 0 && orgBrandFields === 0 && (
           <p className="text-xs rounded-xl px-3 py-2.5 bg-muted/50 text-muted-foreground">
-            None of your people has designed their card yet. Once one does (under My Card), you can copy that look for the whole department here.
+            There is no company look set yet, and none of your people has designed their card. Once either exists you can set this department&apos;s look here.
+          </p>
+        )}
+        {dept.hasBrand && (
+          <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
+            A department look is a copy, not a link. Changing the company look later will not change this one - use &ldquo;Back to company look&rdquo; to follow the company again.
           </p>
         )}
       </div>
