@@ -152,9 +152,20 @@ export default async function LeadCapturePage({ searchParams }: { searchParams: 
           can write the form first and switch it on when it is ready. */}
       <div>
         <div className="flex items-center justify-between gap-3 mb-3">
-          <h2 className="font-display text-lg font-bold flex items-center gap-2">
+          {/* Name the target here, not only in the switcher at the top of the
+              page. The switcher scrolls out of sight, and everything below it
+              looked identical whichever card was selected - so it was possible
+              to set the button colours on the team, save, open a personal card,
+              and see no change with nothing anywhere explaining why. */}
+          <h2 className="font-display text-lg font-bold flex items-center gap-2 flex-wrap">
             <ClipboardList className="w-5 h-5" style={{ color: '#a855f7' }} />
             Your forms
+            {allTargets.length > 1 && (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full text-muted-foreground"
+                style={{ background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))' }}>
+                {isTeamWide ? `for ${selected.label || 'your team'} (every team card)` : `for ${selected.label || 'your card'} only`}
+              </span>
+            )}
           </h2>
           {!questionnaireOn && (
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
@@ -168,6 +179,9 @@ export default async function LeadCapturePage({ searchParams }: { searchParams: 
           initial={{ questionnaires: library, activeId }}
           teamWide={isTeamWide}
           target={{ table: selected.table, id: selected.id }}
+          targetLabel={allTargets.length > 1
+            ? (isTeamWide ? `${selected.label || 'your team'} (every team card)` : (selected.label || 'your card'))
+            : undefined}
           importable={importable}
         />
       </div>

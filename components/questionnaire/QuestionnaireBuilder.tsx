@@ -78,13 +78,18 @@ interface Props {
   teamWide?: boolean
   // Which card/org this builder is saving to (from the page's switcher).
   target?: { table: string; id: string }
+  // Human name for that target, so the save confirmation says WHERE it saved.
+  // "Saved" alone is true and useless when there is more than one place to
+  // save to: setting the button colours on the team and then opening a
+  // personal card produced a green tick and no visible change.
+  targetLabel?: string
   // Forms already built on the user's other cards, so a team form can be
   // reused on a personal card without retyping it. Copied in, not linked -
   // see the page for why.
   importable?: { label: string; forms: SavedQuestionnaire[] }[]
 }
 
-export default function QuestionnaireBuilder({ initial, teamWide, target, importable = [] }: Props) {
+export default function QuestionnaireBuilder({ initial, teamWide, target, targetLabel, importable = [] }: Props) {
   const [importOpen, setImportOpen] = useState(false)
   // Every form keeps at least one (possibly empty) question row so the
   // editor is never blank.
@@ -144,7 +149,12 @@ export default function QuestionnaireBuilder({ initial, teamWide, target, import
   // genuinely separate form here and saving cannot overwrite the original.
   function importForm(form: SavedQuestionnaire, from: string) {
     if (forms.length >= MAX_QUESTIONNAIRES) return
+    // Spread the source form, then override. Naming the fields here dropped
+    // the button colours off every copy - so the quickest way to reuse a form
+    // was also the quickest way to lose its styling, silently. Same mistake as
+    // the live mirror and the legacy wrapper.
     const copy: SavedQuestionnaire = {
+      ...form,
       id: `form_${Date.now().toString(36)}`,
       title: form.title?.trim() || `From ${from}`,
       questions: form.questions.map(q => ({ ...q })),
@@ -192,7 +202,7 @@ export default function QuestionnaireBuilder({ initial, teamWide, target, import
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok && data.success) {
-        toast.success('Saved')
+        toast.success(targetLabel ? `Saved to ${targetLabel}` : 'Saved')
       } else {
         toast.error(data.error || 'Could not save')
       }
