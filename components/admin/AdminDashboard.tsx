@@ -87,7 +87,11 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
       toast.error(data?.error || 'That did not work', { duration: 9000 })
       return false
     }
-    toast.success(okMsg)
+    // A partial save is not a success. The route returns a warning when it had
+    // to drop a field to get the rest of the write through, and reporting that
+    // as a plain tick is how you end up believing a date was saved that was not.
+    if (data?.warning) toast(data.warning, { icon: '⚠️', duration: 11000 })
+    else toast.success(okMsg)
     router.refresh()
     return true
   }
@@ -339,7 +343,8 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
               billing_period: f.mode,
               billing_notes: f.notes || null,
               trial_ends_at: f.trialEndsAt || null,
-            }, `${f.name}: ${f.seats} seats, ${f.mode === 'comp' ? 'free' : f.mode.replace('_', ' ')}`)} />
+              billing_starts_on: f.billingStartsOn || null,
+            }, `${f.name}: ${f.seats} seats, ${f.mode === 'comp' ? 'free' : f.mode.replace('_', ' ')}${f.mode === 'debit_order' && f.billingStartsOn ? `, free until ${f.billingStartsOn}` : ''}`)} />
         )}
 
         {tab === 'reps' && (

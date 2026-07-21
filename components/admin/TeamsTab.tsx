@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle, Flag, ExternalLink, MailQuestion, UserCheck, Layers, UserCog, Palette, Pencil } from 'lucide-react'
 import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
-import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, orgMonthlyRand, type OrgBillingMode } from '@/lib/org-billing'
+import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, DEFAULT_ENTERPRISE_FREE_DAYS, orgMonthlyRand, orgBillingStartsInDays, type OrgBillingMode } from '@/lib/org-billing'
 import type { AdminOrgRow, AdminUserRow } from '@/lib/admin-data'
 import type { RepStats } from '@/lib/reps'
 
@@ -14,6 +14,20 @@ interface Form {
   mode: OrgBillingMode
   notes: string
   trialEndsAt: string
+  billingStartsOn: string
+}
+
+// A date input wants YYYY-MM-DD in local time. toISOString() converts to UTC
+// first, which in SAST (+2) rolls back to the previous day for anything before
+// 02:00, so a "60 days" button clicked early in the morning would quietly set
+// 59.
+function dateInput(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+function inDays(n: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() + n)
+  return dateInput(d)
 }
 
 interface Props {
@@ -36,7 +50,7 @@ interface Props {
 export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssignRep, onMarkCollected, onSuspend, onDept, loading }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
-  const [form, setForm] = useState<Form>({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '' })
+  const [form, setForm] = useState<Form>({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '', billingStartsOn: '' })
 
   function openEdit(o: AdminOrgRow) {
     setCreating(false)
@@ -45,13 +59,13 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
     // Seed from the org being edited. The old stepper was one shared
     // useState(5) that never read the org, so opening a 50-seat team showed
     // "5" next to a label saying "currently 50 seats", and saving wiped 45.
-    setForm({ userId: o.adminUserId, name: o.name, seats: String(o.maxSeats), mode: o.billingMode, notes: o.billingNotes || '', trialEndsAt: o.trialEndsAt ? o.trialEndsAt.slice(0, 10) : '' })
+    setForm({ userId: o.adminUserId, name: o.name, seats: String(o.maxSeats), mode: o.billingMode, notes: o.billingNotes || '', trialEndsAt: o.trialEndsAt ? o.trialEndsAt.slice(0, 10) : '', billingStartsOn: o.billingStartsOn ? o.billingStartsOn.slice(0, 10) : '' })
   }
 
   function openCreate() {
     setEditing(null)
     setCreating(c => !c)
-    setForm({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '' })
+    setForm({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '', billingStartsOn: '' })
   }
 
   const revenue = orgs.filter(o => o.isRevenue).reduce((n, o) => n + o.monthlyRand, 0)
@@ -175,7 +189,7 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
                   </button>
                   </div>
 
-                  {(o.trialDaysLeft !== null || o.needsCollecting || o.suspendedAt) && (
+                  {(o.trialDaysLeft !== null || o.needsCollecting || o.suspendedAt || (o.billingStartsInDays !== null && o.billingStartsInDays > 0)) && (
                     <div className="px-3.5 pb-3 -mt-1 flex flex-wrap gap-2">
                       {o.suspendedAt && (
                         <span className="text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1.5"
@@ -193,6 +207,16 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
                           {o.trialDaysLeft <= 0
                             ? `Trial ended ${fmtDate(o.trialEndsAt)}. Still live, still free. Convert them.`
                             : `Trial ends ${fmtDate(o.trialEndsAt)} (${o.trialDaysLeft} days)`}
+                        </span>
+                      )}
+                      {/* Signed, live, and deliberately not billed yet. Without
+                          this the row looks identical to a debit order nobody
+                          has got round to collecting. */}
+                      {o.billingStartsInDays !== null && o.billingStartsInDays > 0 && (
+                        <span className="text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1.5"
+                          style={{ background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.3)', color: '#0ea5e9' }}>
+                          <CalendarClock className="w-3 h-3" />
+                          Free run. First collection {fmtDate(o.billingStartsOn)}, in {o.billingStartsInDays} day{o.billingStartsInDays === 1 ? '' : 's'}, {randFmt(o.monthlyRand)}/month
                         </span>
                       )}
                       {o.needsCollecting && (
@@ -298,6 +322,8 @@ function TeamForm({ form, setForm, users, onSave, busy, showUserPicker }: {
   // Paystack at all, so calling it monthly would claim money nothing collects.
   const overCap = seats > MAX_SELF_SERVE_SEATS && (form.mode === 'monthly' || form.mode === 'yearly')
 
+  const daysUntilStart = orgBillingStartsInDays(form.mode, form.billingStartsOn || null)
+
   const matches = useMemo(() => {
     const n = userQ.trim().toLowerCase()
     if (!n) return []
@@ -380,6 +406,53 @@ function TeamForm({ form, setForm, users, onSave, busy, showUserPicker }: {
           <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
             Their cards stay live after this date. Nothing is cut off: it flags here and you convert them.
           </p>
+        </div>
+      )}
+
+      {/* The free run before an enterprise debit order starts. Without this the
+          only way to sign a team now and bill them later was to park them on
+          'trial' and remember to switch modes by hand, which showed them as R0
+          revenue and would leave them free forever if the switch was missed. */}
+      {form.mode === 'debit_order' && (
+        <div>
+          <label className="text-[11px] font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            Debit order starts
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input type="date" min={dateInput(new Date())} value={form.billingStartsOn}
+              onChange={e => setForm(f => ({ ...f, billingStartsOn: e.target.value }))}
+              className={inputClass} style={{ ...inputStyle, width: 'auto', minWidth: 170 }} />
+            {[30, 60, 90].map(n => (
+              <button key={n} type="button" onClick={() => setForm(f => ({ ...f, billingStartsOn: inDays(n) }))}
+                className="text-[11px] px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10"
+                style={{
+                  background: form.billingStartsOn === inDays(n) ? 'rgba(14,165,233,0.15)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${form.billingStartsOn === inDays(n) ? 'rgba(14,165,233,0.45)' : 'rgba(255,255,255,0.08)'}`,
+                  color: form.billingStartsOn === inDays(n) ? '#0ea5e9' : 'rgba(255,255,255,0.5)',
+                }}>
+                {n} days{n === DEFAULT_ENTERPRISE_FREE_DAYS ? ' (usual)' : ''}
+              </button>
+            ))}
+            {form.billingStartsOn && (
+              <button type="button" onClick={() => setForm(f => ({ ...f, billingStartsOn: '' }))}
+                className="text-[11px] px-2.5 py-1.5 rounded-lg transition hover:bg-white/10"
+                style={{ color: 'rgba(255,255,255,0.4)' }}>
+                Clear
+              </button>
+            )}
+          </div>
+          <p className="text-[11px] mt-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            {form.billingStartsOn
+              ? `Free until then. First collection ${fmtDate(form.billingStartsOn)} at ${randFmt(monthly)}/month. They stay fully live throughout, and this will not appear in "to collect" until that day.`
+              : 'Leave empty to start collecting straight away. Set a date to give them a free run first: they stay fully live, and nothing nags you to collect until then.'}
+          </p>
+          {form.billingStartsOn && daysUntilStart !== null && daysUntilStart > DEFAULT_ENTERPRISE_FREE_DAYS && (
+            <p className="text-[11px] mt-1.5 rounded-lg px-3 py-2 flex items-start gap-1.5"
+              style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: '#f59e0b' }}>
+              <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+              That is {daysUntilStart} days free, longer than the usual {DEFAULT_ENTERPRISE_FREE_DAYS}. Fine if you meant it: {randFmt(Math.round((monthly * (daysUntilStart - DEFAULT_ENTERPRISE_FREE_DAYS)) / 30))} of extra free time.
+            </p>
+          )}
         </div>
       )}
 

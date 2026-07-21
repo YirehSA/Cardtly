@@ -1,6 +1,6 @@
 import { Resend } from 'resend'
 import { FROM_EMAIL } from '@/lib/email'
-import { orgTrialDaysLeft, orgNeedsCollecting, orgMonthlyRand, isOrgBillingMode } from '@/lib/org-billing'
+import { orgTrialDaysLeft, orgNeedsCollecting, orgBillingStartsInDays, orgMonthlyRand, isOrgBillingMode } from '@/lib/org-billing'
 
 // The things nothing else will notice.
 //
@@ -23,20 +23,25 @@ export interface OpsDigest {
   lapsed: any[]
   ending: any[]
   collect: any[]
+  starting: any[]
   nothingToDo: boolean
   subject: string
   html: string
 }
 
 export async function buildOpsDigest(admin: any): Promise<OpsDigest | { error: string }> {
-  const { data: orgs, error } = await admin
-    .from('organizations')
-    .select('id, name, max_seats, billing_period, trial_ends_at, last_collected_on, billing_notes')
+  // select('*') rather than a column list on purpose. Migrations here are
+  // applied by hand after the deploy, so an explicit list naming a column that
+  // does not exist yet returns 42703 and kills the whole digest - not just the
+  // new field. The organizations table is a handful of rows; the columns are
+  // free.
+  const { data: orgs, error } = await admin.from('organizations').select('*')
   if (error) return { error: error.message }
 
   const lapsed: any[] = []
   const ending: any[] = []
   const collect: any[] = []
+  const starting: any[] = []
 
   for (const o of orgs || []) {
     const mode = isOrgBillingMode(o.billing_period) ? o.billing_period : 'monthly'
@@ -45,12 +50,19 @@ export async function buildOpsDigest(admin: any): Promise<OpsDigest | { error: s
       if (days <= 0) lapsed.push({ ...o, days })
       else if (days <= 7) ending.push({ ...o, days })
     }
-    if (orgNeedsCollecting(mode, o.last_collected_on)) {
+    if (orgNeedsCollecting(mode, o.last_collected_on, o.billing_starts_on ?? null)) {
       collect.push({ ...o, rand: orgMonthlyRand(o.max_seats ?? 0, mode) })
+    }
+    // An enterprise free run about to end. This is the one with a deadline
+    // outside our control: the mandate has to be with the bank before the
+    // first collection date, so a week's warning is the whole point.
+    const startsIn = orgBillingStartsInDays(mode, o.billing_starts_on ?? null)
+    if (startsIn !== null && startsIn > 0 && startsIn <= 7) {
+      starting.push({ ...o, startsIn, rand: orgMonthlyRand(o.max_seats ?? 0, mode) })
     }
   }
 
-  const nothingToDo = !lapsed.length && !ending.length && !collect.length
+  const nothingToDo = !lapsed.length && !ending.length && !collect.length && !starting.length
 
   const rows = (title: string, items: string[], colour: string) => items.length
     ? `<p style="font-size:13px;font-weight:700;margin:20px 0 6px;color:${colour}">${title}</p>
@@ -64,6 +76,8 @@ export async function buildOpsDigest(admin: any): Promise<OpsDigest | { error: s
       `<strong>${esc(o.name)}</strong> &mdash; ended ${fmt(o.trial_ends_at)}, ${Math.abs(o.days)} day${Math.abs(o.days) === 1 ? '' : 's'} ago. ${o.max_seats} seats = ${rand(orgMonthlyRand(o.max_seats, 'debit_order'))}/month if converted.`), '#ef4444')}
     ${rows('Trials ending within a week', ending.map(o =>
       `<strong>${esc(o.name)}</strong> &mdash; ends ${fmt(o.trial_ends_at)} (${o.days} day${o.days === 1 ? '' : 's'})`), '#a855f7')}
+    ${rows('Debit orders starting within a week', starting.map(o =>
+      `<strong>${esc(o.name)}</strong> &mdash; first collection ${fmt(o.billing_starts_on)}, in ${o.startsIn} day${o.startsIn === 1 ? '' : 's'}, ${rand(o.rand)}/month. The mandate needs to be with the bank before then.${o.billing_notes ? ` ${esc(o.billing_notes)}` : ''}`), '#0ea5e9')}
     ${rows('Debit orders to load', collect.map(o =>
       `<strong>${esc(o.name)}</strong> &mdash; ${rand(o.rand)}. ${o.last_collected_on ? `Last collected ${fmt(o.last_collected_on)}.` : 'Never collected.'}${o.billing_notes ? ` ${esc(o.billing_notes)}` : ''}`), '#f59e0b')}
     <a href="${APP_URL}/admin" style="display:inline-block;margin-top:24px;background:linear-gradient(135deg,#00d4ff,#7c3aed,#ec4899);color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:13px 26px;border-radius:11px">Open the admin</a>
@@ -73,10 +87,11 @@ export async function buildOpsDigest(admin: any): Promise<OpsDigest | { error: s
   const bits = [
     lapsed.length ? `${lapsed.length} lapsed` : null,
     ending.length ? `${ending.length} ending` : null,
+    starting.length ? `${starting.length} starting` : null,
     collect.length ? `${collect.length} to collect` : null,
   ].filter(Boolean).join(', ')
 
-  return { lapsed, ending, collect, nothingToDo, subject: `Cardtly teams: ${bits}`, html }
+  return { lapsed, ending, collect, starting, nothingToDo, subject: `Cardtly teams: ${bits}`, html }
 }
 
 // Sends only when there is something to do. A daily "nothing to report" mail

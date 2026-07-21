@@ -6,7 +6,7 @@ import { sendPasswordResetEmail } from '@/lib/password-reset'
 import { auditLog } from '@/lib/admin-audit'
 import { cancelSubscriptionsFor, subscriptionCodeOf, isBillablePaystackSub } from '@/lib/paystack'
 import { NFC_STATUSES } from '@/lib/nfc'
-import { ORG_BILLING_MODES, MAX_SELF_SERVE_SEATS } from '@/lib/org-billing'
+import { ORG_BILLING_MODES, MAX_SELF_SERVE_SEATS, orgBillingStartsInDays } from '@/lib/org-billing'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -492,7 +492,7 @@ export async function POST(request: Request) {
   // it is set explicitly here rather than defaulted to 'monthly' and forgotten
   // (which is how Cardtly's own 50-seat org came to report R4,850/month).
   if (action === 'create_org') {
-    const { user_id, org_name, seat_count, billing_period, billing_notes, trial_ends_at } = body
+    const { user_id, org_name, seat_count, billing_period, billing_notes, trial_ends_at, billing_starts_on } = body
 
     // Seats drive what the team can actually do (team/route.ts blocks
     // adding cards past max_seats), so refuse junk rather than writing
@@ -524,6 +524,21 @@ export async function POST(request: Request) {
         error: `${seats} seats is above the ${MAX_SELF_SERVE_SEATS}-seat Paystack limit. Set billing to Debit order (Enterprise) or Comped.`,
       }, { status: 400 })
     }
+    // The free run before an enterprise debit order starts. Only meaningful
+    // for debit_order: on any other mode it would sit in the database looking
+    // like a promise nothing keeps, so it is cleared rather than stored.
+    let startsOn: string | null = billing === 'debit_order' ? (billing_starts_on || null) : null
+    if (startsOn) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(startsOn) || Number.isNaN(new Date(startsOn).getTime())) {
+        return NextResponse.json({ error: `"${startsOn}" is not a date` }, { status: 400 })
+      }
+      // A start date in the past means billing has already begun, which a null
+      // says more honestly. Otherwise the team reads as being on a free run
+      // that quietly finished. 0 is today and stays: that is the first
+      // collection date, not the past.
+      const days = orgBillingStartsInDays('debit_order', startsOn)
+      if (days === null || days < 0) startsOn = null
+    }
 
     // maybeSingle, not single: single throws on zero rows, and the error was
     // discarded, so this only worked by accident.
@@ -547,38 +562,45 @@ export async function POST(request: Request) {
       }
     }
 
+    const fields: Record<string, any> = {
+      name: org_name,
+      max_seats: seats,
+      billing_period: billing,
+      billing_notes: billing_notes ?? null,
+      trial_ends_at: billing === 'trial' ? trial_ends_at : null,
+      billing_starts_on: startsOn,
+      business_plan_active: true,
+    }
+
+    // Migrations here are applied by hand, after the deploy. Without this, the
+    // window between pushing 043 and running it would break saving ANY team -
+    // comps and monthlies included - with a 42703 about a column that has
+    // nothing to do with them. Retry without it and say so, rather than
+    // failing a seat change over an unrelated feature.
+    async function write(): Promise<{ error: any; degraded: boolean }> {
+      const run = (f: Record<string, any>) => existing
+        ? admin.from('organizations').update({ ...f, updated_at: new Date().toISOString() }).eq('id', existing.id)
+        : admin.from('organizations').insert({ ...f, admin_user_id: user_id, used_seats: 0 })
+      const { error } = await run(fields)
+      if (error?.code !== '42703') return { error, degraded: false }
+      const { billing_starts_on: _dropped, ...rest } = fields
+      const { error: retryError } = await run(rest)
+      return { error: retryError, degraded: !retryError }
+    }
+
     // Both branches capture their error. This used to return
     // success: true unconditionally, so a failed write reported
     // "Team plan set up" while doing nothing.
-    if (existing) {
-      const { error } = await admin.from('organizations').update({
-        name: org_name,
-        max_seats: seats,
-        billing_period: billing,
-        billing_notes: billing_notes ?? null,
-        trial_ends_at: billing === 'trial' ? trial_ends_at : null,
-        business_plan_active: true,
-        updated_at: new Date().toISOString(),
-      }).eq('id', existing.id)
-      if (error) {
-        console.error('admin create_org update failed:', error)
-        return NextResponse.json({ error: `Could not update team: ${error.message}` }, { status: 500 })
-      }
-    } else {
-      const { error } = await admin.from('organizations').insert({
-        admin_user_id: user_id,
-        name: org_name,
-        max_seats: seats,
-        used_seats: 0,
-        business_plan_active: true,
-        billing_period: billing,
-        billing_notes: billing_notes ?? null,
-        trial_ends_at: billing === 'trial' ? trial_ends_at : null,
+    const { error, degraded } = await write()
+    if (error) {
+      console.error(`admin create_org ${existing ? 'update' : 'insert'} failed:`, error)
+      return NextResponse.json({ error: `Could not ${existing ? 'update' : 'create'} team: ${error.message}` }, { status: 500 })
+    }
+    if (degraded) {
+      return NextResponse.json({
+        success: true,
+        warning: 'Saved, but the debit order start date was not: migration 043 has not been run on this database yet.',
       })
-      if (error) {
-        console.error('admin create_org insert failed:', error)
-        return NextResponse.json({ error: `Could not create team: ${error.message}` }, { status: 500 })
-      }
     }
     return NextResponse.json({ success: true })
   }

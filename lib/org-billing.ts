@@ -37,7 +37,7 @@ export const BILLING_MODE_META: Record<OrgBillingMode, {
     label: 'Debit order (Enterprise)',
     short: 'Debit order',
     colour: '#f59e0b',
-    desc: 'Enterprise. Invoiced and collected outside Paystack. Real revenue, but nothing collects it automatically: you do.',
+    desc: 'Enterprise. Invoiced and collected outside Paystack. Real revenue, but nothing collects it automatically: you do. Set a start date to give them a free run first.',
     isRevenue: true,
   },
   comp: {
@@ -65,13 +65,67 @@ export function orgTrialDaysLeft(mode: string | null, trialEndsAt: string | null
   return Math.ceil(ms / (24 * 60 * 60 * 1000))
 }
 
+// The default free run an enterprise team gets before its debit order starts.
+// Overridable per team: this is the suggestion, not a rule.
+export const DEFAULT_ENTERPRISE_FREE_DAYS = 60
+
+// Days until a debit order starts collecting, counted in whole calendar days:
+// 0 means it starts today, negative means it already started. Null when the
+// team is not on a debit order, or has no start date, which means collect now.
+//
+// Calendar days, not elapsed milliseconds. Rounding a duration made "60 days
+// from now" report 61, which then tripped the admin's own "longer than usual"
+// warning on the 60-day button offered as the usual choice.
+export function orgBillingStartsInDays(mode: string | null, billingStartsOn: string | null): number | null {
+  if (mode !== 'debit_order' || !billingStartsOn) return null
+  const start = midnight(billingStartsOn)
+  if (!Number.isFinite(start)) return null
+  return Math.round((start - todayMidnight()) / (24 * 60 * 60 * 1000))
+}
+
+// A signed enterprise team whose free run has not finished yet. Live, counted
+// as contracted revenue, but nothing should be collected from them.
+export function orgIsPreBilling(mode: string | null, billingStartsOn: string | null): boolean {
+  const days = orgBillingStartsInDays(mode, billingStartsOn)
+  return days !== null && days > 0
+}
+
 // A debit_order team nobody has collected from for over a month, or ever.
 // Nothing collects automatically, so this is the only thing that will notice.
-export function orgNeedsCollecting(mode: string | null, lastCollectedOn: string | null): boolean {
+//
+// billingStartsOn is required rather than optional on purpose. Both callers
+// had to be revisited when it was added, and a caller that forgets it would
+// silently get the old behaviour: nagging every day of a team's free run,
+// which is exactly the noise the date exists to prevent.
+export function orgNeedsCollecting(mode: string | null, lastCollectedOn: string | null, billingStartsOn: string | null): boolean {
   if (mode !== 'debit_order') return false
+  if (orgIsPreBilling(mode, billingStartsOn)) return false
   if (!lastCollectedOn) return true
-  const days = (Date.now() - new Date(lastCollectedOn).getTime()) / (24 * 60 * 60 * 1000)
+  // Once the free run ends, the clock starts from the start date rather than
+  // from never: a team that went live in January and starts billing in March
+  // is due in March, not thirty days overdue on day one.
+  const since = Math.max(
+    midnight(lastCollectedOn),
+    billingStartsOn ? midnight(billingStartsOn) : 0,
+  )
+  const days = (todayMidnight() - since) / (24 * 60 * 60 * 1000)
   return !Number.isFinite(days) || days >= 30
+}
+
+// A date column comes back as YYYY-MM-DD, which Date parses as midnight UTC.
+// Everything here is counted in local calendar days, so pin both sides to
+// local midnight rather than comparing a UTC instant against "now".
+function midnight(d: string): number {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d))
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getTime()
+  const t = new Date(d).getTime()
+  if (!Number.isFinite(t)) return NaN
+  const local = new Date(t)
+  return new Date(local.getFullYear(), local.getMonth(), local.getDate()).getTime()
+}
+function todayMidnight(): number {
+  const n = new Date()
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime()
 }
 
 export function isOrgBillingMode(s: unknown): s is OrgBillingMode {
