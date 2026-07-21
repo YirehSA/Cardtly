@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { sanitizeQuestionnaire, sanitizeLibrary } from '@/lib/questionnaire'
+import { sanitizeQuestionnaire, sanitizeLibrary, liveMirror } from '@/lib/questionnaire'
 import { resolveAddonTarget, loadOwnedTarget } from '@/lib/addon-target'
 import { getUserPlan } from '@/lib/plan-server'
 
@@ -45,7 +45,13 @@ export async function POST(request: Request) {
     active = r.active
   } else {
     const single = sanitizeQuestionnaire(body)
-    const form = { id: 'form_1', title: single.title, questions: single.questions }
+    const form = {
+      id: 'form_1',
+      title: single.title,
+      questions: single.questions,
+      buttonBg: single.buttonBg,
+      buttonText: single.buttonText,
+    }
     questionnaires = [form]
     active = form
   }
@@ -57,7 +63,13 @@ export async function POST(request: Request) {
     // Keep the live form mirrored here so the public card, contact form,
     // exports, and everything else keep reading a single questionnaire
     // with no changes.
-    questionnaire: { title: active.title, questions: active.questions },
+    //
+    // Spread the whole form rather than naming fields. Listing them is how the
+    // button colours were saved into questionnaires[] correctly, shown
+    // correctly in the builder, and then silently dropped from the one copy
+    // the public card actually reads - a setting that saves, reports success,
+    // and does nothing.
+    questionnaire: liveMirror(active),
   }
 
   const { error } = await admin.from(target.table).update({ addons: nextAddons }).eq('id', target.id)

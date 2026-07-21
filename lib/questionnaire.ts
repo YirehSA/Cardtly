@@ -17,6 +17,10 @@ export interface Question {
 export interface QuestionnaireConfig {
   title?: string
   questions: Question[]
+  /** Button fill on the public card. Undefined follows the card's accent. */
+  buttonBg?: string
+  /** Button label colour. Undefined follows the card's text colour. */
+  buttonText?: string
 }
 
 // One saved form in the library. Same as a QuestionnaireConfig but with
@@ -25,6 +29,53 @@ export interface SavedQuestionnaire {
   id: string
   title?: string
   questions: Question[]
+  buttonBg?: string
+  buttonText?: string
+}
+
+// A colour we are willing to put in a style attribute. Only #rgb and #rrggbb.
+//
+// Deliberately strict rather than passing the string through: these values are
+// stored from the browser and rendered into the style of a public page, so
+// anything clever in them is somebody else's idea of clever.
+export function safeHex(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const v = value.trim()
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v) ? v.toLowerCase() : undefined
+}
+
+// WCAG contrast between two hex colours, 1 (identical) to 21 (black on white).
+// Used to warn before somebody publishes a yellow button with white writing on
+// it. AA wants 4.5 for body text, 3 for large or bold text; this button is
+// bold 14px, so 3 is the line that matters and 4.5 is the comfortable one.
+export function contrastRatio(a: string, b: string): number | null {
+  const ca = hexToRgb(a)
+  const cb = hexToRgb(b)
+  if (!ca || !cb) return null
+  const la = luminance(ca)
+  const lb = luminance(cb)
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05)
+}
+
+function hexToRgb(hex: string): [number, number, number] | null {
+  const v = safeHex(hex)
+  if (!v) return null
+  const h = v.length === 4
+    ? `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`
+    : v
+  return [
+    parseInt(h.slice(1, 3), 16),
+    parseInt(h.slice(3, 5), 16),
+    parseInt(h.slice(5, 7), 16),
+  ]
+}
+
+function luminance([r, g, b]: [number, number, number]): number {
+  const f = (c: number) => {
+    const s = c / 255
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+  }
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
 }
 
 // Sanitise a questionnaire config coming from the client before we
@@ -53,7 +104,15 @@ export function sanitizeQuestionnaire(input: any): QuestionnaireConfig {
       label, type, required, options,
     })
   }
-  return { title: title || undefined, questions }
+  // Anything this function does not name is dropped, which is what makes it a
+  // sanitiser. It also means a new field that is not added here saves
+  // successfully, reports success, and is simply gone on the next load.
+  return {
+    title: title || undefined,
+    questions,
+    buttonBg: safeHex(input?.buttonBg),
+    buttonText: safeHex(input?.buttonText),
+  }
 }
 
 function hash(s: string): number {
@@ -64,11 +123,22 @@ function hash(s: string): number {
 
 // Sanitise one saved form (a config plus a stable id).
 export function sanitizeSavedQuestionnaire(input: any, index = 0): SavedQuestionnaire {
-  const { title, questions } = sanitizeQuestionnaire(input)
+  const { title, questions, buttonBg, buttonText } = sanitizeQuestionnaire(input)
   const id = typeof input?.id === 'string' && input.id
     ? input.id
     : `form_${index + 1}_${Math.abs(hash(JSON.stringify(questions) + index))}`
-  return { id, title, questions }
+  return { id, title, questions, buttonBg, buttonText }
+}
+
+// The copy of the live form that the public card reads, from the saved form.
+//
+// Everything except the library id, by subtraction rather than by listing what
+// to keep. The previous version named title and questions explicitly, so any
+// field added afterwards was written to the library, shown in the builder, and
+// dropped from the only copy that renders.
+export function liveMirror(form: SavedQuestionnaire): QuestionnaireConfig {
+  const { id: _id, ...rest } = form
+  return rest
 }
 
 // Sanitise the whole library (up to MAX_QUESTIONNAIRES forms) and work

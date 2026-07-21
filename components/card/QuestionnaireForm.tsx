@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { ClipboardList, X, Loader2, CheckCircle, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
-import type { QuestionnaireConfig } from '@/lib/questionnaire'
+import { safeHex, type QuestionnaireConfig } from '@/lib/questionnaire'
 
 // Custom questionnaire on a public card (add-on). A trigger button
 // that opens a modal: fixed fields (name, email, contact, company),
@@ -73,23 +73,43 @@ export default function QuestionnaireForm({ config, cardId, teamCardId, ownerNam
   const field = "w-full px-3 py-2.5 rounded-xl border text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition"
   const fieldStyle = { background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.1)' }
 
+  // Re-validated here, not just where it was saved. This config is read back
+  // out of a jsonb column that predates the sanitiser, so a row written before
+  // it existed can still hold anything.
+  const btnBg = safeHex(config.buttonBg)
+  const btnText = safeHex(config.buttonText) || '#ffffff'
+
   return (
     <>
+      {/* Two looks. Left alone it is the original translucent wash of the card's
+          accent, which sits quietly and which people found too quiet. Given a
+          colour it becomes a solid, filled button - the thing you actually want
+          somebody to press. Both are driven from the same two fields so there
+          is no third state to keep in step. */}
       <button onClick={() => setOpen(true)}
         className="group w-full mt-3 py-3 px-3.5 rounded-2xl text-sm font-semibold flex items-center justify-between gap-3 transition hover:-translate-y-0.5"
-        style={{
-          background: `linear-gradient(135deg, ${accentHex}22, ${accentHex}0d)`,
-          border: `1px solid ${accentHex}55`,
-          color: bg.text,
-          boxShadow: `0 4px 16px -6px ${accentHex}55`,
-        }}>
+        style={btnBg
+          ? {
+              background: btnBg,
+              border: `1px solid ${btnBg}`,
+              color: btnText,
+              boxShadow: `0 6px 20px -8px ${btnBg}`,
+            }
+          : {
+              background: `linear-gradient(135deg, ${accentHex}22, ${accentHex}0d)`,
+              border: `1px solid ${accentHex}55`,
+              color: bg.text,
+              boxShadow: `0 4px 16px -6px ${accentHex}55`,
+            }}>
         <span className="flex items-center gap-2.5 min-w-0">
-          <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: accentHex + '2e' }}>
-            <ClipboardList className="w-4 h-4" style={{ color: accentHex }} />
+          <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: btnBg ? 'rgba(255,255,255,0.18)' : accentHex + '2e' }}>
+            <ClipboardList className="w-4 h-4" style={{ color: btnBg ? btnText : accentHex }} />
           </span>
           <span className="truncate">{config.title || 'Answer a few questions'}</span>
         </span>
-        <ChevronRight className="w-4 h-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: accentHex }} />
+        <ChevronRight className="w-4 h-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5"
+          style={{ color: btnBg ? btnText : accentHex }} />
       </button>
 
       {open && mounted && createPortal(

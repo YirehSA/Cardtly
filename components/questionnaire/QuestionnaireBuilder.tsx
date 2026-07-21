@@ -2,10 +2,33 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, Trash2, GripVertical, Loader2, Save, Check, Radio, Copy } from 'lucide-react'
-import { MAX_QUESTIONS, MAX_QUESTIONNAIRES, type Question, type QuestionType, type SavedQuestionnaire } from '@/lib/questionnaire'
+import { Plus, Trash2, GripVertical, Loader2, Save, Check, Radio, Copy, ClipboardList, ChevronRight, AlertTriangle } from 'lucide-react'
+import { MAX_QUESTIONS, MAX_QUESTIONNAIRES, safeHex, contrastRatio, type Question, type QuestionType, type SavedQuestionnaire } from '@/lib/questionnaire'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
+
+// A colour swatch plus its hex, kept in step. The native picker alone gives no
+// way to paste a brand colour, and a text box alone gives no way to browse.
+function ColourField({ label, value, fallback, onChange }: {
+  label: string
+  value: string
+  fallback: string
+  onChange: (v: string) => void
+}) {
+  return (
+    <label className="flex items-center gap-2">
+      <span className="text-xs text-muted-foreground w-12">{label}</span>
+      <input type="color" value={safeHex(value) || fallback}
+        onChange={e => onChange(e.target.value)}
+        aria-label={`${label} colour`}
+        className="w-9 h-9 rounded-lg border border-border bg-transparent cursor-pointer p-0.5" />
+      <input value={value} onChange={e => onChange(e.target.value)}
+        placeholder={fallback} maxLength={7} spellCheck={false}
+        aria-label={`${label} colour hex`}
+        className="w-24 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-mono focus:outline-none focus:ring-1 focus:ring-ring transition" />
+    </label>
+  )
+}
 
 const TYPE_LABELS: Record<QuestionType, string> = {
   short: 'Short answer',
@@ -70,6 +93,19 @@ export default function QuestionnaireBuilder({ initial, teamWide, target, import
   function setTitle(title: string) {
     patchSelected(f => ({ ...f, title }))
   }
+
+  // Warn before a button ships that nobody can read. A colour picker with no
+  // contrast check is a way to make the label invisible against its own
+  // background and see nothing wrong until it is on a customer's card.
+  const contrastWarning = (() => {
+    const bgHex = safeHex(selected.buttonBg)
+    if (!bgHex) return null
+    const ratio = contrastRatio(bgHex, safeHex(selected.buttonText) || '#ffffff')
+    if (ratio === null) return null
+    if (ratio >= 4.5) return null
+    if (ratio >= 3) return `Contrast is ${ratio.toFixed(1)}:1. Readable at this size, but tight. 4.5:1 is comfortable.`
+    return `Contrast is only ${ratio.toFixed(1)}:1. People will struggle to read this button. Try a darker button or lighter text.`
+  })()
 
   // --- Form-level edits ---
   function addForm() {
@@ -242,6 +278,55 @@ export default function QuestionnaireBuilder({ initial, teamWide, target, import
         <p className="text-xs text-muted-foreground mt-2">
           Visitors first fill in name, email, contact, and company, then your questions below, then a message box.
         </p>
+
+        {/* The button that opens this form on the public card. It used to be a
+            faint wash of the card's accent colour and was easy to miss, which
+            is a problem for the one control on the card whose whole job is to
+            be pressed. */}
+        <div className="mt-5 pt-5 border-t border-border">
+          <p className="text-xs font-semibold text-muted-foreground mb-2.5">The button on your card</p>
+
+          <div className="flex flex-wrap items-center gap-4">
+            <ColourField label="Button" value={selected.buttonBg || ''} fallback="#7c3aed"
+              onChange={v => patchSelected(f => ({ ...f, buttonBg: v || undefined }))} />
+            <ColourField label="Text" value={selected.buttonText || ''} fallback="#ffffff"
+              onChange={v => patchSelected(f => ({ ...f, buttonText: v || undefined }))} />
+            {selected.buttonBg && (
+              <button type="button"
+                onClick={() => patchSelected(f => ({ ...f, buttonBg: undefined, buttonText: undefined }))}
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition">
+                Back to the card&apos;s colours
+              </button>
+            )}
+          </div>
+
+          {/* Shown as it will look, because a hex code beside a colour swatch
+              still does not tell you whether the label will be readable. */}
+          <div className="mt-3.5 rounded-xl p-3" style={{ background: 'rgba(120,120,120,0.10)' }}>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Preview</p>
+            <div className="w-full py-3 px-3.5 rounded-2xl text-sm font-semibold flex items-center justify-between gap-3"
+              style={selected.buttonBg
+                ? { background: selected.buttonBg, border: `1px solid ${selected.buttonBg}`, color: selected.buttonText || '#ffffff' }
+                : { background: 'rgba(124,58,237,0.13)', border: '1px solid rgba(124,58,237,0.35)' }}>
+              <span className="flex items-center gap-2.5 min-w-0">
+                <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: selected.buttonBg ? 'rgba(255,255,255,0.18)' : 'rgba(124,58,237,0.18)' }}>
+                  <ClipboardList className="w-4 h-4" style={{ color: selected.buttonBg ? (selected.buttonText || '#fff') : '#7c3aed' }} />
+                </span>
+                <span className="truncate">{selected.title?.trim() || 'Answer a few questions'}</span>
+              </span>
+              <ChevronRight className="w-4 h-4 flex-shrink-0"
+                style={{ color: selected.buttonBg ? (selected.buttonText || '#fff') : '#7c3aed' }} />
+            </div>
+          </div>
+
+          {contrastWarning && (
+            <p className="text-[11px] mt-2 flex items-start gap-1.5" style={{ color: '#f59e0b' }}>
+              <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+              {contrastWarning}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Questions of the selected form */}
