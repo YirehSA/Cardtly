@@ -83,3 +83,17 @@ from (
 ) sub
 where sub.organization_id = o.id
   and o.industry is null;
+
+-- And back the other way: team cards that never had an industry inherit their
+-- company's. Only rows where it is null, so nothing anyone chose is
+-- overwritten - a rep who deliberately set their own keeps it.
+--
+-- This is what puts existing companies into the Network directory. Prefilling
+-- only new cards would leave every card created before today sitting in no
+-- industry at all, which is the state the field was added to fix.
+update public.team_cards c
+set industry = o.industry
+from public.organizations o
+where o.id = c.organization_id
+  and c.industry is null
+  and o.industry is not null;
