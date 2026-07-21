@@ -117,15 +117,26 @@ export default function SignupPage() {
     const baseSlug = buildSlug(data.name, data.company)
     const slug = await getUniqueSlug(supabase, baseSlug)
 
+    // assigned_user_id is what stops the card being archived on sight.
+    // A BEFORE INSERT/UPDATE trigger in the database,
+    // assert_card_assignment_consistency, does:
+    //     IF NEW.assigned_user_id IS NULL THEN NEW.archived := true;
+    // and the RLS policy that serves public cards only matches
+    // archived = false. So a card created without an assignee is written
+    // straight to archived, disappears from /card/[slug] with a 404, and
+    // still looks perfectly healthy in the owner's dashboard - which reads
+    // it as the owner rather than anonymously. That is how the 'andre' card
+    // was dead for four days without anything reporting an error.
     await supabase.from('cards').insert({
       user_id:    userId,
+      assigned_user_id: userId,
       name:       data.name,
       company:    data.company || null,
       email:      data.email,
       slug,
       is_primary: true,
       color_theme: 'blue',
-    })
+    } as any)
 
     // Best-effort: capture sign-up IP + country so the admin panel can
     // show where each user came from. Fire and forget; never block.

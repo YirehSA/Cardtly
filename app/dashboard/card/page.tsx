@@ -60,14 +60,25 @@ export default async function CardPage() {
     const slug = `${firstName}-${Math.random().toString(36).slice(2, 7)}`
     const { data: newCard, error: insertError } = await admin
       .from('cards')
+      // assigned_user_id is what stops the card being archived on sight.
+      // A BEFORE INSERT/UPDATE trigger in the database,
+      // assert_card_assignment_consistency, does:
+      //     IF NEW.assigned_user_id IS NULL THEN NEW.archived := true;
+      // and the RLS policy that serves public cards only matches
+      // archived = false. So a card created without an assignee is written
+      // straight to archived, disappears from /card/[slug] with a 404, and
+      // still looks perfectly healthy in the owner's dashboard - which reads
+      // it as the owner rather than anonymously. That is how the 'andre' card
+      // was dead for four days without anything reporting an error.
       .insert({
         user_id: user.id,
+        assigned_user_id: user.id,
         name: firstName,
         email: user.email,
         slug,
         is_primary: true,
         color_theme: 'blue',
-      })
+      } as any)
       .select()
       .single()
 
