@@ -678,7 +678,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
           {/* Tips */}
           <section className="rounded-3xl border border-border bg-card p-5">
             <h2 className="text-sm font-semibold mb-3">Where to put it</h2>
-            <div className="grid sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 ['Business cards', 'The classic. Print it on the back.'],
                 ['Email signature', 'Every email becomes a way to connect.'],

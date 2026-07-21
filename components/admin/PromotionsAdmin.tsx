@@ -591,7 +591,7 @@ export default function PromotionsAdmin({
               Pick winners from the entry pool. Always do a dry run first.
             </p>
 
-            <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Tier</label>
                 <select
@@ -617,7 +617,7 @@ export default function PromotionsAdmin({
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Prize description</label>
                 <input

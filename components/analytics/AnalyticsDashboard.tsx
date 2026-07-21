@@ -377,7 +377,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
           )}
 
           {/* How they got the card, where they came from, what they used */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="rounded-3xl border border-border bg-card p-5">
               <div className="flex items-center gap-2 mb-1">
                 <QrCode className="w-4 h-4 text-muted-foreground" />

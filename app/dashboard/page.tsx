@@ -242,7 +242,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Your card - the star of the page */}
         <div className="lg:col-span-2 rounded-3xl border border-border bg-card overflow-hidden">
           <div className="p-5 border-b border-border flex items-center justify-between">
@@ -369,7 +369,7 @@ export default async function DashboardPage() {
         </div>
 
         {todo.length > 0 ? (
-          <div className="grid sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {todo.slice(0, 4).map(item => (
               <Link key={item.label} href={editCardHref}
                 className="flex items-center gap-3 p-3 rounded-2xl border border-border hover:border-foreground/20 hover:-translate-y-0.5 transition-all group">
@@ -393,7 +393,7 @@ export default async function DashboardPage() {
       {/* Everything else */}
       <div>
         <p className="text-sm font-semibold mb-3 px-1">What else you can do</p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {QUICK_ACTIONS.map(({ href, label, icon: Icon, desc, pro }) => {
             const locked = pro && !isPro
             return (

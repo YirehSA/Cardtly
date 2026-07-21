@@ -97,7 +97,7 @@ export default function PromotionsClient({ initialFilled, initialRemaining, tota
           <div className="h-2 rounded-full overflow-hidden mb-6" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
             <div className="h-full transition-all duration-500" style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #00d4ff, #8b5cf6, #ec4899)' }} />
           </div>
-          <div className="grid sm:grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div className="rounded-2xl border border-cyan-400/30 p-4" style={{ background: 'rgba(0,212,255,0.04)' }}>
               <p className="text-xs font-bold uppercase tracking-widest text-cyan-400 mb-1">10 random winners</p>
               <p className="font-semibold mb-1">Cardtly Pro for life</p>
@@ -123,7 +123,7 @@ export default function PromotionsClient({ initialFilled, initialRemaining, tota
         <h2 className="font-display text-3xl md:text-4xl font-bold text-center mb-3">The full ladder</h2>
         <p className="text-center text-white/50 mb-12 max-w-2xl mx-auto">Each tier unlocks once the milestone is hit. Bigger prizes as we grow. The more paid users we have, the more we give back.</p>
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <TierCard tier="1" icon={<Trophy className="w-5 h-5" />} accent="from-cyan-400 to-blue-500"
             milestone="First 100 signups"
             prize="10 win lifetime Pro · 90 get 3 months Pro"
@@ -187,7 +187,7 @@ export default function PromotionsClient({ initialFilled, initialRemaining, tota
         <h2 className="font-display text-3xl md:text-4xl font-bold text-center mb-3">How entries work</h2>
         <p className="text-center text-white/50 mb-12 max-w-2xl mx-auto">Same mechanic across every Tier 3 + 4 milestone. Simple, fair, and viral.</p>
 
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <RuleCard num="01" icon={<Trophy className="w-5 h-5" />} title="Every paid account earns one entry" desc="Automatic. Just being a paying subscriber gets you in the draw." />
           <RuleCard num="02" icon={<Users className="w-5 h-5" />} title="Refer friends, earn bonus entries" desc="Each verified paid referral (they stay paid for 30+ days) earns you one extra entry." />
           <RuleCard num="03" icon={<Heart className="w-5 h-5" />} title="Cap at 10 entries per person" desc="Stops super-referrers from dominating. Keeps the draw fair while still rewarding sharing." />

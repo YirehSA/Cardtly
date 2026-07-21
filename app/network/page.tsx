@@ -310,7 +310,7 @@ export default function NetworkPage() {
               Sign in and it is already there.
             </p>
 
-            <ol className="mt-14 grid gap-5 sm:grid-cols-2">
+            <ol className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2">
               {STEPS.map(({ n, icon: Icon, title, body }) => (
                 <li
                   key={n}
@@ -349,7 +349,7 @@ export default function NetworkPage() {
               </p>
             </div>
 
-            <div className="mt-12 grid gap-5 md:grid-cols-3">
+            <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-3">
               {[
                 {
                   icon: Building2,

@@ -122,7 +122,7 @@ export default function DepartmentManager({ departments, ownedOrgs }: { departme
       ) : (
         <>
           {/* Department cards */}
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {departments.map((d, i) => {
               const accent = accentFor(i)
               const claimed = d.cards.filter(c => c.claimed).length
@@ -210,7 +210,7 @@ function CompanyRules({ org, call, loading }: {
         department at once. A department head can lock more for their own team, but cannot unlock
         anything you set here.
       </p>
-      <div className="grid sm:grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {LOCK_GROUPS.map(g => {
           const on = locked.includes(g.id)
           return (
@@ -262,7 +262,7 @@ function FirstRun({ ownedOrgs, call, loading }: {
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-3 px-6 pb-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 px-6 pb-2">
         {steps.map((s, i) => (
           <div key={i} className="rounded-2xl border border-border p-4 text-center">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2 relative"
@@ -484,7 +484,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
           Tap anything you want kept the same on every card in this department. Your people can still
           edit everything else - their name, photo, job title and phone number.
         </p>
-        <div className="grid sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {LOCK_GROUPS.map(g => {
             const own = (dept.lockedFields || []).includes(g.id)
             // A company-wide lock already applies to this team - the save

@@ -178,8 +178,17 @@ export default function NetworkDirectory({
         </div>
       ) : (
         <>
+          {/* grid-cols-1 is load-bearing, not decoration. Without an
+              explicit template the mobile column is an implicit `auto`
+              track, which sizes to the widest item's min-content and
+              overflows its container - one company name long enough
+              ("Glue Devil Nation Adhesive Distributors (Pty) Ltd", 427px)
+              pushed the whole page 68px wider than the viewport and every
+              dashboard page scrolled sideways. grid-cols-1 is
+              repeat(1, minmax(0, 1fr)), whose zero minimum lets the track
+              shrink and the truncate on each label do its job. */}
           {results.length > 0 && (
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {results.map(company => (
                 <li key={company.key}>
                   <CompanyTile company={company} onOpen={() => setSelected(company)} />
@@ -196,7 +205,7 @@ export default function NetworkDirectory({
                   No company set on their card
                 </p>
               </div>
-              <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {soloResults.map(card => (
                   <li key={card.id}>
                     <PersonCard card={card} />
@@ -392,7 +401,7 @@ function CompanyDetail({
         </div>
       </div>
 
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {company.cards.map(card => (
           <li key={card.id}>
             <PersonCard card={card} />

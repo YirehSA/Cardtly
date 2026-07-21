@@ -583,7 +583,7 @@ export default function FeaturesPage() {
               <div className="space-y-8 mb-8">
                 {featured.map((f, fi) => (
                   <Reveal key={f.title}>
-                    <div className="grid md:grid-cols-2 gap-6 lg:gap-10 items-center">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10 items-center">
                       <div className={fi % 2 === 1 ? 'md:order-2' : ''}>
                         <div className="flex items-center gap-3 mb-4 flex-wrap">
                           <IconBox Icon={f.icon} accent={group.color} big />
