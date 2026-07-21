@@ -91,7 +91,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <CommandPalette />
         <HeartbeatPing />
         <AnnouncementModal />
-        <MobileBottomNav isAdmin={isAdmin} isPro={isPro} />
+        <MobileBottomNav isAdmin={isAdmin} isPro={isPro} managesDepartments={managesDepartments} />
       </div>
     </ThemeProvider>
   )

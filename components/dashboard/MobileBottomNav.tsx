@@ -9,7 +9,7 @@ import {
   Home, CreditCard, QrCode, BarChart2,
   Users, Mail, Monitor, Wifi, Building2, Settings as SettingsIcon,
   Sun, Moon, LogOut, Shield, ScanLine, ClipboardList,
-  ChevronUp, X,
+  ChevronUp, X, Network, Layers,
 } from 'lucide-react'
 
 // Mobile-only bottom tab bar. Replaces the hamburger + slide-out
@@ -39,9 +39,15 @@ const PRIMARY_TABS: Tab[] = [
   { href: '/dashboard/analytics', label: 'Stats', icon: BarChart2   },
 ]
 
+// Kept in step with NAV in Sidebar.tsx by hand. These are two separate lists
+// because the two navs are shaped differently - four primary tabs plus a More
+// sheet here, one flat list there - and the Network item was added to the
+// sidebar alone, so it never appeared on a phone or in the Android app, which
+// loads the same site in a WebView.
 const MORE_TABS: Tab[] = [
   { href: '/dashboard/contacts',         label: 'Contacts',        icon: Users        },
   { href: '/dashboard/scan',             label: 'Scan Card',       icon: ScanLine     },
+  { href: '/dashboard/network',          label: 'Network',         icon: Network      },
   { href: '/dashboard/email-signature',  label: 'Email Signature', icon: Mail         },
   { href: '/dashboard/virtual-bg',       label: 'Virtual BG',      icon: Monitor      },
   { href: '/dashboard/nfc',              label: 'NFC Cards',       icon: Wifi         },
@@ -52,9 +58,10 @@ const MORE_TABS: Tab[] = [
 interface Props {
   isAdmin?: boolean
   isPro?: boolean
+  managesDepartments?: boolean
 }
 
-export default function MobileBottomNav({ isAdmin = false, isPro = false }: Props) {
+export default function MobileBottomNav({ isAdmin = false, isPro = false, managesDepartments = false }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const { theme, toggle } = useTheme()
@@ -67,6 +74,9 @@ export default function MobileBottomNav({ isAdmin = false, isPro = false }: Prop
   const moreTabs: Tab[] = [
     ...MORE_TABS,
     ...(isPro ? [{ href: '/dashboard/questionnaire', label: 'Lead capture', icon: ClipboardList }] : []),
+    // Departments was in the sidebar's conditional list but never here, so a
+    // department head on a phone had no way to reach the page at all.
+    ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers }] : []),
     ...(isAdmin ? [{ href: '/admin', label: 'Admin', icon: Shield }] : []),
   ]
 
