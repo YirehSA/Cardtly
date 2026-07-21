@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { LOCK_GROUPS } from '@/lib/team-locks'
@@ -616,6 +617,16 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
                   </p>
                 </div>
                 <span className="text-[11px] text-muted-foreground hidden sm:block tabular-nums">{c.views30d} views</span>
+                {/* The way into the editor. /dashboard/team/card/[id] has always
+                    admitted department heads, and /api/team/card/save has always
+                    accepted their writes - there was simply no link to it
+                    anywhere a head can reach, so the permission existed and the
+                    door did not. A head could see their people and open their
+                    public cards, but not change a phone number. */}
+                <Link href={`/dashboard/team/card/${c.id}`} title="Edit this card"
+                  className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center">
+                  <Pencil className="w-3.5 h-3.5" />
+                </Link>
                 {c.slug && (
                   <a href={`/card/${c.slug}`} target="_blank" rel="noreferrer" title="Open card"
                     className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"><ExternalLink className="w-3.5 h-3.5" /></a>

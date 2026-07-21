@@ -49,6 +49,7 @@ export default function TeamMemberNotice({
         <p className="text-sm text-muted-foreground leading-relaxed">
           This page is for the person who owns the team account and pays for the
           seats. You do not need to set up or pay for anything.
+          {isHead && ' Everything you manage is under Departments, including editing your people’s cards.'}
         </p>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -63,8 +64,12 @@ export default function TeamMemberNotice({
               <p className="mt-3 font-semibold text-sm">
                 {departments.length === 1 ? departments[0] : `${departments.length} departments`}
               </p>
+              {/* "Edit their cards" is spelled out because it is the thing heads
+                  come to this page looking for. They could always do it - the
+                  editor and the save API have both allowed heads throughout -
+                  but nothing here said so, so the page read as a dead end. */}
               <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                Add people, set the look, and see their numbers.
+                Add people, edit their cards, set the look, and see their numbers.
               </p>
               <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold">
                 Go to Departments
