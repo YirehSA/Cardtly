@@ -5,6 +5,7 @@ import { CardDesign, parseDesign, serializeDesign } from '@/types/design'
 import { mergeBrand } from '@/lib/team-brand'
 import { lockedColumns, LOCK_GROUPS } from '@/lib/team-locks'
 import { INDUSTRIES_BY_GROUP } from '@/lib/industries'
+import { orgSlugPrefix, composeCardSlug, slugifyPart } from '@/lib/card-slug'
 import { toast } from 'sonner'
 import TemplatedCardPreview from '@/components/card/TemplatedCardPreview'
 import DesignPanel from '@/components/card/DesignPanel'
@@ -70,6 +71,9 @@ interface Props {
    *  from the org's and the department's settings. Empty for admins and
    *  department heads, who set the locks rather than live under them. */
   lockedGroups?: string[]
+  /** The company half of this card's URL, from the organisation. Null before
+   *  migration 044, in which case it is derived from the company name. */
+  slugPrefix?: string | null
 }
 
 // One comparable string for "everything the user can change", so unsaved work
@@ -102,7 +106,7 @@ const TAB_FIELDS: Record<TabId, string[]> = {
   design:  [],
 }
 
-export default function TeamCardEditor({ card, org, userId, role = 'admin', orgBrand = {}, lockedGroups = [] }: Props) {
+export default function TeamCardEditor({ card, org, userId, role = 'admin', orgBrand = {}, lockedGroups = [], slugPrefix = null }: Props) {
   // Brand only applies to this card if the admin opted it in AND a
   // team brand is set. Cards keeping their own branding stay fully
   // editable, with no brand merged into the preview.
@@ -128,10 +132,30 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
     setTimeout(() => setCopied(false), 2000)
   }
   const [activeTab, setActiveTab] = useState<TabId>('basic')
-  const [slug, setSlug] = useState(card.slug || '')
+  // The URL is company-firstname-surname. The company half is fixed and set on
+  // the organisation; only the person's half is typed here.
+  const companyPart = slugPrefix || orgSlugPrefix(org.name || '')
+
+  // What to show in the box. If the current URL already follows the
+  // convention, strip the company half off and show the rest.
+  //
+  // If it does not - and most existing cards do not, since slugs were written
+  // three different ways over time (person-company, person-random, and
+  // company-person) - fall back to the card's NAME rather than to the old
+  // slug. Prefilling from a slug like "hannetjie-atterbury-sicongroup" would
+  // turn one save into "sicon-group-hannetjie-atterbury-sicongroup".
+  const personFromSlug = card.slug && card.slug.startsWith(companyPart + '-')
+    ? card.slug.slice(companyPart.length + 1)
+    : null
+  const [slug, setSlug] = useState(personFromSlug || slugifyPart(card.name || ''))
   const [slugSaving, setSlugSaving] = useState(false)
   const [slugError, setSlugError] = useState('')
   const [slugSuccess, setSlugSuccess] = useState(false)
+  const [savedSlug, setSavedSlug] = useState(card.slug || '')
+
+  // What the URL will actually be, composed exactly as the server composes it.
+  const nextSlug = composeCardSlug(companyPart, slug)
+  const slugChanges = !!slug && nextSlug !== savedSlug
   const [design, setDesign] = useState<CardDesign>(() => parseDesign(card.color_theme))
 
   // Homepage-feature opt-in. Saves instantly (like the personal
@@ -287,16 +311,30 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
   }
 
   async function saveSlug() {
-    if (!slug || slug.length < 3) { setSlugError('Min 3 characters'); return }
+    if (!slug || slug.length < 2) { setSlugError('Min 2 characters'); return }
     setSlugSaving(true); setSlugError('')
+    // Sends the person's half only. The server composes the company half from
+    // the organisation, so the prefix cannot be edited away from here.
     const res = await fetch('/api/team/slug', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug, team_card_id: card.id, org_id: org.id }),
+      body: JSON.stringify({ person: slug, team_card_id: card.id }),
     })
     const data = await res.json()
     if (!res.ok) { setSlugError(data.error || 'Failed') }
-    else { setSlugSuccess(true); setTimeout(() => setSlugSuccess(false), 3000) }
+    else {
+      setSavedSlug(data.slug)
+      setSlugSuccess(true); setTimeout(() => setSlugSuccess(false), 3000)
+      // Say whether the old link still works. A rename used to break every
+      // printed card silently; now it writes a redirect, and the person
+      // renaming is the one who needs to know which happened.
+      if (data.previous && data.previous !== data.slug) {
+        toast.success(data.redirected
+          ? `Now at /card/${data.slug}. The old link still works.`
+          : `Now at /card/${data.slug}. The old link could NOT be redirected - anything printed with it will stop working.`,
+          { duration: data.redirected ? 6000 : 12000 })
+      }
+    }
     setSlugSaving(false)
   }
 
@@ -375,20 +413,37 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                 </div>
               )}
               {isAdmin && (
-                <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  <div className="flex items-center px-2 py-1.5 rounded-l-lg border border-r-0 border-border bg-muted text-xs text-muted-foreground whitespace-nowrap">
-                    cardtly.com/card/
+                <div className="mt-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* The company half is shown, not typed. It is set once on
+                        the organisation so every card in the company shares it,
+                        which is the whole point: sicon-group-john-smith reads as
+                        Sicon's, and a rep cannot accidentally publish under a
+                        different name to their colleagues. */}
+                    <div className="flex items-center px-2 py-1.5 rounded-l-lg border border-r-0 border-border bg-muted text-xs text-muted-foreground whitespace-nowrap">
+                      cardtly.com/card/<span className="font-semibold text-foreground">{companyPart}-</span>
+                    </div>
+                    <input value={slug}
+                      onChange={e => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setSlugError(''); setSlugSuccess(false) }}
+                      placeholder="john-smith"
+                      aria-label="This person's part of the card link"
+                      className="px-3 py-1.5 rounded-r-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring transition w-44" />
+                    <button onClick={saveSlug} disabled={slugSaving || !slug || !slugChanges}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
+                      style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                      {slugSaving ? '...' : slugSuccess ? '✓ Saved' : 'Update URL'}
+                    </button>
+                    {slugError && <span className="text-xs text-destructive">{slugError}</span>}
                   </div>
-                  <input value={slug}
-                    onChange={e => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setSlugError(''); setSlugSuccess(false) }}
-                    placeholder="yireh-member-name"
-                    className="px-3 py-1.5 rounded-r-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring transition w-44" />
-                  <button onClick={saveSlug} disabled={slugSaving || !slug || slug === card.slug}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
-                    style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-                    {slugSaving ? '...' : slugSuccess ? '✓ Saved' : 'Update URL'}
-                  </button>
-                  {slugError && <span className="text-xs text-destructive">{slugError}</span>}
+                  {/* Renaming a live card is not free. Say so before they do it,
+                      not after: the old URL is on printed cards and NFC tags. */}
+                  {slugChanges && savedSlug && (
+                    <p className="text-[11px] text-amber-500 mt-1.5">
+                      This card is live at <span className="font-mono">/card/{savedSlug}</span>. Changing it to{' '}
+                      <span className="font-mono">/card/{nextSlug}</span> keeps the old link working through a redirect,
+                      but anything already printed will point at the redirect rather than the card.
+                    </p>
+                  )}
                 </div>
               )}
             </div>

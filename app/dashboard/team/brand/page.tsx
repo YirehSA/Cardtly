@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Sparkles } from 'lucide-react'
 import TeamBrandPanel from '@/components/team/TeamBrandPanel'
+import OrgIdentityPanel from '@/components/team/OrgIdentityPanel'
 
 export const metadata = { title: 'Team Brand' }
 
@@ -31,6 +32,23 @@ export default async function TeamBrandPage() {
 
   const brand = org.brand || {}
   const hasBrand = Object.keys(brand).length > 0
+
+  // Both columns arrive with migration 044. Asked for separately and
+  // tolerantly so this page still renders before it is run - the panel just
+  // falls back to suggesting a prefix from the company name.
+  const identity = await (async (): Promise<{ card_slug_prefix: string | null; industry: string | null }> => {
+    try {
+      const { data, error } = await admin
+        .from('organizations').select('card_slug_prefix, industry').eq('id', org.id).maybeSingle()
+      if (error) return { card_slug_prefix: null, industry: null }
+      return {
+        card_slug_prefix: (data as any)?.card_slug_prefix || null,
+        industry: (data as any)?.industry || null,
+      }
+    } catch {
+      return { card_slug_prefix: null, industry: null }
+    }
+  })()
 
   // How many cards are actually wearing the brand. The panel used to claim
   // "Live on all team cards" purely because a brand object existed, but the
@@ -66,6 +84,10 @@ export default async function TeamBrandPage() {
           </div>
         </div>
       </div>
+
+      <OrgIdentityPanel orgId={org.id} orgName={org.name}
+        slugPrefix={identity.card_slug_prefix} industry={identity.industry}
+        cardCount={totalCards} />
 
       <TeamBrandPanel orgId={org.id} brand={brand} hasBrand={hasBrand}
         totalCards={totalCards} brandedCards={brandedCards} />

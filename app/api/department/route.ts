@@ -5,16 +5,14 @@ import { BRAND_FIELDS } from '@/lib/team-brand'
 import { LOCK_GROUP_IDS } from '@/lib/team-locks'
 import { getManagedDepartments, canManageDepartment, cardDepartment, isOrgOwner, ownsOrgOfDepartment, findUserByEmail, getOwnedOrgs } from '@/lib/department-perms'
 import { newInviteToken, sendTeamInvite } from '@/lib/team-invite'
+import { newTeamCardSlug, orgIndustry } from '@/lib/card-slug-server'
 
 // The department manager's own endpoint, separate from /api/admin (which is
 // Cardtly-staff only). Every write goes through canManageDepartment first, so
 // a manager can only ever touch a department they manage. The permission
 // boundary is enforced here, on the server; the UI only decides what to show.
 
-function generateSlug(name: string, suffix: string): string {
-  const base = (name || 'card').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'card'
-  return `${base}-${suffix}`
-}
+// The second copy of generateSlug lived here. See lib/card-slug.ts.
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -178,12 +176,17 @@ export async function POST(request: Request) {
     }
 
     const token = newInviteToken()
-    const slug = generateSlug(name || 'card', Math.random().toString(36).slice(2, 7))
+    const [slug, industry] = await Promise.all([
+      newTeamCardSlug(admin, dept.organization_id, name || 'card'),
+      orgIndustry(admin, dept.organization_id),
+    ])
     const { data: card, error } = await admin.from('team_cards').insert({
       organization_id: dept.organization_id,
       department_id,
       name: name || '',
       slug,
+      // Inherits the company's industry rather than starting blank.
+      ...(industry ? { industry } : {}),
       // Wears the department brand by default; that is the whole point of
       // inviting them into a department rather than the org.
       use_team_brand: true,
@@ -248,12 +251,19 @@ export async function POST(request: Request) {
     const { data: me } = await admin.from('profiles').select('name').eq('user_id', user.id).maybeSingle()
     const displayName = (me?.name || user.email?.split('@')[0] || 'My card').trim()
 
+    const [ownSlug, ownIndustry] = await Promise.all([
+      newTeamCardSlug(admin, dept.organization_id, displayName),
+      orgIndustry(admin, dept.organization_id),
+    ])
+
     const { data: card, error } = await admin.from('team_cards').insert({
       organization_id: dept.organization_id,
       department_id,
       name: displayName,
       email: user.email,
-      slug: generateSlug(displayName, Math.random().toString(36).slice(2, 7)),
+      slug: ownSlug,
+      // Inherits the company's industry rather than starting blank.
+      ...(ownIndustry ? { industry: ownIndustry } : {}),
       use_team_brand: true,
       user_id: user.id,
       invite_email: user.email,

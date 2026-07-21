@@ -2,10 +2,15 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { BRAND_FIELDS, extractBrand } from '@/lib/team-brand'
+import { newTeamCardSlug, orgIndustry } from '@/lib/card-slug-server'
+import { slugifyPart, isReservedSlug } from '@/lib/card-slug'
+import { isIndustryId } from '@/lib/industries'
 
-function generateSlug(name: string, suffix: string) {
-  return name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').slice(0, 20) + '-' + suffix
-}
+// generateSlug used to live here and again in app/api/department/route.ts,
+// with the two copies already drifted apart - this one truncated at 20 and
+// left leading hyphens behind, which is how a card named " Schalk Jooste"
+// ended up published at /card/-schalk-jooste-sicongroup. Both now come
+// through lib/card-slug.ts.
 
 // Paystack plan code per seat count, R97 per seat per month. These codes are
 // the source of truth for what a customer is actually charged: Paystack bills
@@ -138,7 +143,10 @@ export async function POST(request: Request) {
     const { count } = await supabase.from('team_cards').select('*', { count: 'exact', head: true }).eq('organization_id', org_id)
     if ((count || 0) >= org.max_seats) return NextResponse.json({ error: 'Seat limit reached. Upgrade your plan to add more cards.' }, { status: 400 })
 
-    const slug = generateSlug(name || 'team', Math.random().toString(36).slice(2, 7))
+    const [slug, industry] = await Promise.all([
+      newTeamCardSlug(admin, org_id, name || 'team'),
+      orgIndustry(admin, org_id),
+    ])
 
     let cardFields: Record<string, any> = {
       organization_id: org_id,
@@ -148,6 +156,11 @@ export async function POST(request: Request) {
       phone: phone || null,
       company: company || null,
       slug,
+      // Starts from the company's industry rather than blank. Every card here
+      // belongs to one company doing one thing, and a field nobody fills in is
+      // why the Network directory was full of companies listed as nothing.
+      // Still editable per card afterwards.
+      ...(industry ? { industry } : {}),
     }
 
     if (copy_from_id) {
@@ -219,6 +232,58 @@ export async function POST(request: Request) {
     const { error } = await admin.from('organizations').update({ brand: clean }).eq('id', org_id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ success: true, brand: clean })
+  }
+
+  // The company's identity: the prefix every team card URL carries, and the
+  // industry new cards start from. Owner only - a department head sets their
+  // department's look, not the company's name in every colleague's URL.
+  if (action === 'save_org_identity') {
+    const { org_id, card_slug_prefix, industry } = body
+    const { data: org } = await admin
+      .from('organizations').select('id, name').eq('id', org_id).eq('admin_user_id', user.id).maybeSingle()
+    if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+
+    const fields: Record<string, any> = {}
+
+    if (card_slug_prefix !== undefined) {
+      // Sanitised, never trusted. This ends up in the public URL of every card
+      // the company owns.
+      const prefix = slugifyPart(String(card_slug_prefix || ''), 24)
+      if (!prefix || prefix.length < 2) {
+        return NextResponse.json({ error: 'The company part needs at least 2 letters' }, { status: 400 })
+      }
+      if (isReservedSlug(prefix)) {
+        return NextResponse.json({ error: `"${prefix}" is reserved. Pick another.` }, { status: 400 })
+      }
+      fields.card_slug_prefix = prefix
+    }
+
+    if (industry !== undefined) {
+      // Empty clears it. Anything not on the fixed list is refused rather than
+      // stored, so the Network's filters cannot fill up with free text.
+      const value = industry ? String(industry) : null
+      if (value && !isIndustryId(value)) {
+        return NextResponse.json({ error: 'Unknown industry' }, { status: 400 })
+      }
+      fields.industry = value
+    }
+
+    if (!Object.keys(fields).length) return NextResponse.json({ success: true, unchanged: true })
+
+    const { error } = await admin.from('organizations').update(fields).eq('id', org_id)
+    if (error) {
+      // Both columns arrive with migration 044. Until it runs, say so plainly
+      // rather than returning a raw "column does not exist" to somebody
+      // editing their company name.
+      if ((error as any).code === '42703') {
+        return NextResponse.json({ error: 'Not available yet: migration 044 has not been run on this database.' }, { status: 503 })
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    // Existing card URLs are deliberately NOT rewritten. They are printed on
+    // NFC cards and in email signatures; changing the prefix changes what new
+    // cards get, and nothing more.
+    return NextResponse.json({ success: true, ...fields })
   }
 
   // Turn the team brand on/off for a single card.

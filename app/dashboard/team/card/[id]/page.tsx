@@ -72,6 +72,26 @@ export default async function TeamCardPage({ params }: { params: Promise<{ id: s
     : { data: null }
   const resolvedBrand = resolveTeamBrand((org as any).brand || {}, (dept as any)?.brand || {})
 
+  // The company half of this card's URL. Asked for on its own and tolerantly:
+  // the column arrives with migration 044 while the code deploys on commit,
+  // and a missing column must leave the editor working rather than break the
+  // page. Null falls back to deriving it from the company name.
+  //
+  // Fetched separately rather than added to the select above, and certainly
+  // not by widening that to select('*'): this org object is handed to a client
+  // component, so every column it carries is published to the browser -
+  // billing notes, seat counts and suspension reasons included.
+  const slugPrefix = await (async (): Promise<string | null> => {
+    try {
+      const { data, error } = await admin
+        .from('organizations').select('card_slug_prefix').eq('id', org.id).maybeSingle()
+      if (error) return null
+      return (data as any)?.card_slug_prefix || null
+    } catch {
+      return null
+    }
+  })()
+
   let lockedGroups: string[] = []
   if (role === 'member') {
     const readLocks = async (table: string, rowId: string | null) => {
@@ -95,6 +115,7 @@ export default async function TeamCardPage({ params }: { params: Promise<{ id: s
       role={role}
       orgBrand={resolvedBrand}
       lockedGroups={lockedGroups}
+      slugPrefix={slugPrefix}
     />
   )
 }
