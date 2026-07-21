@@ -11,6 +11,7 @@ import CommandPalette from '@/components/CommandPalette'
 import AnnouncementBanner from '@/components/AnnouncementBanner'
 import PastDueBanner from '@/components/dashboard/PastDueBanner'
 import NetworkNotice from '@/components/dashboard/NetworkNotice'
+import ArchivedCardBanner, { type ArchivedCard } from '@/components/dashboard/ArchivedCardBanner'
 import AnnouncementModal from '@/components/AnnouncementModal'
 import HeartbeatPing from '@/components/dashboard/HeartbeatPing'
 
@@ -23,7 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
-  const [plan, { data: card }, isAdmin, managedDepts, noticeSeen] = await Promise.all([
+  const [plan, { data: card }, isAdmin, managedDepts, noticeSeen, archivedCards] = await Promise.all([
     getUserPlan(user.id),
     supabase.from('cards').select('name, addons, hide_from_network').eq('user_id', user.id).maybeSingle(),
     isAdminUser(user.id),
@@ -43,6 +44,29 @@ export default async function DashboardLayout({ children }: { children: React.Re
         return !!(data as any)?.network_notice_seen_at
       } catch {
         return true
+      }
+    })(),
+    // Archived cards, which are the ones silently 404ing for the public.
+    //
+    // Read with the service-role client rather than the user's: every policy
+    // that would let a member see their own card requires archived = false,
+    // so the user-scoped client returns nothing for exactly the rows this
+    // needs to find. Ownership is still scoped by user_id.
+    //
+    // Asked separately and tolerantly, like the notice above - the dashboard
+    // layout is the last place that should throw, and a banner that fails to
+    // load is far better than every page failing to render.
+    (async (): Promise<ArchivedCard[]> => {
+      try {
+        const { data, error } = await deptAdmin
+          .from('cards')
+          .select('id, name, slug')
+          .eq('user_id', user.id)
+          .eq('archived', true)
+        if (error) return []
+        return (data || []) as ArchivedCard[]
+      } catch {
+        return []
       }
     })(),
   ])
@@ -78,6 +102,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 dark and nothing in the product said why. Rendered from the
                 layout rather than one page, because the person who needs to
                 see it may land anywhere in the dashboard. */}
+            {/* First, because a card nobody can open outranks everything else
+                on the page. */}
+            {archivedCards.length > 0 && <ArchivedCardBanner cards={archivedCards} />}
             {plan.isPastDue && <PastDueBanner graceDaysLeft={plan.graceDaysLeft} />}
             {/* One-time: the Network lists people by default, so it only works
                 as a fair deal if they are actually told. Not shown to anyone
