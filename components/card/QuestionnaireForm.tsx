@@ -78,6 +78,11 @@ export default function QuestionnaireForm({ config, cardId, teamCardId, ownerNam
   // it existed can still hold anything.
   const btnBg = safeHex(config.buttonBg)
   const btnText = safeHex(config.buttonText) || '#ffffff'
+  const btnBorder = safeHex(config.buttonBorder)
+  // A border with no fill is a legitimate look - an outlined button on the
+  // card's own background - so styling switches on either being set, not on
+  // the fill alone.
+  const styled = !!(btnBg || btnBorder)
 
   return (
     <>
@@ -88,12 +93,14 @@ export default function QuestionnaireForm({ config, cardId, teamCardId, ownerNam
           is no third state to keep in step. */}
       <button onClick={() => setOpen(true)}
         className="group w-full mt-3 py-3 px-3.5 rounded-2xl text-sm font-semibold flex items-center justify-between gap-3 transition hover:-translate-y-0.5"
-        style={btnBg
+        style={styled
           ? {
-              background: btnBg,
-              border: `1px solid ${btnBg}`,
+              // Solid, not a wash. 2px border to match the Save Contact
+              // button, which is the one it sits under.
+              background: btnBg || 'transparent',
+              border: btnBorder ? `2px solid ${btnBorder}` : (btnBg ? `1px solid ${btnBg}` : 'none'),
               color: btnText,
-              boxShadow: `0 6px 20px -8px ${btnBg}`,
+              boxShadow: btnBg ? `0 6px 20px -8px ${btnBg}` : 'none',
             }
           : {
               background: `linear-gradient(135deg, ${accentHex}22, ${accentHex}0d)`,
@@ -103,13 +110,13 @@ export default function QuestionnaireForm({ config, cardId, teamCardId, ownerNam
             }}>
         <span className="flex items-center gap-2.5 min-w-0">
           <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: btnBg ? 'rgba(255,255,255,0.18)' : accentHex + '2e' }}>
-            <ClipboardList className="w-4 h-4" style={{ color: btnBg ? btnText : accentHex }} />
+            style={{ background: btnBg ? 'rgba(255,255,255,0.18)' : (btnBorder ? btnBorder + '2e' : accentHex + '2e') }}>
+            <ClipboardList className="w-4 h-4" style={{ color: styled ? btnText : accentHex }} />
           </span>
           <span className="truncate">{config.title || 'Answer a few questions'}</span>
         </span>
         <ChevronRight className="w-4 h-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5"
-          style={{ color: btnBg ? btnText : accentHex }} />
+          style={{ color: styled ? btnText : accentHex }} />
       </button>
 
       {open && mounted && createPortal(

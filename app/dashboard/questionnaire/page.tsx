@@ -18,8 +18,11 @@ function deriveLibrary(addons: Record<string, any>) {
   let library = Array.isArray(addons.questionnaires) ? addons.questionnaires : null
   if (!library) {
     const single = addons.questionnaire
+    // Spread, not a field list. Naming them here would drop the button
+    // colours off any card still on the legacy single-form shape - the same
+    // way the live mirror dropped them.
     library = single && Array.isArray(single.questions) && single.questions.length
-      ? [{ id: 'form_1', title: single.title, questions: single.questions }]
+      ? [{ id: 'form_1', ...single }]
       : []
   }
   const activeId = addons.activeQuestionnaireId || library[0]?.id || null

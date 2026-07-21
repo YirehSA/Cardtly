@@ -97,6 +97,8 @@ export default function QuestionnaireBuilder({ initial, teamWide, target, import
   // Warn before a button ships that nobody can read. A colour picker with no
   // contrast check is a way to make the label invisible against its own
   // background and see nothing wrong until it is on a customer's card.
+  const btnStyled = !!(selected.buttonBg || selected.buttonBorder)
+
   const contrastWarning = (() => {
     const bgHex = safeHex(selected.buttonBg)
     if (!bgHex) return null
@@ -291,9 +293,11 @@ export default function QuestionnaireBuilder({ initial, teamWide, target, import
               onChange={v => patchSelected(f => ({ ...f, buttonBg: v || undefined }))} />
             <ColourField label="Text" value={selected.buttonText || ''} fallback="#ffffff"
               onChange={v => patchSelected(f => ({ ...f, buttonText: v || undefined }))} />
-            {selected.buttonBg && (
+            <ColourField label="Border" value={selected.buttonBorder || ''} fallback="#00d4ff"
+              onChange={v => patchSelected(f => ({ ...f, buttonBorder: v || undefined }))} />
+            {(selected.buttonBg || selected.buttonBorder) && (
               <button type="button"
-                onClick={() => patchSelected(f => ({ ...f, buttonBg: undefined, buttonText: undefined }))}
+                onClick={() => patchSelected(f => ({ ...f, buttonBg: undefined, buttonText: undefined, buttonBorder: undefined }))}
                 className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition">
                 Back to the card&apos;s colours
               </button>
@@ -304,19 +308,29 @@ export default function QuestionnaireBuilder({ initial, teamWide, target, import
               still does not tell you whether the label will be readable. */}
           <div className="mt-3.5 rounded-xl p-3" style={{ background: 'rgba(120,120,120,0.10)' }}>
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Preview</p>
+            {/* Mirrors QuestionnaireForm's button exactly. Two renderings of
+                one look is how they drift, but a preview that lives in a modal
+                on a public page cannot be imported here - so if you change one,
+                change both. */}
             <div className="w-full py-3 px-3.5 rounded-2xl text-sm font-semibold flex items-center justify-between gap-3"
-              style={selected.buttonBg
-                ? { background: selected.buttonBg, border: `1px solid ${selected.buttonBg}`, color: selected.buttonText || '#ffffff' }
+              style={btnStyled
+                ? {
+                    background: selected.buttonBg || 'transparent',
+                    border: selected.buttonBorder
+                      ? `2px solid ${selected.buttonBorder}`
+                      : (selected.buttonBg ? `1px solid ${selected.buttonBg}` : 'none'),
+                    color: selected.buttonText || '#ffffff',
+                  }
                 : { background: 'rgba(124,58,237,0.13)', border: '1px solid rgba(124,58,237,0.35)' }}>
               <span className="flex items-center gap-2.5 min-w-0">
                 <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: selected.buttonBg ? 'rgba(255,255,255,0.18)' : 'rgba(124,58,237,0.18)' }}>
-                  <ClipboardList className="w-4 h-4" style={{ color: selected.buttonBg ? (selected.buttonText || '#fff') : '#7c3aed' }} />
+                  style={{ background: selected.buttonBg ? 'rgba(255,255,255,0.18)' : (selected.buttonBorder ? selected.buttonBorder + '2e' : 'rgba(124,58,237,0.18)') }}>
+                  <ClipboardList className="w-4 h-4" style={{ color: btnStyled ? (selected.buttonText || '#fff') : '#7c3aed' }} />
                 </span>
                 <span className="truncate">{selected.title?.trim() || 'Answer a few questions'}</span>
               </span>
               <ChevronRight className="w-4 h-4 flex-shrink-0"
-                style={{ color: selected.buttonBg ? (selected.buttonText || '#fff') : '#7c3aed' }} />
+                style={{ color: btnStyled ? (selected.buttonText || '#fff') : '#7c3aed' }} />
             </div>
           </div>
 

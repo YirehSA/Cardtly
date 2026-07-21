@@ -21,16 +21,20 @@ export interface QuestionnaireConfig {
   buttonBg?: string
   /** Button label colour. Undefined follows the card's text colour. */
   buttonText?: string
+  /** Button border, matching the Save Contact button's 2px treatment.
+   *  Undefined means no border. */
+  buttonBorder?: string
 }
 
 // One saved form in the library. Same as a QuestionnaireConfig but with
 // a stable id so we can remember which one is "live".
-export interface SavedQuestionnaire {
+//
+// Extends rather than restating the fields. The two were written out
+// separately, so adding buttonBg meant adding it in both places and the
+// compiler had nothing to say if you only did one - which is the same way the
+// live mirror lost these colours.
+export interface SavedQuestionnaire extends QuestionnaireConfig {
   id: string
-  title?: string
-  questions: Question[]
-  buttonBg?: string
-  buttonText?: string
 }
 
 // A colour we are willing to put in a style attribute. Only #rgb and #rrggbb.
@@ -112,6 +116,7 @@ export function sanitizeQuestionnaire(input: any): QuestionnaireConfig {
     questions,
     buttonBg: safeHex(input?.buttonBg),
     buttonText: safeHex(input?.buttonText),
+    buttonBorder: safeHex(input?.buttonBorder),
   }
 }
 
@@ -123,11 +128,13 @@ function hash(s: string): number {
 
 // Sanitise one saved form (a config plus a stable id).
 export function sanitizeSavedQuestionnaire(input: any, index = 0): SavedQuestionnaire {
-  const { title, questions, buttonBg, buttonText } = sanitizeQuestionnaire(input)
+  // Spread the sanitised config rather than naming its fields, so a field
+  // added to QuestionnaireConfig arrives here without a second edit.
+  const config = sanitizeQuestionnaire(input)
   const id = typeof input?.id === 'string' && input.id
     ? input.id
-    : `form_${index + 1}_${Math.abs(hash(JSON.stringify(questions) + index))}`
-  return { id, title, questions, buttonBg, buttonText }
+    : `form_${index + 1}_${Math.abs(hash(JSON.stringify(config.questions) + index))}`
+  return { id, ...config }
 }
 
 // The copy of the live form that the public card reads, from the saved form.
