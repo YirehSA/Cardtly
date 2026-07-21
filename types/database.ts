@@ -251,6 +251,10 @@ export interface UserPlan {
   isPastDue?: boolean
   graceEndsAt?: string | null
   graceDaysLeft?: number
+  // Entitled because an organisation pays for this person's seat, not because
+  // they subscribe themselves. Lets the UI say "covered by your team" rather
+  // than showing billing controls that are not theirs to change.
+  viaTeam?: boolean
 }
 
 // Card with plan context

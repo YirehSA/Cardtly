@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { UserPlan } from '@/types/database'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -85,6 +85,47 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
       isPastDue: state.isPastDue,
       graceEndsAt: state.graceEndsAt,
       graceDaysLeft: state.graceDaysLeft,
+    }
+  }
+
+  // Covered by an organisation.
+  //
+  // A team member has no subscription of their own - the org pays for their
+  // seat - so without this they fall through to their own signup trial and
+  // are treated as a trialist who will expire. That is wrong in both
+  // directions: the dashboard tells a paid-for member their access is running
+  // out, and on day 61 they lose Pro pages their company is paying for.
+  //
+  // This lives here rather than as a per-page check because it had already
+  // been written by hand on six pages and forgotten on the seventh - the NFC
+  // page, which would have locked team members out. Resolving it once means
+  // every page, and every page added later, inherits it.
+  //
+  // Service role: team_cards is RLS-protected and a member cannot always read
+  // their own row through the user-scoped client.
+  //
+  // Suspension is the switch, not business_plan_active. That matches the
+  // public card page, which serves team cards unless the org is suspended -
+  // and the dashboard disagreeing with the public page about who is entitled
+  // is precisely the drift subscriptionState exists to prevent.
+  const admin = createServiceClient() as any
+  const { data: teamCard } = await admin
+    .from('team_cards')
+    .select('organization_id')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .not('organization_id', 'is', null)
+    .limit(1)
+    .maybeSingle()
+
+  if (teamCard?.organization_id) {
+    const { data: org } = await admin
+      .from('organizations')
+      .select('suspended_at')
+      .eq('id', teamCard.organization_id)
+      .maybeSingle()
+    if (org && !org.suspended_at) {
+      return { tier: 'pro', isActive: true, isTrial: false, viaTeam: true }
     }
   }
 

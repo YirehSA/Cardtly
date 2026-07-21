@@ -476,6 +476,12 @@ function formatDay(iso: string) {
 function billingState(plan: UserPlan, subscription: Props['subscription']) {
   if (plan.tier === 'expired') return 'expired' as const
   if (plan.isTrial) return 'trial' as const
+  // Checked before 'paid'. A team member is Pro because their organisation
+  // pays for the seat, not because they subscribe - so the paid state would
+  // claim a subscription they do not have, offer them a "Manage subscription"
+  // button for nothing, and warn on the danger tab that deleting their account
+  // cancels a subscription that is not theirs.
+  if (plan.viaTeam) return 'team' as const
   if (subscription?.billing_cycle === 'comp') return 'comped' as const
   return 'paid' as const
 }
@@ -491,6 +497,8 @@ function BillingTab({ plan, subscription }: { plan: UserPlan; subscription: Prop
               sub: subscription?.created_at ? `Paying since ${formatDay(subscription.created_at)}` : 'Active' },
     comped: { badge: 'Pro', title: 'Pro, on the house', tone: '#22c55e',
               sub: subscription?.created_at ? `Active since ${formatDay(subscription.created_at)}` : 'Active' },
+    team:   { badge: 'Pro', title: 'Pro, through your team', tone: '#22c55e',
+              sub: 'Your company pays for your seat. Nothing to set up or pay for.' },
     expired:{ badge: 'Off', title: 'Your card is offline', tone: '#ef4444',
               sub: 'Your trial has ended, so your card link no longer opens' },
   }[state]
