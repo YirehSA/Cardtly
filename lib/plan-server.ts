@@ -61,6 +61,19 @@ export function subscriptionState(sub: {
 //
 // A missing trial_ends_at is deliberately treated as "still trialing". This
 // gate can take a live card offline, so when in doubt it must fail open.
+// An organisation entitles its people while it is not suspended. Suspension is
+// the switch rather than business_plan_active, matching the public card page -
+// enterprise orgs are comped, so business_plan_active is not a reliable signal
+// of whether the company is a real, paying-or-agreed customer.
+async function orgEntitles(admin: any, orgId: string): Promise<boolean> {
+  const { data: org } = await admin
+    .from('organizations')
+    .select('suspended_at')
+    .eq('id', orgId)
+    .maybeSingle()
+  return !!org && !org.suspended_at
+}
+
 export async function getUserPlan(userId: string): Promise<UserPlan> {
   const supabase = await createClient()
 
@@ -118,13 +131,29 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
     .limit(1)
     .maybeSingle()
 
-  if (teamCard?.organization_id) {
-    const { data: org } = await admin
-      .from('organizations')
-      .select('suspended_at')
-      .eq('id', teamCard.organization_id)
+  if (teamCard?.organization_id && (await orgEntitles(admin, teamCard.organization_id))) {
+    return { tier: 'pro', isActive: true, isTrial: false, viaTeam: true }
+  }
+
+  // A department head is part of an organisation without necessarily holding a
+  // card in it. Keying only on team_cards missed them: they manage a
+  // department, invite people, and set the department's brand, while their own
+  // account quietly counts down a signup trial. Every enterprise head appointed
+  // on a comped org would land in that state.
+  const { data: managed } = await admin
+    .from('department_managers')
+    .select('department_id')
+    .eq('user_id', userId)
+    .limit(1)
+    .maybeSingle()
+
+  if (managed?.department_id) {
+    const { data: dept } = await admin
+      .from('departments')
+      .select('organization_id')
+      .eq('id', managed.department_id)
       .maybeSingle()
-    if (org && !org.suspended_at) {
+    if (dept?.organization_id && (await orgEntitles(admin, dept.organization_id))) {
       return { tier: 'pro', isActive: true, isTrial: false, viaTeam: true }
     }
   }

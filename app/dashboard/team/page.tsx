@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { getManagedDepartments } from '@/lib/department-perms'
+import TeamMemberNotice from '@/components/team/TeamMemberNotice'
 import { redirect } from 'next/navigation'
 import TeamDashboard from '@/components/team/TeamDashboard'
 
@@ -33,6 +35,47 @@ export default async function TeamPage() {
         .eq('organization_id', org.id)
         .order('created_at', { ascending: true })
     : { data: [] }
+
+  // Already part of somebody else's organisation?
+  //
+  // This page only ever looked for an org the user ADMINISTERS, so a
+  // department head or an ordinary member found nothing and was shown the
+  // "set up your team" checkout - an invitation to create and pay for a
+  // second organisation while already belonging to one. A department head
+  // who followed it through would have produced a duplicate org and a real
+  // monthly charge.
+  //
+  // Service role: team_cards and departments are RLS-protected and a member
+  // cannot reliably read their own rows through the user-scoped client.
+  if (!org) {
+    const admin = createServiceClient() as any
+    const [{ data: myCard }, managed] = await Promise.all([
+      admin
+        .from('team_cards')
+        .select('id, organization_id, department_id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle(),
+      getManagedDepartments(admin, user.id),
+    ])
+
+    const orgId = myCard?.organization_id || managed[0]?.organization_id || null
+    if (orgId) {
+      const { data: theirOrg } = await admin
+        .from('organizations')
+        .select('name')
+        .eq('id', orgId)
+        .maybeSingle()
+      return (
+        <TeamMemberNotice
+          orgName={theirOrg?.name || 'your team'}
+          departments={managed.map(d => d.name)}
+          hasCard={!!myCard}
+        />
+      )
+    }
+  }
 
   return (
     <TeamDashboard

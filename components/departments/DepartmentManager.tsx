@@ -15,6 +15,10 @@ interface Dept {
   id: string; name: string; organizationId: string; isOwner: boolean
   brand: Record<string, any>; hasBrand: boolean; heads: Head[]; cards: Card[]
   lockedFields: string[]
+  // Does the viewer already hold a card anywhere in this department's org?
+  // Heads are appointed without one, so the offer to make theirs only appears
+  // when they genuinely have none.
+  viewerHasCard?: boolean
 }
 interface OwnedOrg { id: string; name: string; lockedFields: string[] }
 
@@ -526,6 +530,30 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
       {/* The people */}
       <div className="rounded-2xl border border-border bg-card p-5">
         <h2 className="font-bold text-sm mb-3">The people</h2>
+
+        {/* A head is appointed without a card of their own. Until this button
+            existed the only way to get one was inviting your own email and
+            clicking the link in your own inbox. */}
+        {!dept.viewerHasCard && (
+          <div className="rounded-xl p-3 mb-3 flex items-center justify-between gap-3 flex-wrap"
+            style={{ background: `${accent}0d`, border: `1px solid ${accent}26` }}>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold" style={{ color: accent }}>You do not have a card yet</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Make one for yourself in {dept.name}. It uses one of the company&rsquo;s seats.
+              </p>
+            </div>
+            <button
+              disabled={loading === `owncard-${dept.id}`}
+              onClick={() => call(`owncard-${dept.id}`, { action: 'create_own_card', department_id: dept.id }, 'Your card is ready')}
+              className="shrink-0 px-4 min-h-[44px] rounded-lg text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-40 flex items-center gap-1.5"
+              style={{ background: grad }}>
+              {loading === `owncard-${dept.id}`
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <>Create my card</>}
+            </button>
+          </div>
+        )}
 
         <div className="rounded-xl p-3 mb-4" style={{ background: `${accent}0d`, border: `1px solid ${accent}26` }}>
           <p className="text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: accent }}>

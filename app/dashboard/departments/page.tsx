@@ -79,5 +79,20 @@ export default async function DepartmentsPage() {
     })),
   }))
 
-  return <DepartmentManager departments={departments} ownedOrgs={ownedOrgs} />
+  // Whether the viewer already holds a card in each department's organisation.
+  // A department head is appointed without one, so the UI offers to create it -
+  // but only where they do not already have one, since the API refuses a second
+  // and a button that always fails is worse than no button.
+  const orgIds = [...new Set(managed.map(d => d.organization_id))]
+  const { data: ownCards } = orgIds.length
+    ? await admin.from('team_cards').select('organization_id').eq('user_id', user.id).in('organization_id', orgIds)
+    : { data: [] }
+  const hasCardInOrg = new Set((ownCards || []).map((c: any) => c.organization_id))
+
+  return (
+    <DepartmentManager
+      departments={departments.map(d => ({ ...d, viewerHasCard: hasCardInOrg.has(d.organizationId) }))}
+      ownedOrgs={ownedOrgs}
+    />
+  )
 }

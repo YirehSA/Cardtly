@@ -201,6 +201,69 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, card_id: card.id, emailed: sent.ok, emailError: sent.ok ? undefined : sent.error })
   }
 
+  // ── Give yourself a card in a department you manage ───────────────────────
+  //
+  // A department head is appointed by the org owner and gets no card in the
+  // process, so until now their only route to one was inviting their own email
+  // through add_member and clicking the link in their own inbox. That works,
+  // but it reads as a workaround, and every enterprise head hits it.
+  //
+  // Claimed on creation rather than emailed: the caller is already signed in
+  // as the person the card is for, so a round trip through an invite token
+  // would only be theatre.
+  if (action === 'create_own_card') {
+    const { department_id } = body
+    if (!department_id) return NextResponse.json({ error: 'department_id required' }, { status: 400 })
+    if (!(await canManageDepartment(admin, user.id, department_id))) {
+      return NextResponse.json({ error: 'You do not manage that department' }, { status: 403 })
+    }
+
+    const { data: dept } = await admin
+      .from('departments').select('id, organization_id, name').eq('id', department_id).maybeSingle()
+    if (!dept) return NextResponse.json({ error: 'Department not found' }, { status: 404 })
+
+    // One card each. Without this, every click makes another card and burns
+    // another of the company's seats.
+    const { data: existing } = await admin
+      .from('team_cards')
+      .select('id')
+      .eq('organization_id', dept.organization_id)
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle()
+    if (existing) {
+      return NextResponse.json({ error: 'You already have a card in this team' }, { status: 409 })
+    }
+
+    // Same seat rule as inviting anybody else: the cap is the organisation's,
+    // not the department's, and it applies to the manager too.
+    const { data: org } = await admin
+      .from('organizations').select('id, max_seats').eq('id', dept.organization_id).maybeSingle()
+    const { count } = await admin
+      .from('team_cards').select('id', { count: 'exact', head: true }).eq('organization_id', dept.organization_id)
+    if ((count || 0) >= (org?.max_seats || 0)) {
+      return NextResponse.json({ error: 'The team is out of seats. Ask the main admin to add more.' }, { status: 400 })
+    }
+
+    const { data: me } = await admin.from('profiles').select('name').eq('user_id', user.id).maybeSingle()
+    const displayName = (me?.name || user.email?.split('@')[0] || 'My card').trim()
+
+    const { data: card, error } = await admin.from('team_cards').insert({
+      organization_id: dept.organization_id,
+      department_id,
+      name: displayName,
+      email: user.email,
+      slug: generateSlug(displayName, Math.random().toString(36).slice(2, 7)),
+      use_team_brand: true,
+      user_id: user.id,
+      invite_email: user.email,
+      claimed_at: new Date().toISOString(),
+    }).select('id, name, slug').single()
+
+    if (error) return NextResponse.json({ error: `Could not create your card: ${error.message}` }, { status: 500 })
+    return NextResponse.json({ success: true, card_id: card.id, slug: card.slug })
+  }
+
   // ── Resend an invite ──────────────────────────────────────────────────────
   if (action === 'resend_invite') {
     const { team_card_id } = body
