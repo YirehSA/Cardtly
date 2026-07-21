@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle, Flag, ExternalLink, MailQuestion, UserCheck, Layers, UserCog, Palette } from 'lucide-react'
+import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle, Flag, ExternalLink, MailQuestion, UserCheck, Layers, UserCog, Palette, Pencil } from 'lucide-react'
 import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
 import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, orgMonthlyRand, type OrgBillingMode } from '@/lib/org-billing'
 import type { AdminOrgRow, AdminUserRow } from '@/lib/admin-data'
@@ -93,7 +93,14 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
               return (
                 <div key={o.id} className="rounded-xl border" style={{ borderColor: o.suspendedAt ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.08)', background: o.suspendedAt ? 'rgba(245,158,11,0.04)' : 'rgba(255,255,255,0.02)' }}>
                   <div className="flex items-stretch">
-                  <button onClick={() => openEdit(o)} className="flex-1 min-w-0 text-left p-3.5 flex items-center gap-3 flex-wrap">
+                  {/* The whole row is the edit trigger, and nothing said so -
+                      seats and billing mode were already editable here, but
+                      with no visible affordance nobody found them. The chevron
+                      and title make it discoverable without adding a control. */}
+                  <button onClick={() => openEdit(o)}
+                    title={`Edit ${o.name}: seats, billing mode, notes`}
+                    aria-expanded={editing === o.id}
+                    className="flex-1 min-w-0 text-left p-3.5 flex items-center gap-3 flex-wrap hover:bg-white/[0.03] transition rounded-l-xl">
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                       style={{ background: 'rgba(236,72,153,0.14)', border: '1px solid rgba(236,72,153,0.3)' }}>
                       <Building2 className="w-4 h-4" style={{ color: '#f472b6' }} />
@@ -133,6 +140,11 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
                         <p className="font-bold text-sm" style={{ color: '#22c55e' }}>{o.cardsClaimed}</p>
                         <p style={{ color: 'rgba(255,255,255,0.35)' }}>claimed</p>
                       </div>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold whitespace-nowrap"
+                        style={{ color: 'rgba(255,255,255,0.45)' }}>
+                        <Pencil className="w-3 h-3" />
+                        {editing === o.id ? 'Close' : 'Seats & billing'}
+                      </span>
                       <div className="text-center min-w-[70px]">
                         <p className="font-bold text-sm" style={{ color: o.isRevenue ? '#22c55e' : 'rgba(255,255,255,0.3)' }}>
                           {o.isRevenue ? randFmt(o.monthlyRand) : 'free'}

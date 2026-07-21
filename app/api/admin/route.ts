@@ -529,6 +529,24 @@ export async function POST(request: Request) {
     // discarded, so this only worked by accident.
     const { data: existing } = await admin.from('organizations').select('id').eq('admin_user_id', user_id).maybeSingle()
 
+    // Seats cannot be cut below the cards that already exist. Nothing deletes
+    // cards to fit a smaller number, so the org would just sit over its cap:
+    // every existing card keeps working, no error appears anywhere, and the
+    // only symptom is that adding the next one fails with "seat limit
+    // reached" on a team the admin believes has room. Refuse with the real
+    // numbers instead, and let them remove cards first if they mean it.
+    if (existing) {
+      const { count: cardsCreated } = await admin
+        .from('team_cards')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', existing.id)
+      if ((cardsCreated || 0) > seats) {
+        return NextResponse.json({
+          error: `That team already has ${cardsCreated} cards, so it cannot drop to ${seats} seats. Remove ${(cardsCreated || 0) - seats} card${(cardsCreated || 0) - seats === 1 ? '' : 's'} first.`,
+        }, { status: 400 })
+      }
+    }
+
     // Both branches capture their error. This used to return
     // success: true unconditionally, so a failed write reported
     // "Team plan set up" while doing nothing.
