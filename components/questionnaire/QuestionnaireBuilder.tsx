@@ -9,24 +9,48 @@ const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
 // A colour swatch plus its hex, kept in step. The native picker alone gives no
 // way to paste a brand colour, and a text box alone gives no way to browse.
+//
+// The unset state has to be unmistakable. The first version used the fallback
+// hex as the input's placeholder and as the swatch colour, so an empty field
+// showed "#7c3aed" next to a confident purple square - identical to a field
+// holding #7c3aed. It read as configured when nothing was stored, and the
+// preview beside it, correctly showing the unstyled button, looked like the
+// broken part.
+//
+// Now: unset is a dashed, faded swatch and the word "auto", and there is an
+// explicit button to apply the suggestion. Nothing about it can be mistaken
+// for a colour that has been chosen.
 function ColourField({ label, value, fallback, onChange }: {
   label: string
   value: string
   fallback: string
   onChange: (v: string) => void
 }) {
+  const set = !!safeHex(value)
   return (
-    <label className="flex items-center gap-2">
+    <div className="flex items-center gap-2">
       <span className="text-xs text-muted-foreground w-12">{label}</span>
       <input type="color" value={safeHex(value) || fallback}
         onChange={e => onChange(e.target.value)}
         aria-label={`${label} colour`}
-        className="w-9 h-9 rounded-lg border border-border bg-transparent cursor-pointer p-0.5" />
+        title={set ? value : `Not set. Pick a colour to use one.`}
+        className="w-9 h-9 rounded-lg bg-transparent cursor-pointer p-0.5"
+        style={{
+          border: set ? '1px solid hsl(var(--border))' : '1px dashed hsl(var(--muted-foreground))',
+          opacity: set ? 1 : 0.35,
+        }} />
       <input value={value} onChange={e => onChange(e.target.value)}
-        placeholder={fallback} maxLength={7} spellCheck={false}
+        placeholder="auto" maxLength={7} spellCheck={false}
         aria-label={`${label} colour hex`}
-        className="w-24 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-mono focus:outline-none focus:ring-1 focus:ring-ring transition" />
-    </label>
+        className="w-20 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-mono focus:outline-none focus:ring-1 focus:ring-ring transition" />
+      {!set && (
+        <button type="button" onClick={() => onChange(fallback)}
+          className="text-[11px] px-2 py-1 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition"
+          title={`Use ${fallback}`}>
+          Use {fallback}
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -307,7 +331,11 @@ export default function QuestionnaireBuilder({ initial, teamWide, target, import
           {/* Shown as it will look, because a hex code beside a colour swatch
               still does not tell you whether the label will be readable. */}
           <div className="mt-3.5 rounded-xl p-3" style={{ background: 'rgba(120,120,120,0.10)' }}>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Preview</p>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+              Preview {btnStyled
+                ? '- your colours'
+                : '- no colours set, so it follows the card'}
+            </p>
             {/* Mirrors QuestionnaireForm's button exactly. Two renderings of
                 one look is how they drift, but a preview that lives in a modal
                 on a public page cannot be imported here - so if you change one,
