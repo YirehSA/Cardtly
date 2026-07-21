@@ -320,7 +320,15 @@ export default function QuestionnaireBuilder({ initial, teamWide, target, target
             is a problem for the one control on the card whose whole job is to
             be pressed. */}
         <div className="mt-5 pt-5 border-t border-border">
-          <p className="text-xs font-semibold text-muted-foreground mb-2.5">The button on your card</p>
+          <p className="text-xs font-semibold text-muted-foreground mb-1">The button on your card</p>
+          {/* Says where the colour actually comes from. Without this the empty
+              fields read as "this button has no colour", when in fact it wears
+              the card's - and somebody hunting for the colour would come here
+              and set it in the wrong place. */}
+          <p className="text-[11px] text-muted-foreground mb-2.5 leading-relaxed">
+            It already matches your Save Contact button, from <span className="font-semibold">Design</span> on your card.
+            Only set these if you want this one button to look different.
+          </p>
 
           <div className="flex flex-wrap items-center gap-4">
             <ColourField label="Button" value={selected.buttonBg || ''} fallback="#7c3aed"
@@ -343,8 +351,8 @@ export default function QuestionnaireBuilder({ initial, teamWide, target, target
           <div className="mt-3.5 rounded-xl p-3" style={{ background: 'rgba(120,120,120,0.10)' }}>
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
               Preview {btnStyled
-                ? '- your colours'
-                : '- no colours set, so it follows the card'}
+                ? '- this form overrides the card'
+                : '- follows your card’s button, shown here in purple'}
             </p>
             {/* Mirrors QuestionnaireForm's button exactly. Two renderings of
                 one look is how they drift, but a preview that lives in a modal

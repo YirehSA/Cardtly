@@ -18,9 +18,14 @@ interface Props {
   ownerName: string
   accentHex: string
   bg: { border: string; subtext: string; text: string }
+  /** The card's own button colours, the same ones Save Contact uses. This
+   *  button follows them unless the form overrides them. */
+  cardButtonBg?: string | null
+  cardButtonText?: string | null
+  cardButtonBorder?: string | null
 }
 
-export default function QuestionnaireForm({ config, cardId, teamCardId, ownerName, accentHex, bg }: Props) {
+export default function QuestionnaireForm({ config, cardId, teamCardId, ownerName, accentHex, bg, cardButtonBg, cardButtonText, cardButtonBorder }: Props) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -76,9 +81,26 @@ export default function QuestionnaireForm({ config, cardId, teamCardId, ownerNam
   // Re-validated here, not just where it was saved. This config is read back
   // out of a jsonb column that predates the sanitiser, so a row written before
   // it existed can still hold anything.
-  const btnBg = safeHex(config.buttonBg)
-  const btnText = safeHex(config.buttonText) || '#ffffff'
-  const btnBorder = safeHex(config.buttonBorder)
+  // Where the button's look comes from, in order:
+  //
+  //   1. this form's own colours, if somebody set them
+  //   2. the CARD's button colours - the same ones the Save Contact button
+  //      uses, set in the design panel
+  //   3. the accent wash, for a card that has set nothing
+  //
+  // Step 2 is the one that was missing, and it was the whole problem. Button
+  // colour is a property of the card, not of a form: it lives in the design
+  // panel next to Save Contact, which is exactly where you would go to change
+  // it. Requiring it to be set again inside Lead capture meant setting it in a
+  // place that has its own target switcher, so the colours could land on the
+  // team while you were looking at a personal card - and nothing about either
+  // screen would tell you.
+  //
+  // Now the button follows the card by default and Lead capture only has to
+  // carry an override, for when one form should stand out from the rest.
+  const btnBg = safeHex(config.buttonBg) || safeHex(cardButtonBg)
+  const btnText = safeHex(config.buttonText) || safeHex(cardButtonText) || '#ffffff'
+  const btnBorder = safeHex(config.buttonBorder) || safeHex(cardButtonBorder)
   // A border with no fill is a legitimate look - an outlined button on the
   // card's own background - so styling switches on either being set, not on
   // the fill alone.

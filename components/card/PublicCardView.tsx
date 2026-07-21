@@ -402,6 +402,9 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           ownerName={card.name || ''}
           accentHex={accentHex}
           bg={bg}
+          cardButtonBg={buttonBg}
+          cardButtonText={buttonText}
+          cardButtonBorder={buttonBorder}
         />
       )}
 
