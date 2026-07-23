@@ -1,5 +1,21 @@
 import Link from 'next/link'
+import { Linkedin, Instagram, Facebook } from 'lucide-react'
 import { PROMOS_ENABLED } from '@/lib/promos'
+
+// Cardtly's own social profiles. These URLs are the SAME strings that go in
+// the Organization schema's sameAs array (components/marketing/StructuredData
+// .tsx) - the footer icons are for people, the sameAs is for Google, and they
+// must not drift, so if one changes here change it there too. Brand colours
+// match SOCIAL_BRAND_COLORS in PublicCardView.
+// hoverClass is a full literal string, not `hover:text-[${colour}]`, because
+// Tailwind's scanner only sees class names that appear verbatim in the source
+// - an interpolated one is never generated. This keeps the footer a server
+// component: the brand-colour hover is pure CSS, no client JS.
+const SOCIALS = [
+  { label: 'Cardtly on LinkedIn',  href: 'https://www.linkedin.com/company/cardtly',  icon: Linkedin,  hoverClass: 'hover:text-[#0a66c2]' },
+  { label: 'Cardtly on Instagram', href: 'https://www.instagram.com/cardtlydigital/', icon: Instagram, hoverClass: 'hover:text-[#E4405F]' },
+  { label: 'Cardtly on Facebook',  href: 'https://www.facebook.com/cardtly',          icon: Facebook,  hoverClass: 'hover:text-[#1877F2]' },
+]
 
 export default function Footer() {
   return (
@@ -69,12 +85,27 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8"
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-8"
           style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+          <p className="text-xs order-2 md:order-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
             © {new Date().getFullYear()} Cardtly. All rights reserved.
           </p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>
+
+          {/* Follow links. rel="me" backs up the schema sameAs as a second
+              signal that these profiles are ours; noopener for the new tab,
+              and each hovers to its own brand colour. 44px hit area so they
+              are tappable on a phone without a precise press. */}
+          <div className="flex items-center gap-1 order-1 md:order-2">
+            {SOCIALS.map(({ label, href, icon: Icon, hoverClass }) => (
+              <a key={href} href={href} target="_blank" rel="me noopener noreferrer"
+                aria-label={label} title={label}
+                className={`w-11 h-11 grid place-items-center rounded-full text-white/45 transition-colors ${hoverClass}`}>
+                <Icon className="w-5 h-5" aria-hidden="true" />
+              </a>
+            ))}
+          </div>
+
+          <p className="text-xs order-3" style={{ color: 'rgba(255,255,255,0.2)' }}>
             Made in South Africa 🇿🇦
           </p>
         </div>

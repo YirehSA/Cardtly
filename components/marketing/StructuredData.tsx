@@ -28,8 +28,17 @@ const ORG = {
     'QR code contact sharing',
     'Networking',
   ],
+  // Every profile that is verifiably Cardtly. This is the part that carries
+  // SEO weight: it lets Google and the AI engines confirm the homepage, the
+  // Android app and these accounts are one entity, which strengthens brand
+  // recognition for "cardtly" searches. Only add profiles that are real and
+  // active - a dead or mis-attributed sameAs weakens the entity graph rather
+  // than helping it, so this list stays in step with the footer icons.
   sameAs: [
     'https://play.google.com/store/apps/details?id=com.cardtly.app',
+    'https://www.linkedin.com/company/cardtly',
+    'https://www.instagram.com/cardtlydigital/',
+    'https://www.facebook.com/cardtly',
   ],
 }
 
