@@ -14,7 +14,7 @@
     "check:seo": "node scripts/check-seo.mjs"
   },
   "dependencies": {
-    "@capacitor-community/contacts": "^7.2.0",
+    "@capacitor-community/contacts": "^8.0.0",
     "@capacitor/android": "^8.3.4",
     "@capacitor/app": "^8.1.0",
     "@capacitor/cli": "^8.3.4",
