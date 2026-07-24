@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CAPACITOR_DEBUG</key>
+	<string>$(CAPACITOR_DEBUG)</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+        <string>Cardtly</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
+
+	<!-- Permission prompts. iOS crashes the app the instant the website calls a
+	     native feature without a matching usage string, and Apple review rejects
+	     strings that do not say WHY the permission is wanted. Each of these maps
+	     to a real feature: the card scanner (camera), Save Contact (contacts),
+	     photo uploads and saving a QR/virtual background (photo library). -->
+	<key>NSCameraUsageDescription</key>
+	<string>Cardtly uses the camera to scan a paper business card so it can add the details to your contacts.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Cardtly saves the cards you receive straight into your phone's contacts.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Cardtly lets you pick a photo from your library for your card and for scanning a business card you have saved.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Cardtly saves your QR code and virtual backgrounds to your photos when you download them.</string>
+
+	<!-- The NFC plugin links Apple's CoreNFC framework, and the App Store
+	     uploader can require this string just for that, even though tap-to-share
+	     is an Android-only feature for now. Reading a tag to open a card is the
+	     only NFC use on iOS, and it needs the Near Field Communication Tag
+	     Reading capability on the App ID before it will actually work. -->
+	<key>NFCReaderUsageDescription</key>
+	<string>Cardtly reads an NFC tag to open the Cardtly card it points to.</string>
+</dict>
+</plist>

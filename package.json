@@ -19,6 +19,7 @@
     "@capacitor/app": "^8.1.0",
     "@capacitor/cli": "^8.3.4",
     "@capacitor/core": "^8.3.4",
+    "@capacitor/ios": "^8.3.4",
     "@capacitor/share": "^8.0.1",
     "@exxili/capacitor-nfc": "^0.0.13",
     "@hookform/resolvers": "^3.9.1",
