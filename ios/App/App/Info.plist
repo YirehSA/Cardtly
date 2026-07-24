@@ -48,6 +48,13 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 
+	<!-- Answers the App Store export-compliance question automatically. The app
+	     only uses standard encryption (HTTPS/TLS to cardtly.com and Supabase),
+	     which is exempt. Without this, every build lands in TestFlight as
+	     "Missing Compliance" and the auto-submit stalls until answered by hand. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
 	<!-- Permission prompts. iOS crashes the app the instant the website calls a
 	     native feature without a matching usage string, and Apple review rejects
 	     strings that do not say WHY the permission is wanted. Each of these maps
