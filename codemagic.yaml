@@ -72,6 +72,19 @@ workflows:
       - name: Apply signing to the Xcode project
         script: xcode-project use-profiles
 
+      - name: Resolve Swift packages
+        # Capacitor 8 pulls its plugins in as Swift Package Manager packages
+        # (the CapApp-SPM local package). build-ipa's internal
+        # `xcodebuild -showBuildSettings` was failing with status 74 and no
+        # visible reason - almost always SPM not being resolved yet. Doing it
+        # explicitly here both fixes that and, if the real problem is something
+        # else, prints the actual xcodebuild error instead of hiding it.
+        script: |
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -resolvePackageDependencies
+
       - name: Build the IPA
         script: |
           xcode-project build-ipa \
