@@ -2,16 +2,19 @@
 #
 # The app is a Capacitor remote-URL wrapper: the native shell loads
 # www.cardtly.com in a WebView. There is deliberately NO `npm run build` here -
-# the web is already live on Vercel, so the iOS build only has to assemble the
-# native shell, sign it, and ship it. That keeps the build fast and means none
-# of the website's env vars (Supabase, Paystack, Resend) are needed in CI.
+# the web is already live on Vercel, so the iOS build only assembles, signs and
+# ships the native shell, needing none of the website's secrets.
 #
-# Signing is automatic: Codemagic uses the App Store Connect API key you added
-# as an integration to create/fetch the distribution certificate and
-# provisioning profile for com.cardtly.app. Nothing to upload by hand.
+# Signing uses the App Store Connect API key directly (not a paid "team
+# integration"), so this works on the free Individual account. The four values
+# live in a Codemagic variable group named `appstore`, and the Codemagic CLI
+# tools below read them from these exact variable names:
+#   APP_STORE_CONNECT_ISSUER_ID
+#   APP_STORE_CONNECT_KEY_IDENTIFIER
+#   APP_STORE_CONNECT_PRIVATE_KEY   (the .p8 file contents)
+#   CERTIFICATE_PRIVATE_KEY         (an RSA key used to create the signing cert)
 #
-# First builds usually take one or two tries to go green - CI signing is fussy.
-# When one fails, the log says why; that is expected, not a setback.
+# First CI builds commonly need a round or two to go green - the log says why.
 
 workflows:
   ios-testflight:
@@ -19,25 +22,16 @@ workflows:
     max_build_duration: 60
     instance_type: mac_mini_m2
 
-    integrations:
-      # This name must match EXACTLY the name you give the App Store Connect
-      # integration in Codemagic (Team settings -> Integrations -> App Store
-      # Connect). Name it: CardtlyASC
-      app_store_connect: CardtlyASC
-
     environment:
-      # Automatic code signing for the App Store, driven by the integration
-      # above. Codemagic creates the certificate and profile if they do not
-      # exist yet - which they do not, for a brand-new app.
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.cardtly.app
+      groups:
+        - appstore
       vars:
+        BUNDLE_ID: "com.cardtly.app"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
       node: 20
-      # `latest` tracks Codemagic's current stable Xcode. If a build ever fails
-      # on a too-new Xcode, pin this to a specific version (e.g. "16.2").
+      # `latest` tracks Codemagic's current stable Xcode. Pin (e.g. "16.2") only
+      # if a build ever fails on a too-new Xcode.
       xcode: latest
 
     scripts:
@@ -45,23 +39,35 @@ workflows:
         script: npm ci
 
       - name: Capacitor sync iOS
-        # Copies the web config and refreshes the native plugin list. Safe to
-        # run every build; it is how the native project stays in step with
-        # capacitor.config.ts.
         script: npx cap sync ios
 
       - name: Set the build number
         # Each TestFlight upload needs a unique, increasing CFBundleVersion.
         # The project is not set up for agvtool, so set CURRENT_PROJECT_VERSION
-        # (which Info.plist reads via $(CURRENT_PROJECT_VERSION)) directly.
-        # BSD sed on macOS needs the empty '' after -i.
+        # (Info.plist reads it via $(CURRENT_PROJECT_VERSION)) directly. BSD sed
+        # on macOS needs the empty '' after -i.
         script: |
           cd "$CM_BUILD_DIR"
           sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9][0-9]*;/CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/g" \
             ios/App/App.xcodeproj/project.pbxproj
           echo "Set build number to $BUILD_NUMBER"
 
-      - name: Apply signing profiles
+      - name: Initialize keychain
+        script: keychain initialize
+
+      - name: Fetch or create signing files
+        # Creates the distribution certificate and provisioning profile for the
+        # bundle id if they do not exist yet (they do not, for a new app), using
+        # the API key and CERTIFICATE_PRIVATE_KEY from the appstore group.
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+
+      - name: Add the certificate to the keychain
+        script: keychain add-certificates
+
+      - name: Apply signing to the Xcode project
         script: xcode-project use-profiles
 
       - name: Build the IPA
@@ -75,9 +81,10 @@ workflows:
       - /tmp/xcodebuild_logs/*.log
 
     publishing:
-      # Sends the signed build straight to TestFlight so you can install it on
-      # your iPhone. It does NOT submit to the App Store - that is Phase 4,
-      # after screenshots and review notes are ready.
+      # Uploads the signed build to TestFlight so you can install it on your
+      # iPhone. Does NOT submit to the App Store - that stays Phase 4.
       app_store_connect:
-        auth: integration
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
