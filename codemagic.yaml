@@ -40,6 +40,21 @@ workflows:
       - name: Install npm dependencies
         script: npm ci
 
+      - name: Exclude the NFC plugin from the iOS build
+        # @exxili/capacitor-nfc@0.0.13 ships a broken Swift Package - its
+        # Package.swift does not export the product it declares, so SPM
+        # resolution fails with "product 'ExxiliCapacitorNfc' ... not found".
+        # iOS cannot use this plugin anyway: Apple reserves tap-to-share (host
+        # card emulation) for Apple Pay. Removing it here, before cap sync,
+        # means the generated Package.swift leaves it out.
+        #
+        # This is iOS-CI only. It edits this disposable build checkout, never
+        # the repo, so Android and the website keep the plugin. The web guards
+        # every NFC call behind isNFCSupported() (lib/capacitor.ts), which
+        # returns false when the native plugin is absent - so on iPhone NFC just
+        # quietly does not appear.
+        script: npm uninstall @exxili/capacitor-nfc
+
       - name: Capacitor sync iOS
         script: npx cap sync ios
 
