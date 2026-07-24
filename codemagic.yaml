@@ -29,7 +29,9 @@ workflows:
         BUNDLE_ID: "com.cardtly.app"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
-      node: 20
+      # Capacitor 8's CLI requires Node >= 22. Local dev runs 24; 22 is the LTS
+      # and the safe floor.
+      node: 22
       # `latest` tracks Codemagic's current stable Xcode. Pin (e.g. "16.2") only
       # if a build ever fails on a too-new Xcode.
       xcode: latest
