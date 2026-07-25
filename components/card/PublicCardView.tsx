@@ -6,7 +6,7 @@ import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAcce
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
-  Instagram, Linkedin, Twitter, Facebook, UserPlus
+  Instagram, Linkedin, Twitter, Facebook, UserPlus, X
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
@@ -205,6 +205,11 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  // The gallery image currently open full-screen, or null. A tall (9:16) image
+  // opened as a raw file made the browser show it at full size, forcing the
+  // viewer to scroll and drag; this fitted overlay scales any shape to the
+  // screen instead.
+  const [lightbox, setLightbox] = useState<string | null>(null)
 
   // Per-card add-ons (off unless an admin enabled them for this client).
   const addons = (card as any).addons || {}
@@ -284,11 +289,50 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Gallery</p>
           <div className="grid grid-cols-2 gap-2">
             {galleryImages.map((item, i) => (
-              <a key={i} href={item.link || item.url} target="_blank" rel="noopener noreferrer">
-                <img src={item.url} alt={`Gallery ${i + 1}`} className="w-full aspect-video object-cover rounded-xl hover:opacity-80 transition" />
-              </a>
+              // A per-image link (image_X_link) still opens that link. Without
+              // one, the image opens in the fitted lightbox rather than as a
+              // raw file that overflows the screen.
+              item.link ? (
+                <a key={i} href={item.link} target="_blank" rel="noopener noreferrer">
+                  <img src={item.url} alt={`Gallery ${i + 1}`} className="w-full aspect-video object-cover rounded-xl hover:opacity-80 transition" />
+                </a>
+              ) : (
+                <button key={i} type="button" onClick={() => setLightbox(item.url)} className="block w-full" aria-label={`Open gallery image ${i + 1}`}>
+                  <img src={item.url} alt={`Gallery ${i + 1}`} className="w-full aspect-video object-cover rounded-xl hover:opacity-80 transition cursor-pointer" />
+                </button>
+              )
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Fitted image viewer. object-contain + max height/width keeps any
+          aspect ratio (including tall 9:16 slides) fully on screen, so there is
+          nothing to scroll or drag. Tap anywhere or the X to close. */}
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-fade-in"
+          style={{ background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(4px)' }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightbox}
+            alt="Gallery image"
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-full object-contain rounded-xl"
+            style={{ maxHeight: 'calc(100dvh - 2rem)' }}
+          />
+          <button
+            onClick={() => setLightbox(null)}
+            aria-label="Close image"
+            className="absolute top-4 right-4 w-11 h-11 rounded-full flex items-center justify-center text-white transition hover:bg-white/25"
+            style={{ background: 'rgba(255,255,255,0.15)' }}
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
       )}
 
