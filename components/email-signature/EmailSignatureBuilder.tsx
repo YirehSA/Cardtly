@@ -59,6 +59,15 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
   // things about how the card is being shared.
   const qrUrl = `https://cardtly.com/api/qr/${card.slug}?size=160&s=${SOURCE_EMAIL_QR}`
 
+  // Photos and logos are stored as WebP, which Outlook on Windows cannot render
+  // at all - it showed a broken box where the photo and logo should be. Route
+  // them through our converter so every client gets a PNG. Absolute URL,
+  // because this HTML is pasted into a mail client, not served by us.
+  const emailImg = (url: string | null) =>
+    url ? `https://cardtly.com/api/email-image?url=${encodeURIComponent(url)}` : ''
+  const photoSrc = emailImg(card.profile_image_url)
+  const logoSrc = emailImg(card.company_logo_url)
+
   // ── Generate HTML ─────────────────────────────────────────────────────────
   const html = useMemo(() => {
     const socials = [
@@ -71,7 +80,7 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
       return `<table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 14px; color: #374151;">
   <tr>
     <td style="padding-right: 16px; border-right: 3px solid ${accentHex}; vertical-align: top;">
-      ${includePhoto && card.profile_image_url ? `<img src="${card.profile_image_url}" width="64" height="64" style="border-radius: 50%; display: block; object-fit: cover;" />` : ''}
+      ${includePhoto && card.profile_image_url ? `<img src="${photoSrc}" width="64" height="64" style="border-radius: 50%; display: block; object-fit: cover;" />` : ''}
     </td>
     <td style="padding-left: 16px; vertical-align: top;">
       <p style="margin: 0 0 2px; font-size: 16px; font-weight: bold; color: #111827;">${card.name}</p>
@@ -101,7 +110,7 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
     if (style === 'compact') {
       return `<table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, sans-serif; font-size: 13px;">
   <tr>
-    ${includePhoto && card.profile_image_url ? `<td style="padding-right: 12px; vertical-align: middle;"><img src="${card.profile_image_url}" width="48" height="48" style="border-radius: 50%; display: block; object-fit: cover; border: 2px solid ${accentHex}44;" /></td>` : ''}
+    ${includePhoto && card.profile_image_url ? `<td style="padding-right: 12px; vertical-align: middle;"><img src="${photoSrc}" width="48" height="48" style="border-radius: 50%; display: block; object-fit: cover; border: 2px solid ${accentHex}44;" /></td>` : ''}
     <td style="vertical-align: middle; padding-right: 16px; border-right: 2px solid ${accentHex};">
       <p style="margin: 0; font-size: 15px; font-weight: bold; color: #111827; white-space: nowrap;">${card.name}${card.title ? ` <span style="font-weight: 400; color: ${accentHex}; font-size: 13px;">· ${card.title}</span>` : ''}</p>
       ${card.company ? `<p style="margin: 2px 0 0; font-size: 12px; color: #6b7280;">${card.company}</p>` : ''}
@@ -127,7 +136,7 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
     <td style="background: #0f172a; padding: 20px 20px 16px; border-radius: 0 0 4px 4px;">
       <table cellpadding="0" cellspacing="0" border="0" width="100%">
         <tr>
-          ${includePhoto && card.profile_image_url ? `<td style="vertical-align: top; padding-right: 14px; width: 64px;"><img src="${card.profile_image_url}" width="64" height="64" style="border-radius: 12px; display: block; object-fit: cover; border: 2px solid ${accentHex}66;" /></td>` : ''}
+          ${includePhoto && card.profile_image_url ? `<td style="vertical-align: top; padding-right: 14px; width: 64px;"><img src="${photoSrc}" width="64" height="64" style="border-radius: 12px; display: block; object-fit: cover; border: 2px solid ${accentHex}66;" /></td>` : ''}
           <td style="vertical-align: top;">
             <p style="margin: 0 0 2px; font-size: 20px; font-weight: 900; color: #f8fafc; letter-spacing: -0.03em;">${card.name}</p>
             ${card.title ? `<p style="margin: 0 0 8px; font-size: 12px; font-weight: 700; color: ${accentHex}; text-transform: uppercase; letter-spacing: 0.08em;">${card.title}</p>` : ''}
@@ -141,7 +150,7 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
           ${includeQR ? `<td style="vertical-align: top; padding-left: 14px; width: 72px; text-align: center;"><a href="${cardUrl}" style="text-decoration: none;"><img src="${qrUrl}" width="66" height="66" style="display: block; border-radius: 8px; filter: invert(1);" /><span style="font-size: 10px; color: #64748b; display: block; margin-top: 3px;">Scan</span></a></td>` : ''}
         </tr>
       </table>
-      ${includeLogo && card.company_logo_url ? `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 12px; border-top: 1px solid #1e293b; padding-top: 10px;"><tr><td><img src="${card.company_logo_url}" height="28" style="display: block; object-fit: contain; filter: brightness(0) invert(1); opacity: 0.7;" /></td></tr></table>` : ''}
+      ${includeLogo && card.company_logo_url ? `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 12px; border-top: 1px solid #1e293b; padding-top: 10px;"><tr><td><img src="${logoSrc}" height="28" style="display: block; object-fit: contain; filter: brightness(0) invert(1); opacity: 0.7;" /></td></tr></table>` : ''}
     </td>
   </tr>
 </table>`
@@ -169,7 +178,7 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
       ${(includeLogo && card.company_logo_url) || includeQR ? `
       <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 10px;">
         <tr>
-          ${includeLogo && card.company_logo_url ? `<td style="padding-right: 12px; vertical-align: middle;"><img src="${card.company_logo_url}" height="26" style="display: block; object-fit: contain;" alt="${card.company || ''}" /></td>` : ''}
+          ${includeLogo && card.company_logo_url ? `<td style="padding-right: 12px; vertical-align: middle;"><img src="${logoSrc}" height="26" style="display: block; object-fit: contain;" alt="${card.company || ''}" /></td>` : ''}
           ${includeQR ? `<td style="vertical-align: middle;"><a href="${cardUrl}"><img src="${qrUrl}" width="48" height="48" alt="Scan to connect" style="display: block;" /></a></td>` : ''}
         </tr>
       </table>` : ''}
@@ -212,13 +221,13 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
         ${includeLogo && card.company_logo_url ? `
         <tr>
           <td align="center" style="padding-bottom: 14px;">
-            <img src="${card.company_logo_url}" height="28" style="display: block; margin: 0 auto; object-fit: contain;" alt="${card.company || ''}" />
+            <img src="${logoSrc}" height="28" style="display: block; margin: 0 auto; object-fit: contain;" alt="${card.company || ''}" />
           </td>
         </tr>` : ''}
         ${includePhoto && card.profile_image_url ? `
         <tr>
           <td align="center" style="padding-bottom: 12px;">
-            <img src="${card.profile_image_url}" width="76" height="76" style="border-radius: 50%; display: block; margin: 0 auto; object-fit: cover; border: 2px solid ${accentHex};" alt="${card.name}" />
+            <img src="${photoSrc}" width="76" height="76" style="border-radius: 50%; display: block; margin: 0 auto; object-fit: cover; border: 2px solid ${accentHex};" alt="${card.name}" />
           </td>
         </tr>` : ''}
         <tr>
@@ -272,7 +281,7 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
         <tr>
           ${includePhoto && card.profile_image_url ? `
           <td style="vertical-align: top; padding-right: 14px; width: 72px;">
-            <img src="${card.profile_image_url}" width="72" height="72" style="border-radius: 50%; display: block; object-fit: cover; border: 3px solid ${accentHex}44;" />
+            <img src="${photoSrc}" width="72" height="72" style="border-radius: 50%; display: block; object-fit: cover; border: 3px solid ${accentHex}44;" />
           </td>` : ''}
           <td style="vertical-align: top;">
             <p style="margin: 0 0 2px; font-size: 17px; font-weight: bold; color: #111827;">${card.name}</p>
@@ -301,7 +310,7 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
       <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 12px; border-top: 1px solid ${accentHex}22; padding-top: 10px;">
         <tr>
           <td>
-            <img src="${card.company_logo_url}" height="32" style="display: block; object-fit: contain;" alt="${card.company || ''}" />
+            <img src="${logoSrc}" height="32" style="display: block; object-fit: contain;" alt="${card.company || ''}" />
           </td>
         </tr>
       </table>` : ''}
