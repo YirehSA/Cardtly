@@ -76,6 +76,9 @@ export default async function DepartmentsPage() {
     cards: (cards || []).filter((c: any) => c.department_id === d.id).map((c: any) => ({
       id: c.id, name: c.name, slug: c.slug, claimed: !!c.claimed_at, inviteEmail: c.invite_email || null,
       views30d: views30d[c.id] || 0, leads: leadsByCard[c.id] || 0, viewCount: c.view_count || 0, brand: extractBrand(c),
+      // Which lead-capture form this card shows, for the per-card picker.
+      useTeamQuestionnaire: c.use_team_questionnaire,
+      assignedFormId: c.addons?.assignedFormId || null,
     })),
   }))
 
@@ -90,9 +93,19 @@ export default async function DepartmentsPage() {
   // so a new department, whose people have not built anything yet, could not
   // be given any look at all.
   const { data: orgRows } = orgIds.length
-    ? await admin.from('organizations').select('id, brand').in('id', orgIds)
+    ? await admin.from('organizations').select('id, brand, addons').in('id', orgIds)
     : { data: [] }
   const orgBrandById = Object.fromEntries((orgRows || []).map((o: any) => [o.id, o.brand || {}]))
+  // The org's lead-capture form library, so a head can allocate a form to each
+  // of their cards. Only forms with questions, and only when the add-on is on.
+  const orgFormsById: Record<string, { id: string; title?: string; questions: any[] }[]> = Object.fromEntries(
+    (orgRows || []).map((o: any) => [
+      o.id,
+      o.addons?.questionnaireEnabled && Array.isArray(o.addons?.questionnaires)
+        ? o.addons.questionnaires.filter((f: any) => Array.isArray(f?.questions) && f.questions.length > 0)
+        : [],
+    ])
+  )
   const { data: ownCards } = orgIds.length
     ? await admin.from('team_cards').select('organization_id').eq('user_id', user.id).in('organization_id', orgIds)
     : { data: [] }
@@ -104,6 +117,7 @@ export default async function DepartmentsPage() {
         ...d,
         viewerHasCard: hasCardInOrg.has(d.organizationId),
         orgBrand: orgBrandById[d.organizationId] || {},
+        forms: orgFormsById[d.organizationId] || [],
       }))}
       ownedOrgs={ownedOrgs}
     />

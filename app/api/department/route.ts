@@ -342,6 +342,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true })
   }
 
+  // ── Allocate a lead-capture form to one card in a managed department ──────
+  // Same semantics as the org-admin set_card_form: off / default / <formId>.
+  if (action === 'set_card_form') {
+    const { team_card_id, form_id } = body
+    if (!team_card_id || !form_id) return NextResponse.json({ error: 'team_card_id and form_id required' }, { status: 400 })
+    const loc = await cardDepartment(admin, team_card_id)
+    if (!loc?.departmentId || !(await canManageDepartment(admin, user.id, loc.departmentId))) {
+      return NextResponse.json({ error: 'You do not manage that card' }, { status: 403 })
+    }
+    // A card can only point at a form that exists in its org's library.
+    if (form_id !== 'off' && form_id !== 'default') {
+      const { data: org } = await admin.from('organizations').select('addons').eq('id', loc.organizationId).maybeSingle()
+      const library = Array.isArray((org as any)?.addons?.questionnaires) ? (org as any).addons.questionnaires : []
+      if (!library.some((f: any) => f.id === form_id)) {
+        return NextResponse.json({ error: 'That form no longer exists' }, { status: 400 })
+      }
+    }
+    const { data: card } = await admin.from('team_cards').select('addons').eq('id', team_card_id).maybeSingle()
+    if (!card) return NextResponse.json({ error: 'Card not found' }, { status: 404 })
+    const addons = { ...((card as any).addons || {}) }
+    let useQ = true
+    if (form_id === 'off') useQ = false
+    else if (form_id === 'default') delete addons.assignedFormId
+    else addons.assignedFormId = form_id
+    const { error } = await admin.from('team_cards').update({ addons, use_team_questionnaire: useQ }).eq('id', team_card_id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, form_id })
+  }
+
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
 }
 

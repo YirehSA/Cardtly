@@ -10,7 +10,12 @@ import { Layers, Palette, Loader2, UserPlus, X, ExternalLink, Eye, Users, Check,
 interface Card {
   id: string; name: string | null; slug: string | null; claimed: boolean
   inviteEmail: string | null; views30d: number; leads: number; viewCount: number; brand: Record<string, any>
+  // Which lead-capture form this card shows: use_team_questionnaire=false means
+  // none; assignedFormId picks a specific form; neither means the org default.
+  useTeamQuestionnaire?: boolean | null
+  assignedFormId?: string | null
 }
+interface LeadForm { id: string; title?: string; questions: any[] }
 interface Head { userId: string; email: string | null }
 interface Dept {
   id: string; name: string; organizationId: string; isOwner: boolean
@@ -22,6 +27,8 @@ interface Dept {
   viewerHasCard?: boolean
   // The company look, offered as a starting point for this department.
   orgBrand?: Record<string, any>
+  // The org's lead-capture form library, for the per-card form picker.
+  forms?: LeadForm[]
 }
 interface OwnedOrg { id: string; name: string; lockedFields: string[] }
 
@@ -630,6 +637,20 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
                 {c.slug && (
                   <a href={`/card/${c.slug}`} target="_blank" rel="noreferrer" title="Open card"
                     className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"><ExternalLink className="w-3.5 h-3.5" /></a>
+                )}
+                {/* Per-card lead form. Same picker the owner has on Team Cards,
+                    here for the department head. Only when the org has forms. */}
+                {dept.forms && dept.forms.length > 0 && (
+                  <select
+                    value={c.useTeamQuestionnaire === false ? 'off' : (c.assignedFormId || 'default')}
+                    disabled={loading === `form-${c.id}`}
+                    title="Which lead-capture form this card shows"
+                    onChange={e => call(`form-${c.id}`, { action: 'set_card_form', team_card_id: c.id, form_id: e.target.value }, 'Lead form updated')}
+                    className="text-xs px-2 py-1.5 rounded-lg border border-border bg-background max-w-[130px]">
+                    <option value="default">Company default</option>
+                    {dept.forms.map((f, fi) => <option key={f.id} value={f.id}>{f.title?.trim() || `Form ${fi + 1}`}</option>)}
+                    <option value="off">No form</option>
+                  </select>
                 )}
                 {departments.length > 1 && (
                   <select value={dept.id} disabled={loading === `move-${c.id}`} title="Move to another department"
