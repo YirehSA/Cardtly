@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Card, extractLinks } from '@/types/database'
 import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg } from '@/types/design'
 import {
@@ -288,33 +289,41 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
         <div className="mt-8">
           <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Gallery</p>
           <div className="grid grid-cols-2 gap-2">
-            {galleryImages.map((item, i) => (
-              // A per-image link (image_X_link) still opens that link. Without
-              // one, the image opens in the fitted lightbox rather than as a
-              // raw file that overflows the screen.
-              item.link ? (
-                <a key={i} href={item.link} target="_blank" rel="noopener noreferrer">
-                  <img src={item.url} alt={`Gallery ${i + 1}`} className="w-full aspect-video object-cover rounded-xl hover:opacity-80 transition" />
-                </a>
-              ) : (
-                <button key={i} type="button" onClick={() => setLightbox(item.url)} className="block w-full" aria-label={`Open gallery image ${i + 1}`}>
-                  <img src={item.url} alt={`Gallery ${i + 1}`} className="w-full aspect-video object-cover rounded-xl hover:opacity-80 transition cursor-pointer" />
+            {galleryImages.map((item, i) => {
+              // The per-image link field is "open a page when tapped". If it
+              // holds an image URL (a common thing to paste there), tapping
+              // opens THAT image in the fitted lightbox instead of dumping the
+              // raw file in a new tab where it overflows the screen. A real
+              // webpage link still navigates. No link -> enlarge the shown image.
+              const linkIsImage = !!item.link && /\.(jpe?g|png|webp|gif|avif)(\?|#|$)/i.test(item.link)
+              const thumb = <img src={item.url} alt={`Gallery ${i + 1}`} className="w-full aspect-video object-cover rounded-xl hover:opacity-80 transition cursor-pointer" />
+              if (item.link && !linkIsImage) {
+                return <a key={i} href={item.link} target="_blank" rel="noopener noreferrer">{thumb}</a>
+              }
+              const full = linkIsImage ? item.link! : item.url
+              return (
+                <button key={i} type="button" onClick={() => setLightbox(full)} className="block w-full" aria-label={`Open gallery image ${i + 1}`}>
+                  {thumb}
                 </button>
               )
-            ))}
+            })}
           </div>
         </div>
       )}
 
-      {/* Fitted image viewer. object-contain + max height/width keeps any
-          aspect ratio (including tall 9:16 slides) fully on screen, so there is
-          nothing to scroll or drag. Tap anywhere or the X to close. */}
-      {lightbox && (
+      {/* Fitted image viewer, rendered into <body> via a portal. Without the
+          portal it lives inside the card, which has CSS transforms/filters on
+          ancestors - and `position: fixed` is trapped by a transformed ancestor,
+          so on a phone the overlay landed mid-page (you had to scroll up to find
+          it) instead of covering the screen. In the body it is truly viewport-
+          fixed and centred. object-contain + max height keeps any aspect ratio,
+          including tall 9:16, fully on screen. Tap anywhere or the X to close. */}
+      {lightbox && typeof document !== 'undefined' && createPortal(
         <div
           onClick={() => setLightbox(null)}
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in"
           style={{ background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(4px)' }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -322,8 +331,8 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
             src={lightbox}
             alt="Gallery image"
             onClick={(e) => e.stopPropagation()}
-            className="max-w-full object-contain rounded-xl"
-            style={{ maxHeight: 'calc(100dvh - 2rem)' }}
+            className="object-contain rounded-xl"
+            style={{ maxHeight: 'calc(100dvh - 2rem)', maxWidth: 'calc(100vw - 2rem)' }}
           />
           <button
             onClick={() => setLightbox(null)}
@@ -333,7 +342,8 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           >
             <X className="w-5 h-5" />
           </button>
-        </div>
+        </div>,
+        document.body
       )}
 
       {isPro && (
