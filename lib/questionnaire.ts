@@ -1,9 +1,9 @@
 // Shared types + helpers for the custom questionnaire add-on.
 
 export const MAX_QUESTIONS = 5
-// You can build several forms and switch which one is live. Cap the
-// library so the switcher stays tidy.
-export const MAX_QUESTIONNAIRES = 3
+// You can build several forms and allocate different ones to different cards.
+// Cap the library so the picker stays tidy.
+export const MAX_QUESTIONNAIRES = 5
 export type QuestionType = 'short' | 'paragraph' | 'dropdown'
 
 export interface Question {

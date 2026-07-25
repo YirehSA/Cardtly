@@ -315,6 +315,50 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, use_team_questionnaire: value })
   }
 
+  // Allocate a specific lead-capture form to one card. The forms live once in
+  // the org library; this picks which one a given card shows:
+  //   form_id 'off'      -> card shows no form (use_team_questionnaire = false)
+  //   form_id 'default'  -> card shows the org's default (active) form
+  //   form_id '<id>'     -> card shows that specific form from the library
+  if (action === 'set_card_form') {
+    const { org_id, card_id, form_id } = body as { org_id?: string; card_id?: string; form_id?: string }
+    if (!org_id || !card_id || !form_id) {
+      return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+    }
+    const { data: org } = await admin
+      .from('organizations').select('id, addons').eq('id', org_id).eq('admin_user_id', user.id).maybeSingle()
+    if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+
+    // Validate a real form id against the org library, so a card can never
+    // point at a form that does not exist.
+    if (form_id !== 'off' && form_id !== 'default') {
+      const library = Array.isArray((org as any).addons?.questionnaires) ? (org as any).addons.questionnaires : []
+      if (!library.some((f: any) => f.id === form_id)) {
+        return NextResponse.json({ error: 'That form no longer exists' }, { status: 400 })
+      }
+    }
+
+    const { data: card } = await admin
+      .from('team_cards').select('addons').eq('id', card_id).eq('organization_id', org_id).maybeSingle()
+    if (!card) return NextResponse.json({ error: 'Card not found' }, { status: 404 })
+
+    const addons = { ...((card as any).addons || {}) }
+    let useQ = true
+    if (form_id === 'off') {
+      useQ = false
+    } else if (form_id === 'default') {
+      delete addons.assignedFormId
+    } else {
+      addons.assignedFormId = form_id
+    }
+
+    const { error } = await admin.from('team_cards')
+      .update({ addons, use_team_questionnaire: useQ })
+      .eq('id', card_id).eq('organization_id', org_id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, form_id })
+  }
+
   // Apply (or remove) the team brand across every card at once.
   if (action === 'apply_brand_to_all') {
     const { org_id, value } = body as { org_id?: string; value?: boolean }

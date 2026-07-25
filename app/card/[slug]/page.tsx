@@ -6,6 +6,7 @@ import PublicCardView from '@/components/card/PublicCardView'
 import CardTracker from '@/components/card/CardTracker'
 import { mergeBrand, resolveTeamBrand } from '@/lib/team-brand'
 import { planFromTrial, subscriptionState } from '@/lib/plan-server'
+import { liveMirror } from '@/lib/questionnaire'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -189,15 +190,32 @@ export default async function PublicCardPage({ params }: Props) {
       ? resolveTeamBrand(orgBrand, deptBrand)
       : {}
 
-    // Org add-ons fan out to every team card, but the questionnaire is
-    // per-card opt-out: strip it on cards the admin switched off so not
-    // every card has to show it.
-    const mergedAddons: Record<string, any> = { ...((teamCard as any).addons || {}), ...orgAddons }
+    // Org add-ons fan out to every team card. The lead-capture form is
+    // allocated per card:
+    //   - use_team_questionnaire === false  -> this card shows no form
+    //   - addons.assignedFormId set          -> this card shows that specific
+    //                                           form from the org's library
+    //   - neither                            -> the org's default (active) form
+    // Cards that predate per-card allocation have no assignedFormId, so they
+    // resolve to the org default exactly as before.
+    const cardAddons = (teamCard as any).addons || {}
+    const mergedAddons: Record<string, any> = { ...cardAddons, ...orgAddons }
     if ((teamCard as any).use_team_questionnaire === false) {
       mergedAddons.questionnaireEnabled = false
       delete mergedAddons.questionnaire
       delete mergedAddons.questionnaires
       delete mergedAddons.activeQuestionnaireId
+    } else if (orgAddons.questionnaireEnabled) {
+      const library = Array.isArray(orgAddons.questionnaires) ? orgAddons.questionnaires : []
+      const chosen =
+        (cardAddons.assignedFormId && library.find((f: any) => f.id === cardAddons.assignedFormId)) ||
+        library.find((f: any) => f.id === orgAddons.activeQuestionnaireId) ||
+        library[0] ||
+        null
+      if (chosen) {
+        mergedAddons.questionnaire = liveMirror(chosen)
+        mergedAddons.activeQuestionnaireId = chosen.id
+      }
     }
 
     const cardShaped = mergeBrand({

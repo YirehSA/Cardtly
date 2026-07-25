@@ -29,6 +29,9 @@ interface TeamCard {
   claimed_at?: string | null
   use_team_brand?: boolean | null
   use_team_questionnaire?: boolean | null
+  // Per-card lead form: addons.assignedFormId picks which org form this card
+  // shows. Absent = the org's default form.
+  addons?: Record<string, any> | null
   // Network listing (migrations 036, 039). Two flags: hide_from_network is
   // the member's own choice, org_hide_from_network is the admin's. Listed
   // only when both are false.
@@ -69,14 +72,15 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   const [cards, setCards] = useState<TeamCard[]>(initialCards)
   const [loading, setLoading] = useState(false)
 
-  // The per-card questionnaire toggle only makes sense when the org has
-  // the add-on switched on AND a form actually built.
+  // The per-card form picker only makes sense when the org has the add-on on
+  // AND at least one form is built. orgForms is the library each card can be
+  // allocated from.
   const qAddons = (org as any)?.addons || {}
-  const questionnaireAvailable = !!(
-    qAddons.questionnaireEnabled &&
-    Array.isArray(qAddons.questionnaire?.questions) &&
-    qAddons.questionnaire.questions.length > 0
-  )
+  const orgForms: { id: string; title?: string; questions: any[] }[] =
+    Array.isArray(qAddons.questionnaires)
+      ? qAddons.questionnaires.filter((f: any) => Array.isArray(f?.questions) && f.questions.length > 0)
+      : []
+  const questionnaireAvailable = !!(qAddons.questionnaireEnabled && orgForms.length > 0)
 
   // The same reasoning applies to the brand toggle, which was never gated.
   // mergeBrand leaves a card untouched when the brand is empty, so switching
@@ -310,19 +314,30 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
     }
   }
 
-  // Show/hide the team questionnaire on a single card. Default is ON, so
-  // "on" means use_team_questionnaire !== false.
-  async function toggleCardQuestionnaire(card: TeamCard) {
-    const currentlyOn = card.use_team_questionnaire !== false
-    const next = !currentlyOn
-    setCards(prev => prev.map(c => c.id === card.id ? { ...c, use_team_questionnaire: next } : c))
-    const data = await api({ action: 'set_card_questionnaire', org_id: org!.id, card_id: card.id, value: next })
+  // Which form a card currently shows: 'off', 'default', or a form id.
+  function cardFormValue(card: TeamCard): string {
+    if (card.use_team_questionnaire === false) return 'off'
+    return card.addons?.assignedFormId || 'default'
+  }
+
+  // Allocate a specific form (or default / none) to one card.
+  async function setCardForm(card: TeamCard, formId: string) {
+    const prevValue = cardFormValue(card)
+    if (formId === prevValue) return
+    // Optimistic local update mirroring what the server will store.
+    setCards(prev => prev.map(c => {
+      if (c.id !== card.id) return c
+      const addons = { ...(c.addons || {}) }
+      if (formId === 'off') return { ...c, use_team_questionnaire: false }
+      if (formId === 'default') { delete addons.assignedFormId; return { ...c, use_team_questionnaire: true, addons } }
+      addons.assignedFormId = formId
+      return { ...c, use_team_questionnaire: true, addons }
+    }))
+    const data = await api({ action: 'set_card_form', org_id: org!.id, card_id: card.id, form_id: formId })
     if (data.success) {
-      toast.success(next
-        ? `Questionnaire now shows on ${card.name.split(' ')[0]}'s card`
-        : `Questionnaire hidden on ${card.name.split(' ')[0]}'s card`)
+      toast.success(`Lead form updated for ${card.name.split(' ')[0]}`)
     } else {
-      setCards(prev => prev.map(c => c.id === card.id ? { ...c, use_team_questionnaire: currentlyOn } : c)) // revert
+      setCards(prev => prev.map(c => c.id === card.id ? card : c)) // revert to original
       toast.error(data.error || 'Could not update')
     }
   }
@@ -830,25 +845,28 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                   </p>
                 )}
 
-                {/* Team questionnaire toggle - only shown when the org add-on
-                    is on and a form is built. Lets the admin pick which cards
-                    display the questionnaire. */}
+                {/* Per-card lead form picker - shown when the org add-on is on
+                    and at least one form is built. Allocates which form (or
+                    none) this specific card shows. With one form it behaves like
+                    the old on/off; with several you assign different forms to
+                    different cards. */}
                 {questionnaireAvailable && (
-                  <div className="flex items-center justify-between pt-3 border-t border-border">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <ClipboardList className="w-3.5 h-3.5" />Show questionnaire
+                  <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1.5 shrink-0">
+                      <ClipboardList className="w-3.5 h-3.5" />Lead form
                     </span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={card.use_team_questionnaire !== false}
-                      onClick={() => toggleCardQuestionnaire(card)}
-                      title={card.use_team_questionnaire !== false ? 'This card shows the team questionnaire. Tap to hide it here.' : 'This card does not show the questionnaire. Tap to show it.'}
-                      className="relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition"
-                      style={{ background: card.use_team_questionnaire !== false ? 'linear-gradient(135deg, #00d4ff, #7c3aed)' : 'hsl(var(--muted))' }}>
-                      <span className="inline-block h-4 w-4 rounded-full bg-white transition"
-                        style={{ transform: card.use_team_questionnaire !== false ? 'translateX(18px)' : 'translateX(2px)' }} />
-                    </button>
+                    <select
+                      value={cardFormValue(card)}
+                      onChange={e => setCardForm(card, e.target.value)}
+                      title="Which lead-capture form this card shows"
+                      className="text-xs px-2 py-1.5 rounded-lg border border-border bg-background max-w-[160px] focus:outline-none focus:ring-1 focus:ring-ring transition"
+                    >
+                      <option value="default">Company default</option>
+                      {orgForms.map((f, i) => (
+                        <option key={f.id} value={f.id}>{f.title?.trim() || `Form ${i + 1}`}</option>
+                      ))}
+                      <option value="off">No form</option>
+                    </select>
                   </div>
                 )}
 
