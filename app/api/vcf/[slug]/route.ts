@@ -87,14 +87,6 @@ export async function GET(
   // third, and a heavy vCard is one phones refuse to import.
   const photo = await fetchCardImage(c.profile_image_url, { size: 256, forceJpeg: true })
 
-  // Apple item groups let a line carry a custom label. Numbered from 1 and
-  // shared across every grouped line, hence one counter for the whole card.
-  let item = 0
-  const labelled = (line: string, label: string): string[] => {
-    item += 1
-    return [`item${item}.${line}`, `item${item}.X-ABLabel:${esc(label)}`]
-  }
-
   const customLinks = [1, 2, 3, 4, 5]
     .map(i => ({ title: c[`link_${i}_title`], url: c[`link_${i}_url`] }))
     .filter(l => l.url)
@@ -106,13 +98,17 @@ export async function GET(
     { url: c.facebook_url, service: 'facebook', label: 'Facebook' },
   ].filter(s => s.url)
 
-  // The note carries the things a contact record has nowhere else to put: the
-  // bio, any certifications, and the card link in plain text. NOTE is the one
-  // field every phone imports and none of them mangle, so the link survives
-  // even where a second URL does not.
+  // The note is the safety net. NOTE is the one field every phone imports and
+  // none of them mangle, so anything that a picky importer might drop is also
+  // written here as plain text: the WhatsApp number, and every link with its
+  // title. That way the information survives even on a phone that keeps only
+  // the fields it recognises.
+  const noteLinks = customLinks.map(l => `${l.title ? `${esc(l.title)}: ` : ''}${esc(l.url)}`)
   const note = [
     c.bio ? esc(c.bio) : null,
     c.certifications ? `Certifications: ${esc(c.certifications)}` : null,
+    c.whatsapp ? `WhatsApp: ${esc(c.whatsapp)}` : null,
+    noteLinks.length ? noteLinks.join('\\n') : null,
     `Digital business card: ${cardUrl}`,
   ].filter(Boolean).join('\\n\\n')
 
@@ -126,11 +122,10 @@ export async function GET(
     c.email ? `EMAIL;TYPE=INTERNET,WORK:${esc(c.email)}` : null,
     c.phone ? `TEL;TYPE=CELL,VOICE:${esc(c.phone)}` : null,
     c.work_phone ? `TEL;TYPE=WORK,VOICE:${esc(c.work_phone)}` : null,
-    // Only when it is a different number - otherwise the contact shows the same
-    // digits twice.
-    ...(c.whatsapp && c.whatsapp !== c.phone
-      ? labelled(`TEL;TYPE=CELL,VOICE:${esc(c.whatsapp)}`, 'WhatsApp')
-      : []),
+    // A plain TEL line, only when WhatsApp is a different number - two
+    // identical numbers in one contact is noise. When it IS the same number the
+    // note says so, so "you can WhatsApp this person" is never lost.
+    c.whatsapp && c.whatsapp !== c.phone ? `TEL;TYPE=CELL,VOICE:${esc(c.whatsapp)}` : null,
 
     // The Cardtly link IS the first URL, deliberately.
     //
@@ -145,20 +140,24 @@ export async function GET(
     // label it, which is not valid vCard 3.0 (RFC 2426 defines no TYPE for URL
     // and would not accept that value), so parsers were free to drop the line
     // entirely, i.e. exactly the field this is here to add.
+    // Every link is a plain, ungrouped URL line.
+    //
+    // These were written with Apple's item-grouping so each could carry a label
+    // ("Features", "WhatsApp"). That turns the property name into `item1.URL`,
+    // and Android's importer commonly keeps only properties it recognises - so
+    // the labels cost us the links themselves on the platform most of our users
+    // are on. Presence beats labelling: the titles now live in the note, where
+    // nothing can drop them.
     `URL:${cardUrl}`,
     c.website ? `URL:${esc(c.website)}` : null,
-    ...customLinks.flatMap(l =>
-      l.title ? labelled(`URL:${esc(l.url)}`, String(l.title)) : [`URL:${esc(l.url)}`]
-    ),
+    ...customLinks.map(l => `URL:${esc(l.url)}`),
+    ...socials.map(s => `URL:${esc(s.url)}`),
 
     c.address ? `ADR;TYPE=WORK:;;${esc(c.address)};;;;` : null,
 
-    // X-SOCIALPROFILE is what iOS reads to show a tappable social row. Android
-    // ignores it, so the same links also go in as labelled URLs above where a
-    // title exists - and socials are added here as plain URL lines too, so
-    // nothing is lost on a phone that understands neither.
+    // Extra, not instead of: iOS reads this to show a tappable social row.
+    // Anything that does not understand it still has the plain URL lines above.
     ...socials.map(s => `X-SOCIALPROFILE;TYPE=${s.service}:${esc(s.url)}`),
-    ...socials.map(s => `URL:${esc(s.url)}`),
 
     photo ? `PHOTO;ENCODING=b;TYPE=JPEG:${photo.buffer.toString('base64')}` : null,
     `NOTE:${note}`,
