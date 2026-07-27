@@ -57,11 +57,46 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'unconfirmed', label: 'Unconfirmed' },
 ]
 
+// How the list is ordered. The chips above narrow WHO is listed; this decides
+// the order, so "who is actually using their card" and "who has gone quiet"
+// are each one click away instead of a scroll through 70 rows.
+type SortId = 'joined' | 'joined_asc' | 'views' | 'views_asc' | 'seen' | 'seen_asc' | 'trial' | 'email'
+
+const SORTS: { id: SortId; label: string }[] = [
+  { id: 'joined', label: 'Newest first' },
+  { id: 'joined_asc', label: 'Oldest first' },
+  { id: 'views', label: 'Most views' },
+  { id: 'views_asc', label: 'Fewest views' },
+  { id: 'seen', label: 'Seen most recently' },
+  { id: 'seen_asc', label: 'Quiet the longest' },
+  { id: 'trial', label: 'Trial ending soonest' },
+  { id: 'email', label: 'Email A-Z' },
+]
+
+// Sort helpers. Missing values sort last in every direction rather than
+// pretending to be 0 or 1970 - somebody who has never signed in is not the
+// same as somebody who signed in long ago, and should not top "quiet the
+// longest" as though it were measured.
+const time = (v: string | null | undefined) => (v ? new Date(v).getTime() : null)
+function byNullableDesc(a: number | null, b: number | null): number {
+  if (a === null && b === null) return 0
+  if (a === null) return 1
+  if (b === null) return -1
+  return b - a
+}
+function byNullableAsc(a: number | null, b: number | null): number {
+  if (a === null && b === null) return 0
+  if (a === null) return 1
+  if (b === null) return -1
+  return a - b
+}
+
 export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrders, audit, reps, stats, announcement }: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('overview')
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
+  const [sort, setSort] = useState<SortId>('joined')
   const [loading, setLoading] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
 
@@ -98,7 +133,7 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    return users.filter(u => {
+    const matched = users.filter(u => {
       if (filter === 'admins' && !u.isAdmin) return false
       if (filter === 'unconfirmed' && u.email_confirmed) return false
       if (filter !== 'all' && filter !== 'admins' && filter !== 'unconfirmed' && u.status !== filter) return false
@@ -109,7 +144,21 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
       return [u.email, u.card?.name, u.card?.slug, u.org?.name, u.memberOfOrg, u.country, u.city, u.id]
         .filter(Boolean).some(v => String(v).toLowerCase().includes(needle))
     })
-  }, [users, q, filter])
+
+    // filter() already returned a new array, so sorting here does not disturb
+    // the users prop.
+    switch (sort) {
+      case 'joined_asc': return matched.sort((a, b) => byNullableAsc(time(a.created_at), time(b.created_at)))
+      case 'views':      return matched.sort((a, b) => (b.views || 0) - (a.views || 0))
+      case 'views_asc':  return matched.sort((a, b) => (a.views || 0) - (b.views || 0))
+      case 'seen':       return matched.sort((a, b) => byNullableDesc(time(a.last_sign_in_at), time(b.last_sign_in_at)))
+      case 'seen_asc':   return matched.sort((a, b) => byNullableAsc(time(a.last_sign_in_at), time(b.last_sign_in_at)))
+      // Soonest to lapse first, and anyone not on a trial drops to the bottom.
+      case 'trial':      return matched.sort((a, b) => byNullableAsc(a.trialDaysLeft ?? null, b.trialDaysLeft ?? null))
+      case 'email':      return matched.sort((a, b) => (a.email || '').localeCompare(b.email || ''))
+      default:           return matched.sort((a, b) => byNullableDesc(time(a.created_at), time(b.created_at)))
+    }
+  }, [users, q, filter, sort])
 
   // Team cards matching the search. Kept separate from `filtered` on purpose:
   // these are NOT users and must not be rendered as if they were.
@@ -292,7 +341,19 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
               })}
             </div>
 
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{filtered.length} of {users.length}</p>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{filtered.length} of {users.length}</p>
+              <label className="flex items-center gap-2">
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>Sort</span>
+                <select value={sort} onChange={e => setSort(e.target.value as SortId)}
+                  className="text-xs px-2 py-1.5 rounded-lg"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)' }}>
+                  {SORTS.map(s => (
+                    <option key={s.id} value={s.id} style={{ background: '#1a1a1a' }}>{s.label}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
 
             {/* An unclaimed team card has no user account, so it can never
                 appear here no matter what you type. Searching for one and
