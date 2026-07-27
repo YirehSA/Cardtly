@@ -26,6 +26,34 @@ function looksLikeEmail(s: string): boolean {
   return /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(s.trim())
 }
 
+// Ordering for the team list. Chosen around what you would act on: money not
+// yet collected, seats being paid for and not used, trials about to lapse.
+type OrgSortId = 'seats' | 'seats_asc' | 'revenue' | 'idle' | 'collect' | 'trial' | 'newest' | 'name'
+
+const ORG_SORTS: { id: OrgSortId; label: string }[] = [
+  { id: 'seats', label: 'Most seats' },
+  { id: 'seats_asc', label: 'Fewest seats' },
+  { id: 'revenue', label: 'Highest revenue' },
+  { id: 'idle', label: 'Most idle seats' },
+  { id: 'collect', label: 'Needs collecting' },
+  { id: 'trial', label: 'Trial ending soonest' },
+  { id: 'newest', label: 'Newest first' },
+  { id: 'name', label: 'Name A-Z' },
+]
+
+// Seats paid for that nobody has a card on.
+const idleSeats = (o: AdminOrgRow) => Math.max(0, o.maxSeats - o.cardsCreated)
+
+// Unlike the user list, an org's trialDaysLeft is already null unless the org
+// is genuinely on a trial (orgTrialDaysLeft checks the billing mode), so it
+// needs no extra guard here.
+function nullableAsc(a: number | null, b: number | null): number {
+  if (a === null && b === null) return 0
+  if (a === null) return 1
+  if (b === null) return -1
+  return a - b
+}
+
 // A date input wants YYYY-MM-DD in local time. toISOString() converts to UTC
 // first, which in SAST (+2) rolls back to the previous day for anything before
 // 02:00, so a "60 days" button clicked early in the morning would quietly set
@@ -59,6 +87,7 @@ interface Props {
 export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssignRep, onMarkCollected, onSuspend, onDept, loading }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
+  const [sort, setSort] = useState<OrgSortId>('seats')
   const [form, setForm] = useState<Form>({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '', billingStartsOn: '', ownerEmail: '', sendWelcome: true })
 
   function openEdit(o: AdminOrgRow) {
@@ -80,18 +109,50 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
   const revenue = orgs.filter(o => o.isRevenue).reduce((n, o) => n + o.monthlyRand, 0)
   const totalSeats = orgs.reduce((n, o) => n + o.maxSeats, 0)
 
+  // Copy before sorting: orgs is a prop, and sort() mutates in place.
+  const sortedOrgs = useMemo(() => {
+    const list = [...orgs]
+    switch (sort) {
+      case 'seats_asc': return list.sort((a, b) => a.maxSeats - b.maxSeats)
+      case 'revenue':   return list.sort((a, b) => b.monthlyRand - a.monthlyRand)
+      case 'idle':      return list.sort((a, b) => idleSeats(b) - idleSeats(a))
+      // Overdue first, then by longest since collected; anyone not due drops
+      // below them.
+      case 'collect':   return list.sort((a, b) =>
+        (Number(b.needsCollecting) - Number(a.needsCollecting)) ||
+        nullableAsc(a.lastCollectedOn ? new Date(a.lastCollectedOn).getTime() : null,
+                    b.lastCollectedOn ? new Date(b.lastCollectedOn).getTime() : null))
+      case 'trial':     return list.sort((a, b) => nullableAsc(a.trialDaysLeft, b.trialDaysLeft))
+      case 'newest':    return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      case 'name':      return list.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      default:          return list.sort((a, b) => b.maxSeats - a.maxSeats)
+    }
+  }, [orgs, sort])
+
   return (
     <div className="space-y-4">
       <Section
         title="Teams"
         sub={`${orgs.length} orgs · ${totalSeats} seats · ${randFmt(revenue)}/month actually billed`}
         right={
-          <button onClick={openCreate}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition hover:opacity-90"
-            style={{ background: grad }}>
-            {creating ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-            {creating ? 'Cancel' : 'New team'}
-          </button>
+          <div className="flex items-center gap-2">
+            {orgs.length > 1 && (
+              <select value={sort} onChange={e => setSort(e.target.value as OrgSortId)}
+                aria-label="Sort teams"
+                className="text-xs px-2 py-1.5 rounded-lg"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)' }}>
+                {ORG_SORTS.map(s => (
+                  <option key={s.id} value={s.id} style={{ background: '#1a1a1a' }}>{s.label}</option>
+                ))}
+              </select>
+            )}
+            <button onClick={openCreate}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition hover:opacity-90"
+              style={{ background: grad }}>
+              {creating ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+              {creating ? 'Cancel' : 'New team'}
+            </button>
+          </div>
         }
       >
         {creating && (
@@ -109,7 +170,7 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>No teams yet.</p>
         ) : (
           <div className="space-y-2">
-            {orgs.map(o => {
+            {sortedOrgs.map(o => {
               const idle = o.maxSeats - o.cardsCreated
               const busy = loading === `org-${o.adminUserId}`
               const meta = BILLING_MODE_META[o.billingMode]
