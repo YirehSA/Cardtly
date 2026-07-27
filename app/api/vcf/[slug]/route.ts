@@ -36,11 +36,26 @@ function esc(v: unknown): string {
 // RFC 2426 folding: no line over 75 octets. Continuations start with a single
 // space. This matters most for the base64 photo, which is thousands of
 // characters - unfolded, plenty of parsers drop it or import a broken contact.
+// Octets, not characters: a bio with a curly apostrophe (three bytes in UTF-8)
+// produced a 77-octet line while measuring only 75 characters. Folding also has
+// to land on character boundaries, or a multi-byte character split across two
+// lines is corrupt when rejoined.
 function fold(line: string): string {
-  if (line.length <= 75) return line
-  const out: string[] = [line.slice(0, 75)]
-  for (let i = 75; i < line.length; i += 74) out.push(' ' + line.slice(i, i + 74))
-  return out.join('\r\n')
+  if (Buffer.byteLength(line, 'utf8') <= 75) return line
+  const out: string[] = []
+  let current = ''
+  let limit = 75
+  for (const ch of line) {
+    if (Buffer.byteLength(current + ch, 'utf8') > limit) {
+      out.push(current)
+      current = ch
+      limit = 74 // a continuation's leading space takes one octet
+    } else {
+      current += ch
+    }
+  }
+  if (current) out.push(current)
+  return out.map((seg, i) => (i === 0 ? seg : ' ' + seg)).join('\r\n')
 }
 
 // "Andre Nel" -> N:Nel;Andre;;;  Phones use N for sorting and for showing a
@@ -119,6 +134,10 @@ export async function GET(
     `FN:${esc(c.name)}`,
     c.company ? `ORG:${esc(c.company)}` : null,
     c.title ? `TITLE:${esc(c.title)}` : null,
+    // Photo early, before any non-standard property. A parser that gives up on
+    // something it does not recognise has at least taken the picture by then.
+    photo ? `PHOTO;ENCODING=b;TYPE=JPEG:${photo.buffer.toString('base64')}` : null,
+
     c.email ? `EMAIL;TYPE=INTERNET,WORK:${esc(c.email)}` : null,
     c.phone ? `TEL;TYPE=CELL,VOICE:${esc(c.phone)}` : null,
     c.work_phone ? `TEL;TYPE=WORK,VOICE:${esc(c.work_phone)}` : null,
@@ -127,40 +146,31 @@ export async function GET(
     // note says so, so "you can WhatsApp this person" is never lost.
     c.whatsapp && c.whatsapp !== c.phone ? `TEL;TYPE=CELL,VOICE:${esc(c.whatsapp)}` : null,
 
-    // The Cardtly link IS the first URL, deliberately.
+    // Every link is a plain, ungrouped URL line, and the card comes first.
     //
-    // Without it the saved contact was a snapshot and nothing more: the only
-    // URL was the person's own website, so once the visitor closed the tab the
-    // card was unreachable, which quietly undoes the point of a card that
-    // updates itself. First because the first URL is what a phone shows as
-    // "Website", and the card is the better thing to land on: it is always
-    // current and it already lists the personal website.
+    // First, because the first URL is what a phone shows as "Website", and the
+    // card is the better thing to land on: it is always current and it already
+    // lists the personal website. Without it the saved contact would be a
+    // snapshot, which undoes the point of a card that updates itself.
     //
-    // Both are plain URL lines. An earlier attempt used `URL;TYPE=Cardtly:` to
-    // label it, which is not valid vCard 3.0 (RFC 2426 defines no TYPE for URL
-    // and would not accept that value), so parsers were free to drop the line
-    // entirely, i.e. exactly the field this is here to add.
-    // Every link is a plain, ungrouped URL line.
-    //
-    // These were written with Apple's item-grouping so each could carry a label
-    // ("Features", "WhatsApp"). That turns the property name into `item1.URL`,
-    // and Android's importer commonly keeps only properties it recognises - so
-    // the labels cost us the links themselves on the platform most of our users
-    // are on. Presence beats labelling: the titles now live in the note, where
-    // nothing can drop them.
+    // Plain and ungrouped, because these were written with Apple's item
+    // grouping so each could carry a label ("Features", "Pricing"). That turns
+    // the property name into `item1.URL`, and Android's importer commonly keeps
+    // only the properties it recognises - so the labels cost us the links
+    // themselves on the platform most of our users are on. Presence beats
+    // labelling; the titles live in the note, where nothing can drop them.
     `URL:${cardUrl}`,
     c.website ? `URL:${esc(c.website)}` : null,
     ...customLinks.map(l => `URL:${esc(l.url)}`),
     ...socials.map(s => `URL:${esc(s.url)}`),
 
     c.address ? `ADR;TYPE=WORK:;;${esc(c.address)};;;;` : null,
-
-    // Extra, not instead of: iOS reads this to show a tappable social row.
-    // Anything that does not understand it still has the plain URL lines above.
-    ...socials.map(s => `X-SOCIALPROFILE;TYPE=${s.service}:${esc(s.url)}`),
-
-    photo ? `PHOTO;ENCODING=b;TYPE=JPEG:${photo.buffer.toString('base64')}` : null,
     `NOTE:${note}`,
+
+    // Last on purpose. iOS reads this to show a tappable social row; everything
+    // else has the plain URL lines above, so if a parser stops here it has
+    // already taken every standard field.
+    ...socials.map(s => `X-SOCIALPROFILE;TYPE=${s.service}:${esc(s.url)}`),
     'END:VCARD',
   ]
 
