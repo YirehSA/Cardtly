@@ -74,9 +74,17 @@ export interface CardContactInput {
   company?: string | null
   email?: string | null
   phone?: string | null
+  workPhone?: string | null
   whatsapp?: string | null
   website?: string | null
   address?: string | null
+  bio?: string | null
+  /** The card's own URL. Saved first, so the contact keeps a way back to a card
+   *  that updates itself - not just a snapshot of today's details. */
+  cardUrl?: string | null
+  /** Profile photo URL. Converted to a small JPEG and embedded as the contact
+   *  picture; skipped silently if it cannot be fetched. */
+  photoUrl?: string | null
 }
 
 function splitName(full: string): { given: string; family: string | null } {
@@ -120,7 +128,36 @@ export async function saveContactNative(card: CardContactInput): Promise<void> {
     ? [{ type: PostalAddressType.Work, label: 'Work', street: card.address }]
     : []
 
-  const urls = card.website ? [card.website] : []
+  // Card URL first: the whole point of a digital card is that it stays current,
+  // so the contact needs a way back to it. This used to save only the person's
+  // own website, which meant a saved contact was frozen at the moment it was
+  // saved - the same gap the web vCard already avoided.
+  const urls = [card.cardUrl, card.website].filter(Boolean) as string[]
+
+  const note = [
+    card.bio || null,
+    card.cardUrl ? `Digital business card: ${card.cardUrl}` : null,
+  ].filter(Boolean).join('\n\n')
+
+  // The contact picture. Routed through our converter because photos are stored
+  // as WebP and the plugin wants base64 of something the OS can decode; JPEG is
+  // the safe choice. Best effort - a contact without a picture is fine, a failed
+  // save is not, so any problem here is swallowed.
+  let image: string | undefined
+  if (card.photoUrl) {
+    try {
+      const res = await fetch(`/api/email-image?url=${encodeURIComponent(card.photoUrl)}`)
+      if (res.ok) {
+        const buf = await res.arrayBuffer()
+        const bytes = new Uint8Array(buf)
+        let binary = ''
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+        image = btoa(binary)
+      }
+    } catch {
+      // no picture, carry on
+    }
+  }
 
   await Contacts.createContact({
     contact: {
@@ -132,6 +169,8 @@ export async function saveContactNative(card: CardContactInput): Promise<void> {
       emails: emails.length > 0 ? emails : undefined,
       postalAddresses: postalAddresses.length > 0 ? postalAddresses : undefined,
       urls: urls.length > 0 ? urls : undefined,
+      note: note || undefined,
+      image: image ? { base64String: image } : undefined,
     },
   })
 }

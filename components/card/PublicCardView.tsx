@@ -363,9 +363,15 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
                 company: card.company,
                 email: card.email,
                 phone: card.phone,
+                workPhone: (card as any).work_phone,
                 whatsapp: card.whatsapp,
                 website: card.website,
                 address: card.address,
+                bio: (card as any).bio,
+                // So the saved contact keeps a live link to the card, and a
+                // picture, exactly like the downloaded .vcf does.
+                cardUrl: `https://cardtly.com/card/${card.slug}`,
+                photoUrl: (card as any).profile_image_url,
               })
               toast.success('Saved to contacts')
               trackContactSave()
