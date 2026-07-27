@@ -78,6 +78,19 @@ const SORTS: { id: SortId; label: string }[] = [
 // same as somebody who signed in long ago, and should not top "quiet the
 // longest" as though it were measured.
 const time = (v: string | null | undefined) => (v ? new Date(v).getTime() : null)
+
+// Days left ONLY for someone actually running down a trial clock.
+//
+// trialDaysLeft is stamped on every user from their signup date, but status
+// takes precedence over it: a team member, a paying customer or a comped
+// account still carries the leftover date from when they first signed up. Left
+// unfiltered, "trial ending soonest" mixed TEAM rows in among the trials and
+// ranked them on a countdown that means nothing once the org covers the seat.
+function trialClock(u: AdminUserRow): number | null {
+  return (u.status === 'trial' || u.status === 'expiring' || u.status === 'expired')
+    ? (u.trialDaysLeft ?? null)
+    : null
+}
 function byNullableDesc(a: number | null, b: number | null): number {
   if (a === null && b === null) return 0
   if (a === null) return 1
@@ -154,7 +167,7 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
       case 'seen':       return matched.sort((a, b) => byNullableDesc(time(a.last_sign_in_at), time(b.last_sign_in_at)))
       case 'seen_asc':   return matched.sort((a, b) => byNullableAsc(time(a.last_sign_in_at), time(b.last_sign_in_at)))
       // Soonest to lapse first, and anyone not on a trial drops to the bottom.
-      case 'trial':      return matched.sort((a, b) => byNullableAsc(a.trialDaysLeft ?? null, b.trialDaysLeft ?? null))
+      case 'trial':      return matched.sort((a, b) => byNullableAsc(trialClock(a), trialClock(b)))
       case 'email':      return matched.sort((a, b) => (a.email || '').localeCompare(b.email || ''))
       default:           return matched.sort((a, b) => byNullableDesc(time(a.created_at), time(b.created_at)))
     }
