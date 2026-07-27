@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
+import { isInAppBrowser, detectInAppBrowser, isAndroid, chromeIntentUrl } from '@/lib/in-app-browser'
 import { waShareLink } from '@/lib/whatsapp'
 import SuspendedBanner from '@/components/card/SuspendedBanner'
 import { track, useTrackLinkClicks } from '@/lib/track'
@@ -211,6 +212,9 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
   // viewer to scroll and drag; this fitted overlay scales any shape to the
   // screen instead.
   const [lightbox, setLightbox] = useState<string | null>(null)
+  // Shown when Save Contact is tapped inside an in-app browser that cannot
+  // download the .vcf. See lib/in-app-browser.ts.
+  const [browserHint, setBrowserHint] = useState(false)
 
   // Per-card add-ons (off unless an admin enabled them for this client).
   const addons = (card as any).addons || {}
@@ -311,6 +315,42 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
         </div>
       )}
 
+      {/* The way out of an in-app browser. Portalled for the same reason as the
+          lightbox: an ancestor of the card is transformed, which would trap a
+          position:fixed overlay partway down the page. */}
+      {browserHint && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => setBrowserHint(false)}
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+        >
+          <div onClick={e => e.stopPropagation()}
+            className="w-full max-w-sm rounded-3xl p-6 animate-fade-in"
+            style={{ background: '#111', border: '1px solid rgba(255,255,255,0.12)' }}>
+            {/* Android never reaches this: there, Save Contact hands the file
+                straight to Chrome in one tap. This is the iOS path, where a web
+                page has no way to launch Safari itself. */}
+            <p className="font-bold text-white text-lg">Contact didn&apos;t save?</p>
+            <p className="text-sm mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              {detectInAppBrowser() || 'This app'}&apos;s built-in browser can&apos;t always save contact
+              files. Open this card in Safari and tap Save Contact again.
+            </p>
+            <p className="mt-4 text-xs rounded-xl px-3 py-2.5 leading-relaxed" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)' }}>
+              Tap the <strong>&#8943;</strong> or share icon at the bottom of this screen, then{' '}
+              <strong>Open in Safari</strong>.
+            </p>
+            <button onClick={() => setBrowserHint(false)}
+              className="mt-3 w-full py-2.5 rounded-2xl text-sm"
+              style={{ color: 'rgba(255,255,255,0.5)' }}>
+              It saved fine, dismiss
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* Fitted image viewer, rendered into <body> via a portal. Without the
           portal it lives inside the card, which has CSS transforms/filters on
           ancestors - and `position: fixed` is trapped by a transformed ancestor,
@@ -387,6 +427,29 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           // We can't confirm the OS saved it, so we prompt right after
           // the download starts.
           trackContactSave()
+
+          // A card opened from WhatsApp runs in WhatsApp's own WebView, which
+          // has no download manager - the navigation below does nothing at all
+          // and the visitor is left thinking they saved the contact. Since
+          // sharing on WhatsApp is how most cards travel, that silent failure
+          // is a lost contact every time.
+          //
+          // On Android, hand the .vcf straight to Chrome. That keeps it a single
+          // tap: Chrome opens and the contact downloads, with no second trip
+          // through the card and nothing for the visitor to work out. Telling
+          // them to go and do it again in another browser is friction on the one
+          // button that matters most.
+          if (isInAppBrowser()) {
+            if (isAndroid()) {
+              if (contactExchangeOn) setExchangeOpen(true)
+              window.location.href = chromeIntentUrl(`https://cardtly.com/api/vcf/${card.slug}`)
+              return
+            }
+            // iOS: a page cannot launch Safari, so the best available is to try
+            // the download and explain the menu route if it does nothing.
+            setBrowserHint(true)
+          }
+
           if (contactExchangeOn) {
             const a = document.createElement('a')
             a.href = `/api/vcf/${card.slug}`
