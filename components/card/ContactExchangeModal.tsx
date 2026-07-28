@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { UserPlus, X, Loader2, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import { describeContactError, CONTACT_NETWORK_ERROR } from '@/lib/contact-errors'
 
 // Shown right after a visitor saves the card owner's contact, when the
 // "contact exchange" add-on is enabled. Asks the visitor to share their
@@ -54,10 +55,14 @@ export default function ContactExchangeModal({ open, onClose, ownerName, cardId,
       if (res.ok) {
         setDone(true)
       } else {
-        toast.error('Could not share your details. Please try again.')
+        const data = await res.json().catch(() => ({}))
+        const { message, detail } = describeContactError(res.status, data?.error)
+        console.error('contact exchange failed:', detail)
+        toast.error(message, { duration: 8000 })
       }
-    } catch {
-      toast.error('Network error. Please try again.')
+    } catch (err) {
+      console.error('contact exchange network error:', err)
+      toast.error(CONTACT_NETWORK_ERROR, { duration: 8000 })
     }
     setSubmitting(false)
   }

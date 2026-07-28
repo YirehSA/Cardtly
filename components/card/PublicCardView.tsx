@@ -20,6 +20,7 @@ import QuestionnaireForm from './QuestionnaireForm'
 import InAppBackButton from '@/components/InAppBackButton'
 import BookingModal from './BookingModal'
 import AddToGoogleWalletButton from '@/components/wallet/AddToGoogleWalletButton'
+import { describeContactError, CONTACT_NETWORK_ERROR } from '@/lib/contact-errors'
 
 interface Props {
   card: Card & { _team_card_id?: string }
@@ -251,8 +252,18 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
         }),
       })
       if (res.ok) { setSubmitted(true); toast.success('Message sent!') }
-      else toast.error('Something went wrong')
-    } catch { toast.error('Something went wrong') }
+      else {
+        // Say what actually failed. "Something went wrong" left the visitor
+        // with nothing to fix and the owner with no idea a lead was lost.
+        const data = await res.json().catch(() => ({}))
+        const { message, detail } = describeContactError(res.status, data?.error)
+        console.error('contact form failed:', detail)
+        toast.error(message, { duration: 8000 })
+      }
+    } catch (err) {
+      console.error('contact form network error:', err)
+      toast.error(CONTACT_NETWORK_ERROR, { duration: 8000 })
+    }
     setSubmitting(false)
   }
 
