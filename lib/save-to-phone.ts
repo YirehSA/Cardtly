@@ -21,8 +21,14 @@ function buildVcard(c: CardContactInput): string {
   lines.push(`N:${escapeVcard(family)};${escapeVcard(given)};;;`)
   if (c.company || c.title) lines.push(`ORG:${escapeVcard(c.company || '')}`)
   if (c.title) lines.push(`TITLE:${escapeVcard(c.title)}`)
-  if (c.phone) lines.push(`TEL;TYPE=CELL:${escapeVcard(c.phone)}`)
-  if (c.whatsapp && c.whatsapp !== c.phone) lines.push(`TEL;TYPE=WhatsApp:${escapeVcard(c.whatsapp)}`)
+  if (c.phone) lines.push(`TEL;TYPE=CELL,VOICE:${escapeVcard(c.phone)}`)
+  // The office number was missing entirely, so a scanned card that had both
+  // saved only one of them.
+  if (c.workPhone && c.workPhone !== c.phone) lines.push(`TEL;TYPE=WORK,VOICE:${escapeVcard(c.workPhone)}`)
+  // TYPE=WhatsApp is not a valid vCard 3.0 type (RFC 2426 defines a fixed set),
+  // so parsers were free to drop the line - the same mistake that once hid the
+  // card URL in /api/vcf. A plain CELL line always imports.
+  if (c.whatsapp && c.whatsapp !== c.phone) lines.push(`TEL;TYPE=CELL,VOICE:${escapeVcard(c.whatsapp)}`)
   if (c.email) lines.push(`EMAIL;TYPE=WORK:${escapeVcard(c.email)}`)
   if (c.website) lines.push(`URL:${escapeVcard(c.website)}`)
   if (c.address) lines.push(`ADR;TYPE=WORK:;;${escapeVcard(c.address)};;;;`)

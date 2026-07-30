@@ -59,7 +59,13 @@ export default async function ContactsPage() {
     : supabase
   const { data: contacts } = await reader
     .from('contacts')
-    .select('id, name, email, phone, message, created_at, source, title, company, website, address, answers')
+    // select('*') rather than a column list. work_phone arrives with migration
+    // 045, applied by hand after the deploy, and an explicit list naming a
+    // column that does not exist yet returns 42703 - which would take down the
+    // entire contacts page, not just one field. Same reasoning as the ops
+    // digest. These rows are the user's own leads and every column is already
+    // shown to them.
+    .select('*')
     .eq(isTeam ? 'team_card_id' : 'card_id', card.id)
     .order('created_at', { ascending: false })
 

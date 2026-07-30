@@ -17,6 +17,9 @@ export interface ContactRow {
   company?: string | null
   email?: string | null
   phone?: string | null
+  /** Office / landline. phone is the mobile. Populated by the card scanner,
+   *  which used to keep only one of the two numbers on a card. */
+  work_phone?: string | null
   website?: string | null
   address?: string | null
   message?: string | null
@@ -51,7 +54,8 @@ const FIELDS: { key: keyof ContactRow; label: string; placeholder: string; type?
   { key: 'title',   label: 'Title',   placeholder: 'Job title' },
   { key: 'company', label: 'Company', placeholder: 'Company' },
   { key: 'email',   label: 'Email',   placeholder: 'name@company.com', type: 'email' },
-  { key: 'phone',   label: 'Phone',   placeholder: 'Phone number', type: 'tel' },
+  { key: 'phone',      label: 'Mobile', placeholder: 'Cell number', type: 'tel' },
+  { key: 'work_phone', label: 'Office', placeholder: 'Landline', type: 'tel' },
   { key: 'website', label: 'Website', placeholder: 'company.com' },
   { key: 'address', label: 'Address', placeholder: 'Postal address' },
   { key: 'message', label: 'Notes',   placeholder: 'Notes' },
@@ -77,7 +81,7 @@ export default function ContactCard({ contact, viaLabel }: { contact: ContactRow
         body: JSON.stringify({
           id: contact.id,
           name: form.name, title: form.title, company: form.company,
-          email: form.email, phone: form.phone, website: form.website,
+          email: form.email, phone: form.phone, work_phone: form.work_phone, website: form.website,
           address: form.address, notes: form.message,
         }),
       })
@@ -191,6 +195,12 @@ export default function ContactCard({ contact, viaLabel }: { contact: ContactRow
           {contact.email && (
             <a href={`mailto:${contact.email}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition">
               <Mail className="w-3.5 h-3.5 flex-shrink-0" />{contact.email}
+            </a>
+          )}
+          {contact.work_phone && (
+            <a href={`tel:${contact.work_phone}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition">
+              <Phone className="w-3.5 h-3.5 flex-shrink-0" />{contact.work_phone}
+              <span className="opacity-50">office</span>
             </a>
           )}
           {contact.phone && (

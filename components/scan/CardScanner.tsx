@@ -9,10 +9,12 @@ const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
 interface Parsed {
   name: string; title: string; company: string
-  email: string; phone: string; website: string; address: string
+  // phone is the mobile, work_phone the landline - matching the cards table.
+  // The scanner used to keep one number and silently drop the other.
+  email: string; phone: string; work_phone: string; website: string; address: string
 }
 
-const EMPTY: Parsed = { name: '', title: '', company: '', email: '', phone: '', website: '', address: '' }
+const EMPTY: Parsed = { name: '', title: '', company: '', email: '', phone: '', work_phone: '', website: '', address: '' }
 
 type Stage = 'capture' | 'scanning' | 'review'
 
@@ -133,7 +135,8 @@ export default function CardScanner() {
     if (!form.name.trim()) { toast.error('Add a name first'); return }
     const r = await saveToPhone({
       name: form.name, title: form.title, company: form.company,
-      email: form.email, phone: form.phone, website: form.website, address: form.address,
+      email: form.email, phone: form.phone, workPhone: form.work_phone,
+      website: form.website, address: form.address,
     })
     if (r.ok) {
       toast.success(r.method === 'native' ? 'Added to your phone contacts' : 'Contact downloaded — open it to add')
@@ -149,7 +152,8 @@ export default function CardScanner() {
     { key: 'title',   label: 'Title',   icon: <Briefcase className="w-4 h-4" />, placeholder: 'Job title' },
     { key: 'company', label: 'Company', icon: <Building2 className="w-4 h-4" />,  placeholder: 'Company' },
     { key: 'email',   label: 'Email',   icon: <Mail className="w-4 h-4" />,      type: 'email', placeholder: 'name@company.com' },
-    { key: 'phone',   label: 'Phone',   icon: <Phone className="w-4 h-4" />,     type: 'tel', placeholder: 'Phone number' },
+    { key: 'phone',      label: 'Mobile', icon: <Smartphone className="w-4 h-4" />, type: 'tel', placeholder: 'Cell number' },
+    { key: 'work_phone', label: 'Office', icon: <Phone className="w-4 h-4" />,      type: 'tel', placeholder: 'Landline (if on the card)' },
     { key: 'website', label: 'Website', icon: <Globe className="w-4 h-4" />,     placeholder: 'company.com' },
     { key: 'address', label: 'Address', icon: <MapPin className="w-4 h-4" />,    placeholder: 'Postal address' },
   ]

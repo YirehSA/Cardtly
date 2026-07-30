@@ -48,14 +48,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Image is too large. Try a smaller photo.' }, { status: 413 })
   }
 
+  // Two phone fields, not one.
+  //
+  // This asked for "the primary phone number" and got exactly one back - on a
+  // card carrying both a switchboard and a mobile, the model picked whichever
+  // came first, usually the office line, and the mobile was thrown away. The
+  // mobile is the number a salesperson actually wants.
   const prompt = [
     'You are reading a photo of a paper business card. Extract the contact details into JSON.',
     'Return ONLY a JSON object with these exact keys (use an empty string if a field is absent):',
-    '{ "name": "", "title": "", "company": "", "email": "", "phone": "", "website": "", "address": "" }',
+    '{ "name": "", "title": "", "company": "", "email": "", "mobile": "", "office": "", "website": "", "address": "" }',
     'Rules:',
     '- name: the person\'s full name (not the company).',
     '- title: their job title / role.',
-    '- phone: the primary phone number, digits and + only kept readable (keep the format on the card).',
+    '- mobile: the personal mobile or cell number. Cards label it Mobile, Cell, M, C, or Direct.',
+    '- office: the landline, switchboard, work, or office number. Cards label it Tel, T, Office, Work, or Landline.',
+    '- Read EVERY number on the card. A card often lists both; put each in the right field.',
+    '- If only one number is present and it is not labelled, decide by format: a South African mobile starts 06, 07, 08 or +27 6/7/8; a landline starts 01-05 or +27 1-5. If still unclear, put it in mobile.',
+    '- Never put the same number in both fields.',
+    '- Keep numbers readable in the format printed on the card.',
+    '- Ignore fax numbers entirely.',
     '- email: a single best email address.',
     '- website: the company or personal website, without "http://".',
     '- address: the full postal address on one line, if present.',
@@ -90,19 +102,28 @@ export async function POST(request: Request) {
     }
 
     const clean = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
+    const mobile = clean(parsed.mobile)
+    // `phone` is still accepted so an older client, or a model that answers with
+    // the previous single-field shape, does not come back empty.
+    const office = clean(parsed.office)
+    const legacy = clean(parsed.phone)
+
     const contact = {
-      name:    clean(parsed.name),
-      title:   clean(parsed.title),
-      company: clean(parsed.company),
-      email:   clean(parsed.email),
-      phone:   clean(parsed.phone),
-      website: clean(parsed.website),
-      address: clean(parsed.address),
+      name:       clean(parsed.name),
+      title:      clean(parsed.title),
+      company:    clean(parsed.company),
+      email:      clean(parsed.email),
+      // phone is the mobile, matching the cards table where phone is the cell
+      // and work_phone is the landline.
+      phone:      mobile || legacy,
+      work_phone: office && office !== (mobile || legacy) ? office : '',
+      website:    clean(parsed.website),
+      address:    clean(parsed.address),
     }
 
     // If nothing meaningful came back, tell the user rather than
     // handing them a blank form with no explanation.
-    if (!contact.name && !contact.email && !contact.phone && !contact.company) {
+    if (!contact.name && !contact.email && !contact.phone && !contact.work_phone && !contact.company) {
       return NextResponse.json({ error: 'No card details found. Make sure the whole card is in frame and well lit.' }, { status: 422 })
     }
 

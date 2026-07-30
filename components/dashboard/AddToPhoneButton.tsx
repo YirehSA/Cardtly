@@ -12,6 +12,7 @@ interface Props {
     company?: string | null
     email?: string | null
     phone?: string | null
+    work_phone?: string | null
     website?: string | null
     address?: string | null
   }
@@ -31,6 +32,7 @@ export default function AddToPhoneButton({ contact }: Props) {
       company: contact.company,
       email: contact.email,
       phone: contact.phone,
+      workPhone: contact.work_phone,
       website: contact.website,
       address: contact.address,
     })
