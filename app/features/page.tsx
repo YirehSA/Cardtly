@@ -448,7 +448,7 @@ const GROUPS: Group[] = [
 const FAQS = [
   {
     q: 'Is Cardtly free?',
-    a: 'Cardtly is free for your first 60 days, with no credit card needed to start. After that it is R97 per card per month, or R970 a year, and every feature is included. Teams are R97 a seat from 2 to 20 seats, and Enterprise above that is billed by debit order.',
+    a: 'Cardtly is R97 per card per month, or R970 a year, and every feature is included. No credit card is needed to create your card and set it up. Teams are R97 a seat from 2 to 20 seats, and Enterprise above that is billed by debit order.',
   },
   {
     q: 'What is a digital business card?',
@@ -475,8 +475,8 @@ const FAQS = [
     a: 'Yes. Cardtly for Teams gives every member an on-brand card with locked company branding, member-managed details, and one admin dashboard showing every card’s views and leads. It is priced per seat.',
   },
   {
-    q: 'What happens when my 60-day trial ends?',
-    a: 'Your card keeps its URL, its design and every contact you have captured. To keep it live after 60 days, subscribe for R97 a month or R970 a year. There are no feature tiers to choose between, so nothing about your card changes when you subscribe.',
+    q: 'What do I get for R97?',
+    a: 'Every feature on this page, on one card. There are no tiers to choose between and nothing is held back for a higher plan. Your card keeps its URL, its design and every contact you capture for as long as you subscribe.',
   },
 ]
 
@@ -525,7 +525,7 @@ export default function FeaturesPage() {
               <Link href="/signup"
                 className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:scale-[1.03]"
                 style={{ background: grad, boxShadow: '0 10px 44px rgba(124,58,237,0.5)' }}>
-                Start your 60-day trial
+                Sign up
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link href="/pricing"
@@ -646,7 +646,7 @@ export default function FeaturesPage() {
               <div className="flex-1 min-w-[260px]">
                 <h2 className="text-2xl md:text-3xl font-black tracking-tight mb-2">Cardtly for teams</h2>
                 <p className="text-base leading-relaxed mb-5 max-w-2xl" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                  Roll out one brand across the whole company, decide exactly which parts people may not change, and give each department a head who runs their own team. R97 per card a month, and the first 60 days are free.
+                  Roll out one brand across the whole company, decide exactly which parts people may not change, and give each department a head who runs their own team. R97 per card a month.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-6 max-w-xl">
                   {['Lock only what you choose', 'Departments with their own head', 'Their name, photo and title stay theirs', 'Reporting and leads per rep', 'One brand, or one per department', 'Add seats as you hire'].map(t => (
@@ -721,7 +721,7 @@ export default function FeaturesPage() {
                 <Link href="/signup"
                   className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:scale-[1.03]"
                   style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.5)' }}>
-                  Start your 60-day trial
+                  Sign up
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </Link>
                 <Link href="/how-it-works"

@@ -224,7 +224,7 @@ export default async function DashboardPage() {
               <>
                 <span className="font-bold">Your card is offline.</span>{' '}
                 <span className="text-muted-foreground">
-                  Your 60-day trial has ended, so {card?.slug ? `cardtly.com/card/${card.slug}` : 'your card link'} no longer opens.
+                  Your trial has ended, so {card?.slug ? `cardtly.com/card/${card.slug}` : 'your card link'} no longer opens.
                   Subscribe for R97 a month and it goes straight back live, same link, nothing lost.
                 </span>
               </>

@@ -143,12 +143,12 @@ export const metadata = {
   // Kept under ~155 characters so Google shows the whole line rather than
   // cutting it mid-sentence.
   description:
-    'One branded digital business card per rep. Tap to share, capture leads into your contacts, see which reps get opened. R97 a card, 60 days free.',
+    'One branded digital business card per rep. Tap to share, capture leads into your contacts, see which reps get opened. R97 a card a month.',
   alternates: { canonical: '/' },
   openGraph: {
     title: 'Digital Business Cards for Teams | Cardtly',
     description:
-      'One branded card per rep. Tap to share, capture leads automatically, track what happens next. R97 a card, 60 days free, NFC cards delivered across South Africa.',
+      'One branded card per rep. Tap to share, capture leads automatically, track what happens next. R97 a card a month, NFC cards delivered across South Africa.',
   },
 }
 
@@ -181,7 +181,7 @@ export default function HomePage() {
                 be ones we could stand behind if somebody asked. */}
             {[
               { n: 'R97',      label: 'Per card, per month' },
-              { n: '60 days',  label: 'Free, no card needed' },
+              { n: 'R97',  label: 'A card a month' },
               { n: '12',       label: 'Designed templates' },
               { n: '5–7 days', label: 'NFC card delivery, SA' },
             ].map(({ n, label }, i) => (
@@ -692,7 +692,7 @@ export default function HomePage() {
                 <Link href="/signup"
                   className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:scale-[1.03]"
                   style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.5)' }}>
-                  Start your 60-day trial
+                  Sign up
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </Link>
                 <Link href={PROMOS_ENABLED ? '/promotions' : '/pricing'}
@@ -701,7 +701,7 @@ export default function HomePage() {
                   {PROMOS_ENABLED ? 'See the prize ladder' : 'See pricing'}
                 </Link>
               </div>
-              <p className="text-xs mt-6" style={{ color: 'rgba(255,255,255,0.35)' }}>No credit card to start · Cancel anytime · R97 a month after 60 days</p>
+              <p className="text-xs mt-6" style={{ color: 'rgba(255,255,255,0.35)' }}>No credit card to start · Cancel anytime · R97 a card a month</p>
             </div>
           </div>
         </Reveal>

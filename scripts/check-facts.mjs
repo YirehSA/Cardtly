@@ -123,11 +123,32 @@ for (const file of [...marketingFiles('app'), ...marketingFiles('components/mark
   }
 }
 
+// A free trial is no longer something every signup gets. Since migration 046 it
+// comes from a code, and the marketing pages were swept of every "60 days free"
+// claim. This guard exists because that copy was true for months, and it is the
+// kind of line that gets pasted back from an older page without anyone noticing
+// it has become a promise the product does not keep.
+const TRIAL_CLAIMS = [
+  /60\s*days?\s*free/i,
+  /free\s+for\s+60/i,
+  /60[-\s]day\s+(?:free\s+)?trial/i,
+  /start\s+(?:your\s+)?free\s+trial/i,
+]
+
+for (const file of [...marketingFiles('app'), ...marketingFiles('components/marketing'), 'public/llms.txt']) {
+  let text
+  try { text = read(file) } catch { continue }
+  for (const re of TRIAL_CLAIMS) {
+    const m = text.match(re)
+    if (m) note(`${file} promises a free trial ("${m[0].trim()}"). A trial now comes from a code, so that is not true for every signup.`)
+  }
+}
+
 if (fail.length) {
-  console.error('\ncheck-facts: public/llms.txt contradicts the code.\n')
+  console.error('\ncheck-facts: copy contradicts the code.\n')
   for (const f of fail) console.error('  - ' + f)
-  console.error('\nFix public/llms.txt (or the constant, if the code is what changed).\n')
+  console.error('\nFix the copy (or the constant, if the code is what changed).\n')
   process.exit(1)
 }
 
-console.log(`check-facts: copy agrees with the code (R${seatPrice}/card, up to ${maxSeats} seats, NFC R${nfcPrice} + R${nfcShipping}, ${maxLinks} links, ${maxImages} gallery images).`)
+console.log(`check-facts: copy agrees with the code (R${seatPrice}/card, up to ${maxSeats} seats, NFC R${nfcPrice} + R${nfcShipping}, ${maxLinks} links, ${maxImages} gallery images, no free-trial promises).`)

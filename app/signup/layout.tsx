@@ -5,7 +5,7 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Start Your Free 60-Day Digital Business Card Trial',
   description:
-    'Have your digital business card live in 2 minutes, free for 60 days. Custom link, QR code, and contact-save built in. No credit card needed to start.',
+    'Have your digital business card live in 2 minutes. Custom link, QR code, and contact-save built in. No credit card needed to start.',
   alternates: { canonical: '/signup' },
 }
 

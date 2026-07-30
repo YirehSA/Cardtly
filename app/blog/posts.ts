@@ -379,7 +379,7 @@ export const POSTS: BlogPost[] = [
 
 <p>Cardtly is <strong>R97 per card per month</strong>. Self-serve billing covers 2 to 20 seats and is collected automatically. Above 20 seats it moves to a debit order arrangement rather than card payment, which is usually what a company that size wants anyway.</p>
 
-<p>Every account gets a 60-day free trial first, and that trial is the full product rather than a stripped-down preview. For a rollout that matters more than it sounds: two months is long enough to get everyone onboarded, sort out the branding, and see real numbers before anyone is billed.</p>
+<p>Every card is the full product rather than a stripped-down preview - there are no feature tiers to pick between, so a rollout does not start with a procurement argument about which plan each person needs. Trial periods are available on request if you want to onboard a team and settle the branding before billing starts.</p>
 
 <p>If you want physical cards too, an NFC card is R150 once-off plus R100 shipping in South Africa, delivered in 5 to 7 business days. Your artwork is included in that price. The physical card is optional - the digital card works by QR code and link without it.</p>
 
@@ -436,7 +436,7 @@ export const POSTS: BlogPost[] = [
       },
       {
         q: 'Do we have to pay before we can try it with the team?',
-        a: 'No. Every account starts with a 60-day free trial and it is the complete product, not a limited preview. That is generally long enough to onboard everyone and settle the branding before any billing starts.',
+        a: 'No. Every card is the complete product, not a limited preview, and there are no feature tiers to choose between. If you need time to onboard everyone and settle the branding before billing starts, ask us about a trial period.',
       },
       {
         q: 'Can different departments have their own branding?',
@@ -524,7 +524,7 @@ export const POSTS: BlogPost[] = [
       },
       {
         q: 'What does a Cardtly card cost per person?',
-        a: 'R97 per card per month. Self-serve billing covers 2 to 20 seats; above that it moves to a debit order arrangement. Every account starts with a 60-day free trial of the full product.',
+        a: 'R97 per card per month. Self-serve billing covers 2 to 20 seats; above that it moves to a debit order arrangement. Every card is the full product, and trial periods are available on request.',
       },
       {
         q: 'Do I still need printed cards?',

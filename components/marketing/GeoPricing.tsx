@@ -10,7 +10,7 @@ interface GeoPricingProps {
 
 // One plan, one price. This used to be a Free (R0 / forever) vs Pro
 // comparison, which stopped being true when the free tier was dropped
-// for a 60-day trial.
+// at R97 a card a month.
 //
 // Everyone is billed in ZAR via Paystack (international cards welcome,
 // the bank converts at checkout). No region detection needed, the price
@@ -37,7 +37,7 @@ export default function GeoPricing({ plan }: GeoPricingProps) {
           <UsdEstimate zar={97} suffix="/mo" className="block text-sm font-medium mb-1 text-white/70" />
           <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>ZAR · Billed monthly via Paystack. Cancel anytime.</p>
           <p className="text-sm mb-8 mt-3" style={{ color: 'rgba(255,255,255,0.45)' }}>
-            Free for your first 60 days. No credit card to start.
+            No credit card to start. Cancel anytime.
           </p>
         </div>
 
@@ -53,7 +53,7 @@ export default function GeoPricing({ plan }: GeoPricingProps) {
         <Link href="/signup"
           className="relative mt-8 block text-center py-3.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
           style={{ background: grad, boxShadow: '0 6px 30px rgba(124,58,237,0.4)' }}>
-          Start your 60-day trial <ArrowRight className="w-4 h-4 inline ml-1" />
+          Sign up <ArrowRight className="w-4 h-4 inline ml-1" />
         </Link>
         <Link href="/pricing"
           className="relative mt-3 block text-center py-3 rounded-xl text-sm font-semibold transition hover:bg-white/10"

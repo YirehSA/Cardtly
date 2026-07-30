@@ -93,7 +93,7 @@ export default function HeroSection() {
             <Link href="/signup"
               className="group flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition-all hover:scale-[1.03]"
               style={{ background: grad, boxShadow: '0 10px 44px rgba(124,58,237,0.5)' }}>
-              Get your card free
+              Sign up
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Link>
             <Link href="#teams"
@@ -105,7 +105,7 @@ export default function HeroSection() {
 
           <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-sm mb-8"
             style={{ color: 'rgba(255,255,255,0.45)' }}>
-            {['60 days free', 'No credit card', 'R97 a card after', 'Live in 2 minutes'].map(t => (
+            {['No credit card to start', 'R97 a card a month', 'Live in 2 minutes'].map(t => (
               <span key={t} className="flex items-center gap-1.5 whitespace-nowrap">
                 <Check className="w-3.5 h-3.5" style={{ color: '#22c55e' }} />{t}
               </span>

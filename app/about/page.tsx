@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   // it. absolute skips the template; this is 51.
   title: { absolute: 'About Cardtly | Digital Business Cards, South Africa' },
   description:
-    'Cardtly is a South African digital business card platform out to retire the paper card. Rand pricing, local NFC delivery, and 60 days free to start.',
+    'Cardtly is a South African digital business card platform out to retire the paper card. Rand pricing, local NFC delivery, and R97 a card a month.',
   alternates: { canonical: '/about' },
 }
 
@@ -55,7 +55,7 @@ export default function AboutPage() {
               <Link href="/signup"
                 className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:scale-[1.03]"
                 style={{ background: grad, boxShadow: '0 10px 44px rgba(124,58,237,0.5)' }}>
-                Start your 60-day trial
+                Sign up
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </Link>
             </div>

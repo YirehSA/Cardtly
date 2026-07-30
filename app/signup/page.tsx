@@ -193,7 +193,8 @@ export default function SignupPage() {
 
     // Being one of the first 100 no longer grants free Pro. The DB trigger
     // still stamps founder_number, which is all the "N/100" badge needs, and
-    // they get the same 60-day trial as everyone else.
+    // a referral does not carry a trial of its own; a trial comes from a
+    // trial code, or from the admin panel.
 
     // If Supabase returned a session, email confirmation is off and we
     // can take the user straight in. Otherwise the user must confirm

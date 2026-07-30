@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     template: '%s | Cardtly',
   },
   description:
-    'Create your digital business card in minutes, free for 60 days. Share with an NFC tap, QR code, or link. Track views, update anytime, add to Google Wallet. Built for South African professionals and teams - ZAR pricing, local NFC card delivery.',
+    'Create your digital business card in minutes. Share with an NFC tap, QR code, or link. Track views, update anytime, add to Google Wallet. Built for South African professionals and teams - ZAR pricing, local NFC card delivery.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com'),
   keywords: [
     'digital business card',

@@ -93,7 +93,7 @@ const FAQS: Array<{ q: string; a: string }> = [
   },
   {
     q: 'Is business networking included in my plan?',
-    a: 'Yes. The Network is part of Cardtly Pro at no extra cost, and it works during your 60-day free trial too. Team members on a company account get it as part of their seat.',
+    a: 'Yes. The Network is part of Cardtly Pro at no extra cost. Team members on a company account get it as part of their seat.',
   },
   {
     q: 'Can anyone on the internet see my details?',
@@ -189,7 +189,7 @@ export default function NetworkPage() {
                   className="group flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition-all hover:scale-[1.03]"
                   style={{ background: grad, boxShadow: '0 10px 44px rgba(124,58,237,0.5)' }}
                 >
-                  Start your free trial
+                  Sign up
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </Link>
                 <Link
@@ -458,8 +458,7 @@ export default function NetworkPage() {
               Get listed, and get found
             </h2>
             <p className="mt-4 text-white/60 leading-relaxed">
-              Every Cardtly Pro account includes the Network, and so does the 60-day
-              free trial. Set your industry when you sign up and the people looking
+              Every Cardtly Pro account includes the Network. Set your industry when you sign up and the people looking
               for what you do can find you.
             </p>
             <Link
@@ -467,7 +466,7 @@ export default function NetworkPage() {
               className="mt-9 inline-flex items-center justify-center gap-2 min-h-[52px] px-8 rounded-2xl font-bold transition hover:opacity-90"
               style={{ background: grad }}
             >
-              Start your free trial
+              Sign up
               <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </Link>
           </div>

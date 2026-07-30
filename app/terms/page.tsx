@@ -5,7 +5,7 @@ import Footer from '@/components/marketing/Footer'
 export const metadata: Metadata = {
   title: 'Terms of Service',
   description:
-    'The terms you agree to when using Cardtly: your account and card, billing in rand, the 60-day trial, cancellation, and how the service is run.',
+    'The terms you agree to when using Cardtly: your account and card, billing in rand, free trials, cancellation, and how the service is run.',
   // The root layout deliberately omits a canonical so it cannot point every
   // page at the homepage, which means pages without one have none at all.
   alternates: { canonical: '/terms' },
@@ -104,7 +104,7 @@ export default function TermsPage() {
 
           <Section title="5. Subscriptions and payment">
             <p>
-              Cardtly is offered with a 60-day free trial, which requires no payment details to start. After the trial ends, a paid subscription is required to keep your card live. Subscriptions are billed in advance on a monthly or annual cycle through our payment processor Paystack. By subscribing you authorise Paystack to charge your card on each billing cycle until you cancel.
+              Creating an account and building a card requires no payment details. A paid subscription is required to make your card live and keep it live. Free trial periods are offered at our discretion, usually by way of a trial code, and the length of any trial is the period stated when the code is issued. Subscriptions are billed in advance on a monthly or annual cycle through our payment processor Paystack. By subscribing you authorise Paystack to charge your card on each billing cycle until you cancel.
             </p>
             <p>
               You can cancel at any time from your account settings. Cancellation takes effect at the end of the current billing period. We do not offer refunds for partial periods, except where required by law.

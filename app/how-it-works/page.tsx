@@ -57,7 +57,7 @@ const STEPS = [
 
 // Kept deliberately in step with the Pro list on /pricing, which is
 // the canonical page. There is no longer a free tier to compare
-// against: every card is Pro, free for the first 60 days.
+// against: every card is Pro, at R97 a card a month.
 const PLAN_FEATURES = [
   'Your own card URL at cardtly.com/card/you',
   '12 card templates',
@@ -105,7 +105,7 @@ export default function HowItWorksPage() {
               <Link href="/signup"
                 className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:scale-[1.03]"
                 style={{ background: grad, boxShadow: '0 10px 44px rgba(124,58,237,0.5)' }}>
-                Start your 60-day trial
+                Sign up
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link href="/features"
@@ -169,7 +169,7 @@ export default function HowItWorksPage() {
             <h2 className="text-4xl font-black tracking-tight mb-3">
               One plan. <span style={gradText}>Everything included.</span>
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.45)' }}>Try it free for 60 days. Keep it for R97 a month.</p>
+            <p style={{ color: 'rgba(255,255,255,0.45)' }}>Every feature on one card, for R97 a month.</p>
           </div>
           <GeoPricing plan={PLAN_FEATURES} />
         </div>
@@ -188,7 +188,7 @@ export default function HowItWorksPage() {
             <Link href="/signup"
               className="px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:opacity-90"
               style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.35)' }}>
-              Start your 60-day trial <ArrowRight className="w-4 h-4 inline ml-1" />
+              Sign up <ArrowRight className="w-4 h-4 inline ml-1" />
             </Link>
             <Link href="/contact"
               className="px-8 py-4 rounded-2xl text-base font-medium transition hover:bg-white/5"

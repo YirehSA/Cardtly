@@ -10,7 +10,7 @@ import { Check, ArrowRight, Zap, Building2 } from 'lucide-react'
 export const metadata: Metadata = {
   title: 'Digital Business Card Pricing, R97 a Month',
   description:
-    'Free for 60 days, then R97 per card a month or R970 a year. Teams of 2 to 20 seats at R97 each, with departments and branding locks. NFC card R150.',
+    'R97 per card a month or R970 a year. Teams of 2 to 20 seats at R97 each, with departments and branding locks. NFC card R150.',
   alternates: { canonical: '/pricing' },
 }
 
@@ -79,7 +79,7 @@ export default function PricingPage() {
       <Navbar />
 
       {/* Hero. Left-aligned and capped in rem, matching the home and features
-          heroes. The 60-day trial was not mentioned anywhere on this page -
+          heroes. The trial was not mentioned anywhere on this page -
           the strongest thing in the offer, absent from the page where people
           decide. */}
       <section className="relative overflow-hidden px-6 lg:px-12 xl:px-16 pt-32 pb-16 lg:pt-40 lg:pb-20">
@@ -97,13 +97,13 @@ export default function PricingPage() {
             <p className="animate-fade-up-delayed text-lg xl:text-xl leading-relaxed max-w-xl mx-auto lg:mx-0 mb-8"
               style={{ color: 'rgba(255,255,255,0.6)' }}>
               R97 a card per month, whether it is just you or your whole team. No feature tiers, no surprises -
-              and the first 60 days are free.
+              with every feature included.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Link href="/signup"
                 className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:scale-[1.03]"
                 style={{ background: grad, boxShadow: '0 10px 44px rgba(124,58,237,0.5)' }}>
-                Start your 60-day trial
+                Sign up
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link href="/features"
@@ -117,7 +117,7 @@ export default function PricingPage() {
           {/* The three things people actually want to know before scrolling. */}
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-4">
             {[
-              { k: '60 days', v: 'Free to start, no credit card' },
+              { k: 'R97', v: 'A card a month, all features' },
               { k: 'R97', v: 'Per card, per month, everything included' },
               { k: 'Cancel anytime', v: 'No lock-in, no cancellation fee' },
             ].map(({ k, v }) => (
