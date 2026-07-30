@@ -37,7 +37,7 @@ export default function GeoPricing({ plan }: GeoPricingProps) {
           <UsdEstimate zar={97} suffix="/mo" className="block text-sm font-medium mb-1 text-white/70" />
           <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>ZAR · Billed monthly via Paystack. Cancel anytime.</p>
           <p className="text-sm mb-8 mt-3" style={{ color: 'rgba(255,255,255,0.45)' }}>
-            No credit card to start. Cancel anytime.
+            Free trial on request. Cancel anytime.
           </p>
         </div>
 

@@ -353,7 +353,7 @@ export default function SignupPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest mb-5"
             style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff' }}>
             <Sparkles className="w-3 h-3" />
-            Free trial with a code · No credit card
+            No credit card needed · Live in 2 minutes
           </div>
           <h1 className="text-3xl font-black text-white tracking-tight mb-2">
             Create your <span style={gradText}>card</span>

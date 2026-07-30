@@ -9,6 +9,7 @@ import { NFC_STATUSES } from '@/lib/nfc'
 import { ORG_BILLING_MODES, MAX_SELF_SERVE_SEATS, orgBillingStartsInDays } from '@/lib/org-billing'
 import { findUserByEmail } from '@/lib/department-perms'
 import { orgSlugPrefix } from '@/lib/card-slug'
+import { normaliseCode } from '@/lib/trial-codes'
 import { sendTeamOwnerWelcome } from '@/lib/team-owner-invite'
 
 export async function POST(request: Request) {
@@ -147,15 +148,130 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, paystackCancelled: cancelled.length })
   }
 
-  // Extend (or set) a user's trial.
+  // Set a trial to an exact date, rather than adding days to it.
   //
-  // New. There was no way to do this at all: "give them another two weeks"
-  // meant opening the SQL editor against production, which is not something
-  // anyone should be doing to hand out a courtesy.
+  // extend_trial further down answers "give them another two weeks". This
+  // answers "their trial ends on the 30th", which is what you actually agree
+  // with a customer on a call - and it is the only way to shorten one.
+  if (action === 'set_trial_end') {
+    const { user_id, ends_on } = body as { user_id?: string; ends_on?: string }
+    if (!user_id) return NextResponse.json({ error: 'user_id required' }, { status: 400 })
+
+    // Empty clears the trial: they fall back to paying, which is the state a new
+    // signup without a code is in.
+    let next: string | null = null
+    if (ends_on) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(ends_on)) {
+        return NextResponse.json({ error: `"${ends_on}" is not a date` }, { status: 400 })
+      }
+      // End of that day, so a trial "ending on the 30th" is live all through it.
+      const t = new Date(`${ends_on}T23:59:59.999Z`).getTime()
+      if (!Number.isFinite(t)) return NextResponse.json({ error: `"${ends_on}" is not a date` }, { status: 400 })
+      next = new Date(t).toISOString()
+    } else {
+      // Not null: planFromTrial reads a missing date as "still trialing" - it
+      // fails open so a live card never goes dark - so clearing to null would
+      // hand out an unlimited free Pro instead of ending the trial.
+      next = new Date().toISOString()
+    }
+
+    const { error } = await admin.from('profiles').update({ trial_ends_at: next }).eq('user_id', user_id)
+    if (error) {
+      console.error('set_trial_end failed:', error)
+      return NextResponse.json({ error: `Could not set the trial: ${error.message}` }, { status: 500 })
+    }
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email,
+      action: 'set_trial_end', targetUserId: user_id, detail: { ends_on: ends_on || null },
+    })
+    return NextResponse.json({ success: true, trial_ends_at: next })
+  }
+
+  // Create or update a trial code.
+  if (action === 'upsert_trial_code') {
+    const { id, code, days, active, expires_on, max_uses, notes } = body
+    const clean = normaliseCode(code)
+    if (!clean || clean.length < 3) {
+      return NextResponse.json({ error: 'A code needs at least 3 characters' }, { status: 400 })
+    }
+    const d = Number(days)
+    if (!Number.isInteger(d) || d < 1 || d > 365) {
+      return NextResponse.json({ error: 'Days must be a whole number between 1 and 365' }, { status: 400 })
+    }
+    let cap: number | null = null
+    if (max_uses !== undefined && max_uses !== null && String(max_uses) !== '') {
+      cap = Number(max_uses)
+      if (!Number.isInteger(cap) || cap < 1) {
+        return NextResponse.json({ error: 'A usage cap must be a whole number of 1 or more' }, { status: 400 })
+      }
+    }
+    let expiresAt: string | null = null
+    if (expires_on) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(expires_on)) {
+        return NextResponse.json({ error: `"${expires_on}" is not a date` }, { status: 400 })
+      }
+      expiresAt = new Date(`${expires_on}T23:59:59.999Z`).toISOString()
+    }
+
+    const fields: Record<string, any> = {
+      code: clean,
+      days: d,
+      active: active !== false,
+      expires_at: expiresAt,
+      max_uses: cap,
+      notes: notes ? String(notes).slice(0, 300) : null,
+      updated_at: new Date().toISOString(),
+    }
+
+    const { error } = id
+      ? await admin.from('trial_codes').update(fields).eq('id', id)
+      : await admin.from('trial_codes').insert(fields)
+
+    if (error) {
+      if (error.code === '42P01') {
+        return NextResponse.json({ error: 'Not available yet: migration 046 has not been run on this database.' }, { status: 503 })
+      }
+      // A code is unique, so a duplicate is a real mistake worth naming.
+      if (error.code === '23505') {
+        return NextResponse.json({ error: `The code ${clean} already exists.` }, { status: 409 })
+      }
+      console.error('upsert_trial_code failed:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email,
+      action: id ? 'update_trial_code' : 'create_trial_code', detail: { code: clean, days: d },
+    })
+    return NextResponse.json({ success: true, code: clean })
+  }
+
+  // Codes are never deleted, only switched off.
+  //
+  // profiles.trial_code records which code granted a trial, so deleting one
+  // would orphan that record and lose the ability to say where a trial came
+  // from. Deactivating stops new redemptions and keeps the history.
+  if (action === 'set_trial_code_active') {
+    const { id, active } = body as { id?: string; active?: boolean }
+    if (!id || typeof active !== 'boolean') {
+      return NextResponse.json({ error: 'id and active required' }, { status: 400 })
+    }
+    const { error } = await admin
+      .from('trial_codes')
+      .update({ active, updated_at: new Date().toISOString() })
+      .eq('id', id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email,
+      action: active ? 'enable_trial_code' : 'disable_trial_code', detail: { id },
+    })
+    return NextResponse.json({ success: true })
+  }
+
+  // Add days to a user's trial.
   //
   // Extends from whichever is later, now or their current end date, so
   // extending an already-expired trial gives the full extra time rather than
-  // adding days to a date in the past.
+  // adding days to a date already in the past.
   if (action === 'extend_trial') {
     const { user_id, days } = body
     const n = Number(days)

@@ -46,6 +46,18 @@ export interface AdminUserRow {
   repId: string | null
 }
 
+export interface TrialCodeRow {
+  id: string
+  code: string
+  days: number
+  active: boolean
+  expires_at: string | null
+  max_uses: number | null
+  uses: number
+  notes: string | null
+  created_at: string
+}
+
 export interface DeptRow {
   id: string
   name: string
@@ -368,10 +380,29 @@ export async function loadAdminData(admin: any) {
     paystackSubs: paystack.subs,
   }
 
+  // Trial codes. Fetched on its own rather than added to the Promise.all above:
+  // that array binds by position and carries a warning saying so, and this is
+  // not worth risking every other result over. Tolerant too, since the table
+  // arrives with migration 046 - a missing table should cost the codes tab, not
+  // the whole admin panel.
+  const trialCodes: TrialCodeRow[] = await (async () => {
+    try {
+      const { data, error } = await admin
+        .from('trial_codes')
+        .select('id, code, days, active, expires_at, max_uses, uses, notes, created_at')
+        .order('days', { ascending: true })
+      if (error) return []
+      return (data || []) as TrialCodeRow[]
+    } catch {
+      return []
+    }
+  })()
+
   return {
     users: rows,
     orgs: orgRows,
     reps,
+    trialCodes,
     cards: (cards || []).map((c: any) => ({ ...c, views_30d: views30dByCard[c.id] || 0 }))
       .sort((a: any, b: any) => (b.views_30d - a.views_30d) || ((b.view_count || 0) - (a.view_count || 0))),
     teamCards: (teamCards || []).map((tc: any) => ({ ...tc, org_name: orgById[tc.organization_id]?.name || null }))

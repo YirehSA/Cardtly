@@ -7,13 +7,14 @@ import { toast } from 'sonner'
 import {
   Users as UsersIcon, Building2, Search, Loader2, Trash2, Mail, MailCheck,
   KeyRound, Lock, Shield, Sparkles, ChevronDown, ChevronUp, ExternalLink, Megaphone,
-  ScrollText, Wifi, AlertTriangle, CalendarClock, X, LayoutGrid, UserCog, Banknote,
+  ScrollText, Wifi, AlertTriangle, CalendarClock, X, LayoutGrid, UserCog, Banknote, Ticket,
 } from 'lucide-react'
 import TeamsTab from './TeamsTab'
+import TrialsTab from './TrialsTab'
 import RepsTab from './RepsTab'
 import { Stat, Section, StatusPill, STATUS_META, grad, inputClass, inputStyle, fmtDate, fmtWhen, randFmt } from './shared'
 import { NFC_STATUSES, NFC_STATUS_COLORS, NFC_STATUS_LABELS, type NfcStatus } from '@/lib/nfc'
-import type { AdminUserRow, AdminOrgRow, UserStatus } from '@/lib/admin-data'
+import type { AdminUserRow, AdminOrgRow, UserStatus, TrialCodeRow } from '@/lib/admin-data'
 import type { RepStats } from '@/lib/reps'
 
 interface Stats {
@@ -38,11 +39,12 @@ interface Props {
   nfcOrders: any[]
   audit: any[]
   reps: RepStats[]
+  trialCodes: TrialCodeRow[]
   stats: Stats
   announcement: any | null
 }
 
-type Tab = 'overview' | 'users' | 'teams' | 'reps' | 'nfc' | 'activity'
+type Tab = 'overview' | 'users' | 'teams' | 'trials' | 'reps' | 'nfc' | 'activity'
 type Filter = 'all' | UserStatus | 'admins' | 'unconfirmed'
 
 const FILTERS: { id: Filter; label: string }[] = [
@@ -104,7 +106,7 @@ function byNullableAsc(a: number | null, b: number | null): number {
   return a - b
 }
 
-export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrders, audit, reps, stats, announcement }: Props) {
+export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrders, audit, reps, trialCodes, stats, announcement }: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('overview')
   const [q, setQ] = useState('')
@@ -245,6 +247,7 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
             ['overview', 'Overview', LayoutGrid],
             ['users', 'Users', UsersIcon],
             ['teams', 'Teams', Building2],
+            ['trials', 'Trials', Ticket],
             ['reps', 'Reps', UserCog],
             ['nfc', 'NFC orders', Wifi],
             ['activity', 'Activity', ScrollText],
@@ -426,6 +429,20 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
             }, `${f.name}: ${f.seats} seats, ${f.mode === 'comp' ? 'free' : f.mode.replace('_', ' ')}${f.mode === 'debit_order' && f.billingStartsOn ? `, free until ${f.billingStartsOn}` : ''}`)} />
         )}
 
+        {tab === 'trials' && (
+          <TrialsTab codes={trialCodes} loading={loading}
+            onSave={(f) => run('code-save', {
+              action: 'upsert_trial_code',
+              id: f.id, code: f.code, days: Number(f.days), active: f.active,
+              max_uses: f.maxUses === '' ? null : Number(f.maxUses),
+              expires_on: f.expiresOn || null,
+              notes: f.notes || null,
+            }, `${f.code} saved`)}
+            onToggle={(id, active) => run(`code-${id}`, { action: 'set_trial_code_active', id, active },
+              active ? 'Code switched on' : 'Code switched off')}
+          />
+        )}
+
         {tab === 'reps' && (
           <RepsTab reps={reps} loading={loading}
             onDelete={(r) => {
@@ -480,6 +497,10 @@ function UserRow({ u, expanded, onToggle, run, loading, reps }: {
   loading: string | null
 }) {
   const [extend, setExtend] = useState('14')
+  // The exact end date, alongside "extend by N days". Setting a date is how you
+  // honour "your trial runs to the 30th", and clearing it is the only way to
+  // END a trial early - extending can never shorten one.
+  const [trialEnd, setTrialEnd] = useState(u.trialEndsAt ? u.trialEndsAt.slice(0, 10) : '')
 
   return (
     <div className="rounded-xl border" style={{ borderColor: 'rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}>
@@ -552,6 +573,19 @@ function UserRow({ u, expanded, onToggle, run, loading, reps }: {
                   className="px-2.5 py-1 rounded-lg text-xs font-semibold transition hover:bg-white/10 disabled:opacity-40"
                   style={{ border: '1px solid rgba(168,85,247,0.4)', color: '#a855f7' }}>
                   {loading === `trial-${u.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Extend'}
+                </button>
+                <span className="text-[11px] px-1" style={{ color: 'rgba(255,255,255,0.25)' }}>or</span>
+                <input type="date" value={trialEnd} onChange={e => setTrialEnd(e.target.value)}
+                  title="Set the exact date this trial ends"
+                  className="px-2 py-1 rounded-lg border text-xs text-white" style={inputStyle} />
+                <button
+                  disabled={loading === `trialend-${u.id}`}
+                  onClick={() => run(`trialend-${u.id}`, { action: 'set_trial_end', user_id: u.id, ends_on: trialEnd || null },
+                    trialEnd ? `Trial now ends ${trialEnd}` : 'Trial ended')}
+                  title={trialEnd ? 'Set the trial to end on this date' : 'Clear the date to end the trial now'}
+                  className="px-2.5 py-1 rounded-lg text-xs font-semibold transition hover:bg-white/10 disabled:opacity-40"
+                  style={{ border: '1px solid rgba(14,165,233,0.4)', color: '#0ea5e9' }}>
+                  {loading === `trialend-${u.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : (trialEnd ? 'Set' : 'End now')}
                 </button>
               </div>
             </div>

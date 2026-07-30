@@ -701,7 +701,7 @@ export default function HomePage() {
                   {PROMOS_ENABLED ? 'See the prize ladder' : 'See pricing'}
                 </Link>
               </div>
-              <p className="text-xs mt-6" style={{ color: 'rgba(255,255,255,0.35)' }}>No credit card to start · Cancel anytime · R97 a card a month</p>
+              <p className="text-xs mt-6" style={{ color: 'rgba(255,255,255,0.35)' }}>Free trial on request · Cancel anytime · R97 a card a month</p>
             </div>
           </div>
         </Reveal>
