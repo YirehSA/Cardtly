@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { UserCog, Loader2, Plus, X, Check, TrendingUp, Users as UsersIcon, Building2, Trash2, CalendarRange, Banknote } from 'lucide-react'
 import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
 import type { RepStats } from '@/lib/reps'
+import { statusMeta, outcomeMeta } from '@/lib/rep-meetings'
 
 interface Form {
   repId: string | null
@@ -22,16 +23,18 @@ interface Props {
   reps: RepStats[]
   onSave: (f: Form) => Promise<boolean>
   onDelete: (rep: RepStats) => Promise<boolean>
+  onLinkLogin: (rep: RepStats) => Promise<boolean>
   onRecordPayout: (rep: RepStats, paid: boolean) => Promise<boolean>
   loading: string | null
 }
 
 const EMPTY: Form = { repId: null, name: '', email: '', phone: '', target: '250', rate: '10', day: '25', startedOn: '', notes: '', active: true }
 
-export default function RepsTab({ reps, onSave, onDelete, onRecordPayout, loading }: Props) {
+export default function RepsTab({ reps, onSave, onDelete, onLinkLogin, onRecordPayout, loading }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [meetingsOpen, setMeetingsOpen] = useState<string | null>(null)
   const [form, setForm] = useState<Form>(EMPTY)
 
   function openEdit(r: RepStats) {
@@ -148,11 +151,32 @@ export default function RepsTab({ reps, onSave, onDelete, onRecordPayout, loadin
                         style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)' }}>
                         {expanded === r.id ? 'Hide' : `Clients (${r.clients.length})`}
                       </button>
+                      <button onClick={() => setMeetingsOpen(meetingsOpen === r.id ? null : r.id)}
+                        className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10"
+                        style={{ border: '1px solid rgba(14,165,233,0.35)', color: '#0ea5e9' }}>
+                        {meetingsOpen === r.id ? 'Hide' : `Meetings (${r.meetings.length})`}
+                      </button>
                       <button onClick={() => openEdit(r)}
                         className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10"
                         style={{ border: '1px solid rgba(168,85,247,0.35)', color: '#a855f7' }}>
                         Edit
                       </button>
+                      {/* A rep with no login cannot log a meeting at all, so
+                          this is the first thing to fix on a new rep. */}
+                      {r.user_id ? (
+                        <span className="text-[11px] self-center px-2 py-1 rounded-md"
+                          style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }}>
+                          Has a login
+                        </span>
+                      ) : (
+                        <button onClick={() => onLinkLogin(r)}
+                          disabled={loading === `replink-${r.id}` || !r.email}
+                          title={r.email ? `Create or link a Cardtly login for ${r.email}` : 'Add an email address to this rep first'}
+                          className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10 disabled:opacity-40"
+                          style={{ border: '1px solid rgba(34,197,94,0.35)', color: '#22c55e' }}>
+                          {loading === `replink-${r.id}` ? 'Working...' : 'Give them a login'}
+                        </button>
+                      )}
                       <span className="ml-auto text-[11px] self-center" style={{ color: 'rgba(255,255,255,0.3)' }}>
                         Book: {randFmt(r.bookMrrRand)}/mo
                       </span>
@@ -182,6 +206,53 @@ export default function RepsTab({ reps, onSave, onDelete, onRecordPayout, loadin
                             : 'No clients linked, so nothing is lost.'}
                         </p>
                       </div>
+                    </div>
+                  )}
+
+                  {meetingsOpen === r.id && (
+                    <div className="px-3.5 pb-3.5 pt-1 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                      {r.meetings.length === 0 ? (
+                        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                          {r.user_id
+                            ? 'No meetings logged yet.'
+                            : 'No login yet, so they have no way to log a meeting.'}
+                        </p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {r.meetings.map(m => {
+                            const st = statusMeta(m.status)
+                            const oc = outcomeMeta(m.outcome)
+                            return (
+                              <div key={m.id} className="rounded-lg p-2.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs font-semibold text-white">{m.company}</span>
+                                  {m.contact_name && (
+                                    <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{m.contact_name}</span>
+                                  )}
+                                  <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                                    style={{ background: st.colour + '22', color: st.colour, border: `1px solid ${st.colour}55` }}>
+                                    {st.label}
+                                  </span>
+                                  {oc && (
+                                    <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                                      style={{ background: oc.colour + '22', color: oc.colour, border: `1px solid ${oc.colour}55` }}>
+                                      {oc.label}
+                                    </span>
+                                  )}
+                                  <span className="ml-auto text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                                    {fmtDate(m.scheduled_at)}
+                                  </span>
+                                </div>
+                                {m.notes && (
+                                  <p className="text-[11px] mt-1.5 whitespace-pre-wrap leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                                    {m.notes}
+                                  </p>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
 

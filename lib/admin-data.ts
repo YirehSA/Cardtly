@@ -322,6 +322,23 @@ export async function loadAdminData(admin: any) {
   // Reps. Each one is scored only on the clients attributed to them: their
   // paying cards vs their target, with trials shown separately as pipeline
   // rather than counted as money.
+  // Every rep's meetings, for the admin view. Fetched on its own and
+  // tolerantly, for the same reasons as the trial codes further down.
+  const meetingsByRep: Record<string, any[]> = await (async () => {
+    try {
+      const { data, error } = await admin
+        .from('rep_meetings')
+        .select('id, rep_id, company, contact_name, scheduled_at, status, outcome, notes')
+        .order('scheduled_at', { ascending: false })
+      if (error) return {}
+      const out: Record<string, any[]> = {}
+      for (const m of data || []) (out[(m as any).rep_id] ||= []).push(m)
+      return out
+    } catch {
+      return {}
+    }
+  })()
+
   const reps: RepStats[] = ((repRows || []) as RepRow[]).map((rep) => computeRep(
     rep,
     rows.filter(r => r.repId === rep.id).map(r => ({
@@ -339,6 +356,7 @@ export async function loadAdminData(admin: any) {
       billingPeriod: o.billingMode,
     })),
     (payoutRows || []).filter((p: any) => p.rep_id === rep.id),
+    meetingsByRep[rep.id] || [],
   ))
 
   const byStatus = (s: UserStatus) => rows.filter(r => r.status === s).length

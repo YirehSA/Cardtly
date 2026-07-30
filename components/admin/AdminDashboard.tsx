@@ -445,6 +445,12 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
 
         {tab === 'reps' && (
           <RepsTab reps={reps} loading={loading}
+            onLinkLogin={(r) => {
+              if (!confirm(`Give ${r.name} a Cardtly login?
+
+${r.email} will be able to sign in and log their meetings. If that address has no account yet, one is created and they get an email to choose a password.`)) return Promise.resolve(false)
+              return run(`replink-${r.id}`, { action: 'link_rep_login', rep_id: r.id }, `${r.name} can now sign in`)
+            }}
             onDelete={(r) => {
               const n = r.clients.length
               if (!confirm(n

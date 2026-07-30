@@ -26,6 +26,10 @@ export interface RepRow {
   active: boolean
   started_on: string | null
   notes: string | null
+  /** The Cardtly account this rep signs in with. NULL until admin links one,
+   *  and the gate on whether they can see the Meetings panel at all. Arrives
+   *  with migration 047. */
+  user_id?: string | null
 }
 
 export interface CommissionPeriod {
@@ -98,6 +102,18 @@ export interface RepStats extends RepRow {
   // How far off target, when under.
   shortBy: number
   clients: RepClient[]
+  /** Their meetings, for the admin view. Newest first. */
+  meetings: RepMeetingSummary[]
+}
+
+export interface RepMeetingSummary {
+  id: string
+  company: string
+  contact_name: string | null
+  scheduled_at: string
+  status: string
+  outcome: string | null
+  notes: string | null
 }
 
 const PRO_RAND = 97
@@ -118,6 +134,7 @@ export function computeRep(
   personal: Array<{ userId: string; email: string | null; name: string | null; sub: any; trialEndsAt: string | null; hasCard: boolean }>,
   orgs: Array<{ id: string; name: string; maxSeats: number; billingPeriod: string | null }>,
   payouts: RepPayout[] = [],
+  meetings: RepMeetingSummary[] = [],
 ): RepStats {
   const clients: RepClient[] = []
   const now = Date.now()
@@ -190,5 +207,6 @@ export function computeRep(
     bookMrrRand: clients.reduce((n, c) => n + c.mrrRand, 0),
     shortBy: Math.max(0, target - payingCards),
     clients: clients.sort((a, b) => b.cards - a.cards || b.trialCards - a.trialCards),
+    meetings,
   }
 }
