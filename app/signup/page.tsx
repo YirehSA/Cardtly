@@ -24,6 +24,7 @@ const schema = z.object({
   company:  z.string().optional(),
   email:    z.string().email('Enter a valid email'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
+  trialCode: z.string().optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -112,6 +113,33 @@ export default function SignupPage() {
       user_id: userId,
       name: data.name,
     })
+
+    // Redeem the trial code, if they entered one.
+    //
+    // Server-side: the profile row above is written from the browser, so the
+    // trial length cannot be decided here or a user could set their own. The
+    // endpoint reads the code's own `days`. No code, or a bad one, means no
+    // trial - they can still build a card, it just is not live until they pay.
+    const enteredCode = (data.trialCode || '').trim()
+    if (enteredCode) {
+      try {
+        const res = await fetch('/api/trial-code/claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: enteredCode }),
+        })
+        const trial = await res.json().catch(() => ({}))
+        if (res.ok && trial?.success) {
+          toast.success(`Your ${trial.days}-day free trial has started`)
+        } else {
+          // Not fatal: the account exists and they are signed in. Say what
+          // happened rather than letting them believe a trial started.
+          toast.error(trial?.error || 'That trial code did not work - you can add one later.', { duration: 9000 })
+        }
+      } catch {
+        toast.error('Could not check your trial code. Contact us and we will set it up.', { duration: 9000 })
+      }
+    }
 
     // Generate slug: company-firstname-lastname or firstname-lastname
     const baseSlug = buildSlug(data.name, data.company)
@@ -263,7 +291,7 @@ export default function SignupPage() {
             © {new Date().getFullYear()} Cardtly · Made in South Africa 🇿🇦
           </p>
           <div className="flex gap-3">
-            {['60 days free', 'QR included', 'NFC ready'].map(perk => (
+            {['Free trial with a code', 'QR included', 'NFC ready'].map(perk => (
               <span key={perk} className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.45)' }}>
                 {perk}
@@ -322,7 +350,7 @@ export default function SignupPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest mb-5"
             style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff' }}>
             <Sparkles className="w-3 h-3" />
-            60 days free · No credit card
+            Free trial with a code · No credit card
           </div>
           <h1 className="text-3xl font-black text-white tracking-tight mb-2">
             Create your <span style={gradText}>card</span>
@@ -410,6 +438,30 @@ export default function SignupPage() {
               )}
             </div>
 
+            {/* Trial code. Optional on the form on purpose: without one you can
+                still sign up and build your card, it just is not live until you
+                pay. Blocking signup here would turn away every visitor who
+                arrives without a code. */}
+            <div>
+              <label className="block text-sm font-medium mb-1.5 text-white" htmlFor="trialCode">
+                Trial code <span className="font-normal" style={{ color: 'rgba(255,255,255,0.4)' }}>(if you have one)</span>
+              </label>
+              <input
+                id="trialCode"
+                type="text"
+                autoCapitalize="characters"
+                autoComplete="off"
+                spellCheck={false}
+                className={inputClass}
+                style={inputStyle}
+                placeholder="e.g. CARDTLY30"
+                {...register('trialCode')}
+              />
+              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                Unlocks your free trial. No code? You can still create your card and go live when you subscribe.
+              </p>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -419,7 +471,7 @@ export default function SignupPage() {
               {loading ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Creating your card...</>
               ) : (
-                <>{liveSlug ? `Claim cardtly.com/card/${liveSlug.slice(0, 24)}${liveSlug.length > 24 ? '…' : ''}` : 'Start your 60-day trial'}
+                <>{liveSlug ? `Claim cardtly.com/card/${liveSlug.slice(0, 24)}${liveSlug.length > 24 ? '…' : ''}` : 'Create your card'}
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" /></>
               )}
             </button>
