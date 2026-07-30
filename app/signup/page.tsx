@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { Mail, ArrowLeft, Check, Sparkles, QrCode, Loader2, ArrowRight } from 'lucide-react'
 import { getStoredReferralCode, clearReferralCode } from '@/lib/referral'
+import { getStoredTrialCode, clearTrialCode } from '@/lib/trial-code-link'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 const gradText: React.CSSProperties = {
@@ -24,7 +25,6 @@ const schema = z.object({
   company:  z.string().optional(),
   email:    z.string().email('Enter a valid email'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  trialCode: z.string().optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -120,7 +120,7 @@ export default function SignupPage() {
     // trial length cannot be decided here or a user could set their own. The
     // endpoint reads the code's own `days`. No code, or a bad one, means no
     // trial - they can still build a card, it just is not live until they pay.
-    const enteredCode = (data.trialCode || '').trim()
+    const enteredCode = getStoredTrialCode()
     if (enteredCode) {
       try {
         const res = await fetch('/api/trial-code/claim', {
@@ -130,11 +130,13 @@ export default function SignupPage() {
         })
         const trial = await res.json().catch(() => ({}))
         if (res.ok && trial?.success) {
+          clearTrialCode()
           toast.success(`Your ${trial.days}-day free trial has started`)
         } else {
-          // Not fatal: the account exists and they are signed in. Say what
-          // happened rather than letting them believe a trial started.
-          toast.error(trial?.error || 'That trial code did not work - you can add one later.', { duration: 9000 })
+          // The visitor never typed this code - it came from the link they
+          // followed - so a failure is ours to explain, not theirs to correct.
+          clearTrialCode()
+          toast.error(trial?.error || 'We could not start your trial. Contact us and we will sort it out.', { duration: 9000 })
         }
       } catch {
         toast.error('Could not check your trial code. Contact us and we will set it up.', { duration: 9000 })
@@ -436,30 +438,6 @@ export default function SignupPage() {
               {errors.password && (
                 <p className="text-xs mt-1" style={{ color: '#f87171' }}>{errors.password.message}</p>
               )}
-            </div>
-
-            {/* Trial code. Optional on the form on purpose: without one you can
-                still sign up and build your card, it just is not live until you
-                pay. Blocking signup here would turn away every visitor who
-                arrives without a code. */}
-            <div>
-              <label className="block text-sm font-medium mb-1.5 text-white" htmlFor="trialCode">
-                Trial code <span className="font-normal" style={{ color: 'rgba(255,255,255,0.4)' }}>(if you have one)</span>
-              </label>
-              <input
-                id="trialCode"
-                type="text"
-                autoCapitalize="characters"
-                autoComplete="off"
-                spellCheck={false}
-                className={inputClass}
-                style={inputStyle}
-                placeholder="e.g. CARDTLY30"
-                {...register('trialCode')}
-              />
-              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                Unlocks your free trial. No code? You can still create your card and go live when you subscribe.
-              </p>
             </div>
 
             <button
