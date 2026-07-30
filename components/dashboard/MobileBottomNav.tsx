@@ -9,7 +9,7 @@ import {
   Home, CreditCard, QrCode, BarChart2,
   Users, Mail, Monitor, Wifi, Building2, Settings as SettingsIcon,
   Sun, Moon, LogOut, Shield, ScanLine, ClipboardList,
-  ChevronUp, X, Network, Layers,
+  ChevronUp, X, Network, Layers, CalendarClock,
 } from 'lucide-react'
 
 // Mobile-only bottom tab bar. Replaces the hamburger + slide-out
@@ -59,14 +59,19 @@ const MORE_TABS: Tab[] = [
 // well as the destination.
 const TEAM_TAB: Tab = { href: '/dashboard/team', label: 'Team Cards', icon: Building2 }
 
+// Only a sales rep sees this. Same guard as the sidebar - check-nav compares
+// the conditions, not just the destinations.
+const MEETINGS_TAB: Tab = { href: '/dashboard/meetings', label: 'My meetings', icon: CalendarClock }
+
 interface Props {
   isAdmin?: boolean
   isPro?: boolean
   managesDepartments?: boolean
   showTeamCards?: boolean
+  isRep?: boolean
 }
 
-export default function MobileBottomNav({ isAdmin = false, isPro = false, managesDepartments = false, showTeamCards = true }: Props) {
+export default function MobileBottomNav({ isAdmin = false, isPro = false, managesDepartments = false, showTeamCards = true, isRep = false }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const { theme, toggle } = useTheme()
@@ -84,6 +89,7 @@ export default function MobileBottomNav({ isAdmin = false, isPro = false, manage
     // Departments was in the sidebar's conditional list but never here, so a
     // department head on a phone had no way to reach the page at all.
     ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers }] : []),
+    ...(isRep ? [MEETINGS_TAB] : []),
     ...(isAdmin ? [{ href: '/admin', label: 'Admin', icon: Shield }] : []),
   ]
 

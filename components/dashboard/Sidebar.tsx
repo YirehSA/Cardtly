@@ -6,7 +6,7 @@ import { useTheme } from './ThemeProvider'
 import {
   CreditCard, BarChart2, Mail, Monitor, Users,
   Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi, Building2, Shield, ScanLine, ClipboardList,
-  Layers, Network,
+  Layers, Network, CalendarClock,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -30,18 +30,22 @@ const NAV = [
 // Team Cards, which not everybody should be offered. See showTeamCards below.
 const TEAM_TAB = { href: '/dashboard/team', label: 'Team Cards', icon: Building2, color: '#fb923c' } // orange
 
+// Only a sales rep sees this: their own meetings and notes.
+const MEETINGS_TAB = { href: '/dashboard/meetings', label: 'My meetings', icon: CalendarClock, color: '#0ea5e9' } // sky
+
 interface SidebarProps {
   isPro: boolean
   isAdmin?: boolean
   managesDepartments?: boolean
   showTeamCards?: boolean
+  isRep?: boolean
   userName: string
   userEmail: string
 }
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
-export default function Sidebar({ isPro, isAdmin = false, managesDepartments = false, showTeamCards = true, userName, userEmail }: SidebarProps) {
+export default function Sidebar({ isPro, isAdmin = false, managesDepartments = false, showTeamCards = true, isRep = false, userName, userEmail }: SidebarProps) {
   const pathname = usePathname()
   const { theme, toggle } = useTheme()
   // Lead capture (contact popup + questionnaire) is standard on Pro. The
@@ -58,6 +62,7 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
     // Only a department manager sees this. Their whole scoped surface lives
     // behind it.
     ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers, color: '#a855f7' }] : []),
+    ...(isRep ? [MEETINGS_TAB] : []),
   ]
   const router = useRouter()
   const supabase = createClient()

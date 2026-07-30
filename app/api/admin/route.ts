@@ -187,6 +187,82 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, trial_ends_at: next })
   }
 
+  // Give a rep a login, so they can use the Meetings panel.
+  //
+  // Reps are records in this panel, not accounts - so one has to be attached to
+  // an ordinary Cardtly login before they can sign in and log anything. Same
+  // pattern as an enterprise team owner: reuse the account if that email already
+  // has one, otherwise create it and send a set-your-password email.
+  if (action === 'link_rep_login') {
+    const { rep_id, email, send_welcome } = body
+    if (!rep_id) return NextResponse.json({ error: 'rep_id required' }, { status: 400 })
+
+    const { data: rep } = await admin
+      .from('reps').select('id, name, email').eq('id', rep_id).maybeSingle()
+    if (!rep) return NextResponse.json({ error: 'Rep not found' }, { status: 404 })
+
+    const addr = String(email || rep.email || '').trim().toLowerCase()
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(addr)) {
+      return NextResponse.json({ error: 'That rep needs a valid email address first' }, { status: 400 })
+    }
+
+    let userId: string
+    let created = false
+    const existing = await findUserByEmail(admin, addr)
+    if (existing) {
+      userId = existing.id
+    } else {
+      const { data: newUser, error: createErr } = await admin.auth.admin.createUser({
+        email: addr,
+        email_confirm: true,
+        user_metadata: { created_by: 'admin_rep_link' },
+      })
+      if (createErr || !newUser?.user) {
+        return NextResponse.json({ error: `Could not create an account for ${addr}: ${createErr?.message || 'unknown error'}` }, { status: 500 })
+      }
+      userId = newUser.user.id
+      created = true
+    }
+
+    // reps_user_id_unique stops one login being two reps. Catching it here turns
+    // a raw constraint error into something readable.
+    const { error } = await admin
+      .from('reps')
+      .update({ user_id: userId, email: addr, updated_at: new Date().toISOString() })
+      .eq('id', rep_id)
+
+    if (error) {
+      if (error.code === '42703') {
+        return NextResponse.json({ error: 'Not available yet: migration 047 has not been run on this database.' }, { status: 503 })
+      }
+      if (error.code === '23505') {
+        return NextResponse.json({ error: 'That login is already linked to another rep.' }, { status: 409 })
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    const notes: string[] = []
+    if (created) {
+      if (send_welcome === false) {
+        notes.push(`Account created for ${addr}. No email sent - send them a password reset when you are ready.`)
+      } else {
+        const origin = new URL(request.url).origin
+        const sent = await sendTeamOwnerWelcome(addr, `${rep.name} at Cardtly`, 1, origin)
+        notes.push(sent.ok
+          ? `Account created and a set-your-password email sent to ${addr}.`
+          : `Account created for ${addr}, but the email did NOT send (${sent.error || sent.reason}). Send them a password reset instead.`)
+      }
+    } else {
+      notes.push(`${addr} already had an account, so the rep was linked to it.`)
+    }
+
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email,
+      action: 'link_rep_login', targetUserId: userId, detail: { rep_id, email: addr, created },
+    })
+    return NextResponse.json({ success: true, warning: notes.join(' ') })
+  }
+
   // Create or update a trial code.
   if (action === 'upsert_trial_code') {
     const { id, code, days, active, expires_on, max_uses, notes } = body

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
 import { isAdminUser } from '@/lib/admin-check'
 import { getManagedDepartments, getOwnedOrgs } from '@/lib/department-perms'
+import { getRepForUser } from '@/lib/rep-access'
 import { ThemeProvider } from '@/components/dashboard/ThemeProvider'
 import Sidebar from '@/components/dashboard/Sidebar'
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
@@ -24,7 +25,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
-  const [plan, { data: card }, isAdmin, managedDepts, noticeSeen, archivedCards] = await Promise.all([
+  const [plan, { data: card }, isAdmin, managedDepts, noticeSeen, archivedCards, rep] = await Promise.all([
     getUserPlan(user.id),
     supabase.from('cards').select('name, addons, hide_from_network').eq('user_id', user.id).maybeSingle(),
     isAdminUser(user.id),
@@ -69,6 +70,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
         return []
       }
     })(),
+    // Is this account a sales rep? Only then is the Meetings panel offered.
+    // Appended at the END of this array on purpose: Promise.all binds by
+    // position, so adding here cannot rebind anything above it. Read tolerantly
+    // inside rep-access, since reps.user_id arrives with migration 047 and this
+    // layout renders every dashboard page.
+    getRepForUser(deptAdmin, user.id),
   ])
   const [managedDeptsList, ownedOrgsList] = managedDepts
   // Show the Departments link to anyone who manages a department OR owns a
@@ -89,6 +96,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ownedOrgsList.length === 0 && (managedDeptsList.length > 0 || plan.viaTeam === true)
   const showTeamCards = !inSomeoneElsesTeam
 
+  const isRep = !!rep
+
   const isPro = plan.tier === 'pro' && plan.isActive
   // Lead capture is standard on Pro and switched on by the user, so the nav
   // item just follows the plan. This used to resolve the add-on target on
@@ -103,6 +112,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           isAdmin={isAdmin}
           managesDepartments={managesDepartments}
           showTeamCards={showTeamCards}
+          isRep={isRep}
           userName={card?.name || ''}
           userEmail={user.email || ''}
         />
@@ -132,7 +142,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <CommandPalette />
         <HeartbeatPing />
         <AnnouncementModal />
-        <MobileBottomNav isAdmin={isAdmin} isPro={isPro} managesDepartments={managesDepartments} showTeamCards={showTeamCards} />
+        <MobileBottomNav isAdmin={isAdmin} isPro={isPro} managesDepartments={managesDepartments} showTeamCards={showTeamCards} isRep={isRep} />
       </div>
     </ThemeProvider>
   )
