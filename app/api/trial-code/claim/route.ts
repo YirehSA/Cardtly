@@ -64,7 +64,12 @@ export async function POST(request: Request) {
   const { data: profile } = await admin
     .from('profiles').select('trial_code').eq('user_id', user.id).maybeSingle()
   if ((profile as any)?.trial_code) {
-    return NextResponse.json({ error: 'A trial code has already been used on this account.' }, { status: 409 })
+    // A dead end for the customer unless it says what to do next: they cannot
+    // clear this themselves, and a second trial is a decision for us to make in
+    // the admin panel rather than something a code should stack.
+    return NextResponse.json({
+      error: 'A trial code has already been used on this account. Contact us if you need more time.',
+    }, { status: 409 })
   }
 
   const endsAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()

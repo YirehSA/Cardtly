@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Check, Zap, ArrowRight, Loader2, ShieldCheck, Clock, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import UsdEstimate from '@/components/marketing/UsdEstimate'
+import TrialCodeBox from './TrialCodeBox'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 const gradText: React.CSSProperties = {
@@ -93,6 +94,8 @@ export default function UpgradeView({ state, trialDaysLeft }: Props) {
           </div>
         </div>
       )}
+      {state !== 'paid' && <TrialCodeBox />}
+
       {state === 'trial' && (
         <div className="rounded-2xl border p-4 flex items-start gap-3"
           style={trialDaysLeft <= 7
