@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { fetchCardImage } from '@/lib/card-image'
+import { foldLine } from '@/lib/text-fold'
 
 // The .vcf a visitor gets when they tap Save Contact.
 //
@@ -36,27 +37,10 @@ function esc(v: unknown): string {
 // RFC 2426 folding: no line over 75 octets. Continuations start with a single
 // space. This matters most for the base64 photo, which is thousands of
 // characters - unfolded, plenty of parsers drop it or import a broken contact.
-// Octets, not characters: a bio with a curly apostrophe (three bytes in UTF-8)
-// produced a 77-octet line while measuring only 75 characters. Folding also has
-// to land on character boundaries, or a multi-byte character split across two
-// lines is corrupt when rejoined.
-function fold(line: string): string {
-  if (Buffer.byteLength(line, 'utf8') <= 75) return line
-  const out: string[] = []
-  let current = ''
-  let limit = 75
-  for (const ch of line) {
-    if (Buffer.byteLength(current + ch, 'utf8') > limit) {
-      out.push(current)
-      current = ch
-      limit = 74 // a continuation's leading space takes one octet
-    } else {
-      current += ch
-    }
-  }
-  if (current) out.push(current)
-  return out.map((seg, i) => (i === 0 ? seg : ' ' + seg)).join('\r\n')
-}
+//
+// Shared with the .ics writer, which folds by the same rule. See lib/text-fold
+// for why it is one function and not two.
+const fold = foldLine
 
 // "Andre Nel" -> N:Nel;Andre;;;  Phones use N for sorting and for showing a
 // first name on its own; with only FN some clients file the contact oddly.

@@ -12,10 +12,12 @@ import {
 import TeamsTab from './TeamsTab'
 import TrialsTab from './TrialsTab'
 import RepsTab from './RepsTab'
+import MeetingsTab from './MeetingsTab'
 import { Stat, Section, StatusPill, STATUS_META, grad, inputClass, inputStyle, fmtDate, fmtWhen, randFmt } from './shared'
 import { NFC_STATUSES, NFC_STATUS_COLORS, NFC_STATUS_LABELS, type NfcStatus } from '@/lib/nfc'
 import type { AdminUserRow, AdminOrgRow, UserStatus, TrialCodeRow } from '@/lib/admin-data'
 import type { RepStats } from '@/lib/reps'
+import type { CalendarMeeting } from '@/lib/rep-meetings'
 
 interface Stats {
   totalUsers: number; paying: number; comped: number; members: number
@@ -39,12 +41,15 @@ interface Props {
   nfcOrders: any[]
   audit: any[]
   reps: RepStats[]
+  /** Every rep's meetings, flat, each carrying the rep's name. The Reps tab
+   *  shows them per rep; the Calendar tab needs them in one list. */
+  meetings: CalendarMeeting[]
   trialCodes: TrialCodeRow[]
   stats: Stats
   announcement: any | null
 }
 
-type Tab = 'overview' | 'users' | 'teams' | 'trials' | 'reps' | 'nfc' | 'activity'
+type Tab = 'overview' | 'users' | 'teams' | 'trials' | 'reps' | 'meetings' | 'nfc' | 'activity'
 type Filter = 'all' | UserStatus | 'admins' | 'unconfirmed'
 
 const FILTERS: { id: Filter; label: string }[] = [
@@ -106,7 +111,7 @@ function byNullableAsc(a: number | null, b: number | null): number {
   return a - b
 }
 
-export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrders, audit, reps, trialCodes, stats, announcement }: Props) {
+export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrders, audit, reps, meetings, trialCodes, stats, announcement }: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('overview')
   const [q, setQ] = useState('')
@@ -114,6 +119,9 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
   const [sort, setSort] = useState<SortId>('joined')
   const [loading, setLoading] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
+  // Which rep the Calendar tab should open on, set by "See in calendar" over on
+  // the Reps tab. null means everyone.
+  const [calendarRep, setCalendarRep] = useState<string | null>(null)
 
   // Every mutation refetches from the server. The old dashboard patched local
   // state instead, so the stats and view counts went stale the moment you
@@ -249,6 +257,7 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
             ['teams', 'Teams', Building2],
             ['trials', 'Trials', Ticket],
             ['reps', 'Reps', UserCog],
+            ['meetings', 'Calendar', CalendarClock],
             ['nfc', 'NFC orders', Wifi],
             ['activity', 'Activity', ScrollText],
           ] as [Tab, string, any][]).map(([id, label, Icon]) => (
@@ -445,6 +454,7 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
 
         {tab === 'reps' && (
           <RepsTab reps={reps} loading={loading}
+            onOpenCalendar={(r) => { setCalendarRep(r.id); setTab('meetings') }}
             onLinkLogin={(r) => {
               if (!confirm(`Give ${r.name} a Cardtly login?
 
@@ -486,6 +496,15 @@ ${r.email} will be able to sign in and log their meetings. If that address has n
               notes: f.notes || null,
               active: f.active,
             }, `${f.name} saved`)} />
+        )}
+
+        {tab === 'meetings' && (
+          <MeetingsTab
+            key={calendarRep || 'all'}
+            initial={meetings}
+            reps={reps.map(r => ({ id: r.id, name: r.name, active: r.active }))}
+            initialRepId={calendarRep}
+          />
         )}
 
         {tab === 'nfc' && <NfcTab orders={nfcOrders} run={run} loading={loading} />}

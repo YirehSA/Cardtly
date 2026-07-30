@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { UserCog, Loader2, Plus, X, Check, TrendingUp, Users as UsersIcon, Building2, Trash2, CalendarRange, Banknote } from 'lucide-react'
+import { UserCog, Loader2, Plus, X, Check, TrendingUp, Users as UsersIcon, Building2, Trash2, CalendarRange, CalendarClock, Banknote } from 'lucide-react'
 import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
 import type { RepStats } from '@/lib/reps'
 import { statusMeta, outcomeMeta } from '@/lib/rep-meetings'
@@ -25,12 +25,15 @@ interface Props {
   onDelete: (rep: RepStats) => Promise<boolean>
   onLinkLogin: (rep: RepStats) => Promise<boolean>
   onRecordPayout: (rep: RepStats, paid: boolean) => Promise<boolean>
+  /** Jump to the Calendar tab with only this rep showing. The list below is fine
+   *  for a glance; a diary is for looking at as a diary. */
+  onOpenCalendar: (rep: RepStats) => void
   loading: string | null
 }
 
 const EMPTY: Form = { repId: null, name: '', email: '', phone: '', target: '250', rate: '10', day: '25', startedOn: '', notes: '', active: true }
 
-export default function RepsTab({ reps, onSave, onDelete, onLinkLogin, onRecordPayout, loading }: Props) {
+export default function RepsTab({ reps, onSave, onDelete, onLinkLogin, onRecordPayout, onOpenCalendar, loading }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -155,6 +158,12 @@ export default function RepsTab({ reps, onSave, onDelete, onLinkLogin, onRecordP
                         className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10"
                         style={{ border: '1px solid rgba(14,165,233,0.35)', color: '#0ea5e9' }}>
                         {meetingsOpen === r.id ? 'Hide' : `Meetings (${r.meetings.length})`}
+                      </button>
+                      <button onClick={() => onOpenCalendar(r)}
+                        title={`Open ${r.name}'s calendar`}
+                        className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10"
+                        style={{ border: '1px solid rgba(14,165,233,0.35)', color: '#0ea5e9' }}>
+                        <CalendarClock className="w-3 h-3" />Calendar
                       </button>
                       <button onClick={() => openEdit(r)}
                         className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10"

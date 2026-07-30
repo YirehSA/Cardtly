@@ -33,6 +33,7 @@ export default async function AdminPage() {
       nfcOrders={data.nfcOrders}
       audit={data.audit}
       reps={data.reps}
+      meetings={data.meetings}
       trialCodes={data.trialCodes}
       stats={data.stats}
       announcement={data.announcement}

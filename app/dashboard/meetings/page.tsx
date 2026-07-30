@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getRepForUser, serviceClient } from '@/lib/rep-access'
+import { listMeetings } from '@/lib/rep-meetings-server'
 import MeetingsView from '@/components/rep/MeetingsView'
-import type { RepMeeting } from '@/lib/rep-meetings'
+import type { CalendarMeeting } from '@/lib/rep-meetings'
 
 export const metadata = { title: 'My meetings' }
 
@@ -18,22 +19,11 @@ export default async function MeetingsPage() {
   const rep = await getRepForUser(admin, user.id)
   if (!rep) redirect('/dashboard')
 
-  // Tolerant: rep_meetings arrives with migration 047, applied by hand after
-  // the deploy. An empty list with a working "add" form is a better landing
-  // than a stack trace.
-  const meetings: RepMeeting[] = await (async () => {
-    try {
-      const { data, error } = await admin
-        .from('rep_meetings')
-        .select('*')
-        .eq('rep_id', rep.id)
-        .order('scheduled_at', { ascending: false })
-      if (error) return []
-      return (data || []) as RepMeeting[]
-    } catch {
-      return []
-    }
-  })()
+  // Tolerant, through listMeetings: rep_meetings arrives with migration 047 and
+  // its calendar columns with 048, both applied by hand after the deploy. An
+  // empty calendar with a working "add" beats a stack trace.
+  const res = await listMeetings(admin, { repId: rep.id })
+  const meetings: CalendarMeeting[] = res.ok ? (res.meetings as CalendarMeeting[]) : []
 
   return <MeetingsView repName={rep.name} active={rep.active} initial={meetings} />
 }

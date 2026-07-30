@@ -56,4 +56,38 @@ export interface RepMeeting {
   notes: string | null
   created_at: string
   updated_at: string
+  /** These three arrive with migration 048, which is applied by hand after the
+   *  deploy. Optional rather than required so every reader has to go through the
+   *  helpers below and cope with them being absent, instead of rendering a
+   *  calendar full of undefined. */
+  duration_minutes?: number | null
+  location?: string | null
+  follow_up_on?: string | null
+}
+
+/** A meeting as the calendar sees it. repName is set only where more than one
+ *  rep is on screen at once, which is the admin view. */
+export interface CalendarMeeting extends RepMeeting {
+  repName?: string | null
+}
+
+/** An hour. Long enough to be a real appointment, short enough that back to
+ *  back bookings do not overlap by default. */
+export const DEFAULT_DURATION_MINUTES = 60
+
+export const DURATION_CHOICES = [15, 30, 45, 60, 90, 120, 180, 240] as const
+
+export function meetingDuration(m: Pick<RepMeeting, 'duration_minutes'>): number {
+  const d = Number(m.duration_minutes)
+  // Before migration 048 the column does not exist, so every meeting is an
+  // hour. Also catches a 0 or a NULL, which would draw a block with no height.
+  return Number.isFinite(d) && d > 0 ? d : DEFAULT_DURATION_MINUTES
+}
+
+export function meetingStart(m: Pick<RepMeeting, 'scheduled_at'>): Date {
+  return new Date(m.scheduled_at)
+}
+
+export function meetingEnd(m: Pick<RepMeeting, 'scheduled_at' | 'duration_minutes'>): Date {
+  return new Date(new Date(m.scheduled_at).getTime() + meetingDuration(m) * 60_000)
 }

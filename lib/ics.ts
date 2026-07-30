@@ -1,0 +1,103 @@
+// A .ics of a rep's meetings, so the diary they already live in gets them too.
+//
+// A rep whose appointments only exist inside Cardtly has two calendars and
+// trusts neither. This writes RFC 5545 iCalendar, which Google Calendar,
+// Outlook and iOS all import, and it folds by the same 75-octet rule as the
+// vCard writer (see lib/text-fold).
+
+import { foldLine } from './text-fold'
+import {
+  meetingDuration, statusMeta, outcomeMeta,
+  type RepMeeting,
+} from './rep-meetings'
+
+// RFC 5545 escaping: backslash, semicolon and comma are structural, and a
+// newline inside a value has to become a literal \n or it terminates the line.
+function esc(v: unknown): string {
+  return String(v ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\r\n/g, '\\n')
+    .replace(/\n/g, '\\n')
+    .replace(/,/g, '\\,')
+    .replace(/;/g, '\\;')
+    .trim()
+}
+
+/** UTC basic format: 20260730T090000Z. Written in UTC so no VTIMEZONE block is
+ *  needed and no client has to guess which zone "09:00" meant. */
+function stamp(d: Date): string {
+  const p = (n: number, w = 2) => String(n).padStart(w, '0')
+  return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}T`
+    + `${p(d.getUTCHours())}${p(d.getUTCMinutes())}${p(d.getUTCSeconds())}Z`
+}
+
+function description(m: RepMeeting): string {
+  const bits: string[] = []
+  if (m.contact_name) bits.push(`Seeing: ${m.contact_name}`)
+  if (m.contact_phone) bits.push(`Phone: ${m.contact_phone}`)
+  if (m.contact_email) bits.push(`Email: ${m.contact_email}`)
+  bits.push(`Status: ${statusMeta(m.status).label}`)
+  const outcome = outcomeMeta(m.outcome)
+  if (outcome) bits.push(`Outcome: ${outcome.label}`)
+  if (m.follow_up_on) bits.push(`Follow up on: ${m.follow_up_on}`)
+  if (m.notes) bits.push('', m.notes)
+  return bits.join('\n')
+}
+
+function eventStatus(status: string): string {
+  // VEVENT allows TENTATIVE, CONFIRMED and CANCELLED only. A no-show still
+  // happened as far as the diary is concerned - it is the outcome that was bad.
+  return status === 'cancelled' ? 'CANCELLED' : 'CONFIRMED'
+}
+
+export function buildIcs(
+  meetings: RepMeeting[],
+  opts: { calendarName: string; now?: Date },
+): string {
+  const now = opts.now || new Date()
+  const lines: string[] = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Cardtly//Rep meetings//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    `X-WR-CALNAME:${esc(opts.calendarName)}`,
+  ]
+
+  for (const m of meetings) {
+    const start = new Date(m.scheduled_at)
+    // A row with an unparseable date would produce DTSTART:NaN and make the
+    // whole file unimportable, taking every other meeting with it.
+    if (!Number.isFinite(start.getTime())) continue
+    const end = new Date(start.getTime() + meetingDuration(m) * 60_000)
+
+    lines.push(
+      'BEGIN:VEVENT',
+      `UID:${m.id}@cardtly.com`,
+      `DTSTAMP:${stamp(now)}`,
+      `DTSTART:${stamp(start)}`,
+      `DTEND:${stamp(end)}`,
+      `SUMMARY:${esc(m.company)}`,
+      `DESCRIPTION:${esc(description(m))}`,
+      `STATUS:${eventStatus(m.status)}`,
+      `LAST-MODIFIED:${stamp(new Date(m.updated_at || m.created_at || now))}`,
+    )
+    if (m.location) lines.push(`LOCATION:${esc(m.location)}`)
+
+    // Half an hour's warning, on things that have not happened yet. No point
+    // reminding anyone about a meeting already written up.
+    if (m.status === 'planned' && end.getTime() > now.getTime()) {
+      lines.push(
+        'BEGIN:VALARM',
+        'ACTION:DISPLAY',
+        `DESCRIPTION:${esc(m.company)}`,
+        'TRIGGER:-PT30M',
+        'END:VALARM',
+      )
+    }
+    lines.push('END:VEVENT')
+  }
+
+  lines.push('END:VCALENDAR')
+  return lines.map(foldLine).join('\r\n') + '\r\n'
+}

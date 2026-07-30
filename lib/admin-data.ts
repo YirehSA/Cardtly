@@ -324,20 +324,33 @@ export async function loadAdminData(admin: any) {
   // rather than counted as money.
   // Every rep's meetings, for the admin view. Fetched on its own and
   // tolerantly, for the same reasons as the trial codes further down.
-  const meetingsByRep: Record<string, any[]> = await (async () => {
+  //
+  // select('*') rather than a column list: naming duration_minutes before
+  // migration 048 is applied fails the whole query and returns an EMPTY
+  // calendar, which looks exactly like no meetings. A star select returns
+  // whatever the table currently has.
+  const allMeetings: any[] = await (async () => {
     try {
       const { data, error } = await admin
         .from('rep_meetings')
-        .select('id, rep_id, company, contact_name, scheduled_at, status, outcome, notes')
+        .select('*')
         .order('scheduled_at', { ascending: false })
-      if (error) return {}
-      const out: Record<string, any[]> = {}
-      for (const m of data || []) (out[(m as any).rep_id] ||= []).push(m)
-      return out
+      if (error) return []
+      return data || []
     } catch {
-      return {}
+      return []
     }
   })()
+
+  const repNameById: Record<string, string> = Object.fromEntries(
+    ((repRows || []) as RepRow[]).map(r => [r.id, r.name]))
+
+  const meetingsByRep: Record<string, any[]> = {}
+  for (const m of allMeetings) (meetingsByRep[m.rep_id] ||= []).push(m)
+
+  // The admin calendar shows every rep at once, so each row carries the name it
+  // will be labelled and coloured by.
+  const calendarMeetings = allMeetings.map(m => ({ ...m, repName: repNameById[m.rep_id] || null }))
 
   const reps: RepStats[] = ((repRows || []) as RepRow[]).map((rep) => computeRep(
     rep,
@@ -420,6 +433,7 @@ export async function loadAdminData(admin: any) {
     users: rows,
     orgs: orgRows,
     reps,
+    meetings: calendarMeetings,
     trialCodes,
     cards: (cards || []).map((c: any) => ({ ...c, views_30d: views30dByCard[c.id] || 0 }))
       .sort((a: any, b: any) => (b.views_30d - a.views_30d) || ((b.view_count || 0) - (a.view_count || 0))),
