@@ -16,7 +16,19 @@ import {
 // sidebar pattern on small screens. 4 most-used destinations sit in
 // the bar permanently; the rest live behind a "More" button that
 // slides up a sheet from above the bar. Desktop is unaffected -
-// this whole component is md:hidden.
+// this whole component is lg:hidden.
+//
+// lg, not md, and that matters. The sidebar is `hidden lg:flex`, so it does not
+// appear until 1024px. This bar used to hide itself at 768px, which left every
+// width in between with NO navigation at all: no sidebar, no bar, and the only
+// way to another page was typing the URL. An iPad in portrait is 820px and
+// landed squarely in that gap, which is how Apple's reviewer found it.
+//
+// The layout was already written for lg - the content wrapper reserves pb-28
+// for this bar all the way up to lg:pb-10 - so between 768 and 1024 the page
+// was also holding 7rem of empty space open for a bar that was not there.
+// scripts/check-nav.mjs now fails the build if the two breakpoints drift apart
+// again.
 
 // Each tab is the active state if the pathname matches the href
 // exactly OR (for non-root tabs) starts with the href, mirroring
@@ -115,14 +127,14 @@ export default function MobileBottomNav({ isAdmin = false, isPro = false, manage
           <button
             type="button"
             aria-label="Close menu"
-            className="fixed inset-0 z-[58] md:hidden"
+            className="fixed inset-0 z-[58] lg:hidden"
             style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
             onClick={() => setMoreOpen(false)}
           />
 
           {/* The sheet itself */}
           <div
-            className="fixed left-0 right-0 z-[59] md:hidden animate-slide-up"
+            className="fixed left-0 right-0 z-[59] lg:hidden animate-slide-up"
             style={{
               bottom: 'calc(env(safe-area-inset-bottom, 0px) + 78px)',
               background: 'hsl(var(--card))',
@@ -198,7 +210,7 @@ export default function MobileBottomNav({ isAdmin = false, isPro = false, manage
 
       {/* The bottom bar itself — always visible on mobile. */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-[60] md:hidden"
+        className="fixed bottom-0 left-0 right-0 z-[60] lg:hidden"
         style={{
           background: 'hsl(var(--card))',
           borderTop: '1px solid hsl(var(--border))',

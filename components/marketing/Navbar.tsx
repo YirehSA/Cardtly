@@ -32,14 +32,21 @@ export default function Navbar() {
           <img src="/cardtly-icon.png" alt="Cardtly logo" className="w-[72px] h-[72px] rounded-full transition group-hover:scale-105" />
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-1">
+        {/* Desktop nav.
+            lg, not md. Nine links plus a 72px logo plus two buttons need about
+            980px, but this used to unfold at md (768px) - so from 768px up to
+            roughly 1000px the row was wider than the window and the Sign up
+            button sat off the right-hand edge, unreachable. An iPad in portrait
+            is 820px, right in the middle of it, and that is the "button was cut
+            off due to layout" Apple's reviewer reported.
+            px-3 until xl buys back the ~70px that makes the row fit at 1024. */}
+        <nav className="hidden lg:flex items-center gap-1">
           {LINKS.map((link) => {
             const { href, label } = link
             const active = pathname === href
             return (
               <Link key={href} href={href}
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5"
+                className="px-3 xl:px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 whitespace-nowrap"
                 style={{ color: active ? '#fff' : 'rgba(255,255,255,0.55)', background: active ? 'rgba(255,255,255,0.08)' : 'transparent' }}>
                 {label}{link.badge && <span className="text-xs">{link.badge}</span>}
               </Link>
@@ -48,7 +55,7 @@ export default function Navbar() {
         </nav>
 
         {/* CTA */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-3 shrink-0">
           <Link href="/login" className="text-sm font-medium transition" style={{ color: 'rgba(255,255,255,0.6)' }}>
             Sign in
           </Link>
@@ -60,14 +67,15 @@ export default function Navbar() {
         </div>
 
         {/* Mobile toggle */}
-        <button onClick={() => setOpen(p => !p)} className="md:hidden text-white">
+        <button onClick={() => setOpen(p => !p)} aria-label={open ? 'Close menu' : 'Open menu'}
+          aria-expanded={open} className="lg:hidden text-white">
           {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden px-6 pb-6 pt-2 space-y-1" style={{ background: 'rgba(0,0,0,0.95)' }}>
+        <div className="lg:hidden px-6 pb-6 pt-2 space-y-1" style={{ background: 'rgba(0,0,0,0.95)' }}>
           {LINKS.map(({ href, label, badge }) => (
             <Link key={href} href={href} onClick={() => setOpen(false)}
               className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition">

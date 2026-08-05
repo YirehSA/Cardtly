@@ -69,12 +69,19 @@
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Cardtly saves your QR code and virtual backgrounds to your photos when you download them.</string>
 
-	<!-- The NFC plugin links Apple's CoreNFC framework, and the App Store
-	     uploader can require this string just for that, even though tap-to-share
-	     is an Android-only feature for now. Reading a tag to open a card is the
-	     only NFC use on iOS, and it needs the Near Field Communication Tag
-	     Reading capability on the App ID before it will actually work. -->
-	<key>NFCReaderUsageDescription</key>
-	<string>Cardtly reads an NFC tag to open the Cardtly card it points to.</string>
+	<!-- There is deliberately NO NFCReaderUsageDescription here.
+
+	     The iOS build has no NFC functionality at all: codemagic.yaml uninstalls
+	     @exxili/capacitor-nfc before `cap sync ios`, so CoreNFC is never linked,
+	     and tap-to-share is host card emulation, which Apple reserves for Apple
+	     Pay. This string was left behind as a precaution, and it cost us a
+	     rejection: declaring the permission is what makes review believe the app
+	     reads NFC tags, and Guideline 2.1 then asks for a demo video of hardware
+	     that does not exist in this build.
+
+	     If iOS ever does read tags, this key comes back TOGETHER with the
+	     Near Field Communication Tag Reading capability on the App ID and an
+	     App.entitlements carrying com.apple.developer.nfc.readersession.formats
+	     - without which CoreNFC fails at runtime anyway. -->
 </dict>
 </plist>

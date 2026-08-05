@@ -50,6 +50,41 @@ function guards(file) {
   return out
 }
 
+// The two navs also have to MEET. The sidebar appears at one breakpoint and the
+// bottom bar disappears at another, and if the bar goes before the sidebar
+// arrives there is a band of screen widths with no navigation whatsoever.
+//
+// That is not hypothetical: the bar was md:hidden while the sidebar was
+// hidden lg:flex, so every width from 768px to 1023px had neither. An iPad in
+// portrait is 820px, which is how Apple's reviewer found it - and every tablet
+// user and every half-width desktop window had been in the same hole silently.
+const ORDER = ['sm', 'md', 'lg', 'xl', '2xl']
+
+function navBreakpoints() {
+  const sidebarSrc = readFileSync('components/dashboard/Sidebar.tsx', 'utf8')
+  const mobileSrc = readFileSync('components/dashboard/MobileBottomNav.tsx', 'utf8')
+  // Where the sidebar starts showing: `hidden lg:flex`.
+  const shows = sidebarSrc.match(/hidden\s+(\w+):(?:flex|block|grid)/)
+  // Where the bar stops showing. Taken from the bar itself, not the sheet.
+  const hides = mobileSrc.match(/fixed bottom-0 left-0 right-0 z-\[60\] (\w+):hidden/)
+  return { shows: shows?.[1] || null, hides: hides?.[1] || null }
+}
+
+const bp = navBreakpoints()
+if (!bp.shows || !bp.hides) {
+  console.error('\ncheck-nav: could not read the nav breakpoints. Sidebar needs a "hidden <bp>:flex" '
+    + 'and the bottom bar a "<bp>:hidden" on its fixed bar, or this guard is checking nothing.\n')
+  process.exit(1)
+}
+if (ORDER.indexOf(bp.hides) < ORDER.indexOf(bp.shows)) {
+  console.error(`\ncheck-nav: there is a band of screen widths with no navigation at all.\n\n`
+    + `  The bottom bar hides at ${bp.hides} and the sidebar does not appear until ${bp.shows},\n`
+    + `  so anything between them shows neither. A tablet in portrait sits right there.\n\n`
+    + `  Make the bar ${bp.shows}:hidden so it hands over exactly where the sidebar takes\n`
+    + `  over. The content wrapper's pb-28 lg:pb-10 assumes the same handover point.\n`)
+  process.exit(1)
+}
+
 const sidebar = guards('components/dashboard/Sidebar.tsx')
 const mobile = guards('components/dashboard/MobileBottomNav.tsx')
 
@@ -76,4 +111,5 @@ if (missingFromMobile.length || missingFromSidebar.length || mismatched.length) 
 
 const conditional = Object.entries(sidebar).filter(([, g]) => g !== 'always')
 console.log(`check-nav: both dashboard navs cover the same ${Object.keys(sidebar).length} destinations` +
-  (conditional.length ? `, ${conditional.length} conditional (${conditional.map(([h, g]) => `${h.split('/').pop()}:${g}`).join(', ')}).` : '.'))
+  (conditional.length ? `, ${conditional.length} conditional (${conditional.map(([h, g]) => `${h.split('/').pop()}:${g}`).join(', ')})` : '') +
+  `, and they hand over at ${bp.shows} with no gap.`)
