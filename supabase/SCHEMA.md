@@ -773,7 +773,7 @@ the dashboard still shows it as healthy. Neither is visible from this file.
 | founder_lifetime_pro | boolean | yes | `false` |  |
 | signup_source | text | no | `"organic"` |  |
 | is_admin | boolean | no | `false` |  |
-| trial_ends_at | timestamp with time zone | yes | `"(now() + '7 days'::interval)"` | When the 60-day trial ends. Past this date with no active subscription the accou |
+| trial_ends_at | timestamp with time zone | yes | `"(now() + '7 days'::interval)"` | When this account's trial ends. Past this date with no active subscription the p |
 | rep_id | uuid | yes |  | FK -> reps.id |
 | network_notice_seen_at | timestamp with time zone | yes |  | When this user acknowledged the one-time Cardtly Network listing notice. NULL me |
 | trial_code | text | yes |  | The trial code this account signed up with. NULL means they signed up without on |
