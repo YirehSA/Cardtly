@@ -207,6 +207,7 @@ export async function GET(request: Request) {
   const resend = new Resend(resendKey)
   let delivered = 0
   const failed: string[] = []
+  const blocked: string[] = []
 
   for (const q of queue) {
     // Claim first. If a second run is already in flight for this user, its
@@ -215,7 +216,15 @@ export async function GET(request: Request) {
     const { error: claimErr } = await admin
       .from('trial_emails')
       .insert({ user_id: q.userId, kind: q.kind })
-    if (claimErr) continue // already claimed by another run
+    if (claimErr) {
+      // 23505 is that unique violation, which is the expected race and not a
+      // problem. Anything else is, and used to be swallowed by the same
+      // `continue`: the first card_live run hit the kind check constraint
+      // (23514) on all of them and still reported ok with delivered 0 and no
+      // errors, which reads exactly like "there was nobody to email".
+      if (claimErr.code !== '23505') blocked.push(`${q.kind}/${q.to}: ${claimErr.code} ${claimErr.message}`)
+      continue
+    }
 
     try {
       const { subject, html } = renderTrialEmail(q)
@@ -240,5 +249,16 @@ export async function GET(request: Request) {
   // never affects them.
   const payments = await sendPaymentFailedEmails(admin, resendKey)
 
-  return NextResponse.json({ ok: true, delivered, failed: failed.length, considered: queue.length, ops, payments })
+  // blocked is surfaced rather than counted, because the message is the whole
+  // value: "delivered 0 of 1" says something went wrong, only the constraint
+  // name says what.
+  return NextResponse.json({
+    ok: blocked.length === 0,
+    delivered,
+    failed: failed.length,
+    considered: queue.length,
+    ...(blocked.length ? { blocked } : {}),
+    ops,
+    payments,
+  })
 }
