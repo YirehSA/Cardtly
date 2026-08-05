@@ -173,7 +173,10 @@ export default function HomePage() {
       {/* ── Social proof bar — bigger, bolder ─────────────────────────────────── */}
       <section className="py-16 border-y" style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
         <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {/* Four across only from lg. At md a quarter of the row is 169px and
+              "5-7 days" needs 202px even at the smaller size, so the tablet
+              widths got two columns of 370px instead. */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Every one of these is checkable against the product or the
                 database. This bar used to read "10,000+ cards created" and
                 "500K+ views served"; the real figures at the time of writing
@@ -189,8 +192,14 @@ export default function HomePage() {
                 <div className="text-center">
                   {/* nowrap: "5-7 days" was breaking after the number and
                       dropping "days" onto a second line, so that one tile sat
-                      a row taller than the other three. */}
-                  <p className="text-4xl md:text-6xl font-black tracking-tight whitespace-nowrap" style={gradText}>{n}</p>
+                      a row taller than the other three.
+                      But nowrap turns "does not fit" into "is cut off", and at
+                      60px "5-7 days" needs 253px while a quarter of a tablet
+                      only gives 220-250. It was clipped at every iPad width and
+                      only looked right above about 1200px, which is why nobody
+                      on a desktop ever saw it. 48px until xl needs 202px and
+                      fits from 1024 up. */}
+                  <p className="text-4xl md:text-5xl xl:text-6xl font-black tracking-tight whitespace-nowrap" style={gradText}>{n}</p>
                   <p className="text-xs md:text-sm mt-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>{label}</p>
                 </div>
               </Reveal>
@@ -268,7 +277,12 @@ export default function HomePage() {
               desc="Order a tap-to-share NFC card from us in South Africa. Hold it to any phone and your profile opens instantly. No app needed on either end. Posted nationwide."
               visual={
                 <div className="absolute inset-0 flex items-end justify-end p-8 pointer-events-none">
-                  <div className="relative">
+                  {/* shrink-0: a flex item shrinks below its width by default,
+                      so on a narrower card this 192px mockup was squeezed to
+                      93px and "cardtly.com/andrenel" was chopped mid-word. It
+                      is decoration inside an overflow-hidden card - peeking
+                      past the edge is the intended look, squashed text is not. */}
+                  <div className="relative shrink-0">
                     {/* Stack of NFC cards */}
                     <div className="absolute inset-0 w-48 h-32 rounded-2xl"
                       style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)', border: '1px solid rgba(255,255,255,0.1)', transform: 'translate(-10px, -10px) rotate(-6deg)' }} />

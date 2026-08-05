@@ -71,11 +71,19 @@ export default function HeroSection() {
       <div className="absolute -bottom-56 right-[2%] w-[640px] h-[640px] rounded-full blur-[130px] pointer-events-none"
         style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.16) 0%, transparent 72%)' }} />
 
-      <div className="relative mx-auto grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-12 xl:gap-16 items-center"
+      {/* Two columns at xl, not lg.
+          The right-hand composition is a 288px live card with a printed card
+          tucked 238px off its left edge, so it needs about 530px. At lg the
+          right column is only ~420px, and the difference came out of the text:
+          the printed card sat on top of the headline and the paragraph, hiding
+          the end of every line. Measured at 1024px it covered 142px of them.
+          Nobody saw it because it comes right at 1920px, which is the screen it
+          was built on - and it is worst at 1024, which is an iPad. */}
+      <div className="relative mx-auto grid grid-cols-1 xl:grid-cols-[1.05fr_0.95fr] gap-12 xl:gap-16 items-center"
         style={{ maxWidth: 1500, zIndex: 2 }}>
 
         {/* ── Left: the pitch ─────────────────────────────────────────── */}
-        <div className="text-center lg:text-left">
+        <div className="text-center xl:text-left">
           <h1 className="font-black tracking-[-0.02em] leading-[1.04] mb-6"
             style={{ fontSize: 'clamp(2.5rem, 4.4vw, 4.25rem)' }}>
             More leads.<br />
@@ -83,13 +91,13 @@ export default function HeroSection() {
             <span style={gradText}>More sales.</span>
           </h1>
 
-          <p className="text-lg xl:text-xl mb-8 leading-relaxed max-w-xl mx-auto lg:mx-0"
+          <p className="text-lg xl:text-xl mb-8 leading-relaxed max-w-xl mx-auto xl:mx-0"
             style={{ color: 'rgba(255,255,255,0.62)' }}>
             One branded <strong className="text-white font-semibold">digital business card</strong> for everyone on your
             team. They tap, the lead lands in your contacts, and you can see which reps are getting opened.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-7">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center xl:justify-start mb-7">
             <Link href="/signup"
               className="group flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition-all hover:scale-[1.03]"
               style={{ background: grad, boxShadow: '0 10px 44px rgba(124,58,237,0.5)' }}>
@@ -103,7 +111,7 @@ export default function HeroSection() {
             </Link>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-sm mb-8"
+          <div className="flex flex-wrap items-center justify-center xl:justify-start gap-x-5 gap-y-2 text-sm mb-8"
             style={{ color: 'rgba(255,255,255,0.45)' }}>
             {['Free trial on request', 'R97 a card a month', 'Live in 2 minutes'].map(t => (
               <span key={t} className="flex items-center gap-1.5 whitespace-nowrap">
@@ -112,7 +120,7 @@ export default function HeroSection() {
             ))}
           </div>
 
-          <div className="max-w-sm mx-auto lg:mx-0">
+          <div className="max-w-sm mx-auto xl:mx-0">
             <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl border transition-all"
               style={{
                 background: 'rgba(255,255,255,0.05)',
@@ -142,12 +150,22 @@ export default function HeroSection() {
         </div>
 
         {/* ── Right: the printed card and the live one ────────────────── */}
-        <div className="flex justify-center">
+        {/* pt-20 while the two stack. The printed card is absolutely positioned
+            78px ABOVE the live one, and absolute elements reserve no space, so
+            with only the 48px grid gap it reached up and sat on top of the
+            "type your name" input - covering the placeholder and the left half
+            of a control people are meant to type into. That was already true
+            from 640px up before the columns moved to xl. */}
+        <div className="flex justify-center pt-20 xl:pt-0">
           <div className="relative inline-block" style={{ perspective: '1200px' }}
             onMouseMove={handleMove} onMouseEnter={() => setHovering(true)} onMouseLeave={handleLeave}>
 
-            {/* The printed card, behind and to the left */}
-            <div className="absolute inset-0 hidden sm:block pointer-events-none">
+            {/* The printed card, behind and to the left.
+                How far left is a variable rather than a number, because the
+                full 238px only has somewhere to go once the window is wide;
+                below 2xl it tucks in to 150px and stops reaching across into
+                the headline. */}
+            <div className="absolute inset-0 hidden sm:block pointer-events-none [--spill:-150px] 2xl:[--spill:-238px]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/nfc-samples/sicon-front.jpg"
@@ -155,7 +173,7 @@ export default function HeroSection() {
                 width={1200} height={767}
                 className="absolute rounded-2xl"
                 style={{
-                  width: 296, left: -238, top: -78,
+                  width: 296, left: 'var(--spill)', top: -78,
                   transform: `rotateZ(-13deg) rotateY(${ry * 0.5}deg)`,
                   border: '1px solid rgba(255,255,255,0.16)',
                   boxShadow: '0 30px 70px rgba(0,0,0,0.8)',
@@ -164,13 +182,13 @@ export default function HeroSection() {
               />
               <div className="absolute overflow-hidden rounded-2xl"
                 style={{
-                  width: 296, height: 189, left: -238, top: -78,
+                  width: 296, height: 189, left: 'var(--spill)', top: -78,
                   transform: `rotateZ(-13deg) rotateY(${ry * 0.5}deg)`,
                   transition: hovering ? 'none' : 'transform 0.6s ease-out',
                 }}>
                 <div className="hero-sheen" />
               </div>
-              <div className="absolute" style={{ left: -186, top: -30 }}>
+              <div className="absolute" style={{ left: 'calc(var(--spill) + 52px)', top: -30 }}>
                 {[0, 1, 2].map(i => <span key={i} className="hero-ripple" style={{ animationDelay: `${i * 0.9}s` }} />)}
               </div>
             </div>
