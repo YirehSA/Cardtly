@@ -28,7 +28,7 @@ the dashboard still shows it as healthy. Neither is visible from this file.
 
 ## Summary
 
-- 62 tables
+- 64 tables
 - 34 functions exposed over the API
 - largest table: cards with 203 columns
 
@@ -393,7 +393,7 @@ the dashboard still shows it as healthy. Neither is visible from this file.
 
 ### contacts
 
-14 columns
+15 columns
 
 | column | type | null | default | notes |
 | --- | --- | --- | --- | --- |
@@ -411,6 +411,7 @@ the dashboard still shows it as healthy. Neither is visible from this file.
 | website | text | yes |  |  |
 | address | text | yes |  |  |
 | answers | jsonb | yes |  |  |
+| work_phone | text | yes |  | Office / landline number. phone holds the mobile, matching cards.phone and cards |
 
 ### crm_integrations
 
@@ -655,7 +656,7 @@ the dashboard still shows it as healthy. Neither is visible from this file.
 
 ### organizations
 
-26 columns
+29 columns
 
 | column | type | null | default | notes |
 | --- | --- | --- | --- | --- |
@@ -685,6 +686,9 @@ the dashboard still shows it as healthy. Neither is visible from this file.
 | suspended_at | timestamp with time zone | yes |  |  |
 | suspension_message | text | yes |  |  |
 | locked_fields | jsonb | no |  |  |
+| billing_starts_on | date | yes |  | For a debit_order team: the date collection begins. Free before it, and orgNeeds |
+| card_slug_prefix | text | yes |  | Company half of a team card URL: /card/<prefix>-<person>. Suggested from the com |
+| industry | text | yes |  | Fixed-list industry id from lib/industries.ts. New team cards prefill from it. |
 
 ### paystack_payments
 
@@ -746,7 +750,7 @@ the dashboard still shows it as healthy. Neither is visible from this file.
 
 ### profiles
 
-22 columns
+23 columns
 
 | column | type | null | default | notes |
 | --- | --- | --- | --- | --- |
@@ -769,9 +773,10 @@ the dashboard still shows it as healthy. Neither is visible from this file.
 | founder_lifetime_pro | boolean | yes | `false` |  |
 | signup_source | text | no | `"organic"` |  |
 | is_admin | boolean | no | `false` |  |
-| trial_ends_at | timestamp with time zone | yes | `"(now() + '60 days'::interval)"` | When the 60-day trial ends. Past this date with no active subscription the accou |
+| trial_ends_at | timestamp with time zone | yes | `"(now() + '7 days'::interval)"` | When the 60-day trial ends. Past this date with no active subscription the accou |
 | rep_id | uuid | yes |  | FK -> reps.id |
 | network_notice_seen_at | timestamp with time zone | yes |  | When this user acknowledged the one-time Cardtly Network listing notice. NULL me |
+| trial_code | text | yes |  | The trial code this account signed up with. NULL means they signed up without on |
 
 ### promo_entries
 
@@ -813,6 +818,28 @@ the dashboard still shows it as healthy. Neither is visible from this file.
 | became_paid_at | timestamp with time zone | yes |  |  |
 | status | text | no | `"pending"` |  |
 
+### rep_meetings
+
+15 columns
+
+| column | type | null | default | notes |
+| --- | --- | --- | --- | --- |
+| id | uuid | no | `"gen_random_uuid()"` | PK |
+| rep_id | uuid | no |  | FK -> reps.id |
+| company | text | no |  |  |
+| contact_name | text | yes |  |  |
+| contact_phone | text | yes |  |  |
+| contact_email | text | yes |  |  |
+| scheduled_at | timestamp with time zone | no |  |  |
+| status | text | no | `"planned"` |  |
+| outcome | text | yes |  |  |
+| notes | text | yes |  |  |
+| created_at | timestamp with time zone | no | `"now()"` |  |
+| updated_at | timestamp with time zone | no | `"now()"` |  |
+| duration_minutes | integer | no | `60` |  |
+| location | text | yes |  |  |
+| follow_up_on | date | yes |  |  |
+
 ### rep_payouts
 
 12 columns
@@ -834,7 +861,7 @@ the dashboard still shows it as healthy. Neither is visible from this file.
 
 ### reps
 
-12 columns
+13 columns
 
 | column | type | null | default | notes |
 | --- | --- | --- | --- | --- |
@@ -850,6 +877,7 @@ the dashboard still shows it as healthy. Neither is visible from this file.
 | created_at | timestamp with time zone | no | `"now()"` |  |
 | updated_at | timestamp with time zone | no | `"now()"` |  |
 | commission_day | integer | no | `25` | Day of the month the commission period starts and ends. 25 means 25th to 25th. C |
+| user_id | uuid | yes |  |  |
 
 ### revenue_recognition
 
@@ -1153,6 +1181,23 @@ the dashboard still shows it as healthy. Neither is visible from this file.
 | thumbnail_url | text | yes |  |  |
 | usage_count | integer | yes | `0` |  |
 | category_id | uuid | yes |  |  |
+
+### trial_codes
+
+10 columns
+
+| column | type | null | default | notes |
+| --- | --- | --- | --- | --- |
+| id | uuid | no | `"gen_random_uuid()"` | PK |
+| code | text | no |  |  |
+| days | integer | no |  |  |
+| active | boolean | no | `true` |  |
+| expires_at | timestamp with time zone | yes |  |  |
+| max_uses | integer | yes |  |  |
+| uses | integer | no | `0` |  |
+| notes | text | yes |  |  |
+| created_at | timestamp with time zone | no | `"now()"` |  |
+| updated_at | timestamp with time zone | no | `"now()"` |  |
 
 ### trial_emails
 
