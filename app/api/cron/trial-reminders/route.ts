@@ -27,6 +27,27 @@ export const maxDuration = 60
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
+// How long after making a card somebody still counts as new.
+//
+// It is a window rather than "since the last run" for the same reason the
+// thresholds below are "at or under": if a run is missed, or Vercel fires late,
+// nobody should silently lose their only welcome. Seven days of slack, and the
+// dedupe in trial_emails means the slack can never turn into a second send.
+//
+// It also decides who is too late to welcome. Measured against production when
+// this shipped, a 7-day window covered exactly one card - the signup from the
+// night before - and left every older account alone, which is the point: a
+// "welcome, your card is live" arriving three weeks late reads as a system
+// that has lost track of you.
+const WELCOME_WINDOW_DAYS = 7
+
+function cardAgeDays(createdAt: string | null, now: number): number {
+  if (!createdAt) return Infinity // unknown age: treat as old, never welcome
+  const ms = new Date(createdAt).getTime()
+  if (!Number.isFinite(ms)) return Infinity
+  return (now - ms) / DAY_MS
+}
+
 type Kind = TrialEmailKind
 
 export async function GET(request: Request) {
@@ -51,7 +72,7 @@ export async function GET(request: Request) {
       admin.from('profiles').select('user_id, name, trial_ends_at').not('trial_ends_at', 'is', null),
       admin.from('whop_subscriptions').select('user_id').eq('status', 'active'),
       admin.from('team_cards').select('user_id').not('user_id', 'is', null),
-      admin.from('cards').select('user_id, name, slug'),
+      admin.from('cards').select('user_id, name, slug, created_at'),
       admin.from('trial_emails').select('user_id, kind'),
     ])
 
@@ -68,9 +89,11 @@ export async function GET(request: Request) {
   const teamMembers = new Set((teamCards || []).map((t: any) => t.user_id).filter(Boolean))
   const sent = new Set((alreadySent || []).map((r: any) => `${r.user_id}:${r.kind}`))
 
-  const cardByUser: Record<string, { name: string | null; slug: string | null }> = {}
+  const cardByUser: Record<string, { name: string | null; slug: string | null; createdAt: string | null }> = {}
   for (const c of (cards || []) as any[]) {
-    if (c.user_id && !cardByUser[c.user_id]) cardByUser[c.user_id] = { name: c.name, slug: c.slug }
+    if (c.user_id && !cardByUser[c.user_id]) {
+      cardByUser[c.user_id] = { name: c.name, slug: c.slug, createdAt: c.created_at ?? null }
+    }
   }
 
   const { data: authData } = await admin.auth.admin.listUsers({ perPage: 1000 })
@@ -109,6 +132,14 @@ export async function GET(request: Request) {
     else if (msLeft <= 7 * DAY_MS) kind = 'trial_7d'
     if (!kind) continue
 
+    // A signup now gets 7 days, which satisfies the 7-day threshold on the very
+    // first run - so without this a brand new user would be greeted by "7 days
+    // left on your trial" within hours of joining, alongside the welcome below.
+    // Two emails at once, one of them a countdown, is a poor first day. For
+    // their first week the welcome IS the notice, and it carries the same
+    // number. A longer trial from a code still gets its 7-day warning later.
+    if (kind === 'trial_7d' && cardAgeDays(card.createdAt, now) <= WELCOME_WINDOW_DAYS) continue
+
     if (sent.has(`${userId}:${kind}`)) continue
 
     queue.push({
@@ -118,6 +149,47 @@ export async function GET(request: Request) {
       firstName: (card.name || p.name || '').split(' ')[0] || 'there',
       slug: card.slug,
       daysLeft: Math.max(0, Math.ceil(msLeft / DAY_MS)),
+    })
+  }
+
+  // Welcome: your card is live.
+  //
+  // A separate pass rather than another branch in the loop above, because the
+  // rules genuinely differ - that loop is about something ending, this is about
+  // something starting - and because the loop above is the one that must not
+  // break. It appends to the same queue, so the claim-send-release handling
+  // below covers it unchanged.
+  //
+  // The trigger is the card, not the signup: an account with no card has no
+  // link to be told about, and the whole point is to get the link in front of
+  // somebody. Trial users only - "you have N days to try everything" is the
+  // wrong thing to say to a customer who has already paid.
+  for (const p of (profiles || []) as any[]) {
+    const userId = p.user_id
+    if (!userId) continue
+    if (paid.has(userId)) continue
+    if (teamMembers.has(userId)) continue
+
+    const card = cardByUser[userId]
+    if (!card) continue
+    if (cardAgeDays(card.createdAt, now) > WELCOME_WINDOW_DAYS) continue
+
+    // Never claim a card is live when it is not. Anyone whose trial has already
+    // run out gets the expired email from the loop above instead.
+    const msLeft = new Date(p.trial_ends_at).getTime() - now
+    if (!Number.isFinite(msLeft) || msLeft <= 0) continue
+
+    const to = emailByUser[userId]
+    if (!to) continue
+    if (sent.has(`${userId}:card_live`)) continue
+
+    queue.push({
+      userId,
+      to,
+      kind: 'card_live',
+      firstName: (card.name || p.name || '').split(' ')[0] || 'there',
+      slug: card.slug,
+      daysLeft: Math.max(1, Math.ceil(msLeft / DAY_MS)),
     })
   }
 
