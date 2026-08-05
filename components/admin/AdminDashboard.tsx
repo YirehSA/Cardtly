@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import TeamsTab from './TeamsTab'
 import TrialsTab from './TrialsTab'
+import ExpiryBoard from './ExpiryBoard'
 import RepsTab from './RepsTab'
 import MeetingsTab from './MeetingsTab'
 import { Stat, Section, StatusPill, STATUS_META, grad, inputClass, inputStyle, fmtDate, fmtWhen, randFmt } from './shared'
@@ -439,6 +440,13 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
         )}
 
         {tab === 'trials' && (
+          <div className="space-y-4">
+          {/* Above the codes on purpose: a code is a thing you hand out, this is
+              a list of people about to lose their card. */}
+          <ExpiryBoard users={users} loading={loading}
+            onExtend={(u, days) => run(`trial-${u.id}`,
+              { action: 'extend_trial', user_id: u.id, days },
+              `${u.card?.name || u.email}: +${days} days`)} />
           <TrialsTab codes={trialCodes} loading={loading}
             onSave={(f) => run('code-save', {
               action: 'upsert_trial_code',
@@ -450,6 +458,7 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
             onToggle={(id, active) => run(`code-${id}`, { action: 'set_trial_code_active', id, active },
               active ? 'Code switched on' : 'Code switched off')}
           />
+          </div>
         )}
 
         {tab === 'reps' && (
