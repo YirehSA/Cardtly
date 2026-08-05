@@ -140,7 +140,7 @@ for (const file of [...marketingFiles('app'), ...marketingFiles('components/mark
   try { text = read(file) } catch { continue }
   for (const re of TRIAL_CLAIMS) {
     const m = text.match(re)
-    if (m) note(`${file} promises a free trial ("${m[0].trim()}"). A trial now comes from a code, so that is not true for every signup.`)
+    if (m) note(`${file} promises a free trial ("${m[0].trim()}"). A signup gets 7 days (migration 049); 30 and 60 only come from a code, so a 60-day promise is not true for everyone.`)
   }
 }
 
