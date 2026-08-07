@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { normaliseCode, rejectCode, REJECTION_MESSAGE, type TrialCodeRow } from '@/lib/trial-codes'
+import { isIosAppUA } from '@/lib/app-platform'
 
 // Redeems a trial code for the signed-in account.
 //
@@ -57,6 +58,20 @@ export async function POST(request: Request) {
   }
 
   const days: number = (row as TrialCodeRow).days
+
+  // Not from inside the iOS app, at all.
+  //
+  // App Review's second finding on 1.0 (7) was explicit: "the app uses a trial
+  // code to unlock or enable subscriptions", and their instruction was to
+  // remove the feature. The box itself is gone with /dashboard/upgrade, but a
+  // ?code= link captured at signup would still claim one silently - the same
+  // mechanism, just out of sight. Refused here so it is gone in fact and not
+  // only in the interface. The web and Android are untouched.
+  if (isIosAppUA(request.headers.get('user-agent'))) {
+    return NextResponse.json({
+      error: 'Trial codes cannot be redeemed in the iOS app. Open cardtly.com in a browser to use your code.',
+    }, { status: 403 })
+  }
 
   // One code per account. Without this the same code could be replayed to stack
   // trials indefinitely - the account is already signed in, so the request is

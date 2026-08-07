@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { useEffect } from 'react'
 import { User, Lock, CreditCard, AlertTriangle, Check, Eye, EyeOff } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useIosApp } from '@/components/dashboard/PlatformProvider'
 
 interface Props {
   user: { id: string; email: string }
@@ -487,6 +488,7 @@ function billingState(plan: UserPlan, subscription: Props['subscription']) {
 }
 
 function BillingTab({ plan, subscription }: { plan: UserPlan; subscription: Props['subscription'] }) {
+  const iosApp = useIosApp()
   const state = billingState(plan, subscription)
   const daysLeft = plan.trialDaysLeft ?? 0
 
@@ -530,15 +532,20 @@ function BillingTab({ plan, subscription }: { plan: UserPlan; subscription: Prop
           )}
         </div>
 
+        {/* No price and no instruction to go and buy inside the iOS app. Apple
+            3.1.1 covers calls to action, not just the checkout, and "subscribe
+            for R97 a month" is one however politely it is phrased. */}
         {state === 'trial' && (
           <p className="text-sm text-muted-foreground mt-4">
             You have every Pro feature until then, and you have not been charged anything.
-            To keep your card live after your trial, subscribe for R97 a month.
+            {iosApp ? '' : ' To keep your card live after your trial, subscribe for R97 a month.'}
           </p>
         )}
         {state === 'expired' && (
           <p className="text-sm text-muted-foreground mt-4">
-            Subscribe for R97 a month and your card goes straight back live on the same link, with nothing lost.
+            {iosApp
+              ? 'Nothing has been deleted. Your design, your details and every contact you captured are exactly where you left them.'
+              : 'Subscribe for R97 a month and your card goes straight back live on the same link, with nothing lost.'}
           </p>
         )}
         {state === 'comped' && (
@@ -547,7 +554,7 @@ function BillingTab({ plan, subscription }: { plan: UserPlan; subscription: Prop
           </p>
         )}
 
-        {(state === 'trial' || state === 'expired') && (
+        {(state === 'trial' || state === 'expired') && !iosApp && (
           <a href="/dashboard/upgrade"
             className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
             style={{ background: HEADER.tone }}>

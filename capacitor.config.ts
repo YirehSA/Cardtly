@@ -34,6 +34,17 @@ const config: CapacitorConfig = {
       'checkout.paystack.com',
     ],
   },
+  ios: {
+    // Tags the WebView's user agent so the server can tell an iOS app request
+    // from a Safari one, and leave the purchase surfaces OUT of the response
+    // rather than have the page hide them afterwards. See lib/app-platform.
+    //
+    // App Review rejected 1.0 (7) under 3.1.1 for reaching a Paystack card form
+    // inside the app, and again for the trial code box. Neither may exist here.
+    // Anything hidden in the browser is still in the page source and still
+    // flashes before hydration - not good enough for a reviewer who looks.
+    appendUserAgent: 'CardtlyiOS',
+  },
   android: {
     allowMixedContent: false,
     // captureInput intentionally omitted (default false). When true, the

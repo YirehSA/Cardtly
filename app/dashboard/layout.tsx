@@ -5,7 +5,9 @@ import { getUserPlan } from '@/lib/plan-server'
 import { isAdminUser } from '@/lib/admin-check'
 import { getManagedDepartments, getOwnedOrgs } from '@/lib/department-perms'
 import { getRepForUser } from '@/lib/rep-access'
+import { isIosApp } from '@/lib/app-platform'
 import { ThemeProvider } from '@/components/dashboard/ThemeProvider'
+import { PlatformProvider } from '@/components/dashboard/PlatformProvider'
 import Sidebar from '@/components/dashboard/Sidebar'
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav'
 import CommandPalette from '@/components/CommandPalette'
@@ -104,8 +106,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // every dashboard request with a service-role client purely to decide
   // whether to render one link.
 
+  // Read once here and shared with every client component below, so nothing in
+  // the dashboard has to render a purchase button and then take it away again.
+  const iosApp = await isIosApp()
+
   return (
     <ThemeProvider>
+      <PlatformProvider iosApp={iosApp}>
       <div className="min-h-screen bg-background">
         <Sidebar
           isPro={isPro}
@@ -144,6 +151,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <AnnouncementModal />
         <MobileBottomNav isAdmin={isAdmin} isPro={isPro} managesDepartments={managesDepartments} showTeamCards={showTeamCards} isRep={isRep} />
       </div>
+      </PlatformProvider>
     </ThemeProvider>
   )
 }

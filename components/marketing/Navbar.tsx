@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Menu, X } from 'lucide-react'
+import { getNativePlatform } from '@/lib/capacitor'
 
 const LINKS = [
   { href: '/',              label: 'Home' },
@@ -20,6 +21,18 @@ const LINKS = [
 export default function Navbar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+
+  // Pricing is dropped inside the iOS app.
+  //
+  // Detected in the browser rather than on the server, unlike the dashboard:
+  // the marketing pages are static, and reading the request header to hide one
+  // nav item would make every one of them dynamic for every visitor. The route
+  // itself is already blocked in middleware, so the worst case here is the word
+  // "Pricing" appearing for a moment before hydration - a link that goes
+  // nowhere, not a purchase mechanism.
+  const [iosApp, setIosApp] = useState(false)
+  useEffect(() => { setIosApp(getNativePlatform() === 'ios') }, [])
+  const links = iosApp ? LINKS.filter(l => l.href !== '/pricing') : LINKS
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50" style={{ backdropFilter: 'blur(20px)', background: 'rgba(0,0,0,0.6)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -41,7 +54,7 @@ export default function Navbar() {
             off due to layout" Apple's reviewer reported.
             px-3 until xl buys back the ~70px that makes the row fit at 1024. */}
         <nav className="hidden lg:flex items-center gap-1">
-          {LINKS.map((link) => {
+          {links.map((link) => {
             const { href, label } = link
             const active = pathname === href
             return (
@@ -76,7 +89,7 @@ export default function Navbar() {
       {/* Mobile menu */}
       {open && (
         <div className="lg:hidden px-6 pb-6 pt-2 space-y-1" style={{ background: 'rgba(0,0,0,0.95)' }}>
-          {LINKS.map(({ href, label, badge }) => (
+          {links.map(({ href, label, badge }) => (
             <Link key={href} href={href} onClick={() => setOpen(false)}
               className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition">
               {label}{badge && <span className="text-xs">{badge}</span>}

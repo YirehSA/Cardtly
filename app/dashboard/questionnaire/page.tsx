@@ -5,6 +5,7 @@ import QuestionnaireBuilder from '@/components/questionnaire/QuestionnaireBuilde
 import CardFeatureToggles from '@/components/questionnaire/CardFeatureToggles'
 import { resolveAddonTargets } from '@/lib/addon-target'
 import { getUserPlan } from '@/lib/plan-server'
+import { isIosApp } from '@/lib/app-platform'
 import { ClipboardList, User, Users, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 
@@ -40,9 +41,10 @@ export default async function LeadCapturePage({ searchParams }: { searchParams: 
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
 
-  const [plan, allTargets] = await Promise.all([
+  const [plan, allTargets, iosApp] = await Promise.all([
     getUserPlan(user.id),
     resolveAddonTargets(admin, user.id),
+    isIosApp(),
   ])
   const isPro = plan.tier === 'pro' && plan.isActive
 
@@ -86,11 +88,15 @@ export default async function LeadCapturePage({ searchParams }: { searchParams: 
           <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
             The contact exchange popup and the custom questionnaire both come with Pro, and you switch them on yourself. Nothing to request.
           </p>
-          <Link href="/dashboard/upgrade"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
-            style={{ background: grad }}>
-            Subscribe for R97/month
-          </Link>
+          {/* No price and no way to buy inside the iOS app - Guideline 3.1.1
+              treats the button as the violation, not just the checkout. */}
+          {!iosApp && (
+            <Link href="/dashboard/upgrade"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
+              style={{ background: grad }}>
+              Subscribe for R97/month
+            </Link>
+          )}
         </div>
       </div>
     )

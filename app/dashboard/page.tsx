@@ -2,6 +2,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
+import { isIosApp } from '@/lib/app-platform'
 import { getPrimaryCard, getMemberTeamCard } from '@/lib/card-server'
 import IndustryPrompt from '@/components/dashboard/IndustryPrompt'
 import { fetchCardNetworkPrefs } from '@/lib/network'
@@ -63,6 +64,11 @@ export default async function DashboardPage() {
   const card: (CardSummary & { id: string }) | null = personalCard || (teamCard as any) || null
   const cardKind: 'personal' | 'team' | 'none' = personalCard ? 'personal' : teamCard ? 'team' : 'none'
   const referralCode = (profile as any)?.referral_code as string | null
+
+  // Inside the iOS app, nothing on this page may sell anything or name a price.
+  // See lib/app-platform for why this is read from the request rather than
+  // decided in the browser.
+  const iosApp = await isIosApp()
 
   const isPro = plan.tier === 'pro' && plan.isActive
   // A claimed team member's card is served by their organization and is never
@@ -198,7 +204,7 @@ export default async function DashboardPage() {
                 </p>
               </div>
             </div>
-            {!isPaid && (
+            {!isPaid && !iosApp && (
               <Link href="/dashboard/upgrade"
                 className="flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold text-white transition hover:opacity-90"
                 style={{ background: `linear-gradient(135deg, ${accentHex}, ${accentHex}cc)`, boxShadow: `0 6px 24px ${accentHex}44` }}>
@@ -219,13 +225,20 @@ export default async function DashboardPage() {
             : trialDaysLeft <= 7
               ? { background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.35)' }
               : { background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.28)' }}>
+          {/* The iOS wording states the fact and stops there. Apple's 3.1.1
+              covers "calls to action that direct customers to purchasing
+              mechanisms other than IAP", and that includes naming the price or
+              telling somebody to go and subscribe - so on iOS this says what is
+              true about their card and offers nothing to buy. */}
           <p className="text-sm flex-1 min-w-[240px]">
             {isExpired ? (
               <>
                 <span className="font-bold">Your card is offline.</span>{' '}
                 <span className="text-muted-foreground">
                   Your trial has ended, so {card?.slug ? `cardtly.com/card/${card.slug}` : 'your card link'} no longer opens.
-                  Subscribe for R97 a month and it goes straight back live, same link, nothing lost.
+                  {iosApp
+                    ? ' Nothing has been deleted - your design, your details and every contact are exactly where you left them.'
+                    : ' Subscribe for R97 a month and it goes straight back live, same link, nothing lost.'}
                 </span>
               </>
             ) : (
@@ -234,7 +247,8 @@ export default async function DashboardPage() {
                   {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'} left on your trial.
                 </span>{' '}
                 <span className="text-muted-foreground">
-                  You have every Pro feature until then. Subscribe for R97 a month to keep your card live after that.
+                  You have every Pro feature until then.
+                  {iosApp ? '' : ' Subscribe for R97 a month to keep your card live after that.'}
                 </span>
               </>
             )}
@@ -397,7 +411,10 @@ export default async function DashboardPage() {
           {QUICK_ACTIONS.map(({ href, label, icon: Icon, desc, pro }) => {
             const locked = pro && !isPro
             return (
-              <Link key={href} href={locked ? '/dashboard/upgrade' : href}
+              // A locked tile normally sells the upgrade. In the iOS app it
+              // goes to the feature instead, where the gate explains what Pro
+              // is without offering anywhere to buy it.
+              <Link key={href} href={locked && !iosApp ? '/dashboard/upgrade' : href}
                 className="flex items-center gap-3 p-4 rounded-2xl border border-border bg-card hover:border-foreground/20 hover:-translate-y-0.5 hover:shadow-md transition-all group">
                 <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
                   style={{ background: accentHex + '18', color: accentHex }}>
@@ -434,8 +451,10 @@ export default async function DashboardPage() {
         <ReferralCard referralCode={referralCode} firstName={firstName} />
       )}
 
-      {/* Pro upgrade banner for free users */}
-      {!isPro && (
+      {/* Pro upgrade banner for free users. Gone entirely in the iOS app -
+          the whole panel is a call to action towards a purchase Apple does
+          not take a cut of, which is precisely what 3.1.1 forbids. */}
+      {!isPro && !iosApp && (
         <div className="rounded-3xl p-6 relative overflow-hidden"
           style={{ background: `linear-gradient(135deg, ${accentHex}22 0%, ${accentHex}08 100%)`, border: `1px solid ${accentHex}33` }}>
           <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl pointer-events-none"

@@ -7,6 +7,7 @@ import {
   Wifi, Building2, Settings, Shield, LogOut, Sun, Moon, Sparkles,
 } from 'lucide-react'
 import { useTheme } from './dashboard/ThemeProvider'
+import { useIosApp } from './dashboard/PlatformProvider'
 import { createClient } from '@/lib/supabase/client'
 
 interface Command {
@@ -27,6 +28,7 @@ interface Command {
 // (admin-only items are hidden from non-admin sessions).
 
 export default function CommandPalette() {
+  const iosApp = useIosApp()
   const router = useRouter()
   const { theme, toggle } = useTheme()
   const [open, setOpen] = useState(false)
@@ -89,7 +91,12 @@ export default function CommandPalette() {
     { id: 'nfc',         group: 'navigate', label: 'NFC Cards',       icon: Wifi,        href: '/dashboard/nfc' },
     { id: 'team',        group: 'navigate', label: 'Team Cards',      icon: Building2,   href: '/dashboard/team' },
     { id: 'settings',    group: 'account',  label: 'Settings',        icon: Settings,    href: '/dashboard/settings' },
-    { id: 'upgrade',     group: 'account',  label: 'Upgrade to Pro',  icon: Sparkles,    href: '/upgrade', keywords: ['pro', 'plan', 'billing'] },
+    // Not offered in the iOS app: it is a call to action towards a purchase
+    // that is not In-App Purchase, which Guideline 3.1.1 forbids wherever it
+    // appears - a command palette entry included.
+    ...(iosApp ? [] : [
+      { id: 'upgrade' as const, group: 'account' as const, label: 'Upgrade to Pro', icon: Sparkles, href: '/upgrade', keywords: ['pro', 'plan', 'billing'] },
+    ]),
     { id: 'theme',       group: 'account',  label: theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode', icon: theme === 'dark' ? Sun : Moon, action: () => toggle(), keywords: ['theme', 'appearance', 'dark', 'light'] },
     { id: 'signout',     group: 'account',  label: 'Sign out',        icon: LogOut,      action: signOut },
     ...(isAdmin ? [

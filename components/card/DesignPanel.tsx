@@ -9,6 +9,7 @@ import {
 import { Check, Lock, Sun, Moon, AlignLeft, AlignCenter, AlignRight, EyeOff, Pipette } from 'lucide-react'
 import Link from 'next/link'
 import TemplatedCardPreview from './TemplatedCardPreview'
+import { useIosApp } from '@/components/dashboard/PlatformProvider'
 
 interface Props {
   design: CardDesign
@@ -71,6 +72,7 @@ const DESIGN_TABS: { id: DesignTabId; label: string; colour: string }[] = [
 ]
 
 export default function DesignPanel({ design, onChange, isPro }: Props) {
+  const iosApp = useIosApp()
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [showBgPicker, setShowBgPicker] = useState(false)
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false)
@@ -219,7 +221,11 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
 
         {!isPro && (
           <p className="text-xs text-muted-foreground mt-2">
-            <Link href="/dashboard/upgrade" className="text-primary underline">Upgrade to Pro</Link> to unlock all templates.
+            {iosApp
+              // Says which templates are locked, offers nowhere to buy them.
+              // Apple 3.1.1 counts the link itself as the violation.
+              ? 'Some templates are part of Cardtly Pro.'
+              : <><Link href="/dashboard/upgrade" className="text-primary underline">Upgrade to Pro</Link> to unlock all templates.</>}
           </p>
         )}
       </div>
