@@ -6,7 +6,8 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import {
   Users, Plus, Edit2, Trash2, ExternalLink, Loader2,
-  CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail, UserCheck, Send, BarChart2, Sparkles, ClipboardList, Network
+  CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail, UserCheck, Send, BarChart2, Sparkles, ClipboardList, Network,
+  Search, Eye, Inbox,
 } from 'lucide-react'
 import UsdEstimate from '@/components/marketing/UsdEstimate'
 
@@ -37,6 +38,8 @@ interface TeamCard {
   // only when both are false.
   hide_from_network?: boolean | null
   org_hide_from_network?: boolean | null
+  /** Public opens of this card, all time. */
+  view_count?: number | null
 }
 
 interface Org {
@@ -52,6 +55,10 @@ interface Props {
   user: { id: string; email: string }
   org: Org | null
   teamCards: TeamCard[]
+  /** Leads captured per card id. null when the count could not be read - the
+   *  figure is then hidden rather than shown as zero, because "nobody has
+   *  contacted this rep" is a conclusion somebody would act on. */
+  leadCounts: Record<string, number> | null
 }
 
 const inputClass = "w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
@@ -64,13 +71,33 @@ const SEAT_PRICE = 97
 const MAX_SELF_SERVE_SEATS = 20
 const SEAT_TIERS = Array.from({ length: MAX_SELF_SERVE_SEATS - 1 }, (_, i) => i + 2) as readonly number[]
 
-export default function TeamDashboard({ user, org: initialOrg, teamCards: initialCards }: Props) {
+export default function TeamDashboard({ user, org: initialOrg, teamCards: initialCards, leadCounts }: Props) {
   const searchParams = useSearchParams()
   const status = searchParams.get('status')
 
   const [org, setOrg] = useState<Org | null>(initialOrg)
   const [cards, setCards] = useState<TeamCard[]>(initialCards)
   const [loading, setLoading] = useState(false)
+
+  // Finding one person in a 50-seat team is a scroll. In a 500-seat team it is
+  // not possible, and the grid was the only way in.
+  //
+  // Every word has to match, in any order, across everything you might
+  // remember about somebody - their name, their job title, their email, their
+  // number, their link, or the address that claimed the card. Substring
+  // matching on the whole phrase would fail on "anthony sales", which is two
+  // true things about one person that are never next to each other.
+  const [cardQuery, setCardQuery] = useState('')
+  const visibleCards = (() => {
+    const terms = cardQuery.trim().toLowerCase().split(/\s+/).filter(Boolean)
+    if (terms.length === 0) return cards
+    return cards.filter(c => {
+      const hay = [
+        c.name, c.title, c.company, c.email, c.phone, c.slug, c.invite_email,
+      ].filter(Boolean).join('  ').toLowerCase()
+      return terms.every(t => hay.includes(t))
+    })
+  })()
 
   // The per-card form picker only makes sense when the org has the add-on on
   // AND at least one form is built. orgForms is the library each card can be
@@ -676,8 +703,40 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           </button>
         </div>
       ) : (
+        <>
+        {/* Search. Hidden on a team small enough to take in at a glance -
+            a search box over six cards is clutter, over five hundred it is
+            the only way in. */}
+        {cards.length > 6 && (
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <input
+                value={cardQuery}
+                onChange={e => setCardQuery(e.target.value)}
+                placeholder="Search by name, job title, email, phone or link..."
+                aria-label="Search team cards"
+                className={inputClass + ' pl-10 pr-10'}
+              />
+              {cardQuery && (
+                <button onClick={() => setCardQuery('')} aria-label="Clear search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            {cardQuery && (
+              <p className="text-xs text-muted-foreground mt-2">
+                {visibleCards.length === 0
+                  ? <>Nothing matches &ldquo;{cardQuery}&rdquo;.</>
+                  : <><strong className="text-foreground">{visibleCards.length}</strong> of {cards.length} cards</>}
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {cards.map(card => (
+          {visibleCards.map(card => (
             <div key={card.id} className="bg-card border border-border rounded-2xl overflow-hidden group">
               {/* Card colour strip */}
               <div className="h-1.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
@@ -703,6 +762,30 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                   {card.email && <p className="text-xs text-muted-foreground truncate">✉️ {card.email}</p>}
                   {card.phone && <p className="text-xs text-muted-foreground">📞 {card.phone}</p>}
                   {card.company && <p className="text-xs text-muted-foreground truncate">🏢 {card.company}</p>}
+                </div>
+
+                {/* Is this card doing anything?
+                    Two numbers, because they answer different questions: views
+                    say the card is being handed out, leads say it is working.
+                    A rep with 200 views and no leads has a card people open and
+                    do nothing with; one with neither has not shared it at all.
+                    Leads are omitted rather than shown as 0 when the count
+                    could not be read - see the leadCounts prop. */}
+                <div className="flex items-center gap-4 mb-4 text-xs">
+                  <span className="inline-flex items-center gap-1.5 text-muted-foreground" title="Times this card has been opened">
+                    <Eye className="w-3.5 h-3.5" />
+                    <strong className="text-foreground tabular-nums">{card.view_count ?? 0}</strong>
+                    view{(card.view_count ?? 0) === 1 ? '' : 's'}
+                  </span>
+                  {leadCounts && (
+                    <span className="inline-flex items-center gap-1.5"
+                      style={{ color: (leadCounts[card.id] || 0) > 0 ? '#22c55e' : undefined }}
+                      title="People who left their details on this card">
+                      <Inbox className="w-3.5 h-3.5" />
+                      <strong className="tabular-nums">{leadCounts[card.id] || 0}</strong>
+                      lead{(leadCounts[card.id] || 0) === 1 ? '' : 's'}
+                    </span>
+                  )}
                 </div>
 
                 {/* Member status — shows whether this card has been claimed,
@@ -891,6 +974,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
             </div>
           ))}
         </div>
+        </>
       )}
 
       {/* Edit modal */}

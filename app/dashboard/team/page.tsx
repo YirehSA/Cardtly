@@ -6,6 +6,34 @@ import TeamDashboard from '@/components/team/TeamDashboard'
 
 export const metadata = { title: 'Team Cards' }
 
+/**
+ * How many leads each team card has captured.
+ *
+ * Chunked, because the whole point of showing this is teams big enough that
+ * scanning the grid by eye stops working - and 500 card ids in one .in() is a
+ * query string measured in tens of kilobytes.
+ *
+ * Returns null rather than a partial map if any chunk fails. A missing number
+ * reads as "not known"; a number that is quietly short of the truth reads as
+ * "this rep captured nothing", which is the one wrong answer that would change
+ * what somebody does about it.
+ */
+async function leadCountsByCard(admin: any, cardIds: string[]): Promise<Record<string, number> | null> {
+  if (cardIds.length === 0) return {}
+  const counts: Record<string, number> = {}
+  for (let i = 0; i < cardIds.length; i += 100) {
+    const { data, error } = await admin
+      .from('contacts')
+      .select('team_card_id')
+      .in('team_card_id', cardIds.slice(i, i + 100))
+    if (error) return null
+    for (const row of data || []) {
+      if (row.team_card_id) counts[row.team_card_id] = (counts[row.team_card_id] || 0) + 1
+    }
+  }
+  return counts
+}
+
 export default async function TeamPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -77,11 +105,19 @@ export default async function TeamPage() {
     }
   }
 
+  // Service role: contacts are RLS-protected and the owner's user-scoped client
+  // cannot read rows captured by their members' cards.
+  const leadCounts = await leadCountsByCard(
+    createServiceClient() as any,
+    (teamCards || []).map((c: any) => c.id),
+  )
+
   return (
     <TeamDashboard
       user={{ id: user.id, email: user.email || '' }}
       org={org || null}
       teamCards={teamCards || []}
+      leadCounts={leadCounts}
     />
   )
 }
