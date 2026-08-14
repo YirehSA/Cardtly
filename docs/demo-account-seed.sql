@@ -23,10 +23,15 @@ from auth.users u
 where u.id = p.user_id
   and u.email = 'demo@cardtly.com';
 
--- 2. A card with an empty job title does not look finished.
+-- 2. The job title column is `title`, not `job_title`, and it already held
+--    "Demo Title" - which reads as unfinished placeholder on camera. The card
+--    itself was otherwise complete: name, company, phone, address, website,
+--    bio, profile photo and logo were all set. Only the two screens fed by
+--    events and contacts were empty.
 update cards
-set job_title = coalesce(nullif(job_title, ''), 'Sales Director')
-where slug = 'demo';
+set title = 'Sales Director'
+where slug = 'demo'
+  and (title is null or title in ('', 'Demo Title'));
 
 -- 3. Clear any previous run of this script, and nothing else. Seeded rows are
 --    tagged so real data can never be caught by this.
@@ -102,7 +107,7 @@ where slug = 'demo';
 
 -- Check it landed.
 select c.slug,
-       c.job_title,
+       c.title,
        c.view_count,
        (select count(*) from contacts    x where x.card_id = c.id) as contacts,
        (select count(*) from card_events e where e.card_id = c.id) as events,
