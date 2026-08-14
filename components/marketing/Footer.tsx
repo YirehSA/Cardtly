@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Linkedin, Instagram, Facebook } from 'lucide-react'
 import { PROMOS_ENABLED } from '@/lib/promos'
+import FooterLinkList from './FooterLinkList'
 
 // Cardtly's own social profiles. These URLs are the SAME strings that go in
 // the Organization schema's sameAs array (components/marketing/StructuredData
@@ -42,46 +43,30 @@ export default function Footer() {
               if modest, ranking signal). */}
           <div>
             <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Product</p>
-            <div className="space-y-2.5">
-              {[
-                { href: '/features',      label: 'Features' },
-                { href: '/network', label: 'Business networking' },
-                { href: '/how-it-works', label: 'How digital cards work' },
-                { href: '/pricing',       label: 'Digital business card pricing' },
-                { href: '/blog',          label: 'Digital business card blog' },
-                { href: '/#teams',        label: 'Cardtly for Teams' },
-                ...(PROMOS_ENABLED ? [{ href: '/promotions', label: 'Win prizes 🏆' }] : []),
-                { href: '/nfc',           label: 'NFC business cards 🇿🇦' },
-                { href: '/signup',        label: 'Sign up' },
-                { href: '/login',         label: 'Sign in' },
-              ].map(({ href, label }) => (
-                <Link key={href} href={href}
-                  className="block text-sm transition hover:text-white"
-                  style={{ color: 'rgba(255,255,255,0.45)' }}>
-                  {label}
-                </Link>
-              ))}
-            </div>
+            <FooterLinkList items={[
+              { href: '/features',      label: 'Features' },
+              { href: '/network', label: 'Business networking' },
+              { href: '/how-it-works', label: 'How digital cards work' },
+              { href: '/pricing',       label: 'Digital business card pricing' },
+              { href: '/blog',          label: 'Digital business card blog' },
+              { href: '/#teams',        label: 'Cardtly for Teams' },
+              ...(PROMOS_ENABLED ? [{ href: '/promotions', label: 'Win prizes 🏆' }] : []),
+              { href: '/nfc',           label: 'NFC business cards 🇿🇦' },
+              { href: '/signup',        label: 'Sign up' },
+              { href: '/login',         label: 'Sign in' },
+            ]} />
           </div>
 
           {/* Company */}
           <div>
             <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Company</p>
-            <div className="space-y-2.5">
-              {[
-                { href: '/about',             label: 'About us' },
-                { href: '/contact',           label: 'Contact' },
-                { href: '/privacy',           label: 'Privacy policy' },
-                { href: '/terms',             label: 'Terms of service' },
-                ...(PROMOS_ENABLED ? [{ href: '/promotions/terms', label: 'Promotion rules' }] : []),
-              ].map(({ href, label }) => (
-                <Link key={href} href={href}
-                  className="block text-sm transition hover:text-white"
-                  style={{ color: 'rgba(255,255,255,0.45)' }}>
-                  {label}
-                </Link>
-              ))}
-            </div>
+            <FooterLinkList items={[
+              { href: '/about',             label: 'About us' },
+              { href: '/contact',           label: 'Contact' },
+              { href: '/privacy',           label: 'Privacy policy' },
+              { href: '/terms',             label: 'Terms of service' },
+              ...(PROMOS_ENABLED ? [{ href: '/promotions/terms', label: 'Promotion rules' }] : []),
+            ]} />
           </div>
         </div>
 

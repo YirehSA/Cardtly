@@ -16,6 +16,29 @@
 
 export const IOS_APP_UA_TAG = 'CardtlyiOS'
 
+/**
+ * Routes the iOS app may not open, because each one either sells a
+ * subscription or quotes its price.
+ *
+ * Lives here rather than in middleware because the navigation has to hide the
+ * same links, and two lists would drift. Middleware is the enforcement; the
+ * navbar filter only stops a link dead-ending at a redirect.
+ *
+ * '/' is on it. The app's launch URL is the marketing home page, which quotes
+ * the monthly price three times - so before this list grew, the first screen
+ * of the iOS app was a price list.
+ */
+export const IOS_BLOCKED_ROUTES = [
+  '/dashboard/upgrade', '/pricing', '/upgrade',
+  '/', '/about', '/features', '/how-it-works', '/nfc', '/blog',
+] as const
+
+/** Exact match for '/', prefix match for the rest. */
+export function isIosBlockedPath(pathname: string): boolean {
+  return IOS_BLOCKED_ROUTES.some(p =>
+    p === '/' ? pathname === '/' : (pathname === p || pathname.startsWith(p + '/')))
+}
+
 export function isIosAppUA(ua: string | null | undefined): boolean {
   return !!ua && ua.includes(IOS_APP_UA_TAG)
 }

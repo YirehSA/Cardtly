@@ -1,34 +1,41 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { isIosAppUA } from '@/lib/app-platform'
+import { isIosAppUA, isIosBlockedPath } from '@/lib/app-platform'
 
-// Routes that sell, or that unlock a subscription without the App Store.
-//
-// Blocked outright inside the iOS app, not merely unlinked: App Review rejected
+// Routes that sell, or that quote the price of what is being sold, are blocked
+// outright inside the iOS app rather than merely unlinked: App Review rejected
 // 1.0 (7) under Guideline 3.1.1 for both the Paystack checkout and the trial
 // code box, and a page that is only unreachable by not linking to it is still
-// reachable by typing the URL. Handled here rather than in each page so there
-// is one list to read, and so a new link somewhere cannot quietly reopen a way
-// in. /pricing goes too - a price list is a call to action towards a purchase
-// mechanism that is not Apple's.
-const BLOCKED_IN_IOS_APP = ['/dashboard/upgrade', '/pricing', '/upgrade']
+// reachable by typing the URL. Enforced here rather than in each page so a new
+// link somewhere cannot quietly reopen a way in.
+//
+// The list itself is IOS_BLOCKED_ROUTES in lib/app-platform, because the navbar
+// has to hide the same links and two copies would drift apart.
+//
+// Where a blocked request goes instead. Never '/', which is on the list now and
+// would redirect to itself forever.
+const IOS_FALLBACK = '/dashboard'
 
 export async function middleware(request: NextRequest) {
   const { pathname: earlyPath } = request.nextUrl
 
-  if (isIosAppUA(request.headers.get('user-agent'))
-      && BLOCKED_IN_IOS_APP.some(p => earlyPath === p || earlyPath.startsWith(p + '/'))) {
+  const blocked = isIosBlockedPath(earlyPath)
+
+  if (blocked && isIosAppUA(request.headers.get('user-agent'))) {
     const url = request.nextUrl.clone()
     // Somewhere useful rather than an error: the person did not do anything
-    // wrong, this simply is not a thing the iOS app does.
-    url.pathname = earlyPath.startsWith('/dashboard') ? '/dashboard' : '/'
+    // wrong, this simply is not a thing the iOS app does. Signed out, the
+    // dashboard sends them on to /login, which is where an app should open.
+    url.pathname = IOS_FALLBACK
     url.search = ''
     return NextResponse.redirect(url)
   }
 
-  // Public marketing routes are only matched for the check above, and must not
-  // pay for a session refresh they have no use for.
-  if (earlyPath === '/pricing' || earlyPath.startsWith('/upgrade')) {
+  // Public routes are only matched so the check above can see them, and must
+  // not pay for a session refresh they have no use for. The home page is on
+  // this list now, so getting it wrong costs an auth round trip on the busiest
+  // page on the site.
+  if (blocked && !earlyPath.startsWith('/dashboard')) {
     return NextResponse.next()
   }
 
@@ -85,8 +92,18 @@ export const config = {
     '/dashboard/:path*',
     '/login',
     '/signup',
-    // Matched only so the iOS-app block above can see them. Both return
+    // Matched only so the iOS-app block above can see them. They all return
     // immediately for everyone else, so no marketing page gains an auth call.
+    // Keep this list in step with BLOCKED_IN_IOS_APP - a route missing here is
+    // never seen by the middleware at all, so the block silently does nothing.
+    '/',
+    '/about',
+    '/features',
+    '/how-it-works',
+    '/nfc',
+    '/nfc/:path*',
+    '/blog',
+    '/blog/:path*',
     '/pricing',
     '/upgrade/:path*',
     // Refresh the Supabase session on authenticated API routes so

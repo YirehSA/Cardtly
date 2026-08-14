@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { Menu, X } from 'lucide-react'
 import { getNativePlatform } from '@/lib/capacitor'
+import { isIosBlockedPath } from '@/lib/app-platform'
 
 const LINKS = [
   { href: '/',              label: 'Home' },
@@ -22,17 +23,23 @@ export default function Navbar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
-  // Pricing is dropped inside the iOS app.
+  // Every route that sells or quotes a price is dropped inside the iOS app -
+  // which is most of the marketing site, since the home page alone says
+  // "R97 a card a month" three times.
   //
   // Detected in the browser rather than on the server, unlike the dashboard:
-  // the marketing pages are static, and reading the request header to hide one
-  // nav item would make every one of them dynamic for every visitor. The route
-  // itself is already blocked in middleware, so the worst case here is the word
-  // "Pricing" appearing for a moment before hydration - a link that goes
-  // nowhere, not a purchase mechanism.
+  // the marketing pages are static, and reading the request header to hide nav
+  // items would make every one of them dynamic for every visitor. The routes
+  // themselves are blocked in middleware, so the worst case here is a link
+  // appearing for a moment before hydration - one that redirects to the
+  // dashboard, not a purchase mechanism.
   const [iosApp, setIosApp] = useState(false)
   useEffect(() => { setIosApp(getNativePlatform() === 'ios') }, [])
-  const links = iosApp ? LINKS.filter(l => l.href !== '/pricing') : LINKS
+  const links = iosApp ? LINKS.filter(l => !isIosBlockedPath(l.href)) : LINKS
+
+  // The logo goes home, and home is blocked. Inside the app it goes to the
+  // dashboard, which is what tapping the logo in an app should do anyway.
+  const logoHref = iosApp ? '/dashboard' : '/'
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50" style={{ backdropFilter: 'blur(20px)', background: 'rgba(0,0,0,0.6)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -40,7 +47,7 @@ export default function Navbar() {
         {/* Logo only - the badge carries the wordmark inside it, so no
             text next to it. 72px = double the old 36px mark; the bar
             grew h-16 -> h-20 to give it room. */}
-        <Link href="/" className="flex items-center group" aria-label="Cardtly home">
+        <Link href={logoHref} className="flex items-center group" aria-label="Cardtly home">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/cardtly-icon.png" alt="Cardtly logo" className="w-[72px] h-[72px] rounded-full transition group-hover:scale-105" />
         </Link>
