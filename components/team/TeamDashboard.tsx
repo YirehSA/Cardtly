@@ -704,10 +704,11 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
         </div>
       ) : (
         <>
-        {/* Search. Hidden on a team small enough to take in at a glance -
-            a search box over six cards is clutter, over five hundred it is
-            the only way in. */}
-        {cards.length > 6 && (
+        {/* Search. Shown from the second card on. It was hidden below seven
+            on the theory that a small team is quicker to scan than to type -
+            but that also hid it from every team small enough to be new, which
+            is most of them, and made a working feature look missing. */}
+        {cards.length > 1 && (
           <div className="mb-4">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
