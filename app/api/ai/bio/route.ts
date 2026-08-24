@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
+import { classifyAiError, reportAiFailure } from '@/lib/ai-failure'
 
 // Generates a polished business-card bio from user-supplied details.
 // Used by the AI bio writer modal in the card editor. Gated to
@@ -16,8 +17,9 @@ export async function POST(request: Request) {
 
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {
+    await reportAiFailure('not_configured', 'OPENAI_API_KEY is not set in the environment.', 'bio')
     return NextResponse.json(
-      { error: 'AI bio is not configured. Add OPENAI_API_KEY to your environment to enable it.' },
+      { error: 'The bio writer is temporarily unavailable. We have been alerted and are looking at it.' },
       { status: 503 }
     )
   }
@@ -83,7 +85,10 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ bio })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Generation failed'
-    return NextResponse.json({ error: message }, { status: 500 })
+    const failure = classifyAiError(err, 'bio')
+    if (failure.ours) {
+      await reportAiFailure(failure.kind, err instanceof Error ? err.message : String(err), 'bio')
+    }
+    return NextResponse.json({ error: failure.userMessage }, { status: failure.status })
   }
 }

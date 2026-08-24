@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
 import { getUserPlan } from '@/lib/plan-server'
+import { classifyAiError, reportAiFailure } from '@/lib/ai-failure'
 
 // Reads a photo of a paper business card and returns structured
 // contact data. Pro-only (each scan is a paid vision call). Reuses
@@ -26,8 +27,11 @@ export async function POST(request: Request) {
 
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {
+    // "Add OPENAI_API_KEY to enable it" was being shown to customers. That is
+    // an instruction to us, in front of someone who cannot act on it.
+    await reportAiFailure('not_configured', 'OPENAI_API_KEY is not set in the environment.', 'scan')
     return NextResponse.json(
-      { error: 'Scanning is not configured. Add OPENAI_API_KEY to enable it.' },
+      { error: 'Card scanning is temporarily unavailable. We have been alerted and are looking at it.' },
       { status: 503 }
     )
   }
@@ -129,7 +133,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ contact })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Scan failed'
-    return NextResponse.json({ error: message }, { status: 500 })
+    // The provider's own words never reach the customer. See lib/ai-failure.
+    const failure = classifyAiError(err, 'scan')
+    if (failure.ours) {
+      await reportAiFailure(failure.kind, err instanceof Error ? err.message : String(err), 'scan')
+    }
+    return NextResponse.json({ error: failure.userMessage }, { status: failure.status })
   }
 }
