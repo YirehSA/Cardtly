@@ -112,12 +112,24 @@ export default async function TeamPage() {
     (teamCards || []).map((c: any) => c.id),
   )
 
+  // Departments a spreadsheet import can route people into, matched against
+  // its business-unit column. Empty for a team with no structure, which is
+  // every team that has not created a company.
+  const importTargets = org
+    ? ((await (createServiceClient() as any)
+        .from('departments')
+        .select('*')
+        .eq('organization_id', (org as any).id)).data || [])
+        .map((d: any) => ({ id: d.id, name: d.name, kind: d.kind === 'company' ? 'company' : 'department' }))
+    : []
+
   return (
     <TeamDashboard
       user={{ id: user.id, email: user.email || '' }}
       org={org || null}
       teamCards={teamCards || []}
       leadCounts={leadCounts}
+      importTargets={importTargets}
     />
   )
 }

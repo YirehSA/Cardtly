@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { X, Upload, Loader2, AlertTriangle, Check, FileSpreadsheet } from 'lucide-react'
 import {
   parseDelimited, detectColumns, looksLikeHeader, toRows, checkRows,
-  summarise, STATUS_LABEL, type CheckedRow,
+  summarise, STATUS_LABEL, type CheckedRow, type ImportTarget,
 } from '@/lib/csv-import'
 
 // Import a spreadsheet of staff as team cards.
@@ -30,6 +30,12 @@ type Props = {
    * the admin reads "12 will be added", sees 9 appear, and has no idea why.
    */
   existingEmails: string[]
+  /**
+   * Departments the spreadsheet's business-unit column can route people into.
+   * Empty for a team with no structure, in which case nothing is routed and
+   * the preview shows no routing column at all.
+   */
+  targets: ImportTarget[]
   onClose: () => void
   onDone: () => void
 }
@@ -44,7 +50,7 @@ type RowResult = {
   reason?: string
 }
 
-export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards, existingEmails, onClose, onDone }: Props) {
+export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards, existingEmails, targets, onClose, onDone }: Props) {
   const [phase, setPhase] = useState<Phase>('paste')
   const [text, setText] = useState('')
   const [sendInvites, setSendInvites] = useState(true)
@@ -60,8 +66,8 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
     const hasHeader = looksLikeHeader(grid[0])
     const map = detectColumns(hasHeader ? grid[0] : [])
     const rows = toRows(grid, map, hasHeader)
-    return { grid, hasHeader, map, rows, checked: checkRows(rows, existingEmails, seatsAvailable) }
-  }, [text, seatsAvailable, existingEmails])
+    return { grid, hasHeader, map, rows, checked: checkRows(rows, existingEmails, seatsAvailable, targets) }
+  }, [text, seatsAvailable, existingEmails, targets])
 
   const stats = parsed ? summarise(parsed.checked) : null
   const ready = stats?.ready || 0
@@ -86,6 +92,7 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
     for (let i = 0; i < queue.length; i += BATCH) {
       const slice = queue.slice(i, i + BATCH).map(r => ({
         line: r.line, name: r.name, email: r.email, title: r.title, phone: r.phone, company: r.company,
+        departmentId: r.departmentId ?? null,
       }))
       try {
         const res = await fetch('/api/team/bulk-import', {
@@ -190,6 +197,9 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
                     <tr>
                       <th className="text-left font-medium text-xs uppercase tracking-wide text-muted-foreground px-3 py-2">Name</th>
                       <th className="text-left font-medium text-xs uppercase tracking-wide text-muted-foreground px-3 py-2">Email</th>
+                      {targets.length > 0 && (
+                        <th className="text-left font-medium text-xs uppercase tracking-wide text-muted-foreground px-3 py-2">Goes to</th>
+                      )}
                       <th className="text-left font-medium text-xs uppercase tracking-wide text-muted-foreground px-3 py-2">Outcome</th>
                     </tr>
                   </thead>
@@ -198,6 +208,15 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
                       <tr key={`${r.line}-${r.email}`} className="border-t border-border">
                         <td className="px-3 py-1.5">{r.name || <span className="text-muted-foreground">-</span>}</td>
                         <td className="px-3 py-1.5 text-muted-foreground">{r.email || '-'}</td>
+                        {targets.length > 0 && (
+                          <td className="px-3 py-1.5">
+                            {r.departmentName
+                              ? <span>{r.departmentName}</span>
+                              : <span className="text-muted-foreground" title={r.company ? `No department named "${r.company}"` : 'No business unit in this row'}>
+                                  Nowhere
+                                </span>}
+                          </td>
+                        )}
                         <td className="px-3 py-1.5">
                           <span className={r.status === 'ready' ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}>
                             {STATUS_LABEL[r.status]}

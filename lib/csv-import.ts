@@ -17,6 +17,37 @@ export type ImportRow = {
   title: string
   phone: string
   company: string
+  /**
+   * Which department this person lands in, matched from the company column.
+   * Null means no match: the card is still created, it just wears the company
+   * look rather than a business unit's.
+   */
+  departmentId?: string | null
+  departmentName?: string | null
+}
+
+/** A department a row can be routed into. */
+export type ImportTarget = { id: string; name: string; kind?: 'company' | 'department' }
+
+/**
+ * Match a spreadsheet's business-unit column to a real department.
+ *
+ * Deliberately forgiving on punctuation and case, because the column is typed
+ * by whoever exported the file: "Company A", "company a" and "COMPANY-A" are
+ * all the same unit. Deliberately NOT fuzzy beyond that - guessing that
+ * "Sales" means "Sales & Marketing" would route people into the wrong business
+ * silently, and a card in the wrong company is worse than a card in none.
+ */
+export function matchDepartment(value: string, targets: ImportTarget[]): ImportTarget | null {
+  const norm = (s: string) => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+  const wanted = norm(value)
+  if (!wanted) return null
+
+  const exact = targets.filter(t => norm(t.name) === wanted)
+  // Two departments with the same name in different companies is legal, and
+  // there is no way to tell which was meant. Route neither.
+  if (exact.length === 1) return exact[0]
+  return null
 }
 
 export type RowStatus =
@@ -172,6 +203,12 @@ export function checkRows(
   rows: ImportRow[],
   existingEmails: string[],
   seatsAvailable: number,
+  /**
+   * Departments the company column can route into. Omitted for an
+   * organisation with no structure, in which case nothing is routed and every
+   * row behaves exactly as it did before departments could nest.
+   */
+  targets: ImportTarget[] = [],
 ): CheckedRow[] {
   const already = new Set(existingEmails.map(e => e.trim().toLowerCase()).filter(Boolean))
   const seenInFile = new Set<string>()
@@ -197,7 +234,18 @@ export function checkRows(
     }
     if (email) seenInFile.add(email)
 
-    return { ...r, email, status }
+    // Routing is worked out for every row, including skipped ones, so the
+    // preview can show where a person WOULD have gone. An admin fixing a
+    // duplicate wants to see it was headed to the right place.
+    const target = targets.length ? matchDepartment(r.company, targets) : null
+
+    return {
+      ...r,
+      email,
+      status,
+      departmentId: target?.id ?? null,
+      departmentName: target?.name ?? null,
+    }
   })
 }
 

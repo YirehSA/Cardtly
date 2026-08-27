@@ -87,6 +87,15 @@ export async function POST(request: Request) {
     .flatMap((c: any) => [c.email, c.invite_email])
     .filter(Boolean) as string[]
 
+  // Departments this org actually has, so a department_id sent by the browser
+  // can be verified rather than trusted. A card placed in another customer's
+  // department would be a cross-tenant leak, so this is checked, not assumed.
+  const { data: deptRows } = await admin
+    .from('departments')
+    .select('id, name')
+    .eq('organization_id', org_id)
+  const ownDeptIds = new Set((deptRows || []).map((d: any) => d.id))
+
   const checked = checkRows(rows, existingEmails, seatsAvailable)
 
   const inviterName = await inviterNameFor(admin, user)
@@ -121,6 +130,13 @@ export async function POST(request: Request) {
         ...(industry ? { industry } : {}),
         ...(brand || {}),
       }
+
+      // Routed from the spreadsheet's business-unit column. Silently dropped
+      // rather than rejected if it is not this org's department: the card is
+      // still worth creating, and refusing the whole row over a routing detail
+      // would fail an import for a reason the admin cannot see in their file.
+      const wantedDept = (row as any).departmentId
+      if (wantedDept && ownDeptIds.has(wantedDept)) fields.department_id = wantedDept
 
       // Invited in the same insert as the card, so a card never exists in a
       // state where nobody knows who it was meant for.

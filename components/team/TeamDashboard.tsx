@@ -60,6 +60,8 @@ interface Props {
    *  figure is then hidden rather than shown as zero, because "nobody has
    *  contacted this rep" is a conclusion somebody would act on. */
   leadCounts: Record<string, number> | null
+  // Departments a spreadsheet import can route people into.
+  importTargets: Array<{ id: string; name: string; kind?: 'company' | 'department' }>
 }
 
 const inputClass = "w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
@@ -72,7 +74,7 @@ const SEAT_PRICE = 97
 const MAX_SELF_SERVE_SEATS = 20
 const SEAT_TIERS = Array.from({ length: MAX_SELF_SERVE_SEATS - 1 }, (_, i) => i + 2) as readonly number[]
 
-export default function TeamDashboard({ user, org: initialOrg, teamCards: initialCards, leadCounts }: Props) {
+export default function TeamDashboard({ user, org: initialOrg, teamCards: initialCards, leadCounts, importTargets }: Props) {
   const searchParams = useSearchParams()
   const status = searchParams.get('status')
 
@@ -656,6 +658,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           seatsAvailable={seatsAvailable}
           cards={cards.map(c => ({ id: c.id, name: c.name }))}
           existingEmails={cards.flatMap(c => [c.email, c.invite_email]).filter(Boolean) as string[]}
+          targets={importTargets}
           onClose={() => setShowImport(false)}
           // A full reload rather than patching state: an import can add two
           // hundred cards, and the view counts and lead counts beside them are
