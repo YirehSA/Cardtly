@@ -255,7 +255,7 @@ export const POSTS: BlogPost[] = [
     slug: 'how-to-make-a-free-digital-business-card',
     title: 'How to Make a Free Digital Business Card',
     description:
-      'Learn how to create a digital business card in South Africa, free for your first 7 days. A step-by-step guide: sign up, pick a template, add details, share by link, QR or NFC.',
+      'Create a digital business card in South Africa, free for 7 days. Step by step: sign up, pick a template, add your details, share by link, QR or NFC.',
     excerpt:
       'A beginner-friendly, step-by-step guide to making a digital business card, free for 7 days, that you can share by link, QR code or NFC tap.',
     date: '2026-07-03',
