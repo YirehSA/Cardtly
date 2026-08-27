@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { FROM_EMAIL } from '@/lib/email'
+import { nfcTier, NFC_SHIPPING_RAND } from '@/lib/nfc-pricing'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const ADMIN_EMAIL = 'info@yireh.co.za'
@@ -22,7 +23,12 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json()
-    const { address, city, province, postal_code, postalCode, color, nameOnCard, titleOnCard, quantity = 1, card_id, card_slug, cards: multiCards } = body
+    const { address, city, province, postal_code, postalCode, color, nameOnCard, titleOnCard, quantity = 1, card_id, card_slug, cards: multiCards, design_tier } = body
+
+    // Priced server-side from the tier id alone. The browser sends which tier
+    // was chosen and never a figure, so a doctored request cannot order a
+    // custom card at the standard price.
+    const tier = nfcTier(design_tier)
 
     const shippingPostal = postal_code || postalCode
 
@@ -41,7 +47,8 @@ export async function POST(request: Request) {
 
     for (const line of orderLines) {
       if (!line.nameOnCard) continue
-      await admin.from('nfc_orders').insert({
+      const qty = line.quantity || 1
+      const row = {
         user_id: user.id,
         card_id: line.card_id || null,
         color: line.color || 'black',
@@ -51,11 +58,26 @@ export async function POST(request: Request) {
         shipping_city: city,
         shipping_province: province,
         shipping_postal_code: shippingPostal,
-        quantity: line.quantity || 1,
+        quantity: qty,
         card_slug: line.card_slug || null,
-        amount: 0,
+        // Was a placeholder 0 and never read. Now the line is worth what it
+        // says: unit price times quantity, excluding shipping, which is
+        // charged once per consignment rather than per card.
+        amount: tier.price * qty,
+        design_tier: tier.id,
         status: 'pending_invoice',
-      })
+      }
+
+      const { error } = await admin.from('nfc_orders').insert(row)
+      // 42703 is undefined_column: migration 057 has not been applied yet.
+      // An order must not be lost over a column that only saves the admin
+      // reading the tier off the email, so it retries without it.
+      if (error?.code === '42703') {
+        const { design_tier: _omit, ...legacy } = row
+        await admin.from('nfc_orders').insert(legacy)
+      } else if (error) {
+        console.error('nfc order insert error', error)
+      }
     }
 
     const tableHeader = '<table style="width:100%;border-collapse:collapse;font-size:14px;"><thead><tr style="border-bottom:2px solid #ddd;"><th style="padding:8px 0;text-align:left;">Name</th><th style="padding:8px 0;text-align:center;">Colour</th><th style="padding:8px 0;text-align:right;">Qty</th></tr></thead><tbody>'
@@ -68,7 +90,7 @@ export async function POST(request: Request) {
       from: FROM_EMAIL,
       to: ADMIN_EMAIL,
       subject: 'New NFC Order — ' + user.email + ' (' + cardCount + ')',
-      html: '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;"><div style="background:linear-gradient(135deg,#00d4ff,#7c3aed,#ec4899);padding:24px;border-radius:12px 12px 0 0;"><h1 style="color:white;margin:0;">New NFC Card Order</h1><p style="color:rgba(255,255,255,0.8);margin:4px 0 0;">' + orderDate + '</p></div><div style="background:#f8f8f8;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;"><p><strong>Customer:</strong> ' + user.email + '</p>' + orderTable + '<p style="margin-top:16px;"><strong>Ship to:</strong> ' + shipTo + '</p><div style="margin-top:20px;padding:16px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;"><strong>Send invoice to ' + user.email + '</strong></div></div></div>',
+      html: '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;"><div style="background:linear-gradient(135deg,#00d4ff,#7c3aed,#ec4899);padding:24px;border-radius:12px 12px 0 0;"><h1 style="color:white;margin:0;">New NFC Card Order</h1><p style="color:rgba(255,255,255,0.8);margin:4px 0 0;">' + orderDate + '</p></div><div style="background:#f8f8f8;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;"><p><strong>Customer:</strong> ' + user.email + '</p>' + orderTable + '<p style="margin-top:16px;"><strong>Ship to:</strong> ' + shipTo + '</p><div style="margin-top:20px;padding:16px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;"><strong>Send invoice to ' + user.email + '</strong><p style="margin:8px 0 0;">' + tier.label + ' &mdash; ' + totalCards + ' &times; R' + tier.price + ' = R' + (tier.price * totalCards) + ', plus R' + NFC_SHIPPING_RAND + ' shipping.<br><strong>Total R' + (tier.price * totalCards + NFC_SHIPPING_RAND) + '</strong></p></div></div></div>',
     })
 
     await resend.emails.send({

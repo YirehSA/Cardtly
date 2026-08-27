@@ -10,7 +10,7 @@ import { Check, ArrowRight, Zap, Building2 } from 'lucide-react'
 export const metadata: Metadata = {
   title: 'Digital Business Card Pricing, R97 a Month',
   description:
-    'R97 per card a month or R970 a year. Teams of 2 to 20 seats at R97 each, with departments and branding locks. NFC card R150.',
+    'R97 per card a month or R970 a year. Teams of 2 to 20 seats at R97 each, with departments and branding locks. NFC cards from R150.',
   alternates: { canonical: '/pricing' },
 }
 
@@ -243,7 +243,7 @@ export default function PricingPage() {
             <div>
               <p className="font-bold text-white mb-1">Want a physical NFC card too?</p>
               <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                A sleek Cardtly NFC card you tap to any phone, R150 once-off. Order a set for the whole team.
+                A sleek Cardtly NFC card you tap to any phone. R150 with your logo and colours on our layout, or R200 designed around your brand. Order a set for the whole team.
               </p>
               <Link href="/nfc" className="text-sm font-semibold inline-flex items-center gap-1 transition hover:opacity-80"
                 style={{ color: '#22d3ee' }}>

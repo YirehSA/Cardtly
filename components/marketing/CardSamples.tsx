@@ -10,6 +10,13 @@ export interface CardSample {
   role: string
   front: string
   back: string
+  /**
+   * Which design tier this card is an example of. "Standard design" and
+   * "custom design" mean nothing until you can see one of each, and these are
+   * the cards being described, so the label goes on the photograph rather
+   * than only in the price list.
+   */
+  tier?: { label: string; price: number }
 }
 
 // Real cards we have printed. Front shows the brand, back carries the QR, so
@@ -57,6 +64,12 @@ function Flip({ sample }: { sample: CardSample }) {
         <div className="min-w-0">
           <p className="font-bold truncate">{sample.name}</p>
           <p className="text-sm truncate text-muted-foreground">{sample.role}</p>
+          {sample.tier && (
+            <p className="text-xs font-semibold mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-muted">
+              {sample.tier.label}
+              <span className="tabular-nums text-muted-foreground">R{sample.tier.price}</span>
+            </p>
+          )}
         </div>
         <span className="inline-flex items-center gap-1.5 text-xs whitespace-nowrap mt-0.5 text-muted-foreground">
           <RotateCcw className="w-3 h-3" />

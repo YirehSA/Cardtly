@@ -27,11 +27,19 @@ if (!Number.isFinite(seatPrice) || !Number.isFinite(maxSeats)) {
   process.exit(1)
 }
 
-// The NFC prices are literals on the NFC page rather than constants, so the
-// check is that llms.txt agrees with that page - not with a magic number here.
-const nfcPage = read('app/nfc/page.tsx')
-const nfcPrice = Number(nfcPage.match(/price:\s*'(\d+)'/)?.[1])
-const nfcShipping = Number(nfcPage.match(/value:\s*'(\d+)',\s*currency:\s*'ZAR'/)?.[1])
+// NFC prices now come from lib/nfc-pricing.ts, which the order page, the
+// marketing page's product schema and the pricing page all import. They used
+// to be literals scraped out of the NFC page's JSON-LD, which made a block of
+// structured data the authority on what the product costs.
+const nfcLib = read('lib/nfc-pricing.ts')
+const nfcStandard = Number(nfcLib.match(/id:\s*'standard'[\s\S]*?price:\s*(\d+)/)?.[1])
+const nfcCustom = Number(nfcLib.match(/id:\s*'custom'[\s\S]*?price:\s*(\d+)/)?.[1])
+const nfcShipping = Number(nfcLib.match(/NFC_SHIPPING_RAND\s*=\s*(\d+)/)?.[1])
+
+if (![nfcStandard, nfcCustom, nfcShipping].every(Number.isFinite)) {
+  console.error('check-facts: could not read the NFC tiers from lib/nfc-pricing.ts')
+  process.exit(1)
+}
 
 const llms = read('public/llms.txt')
 
@@ -51,12 +59,25 @@ if (!seatRange) {
   note(`llms.txt says teams go up to ${seatRange[2]} cards; MAX_SELF_SERVE_SEATS is ${maxSeats}.`)
 }
 
-// ── 3. NFC card price and shipping must match the NFC page ──────────────────
-if (Number.isFinite(nfcPrice) && !new RegExp(`R${nfcPrice}\\b`).test(llms)) {
-  note(`llms.txt does not mention the NFC card price of R${nfcPrice} used on /nfc.`)
+// ── 3. NFC prices and shipping must match lib/nfc-pricing ───────────────────
+// Both tiers, not just the entry price: a page that quotes R150 and never
+// mentions the custom card is the version of this that was wrong before, in
+// the other direction.
+for (const [what, amount] of [
+  ['standard NFC card', nfcStandard],
+  ['custom NFC card', nfcCustom],
+  ['NFC shipping', nfcShipping],
+]) {
+  if (!new RegExp(`R${amount}\\b`).test(llms)) {
+    note(`llms.txt does not mention the ${what} price of R${amount} from lib/nfc-pricing.ts.`)
+  }
 }
-if (Number.isFinite(nfcShipping) && !new RegExp(`R${nfcShipping}\\b`).test(llms)) {
-  note(`llms.txt does not mention the R${nfcShipping} shipping charge used on /nfc.`)
+
+// The NFC page is the one place that must state both, since it is where the
+// card is actually chosen.
+const nfcPage = read('app/nfc/page.tsx')
+if (!/nfc-pricing/.test(nfcPage)) {
+  note('app/nfc/page.tsx does not import lib/nfc-pricing, so its prices can drift from the order page.')
 }
 
 // ── 4. Feature counts quoted in marketing copy ──────────────────────────────
@@ -162,7 +183,19 @@ for (const file of MARKETING) {
 const annualMonthly = Math.round((seatPrice * 10) / 12)
 const priceIsPlausible = n => n % seatPrice === 0 || n === annualMonthly
 
-const PRICE_RE = /R(\d+)(?=\s*(?:per card|a card|\/month|a month|per month|\/seat|per seat|\/card))/gi
+// A figure counts as recurring only when the words nearby say so. "per card"
+// on its own is ambiguous and always was: the subscription is R97 per card
+// per month and an NFC card is R150 per card once off, so a rule keyed on
+// "per card" cannot tell a stale subscription price from a correct hardware
+// one. Requiring "month" or "seat" within a couple of dozen characters keeps
+// every phrasing that has ever appeared in the copy - "R97 per card per
+// month", "R97/month", "R97 a seat", "R81/month" - and stops the rule
+// wandering into the hardware prices.
+//
+// The cost is that a bare "R65 per card" with no month would slip through.
+// That is the ambiguous case by definition, and rule 3 above still pins the
+// NFC figures.
+const PRICE_RE = /R(\d+)(?=[^.!?\n]{0,24}?(?:month|seat)\b)/gi
 
 // ── 7. The free tier that no longer exists ──────────────────────────────────
 // An expired personal card 404s. Every phrasing below promises something the
@@ -229,4 +262,4 @@ if (fail.length) {
   process.exit(1)
 }
 
-console.log(`check-facts: copy agrees with the code (R${seatPrice}/card, up to ${maxSeats} seats, NFC R${nfcPrice} + R${nfcShipping}, ${maxLinks} links, ${maxImages} gallery images, no free-trial promises).`)
+console.log(`check-facts: copy agrees with the code (R${seatPrice}/card, up to ${maxSeats} seats, NFC R${nfcStandard} standard / R${nfcCustom} custom + R${nfcShipping} shipping, ${maxLinks} links, ${maxImages} gallery images, no free-trial promises).`)

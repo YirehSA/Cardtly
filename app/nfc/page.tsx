@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   // 72 characters with the "%s | Cardtly" template applied, so Google cut it.
   title: { absolute: 'NFC Business Cards South Africa | Tap to Share | Cardtly' },
   description:
-    'Order an NFC business card in South Africa. One tap opens your digital card on any phone, no app needed. R150 once-off plus R100 shipping, 5-7 days.',
+    'Order an NFC business card in South Africa. One tap opens your digital card on any phone, no app needed. From R150 plus R100 shipping, 5-7 days.',
   alternates: { canonical: '/nfc' },
 }
 
@@ -18,6 +18,8 @@ export const metadata: Metadata = {
 // The section only renders for samples whose images are actually present, so
 // dropping the files in makes it appear and a missing file can never ship as a
 // broken image on the marketing page.
+import { NFC_TIERS, NFC_TIER_LIST, NFC_SHIPPING_RAND } from '@/lib/nfc-pricing'
+
 const AVAILABLE_SAMPLES = availableSamples()
 
 // Product schema: the NFC card is a physical product with a price,
@@ -37,16 +39,29 @@ const NFC_PRODUCT_SCHEMA = {
   description:
     'Physical NFC business card linked to your Cardtly digital business card. Tap any modern smartphone to share your details instantly - no app required.',
   brand: { '@type': 'Brand', name: 'Cardtly' },
+  // Two design tiers means AggregateOffer with a low and a high price.
+  // Declaring the range as a single Offer is what Google rejects.
   offers: {
-    '@type': 'Offer',
-    price: '150',
+    '@type': 'AggregateOffer',
+    lowPrice: String(NFC_TIERS.standard.price),
+    highPrice: String(NFC_TIERS.custom.price),
+    offerCount: NFC_TIER_LIST.length,
     priceCurrency: 'ZAR',
     availability: 'https://schema.org/InStock',
-    shippingDetails: {
-      '@type': 'OfferShippingDetails',
-      shippingRate: { '@type': 'MonetaryAmount', value: '100', currency: 'ZAR' },
-      shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'ZA' },
-    },
+    offers: NFC_TIER_LIST.map(t => ({
+      '@type': 'Offer',
+      name: t.label,
+      description: t.summary,
+      price: String(t.price),
+      priceCurrency: 'ZAR',
+      availability: 'https://schema.org/InStock',
+      shippingDetails: {
+        '@type': 'OfferShippingDetails',
+        shippingRate: { '@type': 'MonetaryAmount', value: String(NFC_SHIPPING_RAND), currency: 'ZAR' },
+        shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'ZA' },
+      },
+      url: 'https://cardtly.com/nfc',
+    })),
     url: 'https://cardtly.com/nfc',
   },
 }
@@ -142,9 +157,9 @@ export default function NFCMarketingPage() {
               </div>
 
               <div className="flex items-center gap-6 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                <span>R150 once-off</span>
+                <span>From R{NFC_TIERS.standard.price} once-off</span>
                 <span>·</span>
-                <span>R100 shipping</span>
+                <span>R{NFC_SHIPPING_RAND} shipping</span>
                 <span>·</span>
                 <span>Pro subscribers only</span>
               </div>
@@ -265,7 +280,7 @@ export default function NFCMarketingPage() {
               Cards we&apos;ve <span style={gradText}>actually printed.</span>
             </h2>
             <p className="mt-3" style={{ color: 'rgba(255,255,255,0.45)' }}>
-              Your design, your logo, your colours - included in the R250. Tap any card to see the back.
+              Artwork and proofing are included in both prices, with no design fee on top. Tap any card to see the back.
             </p>
           </div>
           <CardSamples samples={AVAILABLE_SAMPLES} />
@@ -284,8 +299,8 @@ export default function NFCMarketingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             {[
               { n: '01', title: 'Create your card',  desc: 'Sign up, no credit card needed, and get your Cardtly card set up first.' },
-              { n: '02', title: 'Send us your design', desc: 'Your logo and colours, or tell us what you want and we design it. Confirm your name, job title and shipping address.' },
-              { n: '03', title: 'We ship to you',    desc: 'Pay R250 (card + shipping) and your NFC card arrives within 5–7 business days anywhere in SA.' },
+              { n: '02', title: 'Pick your design', desc: 'Standard puts your logo and colours on our layout. Custom is designed around your brand instead. Confirm your name, job title and shipping address.' },
+              { n: '03', title: 'We ship to you',    desc: 'Pay the invoice and your NFC card arrives within 5–7 business days anywhere in SA. Shipping is R100 for the whole order, however many cards are on it.' },
             ].map(({ n, title, desc }) => (
               <div key={n}>
                 <div className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center text-xl font-black text-white"
@@ -322,15 +337,22 @@ export default function NFCMarketingPage() {
             {/* Pricing summary */}
             <div className="mt-8 pt-6 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
               <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="space-y-1 text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                  <div className="flex gap-8">
-                    <span>NFC card</span><span className="text-white font-semibold">R150</span>
+                <div className="space-y-2 text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  {NFC_TIER_LIST.map(t => (
+                    <div key={t.id} className="flex items-baseline justify-between gap-8">
+                      <span>
+                        <span className="text-white font-semibold">{t.label}</span>
+                        <span className="block text-xs">{t.summary}</span>
+                      </span>
+                      <span className="text-white font-semibold whitespace-nowrap">R{t.price}</span>
+                    </div>
+                  ))}
+                  <div className="flex gap-8 justify-between pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+                    <span>Shipping, per order</span><span className="text-white font-semibold">R{NFC_SHIPPING_RAND}</span>
                   </div>
-                  <div className="flex gap-8">
-                    <span>Shipping</span><span className="text-white font-semibold">R100</span>
-                  </div>
-                  <div className="flex gap-8 text-base font-black text-white">
-                    <span>Total</span><span style={gradText}>R250</span>
+                  <div className="flex gap-8 justify-between text-base font-black text-white">
+                    <span>One standard card, delivered</span>
+                    <span style={gradText}>R{NFC_TIERS.standard.price + NFC_SHIPPING_RAND}</span>
                   </div>
                 </div>
                 <Link href="/signup"

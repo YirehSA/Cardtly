@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react'
 import { parseDesign, getAccentHex } from '@/types/design'
 import { toast } from 'sonner'
-import { Package, CreditCard, MapPin, CheckCircle, Loader2, ChevronRight, Wifi, Trash2, ChevronDown } from 'lucide-react'
+import { Package, CreditCard, MapPin, CheckCircle, Loader2, ChevronRight, Wifi, Trash2, ChevronDown, Check } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
+import {
+  NFC_TIERS, NFC_TIER_LIST, NFC_SHIPPING_RAND, formatZAR, type NfcTier,
+} from '@/lib/nfc-pricing'
 
 interface Card {
   id: string
@@ -49,9 +52,7 @@ type Step = 'design' | 'shipping' | 'confirm'
 // Pricing — ZAR. Card price is fixed at R150 each; shipping is an
 // up-front estimate of R100 anywhere in SA (actual depends on
 // destination, finalised on the invoice).
-const PRICE_PER_CARD = 150
-const SHIPPING_ESTIMATE = 100
-const formatZAR = (n: number) => 'R' + n.toLocaleString('en-ZA')
+const SHIPPING_ESTIMATE = NFC_SHIPPING_RAND
 
 const SA_PROVINCES = [
   'Gauteng', 'Western Cape', 'KwaZulu-Natal', 'Eastern Cape',
@@ -75,6 +76,12 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
   const accentHex = design ? getAccentHex(design) : '#3b82f6'
 
   const [step, setStep] = useState<Step>('design')
+
+  // One design tier for the order, not per card: the artwork is a single job,
+  // and a team ordering twelve cards is buying one design applied twelve
+  // times rather than twelve separate ones.
+  const [tier, setTier] = useState<NfcTier>('standard')
+  const unitPrice = NFC_TIERS[tier].price
 
   // Build the master list of cards available for ordering (personal first, then team)
   const allCards = [
@@ -258,6 +265,9 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          // The server prices from this, and re-reads the tier from
+          // lib/nfc-pricing rather than trusting any figure the browser sends.
+          design_tier: tier,
           address,
           city,
           province,
@@ -442,7 +452,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
                 <div>
                   <h2 className="font-semibold">Who needs an NFC card?</h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {formatZAR(PRICE_PER_CARD)} per card · {formatZAR(SHIPPING_ESTIMATE)} estimated shipping
+                    {formatZAR(unitPrice)} per card · {formatZAR(SHIPPING_ESTIMATE)} estimated shipping
                   </p>
                 </div>
                 {includedLines.length > 0 && (
@@ -450,6 +460,42 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
                     {includedLines.length} selected · {totalQty} card{totalQty !== 1 ? 's' : ''}
                   </span>
                 )}
+              </div>
+
+              {/* Which design job this is. Order-level rather than per card,
+                  because the artwork is one piece of work applied to every
+                  card in the order. */}
+              <div className="space-y-2">
+                <p className="text-sm font-semibold">How should the card look?</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {NFC_TIER_LIST.map(t => {
+                    const active = tier === t.id
+                    return (
+                      <button key={t.id} type="button" onClick={() => setTier(t.id)}
+                        aria-pressed={active}
+                        className="text-left rounded-xl border p-3 transition"
+                        style={{
+                          borderColor: active ? accentHex : 'var(--border)',
+                          background: active ? accentHex + '12' : 'transparent',
+                        }}>
+                        <div className="flex items-center gap-2">
+                          <span className="w-4 h-4 rounded-full border flex items-center justify-center shrink-0"
+                            style={{ borderColor: active ? accentHex : 'var(--border)', background: active ? accentHex : 'transparent' }}>
+                            {active && <Check className="w-2.5 h-2.5 text-white" />}
+                          </span>
+                          <span className="font-semibold text-sm">{t.label}</span>
+                          <span className="ml-auto font-bold text-sm tabular-nums" style={{ color: active ? accentHex : undefined }}>
+                            {formatZAR(t.price)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1.5 leading-snug">{t.detail}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Per card. Shipping is {formatZAR(NFC_SHIPPING_RAND)} for the whole order, not per card.
+                </p>
               </div>
 
               {allCards.length > 1 && includedLines.length > 0 && (
@@ -632,8 +678,11 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
 
               <div className="border-t border-border pt-4 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">{totalQty} card{totalQty !== 1 ? 's' : ''} × {formatZAR(PRICE_PER_CARD)}</span>
-                  <span>{formatZAR(totalQty * PRICE_PER_CARD)}</span>
+                  <span className="text-muted-foreground">
+                    {totalQty} card{totalQty !== 1 ? 's' : ''} × {formatZAR(unitPrice)}
+                    <span className="block text-[11px]">{NFC_TIERS[tier].label}</span>
+                  </span>
+                  <span>{formatZAR(totalQty * unitPrice)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Shipping (estimate)</span>
@@ -641,7 +690,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
                 </div>
                 <div className="flex justify-between font-bold text-base border-t border-border pt-2 mt-2">
                   <span>Estimated total</span>
-                  <span>{formatZAR(totalQty * PRICE_PER_CARD + SHIPPING_ESTIMATE)}</span>
+                  <span>{formatZAR(totalQty * unitPrice + SHIPPING_ESTIMATE)}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground text-center pt-1">
                   Final shipping cost confirmed on your invoice based on delivery address.

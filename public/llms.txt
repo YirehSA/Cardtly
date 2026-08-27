@@ -12,7 +12,7 @@ A digital business card is an online profile that replaces a paper business card
 - Price: R97 per card per month in South African rand (ZAR), billed via Paystack. There is no separate free tier - every card has the full feature set.
 - Free trial: available on request, by way of a trial code. No credit card is required to create a card.
 - Teams: 2 to 20 cards self-serve at R97 per card a month. Above 20, contact Cardtly for an enterprise arrangement.
-- NFC card: an optional physical tap-to-share card, R150 once-off plus R100 shipping in South Africa. Your own artwork, printed edge to edge, is included in that price. Delivered in 5 to 7 business days, South Africa only.
+- NFC card: an optional physical tap-to-share card, in two designs. Standard is R150 a card: your logo and colours on the Cardtly layout. Custom is R200 a card: designed around your brand instead. Both include artwork and proofing. Shipping is R100 per order in South Africa, not per card. Delivered in 5 to 7 business days, South Africa only.
 - Android app on Google Play (com.cardtly.app). iOS not yet released.
 
 ## Main features
@@ -67,7 +67,7 @@ Cardtly is built for a company rolling cards out to a whole team, not just indiv
 ## Common questions
 
 - What is a digital business card? An online profile that replaces a paper card, shared by NFC tap, QR code, or link, with details the recipient can save to their phone.
-- How much does Cardtly cost? R97 per card a month, with no credit card required to create a card. A physical NFC card is R150 once-off plus R100 shipping in South Africa, custom artwork included.
+- How much does Cardtly cost? R97 per card a month, with no credit card required to create a card. A physical NFC card is R150 standard or R200 custom-designed, once-off, plus R100 shipping per order in South Africa, artwork included.
 - Is there a free plan? There is no permanent free tier. Trial periods are available on request. Every card has the full feature set.
 - Do I need an NFC card? No. The QR code and the link work without anything physical.
 - Can a company control what staff put on their cards? Yes. The company admin chooses which fields are locked - logo, company name, website, address, socials, links, gallery, design - and department heads can tighten that further for their own team.

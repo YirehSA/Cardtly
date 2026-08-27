@@ -41,8 +41,9 @@ export default function NFCSamplesSection({ samples }: { samples: CardSample[] }
             design it "with you before anything goes to print", which implied a
             proofing step nothing on the site actually promises. */}
         <p className="mt-8 text-sm text-muted-foreground leading-relaxed">
-          Send your logo and colours, or tell us what you want and we design it.
-          Your artwork is included in the R250.
+          Standard puts your logo and colours onto our layout. Custom is designed
+          around your brand instead. Artwork and proofing are included in both,
+          with no separate design fee.
         </p>
       </div>
     </div>
