@@ -129,6 +129,8 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   // Add card form
   const [showAddCard, setShowAddCard] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  // Which of the three jobs this page does the admin is here for.
+  const [tab, setTab] = useState<'people' | 'integrations' | 'billing'>('people')
   const [newCard, setNewCard] = useState({ name: '', title: '', email: '', phone: '', company: '' })
   const [copyFromId, setCopyFromId] = useState<string>('')
 
@@ -617,8 +619,31 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
         </div>
       </div>
 
+      {/* Three things happen on this page and they were one scroll: the people,
+          where their leads go, and what it costs. Tabs because the tasks are
+          unrelated - nobody comes here to add a person AND change billing -
+          and a page that shows everything at once means hunting for the thing
+          you came for. */}
+      <div className="flex gap-1 p-1 rounded-2xl bg-muted w-fit">
+        {([
+          ['people', 'People', Users, cards.length || null],
+          ['integrations', 'Integrations', Network, null],
+          ['billing', 'Billing', CreditCard, null],
+        ] as const).map(([id, label, Icon, count]) => (
+          <button key={id} onClick={() => setTab(id)}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition ${
+              tab === id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+            <Icon className="w-4 h-4" />
+            {label}
+            {count !== null && (
+              <span className="text-[11px] tabular-nums px-1.5 py-0.5 rounded-md bg-muted-foreground/15">{count}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
       {/* Add seats panel */}
-      {showAddSeats && (
+      {tab === 'billing' && showAddSeats && (
         <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
           <p className="font-semibold text-sm">Upgrade seat plan</p>
           <div className="flex items-center gap-4 flex-wrap">
@@ -672,8 +697,8 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
       {/* Where the team's leads go afterwards. Owner only: a webhook carries
           every lead in the organisation, including from departments a head
           does not manage. */}
-      {org && cards.length > 0 && (
-        <div className="mt-6 space-y-4">
+      {tab === 'integrations' && org && (
+        <div className="space-y-4">
           <WebhookPanel orgId={org.id} />
           <ApiKeyPanel orgId={org.id} />
         </div>
@@ -735,7 +760,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
       )}
 
       {/* Cards grid */}
-      {cards.length === 0 ? (
+      {tab === 'people' && (cards.length === 0 ? (
         <div className="bg-card border border-border rounded-2xl p-16 text-center">
           <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h2 className="font-semibold text-lg mb-2">No cards yet</h2>
@@ -1019,7 +1044,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           ))}
         </div>
         </>
-      )}
+      ))}
 
       {/* Edit modal */}
       {editingCard && (
@@ -1081,6 +1106,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
       )}
 
       {/* Plan summary */}
+      {tab === 'billing' && (
       <div className="bg-card border border-border rounded-2xl p-5 flex items-center justify-between flex-wrap gap-4">
         <div className="text-sm">
           <p className="font-semibold">{org.name} · Team plan</p>
@@ -1094,6 +1120,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           Manage billing
         </a>
       </div>
+      )}
     </div>
   )
 }

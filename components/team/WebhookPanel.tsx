@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Loader2, Plus, Trash2, Send, Check, X, Pause, Play, Copy, Webhook } from 'lucide-react'
+import IntegrationBrief from '@/components/team/IntegrationBrief'
 
 // Where a team's leads go after Cardtly has them.
 //
@@ -79,7 +80,8 @@ export default function WebhookPanel({ orgId }: { orgId: string }) {
         <div className="min-w-0">
           <h2 className="font-bold text-sm">Send leads to your CRM</h2>
           <p className="text-xs text-muted-foreground">
-            Every lead your team captures is posted to an address you choose, signed so you can verify it came from us.
+            When someone shares their details with one of your cards, we can put them straight into
+            your CRM. No exporting, no retyping.
           </p>
         </div>
         {!adding && (
@@ -91,11 +93,32 @@ export default function WebhookPanel({ orgId }: { orgId: string }) {
       </div>
 
       {adding && (
-        <div className="rounded-xl border border-border p-3 space-y-2">
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="What is it? e.g. BluWave"
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" />
-          <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..."
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm font-mono" />
+        <div className="rounded-xl border border-border p-3 space-y-3">
+          {/* Said plainly, because the admin reading this almost certainly
+              cannot produce the address themselves and will otherwise sit
+              looking at an empty box wondering what goes in it. */}
+          <div className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground space-y-1.5">
+            <p className="font-semibold text-foreground">You need one thing to set this up: a web address from your CRM.</p>
+            <p>
+              Ask your CRM provider, or whoever looks after it, for
+              {' '}<span className="text-foreground font-medium">the web address that receives new leads</span>.
+              Most systems call it a webhook URL, an inbound endpoint, or a lead capture URL. It starts with https.
+            </p>
+            <p>
+              If they need to know what we will send, open
+              {' '}<span className="text-foreground font-medium">What to give your CRM provider</span> below and email it to them.
+            </p>
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1">Name it, so you know which is which</label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. BluWave"
+              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" />
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1">The web address your CRM gave you</label>
+            <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..."
+              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm font-mono" />
+          </div>
           <div className="flex gap-2">
             <button disabled={!url.trim() || busy === 'create'}
               onClick={async () => {
@@ -132,8 +155,81 @@ export default function WebhookPanel({ orgId }: { orgId: string }) {
       )}
 
       {hooks.length === 0 && !adding && (
-        <p className="text-sm text-muted-foreground">Nothing connected yet.</p>
+        <div className="rounded-xl border border-dashed border-border p-4 text-sm">
+          <p className="font-medium">Nothing connected yet.</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Leads are still captured and still show under each card. This just also pushes them
+            somewhere else the moment they arrive.
+          </p>
+        </div>
       )}
+
+      <IntegrationBrief
+        title="What to give your CRM provider"
+        summary="Copy this and send it to whoever set up your CRM"
+        mailSubject="Connecting our CRM to Cardtly"
+        body={`We use Cardtly for our team's digital business cards. When someone
+shares their details with one of our cards, Cardtly can send that lead
+straight to our CRM. We need a web address to point it at.
+
+WHAT WE NEED FROM YOU
+A URL that accepts an HTTP POST with a JSON body, over https.
+
+WHAT CARDTLY SENDS
+A POST, Content-Type: application/json, with a body like this:
+
+{
+  "event": "lead.created",
+  "sent_at": "2026-08-27T10:00:05Z",
+  "lead": {
+    "id": "uuid",
+    "name": "Thabo Nkosi",
+    "email": "thabo@example.co.za",
+    "phone": "082 111 2222",
+    "work_phone": "021 555 0000",
+    "company": "Nkosi Ltd",
+    "title": "Director",
+    "website": "nkosi.co.za",
+    "address": "1 Main Rd",
+    "message": "Please call me",
+    "source": "card_form",
+    "answers": null,
+    "captured_at": "2026-08-27T10:00:00Z"
+  },
+  "card": {
+    "id": "uuid", "name": "Andre Nel",
+    "slug": "andre-nel", "url": "https://www.cardtly.com/card/andre-nel",
+    "type": "team"
+  },
+  "organization": { "id": "uuid", "name": "Our Company" }
+}
+
+Fields are only ever added, never renamed, so a mapping you build now
+keeps working.
+
+HEADERS ON EVERY REQUEST
+  X-Cardtly-Event      lead.created
+  X-Cardtly-Delivery   a unique id for this attempt
+  X-Cardtly-Timestamp  unix seconds
+  X-Cardtly-Signature  sha256=<hex>
+
+VERIFYING IT CAME FROM CARDTLY
+The signature is an HMAC-SHA256 over the string:
+
+  <X-Cardtly-Timestamp> + "." + <the raw request body>
+
+using a shared secret we will send you separately. The timestamp is
+inside the signed content, so an old request cannot be replayed with a
+fresh timestamp. Please reject anything older than a few minutes.
+
+RESPONSES
+  2xx  we mark it delivered
+  4xx  we do not retry, since it is a refusal
+  5xx, a timeout, or no answer: we retry after 1, 5, 30 and 120 minutes
+
+Every attempt and every response is logged on our side, so we can tell
+you exactly what was sent and what came back.`}
+      />
 
       {hooks.map(h => (
         <div key={h.id} className="rounded-xl border border-border p-3">

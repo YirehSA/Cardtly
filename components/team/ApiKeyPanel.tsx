@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Loader2, Plus, Trash2, Copy, X, KeyRound, Ban } from 'lucide-react'
+import IntegrationBrief from '@/components/team/IntegrationBrief'
 
 // A team's API keys.
 //
@@ -65,7 +66,7 @@ export default function ApiKeyPanel({ orgId }: { orgId: string }) {
         <div className="min-w-0">
           <h2 className="font-bold text-sm">API access</h2>
           <p className="text-xs text-muted-foreground">
-            Read your leads, cards and structure from your own systems.
+            For your own systems to read your Cardtly data. Most teams never need this.
           </p>
         </div>
         {!adding && (
@@ -111,7 +112,27 @@ export default function ApiKeyPanel({ orgId }: { orgId: string }) {
         </div>
       )}
 
-      {keys.length === 0 && !adding && <p className="text-sm text-muted-foreground">No keys yet.</p>}
+      {keys.length === 0 && !adding && (
+        <div className="rounded-xl border border-dashed border-border p-4 space-y-2">
+          <p className="text-sm font-medium">No keys yet, and you may never need one.</p>
+          {/* Answering the question an admin actually has, which is not "how
+              do I authenticate" but "what is this for and is it for me". */}
+          <div className="text-xs text-muted-foreground space-y-1.5">
+            <p><span className="text-foreground font-medium">You do not need this if</span> you just want leads
+              to reach your CRM. Use &ldquo;Send leads to your CRM&rdquo; above instead: it pushes each lead
+              the moment it arrives and needs no programming.</p>
+            <p><span className="text-foreground font-medium">You do need this if</span> someone is building
+              something that has to read your Cardtly data on its own schedule. For example:</p>
+            <ul className="list-disc pl-4 space-y-1">
+              <li>a nightly job pulling every new lead into your data warehouse or reporting</li>
+              <li>your intranet or staff directory showing everyone&rsquo;s card</li>
+              <li>a dashboard counting cards, views and leads across your companies</li>
+              <li>an accounting or HR system that needs a current list of staff cards</li>
+            </ul>
+            <p>It is read-only. A key can look at your leads, cards and structure, and can change nothing.</p>
+          </div>
+        </div>
+      )}
 
       {keys.map(k => (
         <div key={k.id} className="rounded-xl border border-border p-3 flex items-start gap-2 flex-wrap">
@@ -146,19 +167,51 @@ export default function ApiKeyPanel({ orgId }: { orgId: string }) {
         </div>
       ))}
 
-      <details className="text-xs text-muted-foreground">
-        <summary className="cursor-pointer font-medium hover:text-foreground">How to use it</summary>
-        <pre className="mt-2 p-3 rounded-lg bg-muted overflow-x-auto text-[11px] leading-relaxed">{`curl -H "Authorization: Bearer ck_..." \\
-  ${BASE}/api/v1/leads?since=2026-08-01T00:00:00Z
+      <IntegrationBrief
+        title="What to give whoever is building it"
+        summary="Copy this and send it to your developer or IT team"
+        mailSubject="Reading our Cardtly data"
+        body={`We use Cardtly for our team's digital business cards. It has a
+read-only API so our own systems can stay in step with it.
 
-GET /api/v1/leads         every lead, oldest first
-GET /api/v1/cards         every card, with its department and company
-GET /api/v1/departments   the group structure
+BASE
+  ${BASE}
 
-Page with ?since= and the next_since you get back,
-not an offset: a lead captured mid-sync would
-otherwise be skipped.`}</pre>
-      </details>
+AUTHENTICATION
+  Authorization: Bearer ck_...
+
+A key is created in Cardtly under Team Cards, Integrations, API access.
+It is shown once and stored only as a hash, so it cannot be recovered.
+If it is lost, issue a new one and revoke the old one.
+
+ENDPOINTS, all GET, all scoped to our organisation only
+  /api/v1/leads         every lead captured by any of our cards
+  /api/v1/cards         every card, with its department and company
+  /api/v1/departments   our company and department structure
+
+PAGING THE LEADS
+Page by time, not by offset:
+
+  GET /api/v1/leads?since=2026-08-01T00:00:00Z&limit=200
+
+The response carries next_since. Pass it back as ?since= on the next
+call. When fewer rows come back than the limit, you are up to date.
+
+Offset paging would silently skip rows: a lead captured between page
+one and page two shifts everything down by one, and the row crossing
+the boundary is never returned. Please do not use it.
+
+LIMITS
+1000 requests an hour per key by default. Over that returns 429 with a
+retry_after_seconds. Every call is logged against the key that made it,
+and we can see when each key was last used.
+
+ERRORS
+  401  the key is missing, wrong, revoked or expired
+  403  the key does not have that permission
+  429  rate limit
+  400  a malformed parameter, with a message saying which`}
+      />
     </div>
   )
 }
