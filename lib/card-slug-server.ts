@@ -1,4 +1,4 @@
-import { composeCardSlug, orgSlugPrefix, uniqueSlug } from '@/lib/card-slug'
+import { composeCardSlug, orgSlugPrefix, uniqueSlug, slugifyPart } from '@/lib/card-slug'
 
 // The company prefix that applies to a PERSON, for their personal card.
 //
@@ -130,5 +130,38 @@ export async function newTeamCardSlug(
     .map((r: any) => r.slug)
     .filter(Boolean)
 
+  return uniqueSlug(base, taken)
+}
+
+/**
+ * The person half of /card/<company>/<person>.
+ *
+ * Made unique within the ORGANISATION rather than within the company, which is
+ * stricter than the URL space requires: two people with the same name in two
+ * different companies of one group could each be /card/companya/thabo-nkosi
+ * and /card/companyb/thabo-nkosi without colliding.
+ *
+ * Org-wide is used anyway because a card's company is not known at the moment
+ * it is created - a card is assigned to a department afterwards - and a slug
+ * that is unique only under an assumption about where the card will end up is
+ * a slug that can silently start resolving to the wrong person. The cost is
+ * that the second Thabo Nkosi in a group gets thabo-nkosi-2 even in a
+ * different company. Narrow it once cards are created into a department
+ * directly.
+ */
+export async function newTeamPersonSlug(admin: any, orgId: string, personName: string): Promise<string> {
+  const base = slugifyPart(personName, 40) || 'card'
+  const { data, error } = await admin
+    .from('team_cards')
+    .select('slug_person')
+    .eq('organization_id', orgId)
+
+  // Before migration 054 the column does not exist. Returning the base slug is
+  // right: nothing reads it yet, and the two-part URL is not in use.
+  if (error) return base
+
+  const taken = (data || [])
+    .map((r: any) => (r.slug_person || '').toLowerCase())
+    .filter(Boolean)
   return uniqueSlug(base, taken)
 }

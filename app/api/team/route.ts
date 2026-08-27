@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { BRAND_FIELDS, extractBrand } from '@/lib/team-brand'
-import { newTeamCardSlug, orgIndustry } from '@/lib/card-slug-server'
+import { newTeamCardSlug, newTeamPersonSlug, orgIndustry } from '@/lib/card-slug-server'
 import { slugifyPart, isReservedSlug } from '@/lib/card-slug'
 import { isIndustryId } from '@/lib/industries'
 
@@ -143,13 +143,17 @@ export async function POST(request: Request) {
     const { count } = await supabase.from('team_cards').select('*', { count: 'exact', head: true }).eq('organization_id', org_id)
     if ((count || 0) >= org.max_seats) return NextResponse.json({ error: 'Seat limit reached. Upgrade your plan to add more cards.' }, { status: 400 })
 
-    const [slug, industry] = await Promise.all([
+    const [slug, slugPerson, industry] = await Promise.all([
       newTeamCardSlug(admin, org_id, name || 'team'),
+      newTeamPersonSlug(admin, org_id, name || 'team'),
       orgIndustry(admin, org_id),
     ])
 
     let cardFields: Record<string, any> = {
       organization_id: org_id,
+      // Person half of /card/<company>/<person>, unused until the org has
+      // companies configured.
+      slug_person: slugPerson,
       name: name || '',
       title: title || null,
       email: email || null,

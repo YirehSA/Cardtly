@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { newTeamCardSlug, orgIndustry } from '@/lib/card-slug-server'
+import { newTeamCardSlug, newTeamPersonSlug, orgIndustry } from '@/lib/card-slug-server'
 import { checkRows, type ImportRow } from '@/lib/csv-import'
 import { newInviteToken, claimUrlFor, sendInviteEmail } from '@/lib/team-invite'
 
@@ -103,9 +103,15 @@ export async function POST(request: Request) {
     }
 
     try {
-      const slug = await newTeamCardSlug(admin, org_id, row.name || 'team')
+      const [slug, slugPerson] = await Promise.all([
+        newTeamCardSlug(admin, org_id, row.name || 'team'),
+        newTeamPersonSlug(admin, org_id, row.name || 'team'),
+      ])
       const fields: Record<string, any> = {
         organization_id: org_id,
+        // The person half of /card/<company>/<person>. Harmless for an
+        // organisation with no companies: nothing serves that URL for them.
+        slug_person: slugPerson,
         name: row.name,
         title: row.title || null,
         email: row.email || null,

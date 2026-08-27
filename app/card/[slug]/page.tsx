@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import { Metadata } from 'next'
 import PublicCardView from '@/components/card/PublicCardView'
 import CardTracker from '@/components/card/CardTracker'
+import TeamCardPublic from '@/components/card/TeamCardPublic'
 import { mergeBrand, resolveTeamBrand } from '@/lib/team-brand'
 import { planFromTrial, subscriptionState } from '@/lib/plan-server'
 import { liveMirror } from '@/lib/questionnaire'
@@ -142,99 +143,10 @@ export default async function PublicCardPage({ params }: Props) {
     .single()
 
   if (teamCard) {
-    // Add-ons (contact exchange, questionnaire) for a team are
-    // configured once on the organization and apply to every team
-    // card. Fetch the org's add-ons and merge them over the card's
-    // own (org wins). Service role: organizations is RLS-protected.
-    let orgAddons: Record<string, any> = {}
-    let orgBrand: Record<string, any> = {}
-    // A department's brand overrides the org's for the fields it sets, so a
-    // card in Sales can look different from one in Support while both inherit
-    // the company logo. Empty means the card just wears the org brand.
-    let deptBrand: Record<string, any> = {}
-    // A suspension shows a notice on every card in the team. It never takes
-    // them offline: the card opens, saves and scans exactly as before, it just
-    // no longer looks finished, so the person carrying it asks their finance
-    // team why. That is the lever.
-    let suspendedMessage: string | null = null
-    if ((teamCard as any).organization_id) {
-      const admin = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      ) as any
-      const { data: org } = await admin
-        .from('organizations')
-        .select('addons, brand, suspended_at, suspension_message')
-        .eq('id', (teamCard as any).organization_id)
-        .maybeSingle()
-      orgAddons = org?.addons || {}
-      orgBrand = org?.brand || {}
-      if (org?.suspended_at) suspendedMessage = org.suspension_message || ''
-
-      if ((teamCard as any).department_id) {
-        const { data: dept } = await admin
-          .from('departments')
-          .select('brand')
-          .eq('id', (teamCard as any).department_id)
-          .maybeSingle()
-        deptBrand = dept?.brand || {}
-      }
-    }
-
-    // The team brand is merged over this card ONLY if the admin opted
-    // it in (use_team_brand). Cards that keep their own branding (a
-    // family member, a contractor with their own company) are left
-    // untouched. Personal fields always win for anything not in the
-    // brand. Department brand cascades over the org brand (dept wins).
-    const brandToApply = (teamCard as any).use_team_brand
-      ? resolveTeamBrand(orgBrand, deptBrand)
-      : {}
-
-    // Org add-ons fan out to every team card. The lead-capture form is
-    // allocated per card:
-    //   - use_team_questionnaire === false  -> this card shows no form
-    //   - addons.assignedFormId set          -> this card shows that specific
-    //                                           form from the org's library
-    //   - neither                            -> the org's default (active) form
-    // Cards that predate per-card allocation have no assignedFormId, so they
-    // resolve to the org default exactly as before.
-    const cardAddons = (teamCard as any).addons || {}
-    const mergedAddons: Record<string, any> = { ...cardAddons, ...orgAddons }
-    if ((teamCard as any).use_team_questionnaire === false) {
-      mergedAddons.questionnaireEnabled = false
-      delete mergedAddons.questionnaire
-      delete mergedAddons.questionnaires
-      delete mergedAddons.activeQuestionnaireId
-    } else if (orgAddons.questionnaireEnabled) {
-      const library = Array.isArray(orgAddons.questionnaires) ? orgAddons.questionnaires : []
-      const chosen =
-        (cardAddons.assignedFormId && library.find((f: any) => f.id === cardAddons.assignedFormId)) ||
-        library.find((f: any) => f.id === orgAddons.activeQuestionnaireId) ||
-        library[0] ||
-        null
-      if (chosen) {
-        mergedAddons.questionnaire = liveMirror(chosen)
-        mergedAddons.activeQuestionnaireId = chosen.id
-      }
-    }
-
-    const cardShaped = mergeBrand({
-      ...teamCard,
-      user_id: null,
-      is_primary: true,
-      view_count: (teamCard as any).view_count || 0,
-      work_phone: (teamCard as any).work_phone || null,
-      whatsapp: (teamCard as any).whatsapp || null,
-      addons: mergedAddons,
-      // Pass team_card_id so contact form saves correctly
-      _team_card_id: (teamCard as any).id,
-    }, brandToApply)
-
-    return (
-      <CardTracker teamCardId={(teamCard as any).id}>
-        <PublicCardView card={cardShaped as any} isPro={true} isTeamCard={true} suspendedMessage={suspendedMessage} />
-      </CardTracker>
-    )
+    // Rendering lives in components/card/TeamCardPublic, shared with
+    // /card/<company>/<person> so the same card cannot look different
+    // depending on which of its two URLs was opened.
+    return <TeamCardPublic teamCard={teamCard as any} />
   }
 
   // Check slug redirects
