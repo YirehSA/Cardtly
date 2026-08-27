@@ -565,10 +565,18 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                 reading all six every time to find the one you came for.
                 Add seats moved to Billing, where it belongs. */}
             <div className="flex items-center gap-2 flex-wrap">
-              {tab === 'people' && seatsAvailable > 0 && (
+              {/* Shown whether or not there are seats free. Hiding it on a
+                  full team meant the whole import feature disappeared from
+                  Sicon, which is 10 of 10 used and exactly the size that
+                  wants it - and a button that is absent teaches nobody why.
+                  The preview inside already marks every row that would go
+                  over the limit and refuses to create those, so the honest
+                  place to explain the seat position is there. */}
+              {tab === 'people' && (
                 <button onClick={() => setShowImport(true)}
+                  title="Upload an Excel file or paste a staff list to create cards in bulk"
                   className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
-                  <FileSpreadsheet className="w-4 h-4" />Import
+                  <FileSpreadsheet className="w-4 h-4" />Import from Excel
                 </button>
               )}
               {tab === 'people' && (seatsAvailable > 0 || seatsTotal === 0) && (

@@ -209,10 +209,29 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
           {(phase === 'paste' || phase === 'preview') && (
             <>
               <p className="text-sm text-muted-foreground mb-4">
-                Paste straight out of Excel, or choose a CSV file. Cardtly reads columns named
+                Upload an Excel file (.xlsx), choose a CSV, or paste straight out of a spreadsheet.
+                Cardtly reads columns named
                 {' '}<strong className="text-foreground">name</strong> (or first and last name),
-                {' '}<strong className="text-foreground">email</strong>, job title, phone and company.
+                {' '}<strong className="text-foreground">email</strong>, job title, phone and company
+                {targets.length > 0 && <>, plus <strong className="text-foreground">business unit</strong> to file each person into the right team</>}.
               </p>
+
+              {/* Said once, up front. Without this a full team pastes a list,
+                  every row comes back rejected, and nothing on screen connects
+                  that to the seat count. */}
+              {seatsAvailable <= 0 && (
+                <div className="mb-4 rounded-xl border p-3 flex items-start gap-2.5"
+                  style={{ borderColor: 'rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.1)' }}>
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#f59e0b' }} />
+                  <div className="text-xs">
+                    <p className="font-bold" style={{ color: '#f59e0b' }}>Every seat is taken</p>
+                    <p className="text-muted-foreground mt-0.5">
+                      You can still paste your list and check it reads correctly, but nothing can be
+                      created until there is room. Add seats under Billing, or remove someone who has left.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <button onClick={() => fileRef.current?.click()}

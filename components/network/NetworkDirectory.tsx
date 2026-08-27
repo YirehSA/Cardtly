@@ -504,10 +504,18 @@ function CompanyDetail({
         </div>
       </div>
 
-      {/* Search and the two filters. Shown only where they earn their space:
-          a five-person company does not need faceting, and a unit filter with
-          one value in it is a control that cannot change anything. */}
-      {company.cards.length > 5 && (
+      {/* Shown once a company is big enough for scrolling to be annoying.
+          The first version of this required more than five people, which was
+          a guess, and measured against the real data it hid the whole block
+          from every company except one: the largest has ten, the rest have
+          one or two. A threshold set by imagining the customer is the same
+          mistake the Team Cards search made at six.
+
+          Each filter row still needs two or more distinct values of its own,
+          because a control with one option cannot change what you see. That
+          is the rule doing the real work; this outer gate only stops a
+          three-person company carrying a search box it does not need. */}
+      {company.cards.length > 2 && (
         <div className="space-y-3">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
