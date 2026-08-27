@@ -110,6 +110,26 @@ export default async function TeamPage() {
       const counts = await leadCountsByCard(admin, (myCards || []).map((c: any) => c.id))
       const deptName = new Map(managed.map(d => [d.id, d.name]))
 
+      // The actual leads, for the head's Leads tab. Scoped to the cards in the
+      // departments they run, which getManagedDepartments has already limited
+      // to their own subtree - so this cannot reach a sibling department.
+      //
+      // Chunked at 100 like leadCountsByCard: an .in() with a few hundred ids
+      // is a URL long enough for PostgREST to reject.
+      const headCardIds: string[] = (myCards || []).map((c: any) => c.id)
+      const cardById = new Map<string, any>((myCards || []).map((c: any) => [c.id, c]))
+      const headLeads: any[] = []
+      for (let i = 0; i < headCardIds.length; i += 100) {
+        const { data } = await admin
+          .from('contacts')
+          .select('id, name, email, phone, company, message, created_at, team_card_id')
+          .in('team_card_id', headCardIds.slice(i, i + 100))
+          .order('created_at', { ascending: false })
+          .limit(500)
+        if (data) headLeads.push(...data)
+      }
+      headLeads.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+
       // The org's lead-capture forms, for the per-card picker. Read from the
       // organisation because the library belongs to the company, not to the
       // department - a head chooses which of them a card shows, not what the
@@ -135,6 +155,7 @@ export default async function TeamPage() {
             email: c.email,
             phone: c.phone,
             company: c.company,
+            profileImageUrl: c.profile_image_url || null,
             claimed: !!c.claimed_at,
             // Who was invited and took it up. Not the account's own address,
             // which may differ - but it is the address the head sent it to,
@@ -154,6 +175,20 @@ export default async function TeamPage() {
             assignedFormId: c.addons?.assignedFormId || null,
             useTeamQuestionnaire: c.use_team_questionnaire ?? null,
           }))}
+          leads={headLeads.map((l: any) => {
+            const card = cardById.get(l.team_card_id)
+            return {
+              id: l.id,
+              name: l.name || null,
+              email: l.email || null,
+              phone: l.phone || null,
+              company: l.company || null,
+              message: l.message || null,
+              createdAt: l.created_at,
+              cardName: card?.name || 'a team card',
+              departmentName: deptName.get(card?.department_id) || '',
+            }
+          })}
         />
       )
     }

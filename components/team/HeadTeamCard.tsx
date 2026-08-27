@@ -1,22 +1,27 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import {
   Eye, Inbox, ExternalLink, Loader2, UserCheck, Clock, Send,
-  Sparkles, Network, ClipboardList, UserX,
+  Sparkles, Network, ClipboardList, Info, Pencil, Building2, Mail, Phone,
 } from 'lucide-react'
 
 // One person's card, as their department head sees it.
 //
-// The same tile the owner gets on Team Cards, minus the two things a head is
-// not: Delete, and Edit of somebody else's details. Everything on it maps to
-// an action /api/department already gates on canManageDepartment, so the
-// screen shows exactly what the server would allow and nothing more.
+// The same tile the owner gets on Team Cards, minus the one thing a head is
+// not: Delete. Everything on it maps to an action the server already gates on
+// canManageDepartment, so the screen shows exactly what would be allowed and
+// nothing more.
 //
 // Delete is deliberately absent. Removing somebody from the team is what a
 // head needs and it is what Revoke does; deleting the card destroys the leads
 // it captured, which belong to the company rather than to the department.
+//
+// Edit is present. /dashboard/team/card/[id] has always admitted heads and
+// /api/team/card/save has always accepted their writes - there was simply no
+// link to it from here, so the permission existed and the door did not.
 
 export type HeadCard = {
   id: string
@@ -26,6 +31,7 @@ export type HeadCard = {
   email: string | null
   phone: string | null
   company: string | null
+  profileImageUrl: string | null
   claimed: boolean
   claimedEmail: string | null
   inviteEmail: string | null
@@ -36,6 +42,13 @@ export type HeadCard = {
   listedInNetwork: boolean
   assignedFormId: string | null
   useTeamQuestionnaire: boolean | null
+}
+
+function initials(s: string | null): string {
+  const t = (s || '').trim()
+  if (!t) return '?'
+  const p = t.split(/\s+/)
+  return (p.length >= 2 ? p[0][0] + p[1][0] : t.slice(0, 2)).toUpperCase()
 }
 
 export default function HeadTeamCard({
@@ -68,25 +81,46 @@ export default function HeadTeamCard({
       <div className="h-1.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
       <div className="p-5 space-y-4">
 
-        <div>
-          <p className="font-semibold text-sm truncate">{card.name || 'Unnamed'}</p>
-          {card.title && <p className="text-xs text-muted-foreground truncate">{card.title}</p>}
-          <p className="text-[11px] text-muted-foreground mt-1">{card.departmentName}</p>
+        {/* Photo and name. The picture is the fastest way to find the right
+            person in a grid of a dozen, and the tile had none. */}
+        <div className="flex items-center gap-3">
+          {card.profileImageUrl ? (
+            <img src={card.profileImageUrl} alt=""
+              className="w-12 h-12 rounded-full object-cover shrink-0 ring-2 ring-border" />
+          ) : (
+            <span className="w-12 h-12 rounded-full shrink-0 flex items-center justify-center font-bold text-sm text-white"
+              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed)' }}>
+              {initials(card.name || card.inviteEmail)}
+            </span>
+          )}
+          <div className="min-w-0">
+            <p className="font-bold truncate">{card.name || 'Unnamed'}</p>
+            {card.title && <p className="text-xs text-muted-foreground truncate">{card.title}</p>}
+            <p className="text-[11px] text-muted-foreground truncate">{card.departmentName}</p>
+          </div>
         </div>
 
-        {(card.email || card.phone) && (
-          <div className="space-y-1 text-xs text-muted-foreground">
-            {card.email && <p className="truncate">{card.email}</p>}
-            {card.phone && <p className="truncate">{card.phone}</p>}
+        {(card.email || card.phone || card.company) && (
+          <div className="space-y-1.5 text-xs text-muted-foreground">
+            {card.email && (
+              <p className="flex items-center gap-2 truncate"><Mail className="w-3.5 h-3.5 shrink-0" />{card.email}</p>
+            )}
+            {card.phone && (
+              <p className="flex items-center gap-2 truncate"><Phone className="w-3.5 h-3.5 shrink-0" />{card.phone}</p>
+            )}
+            {card.company && (
+              <p className="flex items-center gap-2 truncate"><Building2 className="w-3.5 h-3.5 shrink-0" />{card.company}</p>
+            )}
           </div>
         )}
 
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1" title="Times this card has been opened">
             <Eye className="w-3.5 h-3.5" />
             <strong className="tabular-nums text-foreground">{card.views}</strong> views
           </span>
-          <span className="inline-flex items-center gap-1" style={{ color: card.leads > 0 ? '#22c55e' : undefined }}>
+          <span className="inline-flex items-center gap-1" style={{ color: card.leads > 0 ? '#22c55e' : undefined }}
+            title="People who left their details on this card">
             <Inbox className="w-3.5 h-3.5" />
             <strong className="tabular-nums">{card.leads}</strong> lead{card.leads === 1 ? '' : 's'}
           </span>
@@ -103,7 +137,7 @@ export default function HeadTeamCard({
             <button
               disabled={busy === 'revoke'}
               onClick={async () => {
-                if (!confirm(`Remove ${card.name || 'this person'} from the team?\n\nTheir card stops working and the seat is freed. The leads they captured stay with the company.`)) return
+                if (!confirm(`Remove ${card.name || 'this person'} from the team?\n\nTheir public card stops working straight away, so their details are no longer shown to anyone who opens the link or taps their NFC card.\n\nThe card itself is kept and the seat is freed. The leads they captured stay with the company.`)) return
                 if (await call('revoke', { action: 'remove_member', team_card_id: card.id }, 'Removed from the team')) onChanged()
               }}
               className="text-[11px] font-bold uppercase tracking-wider shrink-0" style={{ color: '#22c55e' }}>
@@ -131,6 +165,7 @@ export default function HeadTeamCard({
         <div className="space-y-2">
           <Toggle
             icon={Sparkles} label="Use team brand" checked={brand} busy={busy === 'brand'}
+            hint="On: this card follows the company or department look. Off: it keeps its own colours."
             onChange={async next => {
               setBrand(next)
               const ok = await call('brand', { action: 'set_card_team_brand', team_card_id: card.id, value: next }, 'Saved')
@@ -139,6 +174,7 @@ export default function HeadTeamCard({
           />
           <Toggle
             icon={Network} label="In the Network" checked={listed} busy={busy === 'net'}
+            hint="On: this person can be found in the Cardtly directory. Off: their card still works, it is just not listed."
             onChange={async next => {
               setListed(next)
               const ok = await call('net', { action: 'set_card_network', team_card_id: card.id, value: next }, 'Saved')
@@ -148,7 +184,8 @@ export default function HeadTeamCard({
 
           {forms.length > 0 && (
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs inline-flex items-center gap-2 text-muted-foreground">
+              <span className="text-xs inline-flex items-center gap-2 text-muted-foreground"
+                title="Which set of questions visitors are asked when they leave their details">
                 <ClipboardList className="w-3.5 h-3.5" />Lead form
               </span>
               <select
@@ -173,11 +210,15 @@ export default function HeadTeamCard({
               <ExternalLink className="w-3.5 h-3.5" />View
             </a>
           )}
-          {/* No Edit and no Delete. Editing somebody else's details and
-              destroying a card with its leads are the company admin's, and
-              saying so beats a button that always refuses. */}
-          <span className="text-[11px] text-muted-foreground ml-auto inline-flex items-center gap-1">
-            <UserX className="w-3 h-3" />Deleting a card is the company admin
+          <Link href={`/dashboard/team/card/${card.id}`}
+            className="text-xs font-medium inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition">
+            <Pencil className="w-3.5 h-3.5" />Edit
+          </Link>
+          {/* Delete is the company admin's. Saying so beats a button that
+              always refuses, and it explains why rather than just refusing. */}
+          <span className="text-[11px] text-muted-foreground ml-auto inline-flex items-center gap-1"
+            title="Revoke removes the person and frees the seat. Deleting the card would destroy the leads it captured, which belong to the company, so only the main admin can do that.">
+            <Info className="w-3 h-3" />Only admin can delete
           </span>
         </div>
       </div>
@@ -185,11 +226,12 @@ export default function HeadTeamCard({
   )
 }
 
-function Toggle({ icon: Icon, label, checked, busy, onChange }: {
-  icon: any; label: string; checked: boolean; busy: boolean; onChange: (next: boolean) => void
+function Toggle({ icon: Icon, label, checked, busy, hint, onChange }: {
+  icon: any; label: string; checked: boolean; busy: boolean; hint?: string
+  onChange: (next: boolean) => void
 }) {
   return (
-    <label className="flex items-center justify-between gap-2 cursor-pointer">
+    <label className="flex items-center justify-between gap-2 cursor-pointer" title={hint}>
       <span className="text-xs inline-flex items-center gap-2 text-muted-foreground">
         <Icon className="w-3.5 h-3.5" />{label}
       </span>
@@ -200,7 +242,7 @@ function Toggle({ icon: Icon, label, checked, busy, onChange }: {
         aria-label={label}
         disabled={busy}
         onClick={() => onChange(!checked)}
-        className="relative w-11 h-6 rounded-full transition disabled:opacity-50"
+        className="relative w-11 h-6 rounded-full transition disabled:opacity-50 shrink-0"
         style={{ background: checked ? 'linear-gradient(135deg, #00d4ff, #7c3aed)' : 'rgba(120,120,130,0.35)' }}>
         <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
           style={{ left: checked ? '1.375rem' : '0.125rem' }} />
