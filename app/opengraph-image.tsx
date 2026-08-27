@@ -109,7 +109,7 @@ export default async function Image() {
             color: 'rgba(255,255,255,0.45)',
           }}
         >
-          cardtly.com — free forever
+          cardtly.com
         </div>
       </div>
     ),

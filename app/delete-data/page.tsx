@@ -109,7 +109,7 @@ export default function DeleteDataPage() {
           </Section>
 
           <Section title="Cancel a Pro subscription">
-            <p>Cancelling stops Paystack from billing you again. Your account and card stay live on the free tier.</p>
+            <p>Cancelling stops Paystack from billing you again. Your card stays live until the end of the period you have already paid for, and then stops being served. Your account and everything in it stay in place until you delete them, so you can restart at any time and your card comes back as it was.</p>
             <ol className="list-decimal pl-6 space-y-2">
               <li>Go to <strong className="text-white">Dashboard, Settings, Subscription</strong>.</li>
               <li>Click <strong className="text-white">Manage subscription</strong>.</li>

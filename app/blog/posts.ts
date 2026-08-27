@@ -19,14 +19,14 @@ export const POSTS: BlogPost[] = [
     slug: 'what-is-a-digital-business-card',
     title: 'What Is a Digital Business Card? A Simple Guide',
     description:
-      'A digital business card is a shareable online profile you send by NFC tap, QR code, or link. Learn how it works and how to get one free.',
+      'A digital business card is a shareable online profile you send by NFC tap, QR code, or link. Learn how it works, what it costs, and how to get one.',
     excerpt:
-      'A plain-English guide to digital business cards: what they are, how sharing works, the benefits over paper, and how to start free.',
+      'A plain-English guide to digital business cards: what they are, how sharing works, the benefits over paper, and what one costs.',
     date: '2026-07-01',
     readMins: 6,
     body: `<p>A digital business card is an online version of a paper business card. It lives as a web page that holds your name, role, contact details, links, and social profiles, and you share it with a phone tap, a QR code, or a link. The person who receives it can save your details straight to their phone with no app to download.</p>
 
-<p>If you have ever handed over a paper card and watched it disappear into a wallet, you already know the problem a <strong>digital business card</strong> solves. Your details stay live, easy to update, and simple to pass on. Below we explain what one is, how it works, and how to get yours free.</p>
+<p>If you have ever handed over a paper card and watched it disappear into a wallet, you already know the problem a <strong>digital business card</strong> solves. Your details stay live, easy to update, and simple to pass on. Below we explain what one is, how it works, what it costs, and how to get yours.</p>
 
 <h2>How a digital business card works</h2>
 
@@ -49,7 +49,7 @@ export const POSTS: BlogPost[] = [
 <li><strong>Link.</strong> Send your card as a link over WhatsApp, email, or SMS. This works when you are not in the same room.</li>
 </ul>
 
-<p>With Cardtly you get all three sharing methods on every plan, including the free one. If you want the physical tap experience, an optional <a href="/nfc">NFC card</a> is available as a once-off add-on.</p>
+<p>With Cardtly all three sharing methods come with every card. If you want the physical tap experience, an optional <a href="/nfc">NFC card</a> is available as a once-off add-on.</p>
 
 <h2>Digital vs paper business cards</h2>
 
@@ -65,7 +65,7 @@ export const POSTS: BlogPost[] = [
 <tr><td>Saved to phone</td><td>Typed in by hand, if at all</td><td>One tap to save as a contact</td></tr>
 <tr><td>Extra content</td><td>Name and number only</td><td>Links, gallery, socials, WhatsApp, more</td></tr>
 <tr><td>See who viewed it</td><td>No way to tell</td><td>Views, clicks, and saves tracked</td></tr>
-<tr><td>Running cost</td><td>Pay per print run</td><td>Free to start</td></tr>
+<tr><td>Running cost</td><td>Pay per print run</td><td>R97 a month, no reprints ever</td></tr>
 </tbody>
 </table>
 
@@ -73,27 +73,27 @@ export const POSTS: BlogPost[] = [
 
 <p>Almost anyone who meets people for work can use one. It suits sales reps and estate agents who network daily, small business owners and freelancers who want to look professional without a print budget, tradespeople who want a WhatsApp button and reviews in one place, and larger teams who need everyone on the same branding. For businesses, a <a href="/features">Teams plan</a> lets you lock company branding, add seats, and manage everyone from an admin dashboard.</p>
 
-<h2>How to get a digital business card free with Cardtly</h2>
+<h2>How to get a digital business card with Cardtly</h2>
 
 <p>Cardtly is a South African digital business card platform, so pricing is in rand and local payment works out of the box. You can build a card in minutes:</p>
 
 <ol>
-<li><a href="/signup">Sign up free</a> with no credit card required.</li>
+<li><a href="/signup">Sign up</a> and get 7 days of everything, no credit card required.</li>
 <li>Pick one of 12 customisable templates and set your colours, fonts, logo, and light or dark mode.</li>
 <li>Add your details, links, socials, and an AI-written bio if you want a hand with the wording.</li>
 <li>Share your card by NFC, QR, or link, and start saving the contacts you meet.</li>
 </ol>
 
-<p>The free plan is free forever. When you are ready for more, Pro adds tools like a built-in contacts CRM, lead capture, a paper card scanner, an email signature generator, and a weekly performance digest. Here is how the plans compare:</p>
+<p>Every signup gets 7 days with the full product, no card required: a built-in contacts CRM, lead capture, a paper card scanner, an email signature generator, and a weekly performance digest. After that it is R97 a month to keep the card live. Here is what you get:</p>
 
 <table>
 <thead>
 <tr><th>Plan</th><th>Price</th><th>Best for</th></tr>
 </thead>
 <tbody>
-<tr><td>Free</td><td>R0 forever</td><td>A polished card, all three sharing methods, and contact saves</td></tr>
-<tr><td>Pro</td><td>R65/month</td><td>Analytics, CRM, lead capture, card scanner, and more</td></tr>
-<tr><td>Teams</td><td>R65/seat/month</td><td>Locked company branding and an admin dashboard</td></tr>
+<tr><td>First 7 days</td><td>R0, no card required</td><td>The whole product, so you can judge it before you pay</td></tr>
+<tr><td>Pro</td><td>R97/month</td><td>Analytics, CRM, lead capture, card scanner, and more</td></tr>
+<tr><td>Teams</td><td>R97/card/month</td><td>Locked company branding and an admin dashboard</td></tr>
 </tbody>
 </table>
 
@@ -102,9 +102,9 @@ export const POSTS: BlogPost[] = [
 <p>A digital business card gives you a smarter, cheaper, and more useful way to share who you are. You can create yours in a few minutes and never run out of cards again.</p>`,
     faq: [
       { q: 'What is a digital business card?', a: 'A digital business card is an online version of a paper business card that lives as a web page holding your contact details, links, and social profiles. You share it by NFC tap, QR code, or a link, and the recipient can save your details straight to their phone with no app needed.' },
-      { q: 'Do I need an NFC card to use a digital business card?', a: 'No. You can share your card by QR code or link on any plan without any hardware. An NFC card is an optional add-on from Cardtly at R150 once-off plus R100 shipping in South Africa if you want the tap-to-share experience in person.' },
+      { q: 'Do I need an NFC card to use a digital business card?', a: 'No. You can share your card by QR code or link without any hardware. An NFC card is an optional add-on from Cardtly at R150 once-off plus R100 shipping in South Africa if you want the tap-to-share experience in person.' },
       { q: 'Does the person receiving my card need an app?', a: 'No. Your card opens as a normal web page in their browser, whether you share it by NFC, QR code, or link. They can also save your details to their phone contacts with one tap.' },
-      { q: 'Is Cardtly really free?', a: 'Yes. Cardtly has a free forever plan with no credit card required, which includes a customisable card and all three sharing methods. Pro is R65 per month via Paystack and adds analytics, a contacts CRM, lead capture, and more.' },
+      { q: 'Is Cardtly free to try?', a: 'Yes. Every signup gets 7 days of the full product with no credit card required, including a customisable card, all three sharing methods, analytics, a contacts CRM and lead capture. After the 7 days it is R97 a month, billed in rand through Paystack.' },
     ],
   },
 
@@ -112,12 +112,12 @@ export const POSTS: BlogPost[] = [
     slug: 'digital-business-cards-south-africa',
     title: 'Digital Business Cards South Africa: 2026 Guide',
     description:
-      'The complete 2026 guide to digital business cards in South Africa. ZAR pricing, local NFC card delivery, WhatsApp sharing, and how to start free with Cardtly.',
+      'The complete 2026 guide to digital business cards in South Africa. ZAR pricing, local NFC card delivery, WhatsApp sharing, and what Cardtly costs.',
     excerpt:
       'Everything South African professionals need to know about digital and NFC business cards in 2026, with ZAR pricing and local delivery.',
     date: '2026-07-02',
     readMins: 7,
-    body: `<p>A digital business card is a shareable online version of your contact details that lives on your phone and opens in any web browser, so the person you meet can save your info instantly without an app or a paper card. <strong>Cardtly</strong> is a South African digital business card platform, built in South Africa, that lets you share your card by NFC tap, QR code, or a link over WhatsApp, and bills in rand through Paystack. You can start free, with no credit card, and upgrade to Pro for R65 a month when you need more.</p>
+    body: `<p>A digital business card is a shareable online version of your contact details that lives on your phone and opens in any web browser, so the person you meet can save your info instantly without an app or a paper card. <strong>Cardtly</strong> is a South African digital business card platform, built in South Africa, that lets you share your card by NFC tap, QR code, or a link over WhatsApp, and bills in rand through Paystack. You can start with no credit card, try everything for 7 days, and then keep it live for R97 a month.</p>
 
 <h2>Why South African professionals are switching</h2>
 <p>Paper business cards get lost, run out at the worst moment, and cost money to reprint every time a number or title changes. A digital business card fixes all three problems at once. You update your details in one place and everyone who opens your card sees the latest version, so a reprint is never needed again.</p>
@@ -139,10 +139,10 @@ export const POSTS: BlogPost[] = [
 <tr><th>Plan or add-on</th><th>Price (ZAR)</th><th>What you get</th></tr>
 </thead>
 <tbody>
-<tr><td>Free</td><td>R0 forever, no credit card</td><td>A live digital card, all sharing options, save to contacts</td></tr>
-<tr><td>Pro</td><td>R65 / month</td><td>Analytics, lead capture and CRM, AI card scanner, Excel export, weekly digest</td></tr>
+<tr><td>First 7 days</td><td>R0, no credit card</td><td>Everything below, so you can try it before you pay</td></tr>
+<tr><td>Pro</td><td>R97 / month</td><td>Analytics, lead capture and CRM, AI card scanner, Excel export, weekly digest</td></tr>
 <tr><td>Physical NFC card</td><td>R150 once-off + R100 shipping in SA</td><td>A tap-to-share card linked to your profile</td></tr>
-<tr><td>Teams</td><td>R65 / seat / month</td><td>Locked company branding, per-seat billing, admin dashboard</td></tr>
+<tr><td>Teams</td><td>R97 / card / month</td><td>Locked company branding, per-card billing, admin dashboard</td></tr>
 </tbody>
 </table>
 <p>You can compare everything side by side on the <a href="/pricing">pricing page</a>, and order a physical card from the <a href="/nfc">NFC card page</a> when you are ready.</p>
@@ -173,20 +173,20 @@ export const POSTS: BlogPost[] = [
 </tbody>
 </table>
 
-<h2>How to get started free</h2>
+<h2>How to get started</h2>
 <p>Getting a card live takes a few minutes and costs nothing to try.</p>
 <ol>
-<li>Create a free account, no credit card needed.</li>
+<li>Create your account. No credit card is needed for the first 7 days.</li>
 <li>Pick one of the 12 templates and add your details, links, and logo.</li>
 <li>Share your card by link, QR, or NFC, and start saving contacts.</li>
 </ol>
-<p>When you want analytics, lead capture, and the AI card scanner, upgrade to Pro for R65 a month. If you run a team, the Teams plan keeps everyone on-brand at R65 per seat. There is also an Android app on Google Play, with iOS on the way. Ready to begin? <a href="/signup">Create your free card</a> and share it today.</p>`,
+<p>Analytics, lead capture and the AI card scanner are all in the 7 days, and keeping them is R97 a month. If you run a team, the Teams plan keeps everyone on-brand at R97 per card. There is also an Android app on Google Play, with iOS on the way. Ready to begin? <a href="/signup">Create your card</a> and share it today.</p>`,
     faq: [
       { q: 'What is a digital business card?', a: 'A digital business card is an online version of your contact details that opens in any web browser when you share it by tap, QR code, or link. The person receiving it can save your details to their phone without downloading an app.' },
-      { q: 'How much does a digital business card cost in South Africa?', a: 'Cardtly is free forever with no credit card required. Pro is R65 per month, billed in rand through Paystack, and an optional physical NFC card is R150 once-off plus R100 shipping within South Africa.' },
+      { q: 'How much does a digital business card cost in South Africa?', a: 'Cardtly is R97 a month, billed in rand through Paystack. Every signup gets 7 days first with no credit card required. An optional physical NFC card is R150 once-off plus R100 shipping within South Africa.' },
       { q: 'Do I need an NFC card to use Cardtly?', a: 'No. You can share your card by QR code or a link over WhatsApp, email, or SMS without any physical card. The NFC card is an optional add-on for tap-to-share convenience.' },
       { q: 'Does the person receiving my card need an app?', a: 'No. Your card opens in any standard web browser, and they can save your details straight to their phone contacts as a vCard with one tap.' },
-      { q: 'Can I use Cardtly for my whole team?', a: 'Yes. The Teams plan is R65 per seat per month and includes locked company branding, per-seat billing, and an admin dashboard so everyone stays on-brand.' },
+      { q: 'Can I use Cardtly for my whole team?', a: 'Yes. Teams are R97 per card per month and include locked company branding, per-card billing, and an admin dashboard so everyone stays on-brand.' },
     ],
   },
 
@@ -221,7 +221,7 @@ export const POSTS: BlogPost[] = [
 </table>
 
 <h2>Cost over time</h2>
-<p>A paper card looks cheap per unit, but the real cost is repetition. Every time your number, title, or branding changes, the old box becomes scrap and you order another. A digital card removes that cycle. Cardtly has a <strong>free forever</strong> plan with no credit card required, and Pro is R65 per month. If you want the physical tap, an optional <a href="/nfc">NFC card</a> is R150 once-off plus R100 shipping in South Africa, and you keep using it for years without reprinting.</p>
+<p>A paper card looks cheap per unit, but the real cost is repetition. Every time your number, title, or branding changes, the old box becomes scrap and you order another. A digital card removes that cycle. Cardtly gives you <strong>7 days free</strong> with no credit card required, and is R97 a month after that. If you want the physical tap, an optional <a href="/nfc">NFC card</a> is R150 once-off plus R100 shipping in South Africa, and you keep using it for years without reprinting.</p>
 
 <h2>Staying up to date</h2>
 <p>This is where paper struggles most. A printed card is a snapshot frozen on the day it left the printer. A digital card is a live web page, so when you change a phone number, add a new role, or swap your booking link, it updates everywhere instantly. Everyone who taps, scans, or clicks always sees the current version, and you never hand out wrong details again.</p>
@@ -242,10 +242,10 @@ export const POSTS: BlogPost[] = [
 <p>To be fair, paper is not dead. It needs no phone, no signal, and no battery, so it works in any setting instantly. Some industries and older audiences still expect a physical card as a courtesy, and a beautifully printed card can be a lovely keepsake for special occasions. Many professionals do best with both: a digital card as the everyday default, and a small run of paper for the rare moments that call for it.</p>
 
 <h2>The verdict for 2026</h2>
-<p>On cost, updates, sustainability, analytics, and reach, the <strong>NFC vs paper business cards</strong> comparison lands firmly on the digital side, with paper holding a small niche. The good news is you do not have to choose blind. You can <a href="/signup">create your free digital card</a> in minutes, keep it forever at no cost, and add an NFC card only if you want the tap. In 2026, that is the smarter way to share who you are.</p>`,
+<p>On cost, updates, sustainability, analytics, and reach, the <strong>NFC vs paper business cards</strong> comparison lands firmly on the digital side, with paper holding a small niche. The good news is you do not have to choose blind. You can <a href="/signup">create your digital card</a> in minutes, run it free for a week before you decide anything, and add an NFC card only if you want the tap. In 2026, that is the smarter way to share who you are.</p>`,
     faq: [
       { q: 'How does an NFC business card actually work?', a: 'An NFC business card has a small chip inside. When you tap it against the back of a modern phone, the phone reads the chip and opens your digital profile in the browser instantly. No app is needed on either phone.' },
-      { q: 'Is an NFC card more expensive than printing paper cards?', a: 'Not over time. A paper card seems cheap per unit but you reprint every time details change. A Cardtly NFC card is R150 once-off plus R100 shipping in South Africa and you reuse it for years, while the digital card itself is free forever.' },
+      { q: 'Is an NFC card more expensive than printing paper cards?', a: 'Not over time. A paper card seems cheap per unit but you reprint every time details change. A Cardtly NFC card is R150 once-off plus R100 shipping in South Africa and you reuse it for years, while the digital card behind it is R97 a month however many times your details change.' },
       { q: 'Do people need an app to receive my digital or NFC card?', a: 'No. The recipient just taps, scans a QR code, or opens a link, and your profile opens in their normal browser. They can then save your details straight to their phone contacts with no app required.' },
       { q: 'Should I still keep paper business cards in 2026?', a: 'You can, and some settings still expect them since paper needs no phone or signal. Many professionals use a digital card as the everyday default and keep a small run of paper for the rare occasions that call for it.' },
     ],
@@ -255,19 +255,19 @@ export const POSTS: BlogPost[] = [
     slug: 'how-to-make-a-free-digital-business-card',
     title: 'How to Make a Free Digital Business Card',
     description:
-      'Learn how to create a free digital business card in South Africa. A simple step-by-step guide: sign up, pick a template, add details, share by link, QR or NFC.',
+      'Learn how to create a digital business card in South Africa, free for your first 7 days. A step-by-step guide: sign up, pick a template, add details, share by link, QR or NFC.',
     excerpt:
-      'A beginner-friendly, step-by-step guide to making a free digital business card you can share by link, QR code or NFC tap.',
+      'A beginner-friendly, step-by-step guide to making a digital business card, free for 7 days, that you can share by link, QR code or NFC tap.',
     date: '2026-07-03',
     readMins: 7,
-    body: `<p>To make a free digital business card, sign up for a free account on <a href="/signup">Cardtly</a>, pick one of the 12 templates, then add your name, role, contact details, socials and links. Customise the colours, fonts and logo, and you instantly get a public card URL like cardtly.com/card/yourname plus a downloadable QR code. Share it by link, QR code or an NFC tap, add it to Google Wallet, and track your views from your dashboard. The whole thing is free forever, with no credit card needed.</p>
+    body: `<p>To make a digital business card free of charge, sign up on <a href="/signup">Cardtly</a>, pick one of the 12 templates, then add your name, role, contact details, socials and links. Customise the colours, fonts and logo, and you instantly get a public card URL like cardtly.com/card/yourname plus a downloadable QR code. Share it by link, QR code or an NFC tap, add it to Google Wallet, and track your views from your dashboard. It costs nothing to build and nothing for the first 7 days, with no credit card needed. Keeping it live after that is R97 a month.</p>
 
 <p>A paper business card gets lost, goes out of date the moment your number changes, and there is no way to know if anyone ever looked at it. A digital business card fixes all of that. It is a live web page, so you edit it once and everyone who already has your link sees the update. Below is the full walkthrough for South African professionals who are starting from scratch.</p>
 
 <h2>Step by step: create your digital business card</h2>
 
-<h3>1. Sign up free</h3>
-<p>Head to the <a href="/signup">sign up page</a> and create your free account. There is no credit card required and the free plan lasts forever, so you can build your whole card and share it without paying a cent. This is the "<strong>free digital business card</strong>" part that beginners worry about, and there really is no catch to getting started.</p>
+<h3>1. Sign up</h3>
+<p>Head to the <a href="/signup">sign up page</a> and create your account. No credit card is required, and you get 7 days with everything switched on, so you can build your whole card and share it before deciding anything. That is the part beginners worry about, and there is no catch to getting started: after the 7 days it is R97 a month to keep your card live.</p>
 
 <h3>2. Pick a template</h3>
 <p>Choose from 12 customisable templates. Each one sets the overall look of your card, and you can switch templates later without losing your details. Pick something that suits your profession: clean and minimal for a consultant, bold and colourful for a creative. Do not overthink this step, because you can change it in seconds.</p>
@@ -301,24 +301,20 @@ export const POSTS: BlogPost[] = [
 <h3>7. Track views and capture leads</h3>
 <p>This is where a digital card beats paper for good. Your analytics show how many people viewed your card, and lead capture lets visitors leave their details, which flow into a simple CRM. Add a book-a-meeting button so prospects can book time with you directly, and generate an email signature so every message you send doubles as a mini business card.</p>
 
-<h2>What you get free vs Pro</h2>
+<h2>What you get</h2>
 
-<p>Everything you need to make and share a card is free. Pro unlocks the extras for people who want to get more from their card.</p>
+<p>There is no cut-down version. Your 7 days are the complete product, and nothing is added or taken away when you start paying, so what you try is what you keep:</p>
 
-<table>
-<thead>
-<tr><th>Feature</th><th>Free</th><th>Pro (R65/month)</th></tr>
-</thead>
-<tbody>
-<tr><td>Public card URL and QR code</td><td>Yes</td><td>Yes</td></tr>
-<tr><td>12 templates and design customisation</td><td>Yes</td><td>Yes</td></tr>
-<tr><td>Contact details, socials and links</td><td>Yes</td><td>Yes</td></tr>
-<tr><td>Share by link, QR or NFC</td><td>Yes</td><td>Yes</td></tr>
-<tr><td>Add to Google Wallet</td><td>Yes</td><td>Yes</td></tr>
-<tr><td>Analytics, lead capture and CRM</td><td>Limited</td><td>Full</td></tr>
-<tr><td>Card scanner, Excel export, weekly digest</td><td>-</td><td>Yes</td></tr>
-</tbody>
-</table>
+<ul>
+<li>Your public card URL and downloadable QR code</li>
+<li>12 templates with full control of colours, fonts, logo and light or dark mode</li>
+<li>Contact details, socials, custom links, gallery and WhatsApp button</li>
+<li>Sharing by link, QR or NFC tap, and Add to Google Wallet</li>
+<li>Analytics, lead capture and the contacts CRM</li>
+<li>The AI paper card scanner, Excel export and the weekly digest email</li>
+</ul>
+
+<p>After the 7 days it is R97 a month. If you decide not to continue, your card stops being served rather than dropping to a lesser version of itself, so it is worth deciding before the week is up.</p>
 
 <p>See the full breakdown on the <a href="/pricing">pricing page</a> and the complete list on the <a href="/features">features page</a>.</p>
 
@@ -335,9 +331,9 @@ export const POSTS: BlogPost[] = [
 
 <h2>Ready to make yours?</h2>
 
-<p>Making a digital business card takes about ten minutes and costs nothing to start. You end up with a professional, shareable card that works from any phone, keeps itself up to date, and shows you exactly who is engaging. <a href="/signup">Create your free digital business card now</a> and share it today.</p>`,
+<p>Making a digital business card takes about ten minutes and costs nothing to start. You end up with a professional, shareable card that works from any phone, keeps itself up to date, and shows you exactly who is engaging. <a href="/signup">Create your digital business card now</a> and share it today.</p>`,
     faq: [
-      { q: 'Is a digital business card really free?', a: 'Yes. Cardtly has a free forever plan with no credit card required. You can build your card, get your public link and QR code, and share it without paying. Pro is optional at R65 per month for extra features.' },
+      { q: 'Is a digital business card really free to start?', a: 'Yes to start. Cardtly asks for no credit card and gives you 7 days with everything included, so you can build your card, get your public link and QR code, and share it before paying anything. Keeping it live after that is R97 a month.' },
       { q: 'Does the person I share my card with need an app?', a: 'No. Your card is just a web page, so anyone can open it by link, QR scan or NFC tap on any phone. They can save your details straight to their contacts without downloading anything.' },
       { q: 'How do I share my digital business card?', a: 'Three ways: send the link over WhatsApp, email or SMS; let people scan your QR code; or tap an optional NFC card on a phone. You can also add your card to Google Wallet for quick access.' },
       { q: 'Do I need the physical NFC card to get started?', a: 'No. The NFC card is optional and costs R150 once-off plus R100 shipping in South Africa. Your link and QR code work on their own, so you can share your card straight away without any hardware.' },

@@ -32,7 +32,7 @@ const FAQS: Array<{ q: string; a: string }> = [
   },
   {
     q: 'Do I need an NFC card to use Cardtly?',
-    a: 'No. Your QR code and card link work on the free plan with nothing physical at all. The NFC card is an optional extra for people who love the tap-to-share moment in meetings and at networking events.',
+    a: 'No. Your QR code and card link work on their own with nothing physical at all. The NFC card is an optional extra for people who love the tap-to-share moment in meetings and at networking events.',
   },
   {
     q: 'Can I update my card after I have shared it?',

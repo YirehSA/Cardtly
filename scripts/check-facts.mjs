@@ -35,14 +35,11 @@ const nfcShipping = Number(nfcPage.match(/value:\s*'(\d+)',\s*currency:\s*'ZAR'/
 
 const llms = read('public/llms.txt')
 
-// ── 1. Any per-month or per-card rand figure must be the seat price ─────────
-const priceClaims = [...llms.matchAll(/R(\d+)(?=\s*(?:per card|a card|\/month|a month|per month|\/seat|per seat))/gi)]
-for (const m of priceClaims) {
-  if (Number(m[1]) !== seatPrice) {
-    note(`llms.txt quotes R${m[1]} as a recurring price; SEAT_PRICE_RAND is ${seatPrice}.`)
-  }
-}
-if (priceClaims.length === 0) {
+// ── 1. llms.txt has to state the price at all ───────────────────────────────
+// Whether a given figure is CORRECT is checked across every marketing file
+// further down. This one is specific to llms.txt, which exists to answer the
+// question and is useless if it stays silent on it.
+if (!/R(\d+)(?=\s*(?:per card|a card|\/month|a month|per month|\/seat|per seat))/i.test(llms)) {
   note(`llms.txt never states the recurring price. It should say R${seatPrice}.`)
 }
 
@@ -62,15 +59,7 @@ if (Number.isFinite(nfcShipping) && !new RegExp(`R${nfcShipping}\\b`).test(llms)
   note(`llms.txt does not mention the R${nfcShipping} shipping charge used on /nfc.`)
 }
 
-// ── 4. Claims that were true once and are not any more ──────────────────────
-// The free tier is gone. If it creeps back into the text, that is a promise
-// the checkout will not honour.
-if (/free[- ]forever|free forever/i.test(llms)) {
-  note('llms.txt claims a free-forever plan. There is a 60-day trial, not a free tier.')
-}
-
-
-// ── 5. Feature counts quoted in marketing copy ──────────────────────────────
+// ── 4. Feature counts quoted in marketing copy ──────────────────────────────
 // "Up to 14 custom links" sat on the pricing page for a long time. It was true
 // of the schema - cards has link_1..link_14 and extractLinks renders them all -
 // and false of the product, which offers five slots in the editor. Someone
@@ -86,8 +75,11 @@ if (!Number.isFinite(maxLinks) || !Number.isFinite(maxImages)) {
   process.exit(1)
 }
 
-const MARKETING_DIRS = ['app', 'components/marketing']
-const SKIP = ['app/dashboard', 'app/admin', 'app/api']
+// app/promotions/terms is competition T&Cs, where "Free Account" is a defined
+// term meaning an account created without payment. That is accurate, and it is
+// legal text that gets reviewed on its own rather than swept with marketing
+// copy, so the free-tier rule below would only ever produce noise here.
+const SKIP = ['app/dashboard', 'app/admin', 'app/api', 'app/promotions/terms']
 
 function marketingFiles(dir, acc = []) {
   const abs = new URL(`../${dir}`, import.meta.url)
@@ -101,6 +93,14 @@ function marketingFiles(dir, acc = []) {
   return acc
 }
 
+// Every file a customer can read. Built once, because the rules below kept
+// being written against llms.txt alone while this list was right there.
+const MARKETING = [
+  ...marketingFiles('app'),
+  ...marketingFiles('components/marketing'),
+  'public/llms.txt',
+]
+
 const COUNT_CLAIMS = [
   { what: 'custom links', actual: maxLinks,
     re: /(\d+)\s+(?:custom\s+)?link(?:\s+button)?s/gi },
@@ -108,7 +108,7 @@ const COUNT_CLAIMS = [
     re: /(?:gallery of up to|up to)\s+(\d+)\s+(?:gallery\s+)?(?:images|photos)/gi },
 ]
 
-for (const file of [...marketingFiles('app'), ...marketingFiles('components/marketing'), 'public/llms.txt']) {
+for (const file of MARKETING) {
   let text
   try { text = read(file) } catch { continue }
   for (const { what, actual, re } of COUNT_CLAIMS) {
@@ -135,12 +135,90 @@ const TRIAL_CLAIMS = [
   /start\s+(?:your\s+)?free\s+trial/i,
 ]
 
-for (const file of [...marketingFiles('app'), ...marketingFiles('components/marketing'), 'public/llms.txt']) {
+for (const file of MARKETING) {
   let text
   try { text = read(file) } catch { continue }
   for (const re of TRIAL_CLAIMS) {
     const m = text.match(re)
     if (m) note(`${file} promises a free trial ("${m[0].trim()}"). A signup gets 7 days (migration 049); 30 and 60 only come from a code, so a 60-day promise is not true for everyone.`)
+  }
+}
+
+// ── 6. Recurring prices, everywhere a customer can read one ─────────────────
+// This rule used to look at llms.txt only. app/blog/posts.ts was already in
+// the sweep above for link counts and trial promises, and still carried
+// sixteen "R65/month" and "free forever" claims across five posts, because no
+// rule that checked a PRICE was ever pointed at it. The blog outranks the
+// pricing page for several of these searches, so it was the first number a lot
+// of people saw.
+//
+// A legitimate page quotes more than the unit price: "R970 a month" for ten
+// cards, and "about R81/month" for the annual plan, which org-billing computes
+// as SEAT_PRICE_RAND * 10 / 12. Both are derived from the seat price rather
+// than being separate constants, so this derives them the same way instead of
+// hard-coding an exception. Any multiple of the seat price is a plausible team
+// total; a stale unit price (R65) is not a multiple of the current one, which
+// is what makes this worth checking at all.
+const annualMonthly = Math.round((seatPrice * 10) / 12)
+const priceIsPlausible = n => n % seatPrice === 0 || n === annualMonthly
+
+const PRICE_RE = /R(\d+)(?=\s*(?:per card|a card|\/month|a month|per month|\/seat|per seat|\/card))/gi
+
+// ── 7. The free tier that no longer exists ──────────────────────────────────
+// An expired personal card 404s. Every phrasing below promises something the
+// product will not do, and each one was found in live copy rather than
+// imagined: the social share image said "free forever", the account page said
+// cancelling left you "live on the free tier", and the blog said you could
+// "keep it forever at no cost".
+const FREE_TIER_CLAIMS = [
+  /free[-\s]forever/i,
+  /forever\s+(?:free|at no cost)/i,
+  /R0\s+forever/i,
+  /free\s+(?:plan|tier)\b/i,
+  /free\s+account\b/i,
+  /keep\s+it\s+forever/i,
+]
+
+// Copy that says the free tier is GONE contains the same words as copy that
+// promises one. Without this, the rule fires on "There is no permanent free
+// tier" in llms.txt, which is the sentence doing the right thing.
+//
+// The window is the 30 characters immediately before the phrase, not the whole
+// line. Scanning the line lets "a free plan, with no credit card required"
+// excuse itself on the "no" belonging to a different clause, and that is very
+// close to the sentence this rule exists to catch.
+const NEGATED = /\b(no|not|never|without|dropped|removed|longer|stopped)\b[\w\s]*$/i
+
+// Whole-line // comments and /* */ blocks. Four of the first hits were
+// comments explaining that the free tier had been removed.
+const stripComments = t => t
+  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .replace(/^\s*\/\/.*$/gm, ' ')
+
+for (const file of MARKETING) {
+  let text
+  try { text = stripComments(read(file)) } catch { continue }
+
+  PRICE_RE.lastIndex = 0
+  let m
+  while ((m = PRICE_RE.exec(text))) {
+    const n = Number(m[1])
+    if (!priceIsPlausible(n)) {
+      note(`${file} quotes R${n} as a recurring price; SEAT_PRICE_RAND is ${seatPrice} (R${seatPrice * 10} a year, about R${annualMonthly} a month on the annual plan).`)
+    }
+  }
+
+  for (const re of FREE_TIER_CLAIMS) {
+    const g = new RegExp(re.source, 'gi')
+    let hit
+    while ((hit = g.exec(text))) {
+      const before = text.slice(Math.max(0, hit.index - 30), hit.index)
+      if (NEGATED.test(before)) continue
+      // "Is there a free plan?" is a question a FAQ is allowed to ask. The
+      // answer next to it is what the rule should be reading.
+      if (/^["'\s]*\?/.test(text.slice(hit.index + hit[0].length))) continue
+      note(`${file} promises a free tier ("${hit[0].trim()}"). There is no free plan: a signup gets 7 days, then the card stops being served unless it is paid for.`)
+    }
   }
 }
 
