@@ -28,12 +28,21 @@ Current jobs:
 
 ## Webhook delivery
 
+A new lead is delivered **immediately**, not on a cron. `enqueueLeadCreated`
+registers the send with `after()` from `next/server`, which runs once the
+response has gone back to the visitor - so the person filling in the form never
+waits on somebody else's CRM, and the lead does not sit in a queue either.
+
 `/api/cron/webhooks` exists and works, but has **no entry in vercel.json**,
 because a third job would breach the limit above. It is called at the end of
-the `trial-reminders` run instead.
+the `trial-reminders` run, and it is the safety net rather than the mechanism:
+it catches anything `after()` missed, and it is what re-attempts a failed
+delivery.
 
-That means a queued lead can wait until the next daily run. Poor, but honest,
-and nothing queues forever.
+The gap that leaves on Hobby: a **retry** is scheduled 1, 5, 30 and 120 minutes
+out, but is only actually attempted when a pass runs. Every new lead triggers a
+pass, so a busy team drains its own queue continually; a quiet one may not
+re-attempt a failed delivery until the next daily run.
 
 **On the Pro plan**, do both of these together:
 

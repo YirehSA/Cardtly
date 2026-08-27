@@ -88,6 +88,29 @@ export async function enqueueLeadCreated(
         payload,
       })),
     )
+
+    // Send it now, after the response has gone back to the visitor.
+    //
+    // next/server's after() runs once the response is flushed, so the person
+    // who filled in the form is never waiting on somebody else's CRM - the
+    // reason delivery was put on a cron in the first place - but the lead does
+    // not sit in a queue until the next cron run either.
+    //
+    // That matters more than it sounds on this account: Vercel's Hobby plan
+    // allows two cron jobs at daily frequency, so the queue is otherwise only
+    // drained once every 24 hours, and a retry scheduled for a minute later
+    // would actually be attempted the following morning.
+    //
+    // Best effort on top of the queue, never instead of it. If this never
+    // runs, the row is still there and the daily pass still sends it.
+    try {
+      const { after } = await import('next/server')
+      after(async () => {
+        try { await deliverPending(admin, 10) } catch { /* the cron will retry */ }
+      })
+    } catch {
+      // No request scope to hang the callback on. The queue covers it.
+    }
   } catch {
     // Best effort, deliberately silent. See the note at the top.
   }
