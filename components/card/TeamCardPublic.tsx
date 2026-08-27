@@ -1,5 +1,6 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import PublicCardView from '@/components/card/PublicCardView'
+import ReportCardLink from '@/components/card/ReportCardLink'
 import CardTracker from '@/components/card/CardTracker'
 import { mergeBrand } from '@/lib/team-brand'
 import { liveMirror } from '@/lib/questionnaire'
@@ -124,6 +125,7 @@ export default async function TeamCardPublic({ teamCard }: { teamCard: any }) {
   return (
     <CardTracker teamCardId={teamCard.id}>
       <PublicCardView card={cardShaped as any} isPro={true} isTeamCard={true} suspendedMessage={suspendedMessage} />
+      <ReportCardLink teamCardId={teamCard.id} cardName={teamCard.name} />
     </CardTracker>
   )
 }

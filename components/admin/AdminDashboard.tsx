@@ -7,13 +7,14 @@ import { toast } from 'sonner'
 import {
   Users as UsersIcon, Building2, Search, Loader2, Trash2, Mail, MailCheck,
   KeyRound, Lock, Shield, Sparkles, ChevronDown, ChevronUp, ExternalLink, Megaphone,
-  ScrollText, Wifi, AlertTriangle, CalendarClock, X, LayoutGrid, UserCog, Banknote, Ticket,
+  ScrollText, Wifi, AlertTriangle, CalendarClock, X, LayoutGrid, UserCog, Banknote, Ticket, Flag,
 } from 'lucide-react'
 import TeamsTab from './TeamsTab'
 import TrialsTab from './TrialsTab'
 import ExpiryBoard from './ExpiryBoard'
 import RepsTab from './RepsTab'
 import MeetingsTab from './MeetingsTab'
+import ReportsTab from './ReportsTab'
 import { Stat, Section, StatusPill, STATUS_META, grad, inputClass, inputStyle, fmtDate, fmtWhen, randFmt } from './shared'
 import { NFC_STATUSES, NFC_STATUS_COLORS, NFC_STATUS_LABELS, type NfcStatus } from '@/lib/nfc'
 import type { AdminUserRow, AdminOrgRow, UserStatus, TrialCodeRow } from '@/lib/admin-data'
@@ -50,7 +51,7 @@ interface Props {
   announcement: any | null
 }
 
-type Tab = 'overview' | 'users' | 'teams' | 'trials' | 'reps' | 'meetings' | 'nfc' | 'activity'
+type Tab = 'overview' | 'users' | 'teams' | 'trials' | 'reps' | 'meetings' | 'nfc' | 'reports' | 'activity'
 type Filter = 'all' | UserStatus | 'admins' | 'unconfirmed'
 
 const FILTERS: { id: Filter; label: string }[] = [
@@ -260,6 +261,7 @@ export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrder
             ['reps', 'Reps', UserCog],
             ['meetings', 'Calendar', CalendarClock],
             ['nfc', 'NFC orders', Wifi],
+            ['reports', 'Reports', Flag],
             ['activity', 'Activity', ScrollText],
           ] as [Tab, string, any][]).map(([id, label, Icon]) => (
             <button key={id} onClick={() => setTab(id)}
@@ -517,6 +519,7 @@ ${r.email} will be able to sign in and log their meetings. If that address has n
         )}
 
         {tab === 'nfc' && <NfcTab orders={nfcOrders} run={run} loading={loading} />}
+        {tab === 'reports' && <ReportsTab />}
         {tab === 'activity' && <ActivityTab audit={audit} />}
       </div>
     </div>

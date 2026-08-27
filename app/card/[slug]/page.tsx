@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import { Metadata } from 'next'
 import PublicCardView from '@/components/card/PublicCardView'
 import CardTracker from '@/components/card/CardTracker'
+import ReportCardLink from '@/components/card/ReportCardLink'
 import TeamCardPublic from '@/components/card/TeamCardPublic'
 import { mergeBrand, resolveTeamBrand } from '@/lib/team-brand'
 import { planFromTrial, subscriptionState } from '@/lib/plan-server'
@@ -130,6 +131,7 @@ export default async function PublicCardPage({ params }: Props) {
     return (
       <CardTracker cardId={(card as any).id}>
         <PublicCardView card={card as any} isPro={isPro} lastActiveAt={lastActiveAt} founderNumber={founderNumber} />
+        <ReportCardLink cardId={(card as any).id} cardName={(card as any).name} />
       </CardTracker>
     )
   }

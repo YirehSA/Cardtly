@@ -38,6 +38,25 @@ export default async function NetworkPage() {
   const admin = createServiceClient() as any
   const { cards, brandLogos, ready } = await fetchNetworkCards(admin)
 
+  // Anyone this person has blocked simply is not here. Filtered after the
+  // fetch rather than in it, so a database without migration 056 still renders
+  // the directory instead of failing on a table that does not exist yet.
+  let blockedCardIds = new Set<string>()
+  try {
+    const { data: blocks } = await admin
+      .from('network_blocks')
+      .select('card_id, team_card_id')
+      .eq('user_id', user.id)
+    blockedCardIds = new Set(
+      (blocks || []).flatMap((b: any) => [b.card_id, b.team_card_id]).filter(Boolean),
+    )
+  } catch {
+    blockedCardIds = new Set()
+  }
+  const visibleCards = blockedCardIds.size
+    ? cards.filter((c: any) => !blockedCardIds.has(c.id))
+    : cards
+
   if (!ready) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
@@ -50,13 +69,14 @@ export default async function NetworkPage() {
     )
   }
 
-  const { companies, independents } = groupIntoCompanies(cards, brandLogos)
+  const { companies, independents } = groupIntoCompanies(visibleCards, brandLogos)
 
   return (
     <NetworkDirectory
       companies={companies}
       independents={independents}
-      totalCards={cards.length}
+      totalCards={visibleCards.length}
+      blockedCount={cards.length - visibleCards.length}
     />
   )
 }

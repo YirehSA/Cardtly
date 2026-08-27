@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Search, Building2, ArrowLeft, ExternalLink, Users, X, Network } from 'lucide-react'
+import { Search, Building2, ArrowLeft, ExternalLink, Users, X, Network, Flag } from 'lucide-react'
+import ReportCardDialog from '@/components/network/ReportCardDialog'
 import { INDUSTRIES } from '@/lib/industries'
 import {
   searchCompanies,
@@ -15,6 +16,8 @@ interface Props {
   companies: NetworkCompany[]
   independents: NetworkCard[]
   totalCards: number
+  /** How many this person has blocked, so the count can be explained. */
+  blockedCount?: number
 }
 
 const HOUSE_GRADIENT = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
@@ -23,10 +26,14 @@ export default function NetworkDirectory({
   companies,
   independents,
   totalCards,
+  blockedCount = 0,
 }: Props) {
   const [query, setQuery] = useState('')
   const [industry, setIndustry] = useState<string | null>(null)
   const [selected, setSelected] = useState<NetworkCompany | null>(null)
+  // Which card is being reported. Held here rather than in the tile so the
+  // dialog is not nested inside the anchor that opens the card.
+  const [reporting, setReporting] = useState<NetworkCard | null>(null)
 
   const results = useMemo(
     () => searchCompanies(companies, query, industry),
@@ -72,6 +79,21 @@ export default function NetworkDirectory({
 
   return (
     <div className="space-y-5 animate-fade-in">
+      {reporting && (
+        <ReportCardDialog
+          cardId={reporting.isTeamCard ? null : reporting.id}
+          teamCardId={reporting.isTeamCard ? reporting.id : null}
+          cardName={reporting.name}
+          canBlock
+          // Reloaded rather than filtered in place: the count in the header,
+          // the company groupings and the industry chips are all computed on
+          // the server from the same list, and patching one of them would
+          // leave the other two saying something different.
+          onBlocked={() => window.location.reload()}
+          onClose={() => setReporting(null)}
+        />
+      )}
+
       {/* Header, in the same shape as the other dashboard pages */}
       <div className="rounded-3xl border border-border overflow-hidden">
         <div
@@ -101,6 +123,15 @@ export default function NetworkDirectory({
               <Stat value={industryChips.length} label="industries" />
             </div>
           </div>
+          {/* Said out loud, because a directory that is quietly shorter than
+              it should be is indistinguishable from one that is broken. */}
+          {blockedCount > 0 && (
+            <div className="mt-4 text-xs text-muted-foreground">
+              {blockedCount} card{blockedCount === 1 ? ' is' : 's are'} hidden because you blocked
+              {blockedCount === 1 ? ' it' : ' them'}.{' '}
+              <a href="/dashboard/settings#blocked" className="underline hover:text-foreground">Manage blocked cards</a>
+            </div>
+          )}
         </div>
       </div>
 
@@ -208,7 +239,7 @@ export default function NetworkDirectory({
               <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {soloResults.map(card => (
                   <li key={card.id}>
-                    <PersonCard card={card} />
+                    <PersonCard card={card} onReport={() => setReporting(card)} />
                   </li>
                 ))}
               </ul>
@@ -370,8 +401,23 @@ function CompanyDetail({
   company: NetworkCompany
   onBack: () => void
 }) {
+  // Its own state: this screen renders the same tiles, so it needs the same
+  // dialog. Sharing one with the parent would mean lifting it through a
+  // component that is only ever shown instead of the parent, never with it.
+  const [reporting, setReporting] = useState<NetworkCard | null>(null)
+
   return (
     <div className="space-y-5 animate-fade-in">
+      {reporting && (
+        <ReportCardDialog
+          cardId={reporting.isTeamCard ? null : reporting.id}
+          teamCardId={reporting.isTeamCard ? reporting.id : null}
+          cardName={reporting.name}
+          canBlock
+          onBlocked={() => window.location.reload()}
+          onClose={() => setReporting(null)}
+        />
+      )}
       <button
         type="button"
         onClick={onBack}
@@ -404,7 +450,7 @@ function CompanyDetail({
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {company.cards.map(card => (
           <li key={card.id}>
-            <PersonCard card={card} />
+            <PersonCard card={card} onReport={() => setReporting(card)} />
           </li>
         ))}
       </ul>
@@ -416,10 +462,22 @@ function CompanyDetail({
 // name and position. Rendering a full card preview for everyone would mean
 // laying out dozens of templates on one screen, and this tile only has to be
 // recognisable enough to click.
-function PersonCard({ card }: { card: NetworkCard }) {
+function PersonCard({ card, onReport }: { card: NetworkCard; onReport: () => void }) {
   const accent = getAccentHex(parseDesign(card.colorTheme))
 
   return (
+    <div className="relative h-full group/tile">
+      {/* Outside the anchor, not inside it: a button nested in a link is
+          invalid, and the click would race the navigation. */}
+      <button
+        type="button"
+        onClick={onReport}
+        title={`Report or block ${card.name}`}
+        aria-label={`Report or block ${card.name}`}
+        className="absolute top-2 right-2 z-10 p-1.5 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-muted transition opacity-0 focus:opacity-100 group-hover/tile:opacity-100"
+      >
+        <Flag className="w-3.5 h-3.5" />
+      </button>
     <a
       href={`/card/${card.slug}`}
       target="_blank"
@@ -443,6 +501,7 @@ function PersonCard({ card }: { card: NetworkCard }) {
         </p>
       </div>
     </a>
+    </div>
   )
 }
 
