@@ -8,6 +8,7 @@ import {
   Users, CalendarDays, ClipboardList, Repeat, ScanLine,
   MessageCircle, Contact, FileSpreadsheet, CalendarClock,
   BarChart2, Mail, Monitor, Building2, ArrowRight, Zap, Check, Wallet, UserPlus, Lock,
+  Layers, FileUp, Search, ShieldCheck, Network, KeyRound, Download, Flag,
 } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -17,12 +18,12 @@ export const metadata: Metadata = {
   // 153 characters, and it leads with the team controls the page now covers
   // rather than listing individual-user features only.
   description:
-    'Every Cardtly feature: NFC tap, QR, lead capture, meeting booking, per-rep analytics, and team controls - departments, locked branding, per-seat billing.',
+    'Every Cardtly feature: NFC tap, QR, lead capture, per-rep analytics, and the company controls - group and company structure, locked branding, CRM delivery.',
   alternates: { canonical: '/features' },
   openGraph: {
     title: 'Every Cardtly feature, for one person or forty',
     description:
-      'NFC and QR sharing, lead capture, meeting booking, analytics per rep, and the company controls: departments, choosable field locks and one brand across every card.',
+      'NFC and QR sharing, lead capture, analytics per rep, and the company controls: a group holding its companies and their departments, field locks, and leads delivered to your CRM.',
   },
 }
 
@@ -248,12 +249,12 @@ const GROUPS: Group[] = [
     features: [
       {
         icon: Wifi, title: 'NFC physical cards', tier: 'Add-on', visual: <CardMock />,
-        desc: 'Tap a Cardtly NFC card to any phone and your profile opens instantly. No app needed on either end. Posted across South Africa.',
+        desc: 'Tap a Cardtly NFC card to any phone and your profile opens instantly. No app needed on either end. R150 with your logo and colours on our layout, or R200 designed around your brand, plus R100 shipping for the whole order. Posted across South Africa in 5 to 7 business days.',
         how: 'Order a card, we encode your link, then tap it to any phone to open your live profile.',
       },
       {
         icon: Smartphone, title: 'Share in one tap', tier: 'Included',
-        desc: 'QR code, short link or NFC. Whichever way the person in front of you prefers to receive it.',
+        desc: 'QR code, short link or NFC. Whichever way the person in front of you prefers to receive it. There is an Android app on Google Play that adds tap-to-share and offline access; on iPhone the card works fully in the browser while the app is in progress.',
         how: 'Download your QR code or copy your cardtly.com link and share it anywhere, on or offline.',
       },
       {
@@ -419,6 +420,58 @@ const GROUPS: Group[] = [
         desc: 'R97 per card a month. Add seats as you hire; a card you have not handed out yet sits ready with an invite against it, so a new starter is live on their first morning.',
         how: 'Add cards from the team dashboard and invite people whenever you are ready.',
       },
+      {
+        icon: Layers, title: 'A group, its companies, their departments', tier: 'Team',
+        desc: 'One account can hold a whole group: the businesses under it, the departments inside those, and cards hanging off the departments. Each business carries its own branding, its own head and its own slice of the web address, so a card reads cardtly.com/card/roofing/thabo. A business head sees their own business and nothing belonging to another; the group sees all of them, on one invoice and one seat pool.',
+        how: 'Departments, then New company. Click a company to see what is under it, and a department to see its cards.',
+      },
+      {
+        icon: FileUp, title: 'Import your staff list', tier: 'Team',
+        desc: 'Upload an Excel file or paste straight out of a spreadsheet and it becomes branded cards. A business unit column routes each person into the right department automatically, so a group onboards from one file rather than seven. Every row is shown with its outcome, and where it will land, before anything is created, and the number of invitations is stated before they go out.',
+        how: 'Team Cards, then Import. Drop the file in, check the preview, then confirm.',
+      },
+      {
+        icon: Search, title: 'A directory people can actually search', tier: 'Team',
+        desc: 'Find anyone by name, position or business unit, and filter a company down to one department or one job title. Individual cards can be kept off the listing, by the person or by their manager.',
+        how: 'Network, then open your company. Search, or tap a business unit or position to filter.',
+      },
+      {
+        icon: ShieldCheck, title: 'Offboarding that actually takes a card down', tier: 'Team',
+        desc: 'Removing someone stops their public card resolving straight away, so their name, photo and number are no longer served to anyone who taps their old NFC card. The card itself is kept, so you re-issue it to their replacement on the same link and the printed card keeps working.',
+        how: 'Team Cards, then Remove access on their card. Invite somebody else to put it back online.',
+      },
+    ],
+  },
+  {
+    eyebrow: 'Connect it to your systems',
+    color: '#7c3aed',
+    heading: 'Leads where your business already works',
+    features: [
+      {
+        icon: Network, title: 'Send leads to your CRM', tier: 'Team',
+        desc: 'Every lead your team captures is posted to an address you nominate, the moment it arrives. Signed so the receiving system can prove it came from Cardtly and was not altered on the way. A delivery that fails retries on a widening schedule and every attempt is logged with its response, so a connection that quietly stops working is visible rather than losing leads in silence.',
+        how: 'Team Cards, Integrations, then Send leads to your CRM. Paste the address, send a test, and watch it arrive.',
+      },
+      {
+        icon: KeyRound, title: 'Read your data with an API', tier: 'Team',
+        desc: 'A read-only API over your leads, cards and company structure, for a nightly job into a warehouse, an intranet staff directory, or a dashboard counting cards across your businesses. Keys are issued and revoked by you, limited by rate and permission, and every call is logged against the key that made it. Keys are stored only as a hash, so nobody can recover one, including us.',
+        how: 'Team Cards, Integrations, API access. Most teams never need this: if you only want leads in your CRM, use the option above instead.',
+      },
+      {
+        icon: FileSpreadsheet, title: 'Everything out as Excel', tier: 'Included',
+        desc: 'Contacts download as a formatted workbook, per person or across the whole team, with questionnaire answers flattened into columns. Analytics download as a seven-sheet workbook covering the summary, daily views, top links, how people arrived, devices, browsers and sources.',
+        how: 'Export on the Contacts page, and Export on your analytics dashboard.',
+      },
+      {
+        icon: Download, title: 'Download everything we hold', tier: 'Included',
+        desc: 'One file with your profile, your cards, the contacts they captured, your orders and your billing history. No request to raise and nothing to wait for, which is what portability is supposed to mean.',
+        how: 'Settings, Account, then Download my data.',
+      },
+      {
+        icon: Flag, title: 'Report and block', tier: 'Included',
+        desc: 'Anything wrong on a card in the directory can be reported in a couple of taps, and you can block a card so it never appears to you again. Reports reach a moderation queue with a 24-hour service level rather than an inbox.',
+        how: 'The report link on any card in the Network directory.',
+      },
     ],
   },
   {
@@ -468,7 +521,7 @@ const FAQS = [
   },
   {
     q: 'Does Cardtly work with NFC cards?',
-    a: 'Yes. Order a Cardtly NFC card and tap it to any phone to open your profile instantly, with no app needed on either end. Cards are posted across South Africa.',
+    a: 'Yes. Order a Cardtly NFC card and tap it to any phone to open your profile instantly, with no app needed on either end. R150 puts your logo and colours on our layout; R200 is designed around your brand. Shipping is R100 for the whole order, anywhere in South Africa, in 5 to 7 business days.',
   },
   {
     q: 'Can I use Cardtly for my whole team?',
