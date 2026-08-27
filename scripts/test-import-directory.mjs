@@ -41,7 +41,9 @@ try {
 // CommonJS, because tsc emits extensionless relative imports that Node's ESM
 // loader refuses; require resolves them without a build step to fix up.
 const require = createRequire(import.meta.url)
-const { rowsToCsv, parseDelimited } = require(join(out, 'csv-import.js'))
+const {
+  rowsToCsv, parseDelimited, detectColumns, looksLikeHeader, toRows, checkRows,
+} = require(join(out, 'csv-import.js'))
 const { companyFacets, filterCompanyCards } = require(join(out, 'network.js'))
 
 let pass = 0
@@ -136,6 +138,67 @@ eq('no filters returns everyone', filterCompanyCards(CARDS, '', null, null).leng
 eq('somebody with no unit is still findable by name',
   filterCompanyCards(CARDS, 'jan', null, null).map(c => c.id), ['5'])
 eq('no match returns nothing', filterCompanyCards(CARDS, 'zzz', null, null), [])
+
+// ── The worked example in the import modal ───────────────────────
+// Pull the example straight out of the component so the test cannot pass
+// against a copy that no longer matches what is rendered.
+const src = readFileSync('components/team/BulkImportModal.tsx', 'utf8')
+const headerLine = src.match(/header: routes \? '([^']+)' : '([^']+)', key: 'company'/)
+const routingHeader = headerLine?.[1]
+const plainHeader = headerLine?.[2]
+
+
+ok('routing header found in source', !!routingHeader, String(headerLine))
+ok('plain header found in source', !!plainHeader)
+
+// The departments a group would really have.
+const targets = [
+  { id: 'd1', name: 'Site Management', kind: 'department' },
+  { id: 'd2', name: 'Sales', kind: 'department' },
+  { id: 'c1', name: 'TBCo Roofing', kind: 'company' },
+]
+
+const grid = [
+  ['Name', 'Email', 'Job title', 'Phone', routingHeader],
+  ['Thabo Nkosi', 'thabo@company.co.za', 'Site Manager', '082 123 4567', 'Site Management'],
+  ['Sarah Botha', 'sarah@company.co.za', 'Sales Director', '083 987 6543', 'Sales'],
+]
+
+const parsed = parseDelimited(rowsToCsv(grid))
+ok('the example round-trips through the parser', JSON.stringify(parsed) === JSON.stringify(grid))
+
+const hasHeader = looksLikeHeader(parsed[0])
+ok('the header row is recognised as a header', hasHeader === true)
+
+const map = detectColumns(parsed[0])
+for (const [field, idx] of Object.entries(map)) {
+  if (field === 'firstName' || field === 'lastName') continue
+  ok(`column "${field}" is recognised`, idx !== -1, `detectColumns gave ${idx} for ${field}`)
+}
+
+const rows = toRows(parsed, map, hasHeader)
+ok('both example rows parse', rows.length === 2, `got ${rows.length}`)
+ok('phone survives', rows[0].phone === '082 123 4567', `got "${rows[0].phone}"`)
+ok('job title survives', rows[0].title === 'Site Manager', `got "${rows[0].title}"`)
+
+const checked = checkRows(rows, [], 10, targets)
+ok('both rows are ready to import', checked.every(r => r.status === 'ready'),
+   checked.map(r => `${r.name}=${r.status}`).join(', '))
+ok('Thabo routes into Site Management', checked[0].departmentName === 'Site Management',
+   `got "${checked[0].departmentName}"`)
+ok('Sarah routes into Sales', checked[1].departmentName === 'Sales',
+   `got "${checked[1].departmentName}"`)
+
+// The mistake the example used to encourage: a company name in that column.
+const badGrid = [
+  ['Name', 'Email', routingHeader],
+  ['Thabo Nkosi', 'thabo@company.co.za', 'TBCo Roofing'],
+]
+const badParsed = parseDelimited(rowsToCsv(badGrid))
+const badChecked = checkRows(toRows(badParsed, detectColumns(badParsed[0]), true), [], 10, targets)
+ok('naming a COMPANY in that column does not route (which is why the example names a department)',
+   badChecked[0].departmentName === null, `got "${badChecked[0].departmentName}"`)
+
 
 rmSync(out, { recursive: true, force: true })
 

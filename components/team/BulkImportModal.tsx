@@ -18,6 +18,43 @@ import {
 
 const BATCH = 25
 
+// The worked example shown above the paste box: every column Cardtly reads,
+// with values that look like a real South African staff list.
+//
+// There is ONE company column, not two. "Business unit", "division", "branch"
+// and "entity" are all aliases of it in ALIASES.company, and checkRows routes
+// on r.company - so a sheet carrying both a Company and a Business unit
+// heading has the second silently ignored. Showing them as separate columns
+// would have taught people to build exactly that sheet.
+//
+// When the team has departments the value has to be a DEPARTMENT name, since
+// matchDepartment refuses to file anybody against a company node. The example
+// changes to match, or it would demonstrate a row that comes back unrouted.
+type ExampleKey = 'name' | 'email' | 'title' | 'phone' | 'company'
+
+function exampleColumns(routes: boolean): Array<{ header: string; key: ExampleKey; optional?: boolean }> {
+  return [
+    { header: 'Name', key: 'name' },
+    { header: 'Email', key: 'email' },
+    { header: 'Job title', key: 'title', optional: true },
+    { header: 'Phone', key: 'phone', optional: true },
+    { header: routes ? 'Business unit' : 'Company', key: 'company', optional: true },
+  ]
+}
+
+function exampleRows(routes: boolean): Array<Record<ExampleKey, string>> {
+  return [
+    {
+      name: 'Thabo Nkosi', email: 'thabo@company.co.za', title: 'Site Manager',
+      phone: '082 123 4567', company: routes ? 'Site Management' : 'TBCo Roofing',
+    },
+    {
+      name: 'Sarah Botha', email: 'sarah@company.co.za', title: 'Sales Director',
+      phone: '083 987 6543', company: routes ? 'Sales' : 'TBCo Roofing',
+    },
+  ]
+}
+
 // One ExcelJS cell to plain text.
 //
 // A cell value is not always a string: a formula arrives as { result }, a
@@ -253,12 +290,60 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
                 <span className="text-xs text-muted-foreground">Excel (.xlsx), CSV, tab or semicolon separated</span>
               </div>
 
+              {/* A worked example as a real table.
+                  This was a placeholder inside the textarea with tab
+                  characters between the values. A tab advances to the next tab
+                  stop rather than to a column, so the header and the row under
+                  it never lined up, and it only ever showed three of the six
+                  columns Cardtly actually reads - so phone, company and the
+                  business unit looked unsupported. A table lines up because it
+                  is a table, and it can show every column. */}
+              <div className="mb-3 rounded-xl border border-border overflow-hidden">
+                <p className="text-xs font-semibold px-3 py-2 border-b border-border bg-muted/40">
+                  What your spreadsheet should look like
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-muted/20">
+                        {exampleColumns(targets.length > 0).map(c => (
+                          <th key={c.header}
+                            className="text-left font-bold px-3 py-2 whitespace-nowrap border-b border-border">
+                            {c.header}
+                            {c.optional && <span className="font-normal text-muted-foreground"> (optional)</span>}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="text-muted-foreground">
+                      {exampleRows(targets.length > 0).map((row, i) => (
+                        <tr key={i} className={i > 0 ? 'border-t border-border/60' : ''}>
+                          {exampleColumns(targets.length > 0).map(c => (
+                            <td key={c.header} className="px-3 py-2 whitespace-nowrap">{row[c.key]}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-[11px] text-muted-foreground px-3 py-2 border-t border-border leading-relaxed">
+                  Only <strong className="text-foreground">Name</strong> and{' '}
+                  <strong className="text-foreground">Email</strong> are required, and the order of the
+                  columns does not matter. Headings can be worded differently: &ldquo;Surname&rdquo; with
+                  &ldquo;First name&rdquo; instead of one Name, &ldquo;Cell&rdquo; or &ldquo;Contact
+                  number&rdquo; for the phone
+                  {targets.length > 0
+                    ? <>, and &ldquo;Company&rdquo;, &ldquo;Division&rdquo;, &ldquo;Branch&rdquo; or &ldquo;Department&rdquo; for the last one. Put the <strong className="text-foreground">department</strong> name there and each person is filed into that team automatically. You will see where every row is going before anything is created.</>
+                    : '.'}
+                </p>
+              </div>
+
               <textarea
                 value={text}
                 onChange={e => { setText(e.target.value); setPhase('preview') }}
                 rows={6}
                 aria-label="Paste your spreadsheet here"
-                placeholder={'Name\tEmail\tJob title\nThabo Nkosi\tthabo@company.co.za\tSite Manager'}
+                placeholder="Paste your rows here, or use Choose a file above."
                 className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring transition"
               />
             </>
