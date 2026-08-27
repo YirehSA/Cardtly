@@ -492,6 +492,14 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
   const [inviteEmail, setInviteEmail] = useState('')
   const [headEmail, setHeadEmail] = useState('')
 
+  // Companies this department could be moved into. Its current parent is
+  // excluded, since moving somewhere it already is does nothing.
+  const movableParents = departments.filter(d =>
+    d.organizationId === dept.organizationId
+    && d.kind === 'company'
+    && d.id !== dept.id
+    && d.id !== dept.parentId)
+
   const views = dept.cards.reduce((n, c) => n + c.views30d, 0)
   const leads = dept.cards.reduce((n, c) => n + c.leads, 0)
   const claimed = dept.cards.filter(c => c.claimed).length
@@ -545,6 +553,40 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
                 onClick={() => { const n = prompt(`Rename "${dept.name}" to:`, dept.name); if (n && n.trim()) call(`rename-${dept.id}`, { action: 'rename_department', department_id: dept.id, name: n.trim() }, 'Renamed') }}>
                 <Pencil className="w-3.5 h-3.5" />
               </button>
+              {/* A company's web address. Its own control, not part of rename:
+                  renaming is cosmetic, changing this moves the URL of every
+                  card in the company, and those are printed on NFC cards. */}
+              {dept.kind === 'company' && (
+                <button title="Change the web address" className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
+                  onClick={() => {
+                    const current = dept.slugSegment || ''
+                    const n = prompt(
+                      `Web address for "${dept.name}".\n\n`
+                      + `Cards here are at cardtly.com/card/${current || 'address'}/name\n\n`
+                      + `WARNING: changing this changes the address of every card in this company. `
+                      + `Anything already printed on an NFC card keeps pointing at the old one.`,
+                      current)
+                    if (n && n.trim() && n.trim() !== current) {
+                      call(`seg-${dept.id}`, { action: 'set_company_segment', department_id: dept.id, slug_segment: n.trim() }, 'Web address changed')
+                    }
+                  }}>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              )}
+              {/* Move this department to a different company. */}
+              {dept.kind !== 'company' && movableParents.length > 0 && (
+                <button title="Move to another company" className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
+                  onClick={() => {
+                    const options = movableParents.map((p, i) => `${i + 1}. ${p.name}`).join('\n')
+                    const answer = prompt(`Move "${dept.name}" into which company?\n\n${options}\n\nType a number, or 0 to leave it where it is.`, '')
+                    const idx = Number(answer)
+                    if (!answer || !Number.isInteger(idx) || idx < 1 || idx > movableParents.length) return
+                    const target = movableParents[idx - 1]
+                    call(`movedept-${dept.id}`, { action: 'move_department', department_id: dept.id, parent_id: target.id }, `Moved into ${target.name}`)
+                  }}>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
               <button title="Delete department" className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400"
                 onClick={() => { if (confirm(`Delete "${dept.name}"?\n\nIts ${dept.cards.length} card${dept.cards.length === 1 ? '' : 's'} are NOT deleted — they go back to the company look.`)) { call(`deldept-${dept.id}`, { action: 'delete_department', department_id: dept.id }, 'Department deleted').then(ok => { if (ok && onBack) onBack() }) } }}>
                 <Trash2 className="w-3.5 h-3.5" />
