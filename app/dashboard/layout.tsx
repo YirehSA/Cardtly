@@ -96,7 +96,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // hiding it would quietly remove the only route into selling a team.
   const inSomeoneElsesTeam =
     ownedOrgsList.length === 0 && (managedDeptsList.length > 0 || plan.viaTeam === true)
-  const showTeamCards = !inSomeoneElsesTeam
+
+  // A department head is not the payer, but they do run people, and hiding the
+  // tab entirely left them hunting for their own team under a menu called
+  // Departments. They get the tab back, pointed at a version of the page that
+  // holds only the cards they manage - no seats, no billing, no other
+  // department - and labelled for what it is to them.
+  const isDeptHead = ownedOrgsList.length === 0 && managedDeptsList.length > 0
+  const showTeamCards = !inSomeoneElsesTeam || isDeptHead
+  const teamTabLabel = isDeptHead ? 'My Team' : undefined
 
   const isRep = !!rep
 
@@ -119,6 +127,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           isAdmin={isAdmin}
           managesDepartments={managesDepartments}
           showTeamCards={showTeamCards}
+          teamTabLabel={teamTabLabel}
           isRep={isRep}
           userName={card?.name || ''}
           userEmail={user.email || ''}
@@ -149,7 +158,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <CommandPalette />
         <HeartbeatPing />
         <AnnouncementModal />
-        <MobileBottomNav isAdmin={isAdmin} isPro={isPro} managesDepartments={managesDepartments} showTeamCards={showTeamCards} isRep={isRep} />
+        <MobileBottomNav isAdmin={isAdmin} isPro={isPro} managesDepartments={managesDepartments} showTeamCards={showTeamCards} isRep={isRep} teamTabLabel={teamTabLabel} />
       </div>
       </PlatformProvider>
     </ThemeProvider>

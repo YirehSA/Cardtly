@@ -3,6 +3,7 @@ import { getManagedDepartments } from '@/lib/department-perms'
 import TeamMemberNotice from '@/components/team/TeamMemberNotice'
 import { redirect } from 'next/navigation'
 import TeamDashboard from '@/components/team/TeamDashboard'
+import HeadTeamView from '@/components/team/HeadTeamView'
 
 export const metadata = { title: 'Team Cards' }
 
@@ -89,6 +90,50 @@ export default async function TeamPage() {
     ])
 
     const orgId = myCard?.organization_id || managed[0]?.organization_id || null
+
+    // A department head gets their own people here rather than a notice
+    // explaining whose team they are in. Scoped to the departments
+    // getManagedDepartments returned, which for a company head is that company
+    // and everything inside it, and never anything belonging to anyone else.
+    if (managed.length > 0) {
+      const deptIds = managed.map(d => d.id)
+      const { data: theirOrg } = await admin
+        .from('organizations').select('name').eq('id', managed[0].organization_id).maybeSingle()
+
+      const { data: myCards } = await admin
+        .from('team_cards')
+        .select('*')
+        .in('department_id', deptIds)
+        .eq('is_active', true)
+        .order('created_at', { ascending: true })
+
+      const counts = await leadCountsByCard(admin, (myCards || []).map((c: any) => c.id))
+      const deptName = new Map(managed.map(d => [d.id, d.name]))
+
+      return (
+        <HeadTeamView
+          orgName={theirOrg?.name || ''}
+          departmentNames={managed.map(d => d.name)}
+          cards={(myCards || []).map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            title: c.title,
+            slug: c.slug,
+            email: c.email,
+            phone: c.phone,
+            claimed: !!c.claimed_at,
+            inviteEmail: c.invite_email || null,
+            views: c.view_count || 0,
+            // Null when the count could not be read. Shown as 0 would read as
+            // "captured nothing", which is the one wrong answer that changes
+            // what somebody does about it.
+            leads: counts ? (counts[c.id] || 0) : 0,
+            departmentName: deptName.get(c.department_id) || '',
+          }))}
+        />
+      )
+    }
+
     if (orgId) {
       const { data: theirOrg } = await admin
         .from('organizations')

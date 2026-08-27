@@ -79,11 +79,12 @@ interface Props {
   isAdmin?: boolean
   isPro?: boolean
   managesDepartments?: boolean
+  teamTabLabel?: string
   showTeamCards?: boolean
   isRep?: boolean
 }
 
-export default function MobileBottomNav({ isAdmin = false, isPro = false, managesDepartments = false, showTeamCards = true, isRep = false }: Props) {
+export default function MobileBottomNav({ isAdmin = false, isPro = false, managesDepartments = false, showTeamCards = true, isRep = false, teamTabLabel }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const { theme, toggle } = useTheme()
@@ -97,7 +98,7 @@ export default function MobileBottomNav({ isAdmin = false, isPro = false, manage
     ...MORE_TABS,
     ...(isPro ? [{ href: '/dashboard/questionnaire', label: 'Lead capture', icon: ClipboardList }] : []),
     // Same gate as the sidebar: hidden from anyone in a team they do not own.
-    ...(showTeamCards ? [TEAM_TAB] : []),
+    ...(showTeamCards ? [{ ...TEAM_TAB, label: teamTabLabel || TEAM_TAB.label }] : []),
     // Departments was in the sidebar's conditional list but never here, so a
     // department head on a phone had no way to reach the page at all.
     ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers }] : []),

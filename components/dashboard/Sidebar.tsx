@@ -37,6 +37,9 @@ interface SidebarProps {
   isPro: boolean
   isAdmin?: boolean
   managesDepartments?: boolean
+  // A department head gets the same tab, scoped to their own people and
+  // labelled for them. See app/dashboard/layout.
+  teamTabLabel?: string
   showTeamCards?: boolean
   isRep?: boolean
   userName: string
@@ -45,7 +48,7 @@ interface SidebarProps {
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
-export default function Sidebar({ isPro, isAdmin = false, managesDepartments = false, showTeamCards = true, isRep = false, userName, userEmail }: SidebarProps) {
+export default function Sidebar({ isPro, isAdmin = false, managesDepartments = false, showTeamCards = true, isRep = false, teamTabLabel, userName, userEmail }: SidebarProps) {
   const pathname = usePathname()
   const { theme, toggle } = useTheme()
   // Lead capture (contact popup + questionnaire) is standard on Pro. The
@@ -58,7 +61,7 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
     // department head or a member it is somebody else's page, and clicking it
     // only ever produced a notice explaining that. Their equivalent is
     // Departments, right below.
-    ...(showTeamCards ? [TEAM_TAB] : []),
+    ...(showTeamCards ? [{ ...TEAM_TAB, label: teamTabLabel || TEAM_TAB.label }] : []),
     // Only a department manager sees this. Their whole scoped surface lives
     // behind it.
     ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers, color: '#a855f7' }] : []),
