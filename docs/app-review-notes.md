@@ -44,7 +44,7 @@ subscription state, and a previous review asked to see the expired one.
   No other credentials, codes or sample files are needed. The primary account
   already contains a finished card, captured contacts and viewing history, so
   no screen is empty. The second account is intentionally left in the lapsed
-  state and is there only for the check described in section 8.
+  state and is there only for the check described in section 9.
 
 2. WHAT THE APP DOES AND WHO IT IS FOR
 
@@ -100,7 +100,7 @@ The app supports iPhone and iPad, portrait and landscape.
     bio, and reading the text off a photographed paper business card
   - Resend - transactional email (sign-up confirmation, notifications)
   - Google Wallet API - optional "add to wallet" pass, Android and web only
-  - Paystack - subscription billing. NOT reachable from the iOS app. See 8.
+  - Paystack - subscription billing. NOT reachable from the iOS app. See 9.
 
 No advertising, tracking or analytics SDKs are embedded. The app does not use
 App Tracking Transparency because it does not track users across apps or
@@ -119,14 +119,42 @@ at launch.
 The app does not request location, microphone, health data, or tracking
 permission, and does not read NFC tags on iOS.
 
-7. REGIONAL DIFFERENCES
+7. USER-GENERATED CONTENT AND MODERATION
+
+The app contains user-generated content: a card carries a name, photo, job
+title and links supplied by the account holder, and signed-in members can
+browse other members' cards in the Network directory. There is no feed, no
+comments, no messaging between users and no public index - the Network is
+visible only to signed-in members, and every card can be excluded from it by
+its holder or by their company administrator.
+
+  - REPORTING. Every card can be reported, both from the Network and from the
+    card itself. The reporter chooses a reason (impersonation, offensive,
+    spam, not a real person, or other) and can add detail. Reporting does not
+    require an account, so somebody being impersonated can report the card
+    without signing up.
+
+  - BLOCKING. A signed-in member can block any card. It disappears from their
+    Network immediately and permanently, and they are told how many cards they
+    have blocked so it is never a silent change.
+
+  - ACTING ON REPORTS. Reports go to a moderation queue reviewed by Cardtly
+    staff, which flags anything older than 24 hours. An upheld report removes
+    the card from the directory and the account can be terminated. Reports are
+    also reachable by email at hello@cardtly.com.
+
+To see this in review: open the Network from the dashboard menu and use the
+flag icon on any card, or scroll to the bottom of any public card and use
+"Report this card".
+
+8. REGIONAL DIFFERENCES
 
 None. The app's features and content are identical in every region, and
 nothing is geo-restricted. The only regional element in the business is
 outside the app: the public website prices in South African rand, and the
 optional physical NFC card ships within South Africa.
 
-8. SUBSCRIPTIONS AND IN-APP PURCHASE
+9. SUBSCRIPTIONS AND IN-APP PURCHASE
 
 There is no purchase mechanism of any kind inside the iOS app, and no way to
 unlock a subscription from it. Every route that sells or that quotes a price
@@ -138,7 +166,7 @@ can be verified in the state where a prompt to pay would be most expected.
 Subscriptions are sold only on the website, in a browser, to customers who
 arrive there independently.
 
-9. REGULATED INDUSTRY AND THIRD-PARTY MATERIAL
+10. REGULATED INDUSTRY AND THIRD-PARTY MATERIAL
 
 Cardtly does not operate in a regulated industry and requires no licence. It
 handles no health, financial or government data. All content on a card is
@@ -175,8 +203,12 @@ in screen rather than the marketing page.
 10. Open Analytics.
 11. Open Settings and scroll down so **Delete account** is visible on screen.
     Tap it to show the confirmation screen. Do NOT confirm - back out.
-12. Sign out.
-13. Sign in as applereview@cardtly.com, the expired account. Show the
+12. Open Network from the menu. Tap the flag on any card to show the report
+    and block options, choose a reason, and send it. Apple asked specifically
+    to see content reporting and blocking, so do not skip this one - and it is
+    the answer to the Guideline 1.2 question they have not asked yet.
+13. Sign out.
+14. Sign in as applereview@cardtly.com, the expired account. Show the
     dashboard and open Settings, so it is on record that the app offers no
     way to pay even once the subscription has lapsed.
 
@@ -191,16 +223,17 @@ the subscription state, and both permission prompts.
   - Do not comp or extend applereview@cardtly.com until the app is approved.
     It has to stay expired for section 8 to be verifiable.
 
-## Known risk for the round after this one
+## Guideline 1.2, and why section 7 exists
 
 Apple's list named "user-generated content, including content reporting and
-blocking mechanisms". Cardtly has user-generated content: the Network is a
-directory where a signed-in user browses other people's cards. Guideline 1.2
-expects an app with that to offer a way to report a card and to block a user,
-and Cardtly currently offers neither.
+blocking mechanisms". This was a genuine gap: the Network is a directory where
+a signed-in member browses other people's cards, and there was no way to
+report one or block one. A reviewer opening it and looking for a report action
+would have found nothing.
 
-It is not what this rejection was about, and it may never be raised - the
-content is business cards people publish about themselves, not a social feed.
-But if a reviewer opens the Network and looks for a report action, there is
-nothing to find. Adding one is a day of work: a report action on the card
-view, a table to hold reports, and somewhere in /admin to see them.
+It is built now - flag on every Network tile, "Report this card" on every
+public card, and a queue in /admin that marks anything past 24 hours. Section
+7 of the notes says so, and tells the reviewer exactly where to look, which
+turns what would have been the next rejection into an answered question.
+
+Needs migration 056 applied. It is.
