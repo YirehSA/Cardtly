@@ -587,17 +587,19 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
             </div>
           </div>
 
-          {/* The other team pages, as links rather than as buttons competing
-              with the one thing you came here to press. */}
-          <div className="flex items-center gap-4 flex-wrap mt-4 pt-4 border-t border-border/60">
+          {/* The other team pages. Still quieter than the primary action, but
+              they were 12px grey-on-grey text and people could not find them.
+              Now they are bordered pills with a coloured icon: readable at a
+              glance, and still clearly not the main button. */}
+          <div className="flex items-center gap-2 flex-wrap mt-4 pt-4 border-t border-border/60">
             {[
-              { href: '/dashboard/team/brand', label: 'Team brand', icon: Sparkles },
-              { href: '/dashboard/team/analytics', label: 'Team analytics', icon: BarChart2 },
-              { href: '/dashboard/team/contacts', label: 'All leads', icon: Mail },
-            ].map(({ href, label, icon: Icon }) => (
+              { href: '/dashboard/team/brand', label: 'Team brand', icon: Sparkles, tone: '#00d4ff' },
+              { href: '/dashboard/team/analytics', label: 'Team analytics', icon: BarChart2, tone: '#7c3aed' },
+              { href: '/dashboard/team/contacts', label: 'All leads', icon: Mail, tone: '#ec4899' },
+            ].map(({ href, label, icon: Icon, tone }) => (
               <Link key={href} href={href}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition">
-                <Icon className="w-3.5 h-3.5" />{label}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-background text-sm font-semibold text-foreground hover:bg-muted hover:border-foreground/20 transition">
+                <Icon className="w-4 h-4" style={{ color: tone }} />{label}
               </Link>
             ))}
           </div>
@@ -644,22 +646,41 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           unrelated - nobody comes here to add a person AND change billing -
           and a page that shows everything at once means hunting for the thing
           you came for. */}
-      <div className="flex gap-1 p-1 rounded-2xl bg-muted w-fit">
+      {/* Solid Cardtly colour on the selected tab. It used to be bg-card on
+          bg-muted, which in dark mode is two greys a shade apart: the tab you
+          were on was almost impossible to pick out.
+
+          Text colour is measured, not assumed. White on #00d4ff is 1.77:1, so
+          the cyan tab takes near-black (8.55:1). Purple clears white at 5.7:1.
+          Brand pink #ec4899 only reaches 3.53:1, which fails AA at this size,
+          so the billing tab uses #db2777 - the same pink one step down, at
+          4.6:1. */}
+      <div className="flex gap-1.5 p-1.5 rounded-2xl bg-muted w-fit max-w-full overflow-x-auto">
         {([
-          ['people', 'People', Users, cards.length || null],
-          ['integrations', 'Integrations', Network, null],
-          ['billing', 'Billing', CreditCard, null],
-        ] as const).map(([id, label, Icon, count]) => (
-          <button key={id} onClick={() => setTab(id)}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition ${
-              tab === id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-            <Icon className="w-4 h-4" />
-            {label}
-            {count !== null && (
-              <span className="text-[11px] tabular-nums px-1.5 py-0.5 rounded-md bg-muted-foreground/15">{count}</span>
-            )}
-          </button>
-        ))}
+          ['people', 'People', Users, cards.length || null, '#00d4ff', '#062a33'],
+          ['integrations', 'Integrations', Network, null, '#7c3aed', '#ffffff'],
+          ['billing', 'Billing', CreditCard, null, '#db2777', '#ffffff'],
+        ] as const).map(([id, label, Icon, count, solid, on]) => {
+          const active = tab === id
+          return (
+            <button key={id} onClick={() => setTab(id)}
+              aria-current={active ? 'page' : undefined}
+              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition ${
+                active ? 'shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background/60'}`}
+              style={active ? { background: solid, color: on } : undefined}>
+              <Icon className="w-4 h-4" />
+              {label}
+              {count !== null && (
+                <span className="text-[11px] font-black tabular-nums px-1.5 py-0.5 rounded-md"
+                  style={active
+                    ? { background: 'rgba(0,0,0,0.18)', color: on }
+                    : { background: 'var(--muted-foreground)', color: 'var(--muted)', opacity: 0.5 }}>
+                  {count}
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
       {/* Add seats panel */}

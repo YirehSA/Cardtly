@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { LOCK_GROUPS } from '@/lib/team-locks'
+import OrgChart from '@/components/departments/OrgChart'
 import { Layers, Palette, Loader2, UserPlus, X, ExternalLink, Eye, Users, Check, RefreshCw, Building2, Crown, Plus, Pencil, Trash2, ShieldCheck, ArrowRight, Sparkles, Mail, ChevronLeft, Lock, LockOpen } from 'lucide-react'
 
 interface Card {
@@ -60,38 +61,10 @@ function Avatar({ label, color, size = 28 }: { label: string; color: string; siz
     </span>
   )
 }
-
-// A tiny visual of the department's look: the accent colour, or a muted "same
-// as company" chip. Gives the abstract idea of "a look" something to see.
-function LookSwatch({ dept, accent }: { dept: Dept; accent: string }) {
-  if (!dept.hasBrand) {
-    return <span className="text-[11px] px-2 py-1 rounded-full bg-muted text-muted-foreground">Company look</span>
-  }
-  return (
-    <span className="text-[11px] px-2 py-1 rounded-full flex items-center gap-1.5 font-medium"
-      style={{ background: `${accent}1a`, color: accent }}>
-      <span className="w-2.5 h-2.5 rounded-full" style={{ background: accent }} />
-      Own look
-    </span>
-  )
-}
-
 export default function DepartmentManager({ departments, ownedOrgs }: { departments: Dept[]; ownedOrgs: OwnedOrg[] }) {
   const router = useRouter()
   const [selId, setSelId] = useState<string | null>(departments.length === 1 ? departments[0].id : null)
   const [loading, setLoading] = useState<string | null>(null)
-
-  // Does this team use companies at all? Everything hierarchy-shaped keys off
-  // this, so a team that has never created one sees precisely what it saw
-  // before: the same order, the same two-up grid, no new controls.
-  const hasHierarchy = departments.some(d => d.parentId || d.kind === 'company')
-
-  // Parents immediately followed by their children, each tagged with its
-  // depth. A department whose parent the viewer cannot see - a manager of one
-  // branch of a group - is treated as a root, so it still appears rather than
-  // vanishing into a parent that was filtered out by permissions.
-  const ordered = useMemo(() => treeOptions(departments), [departments])
-
   // Totals for a department and everything beneath it.
   //
   // The number on a company has to include its departments, or a group holding
@@ -158,129 +131,20 @@ export default function DepartmentManager({ departments, ownedOrgs }: { departme
         <FirstRun ownedOrgs={ownedOrgs} call={call} loading={loading} />
       ) : (
         <>
-          {/* Department cards.
-              A group with companies gets one indented column so the structure
-              is legible; a flat team keeps the two-up grid it has always had.
-              Nothing here changes for an organisation that has not opted in. */}
-          <div className={hasHierarchy ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-1 gap-3 sm:grid-cols-2'}>
-            {/* The group itself, at the top of its own tree.
-                Not a department row - it is the organisation, which is where
-                the seats and the invoice live. Drawn here because a structure
-                that starts at "Company A" hides the thing everything hangs
-                off, and an admin looking for the group has nowhere to look. */}
-            {hasHierarchy && ownedOrgs.map(o => {
-              const inOrg = departments.filter(d => d.organizationId === o.id)
-              const people = inOrg.reduce((n, d) => n + d.cards.length, 0)
-              const companies = inOrg.filter(d => d.kind === 'company').length
-              return (
-                <div key={o.id} className="rounded-2xl border border-border bg-muted/40 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: grad }}>
-                      <Building2 className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold truncate flex items-center gap-2">
-                        {o.name}
-                        <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-foreground/10">Group</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {companies} {companies === 1 ? 'company' : 'companies'} · {people} {people === 1 ? 'person' : 'people'} in total
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+          {/* The structure, walked one level at a time. The indented list this
+              replaced drew every node at once, which is legible at two levels
+              and unusable at three. */}
+          <OrgChart
+            departments={departments}
+            ownedOrgs={ownedOrgs}
+            rollup={rollup}
+            onManage={setSelId} />
 
-            {ordered.map((row, i) => {
-              const { dept: d, depth } = row
-              const accent = accentFor(i)
-              const claimed = d.cards.filter(c => c.claimed).length
-              const tile = (
-                <button key={d.id} onClick={() => setSelId(d.id)}
-                  className="group text-left rounded-2xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg flex-1 min-w-0"
-                  style={{ boxShadow: `0 1px 0 ${accent}22` }}>
-                  <div className="flex items-start gap-3">
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: `${accent}1f`, border: `1px solid ${accent}44` }}>
-                      <Building2 className="w-5 h-5" style={{ color: accent }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold truncate flex items-center gap-2">
-                        {d.name}
-                        {d.kind === 'company' && (
-                          <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded"
-                            style={{ background: `${accent}22`, color: accent }}>Company</span>
-                        )}
-                      </p>
-                      {/* The URL its people are handing out. Worth showing on
-                          the face of the card: it is printed on NFC cards, so
-                          noticing it is wrong here is far cheaper than later. */}
-                      {d.kind === 'company' && d.slugSegment && (
-                        <p className="text-[11px] text-muted-foreground font-mono truncate">/card/{d.slugSegment}/…</p>
-                      )}
-                      {/* Own count, and the whole subtree when they differ.
-                          A company holding three departments and no cards of
-                          its own reads "0 people" without this - a number that
-                          is true, wrong, and nobody questions it. */}
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {d.cards.length} {d.cards.length === 1 ? 'person' : 'people'}
-                        {claimed < d.cards.length && ` · ${d.cards.length - claimed} not joined yet`}
-                        {rollup[d.id] && rollup[d.id].people !== d.cards.length && (
-                          <span className="font-medium text-foreground">
-                            {' · '}{rollup[d.id].people} in total
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition -mr-1 mt-1" />
-                  </div>
-
-                  <div className="flex items-center gap-2 mt-3 flex-wrap">
-                    <LookSwatch dept={d} accent={accent} />
-                    {d.heads.length > 0 ? (
-                      <span className="text-[11px] px-2 py-1 rounded-full flex items-center gap-1.5 bg-muted"
-                        style={{ color: '#a78bfa' }}>
-                        <ShieldCheck className="w-3 h-3" />
-                        {d.heads.length === 1 ? (d.heads[0].email?.split('@')[0] || 'head') : `${d.heads.length} heads`}
-                      </span>
-                    ) : d.isOwner ? (
-                      <span className="text-[11px] px-2 py-1 rounded-full bg-amber-500/10 text-amber-500 flex items-center gap-1">
-                        <ShieldCheck className="w-3 h-3" />No boss yet
-                      </span>
-                    ) : null}
-                    {/* Overlapping member avatars */}
-                    <div className="flex -space-x-1.5 ml-auto">
-                      {d.cards.slice(0, 4).map((c, ci) => (
-                        <span key={c.id} className="ring-2 ring-card rounded-full">
-                          <Avatar label={c.name || c.inviteEmail || '?'} color={accentFor(i + ci + 1)} size={22} />
-                        </span>
-                      ))}
-                      {d.cards.length > 4 && (
-                        <span className="ring-2 ring-card rounded-full w-[22px] h-[22px] flex items-center justify-center text-[9px] font-bold bg-muted text-muted-foreground">
-                          +{d.cards.length - 4}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              )
-
-              // A flat team gets the tiles exactly as before, in the two-up
-              // grid. Only a team with structure gets the rails, because only
-              // there is there structure to draw.
-              if (!hasHierarchy) return tile
-              return (
-                <div key={d.id} className="flex items-stretch">
-                  <TreeRails rails={row.rails} isLast={row.isLast} />
-                  {tile}
-                </div>
-              )
-            })}
-
-            {isCompanyAdmin && <NewDeptTile ownedOrgs={ownedOrgs} call={call} loading={loading} departments={departments} />}
-          </div>
+          {isCompanyAdmin && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <NewDeptTile ownedOrgs={ownedOrgs} call={call} loading={loading} departments={departments} />
+            </div>
+          )}
 
           {/* Company-wide rules. The API has always supported these - the
               company level is what a department can only ever add to - but
@@ -939,44 +803,6 @@ type TreeRow = {
   rails: boolean[]
   isLast: boolean
   hasChildren: boolean
-}
-
-const RAIL = 22 // px per level. Wide enough for an elbow, narrow enough for a phone.
-
-/**
- * The lines that make an indented list read as a tree.
- *
- * Andre drew this structure top down, with the group at the top and branches
- * fanning out. That shape does not survive seven companies on a phone - it
- * scrolls sideways, which is the one thing this page must not do - so it is
- * the same drawing turned on its side: the branches are still drawn, they run
- * down the left instead of across the top.
- */
-function TreeRails({ rails, isLast }: { rails: boolean[]; isLast: boolean }) {
-  // Nesting is allowed 20 deep. Twenty rails is 440px of lines, which on a
-  // 375px phone is the whole screen and then some - so the drawing stops at
-  // five and the deeper levels simply sit at the same indent. Losing a little
-  // precision in a tree nobody builds beats a page that scrolls sideways in
-  // one that somebody does.
-  const shown = rails.slice(0, 5)
-  return (
-    <>
-      {shown.map((continues, i) => (
-        <div key={i} className="shrink-0 relative" style={{ width: RAIL }} aria-hidden="true">
-          {continues && (
-            <span className="absolute top-0 bottom-0 border-l border-border" style={{ left: RAIL / 2 }} />
-          )}
-        </div>
-      ))}
-      <div className="shrink-0 relative" style={{ width: RAIL }} aria-hidden="true">
-        {/* Down to the elbow, then on past it unless this is the last child. */}
-        <span className="absolute top-0 border-l border-border"
-          style={{ left: RAIL / 2, height: isLast ? '50%' : '100%' }} />
-        <span className="absolute border-t border-border"
-          style={{ left: RAIL / 2, right: 0, top: '50%' }} />
-      </div>
-    </>
-  )
 }
 
 type Rollup = { people: number; claimed: number; views30d: number; leads: number }
