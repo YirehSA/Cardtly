@@ -178,7 +178,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
         toast.success(resend ? 'Invite email resent' : 'Invite sent')
         // Optimistic update so the status pill flips immediately
         setCards(prev => prev.map(c => c.id === cardId
-          ? { ...c, invite_email: email, invite_sent_at: new Date().toISOString() }
+          ? { ...c, invite_email: email, invite_sent_at: new Date().toISOString(), is_active: true }
           : c))
         setInvitingCardId(null)
         setInviteEmail('')
@@ -215,7 +215,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
   async function revokeMember(cardId: string, memberEmail: string | null | undefined) {
     const label = memberEmail ? memberEmail : 'this member'
-    if (!confirm(`Remove ${label}'s access to this card? Their Cardtly account stays active; they just lose ownership of this team card.`)) return
+    if (!confirm(`Remove ${label}'s access to this card?\n\nThe public card stops working straight away, so their details are no longer served to anyone who taps the NFC card or opens the link.\n\nThe card itself is kept and you carry on managing it. Inviting somebody else puts it back online on the same link. Their own Cardtly account is untouched.`)) return
     setActioningCardId(cardId)
     try {
       const res = await fetch('/api/team/revoke', {
@@ -228,8 +228,10 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
         toast.error(data.error || 'Could not revoke')
       } else {
         toast.success('Access revoked')
+        // is_active mirrors what the server just did, so the Offline badge
+        // appears without waiting for a refresh.
         setCards(prev => prev.map(c => c.id === cardId
-          ? { ...c, user_id: null, invite_email: null, invite_sent_at: null, claimed_at: null }
+          ? { ...c, user_id: null, invite_email: null, invite_sent_at: null, claimed_at: null, is_active: false }
           : c))
       }
     } catch {
@@ -865,6 +867,15 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                     <p className="font-semibold text-sm truncate">{card.name || 'Unnamed'}</p>
                     {card.title && <p className="text-xs text-muted-foreground truncate">{card.title}</p>}
                   </div>
+                  {/* A revoked card is taken off the air, and until now nothing
+                      said so: the tile looked identical to a live one, so an
+                      admin had no way to tell which links still work. */}
+                  {!card.is_active && (
+                    <span className="ml-auto shrink-0 text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg bg-muted text-muted-foreground"
+                      title="This card is not published. Its public link and QR code do not resolve. Invite somebody to put it back online.">
+                      Offline
+                    </span>
+                  )}
                 </div>
 
                 {/* Details */}

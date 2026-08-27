@@ -100,6 +100,12 @@ export async function POST(request: Request) {
       invite_email: trimmedEmail,
       invite_token: token,
       invite_sent_at: new Date().toISOString(),
+      // Puts a revoked card back on the air for its next holder. Revoking
+      // deactivates the card so the previous person's details stop being
+      // served; without this, re-issuing it to a replacement would send them
+      // an invitation to a card that stays dark. Already true on a card that
+      // was never revoked, so this is a no-op in the ordinary case.
+      is_active: true,
     } as any)
     .eq('id', card_id)
 

@@ -119,6 +119,9 @@ export async function POST(request: Request) {
       user_id: userId,
       claimed_at: new Date().toISOString(),
       invite_token: null,
+      // Belt and braces alongside the same line in /api/team/invite: whatever
+      // route got a real person onto this card, it must end up published.
+      is_active: true,
     } as any)
     .eq('id', card.id)
 

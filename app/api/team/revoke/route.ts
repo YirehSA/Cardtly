@@ -64,9 +64,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
   }
 
-  // Clear ownership + invite fields. The card content (name, photo,
-  // contacts, etc.) is preserved - admin keeps managing it. Only
-  // the member link is severed.
+  // Clear ownership + invite fields, and take the card off the air.
+  //
+  // is_active: false is the important half. Revoking used to sever the member
+  // link and leave the card published, so an offboarded employee's name,
+  // photo, email and phone carried on being served at their public URL and in
+  // the vCard download, indefinitely, to anyone who had ever tapped their NFC
+  // card. Removing someone's access has to mean their details stop being
+  // handed out, which is both what an admin pressing this expects and what
+  // POPIA requires on offboarding.
+  //
+  // The card content is still preserved, so the admin keeps managing it and
+  // can re-issue it to a replacement: inviting somebody sets is_active back to
+  // true. The row is not deleted, so the slug survives for the next holder.
   const { error } = await admin
     .from('team_cards')
     .update({
@@ -75,6 +85,7 @@ export async function POST(request: Request) {
       invite_email: null,
       invite_token: null,
       invite_sent_at: null,
+      is_active: false,
     } as any)
     .eq('id', card_id)
 
