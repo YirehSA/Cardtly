@@ -193,20 +193,14 @@ export default function DepartmentManager({ departments, ownedOrgs }: { departme
               )
             })}
 
-            {ordered.map(({ dept: d, depth }, i) => {
+            {ordered.map((row, i) => {
+              const { dept: d, depth } = row
               const accent = accentFor(i)
               const claimed = d.cards.filter(c => c.claimed).length
-              return (
+              const tile = (
                 <button key={d.id} onClick={() => setSelId(d.id)}
-                  className="group text-left rounded-2xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-                  style={{
-                    boxShadow: `0 1px 0 ${accent}22`,
-                    // Indentation carries the structure. One level is added
-                    // for the group row above, so a company sits inside it
-                    // rather than beside it. Capped so a deep tree cannot
-                    // squeeze the content off the right of a phone.
-                    marginLeft: hasHierarchy ? `${Math.min(depth + 1, 5) * 20}px` : undefined,
-                  }}>
+                  className="group text-left rounded-2xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg flex-1 min-w-0"
+                  style={{ boxShadow: `0 1px 0 ${accent}22` }}>
                   <div className="flex items-start gap-3">
                     <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{ background: `${accent}1f`, border: `1px solid ${accent}44` }}>
@@ -271,6 +265,17 @@ export default function DepartmentManager({ departments, ownedOrgs }: { departme
                     </div>
                   </div>
                 </button>
+              )
+
+              // A flat team gets the tiles exactly as before, in the two-up
+              // grid. Only a team with structure gets the rails, because only
+              // there is there structure to draw.
+              if (!hasHierarchy) return tile
+              return (
+                <div key={d.id} className="flex items-stretch">
+                  <TreeRails rails={row.rails} isLast={row.isLast} />
+                  {tile}
+                </div>
               )
             })}
 
@@ -892,7 +897,7 @@ function slugPreview(name: string): string {
  * of a group sees, since permissions filter the parent out. The seen-set means
  * a cycle renders as a flat list instead of hanging the browser.
  */
-function treeOptions(departments: Dept[]): { dept: Dept; depth: number }[] {
+function treeOptions(departments: Dept[]): TreeRow[] {
   const visible = new Set(departments.map(d => d.id))
   const childrenOf = new Map<string | null, Dept[]>()
   for (const d of departments) {
@@ -903,19 +908,75 @@ function treeOptions(departments: Dept[]): { dept: Dept; depth: number }[] {
   }
   for (const list of childrenOf.values()) list.sort((a, b) => a.name.localeCompare(b.name))
 
-  const out: { dept: Dept; depth: number }[] = []
+  const out: TreeRow[] = []
   const seen = new Set<string>()
-  const walk = (parent: string | null, depth: number) => {
-    for (const d of childrenOf.get(parent) || []) {
-      if (seen.has(d.id)) continue
+
+  // `rails` says, for each level ABOVE this row, whether that ancestor still
+  // has siblings below - which is exactly the question "does a vertical line
+  // continue past this row at that indent". Without it the connectors are
+  // guesswork and the lines run through gaps they should not.
+  const walk = (parent: string | null, depth: number, rails: boolean[]) => {
+    const kids = childrenOf.get(parent) || []
+    kids.forEach((d, i) => {
+      if (seen.has(d.id)) return
       seen.add(d.id)
-      out.push({ dept: d, depth })
-      walk(d.id, depth + 1)
-    }
+      const isLast = i === kids.length - 1
+      out.push({ dept: d, depth, rails, isLast, hasChildren: (childrenOf.get(d.id) || []).length > 0 })
+      walk(d.id, depth + 1, [...rails, !isLast])
+    })
   }
-  walk(null, 0)
-  for (const d of departments) if (!seen.has(d.id)) out.push({ dept: d, depth: 0 })
+  walk(null, 0, [])
+  for (const d of departments) {
+    if (!seen.has(d.id)) out.push({ dept: d, depth: 0, rails: [], isLast: true, hasChildren: false })
+  }
   return out
+}
+
+type TreeRow = {
+  dept: Dept
+  depth: number
+  /** For each level above this row, does a vertical line continue past it. */
+  rails: boolean[]
+  isLast: boolean
+  hasChildren: boolean
+}
+
+const RAIL = 22 // px per level. Wide enough for an elbow, narrow enough for a phone.
+
+/**
+ * The lines that make an indented list read as a tree.
+ *
+ * Andre drew this structure top down, with the group at the top and branches
+ * fanning out. That shape does not survive seven companies on a phone - it
+ * scrolls sideways, which is the one thing this page must not do - so it is
+ * the same drawing turned on its side: the branches are still drawn, they run
+ * down the left instead of across the top.
+ */
+function TreeRails({ rails, isLast }: { rails: boolean[]; isLast: boolean }) {
+  // Nesting is allowed 20 deep. Twenty rails is 440px of lines, which on a
+  // 375px phone is the whole screen and then some - so the drawing stops at
+  // five and the deeper levels simply sit at the same indent. Losing a little
+  // precision in a tree nobody builds beats a page that scrolls sideways in
+  // one that somebody does.
+  const shown = rails.slice(0, 5)
+  return (
+    <>
+      {shown.map((continues, i) => (
+        <div key={i} className="shrink-0 relative" style={{ width: RAIL }} aria-hidden="true">
+          {continues && (
+            <span className="absolute top-0 bottom-0 border-l border-border" style={{ left: RAIL / 2 }} />
+          )}
+        </div>
+      ))}
+      <div className="shrink-0 relative" style={{ width: RAIL }} aria-hidden="true">
+        {/* Down to the elbow, then on past it unless this is the last child. */}
+        <span className="absolute top-0 border-l border-border"
+          style={{ left: RAIL / 2, height: isLast ? '50%' : '100%' }} />
+        <span className="absolute border-t border-border"
+          style={{ left: RAIL / 2, right: 0, top: '50%' }} />
+      </div>
+    </>
+  )
 }
 
 type Rollup = { people: number; claimed: number; views30d: number; leads: number }
