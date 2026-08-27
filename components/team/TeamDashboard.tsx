@@ -556,64 +556,84 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
               </div>
             </div>
 
+            {/* Only the things you DO here.
+                Brand, Analytics and Contacts were sitting in this row at the
+                same weight as Add card, but they are not actions on this page
+                - they are three other pages. Six identical buttons means
+                reading all six every time to find the one you came for.
+                Add seats moved to Billing, where it belongs. */}
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Quick links */}
-              <Link href="/dashboard/team/brand"
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
-                <Sparkles className="w-4 h-4" />Brand
-              </Link>
-              <Link href="/dashboard/team/analytics"
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
-                <BarChart2 className="w-4 h-4" />Analytics
-              </Link>
-              <Link href="/dashboard/team/contacts"
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
-                <Mail className="w-4 h-4" />Contacts
-              </Link>
-
-              {/* Add seats */}
-              <button onClick={() => setShowAddSeats(p => !p)}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
-                <Plus className="w-4 h-4" />Add seats
-                {showAddSeats ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-              </button>
-
-              {/* Import a spreadsheet. Next to Add card rather than buried in
-                  settings: a company arriving with 200 staff should not have
-                  to discover that adding them one at a time is not the only
-                  way. */}
-              {seatsAvailable > 0 && (
+              {tab === 'people' && seatsAvailable > 0 && (
                 <button onClick={() => setShowImport(true)}
                   className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
                   <FileSpreadsheet className="w-4 h-4" />Import
                 </button>
               )}
-
-              {/* Add card */}
-              {(seatsAvailable > 0 || seatsTotal === 0) && (
+              {tab === 'people' && (seatsAvailable > 0 || seatsTotal === 0) && (
                 <button onClick={() => setShowAddCard(p => !p)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90" style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
+                  style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)', boxShadow: '0 4px 20px rgba(124,58,237,0.3)' }}>
                   <Plus className="w-4 h-4" />Add card
+                </button>
+              )}
+              {tab === 'billing' && (
+                <button onClick={() => setShowAddSeats(p => !p)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
+                  style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)', boxShadow: '0 4px 20px rgba(124,58,237,0.3)' }}>
+                  <Plus className="w-4 h-4" />Add seats
+                  {showAddSeats ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                 </button>
               )}
             </div>
           </div>
 
+          {/* The other team pages, as links rather than as buttons competing
+              with the one thing you came here to press. */}
+          <div className="flex items-center gap-4 flex-wrap mt-4 pt-4 border-t border-border/60">
+            {[
+              { href: '/dashboard/team/brand', label: 'Team brand', icon: Sparkles },
+              { href: '/dashboard/team/analytics', label: 'Team analytics', icon: BarChart2 },
+              { href: '/dashboard/team/contacts', label: 'All leads', icon: Mail },
+            ].map(({ href, label, icon: Icon }) => (
+              <Link key={href} href={href}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition">
+                <Icon className="w-3.5 h-3.5" />{label}
+              </Link>
+            ))}
+          </div>
+
           {/* Whether the team is actually using the cards. A card nobody has
               opened is a seat being paid for and not used, and that was only
               visible by reading down the list one card at a time. */}
-          {cards.length > 0 && (
-            <div className="grid grid-cols-3 gap-2 mt-5">
-              {[
-                { label: 'Using their card', value: activation.claimed, tone: '#22c55e' },
-                { label: 'Invited, not opened', value: activation.invited, tone: '#f59e0b' },
-                { label: 'Not invited yet', value: activation.notInvited, tone: '#94a3b8' },
-              ].map(({ label, value, tone }) => (
-                <div key={label} className="rounded-2xl bg-card/60 backdrop-blur border border-border p-3">
-                  <p className="text-xl font-black leading-none" style={{ color: tone }}>{value}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">{label}</p>
-                </div>
-              ))}
+          {cards.length > 0 && tab === 'people' && (
+            <div className="mt-5 space-y-3">
+              {/* One bar instead of three numbers you have to add up.
+                  The proportions ARE the point: a team that is mostly amber
+                  is paying for cards nobody has picked up, and that reads off
+                  the bar instantly where three separate counts did not. */}
+              <div className="flex h-2.5 rounded-full overflow-hidden bg-muted" role="img"
+                aria-label={`${activation.claimed} using their card, ${activation.invited} invited but not opened, ${activation.notInvited} not invited yet`}>
+                {[
+                  { value: activation.claimed, tone: '#22c55e' },
+                  { value: activation.invited, tone: '#f59e0b' },
+                  { value: activation.notInvited, tone: '#94a3b8' },
+                ].filter(s => s.value > 0).map(({ value, tone }, i) => (
+                  <div key={i} style={{ width: `${(value / cards.length) * 100}%`, background: tone }} />
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+                {[
+                  { label: 'using their card', value: activation.claimed, tone: '#22c55e' },
+                  { label: 'invited, not opened', value: activation.invited, tone: '#f59e0b' },
+                  { label: 'not invited yet', value: activation.notInvited, tone: '#94a3b8' },
+                ].map(({ label, value, tone }) => (
+                  <span key={label} className="inline-flex items-center gap-1.5 text-xs">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: tone }} />
+                    <strong className="tabular-nums" style={{ color: value > 0 ? undefined : 'var(--muted-foreground)' }}>{value}</strong>
+                    <span className="text-muted-foreground">{label}</span>
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>
