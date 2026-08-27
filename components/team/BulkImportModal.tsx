@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { X, Upload, Loader2, AlertTriangle, Check, FileSpreadsheet } from 'lucide-react'
 import {
   parseDelimited, detectColumns, looksLikeHeader, toRows, checkRows,
-  summarise, STATUS_LABEL, type CheckedRow, type ImportTarget,
+  summarise, STATUS_LABEL, routingHint, type CheckedRow, type ImportTarget,
 } from '@/lib/csv-import'
 
 // Import a spreadsheet of staff as team cards.
@@ -212,7 +212,7 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
                           <td className="px-3 py-1.5">
                             {r.departmentName
                               ? <span>{r.departmentName}</span>
-                              : <span className="text-muted-foreground" title={r.company ? `No department named "${r.company}"` : 'No business unit in this row'}>
+                              : <span className="text-muted-foreground" title={routingHint(r.company, targets)}>
                                   Nowhere
                                 </span>}
                           </td>

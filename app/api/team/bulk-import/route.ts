@@ -92,9 +92,14 @@ export async function POST(request: Request) {
   // department would be a cross-tenant leak, so this is checked, not assumed.
   const { data: deptRows } = await admin
     .from('departments')
-    .select('id, name')
+    .select('*')
     .eq('organization_id', org_id)
-  const ownDeptIds = new Set((deptRows || []).map((d: any) => d.id))
+  // Departments only. A card belongs to a department, never to the company
+  // above it, so a business-unit column naming a company routes nowhere
+  // rather than parking somebody outside every team.
+  const ownDeptIds = new Set(
+    (deptRows || []).filter((d: any) => d.kind !== 'company').map((d: any) => d.id),
+  )
 
   const checked = checkRows(rows, existingEmails, seatsAvailable)
 

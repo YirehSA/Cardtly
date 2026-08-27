@@ -163,6 +163,36 @@ export default function DepartmentManager({ departments, ownedOrgs }: { departme
               is legible; a flat team keeps the two-up grid it has always had.
               Nothing here changes for an organisation that has not opted in. */}
           <div className={hasHierarchy ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-1 gap-3 sm:grid-cols-2'}>
+            {/* The group itself, at the top of its own tree.
+                Not a department row - it is the organisation, which is where
+                the seats and the invoice live. Drawn here because a structure
+                that starts at "Company A" hides the thing everything hangs
+                off, and an admin looking for the group has nowhere to look. */}
+            {hasHierarchy && ownedOrgs.map(o => {
+              const inOrg = departments.filter(d => d.organizationId === o.id)
+              const people = inOrg.reduce((n, d) => n + d.cards.length, 0)
+              const companies = inOrg.filter(d => d.kind === 'company').length
+              return (
+                <div key={o.id} className="rounded-2xl border border-border bg-muted/40 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: grad }}>
+                      <Building2 className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold truncate flex items-center gap-2">
+                        {o.name}
+                        <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-foreground/10">Group</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {companies} {companies === 1 ? 'company' : 'companies'} · {people} {people === 1 ? 'person' : 'people'} in total
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+
             {ordered.map(({ dept: d, depth }, i) => {
               const accent = accentFor(i)
               const claimed = d.cards.filter(c => c.claimed).length
@@ -171,9 +201,11 @@ export default function DepartmentManager({ departments, ownedOrgs }: { departme
                   className="group text-left rounded-2xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg"
                   style={{
                     boxShadow: `0 1px 0 ${accent}22`,
-                    // Indentation carries the structure. Capped so a deep tree
-                    // cannot squeeze the content off the right of a phone.
-                    marginLeft: hasHierarchy ? `${Math.min(depth, 4) * 20}px` : undefined,
+                    // Indentation carries the structure. One level is added
+                    // for the group row above, so a company sits inside it
+                    // rather than beside it. Capped so a deep tree cannot
+                    // squeeze the content off the right of a phone.
+                    marginLeft: hasHierarchy ? `${Math.min(depth + 1, 5) * 20}px` : undefined,
                   }}>
                   <div className="flex items-start gap-3">
                     <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -373,8 +405,17 @@ function NewDeptTile({ ownedOrgs, call, loading, departments }: {
   const [parentId, setParentId] = useState('')
 
   // Anything in this organisation can be a parent, so a group can nest as deep
-  // as its structure actually goes.
-  const parents = departments.filter(d => d.organizationId === orgId)
+  // as its structure actually goes. A company is never one: companies sit
+  // directly under the group.
+  const parents = kind === 'company' ? [] : departments.filter(d => d.organizationId === orgId)
+
+  // Once a team has companies, a department has to be inside one. Offering
+  // "At the top" would create a department belonging to no business, whose
+  // cards have no company branding and no company URL, and which is invisible
+  // to every company head at once.
+  const orgHasCompanies = departments.some(d => d.organizationId === orgId && d.kind === 'company')
+  const parentRequired = kind === 'department' && orgHasCompanies
+  const canSubmit = !!name.trim() && (!parentRequired || !!parentId)
 
   if (!open) {
     return (
@@ -409,9 +450,17 @@ function NewDeptTile({ ownedOrgs, call, loading, departments }: {
           <select value={parentId} onChange={e => setParentId(e.target.value)}
             aria-label="Sits inside"
             className="flex-1 min-w-[140px] px-3 py-2 rounded-lg border border-border bg-background text-sm">
-            <option value="">At the top</option>
-            {parents.map(p => <option key={p.id} value={p.id}>Inside {p.name}</option>)}
+            {/* No "At the top" once companies exist: a department must be in one. */}
+            <option value="">{parentRequired ? 'Choose a company…' : 'At the top'}</option>
+            {treeOptions(parents).map(({ dept: p, depth }) => (
+              <option key={p.id} value={p.id}>
+                {depth > 0 ? `${'  '.repeat(depth)}└ ` : ''}Inside {p.name}
+              </option>
+            ))}
           </select>
+        )}
+        {kind === 'company' && (
+          <span className="text-xs text-muted-foreground self-center">sits under the group</span>
         )}
       </div>
       {kind === 'company' && (
@@ -424,7 +473,7 @@ function NewDeptTile({ ownedOrgs, call, loading, departments }: {
         <input value={name} autoFocus onChange={e => setName(e.target.value)}
           placeholder={kind === 'company' ? 'e.g. Company A' : 'e.g. Support'}
           className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-sm" />
-        <button disabled={!name.trim() || loading === `newdept-${orgId}`}
+        <button disabled={!canSubmit || loading === `newdept-${orgId}`}
           onClick={async () => { const ok = await call(`newdept-${orgId}`, { action: 'create_department', org_id: orgId, name: name.trim(), kind, parent_id: parentId || undefined }, `${name.trim()} created`); if (ok) { setName(''); setParentId(''); setOpen(false) } }}
           className="px-3 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40" style={{ background: grad }}>
           {loading === `newdept-${orgId}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}

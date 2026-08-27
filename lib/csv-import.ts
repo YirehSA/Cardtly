@@ -43,11 +43,34 @@ export function matchDepartment(value: string, targets: ImportTarget[]): ImportT
   const wanted = norm(value)
   if (!wanted) return null
 
-  const exact = targets.filter(t => norm(t.name) === wanted)
+  // Departments only. A card belongs to a department, never to the company
+  // above it, so a column naming a company is reported as unrouted rather
+  // than quietly parking somebody outside every team.
+  const exact = targets.filter(t => t.kind !== 'company' && norm(t.name) === wanted)
   // Two departments with the same name in different companies is legal, and
   // there is no way to tell which was meant. Route neither.
   if (exact.length === 1) return exact[0]
   return null
+}
+
+/**
+ * Why a row was not routed, in words the person reading it can act on.
+ *
+ * "Nowhere" on its own invites the admin to check their spelling when the real
+ * answer is that they named a company and needed a department inside it.
+ */
+export function routingHint(value: string, targets: ImportTarget[]): string {
+  const norm = (s: string) => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+  const wanted = norm(value)
+  if (!wanted) return 'No business unit in this row'
+
+  const company = targets.find(t => t.kind === 'company' && norm(t.name) === wanted)
+  if (company) return `${company.name} is a company. Name one of its departments instead.`
+
+  const dupes = targets.filter(t => t.kind !== 'company' && norm(t.name) === wanted)
+  if (dupes.length > 1) return `More than one department is called "${value}". Cannot tell which was meant.`
+
+  return `No department named "${value}"`
 }
 
 export type RowStatus =

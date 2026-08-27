@@ -46,6 +46,15 @@ export async function POST(request: Request) {
     }
 
     const isCompany = kind === 'company'
+    // Companies hang off the group itself, never off each other. A company
+    // inside a company is a second group, and the seat pool and the invoice
+    // both live at the group.
+    if (isCompany && parent_id) {
+      return NextResponse.json(
+        { error: 'A company sits directly under the group, not inside another company.' },
+        { status: 400 },
+      )
+    }
     let segment: string | null = null
     if (isCompany) {
       const check = await validateCompanySegment(admin, slug_segment || name, null)
@@ -57,9 +66,31 @@ export async function POST(request: Request) {
     // trigger too; checked here so the person gets a sentence rather than a
     // constraint violation.
     if (parent_id) {
-      const { data: parent } = await admin.from('departments').select('organization_id').eq('id', parent_id).maybeSingle()
+      const { data: parent } = await admin.from('departments').select('organization_id, kind, name').eq('id', parent_id).maybeSingle()
       if (!parent || parent.organization_id !== org_id) {
         return NextResponse.json({ error: 'That parent does not belong to this team' }, { status: 400 })
+      }
+    }
+
+    // Once a team has companies, nothing floats above them.
+    //
+    // A department at the top of a group belongs to no business, so its cards
+    // have no company, no company branding and no company URL - and it is
+    // invisible to every company head while being visible to none of them.
+    // Enforced only for a team that HAS companies, so a flat team creates
+    // departments exactly as it always has.
+    if (!isCompany && !parent_id) {
+      const { data: companies } = await admin
+        .from('departments')
+        .select('id')
+        .eq('organization_id', org_id)
+        .eq('kind', 'company')
+        .limit(1)
+      if ((companies || []).length > 0) {
+        return NextResponse.json(
+          { error: 'Choose the company this department belongs to. Once a team has companies, every department sits inside one.' },
+          { status: 400 },
+        )
       }
     }
 
@@ -403,6 +434,20 @@ export async function POST(request: Request) {
       : (loc.organizationId ? await isOrgOwner(admin, user.id, loc.organizationId) : false)
     if (!fromOk) {
       return NextResponse.json({ error: 'You cannot move that card' }, { status: 403 })
+    }
+    // A card belongs to a department, never to a company.
+    //
+    // A company is a container for departments; people sit in the departments
+    // inside it. Allowing a card to hang off the company itself creates a
+    // fourth place to look for somebody and a person who belongs to no team.
+    if (to_department_id) {
+      const { data: target } = await admin.from('departments').select('kind, name').eq('id', to_department_id).maybeSingle()
+      if (target?.kind === 'company') {
+        return NextResponse.json(
+          { error: `${target.name} is a company. Put the card in one of its departments.` },
+          { status: 400 },
+        )
+      }
     }
     // And, unless releasing it to the org level, must manage the target too.
     if (to_department_id && !(await canManageDepartment(admin, user.id, to_department_id))) {
