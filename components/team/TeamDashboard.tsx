@@ -12,6 +12,7 @@ import {
 import UsdEstimate from '@/components/marketing/UsdEstimate'
 import BulkImportModal from '@/components/team/BulkImportModal'
 import WebhookPanel from '@/components/team/WebhookPanel'
+import ApiKeyPanel from '@/components/team/ApiKeyPanel'
 
 interface TeamCard {
   id: string
@@ -672,8 +673,9 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           every lead in the organisation, including from departments a head
           does not manage. */}
       {org && cards.length > 0 && (
-        <div className="mt-6">
+        <div className="mt-6 space-y-4">
           <WebhookPanel orgId={org.id} />
+          <ApiKeyPanel orgId={org.id} />
         </div>
       )}
 
