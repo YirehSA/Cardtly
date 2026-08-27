@@ -8,6 +8,7 @@ import {
   Eye, Users, TrendingUp, TrendingDown, Minus, Smartphone, Monitor,
   Tablet, Globe, QrCode, ArrowUpRight, BarChart3, MousePointerClick, UserPlus,
 } from 'lucide-react'
+import ExportAnalyticsButton from '@/components/analytics/ExportAnalyticsButton'
 
 interface EventRow {
   event_type: string
@@ -247,13 +248,24 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
                 </p>
               </div>
             </div>
-            <div className="flex gap-1 bg-muted p-1 rounded-2xl">
-              {PERIODS.map(p => (
-                <button key={p.value} onClick={() => setPeriod(p.value)}
-                  className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition ${period === p.value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                  {p.label}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex gap-1 bg-muted p-1 rounded-2xl">
+                {PERIODS.map(p => (
+                  <button key={p.value} onClick={() => setPeriod(p.value)}
+                    className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition ${period === p.value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              {/* Handed the same numbers the page is showing, so the file can
+                  never disagree with the screen it came from. */}
+              <ExportAnalyticsButton
+                data={stats}
+                cardName={card.name}
+                cardSlug={card.slug}
+                period={period}
+                totalViews={card.totalViews}
+              />
             </div>
           </div>
         </div>

@@ -7,9 +7,10 @@ import Link from 'next/link'
 import {
   Users, Plus, Edit2, Trash2, ExternalLink, Loader2,
   CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail, UserCheck, Send, BarChart2, Sparkles, ClipboardList, Network,
-  Search, Eye, Inbox,
+  Search, Eye, Inbox, FileSpreadsheet,
 } from 'lucide-react'
 import UsdEstimate from '@/components/marketing/UsdEstimate'
+import BulkImportModal from '@/components/team/BulkImportModal'
 
 interface TeamCard {
   id: string
@@ -123,6 +124,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
   // Add card form
   const [showAddCard, setShowAddCard] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   const [newCard, setNewCard] = useState({ name: '', title: '', email: '', phone: '', company: '' })
   const [copyFromId, setCopyFromId] = useState<string>('')
 
@@ -570,6 +572,17 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                 {showAddSeats ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               </button>
 
+              {/* Import a spreadsheet. Next to Add card rather than buried in
+                  settings: a company arriving with 200 staff should not have
+                  to discover that adding them one at a time is not the only
+                  way. */}
+              {seatsAvailable > 0 && (
+                <button onClick={() => setShowImport(true)}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
+                  <FileSpreadsheet className="w-4 h-4" />Import
+                </button>
+              )}
+
               {/* Add card */}
               {(seatsAvailable > 0 || seatsTotal === 0) && (
                 <button onClick={() => setShowAddCard(p => !p)}
@@ -634,6 +647,21 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           <Users className="w-4 h-4 flex-shrink-0" />
           All {seatsTotal} seats are in use. Add more seats to create additional cards.
         </div>
+      )}
+
+      {showImport && org && (
+        <BulkImportModal
+          orgId={org.id}
+          orgName={org.name}
+          seatsAvailable={seatsAvailable}
+          cards={cards.map(c => ({ id: c.id, name: c.name }))}
+          existingEmails={cards.flatMap(c => [c.email, c.invite_email]).filter(Boolean) as string[]}
+          onClose={() => setShowImport(false)}
+          // A full reload rather than patching state: an import can add two
+          // hundred cards, and the view counts and lead counts beside them are
+          // read on the server.
+          onDone={() => { setTimeout(() => window.location.reload(), 1200) }}
+        />
       )}
 
       {/* Add card panel */}

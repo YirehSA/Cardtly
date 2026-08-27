@@ -28,19 +28,8 @@ const SOURCE_LABEL: Record<string, string> = {
 
 // Cardtly brand blue (#00d4ff cyan) worked into a readable, professional
 // family - deep sky-blue bars for white text, the bright cyan as accent.
-// ARGB: alpha byte first, as ExcelJS expects.
-const BRAND = {
-  bannerBg: 'FF075985', // deep sky-blue title bar
-  subBg: 'FF0369A1', // sky-700 subtitle bar
-  headerBg: 'FF0284C7', // sky-600 column headers
-  headerLine: 'FF00D4FF', // brand cyan accent underline
-  zebra: 'FFF0F9FF', // sky-50 stripe
-  gridline: 'FFE5E7EB', // light gray cell borders
-  text: 'FF111827', // near-black body text
-  linkText: 'FF0369A1', // blue hyperlinks
-  white: 'FFFFFFFF',
-  subText: 'FFE0F2FE', // pale blue subtitle text
-}
+// Shared with the analytics export via lib/xlsx-brand.
+import { XLSX_BRAND as BRAND } from '@/lib/xlsx-brand'
 
 type ColType = 'email' | 'url' | 'date'
 interface Col {
