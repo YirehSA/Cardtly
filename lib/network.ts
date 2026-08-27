@@ -19,6 +19,10 @@ export interface NetworkCard {
   companyLogoUrl: string | null
   colorTheme: string | null
   isTeamCard: boolean
+  // The business unit this person sits in, for the filter inside a company.
+  // Personal cards have none, and neither does a team card that was never
+  // put in a department, so this is null far more often than not.
+  department: string | null
 }
 
 export interface NetworkCompany {
@@ -51,6 +55,11 @@ export interface NetworkGroups {
 const CARD_FIELDS =
   'id, slug, name, title, company, industry, profile_image_url, company_logo_url, color_theme'
 
+// Only team cards belong to a department; the personal `cards` table has no
+// such column, so asking for it there would 42703 the whole directory into the
+// "not set up yet" notice.
+const TEAM_CARD_FIELDS = `${CARD_FIELDS}, department_id`
+
 export interface NetworkData {
   cards: NetworkCard[]
   // companyKey -> the org's own brand logo. A team that has set a brand has
@@ -65,7 +74,7 @@ export interface NetworkData {
 }
 
 export async function fetchNetworkCards(admin: any): Promise<NetworkData> {
-  const [personal, team, orgs] = await Promise.all([
+  const [personal, team, orgs, depts] = await Promise.all([
     admin
       .from('cards')
       .select(CARD_FIELDS)
@@ -73,15 +82,28 @@ export async function fetchNetworkCards(admin: any): Promise<NetworkData> {
       .eq('hide_from_network', false),
     admin
       .from('team_cards')
-      .select(CARD_FIELDS)
+      .select(TEAM_CARD_FIELDS)
       .not('slug', 'is', null)
       .eq('hide_from_network', false)
       // The manager's separate veto. A team card is listed only when the
       // member and their org both allow it.
       .eq('org_hide_from_network', false)
+      // Also what takes an offboarded person out of the directory: revoking
+      // their access sets is_active false.
       .eq('is_active', true),
     admin.from('organizations').select('brand'),
+    // Names for the department filter. select('*') rather than naming columns
+    // because a missing column returns an empty result instead of an error,
+    // which would quietly leave every card unfiled rather than saying so.
+    admin.from('departments').select('*'),
   ])
+
+  // Departments are a nicety here, not a dependency: if the table cannot be
+  // read the directory still lists everyone, just without the unit filter.
+  const deptNames = new Map<string, string>()
+  for (const row of (depts?.data || []) as any[]) {
+    if (row?.id && row?.name) deptNames.set(row.id, row.name)
+  }
 
   const map = (rows: any[], isTeamCard: boolean): NetworkCard[] =>
     (rows || []).map(r => ({
@@ -95,6 +117,7 @@ export async function fetchNetworkCards(admin: any): Promise<NetworkData> {
       companyLogoUrl: r.company_logo_url ?? null,
       colorTheme: r.color_theme ?? null,
       isTeamCard,
+      department: (isTeamCard && r.department_id && deptNames.get(r.department_id)) || null,
     }))
 
   // 42703 is undefined_column. Any other error is a genuine fault and should
@@ -218,8 +241,8 @@ export function groupIntoCompanies(
   return { companies, independents }
 }
 
-// One search box covers company, person and job title, because people do not
-// know in advance which of the three they remember.
+// One search box covers company, person, job title and business unit, because
+// people do not know in advance which of the four they remember.
 export function searchCompanies(
   companies: NetworkCompany[],
   query: string,
@@ -236,8 +259,70 @@ export function searchCompanies(
     return c.cards.some(
       card =>
         card.name.toLowerCase().includes(q) ||
-        (card.title || '').toLowerCase().includes(q)
+        (card.title || '').toLowerCase().includes(q) ||
+        (card.department || '').toLowerCase().includes(q)
     )
+  })
+}
+
+// ── Filtering inside one company ────────────────────────────────────────────
+//
+// A group with four hundred people in one company entry is a wall of tiles,
+// and scrolling it is the only way to find the buyer in Roofing. These drive
+// the business-unit and job-title filters on the company page.
+
+export interface Facet { value: string; count: number }
+
+// Distinct values with counts, folded case-insensitively so "Sales Director"
+// and "sales director" are one filter rather than two. The label shown is the
+// spelling that occurs most often, so the chip reads the way the company
+// writes it rather than however the first row happened to be typed.
+function facet(values: Array<string | null>): Facet[] {
+  const groups = new Map<string, Map<string, number>>()
+  for (const raw of values) {
+    const v = (raw || '').trim()
+    if (!v) continue
+    const key = v.toLowerCase()
+    const spellings = groups.get(key) || new Map<string, number>()
+    spellings.set(v, (spellings.get(v) || 0) + 1)
+    groups.set(key, spellings)
+  }
+  return [...groups.values()]
+    .map(spellings => {
+      let best = '', bestN = 0, total = 0
+      for (const [spelling, n] of spellings) {
+        total += n
+        if (n > bestN) { best = spelling; bestN = n }
+      }
+      return { value: best, count: total }
+    })
+    .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value))
+}
+
+export function companyFacets(cards: NetworkCard[]): { departments: Facet[]; titles: Facet[] } {
+  return {
+    departments: facet(cards.map(c => c.department)),
+    titles: facet(cards.map(c => c.title)),
+  }
+}
+
+export function filterCompanyCards(
+  cards: NetworkCard[],
+  query: string,
+  department: string | null,
+  title: string | null
+): NetworkCard[] {
+  const q = query.trim().toLowerCase()
+  const eq = (a: string | null, b: string | null) =>
+    (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase()
+  return cards.filter(c => {
+    if (department && !eq(c.department, department)) return false
+    if (title && !eq(c.title, title)) return false
+    if (!q) return true
+    // Every word has to match somewhere, in any order: "naidoo sales" is two
+    // true things about one person that are never adjacent in any one field.
+    const hay = [c.name, c.title, c.department].filter(Boolean).join('  ').toLowerCase()
+    return q.split(/\s+/).filter(Boolean).every(t => hay.includes(t))
   })
 }
 

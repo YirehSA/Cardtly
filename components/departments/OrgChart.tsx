@@ -291,6 +291,21 @@ export default function OrgChart({ departments, ownedOrgs, rollup, onManage }: {
                           <span className="text-amber-500"> · {r.people - r.claimed} pending</span>
                         )}
                       </p>
+                      {/* Views and leads for the whole subtree. rollUpSubtrees
+                          has always computed both and nothing ever rendered
+                          them, so a group could see how many cards a business
+                          held but not whether any of them were being used,
+                          which is the question a group actually asks. */}
+                      {r && (r.views30d > 0 || r.leads > 0) && (
+                        <p className="text-[11px] text-muted-foreground tabular-nums flex items-center gap-2.5">
+                          <span className="inline-flex items-center gap-1" title="Views in the last 30 days, this business and everything under it">
+                            <Eye className="w-3 h-3" />{r.views30d}
+                          </span>
+                          <span className="inline-flex items-center gap-1" title="Leads captured, this business and everything under it">
+                            <Mail className="w-3 h-3" />{r.leads}
+                          </span>
+                        </p>
+                      )}
                     </div>
                     <ChevronRight className="w-4 h-4 absolute top-4 right-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
                   </button>

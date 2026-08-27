@@ -7,6 +7,8 @@ import { INDUSTRIES } from '@/lib/industries'
 import {
   searchCompanies,
   searchIndependents,
+  companyFacets,
+  filterCompanyCards,
   type NetworkCompany,
   type NetworkCard,
 } from '@/lib/network'
@@ -276,6 +278,48 @@ function Stat({ value, label }: { value: number; label: string }) {
   )
 }
 
+// A labelled row of filter chips. Capped, because a company where everyone
+// has a distinct job title would otherwise render four hundred chips and bury
+// the people underneath them; the search box still reaches whatever the cap
+// leaves out, and the count says how many that is.
+function FacetRow({
+  label, facets, value, onChange,
+}: {
+  label: string
+  facets: Array<{ value: string; count: number }>
+  value: string | null
+  onChange: (v: string | null) => void
+}) {
+  const MAX = 8
+  // A selected value must stay visible even if it sits outside the top few,
+  // or clearing the filter becomes impossible from the UI.
+  const head = facets.slice(0, MAX)
+  const shown = value && !head.some(f => f.value === value)
+    ? [...head, facets.find(f => f.value === value)!]
+    : head
+  const hidden = facets.length - head.length
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground shrink-0">
+        {label}
+      </span>
+      <Chip active={!value} onClick={() => onChange(null)}>All</Chip>
+      {shown.map(f => (
+        <Chip key={f.value} active={value === f.value}
+          onClick={() => onChange(value === f.value ? null : f.value)}>
+          {f.value} <span className="opacity-60 tabular-nums">{f.count}</span>
+        </Chip>
+      ))}
+      {hidden > 0 && (
+        <span className="text-[11px] text-muted-foreground">
+          +{hidden} more, use search
+        </span>
+      )}
+    </div>
+  )
+}
+
 function Chip({
   active,
   onClick,
@@ -406,6 +450,19 @@ function CompanyDetail({
   // component that is only ever shown instead of the parent, never with it.
   const [reporting, setReporting] = useState<NetworkCard | null>(null)
 
+  // Finding one person inside a company was a scroll, and inside a group with
+  // several hundred it was not possible at all.
+  const [q, setQ] = useState('')
+  const [dept, setDept] = useState<string | null>(null)
+  const [title, setTitle] = useState<string | null>(null)
+
+  const { departments, titles } = useMemo(() => companyFacets(company.cards), [company.cards])
+  const shown = useMemo(
+    () => filterCompanyCards(company.cards, q, dept, title),
+    [company.cards, q, dept, title]
+  )
+  const filtered = !!(q.trim() || dept || title)
+
   return (
     <div className="space-y-5 animate-fade-in">
       {reporting && (
@@ -447,13 +504,64 @@ function CompanyDetail({
         </div>
       </div>
 
-      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {company.cards.map(card => (
-          <li key={card.id}>
-            <PersonCard card={card} onReport={() => setReporting(card)} />
-          </li>
-        ))}
-      </ul>
+      {/* Search and the two filters. Shown only where they earn their space:
+          a five-person company does not need faceting, and a unit filter with
+          one value in it is a control that cannot change anything. */}
+      {company.cards.length > 5 && (
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <input
+              type="search"
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              placeholder={`Search ${company.name} by name, position or business unit`}
+              aria-label={`Search within ${company.name}`}
+              className="w-full min-h-[44px] pl-10 pr-10 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
+            />
+            {q && (
+              <button type="button" onClick={() => setQ('')} aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {departments.length > 1 && (
+            <FacetRow label="Business unit" facets={departments} value={dept} onChange={setDept} />
+          )}
+          {titles.length > 1 && (
+            <FacetRow label="Position" facets={titles} value={title} onChange={setTitle} />
+          )}
+        </div>
+      )}
+
+      {shown.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+          <Users className="w-6 h-6 mx-auto text-muted-foreground mb-2" aria-hidden="true" />
+          <p className="text-sm font-medium">Nobody in {company.name} matches that</p>
+          <button type="button"
+            onClick={() => { setQ(''); setDept(null); setTitle(null) }}
+            className="mt-3 min-h-[44px] px-4 rounded-xl border border-border text-sm font-semibold hover:bg-muted transition">
+            Clear filters
+          </button>
+        </div>
+      ) : (
+        <>
+          {filtered && (
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {shown.length} of {company.cards.length} {company.cards.length === 1 ? 'person' : 'people'}
+            </p>
+          )}
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {shown.map(card => (
+              <li key={card.id}>
+                <PersonCard card={card} onReport={() => setReporting(card)} />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   )
 }

@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { X, Upload, Loader2, AlertTriangle, Check, FileSpreadsheet } from 'lucide-react'
 import {
   parseDelimited, detectColumns, looksLikeHeader, toRows, checkRows,
-  summarise, STATUS_LABEL, routingHint, type CheckedRow, type ImportTarget,
+  summarise, STATUS_LABEL, routingHint, rowsToCsv, type CheckedRow, type ImportTarget,
 } from '@/lib/csv-import'
 
 // Import a spreadsheet of staff as team cards.
@@ -17,6 +17,24 @@ import {
 // without passing the preview.
 
 const BATCH = 25
+
+// One ExcelJS cell to plain text.
+//
+// A cell value is not always a string: a formula arrives as { result }, a
+// hyperlinked email as { text, hyperlink }, styled text as { richText }, and
+// a date as a Date. String() on any of those writes "[object Object]" into
+// the column, which then fails validation with nothing explaining why.
+function cellText(v: any): string {
+  if (v == null) return ''
+  if (typeof v === 'string') return v.trim()
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+  if (v instanceof Date) return v.toISOString().slice(0, 10)
+  if (Array.isArray(v.richText)) return v.richText.map((t: any) => t?.text || '').join('').trim()
+  if (typeof v.text === 'string') return v.text.trim()
+  if ('result' in v) return cellText(v.result)
+  if ('error' in v) return ''
+  return String(v).trim()
+}
 
 type Props = {
   orgId: string
@@ -57,6 +75,9 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
   const [copyFromId, setCopyFromId] = useState(cards[0]?.id || '')
   const [done, setDone] = useState(0)
   const [results, setResults] = useState<RowResult[]>([])
+  // Reading a workbook pulls in ExcelJS and parses a zip, so on a big staff
+  // list it is long enough that a silent button looks broken.
+  const [readingFile, setReadingFile] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const parsed = useMemo(() => {
@@ -72,8 +93,51 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
   const stats = parsed ? summarise(parsed.checked) : null
   const ready = stats?.ready || 0
 
+  // A real .xlsx is a zip, so reading it as text yields binary rubbish and a
+  // preview full of nonsense. People export a staff list from Excel or HR and
+  // upload exactly that file, so it is read properly instead.
+  async function loadXlsx(file: File) {
+    setReadingFile(true)
+    try {
+      // The prebuilt browser bundle, loaded only when somebody actually picks
+      // a workbook, so it stays out of the team dashboard's initial bundle.
+      // @ts-expect-error - the dist bundle has no bundled types
+      const ExcelJS = (await import('exceljs/dist/exceljs.min.js')).default
+      const wb = new ExcelJS.Workbook()
+      await wb.xlsx.load(await file.arrayBuffer())
+
+      // The first worksheet with anything in it. A workbook whose first tab is
+      // a blank cover sheet is common enough to be worth skipping past.
+      const sheet = wb.worksheets.find((s: any) => s.rowCount > 0) || wb.worksheets[0]
+      if (!sheet) { toast.error('That workbook has no sheets in it'); return }
+
+      const rows: string[][] = []
+      sheet.eachRow((row: any) => {
+        const cells: string[] = []
+        // values is 1-based and sparse; index by column so a blank cell keeps
+        // its position and does not shift every later column left by one.
+        for (let c = 1; c <= sheet.columnCount; c++) {
+          cells.push(cellText(row.getCell(c).value))
+        }
+        rows.push(cells)
+      })
+
+      if (rows.length === 0) { toast.error('That sheet is empty'); return }
+      if (wb.worksheets.length > 1) {
+        toast.success(`Read "${sheet.name}". Other sheets were ignored.`)
+      }
+      setText(rowsToCsv(rows))
+      setPhase('preview')
+    } catch {
+      toast.error('Could not read that spreadsheet. Save it as CSV and try again.')
+    } finally {
+      setReadingFile(false)
+    }
+  }
+
   function loadFile(file: File) {
     if (file.size > 2_000_000) { toast.error('That file is larger than 2MB. Split it and import in parts.'); return }
+    if (/\.xlsx?$/i.test(file.name)) { loadXlsx(file); return }
     const reader = new FileReader()
     reader.onload = () => { setText(String(reader.result || '')); setPhase('preview') }
     reader.onerror = () => toast.error('Could not read that file')
@@ -152,12 +216,22 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
 
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <button onClick={() => fileRef.current?.click()}
-                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition">
-                  <Upload className="w-4 h-4" />Choose a file
+                  disabled={readingFile}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition disabled:opacity-50">
+                  {readingFile
+                    ? <><Loader2 className="w-4 h-4 animate-spin" />Reading</>
+                    : <><Upload className="w-4 h-4" />Choose a file</>}
                 </button>
-                <input ref={fileRef} type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) loadFile(f) }} />
-                <span className="text-xs text-muted-foreground">CSV, tab separated, or semicolon separated</span>
+                <input ref={fileRef} type="file" className="hidden"
+                  accept=".xlsx,.xls,.csv,.tsv,.txt,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  onChange={e => {
+                    const f = e.target.files?.[0]
+                    if (f) loadFile(f)
+                    // Cleared so picking the same file twice fires onChange
+                    // again, which it otherwise does not after a failed read.
+                    e.target.value = ''
+                  }} />
+                <span className="text-xs text-muted-foreground">Excel (.xlsx), CSV, tab or semicolon separated</span>
               </div>
 
               <textarea

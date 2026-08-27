@@ -171,6 +171,25 @@ export function parseDelimited(text: string, delimiter?: string): string[][] {
   return rows.filter(r => r.some(cell => cell.trim().length > 0))
 }
 
+/**
+ * Rows back to CSV text, quoted so the parser above reads them unchanged.
+ *
+ * The .xlsx reader hands its cells here rather than to a separate code path,
+ * so a spreadsheet upload goes through exactly the same column detection,
+ * validation and department routing as a paste. A job title containing a
+ * comma, a quote or a line break survives the round trip.
+ */
+export function rowsToCsv(rows: Array<Array<string | null | undefined>>): string {
+  return rows
+    .map(row => row
+      .map(cell => {
+        const v = cell == null ? '' : String(cell)
+        return /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
+      })
+      .join(','))
+    .join('\n')
+}
+
 /** Match header names to card fields. */
 export function detectColumns(header: string[]): ColumnMap {
   const cells = header.map(norm)
