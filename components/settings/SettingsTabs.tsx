@@ -6,7 +6,7 @@ import { UserPlan } from '@/types/database'
 import { INDUSTRIES_BY_GROUP } from '@/lib/industries'
 import { toast } from 'sonner'
 import { useEffect } from 'react'
-import { User, Lock, CreditCard, AlertTriangle, Check, Eye, EyeOff } from 'lucide-react'
+import { User, Lock, CreditCard, AlertTriangle, Check, Eye, EyeOff, Download, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useIosApp } from '@/components/dashboard/PlatformProvider'
 
@@ -601,6 +601,37 @@ function DangerTab({ user, supabase, router, isPaying }: { user: Props['user']; 
   const [confirm, setConfirm] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [exporting, setExporting] = useState(false)
+
+  // POPIA gives you the right to a copy of your information. It used to be an
+  // email to support with a 30-day turnaround; this is the same right, served
+  // in about a second. Deliberately sits next to Delete, because the moment
+  // most people want a copy is just before they destroy the original.
+  async function exportData() {
+    setExporting(true)
+    try {
+      const res = await fetch('/api/account/export')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || 'Could not build your export')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `cardtly-my-data-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      // Revoked on a later tick: Safari cancels a download whose object URL is
+      // released in the same turn as the click.
+      setTimeout(() => URL.revokeObjectURL(url), 30_000)
+      toast.success('Your data is downloading')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Could not build your export', { duration: 8000 })
+    }
+    setExporting(false)
+  }
 
   async function deleteAccount() {
     if (confirm !== user.email) {
@@ -645,6 +676,28 @@ function DangerTab({ user, supabase, router, isPaying }: { user: Props['user']; 
             }}
             className="flex-shrink-0 border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition">
             Sign out all
+          </button>
+        </div>
+      </div>
+
+      {/* Download everything we hold */}
+      <div className="p-4 rounded-xl border border-border">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <p className="font-medium text-sm">Download my data</p>
+            <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
+              Everything Cardtly holds about you, as one file: your profile, your cards,
+              the contacts they captured, your orders and your billing history. Yours to
+              keep, and worth doing before you delete anything.
+            </p>
+          </div>
+          <button
+            onClick={exportData}
+            disabled={exporting}
+            className="flex-shrink-0 inline-flex items-center gap-2 border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition disabled:opacity-50">
+            {exporting
+              ? <><Loader2 className="w-4 h-4 animate-spin" />Preparing</>
+              : <><Download className="w-4 h-4" />Download</>}
           </button>
         </div>
       </div>

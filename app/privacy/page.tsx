@@ -140,10 +140,21 @@ export default function PrivacyPage() {
               <li><strong className="text-white">Complain.</strong> Lodge a complaint with the South African Information Regulator (inforegulator.org.za) or your local data protection authority.</li>
             </ul>
             <p>
-              To exercise any of these rights, email <a href="mailto:andre@cardtly.com" className="underline" style={{ color: '#00d4ff' }}>andre@cardtly.com</a>. We respond within 30 days.
+              <strong className="text-white">Access and portability are self-service.</strong> In{' '}
+              <a href="/dashboard/settings" className="underline" style={{ color: '#00d4ff' }}>Dashboard, Settings</a>,
+              under Account, &ldquo;Download my data&rdquo; gives you everything we hold about you as a
+              machine-readable JSON file: your profile, your cards, the contacts they captured, your
+              orders and your billing history. There is no need to ask us and nothing to wait for.
+              Security tokens and payment authorisation codes are shown as redacted, because they are
+              credentials rather than information about you.
             </p>
             <p>
-              You can also delete your account at any time from <a href="/dashboard/settings" className="underline" style={{ color: '#00d4ff' }}>Dashboard, Settings</a>.
+              <strong className="text-white">Deletion is self-service too</strong>, from the same
+              screen. It removes your account and its data permanently, and cancels any active
+              subscription first.
+            </p>
+            <p>
+              For anything else on that list, email <a href="mailto:andre@cardtly.com" className="underline" style={{ color: '#00d4ff' }}>andre@cardtly.com</a>. We respond within 30 days.
             </p>
           </Section>
 
