@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import UsdEstimate from '@/components/marketing/UsdEstimate'
 import BulkImportModal from '@/components/team/BulkImportModal'
+import WebhookPanel from '@/components/team/WebhookPanel'
 
 interface TeamCard {
   id: string
@@ -665,6 +666,15 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           // read on the server.
           onDone={() => { setTimeout(() => window.location.reload(), 1200) }}
         />
+      )}
+
+      {/* Where the team's leads go afterwards. Owner only: a webhook carries
+          every lead in the organisation, including from departments a head
+          does not manage. */}
+      {org && cards.length > 0 && (
+        <div className="mt-6">
+          <WebhookPanel orgId={org.id} />
+        </div>
       )}
 
       {/* Add card panel */}

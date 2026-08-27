@@ -1,5 +1,6 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { enqueueLeadCreated } from '@/lib/webhook-dispatch'
 import { resolveCardOwner } from '@/lib/card-owner'
 import { notifyLeadRecipients } from '@/lib/lead-notify'
 
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Card not found' }, { status: 404 })
     }
 
-    const { error } = await admin
+    const { data: saved, error } = await admin
       .from('contacts')
       .insert({
         card_id:      owner.personalCardId,
@@ -43,10 +44,21 @@ export async function POST(request: Request) {
         message: message || null,
         source:  'card_form',
       })
+      .select('id')
+      .single()
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
+
+    // Queue the lead for any CRM the team has connected. Never awaited for
+    // its result and never able to throw: the lead is already saved, and a
+    // customer's integration must not decide whether a visitor sees success.
+    await enqueueLeadCreated(admin, {
+      contactId: saved.id,
+      teamCardId: owner.teamCardId,
+      personalCardId: owner.personalCardId,
+    })
 
     // Email the card owner so the lead reaches them immediately - not just the
     // dashboard - and copy their team admin. Non-fatal: the lead is saved.

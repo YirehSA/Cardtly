@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { enqueueLeadCreated } from '@/lib/webhook-dispatch'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { getPrimaryCard, getMemberTeamCard } from '@/lib/card-server'
