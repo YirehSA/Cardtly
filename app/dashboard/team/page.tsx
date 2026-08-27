@@ -110,10 +110,23 @@ export default async function TeamPage() {
       const counts = await leadCountsByCard(admin, (myCards || []).map((c: any) => c.id))
       const deptName = new Map(managed.map(d => [d.id, d.name]))
 
+      // The org's lead-capture forms, for the per-card picker. Read from the
+      // organisation because the library belongs to the company, not to the
+      // department - a head chooses which of them a card shows, not what the
+      // library contains.
+      const { data: orgAddons } = await admin
+        .from('organizations').select('addons').eq('id', managed[0].organization_id).maybeSingle()
+      const forms = Array.isArray(orgAddons?.addons?.questionnaires)
+        ? orgAddons.addons.questionnaires
+            .filter((f: any) => Array.isArray(f?.questions) && f.questions.length > 0)
+            .map((f: any) => ({ id: f.id, title: f.title }))
+        : []
+
       return (
         <HeadTeamView
           orgName={theirOrg?.name || ''}
           departmentNames={managed.map(d => d.name)}
+          forms={forms}
           cards={(myCards || []).map((c: any) => ({
             id: c.id,
             name: c.name,
@@ -121,7 +134,12 @@ export default async function TeamPage() {
             slug: c.slug,
             email: c.email,
             phone: c.phone,
+            company: c.company,
             claimed: !!c.claimed_at,
+            // Who was invited and took it up. Not the account's own address,
+            // which may differ - but it is the address the head sent it to,
+            // which is the one they recognise.
+            claimedEmail: c.invite_email || null,
             inviteEmail: c.invite_email || null,
             views: c.view_count || 0,
             // Null when the count could not be read. Shown as 0 would read as
@@ -129,6 +147,12 @@ export default async function TeamPage() {
             // what somebody does about it.
             leads: counts ? (counts[c.id] || 0) : 0,
             departmentName: deptName.get(c.department_id) || '',
+            useTeamBrand: c.use_team_brand !== false,
+            // Listed only when the company has not vetoed it. The member's own
+            // hide_from_network is theirs and is not shown as a head's switch.
+            listedInNetwork: c.org_hide_from_network !== true,
+            assignedFormId: c.addons?.assignedFormId || null,
+            useTeamQuestionnaire: c.use_team_questionnaire ?? null,
           }))}
         />
       )

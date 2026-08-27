@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Users, Search, Eye, Inbox, ExternalLink, Layers, X, Clock } from 'lucide-react'
+import { Users, Search, Layers, X } from 'lucide-react'
+import HeadTeamCard, { type HeadCard } from '@/components/team/HeadTeamCard'
 
 // A department head's view of their own people.
 //
@@ -15,26 +16,16 @@ import { Users, Search, Eye, Inbox, ExternalLink, Layers, X, Clock } from 'lucid
 // Actions live under Departments, which already scopes every write through
 // canManageDepartment. This is the list; that is the console.
 
-type Card = {
-  id: string
-  name: string | null
-  title: string | null
-  slug: string | null
-  email: string | null
-  phone: string | null
-  claimed: boolean
-  inviteEmail: string | null
-  views: number
-  leads: number
-  departmentName: string
-}
+type Card = HeadCard
 
 export default function HeadTeamView({
-  orgName, departmentNames, cards,
+  orgName, departmentNames, cards, forms = [],
 }: {
   orgName: string
   departmentNames: string[]
   cards: Card[]
+  /** The org's lead-capture form library, for the per-card picker. */
+  forms?: { id: string; title?: string }[]
 }) {
   const [q, setQ] = useState('')
 
@@ -129,46 +120,7 @@ export default function HeadTeamView({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {visible.map(c => (
-              <div key={c.id} className="bg-card border border-border rounded-2xl overflow-hidden">
-                <div className="h-1.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
-                <div className="p-5">
-                  <p className="font-semibold text-sm truncate">{c.name || 'Unnamed'}</p>
-                  {c.title && <p className="text-xs text-muted-foreground truncate">{c.title}</p>}
-                  <p className="text-[11px] text-muted-foreground mt-1">{c.departmentName}</p>
-
-                  <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
-                      <Eye className="w-3.5 h-3.5" />
-                      <strong className="tabular-nums text-foreground">{c.views}</strong> views
-                    </span>
-                    <span className="inline-flex items-center gap-1"
-                      style={{ color: c.leads > 0 ? '#22c55e' : undefined }}>
-                      <Inbox className="w-3.5 h-3.5" />
-                      <strong className="tabular-nums">{c.leads}</strong> lead{c.leads === 1 ? '' : 's'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 mt-4 flex-wrap">
-                    {c.claimed ? (
-                      c.slug && (
-                        <a href={`/card/${c.slug}`} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-border hover:bg-muted transition">
-                          <ExternalLink className="w-3.5 h-3.5" />Open card
-                        </a>
-                      )
-                    ) : (
-                      // The state a head actually needs to act on: a card
-                      // issued and never picked up is a seat being paid for
-                      // and nobody carrying a card.
-                      <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg"
-                        style={{ background: '#f59e0b1a', color: '#f59e0b' }}>
-                        <Clock className="w-3.5 h-3.5" />
-                        {c.inviteEmail ? 'Invited, not joined' : 'Not invited yet'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <HeadTeamCard key={c.id} card={c} forms={forms} onChanged={() => window.location.reload()} />
             ))}
           </div>
 

@@ -460,6 +460,31 @@ export async function POST(request: Request) {
 
   // ── Allocate a lead-capture form to one card in a managed department ──────
   // Same semantics as the org-admin set_card_form: off / default / <formId>.
+  // Two toggles a head needs for their own people, gated exactly like every
+  // other per-card action here: the card must be in a department they manage.
+  //
+  // Not simply reusing the owner's endpoints in /api/team - those check
+  // ownership of the organisation, which a head does not have. Same effect,
+  // different boundary, and the boundary is the point.
+  if (action === 'set_card_team_brand' || action === 'set_card_network') {
+    const { team_card_id, value } = body
+    if (!team_card_id) return NextResponse.json({ error: 'team_card_id required' }, { status: 400 })
+    const loc = await cardDepartment(admin, team_card_id)
+    if (!loc?.departmentId || !(await canManageDepartment(admin, user.id, loc.departmentId))) {
+      return NextResponse.json({ error: 'You do not manage that card' }, { status: 403 })
+    }
+    // org_hide_from_network is the management veto, the same column the owner
+    // sets. The member's own hide_from_network is theirs alone and is not
+    // touched here: a head deciding to list somebody cannot overrule that
+    // person's decision not to be listed.
+    const patch = action === 'set_card_team_brand'
+      ? { use_team_brand: !!value }
+      : { org_hide_from_network: !value }
+    const { error } = await admin.from('team_cards').update(patch).eq('id', team_card_id)
+    if (error) return NextResponse.json({ error: `Could not save it: ${error.message}` }, { status: 500 })
+    return NextResponse.json({ success: true })
+  }
+
   if (action === 'set_card_form') {
     const { team_card_id, form_id } = body
     if (!team_card_id || !form_id) return NextResponse.json({ error: 'team_card_id and form_id required' }, { status: 400 })
