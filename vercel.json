@@ -1,4 +1,17 @@
 {
+  "_comment": [
+    "Two cron jobs, deliberately. Vercel's Hobby plan allows at most two, each",
+    "running no more often than once a day, and it rejects the whole DEPLOYMENT",
+    "when that is exceeded rather than just ignoring the extra one.",
+    "",
+    "A third entry for /api/cron/webhooks was added here and silently blocked",
+    "every deployment after it for hours: the build never reached production and",
+    "the only symptom was a feature that would not appear.",
+    "",
+    "/api/cron/webhooks still exists and works. It is driven from the",
+    "trial-reminders run below until the plan is confirmed. On Pro, give it its",
+    "own entry at */5 * * * * and remove the call from there."
+  ],
   "crons": [
     {
       "path": "/api/cron/weekly-digest",
@@ -7,10 +20,6 @@
     {
       "path": "/api/cron/trial-reminders",
       "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/cron/webhooks",
-      "schedule": "*/5 * * * *"
     }
   ]
 }

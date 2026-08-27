@@ -252,11 +252,30 @@ export async function GET(request: Request) {
   // blocked is surfaced rather than counted, because the message is the whole
   // value: "delivered 0 of 1" says something went wrong, only the constraint
   // name says what.
+  // Webhook deliveries ride along here.
+  //
+  // They want their own cron every few minutes, but Vercel's Hobby plan caps
+  // an account at two cron jobs running no more than daily, and adding a third
+  // rejects the entire deployment - which is exactly what happened, blocking
+  // four commits with no symptom other than a feature that never appeared.
+  //
+  // Piggybacking means a queued lead can wait until the next daily run, which
+  // is poor but honest, and it never sits forever. On Pro, give the webhook
+  // cron its own entry in vercel.json at */5 and delete this.
+  let webhooks: any = null
+  try {
+    const { deliverPending } = await import('@/lib/webhook-dispatch')
+    webhooks = await deliverPending(admin, 100)
+  } catch {
+    webhooks = { error: 'delivery pass failed' }
+  }
+
   return NextResponse.json({
     ok: blocked.length === 0,
     delivered,
     failed: failed.length,
     considered: queue.length,
+    webhooks,
     ...(blocked.length ? { blocked } : {}),
     ops,
     payments,
