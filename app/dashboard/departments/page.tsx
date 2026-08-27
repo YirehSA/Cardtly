@@ -69,6 +69,11 @@ export default async function DepartmentsPage() {
     // structure controls (rename, delete, appoint heads). A plain manager
     // reaches it via department_managers and does not.
     isOwner: d.viaOwner,
+    // Hierarchy. Null and 'department' for an organisation with no companies,
+    // which is every organisation that has not opted in.
+    parentId: d.parent_id,
+    kind: d.kind,
+    slugSegment: d.slug_segment,
     brand: d.brand,
     hasBrand: Object.keys(d.brand || {}).length > 0,
     lockedFields: d.locked_fields || [],

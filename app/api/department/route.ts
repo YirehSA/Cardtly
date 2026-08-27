@@ -6,6 +6,7 @@ import { LOCK_GROUP_IDS } from '@/lib/team-locks'
 import { getManagedDepartments, canManageDepartment, cardDepartment, isOrgOwner, ownsOrgOfDepartment, findUserByEmail, getOwnedOrgs } from '@/lib/department-perms'
 import { newInviteToken, sendTeamInvite } from '@/lib/team-invite'
 import { newTeamCardSlug, orgIndustry } from '@/lib/card-slug-server'
+import { slugifyPart, isReservedSlug } from '@/lib/card-slug'
 
 // The department manager's own endpoint, separate from /api/admin (which is
 // Cardtly-staff only). Every write goes through canManageDepartment first, so
@@ -33,17 +34,87 @@ export async function POST(request: Request) {
   // never reach them, so they gate on org ownership, not canManageDepartment.
 
   if (action === 'create_department') {
-    const { org_id, name } = body
+    // kind and parent_id are optional, so an organisation that has never heard
+    // of companies keeps calling this exactly as before and keeps getting a
+    // flat department.
+    const { org_id, name, parent_id, kind, slug_segment } = body
     if (!org_id || !name || !String(name).trim()) {
       return NextResponse.json({ error: 'A team and a name are required' }, { status: 400 })
     }
     if (!(await isOrgOwner(admin, user.id, org_id))) {
       return NextResponse.json({ error: 'Only the company admin can create departments' }, { status: 403 })
     }
-    const { data, error } = await admin.from('departments')
-      .insert({ organization_id: org_id, name: String(name).trim() }).select('id').maybeSingle()
-    if (error) return NextResponse.json({ error: `Could not create it: ${error.message}` }, { status: 500 })
+
+    const isCompany = kind === 'company'
+    let segment: string | null = null
+    if (isCompany) {
+      const check = await validateCompanySegment(admin, slug_segment || name, null)
+      if ('error' in check) return NextResponse.json({ error: check.error }, { status: 400 })
+      segment = check.segment
+    }
+
+    // A parent in someone else's organisation is rejected by the database
+    // trigger too; checked here so the person gets a sentence rather than a
+    // constraint violation.
+    if (parent_id) {
+      const { data: parent } = await admin.from('departments').select('organization_id').eq('id', parent_id).maybeSingle()
+      if (!parent || parent.organization_id !== org_id) {
+        return NextResponse.json({ error: 'That parent does not belong to this team' }, { status: 400 })
+      }
+    }
+
+    const row: Record<string, any> = { organization_id: org_id, name: String(name).trim() }
+    if (parent_id) row.parent_id = parent_id
+    if (isCompany) { row.kind = 'company'; row.slug_segment = segment }
+
+    const { data, error } = await admin.from('departments').insert(row).select('id').maybeSingle()
+    if (error) {
+      // 42703: migration 053 has not been run, so parent_id and kind do not
+      // exist. Say so plainly rather than reporting a Postgres error to
+      // somebody who cannot act on it.
+      if (error.code === '42703') {
+        return NextResponse.json({ error: 'Companies are not enabled on this database yet. Run migration 053.' }, { status: 503 })
+      }
+      return NextResponse.json({ error: `Could not create it: ${error.message}` }, { status: 500 })
+    }
     return NextResponse.json({ success: true, department_id: data?.id })
+  }
+
+  // Change a company's URL segment. Deliberately its own action rather than
+  // part of rename: renaming a company is cosmetic, but changing the segment
+  // moves every card URL underneath it, and cards get printed.
+  if (action === 'set_company_segment') {
+    const { department_id, slug_segment } = body
+    if (!department_id) return NextResponse.json({ error: 'A company is required' }, { status: 400 })
+    if (!(await ownsOrgOfDepartment(admin, user.id, department_id))) {
+      return NextResponse.json({ error: 'Only the company admin can change a URL' }, { status: 403 })
+    }
+    const check = await validateCompanySegment(admin, slug_segment, department_id)
+    if ('error' in check) return NextResponse.json({ error: check.error }, { status: 400 })
+
+    const { error } = await admin.from('departments')
+      .update({ slug_segment: check.segment, kind: 'company', updated_at: new Date().toISOString() })
+      .eq('id', department_id)
+    if (error) return NextResponse.json({ error: `Could not save it: ${error.message}` }, { status: 500 })
+    return NextResponse.json({ success: true, slug_segment: check.segment })
+  }
+
+  // Move a department to a different parent, or to the top.
+  if (action === 'move_department') {
+    const { department_id, parent_id } = body
+    if (!department_id) return NextResponse.json({ error: 'A department is required' }, { status: 400 })
+    if (!(await ownsOrgOfDepartment(admin, user.id, department_id))) {
+      return NextResponse.json({ error: 'Only the company admin can move a department' }, { status: 403 })
+    }
+    const { error } = await admin.from('departments')
+      .update({ parent_id: parent_id || null, updated_at: new Date().toISOString() })
+      .eq('id', department_id)
+    if (error) {
+      // The trigger from migration 053 raises for a cycle or a parent in
+      // another organisation. Its message is already written for a person.
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+    return NextResponse.json({ success: true })
   }
 
   if (action === 'rename_department') {
@@ -390,4 +461,37 @@ export async function GET() {
     getOwnedOrgs(admin, user.id),
   ])
   return NextResponse.json({ departments: managed, ownedOrgs })
+}
+
+/**
+ * Check a proposed company URL segment.
+ *
+ * The segment is the first path element of /card/<company>/<person>, so it is
+ * a slice of a namespace shared by every customer on the platform. Uniqueness
+ * is therefore global, not per organisation: two customers both choosing
+ * "sales" would make /card/sales/john-smith resolve to whichever row came back
+ * first.
+ *
+ * excludeId lets a company keep its own segment when saving it unchanged.
+ */
+async function validateCompanySegment(
+  admin: any,
+  proposed: string | null | undefined,
+  excludeId: string | null,
+): Promise<{ segment: string } | { error: string }> {
+  const segment = slugifyPart(String(proposed || ''), 24)
+  if (!segment) return { error: 'That name does not make a usable web address. Try letters and numbers.' }
+  if (segment.length < 2) return { error: 'A company address needs at least two characters.' }
+  if (isReservedSlug(segment)) return { error: `"${segment}" is reserved by Cardtly. Pick another.` }
+
+  const { data, error } = await admin.from('departments').select('id, slug_segment')
+  if (error) {
+    if (error.code === '42703') return { error: 'Companies are not enabled on this database yet. Run migration 053.' }
+    return { error: 'Could not check that address is free. Try again.' }
+  }
+  const clash = (data || []).find((d: any) =>
+    d.id !== excludeId && (d.slug_segment || '').toLowerCase() === segment)
+  if (clash) return { error: `"${segment}" is already used by another company. Pick another.` }
+
+  return { segment }
 }

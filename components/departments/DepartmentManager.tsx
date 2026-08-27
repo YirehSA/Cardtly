@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -19,6 +19,12 @@ interface LeadForm { id: string; title?: string; questions: any[] }
 interface Head { userId: string; email: string | null }
 interface Dept {
   id: string; name: string; organizationId: string; isOwner: boolean
+  // Hierarchy. An organisation that has not opted in has parentId null and
+  // kind 'department' on every row, and every list below sorts and renders
+  // exactly as it did before.
+  parentId?: string | null
+  kind?: 'company' | 'department'
+  slugSegment?: string | null
   brand: Record<string, any>; hasBrand: boolean; heads: Head[]; cards: Card[]
   lockedFields: string[]
   // Does the viewer already hold a card anywhere in this department's org?
@@ -74,6 +80,42 @@ export default function DepartmentManager({ departments, ownedOrgs }: { departme
   const router = useRouter()
   const [selId, setSelId] = useState<string | null>(departments.length === 1 ? departments[0].id : null)
   const [loading, setLoading] = useState<string | null>(null)
+
+  // Does this team use companies at all? Everything hierarchy-shaped keys off
+  // this, so a team that has never created one sees precisely what it saw
+  // before: the same order, the same two-up grid, no new controls.
+  const hasHierarchy = departments.some(d => d.parentId || d.kind === 'company')
+
+  // Parents immediately followed by their children, each tagged with its
+  // depth. A department whose parent the viewer cannot see - a manager of one
+  // branch of a group - is treated as a root, so it still appears rather than
+  // vanishing into a parent that was filtered out by permissions.
+  const ordered = useMemo(() => {
+    const visible = new Set(departments.map(d => d.id))
+    const childrenOf = new Map<string | null, Dept[]>()
+    for (const d of departments) {
+      const key = d.parentId && visible.has(d.parentId) ? d.parentId : null
+      const list = childrenOf.get(key) || []
+      list.push(d)
+      childrenOf.set(key, list)
+    }
+    for (const list of childrenOf.values()) list.sort((a, b) => a.name.localeCompare(b.name))
+
+    const out: { dept: Dept; depth: number }[] = []
+    const seen = new Set<string>()
+    const walk = (parent: string | null, depth: number) => {
+      for (const d of childrenOf.get(parent) || []) {
+        if (seen.has(d.id)) continue // a cycle cannot hang the render
+        seen.add(d.id)
+        out.push({ dept: d, depth })
+        walk(d.id, depth + 1)
+      }
+    }
+    walk(null, 0)
+    // Anything unreachable (its parent formed a loop) still gets shown.
+    for (const d of departments) if (!seen.has(d.id)) out.push({ dept: d, depth: 0 })
+    return out
+  }, [departments])
 
   async function call(key: string, body: object, okMsg: string): Promise<boolean> {
     setLoading(key)
@@ -135,22 +177,42 @@ export default function DepartmentManager({ departments, ownedOrgs }: { departme
         <FirstRun ownedOrgs={ownedOrgs} call={call} loading={loading} />
       ) : (
         <>
-          {/* Department cards */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {departments.map((d, i) => {
+          {/* Department cards.
+              A group with companies gets one indented column so the structure
+              is legible; a flat team keeps the two-up grid it has always had.
+              Nothing here changes for an organisation that has not opted in. */}
+          <div className={hasHierarchy ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-1 gap-3 sm:grid-cols-2'}>
+            {ordered.map(({ dept: d, depth }, i) => {
               const accent = accentFor(i)
               const claimed = d.cards.filter(c => c.claimed).length
               return (
                 <button key={d.id} onClick={() => setSelId(d.id)}
                   className="group text-left rounded-2xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-                  style={{ boxShadow: `0 1px 0 ${accent}22` }}>
+                  style={{
+                    boxShadow: `0 1px 0 ${accent}22`,
+                    // Indentation carries the structure. Capped so a deep tree
+                    // cannot squeeze the content off the right of a phone.
+                    marginLeft: hasHierarchy ? `${Math.min(depth, 4) * 20}px` : undefined,
+                  }}>
                   <div className="flex items-start gap-3">
                     <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{ background: `${accent}1f`, border: `1px solid ${accent}44` }}>
                       <Building2 className="w-5 h-5" style={{ color: accent }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold truncate">{d.name}</p>
+                      <p className="font-bold truncate flex items-center gap-2">
+                        {d.name}
+                        {d.kind === 'company' && (
+                          <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded"
+                            style={{ background: `${accent}22`, color: accent }}>Company</span>
+                        )}
+                      </p>
+                      {/* The URL its people are handing out. Worth showing on
+                          the face of the card: it is printed on NFC cards, so
+                          noticing it is wrong here is far cheaper than later. */}
+                      {d.kind === 'company' && d.slugSegment && (
+                        <p className="text-[11px] text-muted-foreground font-mono truncate">/card/{d.slugSegment}/…</p>
+                      )}
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {d.cards.length} {d.cards.length === 1 ? 'person' : 'people'}
                         {claimed < d.cards.length && ` · ${d.cards.length - claimed} not joined yet`}
@@ -190,7 +252,7 @@ export default function DepartmentManager({ departments, ownedOrgs }: { departme
               )
             })}
 
-            {isCompanyAdmin && <NewDeptTile ownedOrgs={ownedOrgs} call={call} loading={loading} />}
+            {isCompanyAdmin && <NewDeptTile ownedOrgs={ownedOrgs} call={call} loading={loading} departments={departments} />}
           </div>
 
           {/* Company-wide rules. The API has always supported these - the
@@ -310,12 +372,19 @@ function FirstRun({ ownedOrgs, call, loading }: {
 }
 
 // ── "New department" tile in the grid ───────────────────────────────────────
-function NewDeptTile({ ownedOrgs, call, loading }: {
+function NewDeptTile({ ownedOrgs, call, loading, departments }: {
   ownedOrgs: OwnedOrg[]; call: (k: string, b: object, m: string) => Promise<boolean>; loading: string | null
+  departments: Dept[]
 }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [orgId, setOrgId] = useState(ownedOrgs[0]?.id)
+  const [kind, setKind] = useState<'company' | 'department'>('department')
+  const [parentId, setParentId] = useState('')
+
+  // Anything in this organisation can be a parent, so a group can nest as deep
+  // as its structure actually goes.
+  const parents = departments.filter(d => d.organizationId === orgId)
 
   if (!open) {
     return (
@@ -336,11 +405,37 @@ function NewDeptTile({ ownedOrgs, call, loading }: {
           {ownedOrgs.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
         </select>
       )}
+      {/* What is being created, and where it sits.
+          A group holds companies, each holding departments. Left alone this
+          creates a plain department at the top, which is what it always did. */}
+      <div className="flex flex-wrap gap-2 mb-2">
+        <select value={kind} onChange={e => setKind(e.target.value as 'company' | 'department')}
+          aria-label="What to create"
+          className="px-3 py-2 rounded-lg border border-border bg-background text-sm">
+          <option value="department">Department</option>
+          <option value="company">Company</option>
+        </select>
+        {parents.length > 0 && (
+          <select value={parentId} onChange={e => setParentId(e.target.value)}
+            aria-label="Sits inside"
+            className="flex-1 min-w-[140px] px-3 py-2 rounded-lg border border-border bg-background text-sm">
+            <option value="">At the top</option>
+            {parents.map(p => <option key={p.id} value={p.id}>Inside {p.name}</option>)}
+          </select>
+        )}
+      </div>
+      {kind === 'company' && (
+        <p className="text-xs text-muted-foreground mb-2">
+          Cards in this company will live at <span className="font-mono">/card/{slugPreview(name) || 'name'}/person</span>.
+          Choose it once: changing it later moves every card URL underneath it.
+        </p>
+      )}
       <div className="flex gap-2">
-        <input value={name} autoFocus onChange={e => setName(e.target.value)} placeholder="e.g. Support"
+        <input value={name} autoFocus onChange={e => setName(e.target.value)}
+          placeholder={kind === 'company' ? 'e.g. Company A' : 'e.g. Support'}
           className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-sm" />
         <button disabled={!name.trim() || loading === `newdept-${orgId}`}
-          onClick={async () => { const ok = await call(`newdept-${orgId}`, { action: 'create_department', org_id: orgId, name: name.trim() }, `${name.trim()} created`); if (ok) { setName(''); setOpen(false) } }}
+          onClick={async () => { const ok = await call(`newdept-${orgId}`, { action: 'create_department', org_id: orgId, name: name.trim(), kind, parent_id: parentId || undefined }, `${name.trim()} created`); if (ok) { setName(''); setParentId(''); setOpen(false) } }}
           className="px-3 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40" style={{ background: grad }}>
           {loading === `newdept-${orgId}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
         </button>
@@ -681,4 +776,18 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
       </div>
     </div>
   )
+}
+
+// What the company's URL segment will look like, shown live while typing.
+// Mirrors slugifyPart in lib/card-slug; the server is what actually decides,
+// and it re-slugifies and checks the name is free before saving.
+function slugPreview(name: string): string {
+  return (name || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 24)
+    .replace(/-+$/g, '')
 }
