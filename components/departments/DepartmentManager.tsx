@@ -90,32 +90,13 @@ export default function DepartmentManager({ departments, ownedOrgs }: { departme
   // depth. A department whose parent the viewer cannot see - a manager of one
   // branch of a group - is treated as a root, so it still appears rather than
   // vanishing into a parent that was filtered out by permissions.
-  const ordered = useMemo(() => {
-    const visible = new Set(departments.map(d => d.id))
-    const childrenOf = new Map<string | null, Dept[]>()
-    for (const d of departments) {
-      const key = d.parentId && visible.has(d.parentId) ? d.parentId : null
-      const list = childrenOf.get(key) || []
-      list.push(d)
-      childrenOf.set(key, list)
-    }
-    for (const list of childrenOf.values()) list.sort((a, b) => a.name.localeCompare(b.name))
+  const ordered = useMemo(() => treeOptions(departments), [departments])
 
-    const out: { dept: Dept; depth: number }[] = []
-    const seen = new Set<string>()
-    const walk = (parent: string | null, depth: number) => {
-      for (const d of childrenOf.get(parent) || []) {
-        if (seen.has(d.id)) continue // a cycle cannot hang the render
-        seen.add(d.id)
-        out.push({ dept: d, depth })
-        walk(d.id, depth + 1)
-      }
-    }
-    walk(null, 0)
-    // Anything unreachable (its parent formed a loop) still gets shown.
-    for (const d of departments) if (!seen.has(d.id)) out.push({ dept: d, depth: 0 })
-    return out
-  }, [departments])
+  // Totals for a department and everything beneath it.
+  //
+  // The number on a company has to include its departments, or a group holding
+  // seven businesses reports seven zeroes while carrying five hundred people.
+  const rollup = useMemo(() => rollUpSubtrees(departments), [departments])
 
   async function call(key: string, body: object, okMsg: string): Promise<boolean> {
     setLoading(key)
@@ -213,9 +194,18 @@ export default function DepartmentManager({ departments, ownedOrgs }: { departme
                       {d.kind === 'company' && d.slugSegment && (
                         <p className="text-[11px] text-muted-foreground font-mono truncate">/card/{d.slugSegment}/…</p>
                       )}
+                      {/* Own count, and the whole subtree when they differ.
+                          A company holding three departments and no cards of
+                          its own reads "0 people" without this - a number that
+                          is true, wrong, and nobody questions it. */}
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {d.cards.length} {d.cards.length === 1 ? 'person' : 'people'}
                         {claimed < d.cards.length && ` · ${d.cards.length - claimed} not joined yet`}
+                        {rollup[d.id] && rollup[d.id].people !== d.cards.length && (
+                          <span className="font-medium text-foreground">
+                            {' · '}{rollup[d.id].people} in total
+                          </span>
+                        )}
                       </p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition -mr-1 mt-1" />
@@ -751,7 +741,15 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
                   <select value={dept.id} disabled={loading === `move-${c.id}`} title="Move to another department"
                     onChange={e => call(`move-${c.id}`, { action: 'move_card', team_card_id: c.id, to_department_id: e.target.value }, 'Moved')}
                     className="text-xs px-2 py-1.5 rounded-lg border border-border bg-background max-w-[110px]">
-                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    {/* Indented so "Sales" under Company A is distinguishable
+                        from "Sales" under Company B. Two units with the same
+                        name in different businesses is normal in a group, and
+                        a flat list makes moving somebody a coin toss. */}
+                    {treeOptions(departments).map(({ dept: d, depth }) => (
+                      <option key={d.id} value={d.id}>
+                        {depth > 0 ? `${'  '.repeat(depth)}└ ` : ''}{d.name}
+                      </option>
+                    ))}
                   </select>
                 )}
                 {!c.claimed && (
@@ -790,4 +788,82 @@ function slugPreview(name: string): string {
     .replace(/^-+|-+$/g, '')
     .slice(0, 24)
     .replace(/-+$/g, '')
+}
+
+/**
+ * Departments in tree order, each tagged with its depth.
+ *
+ * Used both for the overview list and for the "move this card" picker, so the
+ * two cannot disagree about where something sits.
+ *
+ * A department whose parent the viewer cannot see is treated as a root rather
+ * than disappearing into it - that is exactly what the manager of one branch
+ * of a group sees, since permissions filter the parent out. The seen-set means
+ * a cycle renders as a flat list instead of hanging the browser.
+ */
+function treeOptions(departments: Dept[]): { dept: Dept; depth: number }[] {
+  const visible = new Set(departments.map(d => d.id))
+  const childrenOf = new Map<string | null, Dept[]>()
+  for (const d of departments) {
+    const key = d.parentId && visible.has(d.parentId) ? d.parentId : null
+    const list = childrenOf.get(key) || []
+    list.push(d)
+    childrenOf.set(key, list)
+  }
+  for (const list of childrenOf.values()) list.sort((a, b) => a.name.localeCompare(b.name))
+
+  const out: { dept: Dept; depth: number }[] = []
+  const seen = new Set<string>()
+  const walk = (parent: string | null, depth: number) => {
+    for (const d of childrenOf.get(parent) || []) {
+      if (seen.has(d.id)) continue
+      seen.add(d.id)
+      out.push({ dept: d, depth })
+      walk(d.id, depth + 1)
+    }
+  }
+  walk(null, 0)
+  for (const d of departments) if (!seen.has(d.id)) out.push({ dept: d, depth: 0 })
+  return out
+}
+
+type Rollup = { people: number; claimed: number; views30d: number; leads: number }
+
+/**
+ * Totals for each department including everything beneath it.
+ *
+ * Computed by walking down from every node rather than up from every card, so
+ * a card is counted once per ancestor and never twice for the same one. The
+ * seen-set makes a cycle terminate instead of adding numbers forever, which is
+ * the failure mode that would turn a display bug into a hung tab.
+ */
+function rollUpSubtrees(departments: Dept[]): Record<string, Rollup> {
+  const byId = new Map(departments.map(d => [d.id, d]))
+  const childrenOf = new Map<string, string[]>()
+  for (const d of departments) {
+    if (!d.parentId || !byId.has(d.parentId)) continue
+    const list = childrenOf.get(d.parentId) || []
+    list.push(d.id)
+    childrenOf.set(d.parentId, list)
+  }
+
+  const out: Record<string, Rollup> = {}
+  for (const root of departments) {
+    const total: Rollup = { people: 0, claimed: 0, views30d: 0, leads: 0 }
+    const seen = new Set<string>()
+    const stack = [root.id]
+    while (stack.length) {
+      const id = stack.pop()!
+      if (seen.has(id)) continue
+      seen.add(id)
+      const d = byId.get(id)
+      if (!d) continue
+      total.people += d.cards.length
+      total.claimed += d.cards.filter(c => c.claimed).length
+      for (const c of d.cards) { total.views30d += c.views30d || 0; total.leads += c.leads || 0 }
+      for (const child of childrenOf.get(id) || []) stack.push(child)
+    }
+    out[root.id] = total
+  }
+  return out
 }
