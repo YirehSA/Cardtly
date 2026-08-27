@@ -1,10 +1,18 @@
+import { subtreeIdsForMany, type DeptNode } from '@/lib/department-tree'
+
 // Who may manage which department. The whole RBAC boundary lives here, in one
 // place, so every route asks the same question and none of them can drift.
 //
-// A user manages a department if EITHER:
+// A user manages a department if ANY of:
 //   - they are listed in department_managers for it, OR
+//   - they are listed for one of its ANCESTORS, so the head of a company
+//     manages every department inside that company, OR
 //   - they are the admin_user_id of the org that owns it (the main admin
-//     manages every department under them).
+//     manages every department under them, across every company).
+//
+// That middle rule is what walls the seven businesses in a group off from each
+// other: the head of Company A reaches Company A's subtree and nothing else,
+// while the group admin still reaches all of it.
 //
 // Cardtly super-admins go through /api/admin, not here, so this file does not
 // grant them anything: it is strictly the customer-side department boundary.
@@ -23,6 +31,10 @@ export interface ManagedDept {
   // True when the user reaches it as the org owner rather than a named
   // manager, so the UI can say "you own this whole team".
   viaOwner: boolean
+  // Hierarchy, null and 'department' for an organisation that has not opted in.
+  parent_id: string | null
+  kind: 'company' | 'department'
+  slug_segment: string | null
 }
 
 // Every department this user may manage, resolved once.
@@ -37,7 +49,7 @@ export async function getManagedDepartments(admin: any, userId: string): Promise
   // Departments where the user is a named manager.
   const { data: managerRows } = await admin
     .from('department_managers').select('department_id').eq('user_id', userId)
-  const managedDeptIds = new Set((managerRows || []).map((m: any) => m.department_id))
+  const managedDeptIds = new Set<string>((managerRows || []).map((m: any) => m.department_id as string))
 
   if (ownedOrgIds.size === 0 && managedDeptIds.size === 0) return []
 
@@ -47,27 +59,66 @@ export async function getManagedDepartments(admin: any, userId: string): Promise
   // so this must not depend on the deploy and the migration landing in a
   // particular order - if the column is not there yet, carry on without it and
   // treat everything as unlocked, which is exactly how it behaved before.
+  // parent_id, kind and slug_segment arrive with migration 053, applied by hand
+  // like 035 before it. Each step down is explicit: with hierarchy, then
+  // without it, then without locks.
   let depts: any[] | null = null
-  {
+  const withTree = await admin
+    .from('departments')
+    .select('id, organization_id, name, brand, locked_fields, parent_id, kind, slug_segment')
+  if (!withTree.error) {
+    depts = withTree.data
+  } else {
     const withLocks = await admin
       .from('departments')
       .select('id, organization_id, name, brand, locked_fields')
-    if (withLocks.error) {
+    if (!withLocks.error) {
+      depts = withLocks.data
+    } else {
       const fallback = await admin
         .from('departments')
         .select('id, organization_id, name, brand')
       depts = fallback.data
-    } else {
-      depts = withLocks.data
     }
   }
 
+  const all = (depts || []) as any[]
+
+  // Managing a company means managing everything inside it.
+  //
+  // Without this, appointing the MD of Company A as its manager would give
+  // them the company row and none of its departments, so they could see the
+  // unit they run but not one card in it. Descendants are resolved through the
+  // tree walk, which is cycle-safe.
+  //
+  // Before migration 053 no row has a parent, so every subtree is one node and
+  // this resolves to exactly the previous behaviour.
+  const nodes: DeptNode[] = all.map(d => ({
+    id: d.id,
+    organization_id: d.organization_id,
+    name: d.name,
+    parent_id: d.parent_id ?? null,
+    kind: (d.kind === 'company' ? 'company' : 'department'),
+    slug_segment: d.slug_segment ?? null,
+  }))
+  const reachable = subtreeIdsForMany(managedDeptIds, nodes)
+
   const out: ManagedDept[] = []
-  for (const d of depts || []) {
+  for (const d of all) {
     const viaOwner = ownedOrgIds.has(d.organization_id)
-    const viaManager = managedDeptIds.has(d.id)
+    const viaManager = reachable.has(d.id)
     if (!viaOwner && !viaManager) continue
-    out.push({ id: d.id, organization_id: d.organization_id, name: d.name, brand: d.brand || {}, locked_fields: d.locked_fields || [], viaOwner })
+    out.push({
+      id: d.id,
+      organization_id: d.organization_id,
+      name: d.name,
+      brand: d.brand || {},
+      locked_fields: d.locked_fields || [],
+      viaOwner,
+      parent_id: d.parent_id ?? null,
+      kind: (d.kind === 'company' ? 'company' : 'department'),
+      slug_segment: d.slug_segment ?? null,
+    })
   }
   return out
 }
