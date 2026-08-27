@@ -353,6 +353,43 @@ function NewDeptTile({ ownedOrgs, call, loading, departments }: {
 }
 
 // ── One department's full detail ────────────────────────────────────────────
+/**
+ * A numbered section header with its own one-line explanation and a chip
+ * saying what state it is currently in.
+ *
+ * The page was three panels of switches with a heading each. Numbering them
+ * makes it read as a sequence - decide the look, decide the rules, then add
+ * the people - and the state chip answers the question somebody actually
+ * arrives with, which is "what is this set to right now" rather than "what
+ * could I set it to".
+ */
+function SectionHead({ n, accent, icon: Icon, title, body, state, stateTone }: {
+  n: number; accent: string; icon: any; title: string; body: string
+  state?: string; stateTone?: string
+}) {
+  return (
+    <div className="mb-4">
+      <div className="flex items-center gap-2.5 flex-wrap">
+        <span className="w-7 h-7 rounded-xl shrink-0 flex items-center justify-center text-xs font-black"
+          style={{ background: `${accent}22`, color: accent, border: `1px solid ${accent}44` }}>
+          {n}
+        </span>
+        <Icon className="w-4 h-4 shrink-0" style={{ color: accent }} />
+        <h2 className="font-bold text-base">{title}</h2>
+        {state && (
+          <span className="ml-auto text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap"
+            style={stateTone
+              ? { background: `${stateTone}1f`, color: stateTone }
+              : { background: 'var(--muted)', color: 'var(--muted-foreground)' }}>
+            {state}
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed max-w-2xl">{body}</p>
+    </div>
+  )
+}
+
 function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, call, loading }: {
   dept: Dept; accent: string; departments: Dept[]; orgLocks?: string[]; onBack?: () => void
   call: (k: string, b: object, m: string) => Promise<boolean>; loading: string | null
@@ -375,6 +412,28 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
   const brandCards = dept.cards.filter(c => Object.keys(c.brand).length > 0)
   const orgBrandFields = Object.keys(dept.orgBrand || {}).length
 
+  // Everything a lock could apply to, whether this team set it or the company
+  // did. The count in the section header has to match what the tiles show, and
+  // the tiles show the union.
+  const lockedCount = LOCK_GROUPS.filter(g =>
+    (dept.lockedFields || []).includes(g.id) || orgLocks.includes(g.id)).length
+
+  // The chain of parents above this node, nearest last. Cycle-guarded: the
+  // trigger in migration 053 rejects them, but a walk that trusts the data is
+  // one bad row away from hanging the tab.
+  const ancestry = (() => {
+    const byId = new Map(departments.map(d => [d.id, d]))
+    const out: Dept[] = []
+    const seen = new Set<string>([dept.id])
+    let cur = dept.parentId ? byId.get(dept.parentId) : undefined
+    while (cur && !seen.has(cur.id)) {
+      seen.add(cur.id)
+      out.unshift(cur)
+      cur = cur.parentId ? byId.get(cur.parentId) : undefined
+    }
+    return out
+  })()
+
   return (
     <div className="space-y-5">
       {/* Hero */}
@@ -390,11 +449,31 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
             style={{ background: `${accent}26`, border: `1px solid ${accent}55` }}>
             <Building2 className="w-6 h-6" style={{ color: accent }} />
           </div>
-          <div>
-            <h1 className="font-display text-2xl font-bold leading-tight">{dept.name}</h1>
-            <p className="text-sm text-muted-foreground">{dept.isOwner ? 'You run this department' : 'You are the head of this department'}</p>
+          <div className="min-w-0">
+            {/* Where this sits. A department seen on its own tells you nothing
+                about which company it belongs to, and in a group that is the
+                first thing you need to know. */}
+            {ancestry.length > 0 && (
+              <p className="text-[11px] text-muted-foreground truncate mb-0.5">
+                {ancestry.map(a => a.name).join(' › ')} ›
+              </p>
+            )}
+            <h1 className="font-display text-2xl font-bold leading-tight break-words">{dept.name}</h1>
+            <p className="text-sm text-muted-foreground">
+              {dept.kind === 'company'
+                ? (dept.isOwner ? 'You run this company' : 'You are the head of this company')
+                : (dept.isOwner ? 'You run this team' : 'You are the head of this team')}
+            </p>
           </div>
         </div>
+
+        {/* One sentence on what this screen is. Whoever runs a department is
+            usually not whoever chose the software, and three unexplained
+            panels of switches is where most of them stop. */}
+        <p className="text-sm text-muted-foreground mt-4 max-w-2xl leading-relaxed">
+          Everything about {dept.name} in one place: how these cards look, what your
+          people are allowed to change on their own, and who is in the team.
+        </p>
 
         <div className="grid grid-cols-3 gap-3 mt-5">
           {[
@@ -498,14 +577,16 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
 
       {/* The look */}
       <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="flex items-center gap-2 mb-1">
-          <Palette className="w-4 h-4" style={{ color: accent }} />
-          <h2 className="font-bold text-sm">How this department looks</h2>
-        </div>
+        <SectionHead
+          n={1} accent={accent} icon={Palette}
+          title="How these cards look"
+          body="The colours, fonts, logo and template every card in this team uses. Pick where that look comes from: the company's, or a copy of one card you already like."
+          state={dept.hasBrand ? 'Its own look' : 'Following the company'}
+          stateTone={dept.hasBrand ? accent : undefined} />
         <p className="text-sm text-muted-foreground mb-4">
           {dept.hasBrand
             ? 'These cards have their own look, different from the rest of the company.'
-            : 'Right now these cards use the company look. Want them to stand out? Copy a card you like.'}
+            : 'Right now these cards use the company look, so they match everyone else. To make them stand out, copy the look of a card you like.'}
         </p>
         {/* Sources: the company look first, then any card in this department
             that has been designed. Previously only the department's own cards
@@ -557,13 +638,16 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
           the company rules: they can add locks for their own team, and the
           company's own locks always apply on top. */}
       <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="flex items-center gap-2 mb-1">
-          <Lock className="w-4 h-4" style={{ color: accent }} />
-          <h2 className="font-bold text-sm">What your team can change</h2>
-        </div>
+        <SectionHead
+          n={2} accent={accent} icon={Lock}
+          title="What your team can change"
+          body="A locked item is fixed on every card here and nobody in the team can edit it. Everything you leave open, they can change themselves."
+          state={`${lockedCount} of ${LOCK_GROUPS.length} locked`}
+          stateTone={lockedCount > 0 ? accent : undefined} />
         <p className="text-sm text-muted-foreground mb-4">
-          Tap anything you want kept the same on every card in this department. Your people can still
-          edit everything else - their name, photo, job title and phone number.
+          Tap anything you want kept the same on every card in this team. Your people can always
+          edit the rest: their own name, photo, job title and phone number.
+          {orgLocks.length > 0 && ' Items the company has already locked are shown here and cannot be unlocked from inside a team.'}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {LOCK_GROUPS.map(g => {
@@ -596,7 +680,16 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
                   <span className="text-sm font-bold" style={on ? { color: accent } : undefined}>{g.label}</span>
                 </span>
                 <span className="text-[11px] text-muted-foreground block mt-0.5 ml-5.5">
-                  {fromCompany ? 'Locked company-wide' : on ? g.hint : 'Anyone can change this'}
+                  {fromCompany ? 'Locked by the company' : on ? g.hint : 'Anyone in this team can change this'}
+                </span>
+                {/* State as a word as well as a colour. Nine tiles that differ
+                    only by border shade is not something you can read at a
+                    glance, and it is invisible to anyone colour-blind. */}
+                <span className="text-[10px] font-black uppercase tracking-wider mt-2 inline-block px-1.5 py-0.5 rounded"
+                  style={on
+                    ? { background: accent + '26', color: accent }
+                    : { background: 'var(--muted)', color: 'var(--muted-foreground)' }}>
+                  {on ? 'Locked' : 'Open'}
                 </span>
               </button>
             )
@@ -606,7 +699,12 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
 
       {/* The people */}
       <div className="rounded-2xl border border-border bg-card p-5">
-        <h2 className="font-bold text-sm mb-3">The people</h2>
+        <SectionHead
+          n={3} accent={accent} icon={Users}
+          title="The people"
+          body="Everyone with a card in this team. Invite somebody by email and they get a card that is already branded and filled in, ready for them to claim."
+          state={`${claimed} of ${dept.cards.length} joined`}
+          stateTone={claimed === dept.cards.length && dept.cards.length > 0 ? '#22c55e' : undefined} />
 
         {/* A head is appointed without a card of their own. Until this button
             existed the only way to get one was inviting your own email and

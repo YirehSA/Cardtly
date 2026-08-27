@@ -221,6 +221,11 @@ export default function OrgChart({ departments, ownedOrgs, rollup, onManage }: {
             {kids.length === 0 && cards.length === 0 && 'Nothing under this yet'}
             {totalPeople > 0 && (kids.length > 0) && ` · ${totalPeople} people in total`}
           </p>
+          {/* Says where you are standing, not what the box contains. Both are
+              needed: the counts above are the data, this is the orientation. */}
+          <p className="text-xs mt-2 opacity-90 max-w-md mx-auto leading-relaxed">
+            {levelExplainer(level, hasHierarchy)}
+          </p>
 
           {/* Everything the old tile could do still has to be reachable, so the
               detail view is one press from the node it belongs to. */}
@@ -247,6 +252,7 @@ export default function OrgChart({ departments, ownedOrgs, rollup, onManage }: {
       {/* ── Child companies or departments ──────────────────────────────── */}
       {kids.length > 0 && (
         <div className="space-y-3">
+          <SectionHeading {...childrenHeading(level, hasHierarchy, kids.length, headline)} />
           {chunk(kids, perRowNodes).map((row, ri) => (
             <ConnectedRow key={ri} items={row.length} perRow={perRowNodes}>
               {row.map(d => {
@@ -319,11 +325,13 @@ export default function OrgChart({ departments, ownedOrgs, rollup, onManage }: {
       {/* ── Cards on the focused node ───────────────────────────────────── */}
       {cards.length > 0 && (
         <div className="space-y-3">
-          {kids.length > 0 && (
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">
-              Cards directly on {focus?.name}
-            </p>
-          )}
+          <SectionHeading
+            title={kids.length > 0
+              ? `Cards attached straight to ${focus?.name}`
+              : (cards.length === 1 ? 'The person in this team' : 'The people in this team')}
+            body={kids.length > 0
+              ? 'These belong to this level rather than to one of the teams below it.'
+              : 'One card per person. Green means they have accepted their invitation and their card is live; grey means it is still waiting for them.'} />
           {chunk(cards, perRowCards).map((row, ri) => (
             <ConnectedRow key={ri} items={row.length} perRow={perRowCards}>
               {row.map(card => {
@@ -379,6 +387,57 @@ export default function OrgChart({ departments, ownedOrgs, rollup, onManage }: {
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+
+// What the row beneath the promoted node contains, and what to do with it.
+// The words matter more than the boxes: somebody who has never seen an org
+// chart is being asked to recognise a structure they have not been told
+// about, and "Companies" over the row does most of that work.
+function childrenHeading(level: Level, hasHierarchy: boolean, count: number, parentName: string) {
+  if (level === 'group') {
+    return hasHierarchy
+      ? {
+        title: count === 1 ? 'The company in this group' : 'The companies in this group',
+        body: 'These are the businesses under ' + parentName + '. Each one keeps its own branding, its own manager and its own web address. Click a company to see the departments inside it.',
+      }
+      : {
+        title: count === 1 ? 'Your department' : 'Your departments',
+        body: 'These are the teams in ' + parentName + '. Each one can have its own look and its own manager. Click a department to see the people in it.',
+      }
+  }
+  if (level === 'company') {
+    return {
+      title: count === 1 ? 'The department in this company' : 'The departments in this company',
+      body: 'These are the teams inside ' + parentName + ' - sales, admin, a branch, whatever fits. People\u2019s cards belong to a department, never straight to the company. Click one to see its people.',
+    }
+  }
+  return {
+    title: count === 1 ? 'The team inside this one' : 'The teams inside this one',
+    body: 'Departments can sit inside other departments when a team is big enough to need it.',
+  }
+}
+
+// One line under the promoted block saying where you are and what happens
+// next, in the second person, because the chart is a place you are standing
+// rather than a diagram you are reading.
+function levelExplainer(level: Level, hasHierarchy: boolean): string {
+  if (level === 'group')
+    return hasHierarchy
+      ? 'You are at the top. Everything in the business sits somewhere below this.'
+      : 'You are at the top. Your departments are below.'
+  if (level === 'company')
+    return 'You are looking at one company inside the group. Its departments are below, and its people are inside those.'
+  return 'You are looking at one team. The cards below belong to the people in it.'
+}
+
+function SectionHeading({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="pt-2">
+      <p className="font-bold text-sm">{title}</p>
+      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed max-w-2xl">{body}</p>
     </div>
   )
 }
