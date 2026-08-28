@@ -27,7 +27,17 @@ export type ImportRow = {
 }
 
 /** A department a row can be routed into. */
-export type ImportTarget = { id: string; name: string; kind?: 'company' | 'department' }
+export type ImportTarget = {
+  id: string
+  name: string
+  kind?: 'company' | 'department'
+  /**
+   * The company this department sits under, when it sits under one. Two
+   * companies in a group each having a "Sales" is normal, and without this
+   * there is no way for a spreadsheet to say which one it means.
+   */
+  parentName?: string | null
+}
 
 /**
  * Match a spreadsheet's business-unit column to a real department.
@@ -46,10 +56,25 @@ export function matchDepartment(value: string, targets: ImportTarget[]): ImportT
   // Departments only. A card belongs to a department, never to the company
   // above it, so a column naming a company is reported as unrouted rather
   // than quietly parking somebody outside every team.
-  const exact = targets.filter(t => t.kind !== 'company' && norm(t.name) === wanted)
-  // Two departments with the same name in different companies is legal, and
-  // there is no way to tell which was meant. Route neither.
+  const depts = targets.filter(t => t.kind !== 'company')
+
+  const exact = depts.filter(t => norm(t.name) === wanted)
   if (exact.length === 1) return exact[0]
+
+  // Qualified as "Company Department", which is the only way to say which
+  // "Sales" you mean once a group has two of them. norm() flattens every
+  // separator to a space, so "Vistio > Sales", "Vistio/Sales", "Vistio - Sales"
+  // and "Vistio Sales" are one and the same comparison.
+  //
+  // Without this a group was stuck: naming the department was ambiguous and
+  // refused, and naming the company was refused too because cards cannot
+  // attach to a company. There was no third thing to type.
+  const qualified = depts.filter(t =>
+    t.parentName && norm(`${t.parentName} ${t.name}`) === wanted)
+  if (qualified.length === 1) return qualified[0]
+
+  // Still ambiguous, or nothing matched. Route neither: a card in the wrong
+  // company is worse than a card in none.
   return null
 }
 
@@ -65,10 +90,26 @@ export function routingHint(value: string, targets: ImportTarget[]): string {
   if (!wanted) return 'No business unit in this row'
 
   const company = targets.find(t => t.kind === 'company' && norm(t.name) === wanted)
-  if (company) return `${company.name} is a company. Name one of its departments instead.`
+  if (company) {
+    const inside = targets.filter(t => t.kind !== 'company' && t.parentName
+      && norm(t.parentName) === wanted)
+    return inside.length
+      ? `${company.name} is a company. Name a department inside it: ${inside.map(t => `"${company.name} ${t.name}"`).join(' or ')}.`
+      : `${company.name} is a company, and cards go in departments. Make a department inside it first.`
+  }
 
   const dupes = targets.filter(t => t.kind !== 'company' && norm(t.name) === wanted)
-  if (dupes.length > 1) return `More than one department is called "${value}". Cannot tell which was meant.`
+  if (dupes.length > 1) {
+    // Say what to type instead. "Cannot tell which was meant" is true and
+    // leaves the admin with no next move, which is how somebody ends up
+    // importing a group's staff list into the wrong business.
+    const options = dupes
+      .filter(t => t.parentName)
+      .map(t => `"${t.parentName} ${t.name}"`)
+    return options.length
+      ? `More than one department is called "${value}". Write the company first: ${options.join(' or ')}.`
+      : `More than one department is called "${value}". Cannot tell which was meant.`
+  }
 
   return `No department named "${value}"`
 }

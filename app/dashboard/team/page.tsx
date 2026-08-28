@@ -224,7 +224,14 @@ export default async function TeamPage() {
         .from('departments')
         .select('*')
         .eq('organization_id', (org as any).id)).data || [])
-        .map((d: any) => ({ id: d.id, name: d.name, kind: d.kind === 'company' ? 'company' : 'department' }))
+        .map((d: any, _i: number, all: any[]) => ({
+          id: d.id,
+          name: d.name,
+          kind: d.kind === 'company' ? 'company' : 'department',
+          // The company above it, so a spreadsheet can say "Vistio Sales"
+          // and pick one of two departments both called Sales.
+          parentName: d.parent_id ? (all.find((p: any) => p.id === d.parent_id)?.name ?? null) : null,
+        }))
     : []
 
   return (

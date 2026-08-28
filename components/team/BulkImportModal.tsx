@@ -388,9 +388,19 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
                         <td className="px-3 py-1.5 text-muted-foreground">{r.email || '-'}</td>
                         {targets.length > 0 && (
                           <td className="px-3 py-1.5">
+                            {/* The company as well as the department. Two
+                                businesses in a group can each have a "Sales",
+                                and a preview that says only "Sales" cannot
+                                tell you which one this person is about to
+                                land in - which is the whole question. */}
                             {r.departmentName
-                              ? <span>{r.departmentName}</span>
-                              : <span className="text-muted-foreground" title={routingHint(r.company, targets)}>
+                              ? (() => {
+                                const t = targets.find(x => x.id === r.departmentId)
+                                return t?.parentName
+                                  ? <span><span className="text-muted-foreground">{t.parentName} › </span>{t.name}</span>
+                                  : <span>{r.departmentName}</span>
+                              })()
+                              : <span className="text-amber-600 dark:text-amber-400" title={routingHint(r.company, targets)}>
                                   Nowhere
                                 </span>}
                           </td>

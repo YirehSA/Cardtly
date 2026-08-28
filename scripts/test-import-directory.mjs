@@ -200,6 +200,64 @@ ok('naming a COMPANY in that column does not route (which is why the example nam
    badChecked[0].departmentName === null, `got "${badChecked[0].departmentName}"`)
 
 
+// ── Routing when two companies each have a "Sales" ─────────────────────────
+//
+// The real shape that broke: a group whose Cardtly company and Vistio company
+// both hold a department called Sales. Naming the department was ambiguous and
+// refused; naming the company was refused too, because cards cannot attach to
+// a company. There was no third thing an admin could type.
+const { matchDepartment, routingHint } = require(join(out, 'csv-import.js'))
+
+const GROUP = [
+  { id: 'coA', name: 'Cardtly', kind: 'company', parentName: null },
+  { id: 'coB', name: 'Vistio', kind: 'company', parentName: null },
+  { id: 'dA1', name: 'Sales', kind: 'department', parentName: 'Cardtly' },
+  { id: 'dA2', name: 'Founders', kind: 'department', parentName: 'Cardtly' },
+  { id: 'dB1', name: 'Sales', kind: 'department', parentName: 'Vistio' },
+]
+
+eq('a bare duplicate name still routes nowhere',
+  matchDepartment('Sales', GROUP), null)
+ok('and the hint now says exactly what to type instead',
+  /Write the company first.*Cardtly Sales.*Vistio Sales/.test(routingHint('Sales', GROUP)),
+  routingHint('Sales', GROUP))
+
+eq('qualifying with the company picks the right one',
+  matchDepartment('Vistio Sales', GROUP)?.id, 'dB1')
+eq('and the other one',
+  matchDepartment('Cardtly Sales', GROUP)?.id, 'dA1')
+
+// norm() flattens punctuation to spaces, so every separator someone might
+// reach for is the same comparison. These are the ways people actually write
+// it in a spreadsheet.
+for (const v of ['Vistio > Sales', 'Vistio/Sales', 'Vistio - Sales', 'Vistio: Sales', 'vistio   sales', 'VISTIO SALES']) {
+  eq(`"${v}" routes to Vistio's Sales`, matchDepartment(v, GROUP)?.id, 'dB1')
+}
+
+eq('an unambiguous department still needs no qualifying',
+  matchDepartment('Founders', GROUP)?.id, 'dA2')
+eq('a company on its own still routes nowhere',
+  matchDepartment('Vistio', GROUP), null)
+ok('and points at the departments inside it',
+  /Vistio is a company.*Vistio Sales/.test(routingHint('Vistio', GROUP)),
+  routingHint('Vistio', GROUP))
+eq('a company with no departments yet says so',
+  matchDepartment('Empty Co', [{ id: 'x', name: 'Empty Co', kind: 'company', parentName: null }]), null)
+ok('nonsense is still nonsense',
+  /No department named/.test(routingHint('Marketing', GROUP)))
+
+// The guard that matters most: qualifying must never reach across companies.
+eq('"Cardtly Sales" is not Vistio\'s Sales',
+  matchDepartment('Cardtly Sales', GROUP)?.id !== 'dB1', true)
+
+// A flat team, no companies at all, must behave exactly as it always did.
+const FLAT = [
+  { id: 'f1', name: 'Sales', kind: 'department', parentName: null },
+  { id: 'f2', name: 'Admin', kind: 'department', parentName: null },
+]
+eq('a flat team routes on the plain name', matchDepartment('Sales', FLAT)?.id, 'f1')
+eq('and is unaffected by the qualified form', matchDepartment('Nothing Sales', FLAT), null)
+
 rmSync(out, { recursive: true, force: true })
 
 console.log(`\n${pass} passed, ${fail.length} failed`)
