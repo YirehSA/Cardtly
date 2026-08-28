@@ -7,7 +7,7 @@ import { parseDesign, getAccentHex } from '@/types/design'
 import { CARDTLY_MARK } from '@/lib/og-cardtly-mark'
 import {
   Download, Share2, Copy, Check, Printer, ShieldCheck, AlertTriangle,
-  Palette, Ban, QrCode, Sparkles,
+  Palette, Ban, QrCode, Sparkles, Search, X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -18,6 +18,9 @@ interface CardOption {
   profile_image_url?: string | null
   company_logo_url?: string | null
   color_theme?: string | null
+  /** Shown under the name in the searchable list, so two people called Sarah
+   *  can be told apart. */
+  title?: string | null
   _label?: string
 }
 
@@ -138,6 +141,33 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
     return defaultCardId
   })
   const card = cards.find(c => c.id === selectedId) || cards[0]
+
+  // Searching the card list. Word-AND across name, job title and the label,
+  // the same rule as every other search in the dashboard: "sarah sales" is
+  // two true things about one person that are never adjacent in one field.
+  const [cardQuery, setCardQuery] = useState('')
+  const matchingCards = useMemo(() => {
+    const terms = cardQuery.trim().toLowerCase().split(/\s+/).filter(Boolean)
+    if (!terms.length) return cards
+    return cards.filter(c => {
+      const hay = [c.name, c.title, c._label].filter(Boolean).join('  ').toLowerCase()
+      return terms.every(t => hay.includes(t))
+    })
+  }, [cardQuery, cards])
+
+  // Only a window of the matches is rendered.
+  //
+  // Putting all of them in a scrollable box looked fine and was not: at 500
+  // cards every keystroke re-rendered 500 rows, and measuring a single search
+  // made the page stop responding altogether. Fifty is more than fits on
+  // screen, so scrolling still feels complete, and the count below says what
+  // is being held back.
+  const RENDER_LIMIT = 50
+  const visibleCards = useMemo(
+    () => matchingCards.slice(0, RENDER_LIMIT),
+    [matchingCards]
+  )
+  const hiddenCount = matchingCards.length - visibleCards.length
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [copied, setCopied] = useState(false)
   const [qrReady, setQrReady] = useState(false)
@@ -465,32 +495,75 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
         </div>
       </div>
 
-      {/* Card picker */}
+      {/* Card picker.
+          A horizontal strip of every card, which is fine for the three or
+          four an owner had when this was written and unusable at the size a
+          real company actually is: 500 cards is 500 tiles behind a scrollbar,
+          and finding one person means dragging past everybody else.
+
+          Small lists keep the tiles, because seeing all four at once beats
+          typing. Past that it becomes a search box over a scrollable list. */}
       {cards.length > 1 && (
         <section>
           <h2 className="text-sm font-semibold mb-1">1. Pick a card</h2>
-          <p className="text-xs text-muted-foreground mb-3">The QR points at whichever card you choose.</p>
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-            {cards.map(c => {
-              const on = c.id === selectedId
-              return (
-                <button key={c.id} onClick={() => setSelectedId(c.id)}
-                  className={`flex items-center gap-2.5 rounded-2xl border-2 px-3 py-2.5 text-left transition-all shrink-0 ${on ? 'border-primary bg-primary/5' : 'border-border hover:border-foreground/20 hover:-translate-y-0.5'}`}>
-                  {c.profile_image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.profile_image_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-                  ) : (
-                    <span className="w-8 h-8 rounded-full grid place-items-center text-xs font-bold text-white"
-                      style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed)' }}>
-                      {(c.name || '?').charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                  <span className="text-sm font-medium whitespace-nowrap">{c._label || c.name}</span>
-                  {on && <Check className="w-4 h-4 text-primary" />}
-                </button>
-              )
-            })}
-          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            The QR points at whichever card you choose.
+          </p>
+
+          {cards.length <= 4 ? (
+            <div className="flex gap-2 flex-wrap">
+              {cards.map(c => (
+                <CardChoice key={c.id} card={c} on={c.id === selectedId}
+                  onPick={() => setSelectedId(c.id)} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-border overflow-hidden">
+              <div className="relative border-b border-border">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <input
+                  value={cardQuery}
+                  onChange={e => setCardQuery(e.target.value)}
+                  placeholder={`Search ${cards.length} cards by name or job title`}
+                  aria-label="Search for a card"
+                  className="w-full min-h-[44px] pl-10 pr-10 bg-transparent text-sm focus:outline-none"
+                />
+                {cardQuery && (
+                  <button onClick={() => setCardQuery('')} aria-label="Clear search"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Capped height rather than a page that grows to 500 rows. */}
+              <div className="max-h-72 overflow-y-auto divide-y divide-border">
+                {visibleCards.length === 0 ? (
+                  <p className="text-sm text-muted-foreground px-4 py-6 text-center">
+                    Nobody matches &ldquo;{cardQuery}&rdquo;.
+                  </p>
+                ) : visibleCards.map(c => (
+                  <CardChoice key={c.id} card={c} on={c.id === selectedId} row
+                    onPick={() => setSelectedId(c.id)} />
+                ))}
+              </div>
+
+              {/* Says what is not on screen. A list silently showing 50 of
+                  500 is the kind of truncation somebody reads as "they are
+                  not in here". */}
+              <p className="text-[11px] text-muted-foreground px-4 py-2 border-t border-border">
+                {cardQuery
+                  ? <>
+                    {matchingCards.length} of {cards.length} cards match
+                    {hiddenCount > 0 && <> · showing the first {visibleCards.length}, keep typing to narrow it</>}
+                  </>
+                  : <>
+                    {cards.length} cards · showing the first {visibleCards.length}.
+                    Search by name or job title to find anyone else.
+                  </>}
+              </p>
+            </div>
+          )}
         </section>
       )}
 
@@ -697,5 +770,38 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
         </div>
       </div>
     </div>
+  )
+}
+
+// One card in the picker. Two shapes, same content: a tile when there are few
+// enough to show at once, a full-width row inside the scrollable list when
+// there are not.
+function CardChoice({ card, on, onPick, row = false }: {
+  card: CardOption; on: boolean; onPick: () => void; row?: boolean
+}) {
+  return (
+    <button onClick={onPick} aria-pressed={on}
+      className={row
+        ? `w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition ${on ? 'bg-primary/10' : 'hover:bg-muted'}`
+        : `flex items-center gap-2.5 rounded-2xl border-2 px-3 py-2.5 text-left transition-all ${on ? 'border-primary bg-primary/5' : 'border-border hover:border-foreground/20 hover:-translate-y-0.5'}`}>
+      {card.profile_image_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={card.profile_image_url} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+      ) : (
+        <span className="w-8 h-8 rounded-full grid place-items-center text-xs font-bold text-white shrink-0"
+          style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed)' }}>
+          {(card.name || '?').charAt(0).toUpperCase()}
+        </span>
+      )}
+      <span className="min-w-0">
+        <span className={`block text-sm font-medium ${row ? 'truncate' : 'whitespace-nowrap'}`}>
+          {card._label || card.name}
+        </span>
+        {row && card.title && (
+          <span className="block text-[11px] text-muted-foreground truncate">{card.title}</span>
+        )}
+      </span>
+      {on && <Check className="w-4 h-4 text-primary shrink-0 ml-auto" />}
+    </button>
   )
 }

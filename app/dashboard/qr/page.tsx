@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import QRPage from '@/components/card/QRPage'
 
 interface CardSummary {
+  title?: string | null
   id: string
   slug: string | null
   name: string | null
@@ -23,7 +24,7 @@ export default async function QRCodePage() {
   if (!user) redirect('/login')
 
   const [personalCard, plan] = await Promise.all([
-    getPrimaryCard<CardSummary>(user.id, 'id, slug, name, profile_image_url, company_logo_url, color_theme'),
+    getPrimaryCard<CardSummary>(user.id, 'id, slug, name, title, profile_image_url, company_logo_url, color_theme'),
     getUserPlan(user.id),
   ])
 
@@ -46,10 +47,10 @@ export default async function QRCodePage() {
   const [{ data: org }, managed, memberCard] = await Promise.all([
     admin.from('organizations').select('id').eq('admin_user_id', user.id).maybeSingle(),
     getManagedDepartments(admin, user.id),
-    getMemberTeamCard<CardSummary>(user.id, 'id, slug, name, profile_image_url, company_logo_url, color_theme'),
+    getMemberTeamCard<CardSummary>(user.id, 'id, slug, name, title, profile_image_url, company_logo_url, color_theme'),
   ])
 
-  const TEAM_COLUMNS = 'id, slug, name, profile_image_url, company_logo_url, color_theme'
+  const TEAM_COLUMNS = 'id, slug, name, title, profile_image_url, company_logo_url, color_theme'
   let teamCards: any[] = []
   if (org) {
     const { data } = await admin
