@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle, Flag, ExternalLink, MailQuestion, UserCheck, UserPlus, Layers, UserCog, Palette, Pencil } from 'lucide-react'
+import { toast } from 'sonner'
 import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
 import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, DEFAULT_ENTERPRISE_FREE_DAYS, orgMonthlyRand, orgBillingStartsInDays, type OrgBillingMode } from '@/lib/org-billing'
 import type { AdminOrgRow, AdminUserRow } from '@/lib/admin-data'
@@ -726,6 +727,11 @@ function TeamMembers({ cards, departments, onMove, loading }: {
             <span className="truncate max-w-[140px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
               {c.user_id ? 'claimed' : `invited ${c.email || '(no email)'}`}
             </span>
+            {/* The link the invitee would have clicked, for a card nobody has
+                accepted yet. Testing an import otherwise means reaching into
+                somebody else's inbox, and it answers "they never got the
+                email" without another resend. */}
+            {!c.user_id && <ClaimLinkButton cardId={c.id} />}
             {/* Which department this card sits in. Only shown when the team has
                 departments, since otherwise there is nowhere to move it. */}
             {departments.length > 0 && (
@@ -736,8 +742,14 @@ function TeamMembers({ cards, departments, onMove, loading }: {
                 className="text-[11px] px-1.5 py-0.5 rounded"
                 style={{ ...inputStyle, border: `1px solid ${c.department_id ? 'rgba(124,58,237,0.4)' : 'rgba(255,255,255,0.1)'}`, color: c.department_id ? '#a78bfa' : 'rgba(255,255,255,0.4)' }}>
                 <option value="" style={{ background: '#1a1a1a' }}>No department</option>
-                {departments.map(d => (
-                  <option key={d.id} value={d.id} style={{ background: '#1a1a1a' }}>{d.name}</option>
+                {/* Companies are not offered: a card sits in a department,
+                    never in the company above it. Each option carries its
+                    company, because a group with a Sales in two businesses
+                    otherwise lists "Sales" twice with no way to tell which. */}
+                {departments.filter(d => d.kind !== 'company').map(d => (
+                  <option key={d.id} value={d.id} style={{ background: '#1a1a1a' }}>
+                    {d.parentName ? `${d.parentName} › ${d.name}` : d.name}
+                  </option>
                 ))}
               </select>
             )}
@@ -870,5 +882,68 @@ function DepartmentsSection({ org, users, onDept, loading }: {
         </button>
       </div>
     </div>
+  )
+}
+
+// Fetches one card's claim link on demand and hands it over.
+//
+// On demand, not with the page: the token lets whoever holds it take that
+// card, and shipping every unclaimed one into the browser on load would put
+// hundreds of live credentials in a devtools tab for a button most of them
+// will never need.
+function ClaimLinkButton({ cardId }: { cardId: string }) {
+  const [url, setUrl] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  async function fetchLink() {
+    setBusy(true)
+    const res = await fetch('/api/admin/claim-link', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ card_id: cardId }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setBusy(false)
+    if (!res.ok || !data?.url) {
+      toast.error(data?.error || 'Could not get a claim link', { duration: 8000 })
+      return
+    }
+    setUrl(data.url)
+    try {
+      await navigator.clipboard.writeText(data.url)
+      setCopied(true)
+      toast.success(data.minted
+        ? 'Claim link created and copied. This card had never been emailed.'
+        : 'Claim link copied')
+    } catch {
+      // Clipboard is blocked in plenty of contexts. The link is on screen
+      // either way, which is the part that matters.
+      toast.success('Claim link ready')
+    }
+  }
+
+  if (url) {
+    return (
+      <span className="flex items-center gap-1.5 min-w-0">
+        <a href={url} target="_blank" rel="noopener noreferrer"
+          title={url}
+          className="text-[11px] underline truncate max-w-[150px]" style={{ color: '#00d4ff' }}>
+          open claim link
+        </a>
+        <button onClick={() => { navigator.clipboard?.writeText(url); setCopied(true); toast.success('Copied') }}
+          className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          {copied ? 'copied' : 'copy'}
+        </button>
+      </span>
+    )
+  }
+
+  return (
+    <button onClick={fetchLink} disabled={busy}
+      title="Get the link this person would have clicked in their invitation email"
+      className="text-[11px] px-1.5 py-0.5 rounded flex-shrink-0 disabled:opacity-50"
+      style={{ background: 'rgba(0,212,255,0.12)', color: '#00d4ff' }}>
+      {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : 'claim link'}
+    </button>
   )
 }

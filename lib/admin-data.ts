@@ -64,6 +64,14 @@ export interface DeptRow {
   hasBrand: boolean
   cardCount: number
   managers: { userId: string; email: string | null }[]
+  /** 'company' sits under the group; 'department' sits inside a company. */
+  kind: 'company' | 'department'
+  /**
+   * The company above it. Two businesses in a group can each have a "Sales",
+   * and a picker listing both as plain "Sales" cannot be used to choose
+   * between them - which is the exact repair this data exists to make.
+   */
+  parentName: string | null
 }
 
 export interface AdminOrgRow {
@@ -269,11 +277,16 @@ export async function loadAdminData(admin: any) {
   for (const m of deptManagerRows || []) {
     (managersByDept[m.department_id] ||= []).push({ userId: m.user_id, email: emailById[m.user_id] || null })
   }
+  const deptNameById: Record<string, string> = {}
+  for (const d of deptRows || []) deptNameById[d.id] = d.name
+
   const deptsByOrg: Record<string, DeptRow[]> = {}
   for (const d of deptRows || []) {
     (deptsByOrg[d.organization_id] ||= []).push({
       id: d.id,
       name: d.name,
+      kind: d.kind === 'company' ? 'company' : 'department',
+      parentName: d.parent_id ? (deptNameById[d.parent_id] ?? null) : null,
       // Whether the department sets any brand of its own, so the UI can show
       // "custom look" vs "inherits org".
       hasBrand: !!d.brand && Object.keys(d.brand).length > 0,
