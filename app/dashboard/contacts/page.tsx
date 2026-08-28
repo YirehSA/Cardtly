@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
 import { getPrimaryCard, getMemberTeamCard } from '@/lib/card-server'
+import { getManagedDepartments } from '@/lib/department-perms'
 import ProGate from '@/components/card/ProGate'
 import ContactsList from '@/components/dashboard/ContactsList'
 import { Users } from 'lucide-react'
@@ -25,10 +26,35 @@ export default async function ContactsPage() {
     getUserPlan(user.id),
   ])
 
-  // Team members have no personal card - fall back to their claimed
-  // team card so they can see their own leads (the team admin sees
-  // these too in Team Contacts).
-  const teamCard = personalCard ? null : await getMemberTeamCard<CardSummary>(user.id, 'id, name, slug')
+  const admin0 = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  ) as any
+
+  // Every card whose leads this person is entitled to see.
+  //
+  // This used to be exactly one card, and the team card was only consulted
+  // when there was no personal one. So somebody holding both - which is every
+  // department head who also signed up in the usual way - saw their personal
+  // leads and none of the ones their team card had captured, with nothing on
+  // screen saying a second card existed. A head could not see their team's
+  // leads at all.
+  const [teamCard, managed] = await Promise.all([
+    getMemberTeamCard<CardSummary>(user.id, 'id, name, slug'),
+    getManagedDepartments(admin0, user.id),
+  ])
+
+  // A head sees their whole subtree; getManagedDepartments has already
+  // limited that to their own departments and never a sibling's.
+  const { data: managedCards } = managed.length > 0
+    ? await admin0.from('team_cards').select('id, name, slug')
+        .in('department_id', managed.map(d => d.id)).eq('is_active', true)
+    : { data: [] }
+
+  const teamSources = new Map<string, { id: string; name: string | null }>()
+  if (teamCard) teamSources.set((teamCard as any).id, teamCard as any)
+  for (const c of managedCards || []) teamSources.set(c.id, c)
+
   const card = personalCard || teamCard
   const isTeam = !personalCard && !!teamCard
 
@@ -52,24 +78,41 @@ export default async function ContactsPage() {
     )
   }
 
-  // Team-card contacts are blocked from anon RLS reads, so use the
-  // service-role client for those; personal cards use the user client.
-  const reader = isTeam
-    ? createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!) as any
-    : supabase
-  const { data: contacts } = await reader
-    .from('contacts')
-    // select('*') rather than a column list. work_phone arrives with migration
-    // 045, applied by hand after the deploy, and an explicit list naming a
-    // column that does not exist yet returns 42703 - which would take down the
-    // entire contacts page, not just one field. Same reasoning as the ops
-    // digest. These rows are the user's own leads and every column is already
-    // shown to them.
-    .select('*')
-    .eq(isTeam ? 'team_card_id' : 'card_id', card.id)
-    .order('created_at', { ascending: false })
+  // Read with the service-role client throughout. Team-card contacts are
+  // blocked from anon RLS reads, and every id below has already been
+  // established as this user's own or inside a department they manage, so the
+  // scoping is done here rather than left to a policy that cannot see it.
+  //
+  // select('*') rather than a column list. work_phone arrives with migration
+  // 045, applied by hand after the deploy, and naming a column that does not
+  // exist yet returns 42703 - which would take down the whole contacts page
+  // rather than one field.
+  const personalIds = personalCard ? [(personalCard as any).id] : []
+  const teamIds = [...teamSources.keys()]
 
-  const rows = contacts || []
+  const [personalLeads, teamLeads] = await Promise.all([
+    personalIds.length
+      ? admin0.from('contacts').select('*').in('card_id', personalIds)
+      : Promise.resolve({ data: [] }),
+    teamIds.length
+      ? admin0.from('contacts').select('*').in('team_card_id', teamIds)
+      : Promise.resolve({ data: [] }),
+  ])
+
+  // _via names the card that captured each lead. ContactsList turns that into
+  // a per-card filter, which is what makes one combined list usable rather
+  // than confusing: a head can pull up just their own, or just one person's.
+  // Only set when there is genuinely more than one card in play, or every row
+  // would carry a label that distinguishes nothing.
+  const multiple = personalIds.length + teamIds.length > 1
+  const rows = [
+    ...(personalLeads.data || []).map((r: any) => ({
+      ...r, _via: multiple ? ((personalCard as any)?.name || 'My card') : undefined,
+    })),
+    ...(teamLeads.data || []).map((r: any) => ({
+      ...r, _via: multiple ? (teamSources.get(r.team_card_id)?.name || 'Team card') : undefined,
+    })),
+  ].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
 
   return (
     <div className="max-w-4xl mx-auto space-y-5 animate-fade-in pb-16">
@@ -84,7 +127,11 @@ export default async function ContactsPage() {
             <div>
               <h1 className="font-display text-2xl font-bold leading-tight">People who reached out</h1>
               <p className="text-muted-foreground text-sm">
-                Everyone who left their details on {isTeam ? 'your team card' : 'your card'}. Tap any of them to reply.
+                {managed.length > 0
+                  ? <>Everyone who left their details on your card or on a card in {managed.length === 1 ? managed[0].name : 'your departments'}. Tap any of them to reply.</>
+                  : multiple
+                    ? <>Everyone who left their details on any of your cards. Tap any of them to reply.</>
+                    : <>Everyone who left their details on {isTeam ? 'your team card' : 'your card'}. Tap any of them to reply.</>}
               </p>
             </div>
           </div>

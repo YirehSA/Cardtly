@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/plan-server'
-import { getPrimaryCard } from '@/lib/card-server'
+import { getPrimaryCard, getMemberTeamCard } from '@/lib/card-server'
+import { getManagedDepartments } from '@/lib/department-perms'
 import { redirect } from 'next/navigation'
 import QRPage from '@/components/card/QRPage'
 
@@ -31,24 +32,46 @@ export default async function QRCodePage() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  const { data: org } = await admin
-    .from('organizations')
-    .select('id')
-    .eq('admin_user_id', user.id)
-    .single()
+  // Which team cards this person may make a QR code for.
+  //
+  // This asked only whether they own the organisation, so a department head
+  // got an empty list and could not produce a QR code for anybody on their
+  // own team - including, if they had no personal card, for themselves. Heads
+  // are exactly the people printing signage and email footers for their team,
+  // so it was missing for the ones who needed it most.
+  //
+  // An owner still gets the whole company. A head gets the departments
+  // getManagedDepartments returns, which is already their own subtree and
+  // never a sibling's.
+  const [{ data: org }, managed, memberCard] = await Promise.all([
+    admin.from('organizations').select('id').eq('admin_user_id', user.id).maybeSingle(),
+    getManagedDepartments(admin, user.id),
+    getMemberTeamCard<CardSummary>(user.id, 'id, slug, name, profile_image_url, company_logo_url, color_theme'),
+  ])
 
-  const { data: teamCards } = org
-    ? await admin
-        .from('team_cards')
-        .select('id, slug, name, profile_image_url, company_logo_url, color_theme')
-        .eq('organization_id', org.id)
-        .eq('is_active', true)
-        .order('name')
-    : { data: [] }
+  const TEAM_COLUMNS = 'id, slug, name, profile_image_url, company_logo_url, color_theme'
+  let teamCards: any[] = []
+  if (org) {
+    const { data } = await admin
+      .from('team_cards').select(TEAM_COLUMNS)
+      .eq('organization_id', org.id).eq('is_active', true).order('name')
+    teamCards = data || []
+  } else if (managed.length > 0) {
+    const { data } = await admin
+      .from('team_cards').select(TEAM_COLUMNS)
+      .in('department_id', managed.map(d => d.id)).eq('is_active', true).order('name')
+    teamCards = data || []
+  }
+
+  // A member with no personal card still needs their own QR. Skipped when the
+  // list above already contains it, or it would appear twice.
+  const own = memberCard && !teamCards.some(c => c.id === (memberCard as any).id)
+    ? [memberCard as any] : []
 
   const allCards = [
     ...(personalCard ? [{ ...personalCard, _label: `${personalCard.name} (My card)` }] : []),
-    ...(teamCards || []).map((c: any) => ({ ...c, _label: `${c.name} — Team` })),
+    ...own.map((c: any) => ({ ...c, _label: `${c.name} (My team card)` })),
+    ...teamCards.map((c: any) => ({ ...c, _label: `${c.name} — Team` })),
   ]
 
   if (allCards.length === 0) {

@@ -211,53 +211,138 @@ function FirstRun({ ownedOrgs, call, loading }: {
   ownedOrgs: OwnedOrg[]; call: (k: string, b: object, m: string) => Promise<boolean>; loading: string | null
 }) {
   const [name, setName] = useState('')
+  // Which shape the business is. Nothing is created until this is answered,
+  // because the answer decides what gets made first.
+  //
+  // This screen used to offer one box, "name your first department", and sent
+  // create_department with no kind. So setting up a group meant making a
+  // department you did not want, purely to reach the screen that could make a
+  // company - and a department created before any company sits outside every
+  // business, which is the one arrangement the model does not allow.
+  const [shape, setShape] = useState<'one' | 'group' | null>(null)
   const org = ownedOrgs[0]
-  const steps = [
-    { icon: Building2, color: '#7c3aed', title: 'Make a department', text: 'Like Sales, or Support. Give it a name.' },
-    { icon: ShieldCheck, color: '#06b6d4', title: 'Put someone in charge', text: 'Pick a head. They run just that team.' },
-    { icon: UserPlus, color: '#ec4899', title: 'They invite their people', text: 'Each head builds their own team.' },
-  ]
+  const isCompany = shape === 'group'
+  const busy = loading === `newdept-${org.id}`
+
+  async function create() {
+    if (!name.trim() || !shape) return
+    const ok = await call(
+      `newdept-${org.id}`,
+      {
+        action: 'create_department',
+        org_id: org.id,
+        name: name.trim(),
+        // Sent explicitly. The API treats a missing kind as a department,
+        // which is what made a company unreachable from here.
+        kind: isCompany ? 'company' : 'department',
+      },
+      `${name.trim()} created`,
+    )
+    if (ok) setName('')
+  }
+
+  const steps = isCompany
+    ? [
+      { icon: Building2, color: '#7c3aed', title: 'Add each business', text: 'One company per business in the group.' },
+      { icon: Layers, color: '#06b6d4', title: 'Departments inside them', text: 'Sales, Admin, a branch. Cards live in these.' },
+      { icon: UserPlus, color: '#ec4899', title: 'A head runs each one', text: 'They invite their own people.' },
+    ]
+    : [
+      { icon: Building2, color: '#7c3aed', title: 'Make a department', text: 'Like Sales, or Support. Give it a name.' },
+      { icon: ShieldCheck, color: '#06b6d4', title: 'Put someone in charge', text: 'Pick a head. They run just that team.' },
+      { icon: UserPlus, color: '#ec4899', title: 'They invite their people', text: 'Each head builds their own team.' },
+    ]
+
   return (
     <div className="rounded-3xl border border-border bg-card overflow-hidden">
       <div className="p-6 sm:p-8 text-center" style={{ background: 'linear-gradient(180deg, rgba(124,58,237,0.08), transparent)' }}>
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: grad }}>
           <Sparkles className="w-6 h-6 text-white" />
         </div>
-        <h2 className="text-xl font-bold">Split your company into departments</h2>
+        <h2 className="text-xl font-bold">Set up your structure</h2>
         <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-          Each one gets its own look and its own boss. It takes three easy steps.
+          {shape === null
+            ? 'First, which of these is you? You can change it later.'
+            : isCompany
+              ? 'A group holds companies, and each company holds its own departments.'
+              : 'Each department gets its own look and its own boss.'}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 px-6 pb-2">
-        {steps.map((s, i) => (
-          <div key={i} className="rounded-2xl border border-border p-4 text-center">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2 relative"
-              style={{ background: `${s.color}1f`, border: `1px solid ${s.color}44` }}>
-              <s.icon className="w-5 h-5" style={{ color: s.color }} />
-              <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full text-[10px] font-black text-white flex items-center justify-center" style={{ background: s.color }}>{i + 1}</span>
-            </div>
-            <p className="font-semibold text-sm">{s.title}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{s.text}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="p-6 sm:p-8">
-        <label className="text-sm font-semibold block mb-2">Start now — name your first department</label>
-        <div className="flex gap-2 flex-wrap">
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Sales"
-            onKeyDown={e => { if (e.key === 'Enter' && name.trim()) call(`newdept-${org.id}`, { action: 'create_department', org_id: org.id, name: name.trim() }, `${name.trim()} created`).then(ok => ok && setName('')) }}
-            className="flex-1 min-w-[180px] px-4 py-3 rounded-xl border border-border bg-background text-base" />
-          <button disabled={!name.trim() || loading === `newdept-${org.id}`}
-            onClick={async () => { const ok = await call(`newdept-${org.id}`, { action: 'create_department', org_id: org.id, name: name.trim() }, `${name.trim()} created`); if (ok) setName('') }}
-            className="px-5 py-3 rounded-xl text-base font-bold text-white transition hover:opacity-90 disabled:opacity-40 flex items-center gap-2"
-            style={{ background: grad }}>
-            {loading === `newdept-${org.id}` ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-            Create
-          </button>
+      {/* ── The question, asked before anything is created ─────────────── */}
+      {shape === null ? (
+        <div className="p-6 sm:p-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {([
+            {
+              id: 'one' as const, icon: Building2, tone: '#00d4ff',
+              title: 'One business',
+              body: 'Everyone works for the same company. You split it into departments like Sales and Admin.',
+            },
+            {
+              id: 'group' as const, icon: Layers, tone: '#7c3aed',
+              title: 'A group of businesses',
+              body: 'You own several companies. Each keeps its own branding, its own manager and its own web address, on one invoice.',
+            },
+          ]).map(o => (
+            <button key={o.id} onClick={() => setShape(o.id)}
+              className="text-left rounded-2xl border-2 border-border p-4 transition hover:-translate-y-0.5 hover:shadow-lg"
+              style={{ borderColor: `${o.tone}44` }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2"
+                style={{ background: `${o.tone}1f`, border: `1px solid ${o.tone}44` }}>
+                <o.icon className="w-5 h-5" style={{ color: o.tone }} />
+              </div>
+              <p className="font-bold text-sm">{o.title}</p>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{o.body}</p>
+            </button>
+          ))}
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 px-6 pb-2">
+            {steps.map((s, i) => (
+              <div key={i} className="rounded-2xl border border-border p-4 text-center">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2 relative"
+                  style={{ background: `${s.color}1f`, border: `1px solid ${s.color}44` }}>
+                  <s.icon className="w-5 h-5" style={{ color: s.color }} />
+                  <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full text-[10px] font-black text-white flex items-center justify-center" style={{ background: s.color }}>{i + 1}</span>
+                </div>
+                <p className="font-semibold text-sm">{s.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{s.text}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="p-6 sm:p-8">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <label className="text-sm font-semibold">
+                {isCompany ? 'Name your first company' : 'Name your first department'}
+              </label>
+              <button onClick={() => { setShape(null); setName('') }}
+                className="text-xs text-muted-foreground underline hover:text-foreground">
+                not right, go back
+              </button>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <input value={name} onChange={e => setName(e.target.value)}
+                placeholder={isCompany ? 'TBCo Roofing' : 'Sales'}
+                onKeyDown={e => { if (e.key === 'Enter') create() }}
+                className="flex-1 min-w-[180px] px-4 py-3 rounded-xl border border-border bg-background text-base" />
+              <button disabled={!name.trim() || busy} onClick={create}
+                className="px-5 py-3 rounded-xl text-base font-bold text-white transition hover:opacity-90 disabled:opacity-40 flex items-center gap-2"
+                style={{ background: grad }}>
+                {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+                Create
+              </button>
+            </div>
+            {isCompany && (
+              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                Cards in it will live at <span className="font-mono">/card/{slugPreview(name) || 'name'}/person</span>.
+                Choose the name once: changing it later moves every card URL underneath it, and those get printed on NFC cards.
+              </p>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -286,20 +371,52 @@ function NewDeptTile({ ownedOrgs, call, loading, departments }: {
   const parentRequired = kind === 'department' && orgHasCompanies
   const canSubmit = !!name.trim() && (!parentRequired || !!parentId)
 
+  // Two buttons, not one button hiding a dropdown.
+  //
+  // This was a single "New department" tile whose kind defaulted to
+  // department, with Company tucked inside a select. Setting up a group meant
+  // pressing the wrong thing and then discovering the right one, and a
+  // department cannot exist before the company it belongs to - so the flow led
+  // you round the wrong way. Company is listed first for a team that has none
+  // yet, because that is the one to make first.
   if (!open) {
+    const startWith = (k: 'company' | 'department') => { setKind(k); setOpen(true) }
     return (
-      <button onClick={() => setOpen(true)}
-        className="rounded-2xl border-2 border-dashed border-border p-4 flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground transition hover:border-purple-500/50 hover:text-foreground min-h-[104px]">
-        <Plus className="w-5 h-5" /> New department
-      </button>
+      <div className="rounded-2xl border-2 border-dashed border-border p-4 flex flex-col justify-center gap-2 min-h-[104px]">
+        {!orgHasCompanies && (
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            Running several businesses under one group? Make a company first, then put
+            its departments inside it.
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => startWith('company')}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border text-sm font-semibold text-muted-foreground transition hover:border-purple-500/50 hover:text-foreground">
+            <Building2 className="w-4 h-4" />New company
+          </button>
+          <button onClick={() => startWith('department')}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border text-sm font-semibold text-muted-foreground transition hover:border-purple-500/50 hover:text-foreground">
+            <Plus className="w-4 h-4" />New department
+          </button>
+        </div>
+      </div>
     )
   }
   return (
     <div className="rounded-2xl border border-purple-500/40 bg-card p-4" style={{ background: 'rgba(124,58,237,0.05)' }}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-semibold">New department</span>
+        <span className="text-sm font-semibold">
+          {kind === 'company' ? 'New company' : 'New department'}
+        </span>
         <button onClick={() => setOpen(false)}><X className="w-4 h-4 text-muted-foreground" /></button>
       </div>
+      {/* Says what the thing being made actually is, since the two are not
+          interchangeable and the difference decides where cards can go. */}
+      <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
+        {kind === 'company'
+          ? 'A business under your group. It gets its own branding, its own manager and its own web address. Departments go inside it.'
+          : 'A team that people’s cards belong to, like Sales or Admin. Cards attach to a department, never straight to a company.'}
+      </p>
       {ownedOrgs.length > 1 && (
         <select value={orgId} onChange={e => setOrgId(e.target.value)} className="w-full mb-2 px-3 py-2 rounded-lg border border-border bg-background text-sm">
           {ownedOrgs.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
