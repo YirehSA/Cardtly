@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import MicrosoftSignIn from '@/components/auth/MicrosoftSignIn'
 import { ArrowRight, Wifi, Eye, EyeOff, Mail, Lock } from 'lucide-react'
 
 const schema = z.object({
@@ -16,6 +17,12 @@ const schema = z.object({
 })
 
 type FormData = z.infer<typeof schema>
+
+// Set NEXT_PUBLIC_MS_SSO=1 once the Azure app registration and the Supabase
+// provider are both in place. Until then the button stays off: a sign-in
+// button that cannot sign anybody in is worse than no button, and this is the
+// page people land on when something has already gone wrong.
+const MS_SSO_ENABLED = process.env.NEXT_PUBLIC_MS_SSO === '1'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 const gradText: React.CSSProperties = {
@@ -145,6 +152,23 @@ function LoginForm() {
         {magicMode ? <Lock className="w-3.5 h-3.5" /> : <Mail className="w-3.5 h-3.5" />}
         {magicMode ? 'Use password instead' : 'Email me a magic link instead'}
       </button>
+
+      {/* Behind a flag, so the button cannot appear on an environment where
+          the provider has not been configured and pressing it would only
+          produce an error from Supabase. */}
+      {MS_SSO_ENABLED && (
+        <>
+          <div className="flex items-center gap-3 pt-2">
+            <span className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.12)' }} />
+            <span className="text-[11px] text-white/40">or</span>
+            <span className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.12)' }} />
+          </div>
+          <MicrosoftSignIn />
+          <p className="text-[11px] text-center text-white/35">
+            Use your work account. Your company&rsquo;s own sign-in rules apply, and Cardtly never sees your password.
+          </p>
+        </>
+      )}
     </form>
   )
 }
