@@ -21,36 +21,45 @@ const BATCH = 25
 // The worked example shown above the paste box: every column Cardtly reads,
 // with values that look like a real South African staff list.
 //
-// There is ONE company column, not two. "Business unit", "division", "branch"
-// and "entity" are all aliases of it in ALIASES.company, and checkRows routes
-// on r.company - so a sheet carrying both a Company and a Business unit
-// heading has the second silently ignored. Showing them as separate columns
-// would have taught people to build exactly that sheet.
+// Company and Department are two columns, not one.
 //
-// When the team has departments the value has to be a DEPARTMENT name, since
-// matchDepartment refuses to file anybody against a company node. The example
-// changes to match, or it would demonstrate a row that comes back unrouted.
-type ExampleKey = 'name' | 'email' | 'title' | 'phone' | 'company'
+// They used to be a single column, because routing read r.company and
+// "business unit", "division" and "branch" were all aliases of it. That made
+// a group with a Sales in two different businesses impossible to express: the
+// bare name was ambiguous and refused, and naming the company was refused too
+// because cards attach to departments. Two columns is also simply how a staff
+// list comes out of any HR system, so it needs no explaining.
+type ExampleKey = 'name' | 'email' | 'title' | 'phone' | 'company' | 'department'
 
 function exampleColumns(routes: boolean): Array<{ header: string; key: ExampleKey; optional?: boolean }> {
-  return [
+  const base: Array<{ header: string; key: ExampleKey; optional?: boolean }> = [
     { header: 'Name', key: 'name' },
     { header: 'Email', key: 'email' },
     { header: 'Job title', key: 'title', optional: true },
     { header: 'Phone', key: 'phone', optional: true },
-    { header: routes ? 'Business unit' : 'Company', key: 'company', optional: true },
+    { header: 'Company', key: 'company', optional: true },
   ]
+  // Only shown to a team that has departments to route into. A flat team has
+  // nowhere to put it, and a column that cannot do anything is a column
+  // somebody will still try to fill in.
+  return routes
+    ? [...base, { header: 'Department', key: 'department', optional: true }]
+    : base
 }
 
 function exampleRows(routes: boolean): Array<Record<ExampleKey, string>> {
   return [
     {
       name: 'Thabo Nkosi', email: 'thabo@company.co.za', title: 'Site Manager',
-      phone: '082 123 4567', company: routes ? 'Site Management' : 'TBCo Roofing',
+      phone: '082 123 4567',
+      company: routes ? 'Vistio' : 'TBCo Roofing',
+      department: 'Site Management',
     },
     {
       name: 'Sarah Botha', email: 'sarah@company.co.za', title: 'Sales Director',
-      phone: '083 987 6543', company: routes ? 'Sales' : 'TBCo Roofing',
+      phone: '083 987 6543',
+      company: routes ? 'Cardtly' : 'TBCo Roofing',
+      department: 'Sales',
     },
   ]
 }
@@ -333,7 +342,10 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
                   &ldquo;First name&rdquo; instead of one Name, &ldquo;Cell&rdquo; or &ldquo;Contact
                   number&rdquo; for the phone
                   {targets.length > 0
-                    ? <>, and &ldquo;Company&rdquo;, &ldquo;Division&rdquo;, &ldquo;Branch&rdquo; or &ldquo;Department&rdquo; for the last one. Put the <strong className="text-foreground">department</strong> name there and each person is filed into that team automatically. You will see where every row is going before anything is created.</>
+                    ? <>, and &ldquo;Business unit&rdquo;, &ldquo;Division&rdquo; or &ldquo;Team&rdquo; for the department.
+                      Each person is filed into that team automatically. If two of your businesses both
+                      have a department with the same name, the <strong className="text-foreground">Company</strong> column
+                      is what tells them apart. You will see exactly where every row is going before anything is created.</>
                     : '.'}
                 </p>
               </div>

@@ -143,25 +143,29 @@ eq('no match returns nothing', filterCompanyCards(CARDS, 'zzz', null, null), [])
 // Pull the example straight out of the component so the test cannot pass
 // against a copy that no longer matches what is rendered.
 const src = readFileSync('components/team/BulkImportModal.tsx', 'utf8')
-const headerLine = src.match(/header: routes \? '([^']+)' : '([^']+)', key: 'company'/)
-const routingHeader = headerLine?.[1]
-const plainHeader = headerLine?.[2]
 
+// Headers read out of the component rather than retyped, so the test cannot
+// pass against an example that no longer matches what is rendered.
+const headerFor = key => src.match(new RegExp("header: '([^']+)', key: '" + key + "'"))?.[1]
+const H = {
+  name: headerFor('name'), email: headerFor('email'), title: headerFor('title'),
+  phone: headerFor('phone'), company: headerFor('company'), department: headerFor('department'),
+}
+for (const [k, v] of Object.entries(H)) ok(`the example has a ${k} column`, !!v, `got ${v}`)
 
-ok('routing header found in source', !!routingHeader, String(headerLine))
-ok('plain header found in source', !!plainHeader)
-
-// The departments a group would really have.
+// A group where two businesses each have a Sales - the shape that broke.
 const targets = [
-  { id: 'd1', name: 'Site Management', kind: 'department' },
-  { id: 'd2', name: 'Sales', kind: 'department' },
-  { id: 'c1', name: 'TBCo Roofing', kind: 'company' },
+  { id: 'coV', name: 'Vistio', kind: 'company', parentName: null },
+  { id: 'coC', name: 'Cardtly', kind: 'company', parentName: null },
+  { id: 'dVS', name: 'Site Management', kind: 'department', parentName: 'Vistio' },
+  { id: 'dVSales', name: 'Sales', kind: 'department', parentName: 'Vistio' },
+  { id: 'dCSales', name: 'Sales', kind: 'department', parentName: 'Cardtly' },
 ]
 
 const grid = [
-  ['Name', 'Email', 'Job title', 'Phone', routingHeader],
-  ['Thabo Nkosi', 'thabo@company.co.za', 'Site Manager', '082 123 4567', 'Site Management'],
-  ['Sarah Botha', 'sarah@company.co.za', 'Sales Director', '083 987 6543', 'Sales'],
+  [H.name, H.email, H.title, H.phone, H.company, H.department],
+  ['Thabo Nkosi', 'thabo@company.co.za', 'Site Manager', '082 123 4567', 'Vistio', 'Site Management'],
+  ['Sarah Botha', 'sarah@company.co.za', 'Sales Director', '083 987 6543', 'Cardtly', 'Sales'],
 ]
 
 const parsed = parseDelimited(rowsToCsv(grid))
@@ -171,33 +175,59 @@ const hasHeader = looksLikeHeader(parsed[0])
 ok('the header row is recognised as a header', hasHeader === true)
 
 const map = detectColumns(parsed[0])
-for (const [field, idx] of Object.entries(map)) {
-  if (field === 'firstName' || field === 'lastName') continue
-  ok(`column "${field}" is recognised`, idx !== -1, `detectColumns gave ${idx} for ${field}`)
+for (const field of ['name', 'email', 'title', 'phone', 'company', 'department']) {
+  ok(`column "${field}" is recognised`, map[field] !== -1, `detectColumns gave ${map[field]}`)
 }
+ok('company and department are different columns', map.company !== map.department,
+   `both resolved to ${map.company}`)
 
 const rows = toRows(parsed, map, hasHeader)
 ok('both example rows parse', rows.length === 2, `got ${rows.length}`)
 ok('phone survives', rows[0].phone === '082 123 4567', `got "${rows[0].phone}"`)
 ok('job title survives', rows[0].title === 'Site Manager', `got "${rows[0].title}"`)
+ok('company survives', rows[0].company === 'Vistio', `got "${rows[0].company}"`)
+ok('department survives', rows[0].department === 'Site Management', `got "${rows[0].department}"`)
 
 const checked = checkRows(rows, [], 10, targets)
 ok('both rows are ready to import', checked.every(r => r.status === 'ready'),
    checked.map(r => `${r.name}=${r.status}`).join(', '))
-ok('Thabo routes into Site Management', checked[0].departmentName === 'Site Management',
-   `got "${checked[0].departmentName}"`)
-ok('Sarah routes into Sales', checked[1].departmentName === 'Sales',
-   `got "${checked[1].departmentName}"`)
+eq('Thabo lands in Vistio Site Management', checked[0].departmentId, 'dVS')
 
-// The mistake the example used to encourage: a company name in that column.
-const badGrid = [
-  ['Name', 'Email', routingHeader],
-  ['Thabo Nkosi', 'thabo@company.co.za', 'TBCo Roofing'],
+// The one that matters: "Sales" exists in both businesses, and the company
+// column is what decides. Getting this wrong puts staff in a rival company.
+eq('Sarah lands in CARDTLY Sales, not Vistio Sales', checked[1].departmentId, 'dCSales')
+
+const swapped = checkRows(
+  toRows(parseDelimited(rowsToCsv([
+    [H.name, H.email, H.company, H.department],
+    ['Sarah Botha', 'sarah@company.co.za', 'Vistio', 'Sales'],
+  ])), detectColumns([H.name, H.email, H.company, H.department]), true),
+  [], 10, targets)
+eq('and swapping the company moves her to Vistio Sales', swapped[0].departmentId, 'dVSales')
+
+// A department name with no company beside it is still refused when two
+// businesses share it, rather than guessed at.
+const bare = checkRows(
+  toRows(parseDelimited(rowsToCsv([
+    [H.name, H.email, H.department],
+    ['Thabo Nkosi', 'thabo@company.co.za', 'Sales'],
+  ])), detectColumns([H.name, H.email, H.department]), true),
+  [], 10, targets)
+eq('a bare shared department name still routes nowhere', bare[0].departmentId, null)
+
+// Files written before the department column existed must keep working: one
+// column, holding the department name, unambiguous.
+const legacyTargets = [
+  { id: 'L1', name: 'Sales', kind: 'department', parentName: null },
+  { id: 'L2', name: 'Admin', kind: 'department', parentName: null },
 ]
-const badParsed = parseDelimited(rowsToCsv(badGrid))
-const badChecked = checkRows(toRows(badParsed, detectColumns(badParsed[0]), true), [], 10, targets)
-ok('naming a COMPANY in that column does not route (which is why the example names a department)',
-   badChecked[0].departmentName === null, `got "${badChecked[0].departmentName}"`)
+const legacy = checkRows(
+  toRows(parseDelimited(rowsToCsv([
+    ['Name', 'Email', 'Business unit'],
+    ['Thabo Nkosi', 'thabo@company.co.za', 'Sales'],
+  ])), detectColumns(['Name', 'Email', 'Business unit']), true),
+  [], 10, legacyTargets)
+eq('a legacy single-column file still routes', legacy[0].departmentId, 'L1')
 
 
 // ── Routing when two companies each have a "Sales" ─────────────────────────

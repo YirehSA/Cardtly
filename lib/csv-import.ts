@@ -18,9 +18,18 @@ export type ImportRow = {
   phone: string
   company: string
   /**
-   * Which department this person lands in, matched from the company column.
-   * Null means no match: the card is still created, it just wears the company
-   * look rather than a business unit's.
+   * The team inside that company, from its own column.
+   *
+   * Separate from company on purpose. A group with a Sales in two different
+   * businesses cannot be said in one column, and asking somebody to type
+   * "Vistio Sales" into a single cell is not how a staff list comes out of
+   * any HR system.
+   */
+  department: string
+  /**
+   * Which department this person lands in, resolved from the department and
+   * company columns. Null means no match: the card is still created, it just
+   * wears the company look rather than a business unit's.
    */
   departmentId?: string | null
   departmentName?: string | null
@@ -48,7 +57,12 @@ export type ImportTarget = {
  * "Sales" means "Sales & Marketing" would route people into the wrong business
  * silently, and a card in the wrong company is worse than a card in none.
  */
-export function matchDepartment(value: string, targets: ImportTarget[]): ImportTarget | null {
+export function matchDepartment(
+  value: string,
+  targets: ImportTarget[],
+  /** The company column from the same row, when the file has one. */
+  companyHint?: string,
+): ImportTarget | null {
   const norm = (s: string) => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
   const wanted = norm(value)
   if (!wanted) return null
@@ -56,7 +70,18 @@ export function matchDepartment(value: string, targets: ImportTarget[]): ImportT
   // Departments only. A card belongs to a department, never to the company
   // above it, so a column naming a company is reported as unrouted rather
   // than quietly parking somebody outside every team.
-  const depts = targets.filter(t => t.kind !== 'company')
+  let depts = targets.filter(t => t.kind !== 'company')
+
+  // Narrow to the named company first. This is what makes two businesses each
+  // having a "Sales" work: the department column says which team, the company
+  // column says whose. Only narrowed when the company is actually recognised,
+  // so a file naming a company that does not exist here falls through to the
+  // ordinary rules rather than silently matching nothing.
+  const co = norm(companyHint || '')
+  if (co) {
+    const inCompany = depts.filter(t => t.parentName && norm(t.parentName) === co)
+    if (inCompany.length > 0) depts = inCompany
+  }
 
   const exact = depts.filter(t => norm(t.name) === wanted)
   if (exact.length === 1) return exact[0]
@@ -134,6 +159,7 @@ export type ColumnMap = {
   title: number
   phone: number
   company: number
+  department: number
 }
 
 const ALIASES: Record<keyof ColumnMap, string[]> = {
@@ -145,7 +171,13 @@ const ALIASES: Record<keyof ColumnMap, string[]> = {
   email: ['email address', 'e-mail address', 'work email', 'email', 'e-mail', 'mail', 'email_address'],
   title: ['job title', 'jobtitle', 'job_title', 'position', 'designation', 'role', 'title'],
   phone: ['mobile number', 'cell phone', 'cellphone', 'contact number', 'phone number', 'mobile', 'phone', 'cell', 'telephone', 'tel', 'msisdn'],
-  company: ['company name', 'company', 'business unit', 'organisation', 'organization', 'division', 'entity', 'branch'],
+  // "business unit", "division" and "branch" moved to department, where they
+  // belong: every one of them names a team inside a business rather than the
+  // business itself. They lived here only because routing used to read the
+  // company column, which is what made two companies each having a "Sales"
+  // impossible to express.
+  company: ['company name', 'company', 'organisation', 'organization', 'employer', 'entity'],
+  department: ['business unit', 'department', 'dept', 'division', 'branch', 'team', 'unit'],
 }
 
 const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ')
@@ -234,7 +266,7 @@ export function rowsToCsv(rows: Array<Array<string | null | undefined>>): string
 /** Match header names to card fields. */
 export function detectColumns(header: string[]): ColumnMap {
   const cells = header.map(norm)
-  const map: ColumnMap = { name: -1, firstName: -1, lastName: -1, email: -1, title: -1, phone: -1, company: -1 }
+  const map: ColumnMap = { name: -1, firstName: -1, lastName: -1, email: -1, title: -1, phone: -1, company: -1, department: -1 }
 
   for (const key of Object.keys(ALIASES) as Array<keyof ColumnMap>) {
     for (const alias of ALIASES[key]) {
@@ -270,6 +302,7 @@ export function toRows(grid: string[][], map: ColumnMap, hasHeader: boolean): Im
       title: at(r, map.title),
       phone: at(r, map.phone),
       company: at(r, map.company),
+      department: at(r, map.department),
     }
   })
 }
@@ -320,7 +353,12 @@ export function checkRows(
     // Routing is worked out for every row, including skipped ones, so the
     // preview can show where a person WOULD have gone. An admin fixing a
     // duplicate wants to see it was headed to the right place.
-    const target = targets.length ? matchDepartment(r.company, targets) : null
+    // The department column when the file has one, falling back to the company
+    // column when it does not - which is how every file written before this
+    // existed is shaped, and those must keep importing exactly as they did.
+    const target = targets.length
+      ? matchDepartment(r.department || r.company, targets, r.company)
+      : null
 
     return {
       ...r,
