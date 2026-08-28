@@ -7,6 +7,7 @@ import { INDUSTRIES_BY_GROUP } from '@/lib/industries'
 import { toast } from 'sonner'
 import { useEffect } from 'react'
 import { User, Lock, CreditCard, AlertTriangle, Check, Eye, EyeOff, Download, Loader2 } from 'lucide-react'
+import PrimaryCardPicker, { type PickerCard } from '@/components/settings/PrimaryCardPicker'
 import { useRouter } from 'next/navigation'
 import { useIosApp } from '@/components/dashboard/PlatformProvider'
 
@@ -22,6 +23,8 @@ interface Props {
     billing_cycle: string | null
     seats: number | null
   } | null
+  /** Every card this person holds, for the primary-card picker. */
+  myCards?: PickerCard[]
 }
 
 type Tab = 'profile' | 'security' | 'billing' | 'danger'
@@ -33,7 +36,7 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'danger',   label: 'Danger zone', icon: <AlertTriangle className="w-4 h-4" /> },
 ]
 
-export default function SettingsTabs({ user, profile, plan, subscription, card }: Props & { card?: Props['card'] }) {
+export default function SettingsTabs({ user, profile, plan, subscription, card, myCards = [] }: Props & { card?: Props['card'] }) {
   const [tab, setTab] = useState<Tab>('profile')
   const supabase = createClient()
   const router = useRouter()
@@ -69,7 +72,13 @@ export default function SettingsTabs({ user, profile, plan, subscription, card }
 
       {/* Tab content */}
       <div className="bg-card border border-border rounded-3xl p-6">
-        {tab === 'profile' && <ProfileTab user={user} profile={profile} card={card || undefined} supabase={supabase} />}
+        {tab === 'profile' && (
+          <div className="space-y-6">
+            <ProfileTab user={user} profile={profile} card={card || undefined} supabase={supabase} />
+            {/* Only appears when there really is a choice to make. */}
+            <PrimaryCardPicker cards={myCards} />
+          </div>
+        )}
         {tab === 'security' && <SecurityTab user={user} supabase={supabase} />}
         {tab === 'billing' && <BillingTab plan={plan} subscription={subscription} />}
         {tab === 'danger' && (

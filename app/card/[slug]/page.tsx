@@ -82,6 +82,16 @@ export default async function PublicCardPage({ params }: Props) {
     .eq('slug', slug)
     .single()
 
+  // One person can hold both a personal and a team card. When they have
+  // chosen which one their link should open, the other carries
+  // redirect_to_slug and forwards here rather than serving a second, rival
+  // version of the same person. Checked before anything renders, and before
+  // the trial gate below, so a lapsed personal card still forwards to a live
+  // team card instead of 404ing.
+  if ((card as any)?.redirect_to_slug) {
+    redirect(`/card/${(card as any).redirect_to_slug}`)
+  }
+
   if (card) {
     // Use the service-role admin client for the profile + subscription
     // reads. These power the public card's "Online now" badge, Pro
@@ -145,6 +155,16 @@ export default async function PublicCardPage({ params }: Props) {
     .single()
 
   if (teamCard) {
+    // The same rule in the other direction: if the holder chose their
+    // personal card as the public one, this forwards there.
+    //
+    // Only on this route, not on /card/<company>/<person>. That address
+    // belongs to the company rather than to the individual, and an employee
+    // must not be able to point their employer's directory URL at a personal
+    // card. This one is the person's own vanity slug, which is theirs.
+    if ((teamCard as any).redirect_to_slug) {
+      redirect(`/card/${(teamCard as any).redirect_to_slug}`)
+    }
     // Rendering lives in components/card/TeamCardPublic, shared with
     // /card/<company>/<person> so the same card cannot look different
     // depending on which of its two URLs was opened.
