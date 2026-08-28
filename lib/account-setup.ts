@@ -51,6 +51,8 @@ export async function findFreeSlug(admin: any, base: string): Promise<string> {
 
 export interface AccountSetupResult {
   profileCreated: boolean
+  /** An existing profile row had no name and we filled it in. */
+  nameFilled: boolean
   cardCreated: boolean
   cardSlug: string | null
   /** Why no card was made, when none was. */
@@ -82,15 +84,31 @@ export async function ensureAccountReady(
     [meta.given_name, meta.family_name].filter(Boolean).join(' ').trim() ||
     (user.email ? user.email.split('@')[0] : 'My card')
 
+  // The profiles row usually exists already: something in the database
+  // creates one when the auth user appears, with no name in it. Measured on
+  // live data, 48 of 72 profiles have a null name - the signup form inserts
+  // one too, that insert loses to the existing row, and nobody checks the
+  // error. So "create it if missing" is not enough; the name has to be filled
+  // in when the row is there and empty, or every account arriving this way
+  // has a blank name in Settings.
   let profileCreated = false
+  let nameFilled = false
   const { data: profile } = await admin
-    .from('profiles').select('user_id').eq('user_id', user.id).maybeSingle()
+    .from('profiles').select('user_id, name').eq('user_id', user.id).maybeSingle()
+
   if (!profile) {
     const { error } = await admin.from('profiles').insert({ user_id: user.id, name: displayName })
     // A duplicate here is a race with another tab, not a failure worth
     // stopping for: the row exists either way, which is all this needed.
     if (error && error.code !== '23505') console.error('ensureAccountReady profile', error)
     else profileCreated = !error
+  } else if (!String(profile.name || '').trim()) {
+    // Only when empty. Somebody who has set their own name keeps it, even if
+    // their Microsoft directory says something different.
+    const { error } = await admin
+      .from('profiles').update({ name: displayName }).eq('user_id', user.id)
+    if (error) console.error('ensureAccountReady profile name', error)
+    else nameFilled = true
   }
 
   const [{ data: personal }, { data: teamCard }] = await Promise.all([
@@ -99,10 +117,10 @@ export async function ensureAccountReady(
   ])
 
   if (personal) {
-    return { profileCreated, cardCreated: false, cardSlug: personal.slug, cardSkipped: 'already-has-personal' }
+    return { profileCreated, nameFilled, cardCreated: false, cardSlug: personal.slug, cardSkipped: 'already-has-personal' }
   }
   if (teamCard) {
-    return { profileCreated, cardCreated: false, cardSlug: teamCard.slug, cardSkipped: 'has-team-card' }
+    return { profileCreated, nameFilled, cardCreated: false, cardSlug: teamCard.slug, cardSkipped: 'has-team-card' }
   }
 
   const slug = await findFreeSlug(admin, buildSlug(displayName))
@@ -123,8 +141,8 @@ export async function ensureAccountReady(
   })
   if (error) {
     console.error('ensureAccountReady card', error)
-    return { profileCreated, cardCreated: false, cardSlug: null, cardSkipped: null }
+    return { profileCreated, nameFilled, cardCreated: false, cardSlug: null, cardSkipped: null }
   }
 
-  return { profileCreated, cardCreated: true, cardSlug: slug, cardSkipped: null }
+  return { profileCreated, nameFilled, cardCreated: true, cardSlug: slug, cardSkipped: null }
 }
