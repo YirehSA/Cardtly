@@ -63,7 +63,9 @@ interface Props {
    *  contacted this rep" is a conclusion somebody would act on. */
   leadCounts: Record<string, number> | null
   // Departments a spreadsheet import can route people into.
-  importTargets: Array<{ id: string; name: string; kind?: 'company' | 'department' }>
+  // parentName carries the company a department sits under, which is what
+  // lets a spreadsheet pick between two businesses that each have a "Sales".
+  importTargets: Array<{ id: string; name: string; kind?: 'company' | 'department'; parentName?: string | null }>
 }
 
 const inputClass = "w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"

@@ -288,6 +288,36 @@ const FLAT = [
 eq('a flat team routes on the plain name', matchDepartment('Sales', FLAT)?.id, 'f1')
 eq('and is unaffected by the qualified form', matchDepartment('Nothing Sales', FLAT), null)
 
+// ── The server must pass targets to checkRows ──────────────────────────────
+//
+// checkRows does not merely skip routing when targets are missing: it writes
+// departmentId: null over whatever the row already carried. The API called it
+// with three arguments, so the browser matched the department correctly, showed
+// it in the preview, sent it, and the server nulled it on arrival. Every card
+// ever created by an import landed with no department while the preview said
+// otherwise.
+//
+// A unit test cannot catch that - the bug was in the call site - so this reads
+// the route and checks the call has its fourth argument.
+const apiSrc = readFileSync('app/api/team/bulk-import/route.ts', 'utf8')
+const callMatch = apiSrc.match(/checkRows\(([^)]*)\)/)
+ok('the import route calls checkRows', !!callMatch)
+if (callMatch) {
+  const args = callMatch[1].split(',').map(a => a.trim()).filter(Boolean)
+  ok('and passes targets as the fourth argument, or every import loses its department',
+     args.length >= 4, `called with ${args.length}: ${callMatch[1]}`)
+}
+ok('the route builds parentName onto its targets, so two companies with a shared department name can be told apart',
+   /parentName:/.test(apiSrc))
+
+// The behaviour that makes the above matter, pinned directly.
+const pinRows = toRows(
+  parseDelimited(rowsToCsv([['Name', 'Email', 'Department'], ['A B', 'a@b.co', 'Sales']])),
+  detectColumns(['Name', 'Email', 'Department']), true)
+const pinTargets = [{ id: 'S1', name: 'Sales', kind: 'department', parentName: null }]
+eq('checkRows WITHOUT targets nulls the department', checkRows(pinRows, [], 5)[0].departmentId, null)
+eq('checkRows WITH targets routes it', checkRows(pinRows, [], 5, pinTargets)[0].departmentId, 'S1')
+
 rmSync(out, { recursive: true, force: true })
 
 console.log(`\n${pass} passed, ${fail.length} failed`)

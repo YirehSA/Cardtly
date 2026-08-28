@@ -101,7 +101,30 @@ export async function POST(request: Request) {
     (deptRows || []).filter((d: any) => d.kind !== 'company').map((d: any) => d.id),
   )
 
-  const checked = checkRows(rows, existingEmails, seatsAvailable)
+  // The same targets the browser matched against, rebuilt here from this
+  // org's own rows.
+  //
+  // checkRows was called without them, and it does not merely skip routing
+  // when they are missing - it writes departmentId: null over whatever the
+  // row already carried. So the browser worked the routing out correctly,
+  // showed the right department in the preview, sent it, and the server threw
+  // it away on arrival. Every card ever created by an import landed with no
+  // department, and the preview said otherwise the whole time.
+  //
+  // Deriving it here rather than trusting the browser's value is also the
+  // right shape: ownDeptIds below already exists to stop a card being filed
+  // into another customer's department, and that guard is worth more when the
+  // id it checks was computed on this side.
+  const deptNameById: Record<string, string> = {}
+  for (const d of deptRows || []) deptNameById[d.id] = d.name
+  const targets = (deptRows || []).map((d: any) => ({
+    id: d.id,
+    name: d.name,
+    kind: d.kind === 'company' ? 'company' : 'department',
+    parentName: d.parent_id ? (deptNameById[d.parent_id] ?? null) : null,
+  }))
+
+  const checked = checkRows(rows, existingEmails, seatsAvailable, targets)
 
   const inviterName = await inviterNameFor(admin, user)
   const industry = await orgIndustry(admin, org_id)
