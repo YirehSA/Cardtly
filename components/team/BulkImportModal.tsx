@@ -200,8 +200,16 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
     const all: RowResult[] = []
 
     for (let i = 0; i < queue.length; i += BATCH) {
+      // department travels with the row.
+      //
+      // It did not, and the server re-derives routing from these fields rather
+      // than trusting departmentId - so the department column was read here,
+      // shown in the preview, and then never sent, leaving the server to fall
+      // back to the company column and route nowhere. Two halves of one wire,
+      // each correct on its own.
       const slice = queue.slice(i, i + BATCH).map(r => ({
-        line: r.line, name: r.name, email: r.email, title: r.title, phone: r.phone, company: r.company,
+        line: r.line, name: r.name, email: r.email, title: r.title, phone: r.phone,
+        company: r.company, department: r.department,
         departmentId: r.departmentId ?? null,
       }))
       try {

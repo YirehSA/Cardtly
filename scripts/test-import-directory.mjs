@@ -310,6 +310,31 @@ if (callMatch) {
 ok('the route builds parentName onto its targets, so two companies with a shared department name can be told apart',
    /parentName:/.test(apiSrc))
 
+// ── The browser must send what the server re-derives from ──────────────────
+//
+// Both import bugs lived on this wire, not in either end. The server nulled
+// the department because it called checkRows without targets; the browser then
+// did not send the department column at all, so fixing the server alone left
+// it falling back to company and routing nowhere. Each side was correct in
+// isolation and the pair was broken, which is exactly what testing them
+// separately cannot see.
+//
+// So: whatever the server feeds to checkRows, the payload must carry.
+const payloadMatch = modalSrc.match(/queue\.slice\(i, i \+ BATCH\)\.map\(r => \(\{([\s\S]*?)\}\)\)/)
+ok('the import payload was found in the modal', !!payloadMatch)
+if (payloadMatch) {
+  const sent = payloadMatch[1]
+  // Read the fields checkRows actually consults out of the library, rather
+  // than listing them here where they would drift.
+  const csvSrc = readFileSync('lib/csv-import.ts', 'utf8')
+  const matchCall = csvSrc.match(/matchDepartment\(\s*r\.(\w+)\s*\|\|\s*r\.(\w+),\s*targets,\s*r\.(\w+)\)/)
+  ok('checkRows routing reads the fields this test expects', !!matchCall, String(matchCall))
+  for (const field of new Set(matchCall ? matchCall.slice(1, 4) : [])) {
+    ok(`the payload sends "${field}", which the server routes on`,
+       new RegExp(`\\b${field}\\s*:`).test(sent), `payload was: ${sent.replace(/\s+/g, ' ').trim()}`)
+  }
+}
+
 // The behaviour that makes the above matter, pinned directly.
 const pinRows = toRows(
   parseDelimited(rowsToCsv([['Name', 'Email', 'Department'], ['A B', 'a@b.co', 'Sales']])),
