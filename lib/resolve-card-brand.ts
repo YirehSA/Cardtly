@@ -1,5 +1,5 @@
-import { mergeBrand } from '@/lib/team-brand'
-import { indexById, ancestorChain, resolveBrandChain, type DeptNode } from '@/lib/department-tree'
+import { mergeBrand } from './team-brand'
+import { indexById, ancestorChain, resolveBrandChain, type DeptNode } from './department-tree'
 
 // What a team card actually LOOKS like, for the pages that generate something
 // from it.

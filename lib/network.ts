@@ -1,4 +1,5 @@
 import { companyKey, industryLabel } from './industries'
+import { withResolvedBrand } from './resolve-card-brand'
 
 // Building the Network directory from the two card tables.
 //
@@ -55,10 +56,6 @@ export interface NetworkGroups {
 const CARD_FIELDS =
   'id, slug, name, title, company, industry, profile_image_url, company_logo_url, color_theme'
 
-// Only team cards belong to a department; the personal `cards` table has no
-// such column, so asking for it there would 42703 the whole directory into the
-// "not set up yet" notice.
-const TEAM_CARD_FIELDS = `${CARD_FIELDS}, department_id`
 
 export interface NetworkData {
   cards: NetworkCard[]
@@ -82,7 +79,14 @@ export async function fetchNetworkCards(admin: any): Promise<NetworkData> {
       .eq('hide_from_network', false),
     admin
       .from('team_cards')
-      .select(TEAM_CARD_FIELDS)
+      // select('*') so the brand can be resolved below: that needs
+      // use_team_brand, department_id and organization_id, none of which the
+      // listing itself displays.
+      //
+      // The extra columns never leave the server. `map` picks the listed
+      // fields explicitly, so the NetworkCard shape - and the deliberate
+      // absence of email and phone from it - is unchanged.
+      .select('*')
       .not('slug', 'is', null)
       .eq('hide_from_network', false)
       // The manager's separate veto. A team card is listed only when the
@@ -104,6 +108,32 @@ export async function fetchNetworkCards(admin: any): Promise<NetworkData> {
   for (const row of (depts?.data || []) as any[]) {
     if (row?.id && row?.name) deptNames.set(row.id, row.name)
   }
+
+  // Resolve what each team card actually wears before anything reads a logo
+  // off it.
+  //
+  // A company's logo can live on the organisation, or on the company node, or
+  // on a department. The directory only ever consulted the ORG brand, keyed by
+  // the company name written in that brand - so a group whose logo sits on a
+  // department node, and whose cards write a shorter company name than the
+  // brand does, matched nothing and fell back to a grey building icon.
+  // Resolving first means the logo arrives on the card, where the grouping
+  // below already knows to pick it up.
+  // The resolved card is used for its LOGO, never for its company name.
+  //
+  // company is a brand field, so resolving overwrites whatever the card said
+  // with whatever the brand says. The directory groups by that text, and the
+  // two are not always the same string: cards written as "Vistio" against a
+  // brand that calls itself "Vistio Group" split into two entries the moment
+  // the brand was applied - eight people under one name with no logo, one
+  // person under the other holding it. Keeping the card's own company keeps
+  // everybody in the group they were already in, and the logo now arrives
+  // with them.
+  const resolvedTeam = await withResolvedBrand(admin, (team.data || []) as any[])
+  const brandedTeam = resolvedTeam.map((r: any, i: number) => ({
+    ...r,
+    company: (team.data || [])[i]?.company ?? r.company,
+  }))
 
   const map = (rows: any[], isTeamCard: boolean): NetworkCard[] =>
     (rows || []).map(r => ({
@@ -140,7 +170,7 @@ export async function fetchNetworkCards(admin: any): Promise<NetworkData> {
   }
 
   return {
-    cards: [...map(personal.data, false), ...map(team.data, true)],
+    cards: [...map(personal.data, false), ...map(brandedTeam, true)],
     brandLogos,
     ready: true,
   }
