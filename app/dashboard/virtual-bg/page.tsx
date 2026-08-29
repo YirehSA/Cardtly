@@ -5,6 +5,8 @@ import { getUserPlan } from '@/lib/plan-server'
 import { getPrimaryCard, getMemberTeamCard } from '@/lib/card-server'
 import VirtualBGBuilder from '@/components/virtual-bg/VirtualBGBuilder'
 import ProGate from '@/components/card/ProGate'
+import { getManagedDepartments } from '@/lib/department-perms'
+import { withResolvedBrand } from '@/lib/resolve-card-brand'
 
 export const metadata = { title: 'Virtual Background' }
 
@@ -26,7 +28,7 @@ export default async function VirtualBGPage() {
   // Pro because the organisation is.
   const memberCard = personalCard
     ? null
-    : await getMemberTeamCard<Record<string, any>>(user.id, CARD_FIELDS)
+    : await getMemberTeamCard<Record<string, any>>(user.id, '*')
 
   const isPro = (plan.tier === 'pro' && plan.isActive) || !!memberCard
 
@@ -54,14 +56,32 @@ export default async function VirtualBGPage() {
     .limit(1)
     .maybeSingle()
 
-  const { data: teamCards } = org
-    ? await admin
-        .from('team_cards')
-        .select('id, name, title, company, email, phone, website, profile_image_url, company_logo_url, color_theme, slug')
-        .eq('organization_id', org.id)
-        .eq('is_active', true)
-        .order('name')
-    : { data: [] as Record<string, any>[] }
+  // Which team cards this person may make a background for.
+  //
+  // Owning the organisation was the only way in, so a department head saw
+  // none of their own team - the same omission the QR page and the email
+  // signature both had.
+  const managed = org ? [] : await getManagedDepartments(admin, user.id)
+
+  let teamCards: Record<string, any>[] = []
+  if (org) {
+    const { data } = await admin
+      .from('team_cards').select('*')
+      .eq('organization_id', org.id).eq('is_active', true).order('name')
+    teamCards = data || []
+  } else if (managed.length > 0) {
+    const { data } = await admin
+      .from('team_cards').select('*')
+      .in('department_id', managed.map(d => d.id)).eq('is_active', true).order('name')
+    teamCards = data || []
+  }
+
+  // A card on the team brand has no logo or colour of its own - a background
+  // built from the row would carry neither. See lib/resolve-card-brand.
+  const toBrand = [...teamCards, ...(memberCard ? [memberCard] : [])]
+  const branded = await withResolvedBrand(admin, toBrand)
+  teamCards = branded.slice(0, teamCards.length)
+  if (memberCard) Object.assign(memberCard, branded[teamCards.length])
 
   const allCards: any[] = [
     ...(personalCard ? [{ ...personalCard, _type: 'personal', _label: `${personalCard.name} (My card)` }] : []),

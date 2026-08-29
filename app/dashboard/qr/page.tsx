@@ -3,8 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { getUserPlan } from '@/lib/plan-server'
 import { getPrimaryCard, getMemberTeamCard } from '@/lib/card-server'
 import { getManagedDepartments } from '@/lib/department-perms'
-import { mergeBrand } from '@/lib/team-brand'
-import { indexById, ancestorChain, resolveBrandChain, type DeptNode } from '@/lib/department-tree'
+import { withResolvedBrand } from '@/lib/resolve-card-brand'
 import { redirect } from 'next/navigation'
 import QRPage from '@/components/card/QRPage'
 
@@ -74,48 +73,13 @@ export default async function QRCodePage() {
   const own = memberCard && !teamCards.some(c => c.id === (memberCard as any).id)
     ? [memberCard as any] : []
 
-  // Resolve what each team card LOOKS like, not just what its own row holds.
-  //
-  // A card on the team brand carries no logo of its own: the logo lives on the
-  // organisation, and the department may override it. This page read
-  // company_logo_url straight off the card row, found it empty, and told a
-  // team member to upload a logo first - while their card was already showing
-  // the company one everywhere else. Same for color_theme, which drives the
-  // "My colour" swatch.
-  //
-  // The cascade is the one the public card uses: group brand, then company,
-  // then department, each overriding only the fields it sets, and applied only
-  // when the card is opted in to the team brand.
-  const brandOrgIds = [...new Set([...teamCards, ...own]
-    .map((c: any) => c.organization_id).filter(Boolean))]
+  // A card on the team brand carries no logo of its own, so reading the row
+  // told a member to upload one while their card already showed the company
+  // logo everywhere else. See lib/resolve-card-brand.
+  const branded = await withResolvedBrand(admin, [...teamCards, ...own])
+  teamCards = branded.slice(0, teamCards.length)
+  for (let i = 0; i < own.length; i++) own[i] = branded[teamCards.length + i]
 
-  if (brandOrgIds.length > 0) {
-    const [{ data: orgRows }, { data: deptRows }] = await Promise.all([
-      admin.from('organizations').select('id, brand').in('id', brandOrgIds),
-      admin.from('departments').select('*').in('organization_id', brandOrgIds),
-    ])
-    const orgBrandById: Record<string, any> =
-      Object.fromEntries((orgRows || []).map((o: any) => [o.id, o.brand || {}]))
-    const nodes: DeptNode[] = (deptRows || []).map((d: any) => ({
-      id: d.id,
-      organization_id: d.organization_id,
-      name: d.name,
-      parent_id: d.parent_id ?? null,
-      kind: d.kind === 'company' ? 'company' : 'department',
-      slug_segment: d.slug_segment ?? null,
-      brand: d.brand || {},
-    }))
-    const byId = indexById(nodes)
-
-    const applyBrand = (c: any) => {
-      if (!c.use_team_brand) return c
-      const chain = c.department_id ? ancestorChain(c.department_id, byId) : []
-      const brand = resolveBrandChain(orgBrandById[c.organization_id] || {}, chain)
-      return mergeBrand(c, brand)
-    }
-    teamCards = teamCards.map(applyBrand)
-    for (let i = 0; i < own.length; i++) own[i] = applyBrand(own[i])
-  }
 
   const allCards = [
     ...(personalCard ? [{ ...personalCard, _label: `${personalCard.name} (My card)` }] : []),

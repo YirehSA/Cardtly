@@ -5,6 +5,8 @@ import { getUserPlan } from '@/lib/plan-server'
 import { getPrimaryCard, getMemberTeamCard } from '@/lib/card-server'
 import EmailSignatureBuilder, { type SignatureCard } from '@/components/email-signature/EmailSignatureBuilder'
 import ProGate from '@/components/card/ProGate'
+import { getManagedDepartments } from '@/lib/department-perms'
+import { withResolvedBrand } from '@/lib/resolve-card-brand'
 
 export const metadata = { title: 'Email Signature' }
 
@@ -26,7 +28,7 @@ export default async function EmailSignaturePage() {
   // card counts, and it is served by the organisation, so it is always Pro.
   const memberCard = personalCard
     ? null
-    : await getMemberTeamCard<Record<string, any>>(user.id, CARD_FIELDS)
+    : await getMemberTeamCard<Record<string, any>>(user.id, '*')
 
   const isPro = (plan.tier === 'pro' && plan.isActive) || !!memberCard
 
@@ -55,16 +57,38 @@ export default async function EmailSignaturePage() {
     .limit(1)
     .maybeSingle()
 
-  const { data: teamCards } = org
-    ? await admin
-        .from('team_cards')
-        .select('id, name, title, company, email, phone, website, linkedin_url, twitter_url, instagram_url, profile_image_url, company_logo_url, color_theme, slug')
-        .eq('organization_id', org.id)
-        .eq('is_active', true)
-        .order('name')
-    // Typed, because an untyped [] resolves to never[] and the map below then
-    // produces objects with no card fields at all.
-    : { data: [] as Record<string, any>[] }
+  // Which team cards this person may build a signature for.
+  //
+  // This asked only whether they own the organisation, so a department head
+  // saw none of their own team - the same omission the QR page had.
+  //
+  // select('*') rather than a column list: use_team_brand, department_id and
+  // organization_id are needed to work out what the card actually looks like,
+  // and naming a column a pending migration has not added returns an empty
+  // result rather than an error.
+  const managed = org ? [] : await getManagedDepartments(admin, user.id)
+
+  let teamCards: Record<string, any>[] = []
+  if (org) {
+    const { data } = await admin
+      .from('team_cards').select('*')
+      .eq('organization_id', org.id).eq('is_active', true).order('name')
+    teamCards = data || []
+  } else if (managed.length > 0) {
+    const { data } = await admin
+      .from('team_cards').select('*')
+      .in('department_id', managed.map(d => d.id)).eq('is_active', true).order('name')
+    teamCards = data || []
+  }
+
+  // A card on the team brand has no logo, website or socials of its own, so
+  // the signature came out with those toggles greyed and the accent colour at
+  // its default. See lib/resolve-card-brand.
+  const toBrand = [...teamCards, ...(memberCard ? [memberCard] : [])]
+  const branded = await withResolvedBrand(admin, toBrand)
+  teamCards = branded.slice(0, teamCards.length)
+  if (memberCard) Object.assign(memberCard, branded[teamCards.length])
+
 
   // Explicitly typed: cards and team_cards come back with different generated
   // row types (team_cards resolves to never for the columns database.ts does
