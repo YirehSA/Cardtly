@@ -116,8 +116,34 @@ export default async function DepartmentsPage() {
     : { data: [] }
   const hasCardInOrg = new Set((ownCards || []).map((c: any) => c.organization_id))
 
+  // The viewer's own personal cards, offered as a source for a department's
+  // look.
+  //
+  // The only sources were the company look and a team card already designed
+  // inside that department. Somebody setting up a new group designs the look
+  // on their own card first - that is the card they have been building all
+  // along - and then had no way to pull it across, so they were retyping it
+  // into a team card just to have something to copy from.
+  //
+  // BRAND_FIELDS are the same columns on both tables, so extractBrand reads a
+  // personal card exactly as it reads a team one.
+  const { data: personalCards } = await admin
+    .from('cards')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('is_primary', { ascending: false })
+    .order('created_at', { ascending: true })
+
+  const myCards = (personalCards || [])
+    .map((c: any) => ({ id: c.id, name: c.name as string | null, brand: extractBrand(c) }))
+    // A card with nothing set has no look worth copying, and offering it would
+    // hand somebody a button that appears to work and changes nothing.
+    .filter((c: { brand: Record<string, any> }) =>
+      Object.values(c.brand).some(v => v !== null && v !== undefined && v !== ''))
+
   return (
     <DepartmentManager
+      myCards={myCards}
       departments={departments.map(d => ({
         ...d,
         viewerHasCard: hasCardInOrg.has(d.organizationId),

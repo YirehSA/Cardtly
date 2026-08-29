@@ -38,6 +38,8 @@ interface Dept {
   forms?: LeadForm[]
 }
 interface OwnedOrg { id: string; name: string; lockedFields: string[] }
+/** One of the viewer's own personal cards, offered as a look to copy. */
+interface MyCard { id: string; name: string | null; brand: Record<string, any> }
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
@@ -61,7 +63,7 @@ function Avatar({ label, color, size = 28 }: { label: string; color: string; siz
     </span>
   )
 }
-export default function DepartmentManager({ departments, ownedOrgs }: { departments: Dept[]; ownedOrgs: OwnedOrg[] }) {
+export default function DepartmentManager({ departments, ownedOrgs, myCards = [] }: { departments: Dept[]; ownedOrgs: OwnedOrg[]; myCards?: MyCard[] }) {
   const router = useRouter()
   const [selId, setSelId] = useState<string | null>(departments.length === 1 ? departments[0].id : null)
   const [loading, setLoading] = useState<string | null>(null)
@@ -102,6 +104,7 @@ export default function DepartmentManager({ departments, ownedOrgs }: { departme
         accent={accentFor(idxOf(selected.id))}
         departments={departments}
         orgLocks={ownedOrgs.find(o => o.id === selected.organizationId)?.lockedFields || []}
+        myCards={myCards}
         onBack={canGoBack ? () => setSelId(null) : undefined}
         call={call} loading={loading} />
     )
@@ -507,8 +510,8 @@ function SectionHead({ n, accent, icon: Icon, title, body, state, stateTone }: {
   )
 }
 
-function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, call, loading }: {
-  dept: Dept; accent: string; departments: Dept[]; orgLocks?: string[]; onBack?: () => void
+function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = [], onBack, call, loading }: {
+  dept: Dept; accent: string; departments: Dept[]; orgLocks?: string[]; myCards?: MyCard[]; onBack?: () => void
   call: (k: string, b: object, m: string) => Promise<boolean>; loading: string | null
 }) {
   const [inviteName, setInviteName] = useState('')
@@ -720,6 +723,21 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
               Start from the company look
             </button>
           )}
+          {/* The viewer's own cards.
+              Somebody setting up a group designs the look on their own card
+              first - it is the card they have been building all along - and
+              there was no way to pull it across, so the only options were the
+              company look or a team card already designed inside this
+              department, which a new department has none of. */}
+          {myCards.map(c => (
+            <button key={`mine-${c.id}`} disabled={loading === `brand-${dept.id}`}
+              onClick={() => call(`brand-${dept.id}`, { action: 'set_brand', department_id: dept.id, brand: c.brand }, `Look copied from ${c.name || 'your card'}`)}
+              className="text-sm px-3.5 min-h-[44px] rounded-xl font-semibold border transition hover:bg-muted disabled:opacity-40 flex items-center gap-2"
+              style={{ borderColor: `${accent}55`, color: accent }}>
+              {loading === `brand-${dept.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              Use my card{myCards.length > 1 && c.name ? ` (${c.name})` : ''}
+            </button>
+          ))}
           {brandCards.map(c => (
             <button key={c.id} disabled={loading === `brand-${dept.id}`}
               onClick={() => call(`brand-${dept.id}`, { action: 'set_brand', department_id: dept.id, brand: c.brand }, `Look copied from ${c.name || 'that card'}`)}
@@ -739,9 +757,12 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], onBack, ca
             </button>
           )}
         </div>
-        {brandCards.length === 0 && orgBrandFields === 0 && (
+        {/* Only when there is genuinely nothing to copy from - including the
+            viewer's own cards, or this would claim there is no source while a
+            button offering one sits right above it. */}
+        {brandCards.length === 0 && orgBrandFields === 0 && myCards.length === 0 && (
           <p className="text-xs rounded-xl px-3 py-2.5 bg-muted/50 text-muted-foreground">
-            There is no company look set yet, and none of your people has designed their card. Once either exists you can set this department&apos;s look here.
+            There is no company look set yet, none of your people has designed their card, and your own card has nothing set on it. Design any one of them and you can copy it here.
           </p>
         )}
         {dept.hasBrand && (
