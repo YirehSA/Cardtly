@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
 import { isIosApp } from '@/lib/app-platform'
 import { getPrimaryCard, getMemberTeamCard } from '@/lib/card-server'
+import { withResolvedBrand } from '@/lib/resolve-card-brand'
 import IndustryPrompt from '@/components/dashboard/IndustryPrompt'
 import { fetchCardNetworkPrefs } from '@/lib/network'
 import { parseDesign, getAccentHex } from '@/types/design'
@@ -56,10 +57,27 @@ export default async function DashboardPage() {
   // Team-member fallback: if the user has no personal card, see if they've
   // claimed a team card. The dashboard adapts so members see their card
   // without needing to know about team mechanics.
-  const teamCard = personalCard ? null : await getMemberTeamCard<CardSummary & { organization_id?: string }>(
-    user.id,
-    `${CARD_FIELDS}, organization_id`
-  )
+  // select('*') so the team brand can be resolved below: that needs
+  // use_team_brand, department_id and organization_id.
+  //
+  // Without resolving, this page reads the row and finds no logo and no
+  // colour on a card that is wearing both - so the preview came out in the
+  // default blue, and the checklist told the person to add a company logo
+  // their own card was already showing. Same fix as the QR page, the email
+  // signature, virtual backgrounds and the directory.
+  const rawTeamCard = personalCard
+    ? null
+    : await getMemberTeamCard<CardSummary & Record<string, any>>(user.id, '*')
+
+  const teamCard = rawTeamCard
+    ? ((await withResolvedBrand(
+        createAdminClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        ),
+        [rawTeamCard as Record<string, any>],
+      ))[0] as typeof rawTeamCard)
+    : null
 
   const card: (CardSummary & { id: string }) | null = personalCard || (teamCard as any) || null
   const cardKind: 'personal' | 'team' | 'none' = personalCard ? 'personal' : teamCard ? 'team' : 'none'
