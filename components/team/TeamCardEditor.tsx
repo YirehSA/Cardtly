@@ -10,7 +10,8 @@ import { toast } from 'sonner'
 import TemplatedCardPreview from '@/components/card/TemplatedCardPreview'
 import DesignPanel from '@/components/card/DesignPanel'
 import ImageUploader from '@/components/card/ImageUploader'
-import { Save, ExternalLink, ArrowLeft, User, Phone, Link2, Image, Palette, Copy, Check, Lock } from 'lucide-react'
+import AIBioModal from '@/components/card/AIBioModal'
+import { Save, ExternalLink, ArrowLeft, User, Phone, Link2, Image, Palette, Copy, Check, Lock, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 
 interface TeamCard {
@@ -124,6 +125,7 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
   const designLocked = lockedGroups.includes('design')
   const TABS = ALL_TABS.filter(t => t.id !== 'design' || isAdmin || !designLocked)
   const [saving, setSaving] = useState(false)
+  const [aiBioOpen, setAiBioOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   function copyLink() {
     if (!card.slug) return
@@ -530,7 +532,7 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
             <>
               <div>
                 <label className="block text-sm font-medium mb-2">Profile Photo</label>
-                <ImageUploader value={form.profile_image_url} onChange={url => update('profile_image_url', url)} bucket="card-images" userId={userId} shape="circle" />
+                <ImageUploader value={form.profile_image_url} onChange={url => update('profile_image_url', url)} bucket="card-images" userId={userId} shape="circle" allowBackgroundRemoval />
               </div>
               <Field label="Full name" required>
                 <Input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Jane Smith" />
@@ -541,10 +543,26 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
               <Field label="Company" locked={isLocked('company')} lockedBy={org.name}>
                 <Input value={form.company} onChange={e => update('company', e.target.value)} placeholder={org.name} disabled={isLocked('company')} />
               </Field>
-              <Field label="Bio">
-                <textarea value={form.bio} onChange={e => update('bio', e.target.value)}
-                  placeholder="Tell people about this team member..." rows={4}
-                  className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition resize-none" />
+              {/* The AI writer, same as a personal card gets. A team card is
+                  always Pro, since the organisation pays for it, so there is no
+                  plan gate.
+                  No lock check either: bio belongs to no lock group in
+                  lib/team-locks, deliberately - the company fixes its logo,
+                  name, website and design, and the words a person writes about
+                  themselves stay theirs. Guarding on isLocked('bio') would be
+                  a condition that can never be true, implying a control the
+                  company does not actually have. */}
+              <Field label="Bio" hint="Stuck? Let the AI write it.">
+                <div className="relative">
+                  <textarea value={form.bio} onChange={e => update('bio', e.target.value)}
+                    placeholder="Tell people about this team member..." rows={4}
+                    className="w-full px-4 py-2.5 pr-32 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition resize-none" />
+                  <button type="button" onClick={() => setAiBioOpen(true)}
+                    className="absolute top-2 right-2 flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-white transition hover:opacity-90"
+                    style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                    <Sparkles className="w-3 h-3" />Write it for me
+                  </button>
+                </div>
               </Field>
               <Field label="Certifications / Tags" hint="Comma separated e.g. Sales, Certified, CPA">
                 <Input value={form.certifications} onChange={e => update('certifications', e.target.value)} placeholder="Sales, Certified, CPA" />
@@ -775,6 +793,16 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
               design={usesBrand && orgBrand.color_theme ? parseDesign(orgBrand.color_theme) : design}
             />
           </div>
+          {/* Mounted beside the preview, as on a personal card. The endpoint
+              only needs an authenticated user - it takes the role, company and
+              tone and returns text - so nothing about it is specific to which
+              table the card lives in. */}
+          <AIBioModal
+            open={aiBioOpen}
+            onClose={() => setAiBioOpen(false)}
+            onAccept={(bio) => update('bio', bio)}
+            initial={{ role: form.title, company: form.company || org.name, bio: form.bio }}
+          />
           {cardUrl && (
             <a href={cardUrl} target="_blank" rel="noopener noreferrer"
               className="mt-3 flex items-center justify-center gap-2 w-full border border-border rounded-xl py-2.5 text-sm font-medium hover:bg-muted transition">
