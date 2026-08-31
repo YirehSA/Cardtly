@@ -39,14 +39,45 @@ export function extractBrand(card: Record<string, any>): Record<string, any> {
   return brand
 }
 
-// Merge an org brand over a team card. Brand wins for any field the
-// brand actually defines; if the brand is empty (not set up), the card
-// renders its own fields unchanged. Returns a new object.
-export function mergeBrand<T extends Record<string, any>>(card: T, brand: Record<string, any> | null | undefined): T {
+/** Nothing worth showing: the brand should fill this in. A theme object or any
+ *  other non-string value counts as set once it is there at all. */
+function unset(v: unknown): boolean {
+  if (v === null || v === undefined) return true
+  if (typeof v === 'string') return v.trim() === ''
+  return false
+}
+
+/**
+ * Merge a team brand over a card.
+ *
+ * `locked` is the list of columns the company has taken control of, from
+ * lockedColumnsFor. It decides who wins, and it is required rather than
+ * optional so that adding a caller cannot quietly reintroduce the bug below.
+ *
+ *   locked        the brand always wins - that is what locking it means
+ *   not locked    the card's own value wins, and the brand fills the gap when
+ *                 the card has not set one
+ *
+ * Locks used to say only who could TYPE in a field, while this said who won on
+ * screen, and the two disagreed. Cardtly leaves Address unlocked on purpose, so
+ * a rep updated theirs, the editor accepted it, the row stored it - and the
+ * public card went on showing the company address, because address is a brand
+ * field. The edit was allowed and then silently thrown away at render.
+ *
+ * Tying them together is what makes the unlock mean something: a company
+ * controls a field exactly when it has said so.
+ */
+export function mergeBrand<T extends Record<string, any>>(
+  card: T,
+  brand: Record<string, any> | null | undefined,
+  locked: Iterable<string>,
+): T {
   if (!brand || Object.keys(brand).length === 0) return card
+  const lockedSet = new Set(locked)
   const merged: Record<string, any> = { ...card }
   for (const f of BRAND_FIELDS) {
-    if (f in brand) merged[f] = brand[f]
+    if (!(f in brand)) continue
+    if (lockedSet.has(f) || unset(card[f])) merged[f] = brand[f]
   }
   return merged as T
 }

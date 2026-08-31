@@ -788,7 +788,7 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Live Preview</p>
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-800" style={{ maxHeight: '82vh', overflowY: 'auto' }}>
             <TemplatedCardPreview
-              form={usesBrand ? mergeBrand(form, orgBrand) : form}
+              form={usesBrand ? mergeBrand(form, orgBrand, locked) : form}
               isPro={true}
               design={usesBrand && orgBrand.color_theme ? parseDesign(orgBrand.color_theme) : design}
             />

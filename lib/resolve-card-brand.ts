@@ -1,4 +1,5 @@
 import { mergeBrand } from './team-brand'
+import { lockedColumnsFor } from './team-locks'
 import { indexById, ancestorChain, resolveBrandChain, type DeptNode } from './department-tree'
 
 // What a team card actually LOOKS like, for the pages that generate something
@@ -39,7 +40,10 @@ export async function withResolvedBrand<T extends Record<string, any>>(
   if (orgIds.length === 0) return cards
 
   const [{ data: orgRows }, { data: deptRows }] = await Promise.all([
-    admin.from('organizations').select('id, brand').in('id', orgIds),
+    // select('*') for locked_fields, for the same reason as below: it decides
+    // which brand fields override the card, and naming it would return nothing
+    // on a database that has not got it.
+    admin.from('organizations').select('*').in('id', orgIds),
     // select('*') rather than naming parent_id: migration 053 is applied by
     // hand, and naming a column that does not exist yet returns an EMPTY
     // result, which would silently drop the department brand from every card
@@ -49,6 +53,8 @@ export async function withResolvedBrand<T extends Record<string, any>>(
 
   const orgBrandById: Record<string, any> =
     Object.fromEntries((orgRows || []).map((o: any) => [o.id, o.brand || {}]))
+  const orgLockedById: Record<string, unknown> =
+    Object.fromEntries((orgRows || []).map((o: any) => [o.id, o.locked_fields ?? null]))
 
   const byId = indexById((deptRows || []).map((d: any): DeptNode => ({
     id: d.id,
@@ -58,11 +64,18 @@ export async function withResolvedBrand<T extends Record<string, any>>(
     kind: d.kind === 'company' ? 'company' : 'department',
     slug_segment: d.slug_segment ?? null,
     brand: d.brand || {},
+    locked_fields: d.locked_fields ?? null,
   })))
 
   return cards.map(c => {
     if (!c?.use_team_brand) return c
     const chain = c.department_id ? ancestorChain(c.department_id, byId) : []
-    return mergeBrand(c, resolveBrandChain(orgBrandById[c.organization_id] || {}, chain))
+    // Same rule as the public card: the brand wins on what the company locked,
+    // and fills in what the member left blank. Anything else they set is theirs.
+    return mergeBrand(
+      c,
+      resolveBrandChain(orgBrandById[c.organization_id] || {}, chain),
+      lockedColumnsFor(orgLockedById[c.organization_id], chain.map(d => d.locked_fields)),
+    )
   })
 }

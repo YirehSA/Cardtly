@@ -100,8 +100,11 @@ export default function BookingModal({ open, onClose, cardId, cardName, accentHe
               <CheckCircle className="w-8 h-8" style={{ color: '#22c55e' }} />
             </div>
             <h2 className="text-xl font-bold text-white mb-2">Request sent</h2>
+            {/* The receipt is named here because a panel that closes is the
+                only proof they had that anything happened. */}
             <p className="text-sm text-white/60 mb-6">
               {cardName.split(' ')[0]} will be in touch to confirm your meeting.
+              We have emailed you a copy of what you sent.
             </p>
             <button onClick={onClose}
               className="w-full py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90"

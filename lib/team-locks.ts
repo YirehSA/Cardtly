@@ -80,6 +80,12 @@ export const LOCK_GROUPS: LockGroup[] = [
     hint: 'Template, colours and fonts',
     columns: ['color_theme'],
   },
+  {
+    id: 'certifications',
+    label: 'Skills and accreditations',
+    hint: 'The same list of credentials on every card',
+    columns: ['certifications'],
+  },
 ]
 
 export const LOCK_GROUP_IDS = LOCK_GROUPS.map(g => g.id)
@@ -94,6 +100,20 @@ function asIdArray(value: unknown): string[] {
 // decided. Unknown ids are dropped rather than trusted.
 export function resolveLocks(orgLocked: unknown, deptLocked: unknown): string[] {
   return [...new Set([...asIdArray(orgLocked), ...asIdArray(deptLocked)])]
+}
+
+/**
+ * Every column a particular card is locked out of: what the company decided,
+ * plus anything the departments above it added.
+ *
+ * The same union as resolveLocks, over a whole chain rather than one
+ * department, because a card sits under a group, then a company, then its own
+ * team, and each of them may tighten what the one above allowed.
+ */
+export function lockedColumnsFor(orgLocked: unknown, chainLocked: unknown[]): string[] {
+  const ids = new Set(asIdArray(orgLocked))
+  for (const level of chainLocked) for (const id of asIdArray(level)) ids.add(id)
+  return lockedColumns([...ids])
 }
 
 // Every card column covered by a set of lock groups.

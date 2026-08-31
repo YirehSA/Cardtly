@@ -3,6 +3,7 @@ import PublicCardView from '@/components/card/PublicCardView'
 import ReportCardLink from '@/components/card/ReportCardLink'
 import CardTracker from '@/components/card/CardTracker'
 import { mergeBrand } from '@/lib/team-brand'
+import { lockedColumnsFor } from '@/lib/team-locks'
 import { liveMirror } from '@/lib/questionnaire'
 import { indexById, ancestorChain, resolveBrandChain, type DeptNode } from '@/lib/department-tree'
 
@@ -23,6 +24,7 @@ export default async function TeamCardPublic({ teamCard }: { teamCard: any }) {
   // is RLS-protected.
   let orgAddons: Record<string, any> = {}
   let orgBrand: Record<string, any> = {}
+  let orgLocked: unknown = null
   // The chain of departments above this card, root first. For a flat
   // organisation that is one department, or none.
   let deptChain: DeptNode[] = []
@@ -38,13 +40,18 @@ export default async function TeamCardPublic({ teamCard }: { teamCard: any }) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     ) as any
 
+    // select('*') so locked_fields comes along without naming it: it is what
+    // decides which brand fields override the card, and naming a column a
+    // pending migration has not added returns an EMPTY row - which here would
+    // mean no brand and no locks at all on a live public card.
     const { data: org } = await admin
       .from('organizations')
-      .select('addons, brand, suspended_at, suspension_message')
+      .select('*')
       .eq('id', teamCard.organization_id)
       .maybeSingle()
     orgAddons = org?.addons || {}
     orgBrand = org?.brand || {}
+    orgLocked = org?.locked_fields ?? null
     if (org?.suspended_at) suspendedMessage = org.suspension_message || ''
 
     if (teamCard.department_id) {
@@ -69,6 +76,7 @@ export default async function TeamCardPublic({ teamCard }: { teamCard: any }) {
         kind: d.kind === 'company' ? 'company' : 'department',
         slug_segment: d.slug_segment ?? null,
         brand: d.brand || {},
+        locked_fields: d.locked_fields ?? null,
       }))
       deptChain = ancestorChain(teamCard.department_id, indexById(nodes))
     }
@@ -81,6 +89,11 @@ export default async function TeamCardPublic({ teamCard }: { teamCard: any }) {
   const brandToApply = teamCard.use_team_brand
     ? resolveBrandChain(orgBrand, deptChain)
     : {}
+
+  // What the company has actually taken control of. The brand wins on these;
+  // everything else it defines is a default the member may replace, which is
+  // what leaving a group unlocked was always supposed to mean.
+  const lockedForCard = lockedColumnsFor(orgLocked, deptChain.map(d => d.locked_fields))
 
   // Org add-ons fan out to every team card. The lead-capture form is
   // allocated per card:
@@ -120,7 +133,7 @@ export default async function TeamCardPublic({ teamCard }: { teamCard: any }) {
     addons: mergedAddons,
     // Pass team_card_id so contact form saves correctly
     _team_card_id: teamCard.id,
-  }, brandToApply)
+  }, brandToApply, lockedForCard)
 
   return (
     <CardTracker teamCardId={teamCard.id}>
