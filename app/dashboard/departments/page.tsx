@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { getManagedDepartments, getOwnedOrgs } from '@/lib/department-perms'
 import { extractBrand } from '@/lib/team-brand'
+import { parseBrandSource } from '@/lib/brand-source'
 import DepartmentManager from '@/components/departments/DepartmentManager'
 
 export const metadata = { title: 'My departments' }
@@ -61,6 +62,29 @@ export default async function DepartmentsPage() {
   const headsByDept: Record<string, { userId: string; email: string | null }[]> = {}
   for (const h of heads || []) (headsByDept[h.department_id] ||= []).push({ userId: h.user_id, email: emailById[h.user_id] || null })
 
+  // Names for any look that follows a card, so the page can say "following
+  // Andre Nel" rather than showing a uuid. Read tolerantly: brand_source
+  // arrives with migration 059, and a department page is not the place to
+  // throw over a column that is not there yet.
+  const sourceRefs = managed
+    .map(d => parseBrandSource((d as any).brand_source))
+    .filter((s): s is NonNullable<ReturnType<typeof parseBrandSource>> => !!s)
+  const sourceNames: Record<string, string> = {}
+  if (sourceRefs.length > 0) {
+    for (const table of ['cards', 'team_cards'] as const) {
+      const ids = [...new Set(sourceRefs.filter(s => s.table === table).map(s => s.id))]
+      if (!ids.length) continue
+      try {
+        const { data } = await admin.from(table).select('id, name').in('id', ids)
+        for (const c of data || []) sourceNames[`${table}:${c.id}`] = c.name || 'that card'
+      } catch { /* the look still works, it just cannot be named */ }
+    }
+  }
+  const sourceNameFor = (raw: unknown): string | null => {
+    const s = parseBrandSource(raw)
+    return s ? sourceNames[`${s.table}:${s.id}`] || null : null
+  }
+
   const departments = managed.map(d => ({
     id: d.id,
     name: d.name,
@@ -76,6 +100,10 @@ export default async function DepartmentsPage() {
     slugSegment: d.slug_segment,
     brand: d.brand,
     hasBrand: Object.keys(d.brand || {}).length > 0,
+    // Whether this look follows a card, and whose. The name is resolved here so
+    // the page can say what it follows rather than showing a uuid.
+    brandSource: (d as any).brand_source || null,
+    brandSourceName: sourceNameFor((d as any).brand_source),
     lockedFields: d.locked_fields || [],
     heads: headsByDept[d.id] || [],
     cards: (cards || []).filter((c: any) => c.department_id === d.id).map((c: any) => ({

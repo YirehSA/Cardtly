@@ -2,6 +2,7 @@ import { ImageResponse } from 'next/og'
 import { createClient } from '@supabase/supabase-js'
 import { parseDesign, getAccentHex, getBgColors, getReadableTextOn } from '@/types/design'
 import { resolveTeamBrand } from '@/lib/team-brand'
+import { hydrateBrandSources } from '@/lib/brand-source'
 import { CARDTLY_MARK } from '@/lib/og-cardtly-mark'
 
 // Edge runtime: next/og renders reliably here. Satori (inside it) only handles
@@ -169,12 +170,18 @@ export async function GET(
     if (!brandCtx) return own
     try {
       const [orgRes, deptRes] = await Promise.all([
-        supabase.from('organizations').select('brand').eq('id', brandCtx.orgId).maybeSingle(),
+        // select('*') so brand_source comes too: a look that follows a card is
+        // read from that card, and the preview image has to match the page.
+        supabase.from('organizations').select('*').eq('id', brandCtx.orgId).maybeSingle(),
         brandCtx.deptId
-          ? supabase.from('departments').select('brand').eq('id', brandCtx.deptId).maybeSingle()
+          ? supabase.from('departments').select('*').eq('id', brandCtx.deptId).maybeSingle()
           : Promise.resolve({ data: null } as any),
       ])
-      const resolved = resolveTeamBrand((orgRes.data as any)?.brand || {}, (deptRes.data as any)?.brand || {})
+      const [hydratedOrg, hydratedDept] = await Promise.all([
+        hydrateBrandSources(supabase, orgRes.data ? [orgRes.data] : []),
+        hydrateBrandSources(supabase, deptRes.data ? [deptRes.data] : []),
+      ])
+      const resolved = resolveTeamBrand((hydratedOrg[0] as any)?.brand || {}, (hydratedDept[0] as any)?.brand || {})
       return {
         colorTheme: resolved.color_theme || own.colorTheme,
         logoUrl: resolved.company_logo_url || own.logoUrl,

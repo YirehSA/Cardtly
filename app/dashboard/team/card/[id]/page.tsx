@@ -5,6 +5,7 @@ import TeamCardEditor from '@/components/team/TeamCardEditor'
 import { canManageDepartment } from '@/lib/department-perms'
 import { resolveLocks } from '@/lib/team-locks'
 import { resolveTeamBrand } from '@/lib/team-brand'
+import { hydrateBrandSources } from '@/lib/brand-source'
 
 export const metadata = { title: 'Edit Team Card' }
 

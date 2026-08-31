@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { BRAND_FIELDS, extractBrand } from '@/lib/team-brand'
+import { hydrateBrandSources } from '@/lib/brand-source'
 import { newTeamCardSlug, newTeamPersonSlug, orgIndustry } from '@/lib/card-slug-server'
 import { slugifyPart, isReservedSlug } from '@/lib/card-slug'
 import { isIndustryId } from '@/lib/industries'
@@ -376,8 +377,12 @@ export async function POST(request: Request) {
   }
 
   // Pull the brand straight from the admin's own card.
+  //
+  // linked !== false keeps it following that card, so editing it later reaches
+  // the whole company. Pass linked: false to take a copy and stop there, which
+  // is what this always did.
   if (action === 'import_brand_from_my_card') {
-    const { org_id } = body
+    const { org_id, linked } = body
     const { data: org } = await admin.from('organizations').select('id').eq('id', org_id).eq('admin_user_id', user.id).single()
     if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
 
@@ -386,9 +391,44 @@ export async function POST(request: Request) {
     if (!myCard) return NextResponse.json({ error: 'You have no personal card to pull a brand from.' }, { status: 404 })
 
     const brand = extractBrand(myCard)
-    const { error } = await admin.from('organizations').update({ brand }).eq('id', org_id)
+    const patch: Record<string, any> = {
+      brand,
+      brand_source: linked === false ? null : { table: 'cards', id: myCard.id },
+    }
+    let { error } = await admin.from('organizations').update(patch).eq('id', org_id)
+    // Migration 059 is applied by hand after the deploy. Until it is, the copy
+    // still saves and the caller is told the link did not take.
+    let linkFailed = false
+    if (error && (error.code === '42703' || /brand_source/.test(String(error.message || '')))) {
+      delete patch.brand_source
+      linkFailed = linked !== false
+      ;({ error } = await admin.from('organizations').update(patch).eq('id', org_id))
+    }
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ success: true, brand })
+    return NextResponse.json({
+      success: true,
+      brand,
+      linked: !linkFailed && linked !== false,
+      warning: linkFailed
+        ? 'The look was copied, but it could not be linked: migration 059 has not been run on this database.'
+        : null,
+    })
+  }
+
+  // Stop following, keeping the look exactly as it is now. Deliberately writes
+  // the resolved values first: unlinking must freeze what is on screen, not
+  // drop the company back to whatever the copy said before it was linked.
+  if (action === 'unlink_brand_source') {
+    const { org_id } = body
+    const { data: org } = await admin
+      .from('organizations').select('*').eq('id', org_id).eq('admin_user_id', user.id).single()
+    if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+
+    const [live] = await hydrateBrandSources(admin, [org])
+    const { error } = await admin
+      .from('organizations').update({ brand: live.brand || {}, brand_source: null }).eq('id', org_id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, brand: live.brand || {} })
   }
 
   // ── Delete team card ───────────────────────────────────────────────────────

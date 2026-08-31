@@ -29,7 +29,17 @@ export default function TeamBrandPanel({ orgId, brand, hasBrand, totalCards = 0,
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok && data.success) {
-        toast.success('Team brand updated from your card. All team cards now use it.')
+        if (data.warning) toast.warning(data.warning, { duration: 10000 })
+        // Said plainly, because following and copying look identical until
+        // somebody edits that card and waits to see whether anything happens.
+        else if (data.linked) {
+          toast.success('Team brand now follows your card.', {
+            description: 'Edit your card and the change reaches every team card that has the field locked.',
+            duration: 8000,
+          })
+        } else {
+          toast.success('Team brand updated from your card. All team cards now use it.')
+        }
         router.refresh()
       } else {
         toast.error(data.error || 'Could not sync')

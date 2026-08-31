@@ -62,10 +62,18 @@ export async function getManagedDepartments(admin: any, userId: string): Promise
   // parent_id, kind and slug_segment arrive with migration 053, applied by hand
   // like 035 before it. Each step down is explicit: with hierarchy, then
   // without it, then without locks.
+  // brand_source arrives with migration 059, and slots into the same cascade:
+  // a database without it fails this select and falls through to the one below,
+  // where a look simply never reports that it is following anything.
   let depts: any[] | null = null
-  const withTree = await admin
+  const withSource = await admin
     .from('departments')
-    .select('id, organization_id, name, brand, locked_fields, parent_id, kind, slug_segment')
+    .select('id, organization_id, name, brand, brand_source, locked_fields, parent_id, kind, slug_segment')
+  const withTree = withSource.error
+    ? await admin
+        .from('departments')
+        .select('id, organization_id, name, brand, locked_fields, parent_id, kind, slug_segment')
+    : withSource
   if (!withTree.error) {
     depts = withTree.data
   } else {

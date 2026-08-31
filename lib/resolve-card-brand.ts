@@ -1,5 +1,6 @@
 import { mergeBrand } from './team-brand'
 import { lockedColumnsFor } from './team-locks'
+import { hydrateBrandSources } from './brand-source'
 import { indexById, ancestorChain, resolveBrandChain, type DeptNode } from './department-tree'
 
 // What a team card actually LOOKS like, for the pages that generate something
@@ -51,12 +52,19 @@ export async function withResolvedBrand<T extends Record<string, any>>(
     admin.from('departments').select('*').in('organization_id', orgIds),
   ])
 
-  const orgBrandById: Record<string, any> =
-    Object.fromEntries((orgRows || []).map((o: any) => [o.id, o.brand || {}]))
-  const orgLockedById: Record<string, unknown> =
-    Object.fromEntries((orgRows || []).map((o: any) => [o.id, o.locked_fields ?? null]))
+  // A look that follows a card is read from that card, not from the copy taken
+  // when somebody chose it. Both levels, batched. See lib/brand-source.
+  const [orgs, depts] = await Promise.all([
+    hydrateBrandSources(admin, orgRows || []),
+    hydrateBrandSources(admin, deptRows || []),
+  ])
 
-  const byId = indexById((deptRows || []).map((d: any): DeptNode => ({
+  const orgBrandById: Record<string, any> =
+    Object.fromEntries(orgs.map((o: any) => [o.id, o.brand || {}]))
+  const orgLockedById: Record<string, unknown> =
+    Object.fromEntries(orgs.map((o: any) => [o.id, o.locked_fields ?? null]))
+
+  const byId = indexById(depts.map((d: any): DeptNode => ({
     id: d.id,
     organization_id: d.organization_id,
     name: d.name,

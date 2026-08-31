@@ -4,6 +4,7 @@ import ReportCardLink from '@/components/card/ReportCardLink'
 import CardTracker from '@/components/card/CardTracker'
 import { mergeBrand } from '@/lib/team-brand'
 import { lockedColumnsFor } from '@/lib/team-locks'
+import { hydrateBrandSources } from '@/lib/brand-source'
 import { liveMirror } from '@/lib/questionnaire'
 import { indexById, ancestorChain, resolveBrandChain, type DeptNode } from '@/lib/department-tree'
 
@@ -50,7 +51,9 @@ export default async function TeamCardPublic({ teamCard }: { teamCard: any }) {
       .eq('id', teamCard.organization_id)
       .maybeSingle()
     orgAddons = org?.addons || {}
-    orgBrand = org?.brand || {}
+    // A look that follows a card is read from that card now, rather than from
+    // the copy taken when it was chosen. See lib/brand-source.
+    orgBrand = org ? (await hydrateBrandSources(admin, [org]))[0].brand || {} : {}
     orgLocked = org?.locked_fields ?? null
     if (org?.suspended_at) suspendedMessage = org.suspension_message || ''
 
@@ -68,7 +71,9 @@ export default async function TeamCardPublic({ teamCard }: { teamCard: any }) {
         .select('*')
         .eq('organization_id', teamCard.organization_id)
 
-      const nodes: DeptNode[] = (depts || []).map((d: any) => ({
+      // Departments may follow a card too, so they are hydrated as one batch
+      // rather than one query per level of the chain.
+      const nodes: DeptNode[] = (await hydrateBrandSources(admin, depts || [])).map((d: any) => ({
         id: d.id,
         organization_id: d.organization_id,
         name: d.name,

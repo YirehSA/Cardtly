@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { LOCK_GROUPS } from '@/lib/team-locks'
 import OrgChart from '@/components/departments/OrgChart'
-import { Layers, Palette, Loader2, UserPlus, X, ExternalLink, Eye, Users, Check, RefreshCw, Building2, Crown, Plus, Pencil, Trash2, ShieldCheck, ArrowRight, Sparkles, Mail, ChevronLeft, Lock, LockOpen } from 'lucide-react'
+import { Layers, Palette, Loader2, UserPlus, X, ExternalLink, Eye, Users, Check, RefreshCw, Building2, Crown, Plus, Pencil, Trash2, ShieldCheck, ArrowRight, Sparkles, Mail, ChevronLeft, Lock, LockOpen, Link2 } from 'lucide-react'
 
 interface Card {
   id: string; name: string | null; slug: string | null; claimed: boolean
@@ -27,6 +27,10 @@ interface Dept {
   kind?: 'company' | 'department'
   slugSegment?: string | null
   brand: Record<string, any>; hasBrand: boolean; heads: Head[]; cards: Card[]
+  // Set when this look follows a card rather than being a copy of one: edits to
+  // that card reach every card here. See lib/brand-source.
+  brandSource?: { table: 'cards' | 'team_cards'; id: string } | null
+  brandSourceName?: string | null
   lockedFields: string[]
   // Does the viewer already hold a card anywhere in this department's org?
   // Heads are appointed without one, so the offer to make theirs only appears
@@ -708,6 +712,26 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
             ? 'These cards have their own look, different from the rest of the company.'
             : 'Right now these cards use the company look, so they match everyone else. To make them stand out, copy the look of a card you like.'}
         </p>
+        {/* Said out loud, because a look that follows a card and a look that
+            was copied from one are indistinguishable until somebody edits that
+            card and waits to see whether anything happens. */}
+        {dept.brandSource && (
+          <div className="rounded-xl border p-3 mb-4 flex flex-wrap items-center gap-x-3 gap-y-2"
+            style={{ borderColor: `${accent}55`, background: `${accent}0f` }}>
+            <Link2 className="w-4 h-4 flex-shrink-0" style={{ color: accent }} />
+            <p className="text-sm flex-1 min-w-[220px]">
+              <strong>Following {dept.brandSourceName || 'a card'}.</strong>{' '}
+              <span className="text-muted-foreground">
+                Changes to it reach every card here that has the field locked, and fill in anyone who has left it blank.
+              </span>
+            </p>
+            <button disabled={loading === `unlink-${dept.id}`}
+              onClick={() => call(`unlink-${dept.id}`, { action: 'unlink_brand_source', department_id: dept.id }, 'Look frozen as it is now')}
+              className="text-sm px-3 min-h-[36px] rounded-lg font-semibold border border-border transition hover:bg-muted disabled:opacity-40">
+              {loading === `unlink-${dept.id}` ? 'Working...' : 'Stop following'}
+            </button>
+          </div>
+        )}
         {/* Sources: the company look first, then any card in this department
             that has been designed. Previously only the department's own cards
             were offered, so a department whose people had not designed
@@ -731,7 +755,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
               department, which a new department has none of. */}
           {myCards.map(c => (
             <button key={`mine-${c.id}`} disabled={loading === `brand-${dept.id}`}
-              onClick={() => call(`brand-${dept.id}`, { action: 'set_brand', department_id: dept.id, brand: c.brand }, `Look copied from ${c.name || 'your card'}`)}
+              onClick={() => call(`brand-${dept.id}`, { action: 'set_brand', department_id: dept.id, brand: c.brand, source: { table: 'cards', id: c.id } }, `Now following ${c.name || 'your card'}`)}
               className="text-sm px-3.5 min-h-[44px] rounded-xl font-semibold border transition hover:bg-muted disabled:opacity-40 flex items-center gap-2"
               style={{ borderColor: `${accent}55`, color: accent }}>
               {loading === `brand-${dept.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
@@ -740,7 +764,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
           ))}
           {brandCards.map(c => (
             <button key={c.id} disabled={loading === `brand-${dept.id}`}
-              onClick={() => call(`brand-${dept.id}`, { action: 'set_brand', department_id: dept.id, brand: c.brand }, `Look copied from ${c.name || 'that card'}`)}
+              onClick={() => call(`brand-${dept.id}`, { action: 'set_brand', department_id: dept.id, brand: c.brand, source: { table: 'team_cards', id: c.id } }, `Now following ${c.name || 'that card'}`)}
               className="text-sm px-3.5 min-h-[44px] rounded-xl font-semibold border border-border transition hover:bg-muted disabled:opacity-40 flex items-center gap-2">
               {loading === `brand-${dept.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Palette className="w-3.5 h-3.5" style={{ color: accent }} />}
               Use {c.name || 'this card'}&apos;s look

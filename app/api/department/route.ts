@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { BRAND_FIELDS } from '@/lib/team-brand'
+import { parseBrandSource, verifyBrandSource, hydrateBrandSources } from '@/lib/brand-source'
 import { LOCK_GROUP_IDS } from '@/lib/team-locks'
 import { getManagedDepartments, canManageDepartment, cardDepartment, isOrgOwner, ownsOrgOfDepartment, findUserByEmail, getOwnedOrgs } from '@/lib/department-perms'
 import { newInviteToken, sendTeamInvite } from '@/lib/team-invite'
@@ -238,7 +239,7 @@ export async function POST(request: Request) {
   }
 
   if (action === 'set_brand') {
-    const { department_id, brand } = body
+    const { department_id, brand, source } = body
     if (!department_id) return NextResponse.json({ error: 'department_id required' }, { status: 400 })
     if (!(await canManageDepartment(admin, user.id, department_id))) {
       return NextResponse.json({ error: 'You do not manage that department' }, { status: 403 })
@@ -248,10 +249,59 @@ export async function POST(request: Request) {
     const clean: Record<string, any> = {}
     for (const f of BRAND_FIELDS) if (brand && f in brand) clean[f] = brand[f]
 
-    const { error } = await admin.from('departments')
-      .update({ brand: clean, updated_at: new Date().toISOString() }).eq('id', department_id)
+    // Following a card rather than copying it once. The copy is still written:
+    // it is what the look falls back to if that card is ever deleted, and what
+    // unlinking freezes it at.
+    const wanted = parseBrandSource(source)
+    const linkTo = wanted
+      ? await verifyBrandSource(admin, wanted, { userId: user.id, departmentId: department_id })
+      : null
+    if (wanted && !linkTo) {
+      return NextResponse.json({ error: 'That card is not one you can follow.' }, { status: 403 })
+    }
+
+    const patch: Record<string, any> = {
+      brand: clean, updated_at: new Date().toISOString(), brand_source: linkTo,
+    }
+    let { error } = await admin.from('departments').update(patch).eq('id', department_id)
+    // brand_source arrives with migration 059, applied by hand after the
+    // deploy. Between the two, saving a look must still work - it just cannot
+    // be linked yet, and the caller is told so rather than left wondering.
+    let linkFailed = false
+    if (error && (error.code === '42703' || /brand_source/.test(String(error.message || '')))) {
+      delete patch.brand_source
+      linkFailed = !!linkTo
+      ;({ error } = await admin.from('departments').update(patch).eq('id', department_id))
+    }
     if (error) return NextResponse.json({ error: `Could not save the look: ${error.message}` }, { status: 500 })
-    return NextResponse.json({ success: true, brand: clean })
+    return NextResponse.json({
+      success: true,
+      brand: clean,
+      linked: !linkFailed && !!linkTo,
+      warning: linkFailed
+        ? 'The look was copied, but it could not be linked: migration 059 has not been run on this database.'
+        : null,
+    })
+  }
+
+  // Stop following, keeping the look exactly as it is now. The resolved values
+  // are written first: unlinking must freeze what is on screen, not drop the
+  // team back to whatever the copy said before it was linked.
+  if (action === 'unlink_brand_source') {
+    const { department_id } = body
+    if (!department_id) return NextResponse.json({ error: 'department_id required' }, { status: 400 })
+    if (!(await canManageDepartment(admin, user.id, department_id))) {
+      return NextResponse.json({ error: 'You do not manage that department' }, { status: 403 })
+    }
+    const { data: rows } = await admin.from('departments').select('*').eq('id', department_id).limit(1)
+    if (!rows?.length) return NextResponse.json({ error: 'Department not found' }, { status: 404 })
+
+    const [live] = await hydrateBrandSources(admin, rows)
+    const { error } = await admin.from('departments')
+      .update({ brand: live.brand || {}, brand_source: null, updated_at: new Date().toISOString() })
+      .eq('id', department_id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, brand: live.brand || {} })
   }
 
   // ── Invite a member into a department ─────────────────────────────────────
