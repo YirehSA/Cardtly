@@ -16,7 +16,7 @@ export default async function MeetingsPage() {
   if (!user) redirect('/login')
 
   const admin = serviceClient()
-  const rep = await getRepForUser(admin, user.id)
+  const rep = await getRepForUser(admin, user.id, user.email)
   if (!rep) redirect('/dashboard')
 
   // Tolerant, through listMeetings: rep_meetings arrives with migration 047 and

@@ -77,7 +77,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     // position, so adding here cannot rebind anything above it. Read tolerantly
     // inside rep-access, since reps.user_id arrives with migration 047 and this
     // layout renders every dashboard page.
-    getRepForUser(deptAdmin, user.id),
+    getRepForUser(deptAdmin, user.id, user.email),
   ])
   const [managedDeptsList, ownedOrgsList] = managedDepts
   // Show the Departments link to anyone who manages a department OR owns a

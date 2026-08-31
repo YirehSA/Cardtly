@@ -31,7 +31,7 @@ const NAV = [
 const TEAM_TAB = { href: '/dashboard/team', label: 'Team Cards', icon: Building2, color: '#fb923c' } // orange
 
 // Only a sales rep sees this: their own meetings and notes.
-const MEETINGS_TAB = { href: '/dashboard/meetings', label: 'My meetings', icon: CalendarClock, color: '#0ea5e9' } // sky
+const MEETINGS_TAB = { href: '/dashboard/meetings', label: 'My Calendar', icon: CalendarClock, color: '#0ea5e9' } // sky
 
 interface SidebarProps {
   isPro: boolean

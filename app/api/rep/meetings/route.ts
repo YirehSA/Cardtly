@@ -17,7 +17,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const admin = serviceClient()
-  const rep = await getRepForUser(admin, user.id)
+  const rep = await getRepForUser(admin, user.id, user.email)
   if (!rep) return NextResponse.json({ error: 'Not a rep account' }, { status: 403 })
 
   const res = await listMeetings(admin, { repId: rep.id })
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const admin = serviceClient()
-  const rep = await getRepForUser(admin, user.id)
+  const rep = await getRepForUser(admin, user.id, user.email)
   if (!rep) return NextResponse.json({ error: 'Not a rep account' }, { status: 403 })
   if (!rep.active) {
     return NextResponse.json({ error: 'This rep account is no longer active.' }, { status: 403 })

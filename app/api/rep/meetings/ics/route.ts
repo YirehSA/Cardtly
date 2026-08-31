@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const admin = serviceClient()
-  const rep = await getRepForUser(admin, user.id)
+  const rep = await getRepForUser(admin, user.id, user.email)
   if (!rep) return NextResponse.json({ error: 'Not a rep account' }, { status: 403 })
 
   const res = await listMeetings(admin, { repId: rep.id })

@@ -73,7 +73,7 @@ const TEAM_TAB: Tab = { href: '/dashboard/team', label: 'Team Cards', icon: Buil
 
 // Only a sales rep sees this. Same guard as the sidebar - check-nav compares
 // the conditions, not just the destinations.
-const MEETINGS_TAB: Tab = { href: '/dashboard/meetings', label: 'My meetings', icon: CalendarClock }
+const MEETINGS_TAB: Tab = { href: '/dashboard/meetings', label: 'My Calendar', icon: CalendarClock }
 
 interface Props {
   isAdmin?: boolean
