@@ -31,6 +31,7 @@ function stamp(d: Date): string {
     + `${p(d.getUTCHours())}${p(d.getUTCMinutes())}${p(d.getUTCSeconds())}Z`
 }
 
+// The rep's own diary entry: everything they wrote down.
 function description(m: RepMeeting): string {
   const bits: string[] = []
   if (m.contact_name) bits.push(`Seeing: ${m.contact_name}`)
@@ -41,6 +42,22 @@ function description(m: RepMeeting): string {
   if (outcome) bits.push(`Outcome: ${outcome.label}`)
   if (m.follow_up_on) bits.push(`Follow up on: ${m.follow_up_on}`)
   if (m.notes) bits.push('', m.notes)
+  return bits.join('\n')
+}
+
+/**
+ * The same event as the person being invited should see it.
+ *
+ * The description above is a sales rep's private working notes: who they are
+ * seeing, what stage it is at, what came of it, and whatever they typed in the
+ * notes box. Sending that to the client puts "Outcome: Not interested" and
+ * every candid remark about them straight into their calendar, where it stays.
+ * They get the appointment, and nothing else.
+ */
+function attendeeDescription(m: RepMeeting, organizerName?: string | null): string {
+  const bits: string[] = []
+  if (organizerName) bits.push(`Meeting with ${organizerName}`)
+  if (m.location) bits.push(`Where: ${m.location}`)
   return bits.join('\n')
 }
 
@@ -89,6 +106,12 @@ export function buildIcs(
      * this a rescheduled meeting silently stays at the old time in their diary.
      */
     sequence?: number
+    /**
+     * Who is going to read it. 'attendee' strips the rep's notes, the stage the
+     * deal is at and what came of it - see attendeeDescription. Defaults to the
+     * rep, so the diary download is unchanged.
+     */
+    audience?: 'organiser' | 'attendee'
   },
 ): string {
   const now = opts.now || new Date()
@@ -116,7 +139,11 @@ export function buildIcs(
       `DTSTART:${stamp(start)}`,
       `DTEND:${stamp(end)}`,
       `SUMMARY:${esc(m.company)}`,
-      `DESCRIPTION:${esc(description(m))}`,
+      `DESCRIPTION:${esc(
+        opts.audience === 'attendee'
+          ? attendeeDescription(m, opts.organizer?.name)
+          : description(m)
+      )}`,
       // A withdrawal is CANCELLED whatever the row still says. The status
       // column is the rep's record of the appointment; METHOD:CANCEL is what
       // the recipient's calendar is being told to do with it.

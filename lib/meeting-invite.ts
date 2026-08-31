@@ -2,6 +2,7 @@ import { Resend } from 'resend'
 import { FROM_EMAIL } from './email'
 import { buildIcs } from './ics'
 import { meetingDuration, type RepMeeting } from './rep-meetings'
+import { calendarLinks } from './calendar-links'
 
 // Telling the two people in the room that a meeting exists.
 //
@@ -126,17 +127,63 @@ const HEAD = 'font-family:system-ui,-apple-system,sans-serif;max-width:520px;mar
 const BOX = 'background:#f6f7f9;border-radius:12px;padding:18px;margin:0 0 20px'
 const ROW = 'margin:0 0 6px;font-size:14px'
 
-function detailBox(m: RepMeeting, extra: { rep?: string } = {}): string {
-  const rows = [
+/**
+ * The details, written for whoever is reading them.
+ *
+ * These used to be one block sent to both, and to the client it read as the
+ * sender's contact details when it was in fact their own: "Contact: Anthony,
+ * Phone: .693.53139" under a heading naming the rep is an invitation to ring
+ * the client's own number expecting to reach Cardtly. The two audiences want
+ * opposite halves of the same row, so they get one each.
+ */
+function detailBox(m: RepMeeting, opts: { forClient?: string | null } = {}): string {
+  const venue = (m.location || '').trim()
+  const company = (m.company || '').trim()
+  const rows: string[] = [
     `<p style="${ROW}"><strong>When:</strong> ${esc(when(m))}</p>`,
     `<p style="${ROW}"><strong>How long:</strong> ${meetingDuration(m)} minutes</p>`,
-    m.location ? `<p style="${ROW}"><strong>Where:</strong> ${esc(m.location)}</p>` : '',
-    `<p style="${ROW}"><strong>Company:</strong> ${esc(m.company)}</p>`,
-    extra.rep ? `<p style="${ROW}"><strong>Cardtly:</strong> ${esc(extra.rep)}</p>` : '',
-    m.contact_name ? `<p style="${ROW}"><strong>Contact:</strong> ${esc(m.contact_name)}</p>` : '',
-    m.contact_phone ? `<p style="${ROW}"><strong>Phone:</strong> ${esc(m.contact_phone)}</p>` : '',
   ]
+
+  if (opts.forClient) {
+    // The client knows their own name and number - what they need is where to
+    // be and who is coming. Where falls back to the company name, because a rep
+    // who typed the venue nowhere still left it in there, and an email with no
+    // location at all is the one thing this must never send.
+    if (venue || company) {
+      rows.push(`<p style="${ROW}"><strong>Where:</strong> ${esc(venue || company)}</p>`)
+    }
+    rows.push(`<p style="${ROW}"><strong>Who you are meeting:</strong> ${esc(opts.forClient)} from Cardtly</p>`)
+  } else {
+    // Only when it says something the company line has not already said.
+    if (venue && venue !== company) {
+      rows.push(`<p style="${ROW}"><strong>Where:</strong> ${esc(venue)}</p>`)
+    }
+    rows.push(`<p style="${ROW}"><strong>Company:</strong> ${esc(m.company)}</p>`)
+    if (m.contact_name) rows.push(`<p style="${ROW}"><strong>Seeing:</strong> ${esc(m.contact_name)}</p>`)
+    if (m.contact_phone) rows.push(`<p style="${ROW}"><strong>Their phone:</strong> ${esc(m.contact_phone)}</p>`)
+  }
   return `<div style="${BOX}">${rows.filter(Boolean).join('')}</div>`
+}
+
+/** Two buttons for anyone whose mail client will not open the attachment. */
+function addToCalendar(m: RepMeeting, organiser: string): string {
+  const links = calendarLinks({
+    title: m.company,
+    start: new Date(m.scheduled_at),
+    minutes: meetingDuration(m),
+    location: m.location || null,
+    details: `Meeting with ${organiser}`,
+  })
+  if (!links) return ''
+  const btn = 'display:inline-block;text-decoration:none;font-weight:600;font-size:14px;padding:11px 18px;border-radius:10px;border:1px solid #d7dae0;color:#111;margin:0 8px 8px 0'
+  return `
+    <p style="margin:0 0 10px;font-size:13px;color:#666">Add it to your calendar:</p>
+    <div style="margin:0 0 20px">
+      <a href="${links.google}" style="${btn}">Google Calendar</a>
+      <a href="${links.outlook}" style="${btn}">Outlook</a>
+      <span style="font-size:13px;color:#999">or open the attached meeting.ics</span>
+    </div>
+  `
 }
 
 function wrap(title: string, lead: string, body: string, foot: string): string {
@@ -232,27 +279,34 @@ export async function notifyMeetingChange(
     const attendees = toClient
       ? [{ name: m.contact_name || null, email: toClient }]
       : []
-    const ics = buildIcs([m], {
+    const method = action === 'cancelled' ? 'CANCEL' : 'REQUEST'
+    const common = {
       calendarName: `${repName} - Cardtly`,
       now,
-      method: action === 'cancelled' ? 'CANCEL' : 'REQUEST',
+      method: method as 'REQUEST' | 'CANCEL',
       organizer,
       attendees,
       sequence: sequenceFor(m),
-    })
-    const attachments = [{
+    }
+    const pack = (ics: string) => [{
       filename: 'meeting.ics',
       content: Buffer.from(ics, 'utf8').toString('base64'),
       // Spelled out rather than guessed from the extension: it is the method
       // that makes a mail client offer Accept and Decline.
-      contentType: `text/calendar; charset=utf-8; method=${action === 'cancelled' ? 'CANCEL' : 'REQUEST'}`,
+      contentType: `text/calendar; charset=utf-8; method=${method}`,
     }]
+    // Two files, not one. The rep's carries their notes, the stage the deal is
+    // at and what came of it; the client's carries the appointment. The same
+    // attachment for both would put "Outcome: Not interested" and every candid
+    // remark about them into their calendar, permanently.
+    const repAttachments = pack(buildIcs([m], common))
+    const clientAttachments = pack(buildIcs([m], { ...common, audience: 'attendee' }))
 
     const resend = new Resend(process.env.RESEND_API_KEY)
     const stamp = shortWhen(m)
     const sent: string[] = []
 
-    const send = async (to: string, subject: string, html: string, replyTo?: string) => {
+    const send = async (to: string, subject: string, html: string, attachments: any[], replyTo?: string) => {
       try {
         const { error } = await resend.emails.send({
           from: FROM_EMAIL, to, subject, html, attachments,
@@ -279,11 +333,12 @@ export async function notifyMeetingChange(
         wrap(
           action === 'cancelled' ? `${m.company} is cancelled` : `${m.company}`,
           lead,
-          detailBox(m),
+          detailBox(m) + (action === 'cancelled' ? '' : addToCalendar(m, repName)),
           toClient
             ? `${esc(toClient)} was told as well.`
             : 'No email address on this meeting, so nobody else was told.',
         ),
+        repAttachments,
         // A reply goes to the person they are seeing, which is the only reply
         // worth making to this.
         toClient || undefined,
@@ -308,9 +363,11 @@ export async function notifyMeetingChange(
         wrap(
           action === 'cancelled' ? 'Meeting cancelled' : 'Meeting confirmed',
           lead,
-          detailBox(m, { rep: repName }),
-          'Sent by Cardtly on behalf of the sender. Reply to this email to reach them.',
+          detailBox(m, { forClient: repName })
+            + (action === 'cancelled' ? '' : addToCalendar(m, repName)),
+          `Sent by Cardtly on behalf of ${esc(repName)}. Reply to this email to reach them.`,
         ),
+        clientAttachments,
         toRep || undefined,
       )
     }
