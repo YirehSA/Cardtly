@@ -126,6 +126,20 @@ export default function MeetingForm({
   const needsRep = !!reps
   const problem = formError(form, needsRep)
 
+  // What the server will decide to send, worked out here so the form can say it
+  // first. Kept in step with inviteAction in lib/meeting-invite: planned, and
+  // still to come.
+  //   null -> nothing goes out
+  //   ''   -> the rep gets one, nobody else
+  //   addr -> both of them do
+  const emailPlan: string | null = (() => {
+    if (form.status !== 'planned') return null
+    const at = fromDateTimeParts(form.date, form.time)
+    if (!Number.isFinite(at.getTime()) || at.getTime() <= Date.now()) return null
+    const to = form.contact_email.trim()
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) ? to : ''
+  })()
+
   return createPortal(
     <div className="fixed inset-0 z-[110] overflow-y-auto" role="dialog" aria-modal="true"
       aria-label={form.id ? 'Edit meeting' : 'New meeting'} style={skin}>
@@ -199,6 +213,17 @@ export default function MeetingForm({
             <input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
               placeholder="Their offices, Sandton · or a Teams link" className={inputClass} style={inputStyle} />
           </Field>
+
+          {/* Saying so before the fact, because mail going out is not something
+              to discover afterwards - least of all by a rep writing up a
+              meeting they have just walked out of. */}
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--cal-muted)' }}>
+            {emailPlan === null
+              ? 'No email goes out. Invitations are only sent for a planned meeting still to come.'
+              : emailPlan
+                ? <>An invitation goes to <strong>{emailPlan}</strong> and to you, with a calendar attachment.</>
+                : 'An invitation goes to you. Add an email address above and they get one too.'}
+          </p>
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Status">

@@ -50,17 +50,55 @@ function eventStatus(status: string): string {
   return status === 'cancelled' ? 'CANCELLED' : 'CONFIRMED'
 }
 
+/** Somebody on the invitation. */
+export interface IcsPerson {
+  name?: string | null
+  email: string
+}
+
+// A parameter value, not a property value, so the rules are different: it goes
+// in double quotes and therefore may not contain one, and a newline would end
+// the line. Backslash-escaping does not apply here, so the characters are
+// removed rather than escaped.
+function param(v: string): string {
+  return `"${String(v).replace(/["\\]/g, '').replace(/[\r\n]+/g, ' ').trim()}"`
+}
+
+function person(prop: string, p: IcsPerson, extra = ''): string {
+  const cn = p.name ? `;CN=${param(p.name)}` : ''
+  return `${prop}${cn}${extra}:mailto:${p.email.trim()}`
+}
+
 export function buildIcs(
   meetings: RepMeeting[],
-  opts: { calendarName: string; now?: Date },
+  opts: {
+    calendarName: string
+    now?: Date
+    /**
+     * PUBLISH is a diary you are handing someone a copy of. REQUEST is an
+     * invitation their calendar will offer to accept, and CANCEL withdraws one.
+     * The difference is what makes an email attachment show up as "Anthony has
+     * invited you" rather than as a file.
+     */
+    method?: 'PUBLISH' | 'REQUEST' | 'CANCEL'
+    organizer?: IcsPerson | null
+    attendees?: IcsPerson[]
+    /**
+     * Bumped on every change to the same UID. A client that has already seen
+     * this event ignores a revision whose sequence has not moved, so without
+     * this a rescheduled meeting silently stays at the old time in their diary.
+     */
+    sequence?: number
+  },
 ): string {
   const now = opts.now || new Date()
+  const method = opts.method || 'PUBLISH'
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//Cardtly//Rep meetings//EN',
     'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
+    `METHOD:${method}`,
     `X-WR-CALNAME:${esc(opts.calendarName)}`,
   ]
 
@@ -79,14 +117,24 @@ export function buildIcs(
       `DTEND:${stamp(end)}`,
       `SUMMARY:${esc(m.company)}`,
       `DESCRIPTION:${esc(description(m))}`,
-      `STATUS:${eventStatus(m.status)}`,
+      // A withdrawal is CANCELLED whatever the row still says. The status
+      // column is the rep's record of the appointment; METHOD:CANCEL is what
+      // the recipient's calendar is being told to do with it.
+      `STATUS:${method === 'CANCEL' ? 'CANCELLED' : eventStatus(m.status)}`,
+      `SEQUENCE:${Math.max(0, Math.floor(opts.sequence ?? 0))}`,
       `LAST-MODIFIED:${stamp(new Date(m.updated_at || m.created_at || now))}`,
     )
     if (m.location) lines.push(`LOCATION:${esc(m.location)}`)
+    if (opts.organizer?.email) lines.push(person('ORGANIZER', opts.organizer))
+    for (const a of opts.attendees || []) {
+      if (!a.email) continue
+      lines.push(person('ATTENDEE', a, ';ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE'))
+    }
 
     // Half an hour's warning, on things that have not happened yet. No point
-    // reminding anyone about a meeting already written up.
-    if (m.status === 'planned' && end.getTime() > now.getTime()) {
+    // reminding anyone about a meeting already written up, or about one being
+    // called off.
+    if (method !== 'CANCEL' && m.status === 'planned' && end.getTime() > now.getTime()) {
       lines.push(
         'BEGIN:VALARM',
         'ACTION:DISPLAY',

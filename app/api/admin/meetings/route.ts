@@ -4,6 +4,7 @@ import { isAdminUser } from '@/lib/admin-check'
 import { serviceClient } from '@/lib/rep-access'
 import { auditLog } from '@/lib/admin-audit'
 import { parseMeetingBody, saveMeeting, deleteMeeting, listMeetings } from '@/lib/rep-meetings-server'
+import { notifyMeetingChange, describeInvite } from '@/lib/meeting-invite'
 
 // Every rep's meetings, for the admin calendar.
 //
@@ -62,12 +63,13 @@ export async function POST(request: Request) {
     if (!body?.id) return NextResponse.json({ error: 'id required' }, { status: 400 })
     const res = await deleteMeeting(admin, { id: String(body.id), repId })
     if (!res.ok) return NextResponse.json({ error: res.error }, { status: res.status })
+    const notified = await notifyMeetingChange(admin, { meeting: res.row, deleted: true })
     await auditLog(admin, {
       actorUserId: actor.id, actorEmail: actor.email,
       action: 'rep_meeting_delete',
-      detail: { rep_id: repId, rep_name: rep.name, meeting_id: body.id },
+      detail: { rep_id: repId, rep_name: rep.name, meeting_id: body.id, emailed: notified.sent },
     })
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, notified: describeInvite(notified) })
   }
 
   const parsed = parseMeetingBody(body)
@@ -81,18 +83,24 @@ export async function POST(request: Request) {
   })
   if (!res.ok) return NextResponse.json({ error: res.error }, { status: res.status })
 
+  // Booking on a rep's behalf sends exactly what the rep booking it themselves
+  // would send - to the rep as well, since they were not the one who did it.
+  const notified = await notifyMeetingChange(admin, { meeting: res.row, previous: res.previous })
+
   await auditLog(admin, {
     actorUserId: actor.id, actorEmail: actor.email,
     action: body?.id ? 'rep_meeting_update' : 'rep_meeting_create',
     detail: {
       rep_id: repId, rep_name: rep.name, meeting_id: res.id,
       company: parsed.fields.company, scheduled_at: parsed.fields.scheduled_at,
+      emailed: notified.sent,
     },
   })
 
   return NextResponse.json({
     success: true,
     id: res.id,
+    notified: describeInvite(notified),
     warning: res.degraded
       ? 'Saved. The length, location and follow-up date need migration 048 before they can be stored.'
       : null,

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getRepForUser, serviceClient } from '@/lib/rep-access'
 import { parseMeetingBody, saveMeeting, deleteMeeting, listMeetings } from '@/lib/rep-meetings-server'
+import { notifyMeetingChange, describeInvite } from '@/lib/meeting-invite'
 
 // A rep's own meetings.
 //
@@ -44,7 +45,9 @@ export async function POST(request: Request) {
     if (!body?.id) return NextResponse.json({ error: 'id required' }, { status: 400 })
     const res = await deleteMeeting(admin, { id: String(body.id), repId: rep.id })
     if (!res.ok) return NextResponse.json({ error: res.error }, { status: res.status })
-    return NextResponse.json({ success: true })
+    // A deleted meeting the client had accepted still sits in their calendar.
+    const notified = await notifyMeetingChange(admin, { meeting: res.row, deleted: true })
+    return NextResponse.json({ success: true, notified: describeInvite(notified) })
   }
 
   const parsed = parseMeetingBody(body)
@@ -53,11 +56,16 @@ export async function POST(request: Request) {
   const res = await saveMeeting(admin, { id: body?.id || null, repId: rep.id, fields: parsed.fields })
   if (!res.ok) return NextResponse.json({ error: res.error }, { status: res.status })
 
+  // Both people in the room get told, and the same helper does it for the admin
+  // calendar, so booking from either place sends the same two emails.
+  const notified = await notifyMeetingChange(admin, { meeting: res.row, previous: res.previous })
+
   // Said out loud rather than swallowed: the meeting saved, but the length,
   // location and follow-up date did not, because the column is not there yet.
   return NextResponse.json({
     success: true,
     id: res.id,
+    notified: describeInvite(notified),
     warning: res.degraded
       ? 'Saved. The length, location and follow-up date need migration 048 before they can be stored.'
       : null,

@@ -89,7 +89,9 @@ export default function MeetingsView({ repName, active, initial }: {
     // Said out loud: the meeting saved but the newer fields could not, because
     // the migration has not been run yet.
     if (data?.warning) toast.warning(data.warning, { duration: 10000 })
-    else toast.success(okMsg)
+    // Who was emailed, under the confirmation. A rep who is not told assumes
+    // their client was written to and finds out otherwise at the meeting.
+    else toast.success(okMsg, data?.notified ? { description: data.notified, duration: 8000 } : undefined)
     await refresh()
     return true
   }

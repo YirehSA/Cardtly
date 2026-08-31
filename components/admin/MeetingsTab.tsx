@@ -106,7 +106,9 @@ export default function MeetingsTab({ initial, reps, initialRepId }: {
       return false
     }
     if (data?.warning) toast.warning(data.warning, { duration: 10000 })
-    else toast.success(okMsg)
+    // Who was emailed, under the confirmation. A rep who is not told assumes
+    // their client was written to and finds out otherwise at the meeting.
+    else toast.success(okMsg, data?.notified ? { description: data.notified, duration: 8000 } : undefined)
     await refresh()
     return true
   }

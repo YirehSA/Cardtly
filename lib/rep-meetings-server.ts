@@ -91,7 +91,16 @@ export function parseMeetingBody(body: any): ParseResult {
 }
 
 export type WriteResult =
-  | { ok: true; id: string; degraded: boolean }
+  | {
+      ok: true
+      id: string
+      degraded: boolean
+      /** The row as it now stands, and as it stood before this write (null on a
+       *  new booking). What lib/meeting-invite compares to decide whether the
+       *  rep and the client need telling. */
+      row: any
+      previous: any
+    }
   | { ok: false; error: string; status: number }
 
 /**
@@ -123,6 +132,17 @@ export async function saveMeeting(
     allowReassign?: boolean
   },
 ): Promise<WriteResult> {
+  // Read before writing, so the invitation can tell a reschedule from someone
+  // tidying up their own notes. select('*') for the usual reason: naming a
+  // column migration 048 has not added yet would return nothing and make every
+  // update look like a brand new booking.
+  let previous: any = null
+  if (opts.id) {
+    const { data: prev } = await admin
+      .from('rep_meetings').select('*').eq('id', opts.id).limit(1)
+    previous = prev?.[0] || null
+  }
+
   const attempt = async (fields: Record<string, any>) => {
     if (opts.id) {
       let q = admin.from('rep_meetings').update(
@@ -131,20 +151,20 @@ export async function saveMeeting(
       // A rep may only ever touch their own rows, so their update is scoped by
       // rep_id as well as by id: someone else's id then matches nothing.
       if (!opts.allowReassign) q = q.eq('rep_id', opts.repId)
-      const { data, error } = await q.select('id')
+      const { data, error } = await q.select('*')
       // Selecting the affected rows is what turns "matched nothing" into
       // something we can report, rather than a success message over no change.
       if (!error && (!data || data.length === 0)) {
-        return { error: { code: 'NO_ROWS', message: 'That meeting no longer exists, or it is not yours to change.' }, id: undefined }
+        return { error: { code: 'NO_ROWS', message: 'That meeting no longer exists, or it is not yours to change.' }, id: undefined, row: null }
       }
-      return { error, id: opts.id }
+      return { error, id: opts.id, row: data?.[0] || null }
     }
     const { data, error } = await admin
       .from('rep_meetings')
       .insert({ ...fields, rep_id: opts.repId })
-      .select('id')
+      .select('*')
       .single()
-    return { error, id: data?.id as string | undefined }
+    return { error, id: data?.id as string | undefined, row: data || null }
   }
 
   let res = await attempt(opts.fields)
@@ -165,21 +185,25 @@ export async function saveMeeting(
     return { ok: false, error: res.error.message || 'Could not save that.', status: 500 }
   }
   if (!res.id) return { ok: false, error: 'Saved, but no id came back.', status: 500 }
-  return { ok: true, id: res.id, degraded }
+  return { ok: true, id: res.id, degraded, row: res.row, previous }
 }
 
 export async function deleteMeeting(
   admin: any,
   opts: { id: string; repId: string },
-): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
+): Promise<{ ok: true; row: any } | { ok: false; error: string; status: number }> {
   // Scoped to the rep as well as the id, so an id belonging to someone else
   // matches nothing rather than deleting their meeting.
+  //
+  // select('*') so the deleted row comes back: a client who was invited to this
+  // has it sitting in their calendar, and the only chance to withdraw it is
+  // now, while we still know what it said.
   const { data, error } = await admin
     .from('rep_meetings')
     .delete()
     .eq('id', opts.id)
     .eq('rep_id', opts.repId)
-    .select('id')
+    .select('*')
   if (error) {
     if (isMissingTable(error)) return { ok: false, error: MIGRATION_047_MISSING, status: 503 }
     return { ok: false, error: error.message || 'Could not delete that.', status: 500 }
@@ -189,7 +213,7 @@ export async function deleteMeeting(
   if (!data || data.length === 0) {
     return { ok: false, error: 'That meeting no longer exists, or it is not yours to delete.', status: 404 }
   }
-  return { ok: true }
+  return { ok: true, row: data[0] }
 }
 
 /**
