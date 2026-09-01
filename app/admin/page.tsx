@@ -9,7 +9,18 @@ export const metadata = { title: 'Admin' }
 
 // Thin shell. Everything it needs is assembled in lib/admin-data, which is
 // where the pagination, the counts, and the status precedence live.
-export default async function AdminPage() {
+//
+// searchParams rather than reading the URL in the client component. That is
+// what the sidebar's Calendar shortcut depends on, and reading window.location
+// there did not work: a Link is a soft navigation, and on the first render of
+// the new page the browser URL is still the old one, so ?tab= was simply not
+// there yet and every shortcut opened Overview.
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>
+}) {
+  const { tab } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -26,6 +37,7 @@ export default async function AdminPage() {
 
   return (
     <AdminDashboard
+      initialTab={tab}
       users={data.users}
       orgs={data.orgs}
       cards={data.cards}
