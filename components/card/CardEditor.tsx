@@ -502,7 +502,7 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
           {activeTab === 'links' && (
             pro ? (
               <Section title="Buttons that send people somewhere" colour={TAB_COLOUR.links} icon={<Link2 className="w-4 h-4" />}
-                hint="A menu, a booking page, a price list, your Google reviews. Up to five.">
+                hint={`A menu, a booking page, a price list, your Google reviews. Up to ${MAX_CUSTOM_LINKS}.`}>
                 {Array.from({ length: MAX_CUSTOM_LINKS }, (_, i) => i + 1).slice(0, linkSlots).map(i => (
                   <div key={i} className="rounded-2xl border border-border p-4 space-y-3 bg-card">
                     <div className="flex items-center gap-2">
@@ -521,7 +521,7 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                   </div>
                 ))}
                 {linkSlots < MAX_CUSTOM_LINKS && (
-                  <button type="button" onClick={() => setLinkSlots(n => Math.min(5, n + 1))}
+                  <button type="button" onClick={() => setLinkSlots(n => Math.min(MAX_CUSTOM_LINKS, n + 1))}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-border text-sm font-semibold text-muted-foreground hover:border-foreground/30 hover:text-foreground transition">
                     <Plus className="w-4 h-4" />Add another button
                   </button>
@@ -538,7 +538,7 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
               </Section>
 
               <Section title="Photos of your work" colour={TAB_COLOUR.media} icon={<Image className="w-4 h-4" />}
-                hint="Up to six. Finished jobs, your shop, your products - whatever proves you are good at it.">
+                hint={`Up to ${MAX_GALLERY_IMAGES}. Finished jobs, your shop, your products - whatever proves you are good at it.`}>
                 {Array.from({ length: MAX_GALLERY_IMAGES }, (_, i) => i + 1).slice(0, photoSlots).map(i => (
                   <div key={i} className="rounded-2xl border border-border p-4 space-y-3 bg-card">
                     <div className="flex items-center gap-2">
@@ -556,7 +556,7 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                   </div>
                 ))}
                 {photoSlots < MAX_GALLERY_IMAGES && (
-                  <button type="button" onClick={() => setPhotoSlots(n => Math.min(6, n + 1))}
+                  <button type="button" onClick={() => setPhotoSlots(n => Math.min(MAX_GALLERY_IMAGES, n + 1))}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-border text-sm font-semibold text-muted-foreground hover:border-foreground/30 hover:text-foreground transition">
                     <Plus className="w-4 h-4" />Add another photo
                   </button>

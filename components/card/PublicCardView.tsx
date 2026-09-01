@@ -1267,7 +1267,29 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
     // white and knocked out in the rail, then again in colour beside the name.
     // Only the second one obeys the logo position and size controls, so the
     // rail's copy was a fixture nobody could move, resize or turn off.
-    const rail = 80
+    // 96 rather than 80: at 80 the content box was 64px wide, and a profile
+    // photo scaled past about 107% was wider than that. The browser clamped the
+    // width and left the height alone, so the face came out as an oval - the
+    // photo controls were quietly deforming the picture rather than resizing it.
+    const rail = 96
+    // Belt as well as braces: capped to what the rail can hold, so no photo
+    // setting can squeeze it again, and aspectRatio below keeps it round even
+    // if some future layout tries.
+    const avatarSize = Math.min(rail - 20, calcPhotoSize(60, design))
+
+    // Everything the rail can be tapped for: the three ways to reach them, then
+    // their profiles. These were bare 16px glyphs and, worse, not links at all -
+    // three things that looked pressable on a phone and did nothing.
+    const railLinks = [
+      card.phone && { key: 'phone', href: `tel:${card.phone}`, label: 'Call', icon: <Phone style={{ width: 16, height: 16 }} /> },
+      card.email && { key: 'email', href: `mailto:${card.email}`, label: 'Email', icon: <Mail style={{ width: 16, height: 16 }} /> },
+      card.website && { key: 'web', href: card.website.startsWith('http') ? card.website : `https://${card.website}`, label: 'Website', icon: <Globe style={{ width: 16, height: 16 }} /> },
+    ].filter(Boolean) as { key: string; href: string; label: string; icon: React.ReactNode }[]
+
+    const railPill: React.CSSProperties = {
+      width: 34, height: 34, borderRadius: '50%', display: 'grid', placeItems: 'center',
+      background: 'rgba(255,255,255,0.18)', color: '#fff', textDecoration: 'none', flexShrink: 0,
+    }
 
     // Centre the pair once there is room for them.
     //
@@ -1284,17 +1306,43 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
     return (
       <div style={{ ...pageStyle, minHeight: '100vh' }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
-        <div style={{ width: rail, background: sidebarBg, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 8px', gap: 16, position: 'fixed', top: 0, bottom: 0, left: gutter }}>
-          <Avatar {...shared} size={60} rounded="full" extraStyle={{ border: design.profileBorder === false ? 'none' : '3px solid rgba(255,255,255,0.3)' }} />
-          <div style={{ width: '60%', height: 1, backgroundColor: 'rgba(255,255,255,0.3)' }} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 8 }}>
-            {card.phone && <Phone style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.8)' }} />}
-            {card.email && <Mail style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.8)' }} />}
-            {card.website && <Globe style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.8)' }} />}
+        {/* paddingTop clears the back button, which the app fixes at 12px from
+            the top and 40px tall and which was sitting across the photo. */}
+        <div style={{
+          width: rail, background: sidebarBg, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', gap: 12, position: 'fixed', top: 0, bottom: 0, left: gutter,
+          padding: 'calc(env(safe-area-inset-top, 0px) + 64px) 10px 24px',
+        }}>
+          <Avatar {...shared} size={60} rounded="full" extraStyle={{
+            width: avatarSize, height: avatarSize, aspectRatio: '1 / 1',
+            border: design.profileBorder === false ? 'none' : '3px solid rgba(255,255,255,0.35)',
+          }} />
+          <div style={{ width: '55%', height: 1, backgroundColor: 'rgba(255,255,255,0.35)' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            {railLinks.map(l => (
+              <a key={l.key} href={l.href} aria-label={l.label} title={l.label} style={railPill}>
+                {l.icon}
+              </a>
+            ))}
+            {railLinks.length > 0 && socialLinks.length > 0 && (
+              <div style={{ width: 20, height: 1, backgroundColor: 'rgba(255,255,255,0.3)', margin: '2px 0' }} />
+            )}
+            {socialLinks.map(s => (
+              <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
+                aria-label={s.platform} title={s.platform} style={railPill}>
+                {s.icon}
+              </a>
+            ))}
+            {/* Under the socials, not marginTop:auto. The rail is fixed inside
+                an animated ancestor, so it spans the whole PAGE rather than the
+                viewport - "push it to the bottom" put Share 2800px down, at the
+                foot of a column nobody scrolls. */}
+            <div style={{ width: 20, height: 1, backgroundColor: 'rgba(255,255,255,0.3)', margin: '2px 0' }} />
+            <button onClick={handleShare} aria-label="Share this card" title="Share"
+              style={{ ...railPill, background: 'rgba(255,255,255,0.12)', border: 'none', cursor: 'pointer' }}>
+              <Share2 style={{ width: 16, height: 16 }} />
+            </button>
           </div>
-          <button onClick={handleShare} style={{ marginTop: 'auto' }}>
-            <Share2 style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.6)' }} />
-          </button>
         </div>
         {/* rail is a number, so it needs its unit here: calc() drops the whole
             declaration for one unitless term, which put the content back under
