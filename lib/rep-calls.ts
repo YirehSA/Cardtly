@@ -1,3 +1,5 @@
+import { startOfDay, startOfWeek, startOfMonth, addDays, addMonths } from './calendar'
+
 // A rep's call log: the fixed vocabulary, in one place.
 //
 // Meetings split status ("did it happen") from outcome ("what came of it"),
@@ -94,6 +96,48 @@ export function dueCallbacks(calls: RepCall[], today: Date): RepCall[] {
 export function dayKey(d: Date): string {
   const p = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
+/**
+ * The window a period covers, for a LOG rather than a grid.
+ *
+ * Not viewRange. That one returns the six-week block a month grid is drawn on -
+ * startOfWeek(startOfMonth) plus 42 days - which is right for a calendar and
+ * wrong here: filtering to "September 2026" was quietly including the 31st of
+ * August and the first days of October, because they are on the September page.
+ *
+ * A filter has to mean what its label says. The week still starts on Monday,
+ * from lib/calendar, so a week means the same seven days in both places.
+ */
+export function callRange(
+  period: 'day' | 'week' | 'month' | 'list',
+  anchor: Date,
+): { from: Date; to: Date } | null {
+  if (period === 'list') return null
+  if (period === 'day') {
+    const from = startOfDay(anchor)
+    return { from, to: addDays(from, 1) }
+  }
+  if (period === 'week') {
+    const from = startOfWeek(anchor)
+    return { from, to: addDays(from, 7) }
+  }
+  const from = startOfMonth(anchor)
+  return { from, to: addMonths(from, 1) }
+}
+
+/**
+ * Calls made inside a window.
+ *
+ * Half open - from inclusive, to exclusive - so a call logged at midnight lands
+ * in exactly one day rather than in both of them.
+ */
+export function withinCallRange(calls: LoggedCall[], from: Date, to: Date): LoggedCall[] {
+  const a = from.getTime(), b = to.getTime()
+  return calls.filter(c => {
+    const t = new Date(c.called_at).getTime()
+    return Number.isFinite(t) && t >= a && t < b
+  })
 }
 
 /**
