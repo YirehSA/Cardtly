@@ -365,6 +365,23 @@ export async function loadAdminData(admin: any) {
   // will be labelled and coloured by.
   const calendarMeetings = allMeetings.map(m => ({ ...m, repName: repNameById[m.rep_id] || null }))
 
+  // Every rep's calls. Same treatment as the meetings above: on its own, and
+  // tolerant, because rep_calls arrives with migration 061 and the admin panel
+  // must not go dark waiting for it.
+  const allCalls: any[] = await (async () => {
+    try {
+      const { data, error } = await admin
+        .from('rep_calls')
+        .select('*')
+        .order('called_at', { ascending: false })
+      if (error) return []
+      return data || []
+    } catch {
+      return []
+    }
+  })()
+  const loggedCalls = allCalls.map(c => ({ ...c, repName: repNameById[c.rep_id] || null }))
+
   const reps: RepStats[] = ((repRows || []) as RepRow[]).map((rep) => computeRep(
     rep,
     rows.filter(r => r.repId === rep.id).map(r => ({
@@ -447,6 +464,7 @@ export async function loadAdminData(admin: any) {
     orgs: orgRows,
     reps,
     meetings: calendarMeetings,
+    calls: loggedCalls,
     trialCodes,
     cards: (cards || []).map((c: any) => ({ ...c, views_30d: views30dByCard[c.id] || 0 }))
       .sort((a: any, b: any) => (b.views_30d - a.views_30d) || ((b.view_count || 0) - (a.view_count || 0))),

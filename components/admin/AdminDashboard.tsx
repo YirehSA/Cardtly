@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import {
   Users as UsersIcon, Building2, Search, Loader2, Trash2, Mail, MailCheck,
   KeyRound, Lock, Shield, Sparkles, ChevronDown, ChevronUp, ExternalLink, Megaphone,
-  ScrollText, Wifi, AlertTriangle, CalendarClock, X, LayoutGrid, UserCog, Banknote, Ticket, Flag,
+  ScrollText, Wifi, AlertTriangle, CalendarClock, PhoneCall, X, LayoutGrid, UserCog, Banknote, Ticket, Flag,
 } from 'lucide-react'
 import TeamsTab from './TeamsTab'
 import TrialsTab from './TrialsTab'
@@ -20,6 +20,9 @@ import { NFC_STATUSES, NFC_STATUS_COLORS, NFC_STATUS_LABELS, type NfcStatus } fr
 import type { AdminUserRow, AdminOrgRow, UserStatus, TrialCodeRow } from '@/lib/admin-data'
 import type { RepStats } from '@/lib/reps'
 import type { CalendarMeeting } from '@/lib/rep-meetings'
+import type { LoggedCall } from '@/lib/rep-calls'
+import CallLog from '@/components/calls/CallLog'
+import { ADMIN_SKIN } from '@/components/calendar/shared'
 
 interface Stats {
   totalUsers: number; paying: number; comped: number; members: number
@@ -48,6 +51,8 @@ interface Props {
   /** Every rep's meetings, flat, each carrying the rep's name. The Reps tab
    *  shows them per rep; the Calendar tab needs them in one list. */
   meetings: CalendarMeeting[]
+  /** Every rep's calls, flat, each carrying the rep's name. */
+  calls: LoggedCall[]
   trialCodes: TrialCodeRow[]
   stats: Stats
   announcement: any | null
@@ -55,7 +60,7 @@ interface Props {
 
 // as const so ?tab= can be checked against it rather than trusted: an unknown
 // value opens Overview instead of rendering nothing at all.
-const TABS = ['overview', 'users', 'teams', 'trials', 'reps', 'meetings', 'nfc', 'reports', 'activity'] as const
+const TABS = ['overview', 'users', 'teams', 'trials', 'reps', 'meetings', 'calls', 'nfc', 'reports', 'activity'] as const
 type Tab = typeof TABS[number]
 type Filter = 'all' | UserStatus | 'admins' | 'unconfirmed'
 
@@ -118,7 +123,7 @@ function byNullableAsc(a: number | null, b: number | null): number {
   return a - b
 }
 
-export default function AdminDashboard({ initialTab, users, orgs, cards, teamCards, nfcOrders, audit, reps, meetings, trialCodes, stats, announcement }: Props) {
+export default function AdminDashboard({ initialTab, users, orgs, cards, teamCards, nfcOrders, audit, reps, meetings, calls, trialCodes, stats, announcement }: Props) {
   const router = useRouter()
   // Which tab to open on. The page reads ?tab= and hands it down - see the
   // comment there for why this is not read off window.location.
@@ -272,6 +277,7 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
             ['trials', 'Trials', Ticket],
             ['reps', 'Reps', UserCog],
             ['meetings', 'Calendar', CalendarClock],
+            ['calls', 'Call log', PhoneCall],
             ['nfc', 'NFC orders', Wifi],
             ['reports', 'Reports', Flag],
             ['activity', 'Activity', ScrollText],
@@ -527,6 +533,18 @@ ${r.email} will be able to sign in and log their meetings. If that address has n
             initial={meetings}
             reps={reps.map(r => ({ id: r.id, name: r.name, active: r.active }))}
             initialRepId={calendarRep}
+          />
+        )}
+
+        {/* Same component the rep sees, in the admin skin and pointed at the
+            admin endpoint, so there is one call log rather than two that drift.
+            reps is passed, which is what turns the Rep field on in the form. */}
+        {tab === 'calls' && (
+          <CallLog
+            calls={calls}
+            endpoint="/api/admin/calls"
+            skin={ADMIN_SKIN}
+            reps={reps.map(r => ({ id: r.id, name: r.name }))}
           />
         )}
 
