@@ -19,6 +19,7 @@ export interface CallFormState {
   company: string
   contact_name: string
   phone: string
+  email: string
   date: string
   time: string
   outcome: CallOutcome
@@ -30,7 +31,7 @@ export function blankCall(repId = ''): CallFormState {
   const now = new Date()
   return {
     id: null, repId,
-    company: '', contact_name: '', phone: '',
+    company: '', contact_name: '', phone: '', email: '',
     // Now, because a call is nearly always logged the moment it ends.
     date: dateKey(now), time: timeKey(now),
     outcome: 'answered', follow_up_on: '', notes: '',
@@ -45,6 +46,7 @@ export function callFormFrom(c: LoggedCall): CallFormState {
     company: c.company,
     contact_name: c.contact_name || '',
     phone: c.phone || '',
+    email: c.email || '',
     date: dateKey(d),
     time: timeKey(d),
     outcome: c.outcome,
@@ -62,6 +64,7 @@ export function callToBody(f: CallFormState): Record<string, any> {
     company: f.company,
     contact_name: f.contact_name,
     phone: f.phone,
+    email: f.email,
     called_at: fromDateTimeParts(f.date, f.time).toISOString(),
     outcome: f.outcome,
     follow_up_on: f.follow_up_on || null,
@@ -74,6 +77,9 @@ export function callError(f: CallFormState, needsRep: boolean): string | null {
   if (!f.company.trim()) return 'Which company did you call?'
   if (!f.date) return 'When was the call?'
   if (needsRep && !f.repId) return 'Choose which rep this call belongs to.'
+  if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) {
+    return 'That email address does not look right.'
+  }
   return null
 }
 
@@ -153,6 +159,14 @@ export default function CallForm({
                 placeholder="082..." className={inputClass} style={inputStyle} />
             </Field>
           </div>
+
+          {/* Optional, like the name and the number. Getting an address out of
+              a cold call is the good outcome, not the requirement. */}
+          <Field label="Email">
+            <input value={form.email} type="email" inputMode="email"
+              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              placeholder="name@company.co.za" className={inputClass} style={inputStyle} />
+          </Field>
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Date *">

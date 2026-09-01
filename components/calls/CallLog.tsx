@@ -221,7 +221,7 @@ export default function CallLog({
             <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: 'var(--cal-raised)' }}>
-                  <Th>Company</Th><Th>Name</Th><Th>Number</Th>
+                  <Th>Company</Th><Th>Name</Th><Th>Number</Th><Th>Email</Th>
                   <Th>Outcome</Th><Th>When</Th><Th>Call back</Th><Th>Notes</Th>
                   {reps && <Th>Rep</Th>}
                 </tr>
@@ -241,6 +241,12 @@ export default function CallLog({
                         {c.phone
                           ? <a href={`tel:${c.phone}`} onClick={e => e.stopPropagation()}
                               className="hover:underline">{c.phone}</a>
+                          : '-'}
+                      </Td>
+                      <Td muted={!c.email}>
+                        {c.email
+                          ? <a href={`mailto:${c.email}`} onClick={e => e.stopPropagation()}
+                              className="hover:underline">{c.email}</a>
                           : '-'}
                       </Td>
                       <Td><Pill label={meta.label} colour={meta.colour} /></Td>
@@ -285,6 +291,7 @@ export default function CallLog({
                     </div>
                     <Row label="Name" value={c.contact_name} />
                     <Row label="Number" value={c.phone} />
+                    <Row label="Email" value={c.email} />
                     <Row label="Notes" value={c.notes} />
                     {c.repName && <Row label="Rep" value={c.repName} />}
                     {c.follow_up_on && (

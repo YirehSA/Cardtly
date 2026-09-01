@@ -16,6 +16,15 @@ function isMissingTable(error: any): boolean {
   return error?.code === '42P01'
 }
 
+function isMissingColumn(error: any): boolean {
+  return error?.code === '42703' || /column .* does not exist/i.test(String(error?.message || ''))
+}
+
+/** Columns that arrive after the table does. email came with migration 062,
+ *  applied by hand, so between the deploy and the migration the form offers a
+ *  field the table has not got. */
+const LATE_COLUMNS = ['email'] as const
+
 const text = (v: unknown, max: number): string | null => {
   const s = String(v ?? '').trim()
   return s ? s.slice(0, max) : null
@@ -51,6 +60,7 @@ export function parseCallBody(body: any): ParseResult {
       company: company.slice(0, 160),
       contact_name: text(body?.contact_name, 120),
       phone: text(body?.phone, 40),
+      email: text(body?.email, 160),
       called_at: when.toISOString(),
       outcome,
       follow_up_on: followUp,
@@ -61,7 +71,7 @@ export function parseCallBody(body: any): ParseResult {
 }
 
 export type WriteResult =
-  | { ok: true; id: string; row: any }
+  | { ok: true; id: string; row: any; degraded: boolean }
   | { ok: false; error: string; status: number }
 
 export async function saveCall(
@@ -77,38 +87,53 @@ export async function saveCall(
     allowReassign?: boolean
   },
 ): Promise<WriteResult> {
-  try {
+  const attempt = async (fields: Record<string, any>) => {
     if (opts.id) {
       let q = admin.from('rep_calls').update(
-        opts.allowReassign ? { ...opts.fields, rep_id: opts.repId } : opts.fields,
+        opts.allowReassign ? { ...fields, rep_id: opts.repId } : fields,
       ).eq('id', opts.id)
       // A rep may only ever touch their own rows, so their update is scoped by
       // rep_id as well as by id: someone else's id then matches nothing.
       if (!opts.allowReassign) q = q.eq('rep_id', opts.repId)
       const { data, error } = await q.select('*')
-      if (error) {
-        if (isMissingTable(error)) return { ok: false, error: MIGRATION_061_MISSING, status: 503 }
-        return { ok: false, error: error.message || 'Could not save that.', status: 500 }
-      }
       // Selecting the affected rows is what turns "matched nothing" into
       // something reportable, rather than a success message over no change.
-      if (!data || data.length === 0) {
-        return { ok: false, error: 'That call no longer exists, or it is not yours to change.', status: 404 }
+      if (!error && (!data || data.length === 0)) {
+        return { error: { code: 'NO_ROWS', message: 'That call no longer exists, or it is not yours to change.' }, row: null }
       }
-      return { ok: true, id: opts.id, row: data[0] }
+      return { error, row: data?.[0] || null }
     }
-
     const { data, error } = await admin
       .from('rep_calls')
-      .insert({ ...opts.fields, rep_id: opts.repId })
+      .insert({ ...fields, rep_id: opts.repId })
       .select('*')
       .single()
-    if (error) {
-      if (isMissingTable(error)) return { ok: false, error: MIGRATION_061_MISSING, status: 503 }
-      return { ok: false, error: error.message || 'Could not save that.', status: 500 }
+    return { error, row: data || null }
+  }
+
+  try {
+    let res = await attempt(opts.fields)
+    let degraded = false
+
+    // Drop what the table has not got yet and save the rest, rather than
+    // failing the whole write. Somebody logging a call between two others
+    // should not lose it because migration 062 has not been run.
+    if (res.error && isMissingColumn(res.error)) {
+      const stripped = { ...opts.fields }
+      for (const c of LATE_COLUMNS) delete stripped[c]
+      res = await attempt(stripped)
+      degraded = true
     }
-    if (!data?.id) return { ok: false, error: 'Saved, but no id came back.', status: 500 }
-    return { ok: true, id: data.id, row: data }
+
+    if (res.error) {
+      if (isMissingTable(res.error)) return { ok: false, error: MIGRATION_061_MISSING, status: 503 }
+      if ((res.error as any).code === 'NO_ROWS') {
+        return { ok: false, error: (res.error as any).message, status: 404 }
+      }
+      return { ok: false, error: (res.error as any).message || 'Could not save that.', status: 500 }
+    }
+    if (!res.row?.id) return { ok: false, error: 'Saved, but no id came back.', status: 500 }
+    return { ok: true, id: res.row.id, row: res.row, degraded }
   } catch (e: any) {
     return { ok: false, error: e?.message || 'Could not save that.', status: 500 }
   }

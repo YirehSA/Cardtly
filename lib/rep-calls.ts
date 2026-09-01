@@ -40,6 +40,7 @@ export interface RepCall {
   company: string
   contact_name: string | null
   phone: string | null
+  email: string | null
   called_at: string
   outcome: CallOutcome
   follow_up_on: string | null
@@ -155,7 +156,7 @@ export function filterCalls(
   return calls.filter(c => {
     if (outcome && c.outcome !== outcome) return false
     if (words.length === 0) return true
-    const hay = [c.company, c.contact_name, c.phone, c.notes, c.repName]
+    const hay = [c.company, c.contact_name, c.phone, c.email, c.notes, c.repName]
       .filter(Boolean).join(' ').toLowerCase()
     return words.every(w => hay.includes(w))
   })

@@ -59,5 +59,8 @@ export async function POST(request: Request) {
   const res = await saveCall(admin, { id: body?.id || null, repId: rep.id, fields: parsed.fields })
   if (!res.ok) return NextResponse.json({ error: res.error }, { status: res.status })
 
-  return NextResponse.json({ success: true, id: res.id, call: res.row })
+  return NextResponse.json({
+    success: true, id: res.id, call: res.row,
+    warning: res.degraded ? 'Saved. The email address needs migration 062 before it can be stored.' : null,
+  })
 }

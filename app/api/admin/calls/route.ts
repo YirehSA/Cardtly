@@ -89,5 +89,8 @@ export async function POST(request: Request) {
     },
   })
 
-  return NextResponse.json({ success: true, id: res.id, call: res.row })
+  return NextResponse.json({
+    success: true, id: res.id, call: res.row,
+    warning: res.degraded ? 'Saved. The email address needs migration 062 before it can be stored.' : null,
+  })
 }
