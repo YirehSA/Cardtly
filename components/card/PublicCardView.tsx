@@ -819,7 +819,12 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
           }}>
             <div className="flex items-start gap-5 mb-6">
               <div style={{ flexShrink: 0 }}>
-                <Avatar {...shared} size={92} rounded="xl" extraStyle={{ border: `2px solid ${accentHex}66`, borderRadius: 20 }} />
+                {/* Round, like every other template. This was a rounded square,
+                    so a photo with a dark background - which most cut-out and
+                    illustrated avatars have - showed as a black block with the
+                    face floating in the middle of it. A circle crops the corners
+                    off instead of framing them. */}
+                <Avatar {...shared} size={92} rounded="full" extraStyle={{ border: `2px solid ${accentHex}66` }} />
               </div>
               <div className="flex-1 min-w-0 pt-1" style={textNudge}>
                 <h1 style={{ margin: 0, fontSize: nameFontSize, fontWeight: 800, lineHeight: 1.1, fontFamily: font.heading, letterSpacing: '-0.02em', color: getNameColor(design, bg.text) }}>{card.name}</h1>
@@ -1211,7 +1216,8 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
           <div style={{ background: waveHeroBg, position: 'relative' }}>
             <div style={{ display: 'flex', gap: 0, padding: '28px 24px 52px' }}>
               <div style={{ flexShrink: 0, position: 'relative', zIndex: 2 }}>
-                <Avatar {...shared} size={100} rounded="xl" extraStyle={{ border: `3px solid ${accentHex}44`, borderRadius: 18 }} />
+                {/* Round, for the same reason as Modern above. */}
+                <Avatar {...shared} size={100} rounded="full" extraStyle={{ border: `3px solid ${accentHex}44` }} />
               </div>
               <div style={{ flex: 1, paddingLeft: 18, ...textNudge }}>
                 <h1 style={{ margin: '4px 0 6px', fontSize: nameFontSize, fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text), lineHeight: 1.2 }}>{card.name}</h1>

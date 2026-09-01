@@ -219,7 +219,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
             boxShadow: '0 12px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)',
           }}>
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
-              <div style={{ flexShrink: 0 }}><Avatar base={64} rounded="xl" extraStyle={{ border: `2px solid ${accentHex}66`, borderRadius: 14 }} /></div>
+              <div style={{ flexShrink: 0 }}><Avatar base={64} rounded="full" extraStyle={{ border: `2px solid ${accentHex}66` }} /></div>
               <div style={{ flex: 1, minWidth: 0, ...textNudge, paddingTop: 2 }}>
                 <h2 style={{ margin: 0, fontSize: nameFontSize, fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text), lineHeight: 1.1, letterSpacing: '-0.02em' }}>{form.name || 'Your Name'}</h2>
                 {isPro && form.title && <p style={{ margin: '4px 0 0', fontSize: calcTitleSize(8, design), fontWeight: 700, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{form.title}</p>}
@@ -538,7 +538,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
       <div style={pageStyle}>
         <div style={{ background: waveHeroBg, position: 'relative' }}>
           <div style={{ display: 'flex', padding: '20px 16px 44px', gap: 0 }}>
-            <div style={{ flexShrink: 0 }}><Avatar base={80} rounded="xl" /></div>
+            <div style={{ flexShrink: 0 }}><Avatar base={80} rounded="full" /></div>
             <div style={{ flex: 1, paddingLeft: 14, ...textNudge }}>
               <h2 style={{ margin: '0 0 4px', fontSize: nameFontSize, fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text), lineHeight: 1.2 }}>{form.name || 'Your Name'}</h2>
               {isPro && form.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(11, design), fontWeight: 600, color: titleColor }}>{form.title}</p>}
