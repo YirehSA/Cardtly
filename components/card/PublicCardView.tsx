@@ -1280,14 +1280,18 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
     // Everything the rail can be tapped for: the three ways to reach them, then
     // their profiles. These were bare 16px glyphs and, worse, not links at all -
     // three things that looked pressable on a phone and did nothing.
+    const RAIL_ICON = 20
     const railLinks = [
-      card.phone && { key: 'phone', href: `tel:${card.phone}`, label: 'Call', icon: <Phone style={{ width: 16, height: 16 }} /> },
-      card.email && { key: 'email', href: `mailto:${card.email}`, label: 'Email', icon: <Mail style={{ width: 16, height: 16 }} /> },
-      card.website && { key: 'web', href: card.website.startsWith('http') ? card.website : `https://${card.website}`, label: 'Website', icon: <Globe style={{ width: 16, height: 16 }} /> },
+      card.phone && { key: 'phone', href: `tel:${card.phone}`, label: 'Call', icon: <Phone style={{ width: RAIL_ICON, height: RAIL_ICON }} /> },
+      card.email && { key: 'email', href: `mailto:${card.email}`, label: 'Email', icon: <Mail style={{ width: RAIL_ICON, height: RAIL_ICON }} /> },
+      card.website && { key: 'web', href: card.website.startsWith('http') ? card.website : `https://${card.website}`, label: 'Website', icon: <Globe style={{ width: RAIL_ICON, height: RAIL_ICON }} /> },
     ].filter(Boolean) as { key: string; href: string; label: string; icon: React.ReactNode }[]
 
+    // 44, not 34. That is the size a finger is measured against - both Apple and
+    // Material put the floor there - and the rail is 96px wide, so there was
+    // room for it all along.
     const railPill: React.CSSProperties = {
-      width: 34, height: 34, borderRadius: '50%', display: 'grid', placeItems: 'center',
+      width: 44, height: 44, borderRadius: '50%', display: 'grid', placeItems: 'center',
       background: 'rgba(255,255,255,0.18)', color: '#fff', textDecoration: 'none', flexShrink: 0,
     }
 
@@ -1330,7 +1334,12 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
             {socialLinks.map(s => (
               <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
                 aria-label={s.platform} title={s.platform} style={railPill}>
-                {s.icon}
+                {/* socialLinks carries its glyphs at a fixed w-4 h-4 for the
+                    contact rows, and they are shared with every other template,
+                    so they are scaled here rather than resized at the source. */}
+                <span style={{ display: 'grid', placeItems: 'center', transform: `scale(${RAIL_ICON / 16})` }}>
+                  {s.icon}
+                </span>
               </a>
             ))}
             {/* Under the socials, not marginTop:auto. The rail is fixed inside
@@ -1340,7 +1349,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
             <div style={{ width: 20, height: 1, backgroundColor: 'rgba(255,255,255,0.3)', margin: '2px 0' }} />
             <button onClick={handleShare} aria-label="Share this card" title="Share"
               style={{ ...railPill, background: 'rgba(255,255,255,0.12)', border: 'none', cursor: 'pointer' }}>
-              <Share2 style={{ width: 16, height: 16 }} />
+              <Share2 style={{ width: RAIL_ICON, height: RAIL_ICON }} />
             </button>
           </div>
         </div>
