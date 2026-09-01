@@ -134,19 +134,30 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
           })}
         </div>
 
-        {/* Admin - its own section, full width so it does not read as just
-            another destination. */}
+        {/* Staff only - its own section under a divider, so it does not read as
+            just another destination.
+            Calendar sits beside Admin rather than inside it: every booking any
+            rep makes is in there, and getting to it meant opening Admin and
+            finding the right tab first. It deep-links to that tab. */}
         {isAdmin && (
           <>
             <div className="my-2 h-px" style={{ background: 'linear-gradient(90deg, transparent, hsl(var(--sidebar-border)), transparent)' }} />
-            <NavTile
-              href="/admin"
-              label="Admin"
-              Icon={Shield}
-              color="#fbbf24"
-              active={pathname.startsWith('/admin')}
-              wide
-            />
+            <div className="grid grid-cols-2 gap-1">
+              <NavTile
+                href="/admin"
+                label="Admin"
+                Icon={Shield}
+                color="#fbbf24"
+                active={pathname.startsWith('/admin')}
+              />
+              <NavTile
+                href="/admin?tab=meetings"
+                label="Calendar"
+                Icon={CalendarClock}
+                color="#0ea5e9"
+                active={false}
+              />
+            </div>
           </>
         )}
       </nav>

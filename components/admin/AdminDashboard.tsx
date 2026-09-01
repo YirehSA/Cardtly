@@ -51,7 +51,10 @@ interface Props {
   announcement: any | null
 }
 
-type Tab = 'overview' | 'users' | 'teams' | 'trials' | 'reps' | 'meetings' | 'nfc' | 'reports' | 'activity'
+// as const so ?tab= can be checked against it rather than trusted: an unknown
+// value opens Overview instead of rendering nothing at all.
+const TABS = ['overview', 'users', 'teams', 'trials', 'reps', 'meetings', 'nfc', 'reports', 'activity'] as const
+type Tab = typeof TABS[number]
 type Filter = 'all' | UserStatus | 'admins' | 'unconfirmed'
 
 const FILTERS: { id: Filter; label: string }[] = [
@@ -115,7 +118,20 @@ function byNullableAsc(a: number | null, b: number | null): number {
 
 export default function AdminDashboard({ users, orgs, cards, teamCards, nfcOrders, audit, reps, meetings, trialCodes, stats, announcement }: Props) {
   const router = useRouter()
-  const [tab, setTab] = useState<Tab>('overview')
+  // Which tab to open on, from ?tab= in the URL.
+  //
+  // The tab was local state only, so every link into this page landed on
+  // Overview and left you to find the rest - which is fine when the only way in
+  // is the Admin button, and no use at all for a shortcut that is supposed to
+  // go straight to the calendar.
+  //
+  // Read off window rather than useSearchParams: that hook forces the component
+  // into a Suspense boundary, and this reads once, on the client, at mount.
+  const [tab, setTab] = useState<Tab>(() => {
+    if (typeof window === 'undefined') return 'overview'
+    const wanted = new URLSearchParams(window.location.search).get('tab')
+    return (TABS as readonly string[]).includes(wanted || '') ? (wanted as Tab) : 'overview'
+  })
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [sort, setSort] = useState<SortId>('joined')

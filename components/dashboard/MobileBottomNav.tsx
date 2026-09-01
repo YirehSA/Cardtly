@@ -103,7 +103,13 @@ export default function MobileBottomNav({ isAdmin = false, isPro = false, manage
     // department head on a phone had no way to reach the page at all.
     ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers }] : []),
     ...(isRep ? [MEETINGS_TAB] : []),
-    ...(isAdmin ? [{ href: '/admin', label: 'Admin', icon: Shield }] : []),
+    ...(isAdmin ? [
+      { href: '/admin', label: 'Admin', icon: Shield },
+      // Same shortcut as the sidebar, deep-linked to the tab. Kept in step by
+      // hand: check-nav only compares /dashboard destinations, so it will not
+      // catch this pair drifting.
+      { href: '/admin?tab=meetings', label: 'Calendar', icon: CalendarClock },
+    ] : []),
   ]
 
   // Active any time the current page is one of the More items
