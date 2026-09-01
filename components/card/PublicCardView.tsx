@@ -60,7 +60,10 @@ function LogoZone({ card, design, accentHex }: Pick<Shared, 'card' | 'design' | 
   const justify = design.logoPosition === 'left' ? 'flex-start' : design.logoPosition === 'right' ? 'flex-end' : 'center'
   return (
     <div style={{ display: 'flex', justifyContent: justify, margin: '0 0 16px' }}>
-      <img src={card.company_logo_url} style={{ height: h, width: 'auto', objectFit: 'contain', maxWidth: 160 }} />
+      {/* maxWidth was a flat 160px, so past about 200% the slider stopped
+          doing anything for any logo wider than it is tall. The column is the
+          only real limit; object-fit keeps it in proportion at the clamp. */}
+      <img src={card.company_logo_url} style={{ height: h, width: 'auto', objectFit: 'contain', maxWidth: '100%' }} />
     </div>
   )
 }
@@ -1257,16 +1260,14 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
     // a margin-left then pushed 80px further right - so every Split card
     // overflowed by exactly the width of its own sidebar. A plain block sizes
     // itself to what is left, which is what the margin was always for.
-    const logoW = Math.min(140, calcLogoHeight(50, design))
-    // The rail grows with the logo rather than cropping it, so "bigger logo"
-    // means bigger here too instead of quietly hitting a 50px ceiling.
+    // The rail carries the person; the logo lives once, in the content, drawn
+    // by LogoZone like every other template.
     //
-    // Capped against the viewport as well, in CSS rather than JS because this
-    // renders on the server and there is no width to measure yet. Without the
-    // cap a 250% logo took 148px of a 375px phone and left the details column
-    // too narrow to hold a phone number - the logo got bigger by making
-    // everything else unreadable.
-    const rail = `min(${Math.max(80, logoW + 24)}px, 30vw)`
+    // It used to be in both, so a Split card showed the company mark twice -
+    // white and knocked out in the rail, then again in colour beside the name.
+    // Only the second one obeys the logo position and size controls, so the
+    // rail's copy was a fixture nobody could move, resize or turn off.
+    const rail = 80
 
     // Centre the pair once there is room for them.
     //
@@ -1278,7 +1279,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
     //
     // A gutter of zero below the group's own width leaves phones exactly as
     // they are, so this only ever changes the case that was wrong.
-    const GROUP = 608 // the rail at its widest (148) plus the content (460)
+    const GROUP = rail + 460
     const gutter = `max(0px, calc(50vw - ${GROUP / 2}px))`
     return (
       <div style={{ ...pageStyle, minHeight: '100vh' }} className="animate-fade-up">
@@ -1286,9 +1287,6 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
         <div style={{ width: rail, background: sidebarBg, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 8px', gap: 16, position: 'fixed', top: 0, bottom: 0, left: gutter }}>
           <Avatar {...shared} size={60} rounded="full" extraStyle={{ border: design.profileBorder === false ? 'none' : '3px solid rgba(255,255,255,0.3)' }} />
           <div style={{ width: '60%', height: 1, backgroundColor: 'rgba(255,255,255,0.3)' }} />
-          {card.company_logo_url && design.logoPosition !== 'hidden' && (
-            <img src={card.company_logo_url} style={{ width: '100%', maxWidth: logoW, height: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)', opacity: 0.85 }} />
-          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 8 }}>
             {card.phone && <Phone style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.8)' }} />}
             {card.email && <Mail style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.8)' }} />}
@@ -1298,7 +1296,10 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
             <Share2 style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.6)' }} />
           </button>
         </div>
-        <div style={{ marginLeft: `calc(${gutter} + ${rail})`, padding: '28px 24px', maxWidth: 460 }}>
+        {/* rail is a number, so it needs its unit here: calc() drops the whole
+            declaration for one unitless term, which put the content back under
+            the sidebar with no warning anywhere. */}
+        <div style={{ marginLeft: `calc(${gutter} + ${rail}px)`, padding: '28px 24px', maxWidth: 460 }}>
           <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(26, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text) }}>{card.name}</h1>
           {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentHex), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
           {card.company && <p style={{ margin: '0 0 16px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
