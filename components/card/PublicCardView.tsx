@@ -1267,10 +1267,23 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
     // too narrow to hold a phone number - the logo got bigger by making
     // everything else unreadable.
     const rail = `min(${Math.max(80, logoW + 24)}px, 30vw)`
+
+    // Centre the pair once there is room for them.
+    //
+    // The rail is fixed to the viewport's left edge and the content is a fixed
+    // width beside it, so on a desktop the whole card sat hard left with the
+    // rest of the screen empty - 672px of it at 1280, more than half the
+    // window. Every other template centres, which is what made this one look
+    // like it had spilled to one side.
+    //
+    // A gutter of zero below the group's own width leaves phones exactly as
+    // they are, so this only ever changes the case that was wrong.
+    const GROUP = 608 // the rail at its widest (148) plus the content (460)
+    const gutter = `max(0px, calc(50vw - ${GROUP / 2}px))`
     return (
       <div style={{ ...pageStyle, minHeight: '100vh' }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
-        <div style={{ width: rail, background: sidebarBg, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 8px', gap: 16, position: 'fixed', top: 0, bottom: 0, left: 0 }}>
+        <div style={{ width: rail, background: sidebarBg, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 8px', gap: 16, position: 'fixed', top: 0, bottom: 0, left: gutter }}>
           <Avatar {...shared} size={60} rounded="full" extraStyle={{ border: design.profileBorder === false ? 'none' : '3px solid rgba(255,255,255,0.3)' }} />
           <div style={{ width: '60%', height: 1, backgroundColor: 'rgba(255,255,255,0.3)' }} />
           {card.company_logo_url && design.logoPosition !== 'hidden' && (
@@ -1285,7 +1298,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
             <Share2 style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.6)' }} />
           </button>
         </div>
-        <div style={{ marginLeft: rail, padding: '28px 24px', maxWidth: 460 }}>
+        <div style={{ marginLeft: `calc(${gutter} + ${rail})`, padding: '28px 24px', maxWidth: 460 }}>
           <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(26, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text) }}>{card.name}</h1>
           {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentHex), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
           {card.company && <p style={{ margin: '0 0 16px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
