@@ -1372,10 +1372,11 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
 
         {/* Closes the band off across the whole card. Edge to edge rather than
             inside the body padding, so it finishes the yellow's bottom edge
-            instead of starting a new inset block under it. In the accent, which
-            is the same colour the rail is drawn from.
-            3px matches the accent bar under the company name. */}
-        <div style={{ ...column, height: 3, backgroundColor: accentHex, opacity: 0.35 }} />
+            instead of starting a new inset block under it.
+            The accent at full strength: it was at 0.35, which read as a faded
+            line rather than a deliberate one. It is the same colour the rail is
+            drawn from, so at full opacity it continues that edge exactly. */}
+        <div style={{ ...column, height: 2, backgroundColor: accentHex }} />
 
         {/* Everything from here down gets the whole width. */}
         <div style={{ ...column, padding: '24px 24px 28px' }}>
