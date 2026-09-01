@@ -18,7 +18,7 @@ import { resolveAddonTarget, loadOwnedTarget } from '@/lib/addon-target'
 // personal card. Without a target we fall back to the default resolution
 // order, which is org-first.
 
-const ALLOWED = ['contactExchange', 'questionnaireEnabled'] as const
+const ALLOWED = ['contactExchange', 'questionnaireEnabled', 'cardtlyBadge'] as const
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -35,8 +35,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unknown feature' }, { status: 400 })
   }
 
-  // Both features are Pro. A trial counts as Pro, so a trialling user gets
-  // the real thing rather than a preview of it.
+  // All three are Pro. A trial counts as Pro, so a trialling user gets the real
+  // thing rather than a preview of it.
+  //
+  // The badge is here too, which is not a new paywall: a card that is not Pro
+  // has always carried "Powered by Cardtly" with no way to remove it. The badge
+  // is a better-looking version of that line, and PublicCardView falls back to
+  // it if the badge is ever off on a card that is not Pro - so switching off
+  // still cannot strip a free card of the mark.
   const plan = await getUserPlan(user.id)
   if (!(plan.tier === 'pro' && plan.isActive)) {
     return NextResponse.json({ error: 'This is a Pro feature. Subscribe to switch it on.' }, { status: 403 })

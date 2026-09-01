@@ -152,6 +152,7 @@ export default async function LeadCapturePage({ searchParams }: { searchParams: 
         key={selKey}
         target={{ table: selected.table, id: selected.id }}
         contactExchange={selected.addons?.contactExchange !== false}
+        cardtlyBadge={selected.addons?.cardtlyBadge !== false}
         questionnaireEnabled={questionnaireOn}
         teamWide={isTeamWide}
       />

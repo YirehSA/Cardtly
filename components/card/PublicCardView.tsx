@@ -7,8 +7,8 @@ import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAcce
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
-  Instagram, Linkedin, Twitter, Facebook, UserPlus, X
-, Youtube } from 'lucide-react'
+  Instagram, Linkedin, Twitter, Facebook, Youtube, UserPlus, X, Sparkles,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { TikTokGlyph } from '@/components/card/SocialIcons'
 import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
@@ -631,13 +631,42 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
         </div>
       ) : null}
 
-      {!isPro && (
+      {/* The one thing on the card that is for Cardtly rather than for its
+          owner. Every template renders BottomSection, so it lands on all twelve
+          from here rather than being pasted into each.
+
+          On by default, off with one toggle - addons.cardtlyBadge !== false, so
+          a card saved before this existed still shows it.
+
+          When it is switched off, a card that is not Pro falls back to the
+          quiet "Powered by" line it has always carried. That rule does not
+          change: the badge is a nicer way of saying the same thing, not a way
+          for a free card to shed it. */}
+      {(card as any).addons?.cardtlyBadge !== false ? (
+        <div className="mt-10 flex flex-col items-center gap-2">
+          <div className="w-16 h-px" style={{ background: bg.subtext, opacity: 0.25 }} />
+          <a
+            href="/?ref=card"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-bold text-white transition hover:opacity-90 active:scale-95"
+            style={{
+              background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)',
+              boxShadow: '0 6px 20px rgba(124,58,237,0.35)',
+            }}
+          >
+            <Sparkles className="w-4 h-4" />
+            Get your own Cardtly card
+          </a>
+          <p className="text-[11px]" style={{ color: bg.subtext }}>
+            One tap and they have your details. No app to install.
+          </p>
+        </div>
+      ) : !isPro ? (
         <div className="mt-10 text-center">
           <a href="/" className="text-xs hover:opacity-70 transition" style={{ color: bg.subtext }}>
             Powered by <span className="font-semibold">Cardtly</span>
           </a>
         </div>
-      )}
+      ) : null}
     </>
   )
 }

@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2, MessageSquare, ClipboardList } from 'lucide-react'
+import { Loader2, MessageSquare, ClipboardList, Sparkles } from 'lucide-react'
 
 interface Props {
   target: { table: string; id: string }
   contactExchange: boolean
   questionnaireEnabled: boolean
+  cardtlyBadge: boolean
   // True when the target is an organization, so the copy can say the change
   // hits every card in the team rather than just this one.
   teamWide: boolean
@@ -18,14 +19,14 @@ interface Props {
 // now; this is where the user switches them on and off. Turning one off never
 // deletes anything: a saved questionnaire stays in the same jsonb and comes
 // straight back when it goes on again.
-export default function CardFeatureToggles({ target, contactExchange, questionnaireEnabled, teamWide }: Props) {
+export default function CardFeatureToggles({ target, contactExchange, questionnaireEnabled, cardtlyBadge, teamWide }: Props) {
   const router = useRouter()
   const [pending, setPending] = useState<string | null>(null)
   // Optimistic local state so the switch moves the instant it is clicked.
   // Reverted if the server says no.
-  const [state, setState] = useState({ contactExchange, questionnaireEnabled })
+  const [state, setState] = useState({ contactExchange, questionnaireEnabled, cardtlyBadge })
 
-  async function toggle(addon: 'contactExchange' | 'questionnaireEnabled', next: boolean) {
+  async function toggle(addon: 'contactExchange' | 'questionnaireEnabled' | 'cardtlyBadge', next: boolean) {
     setPending(addon)
     setState(s => ({ ...s, [addon]: next }))
     try {
@@ -67,6 +68,16 @@ export default function CardFeatureToggles({ target, contactExchange, questionna
         ? 'Shows your live form on every team card. You can switch it off per card from the team page.'
         : 'Shows your live form on your card, so you collect the answers you actually need.',
       on: state.questionnaireEnabled,
+    },
+    {
+      key: 'cardtlyBadge' as const,
+      icon: Sparkles,
+      colour: '#ec4899',
+      title: 'Get your own Cardtly card button',
+      desc: teamWide
+        ? 'A button at the bottom of every team card, so somebody who liked it can get one. Switch it off and it goes from all of them.'
+        : 'A button at the bottom of your card, so somebody who liked it can get one of their own.',
+      on: state.cardtlyBadge,
     },
   ]
 
