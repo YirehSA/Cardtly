@@ -45,22 +45,6 @@ function description(m: RepMeeting): string {
   return bits.join('\n')
 }
 
-/**
- * The same event as the person being invited should see it.
- *
- * The description above is a sales rep's private working notes: who they are
- * seeing, what stage it is at, what came of it, and whatever they typed in the
- * notes box. Sending that to the client puts "Outcome: Not interested" and
- * every candid remark about them straight into their calendar, where it stays.
- * They get the appointment, and nothing else.
- */
-function attendeeDescription(m: RepMeeting, organizerName?: string | null): string {
-  const bits: string[] = []
-  if (organizerName) bits.push(`Meeting with ${organizerName}`)
-  if (m.location) bits.push(`Where: ${m.location}`)
-  return bits.join('\n')
-}
-
 function eventStatus(status: string): string {
   // VEVENT allows TENTATIVE, CONFIRMED and CANCELLED only. A no-show still
   // happened as far as the diary is concerned - it is the outcome that was bad.
@@ -106,12 +90,6 @@ export function buildIcs(
      * this a rescheduled meeting silently stays at the old time in their diary.
      */
     sequence?: number
-    /**
-     * Who is going to read it. 'attendee' strips the rep's notes, the stage the
-     * deal is at and what came of it - see attendeeDescription. Defaults to the
-     * rep, so the diary download is unchanged.
-     */
-    audience?: 'organiser' | 'attendee'
   },
 ): string {
   const now = opts.now || new Date()
@@ -139,11 +117,7 @@ export function buildIcs(
       `DTSTART:${stamp(start)}`,
       `DTEND:${stamp(end)}`,
       `SUMMARY:${esc(m.company)}`,
-      `DESCRIPTION:${esc(
-        opts.audience === 'attendee'
-          ? attendeeDescription(m, opts.organizer?.name)
-          : description(m)
-      )}`,
+      `DESCRIPTION:${esc(description(m))}`,
       // A withdrawal is CANCELLED whatever the row still says. The status
       // column is the rep's record of the appointment; METHOD:CANCEL is what
       // the recipient's calendar is being told to do with it.

@@ -126,18 +126,13 @@ export default function MeetingForm({
   const needsRep = !!reps
   const problem = formError(form, needsRep)
 
-  // What the server will decide to send, worked out here so the form can say it
-  // first. Kept in step with inviteAction in lib/meeting-invite: planned, and
+  // Whether the server will send anything, worked out here so the form can say
+  // it first. Kept in step with inviteAction in lib/meeting-invite: planned, and
   // still to come.
-  //   null -> nothing goes out
-  //   ''   -> the rep gets one, nobody else
-  //   addr -> both of them do
-  const emailPlan: string | null = (() => {
-    if (form.status !== 'planned') return null
+  const willEmail: boolean = (() => {
+    if (form.status !== 'planned') return false
     const at = fromDateTimeParts(form.date, form.time)
-    if (!Number.isFinite(at.getTime()) || at.getTime() <= Date.now()) return null
-    const to = form.contact_email.trim()
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) ? to : ''
+    return Number.isFinite(at.getTime()) && at.getTime() > Date.now()
   })()
 
   return createPortal(
@@ -216,13 +211,12 @@ export default function MeetingForm({
 
           {/* Saying so before the fact, because mail going out is not something
               to discover afterwards - least of all by a rep writing up a
-              meeting they have just walked out of. */}
+              meeting they have just walked out of. And saying plainly that the
+              client is not written to, so nobody assumes they have been. */}
           <p className="text-xs leading-relaxed" style={{ color: 'var(--cal-muted)' }}>
-            {emailPlan === null
-              ? 'No email goes out. Invitations are only sent for a planned meeting still to come.'
-              : emailPlan
-                ? <>An invitation goes to <strong>{emailPlan}</strong> and to you, with a calendar attachment.</>
-                : 'An invitation goes to you. Add an email address above and they get one too.'}
+            {willEmail
+              ? <>A confirmation goes to you and to support@cardtly.com, with the calendar file. <strong>The client is not emailed.</strong></>
+              : 'No email goes out. A confirmation is only sent for a planned meeting still to come.'}
           </p>
 
           <div className="grid grid-cols-2 gap-3">

@@ -4,19 +4,25 @@ import { buildIcs } from './ics'
 import { meetingDuration, type RepMeeting } from './rep-meetings'
 import { calendarLinks } from './calendar-links'
 
-// Telling the two people in the room that a meeting exists.
+// Telling Cardtly that a rep has booked something.
 //
 // A rep booking an appointment used to write it into their own calendar and
-// nothing else happened: the client was told over the phone, or not at all, and
-// the rep's real diary - the one on their phone with the alarm in it - never
-// heard about it either. Both now get an email carrying a proper invitation, so
-// the appointment lands in whichever calendar each of them actually lives in.
+// nothing else happened, so the rep's real diary - the one on their phone with
+// the alarm in it - never heard about it. It now goes to them by email with the
+// calendar file attached, and a copy goes to the office.
 //
-// Attached as METHOD:REQUEST rather than a plain file, which is the difference
-// between "Anthony has invited you" with an Accept button and an .ics somebody
-// has to know what to do with. See lib/ics.
+// In-house only, deliberately. This did email the client as well, and that is
+// exactly what it must not do: the rep arranges the meeting with them, and an
+// automated "your meeting is confirmed" from a company they have not agreed to
+// meet yet is not ours to send. The address on the meeting is shown in the mail
+// so somebody here can confirm it; nothing is sent to it.
 
 const RECIPIENT_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+// The office copy. Every booking lands here so somebody other than the rep can
+// see the diary filling up, and so a rep with no address on their record still
+// produces a record of the appointment somewhere.
+const SUPPORT_EMAIL = 'support@cardtly.com'
 
 // Everyone this is for is in South Africa, and a time with no zone on it is the
 // oldest way to have two people turn up an hour apart.
@@ -128,40 +134,26 @@ const BOX = 'background:#f6f7f9;border-radius:12px;padding:18px;margin:0 0 20px'
 const ROW = 'margin:0 0 6px;font-size:14px'
 
 /**
- * The details, written for whoever is reading them.
+ * The details, for the rep and the office - the only two who get this.
  *
- * These used to be one block sent to both, and to the client it read as the
- * sender's contact details when it was in fact their own: "Contact: Anthony,
- * Phone: .693.53139" under a heading naming the rep is an invitation to ring
- * the client's own number expecting to reach Cardtly. The two audiences want
- * opposite halves of the same row, so they get one each.
+ * There was a second version of this block written for the client, back when
+ * they were emailed too. Everything in here is internal: who the rep is seeing
+ * and how to reach them.
  */
-function detailBox(m: RepMeeting, opts: { forClient?: string | null } = {}): string {
+function detailBox(m: RepMeeting): string {
   const venue = (m.location || '').trim()
   const company = (m.company || '').trim()
   const rows: string[] = [
     `<p style="${ROW}"><strong>When:</strong> ${esc(when(m))}</p>`,
     `<p style="${ROW}"><strong>How long:</strong> ${meetingDuration(m)} minutes</p>`,
   ]
-
-  if (opts.forClient) {
-    // The client knows their own name and number - what they need is where to
-    // be and who is coming. Where falls back to the company name, because a rep
-    // who typed the venue nowhere still left it in there, and an email with no
-    // location at all is the one thing this must never send.
-    if (venue || company) {
-      rows.push(`<p style="${ROW}"><strong>Where:</strong> ${esc(venue || company)}</p>`)
-    }
-    rows.push(`<p style="${ROW}"><strong>Who you are meeting:</strong> ${esc(opts.forClient)} from Cardtly</p>`)
-  } else {
-    // Only when it says something the company line has not already said.
-    if (venue && venue !== company) {
-      rows.push(`<p style="${ROW}"><strong>Where:</strong> ${esc(venue)}</p>`)
-    }
-    rows.push(`<p style="${ROW}"><strong>Company:</strong> ${esc(m.company)}</p>`)
-    if (m.contact_name) rows.push(`<p style="${ROW}"><strong>Seeing:</strong> ${esc(m.contact_name)}</p>`)
-    if (m.contact_phone) rows.push(`<p style="${ROW}"><strong>Their phone:</strong> ${esc(m.contact_phone)}</p>`)
+  // Only when it says something the company line has not already said.
+  if (venue && venue !== company) {
+    rows.push(`<p style="${ROW}"><strong>Where:</strong> ${esc(venue)}</p>`)
   }
+  rows.push(`<p style="${ROW}"><strong>Company:</strong> ${esc(m.company)}</p>`)
+  if (m.contact_name) rows.push(`<p style="${ROW}"><strong>Seeing:</strong> ${esc(m.contact_name)}</p>`)
+  if (m.contact_phone) rows.push(`<p style="${ROW}"><strong>Their phone:</strong> ${esc(m.contact_phone)}</p>`)
   return `<div style="${BOX}">${rows.filter(Boolean).join('')}</div>`
 }
 
@@ -209,9 +201,9 @@ export interface NotifyResult {
 /**
  * One line for whoever just pressed Save.
  *
- * A rep needs to know whether their client was told, because the alternative is
- * assuming they were and finding out at the meeting. Silence when there was
- * nothing to send: a note being edited should not report on the post.
+ * Names the addresses so a rep can see the client is not among them. Silence
+ * when there was nothing to send: a note being edited should not report on the
+ * post.
  */
 export function describeInvite(r: NotifyResult): string | null {
   if (!r.sent.length) {
@@ -219,7 +211,7 @@ export function describeInvite(r: NotifyResult): string | null {
   }
   const verb = r.action === 'cancelled' ? 'Cancellation sent to'
     : r.action === 'updated' ? 'Update sent to'
-    : 'Invitation sent to'
+    : 'Booking sent to'
   const list = r.sent.length === 2 ? `${r.sent[0]} and ${r.sent[1]}` : r.sent.join(', ')
   return `${verb} ${list}${r.errors.length ? ` (${r.errors.length} did not send)` : ''}`
 }
@@ -270,22 +262,31 @@ export async function notifyMeetingChange(
     const clientEmail: string = String(m.contact_email || '').trim()
 
     const toRep = RECIPIENT_RE.test(repEmail) ? repEmail : null
-    const toClient = RECIPIENT_RE.test(clientEmail) ? clientEmail : null
-    if (!toRep && !toClient) {
-      return { action, sent: [], errors, skipped: 'no usable address on the rep or the meeting' }
+    // The address on the meeting is NOT written to. It is carried into the mail
+    // as a detail so the office can see who the appointment is with.
+    const clientShown = RECIPIENT_RE.test(clientEmail) ? clientEmail : null
+
+    // In-house only: the rep, and the office. Nobody outside Cardtly hears about
+    // a rep's diary from us - the rep arranges the meeting with the client
+    // themselves, and an automated "your meeting is confirmed" arriving from a
+    // company they have not agreed to meet yet is not ours to send.
+    const recipients = [...new Set([toRep, SUPPORT_EMAIL].filter(Boolean) as string[])]
+    if (recipients.length === 0) {
+      return { action, sent: [], errors, skipped: 'no usable address on the rep' }
     }
 
-    const organizer = toRep ? { name: repName, email: toRep } : null
-    const attendees = toClient
-      ? [{ name: m.contact_name || null, email: toClient }]
-      : []
-    const method = action === 'cancelled' ? 'CANCEL' : 'REQUEST'
+    // PUBLISH, not REQUEST, and no ATTENDEE line. This is a diary entry going to
+    // the people who keep the diary, not an invitation anybody is being asked to
+    // accept - and an ATTENDEE naming the client is how a mail client decides to
+    // send them an RSVP on the organiser's behalf, which is the exact thing this
+    // change is here to stop.
+    const method = action === 'cancelled' ? 'CANCEL' : 'PUBLISH'
     const common = {
       calendarName: `${repName} - Cardtly`,
       now,
-      method: method as 'REQUEST' | 'CANCEL',
-      organizer,
-      attendees,
+      method: method as 'PUBLISH' | 'CANCEL',
+      organizer: toRep ? { name: repName, email: toRep } : null,
+      attendees: [],
       sequence: sequenceFor(m),
     }
     const pack = (ics: string) => [{
@@ -295,12 +296,9 @@ export async function notifyMeetingChange(
       // that makes a mail client offer Accept and Decline.
       contentType: `text/calendar; charset=utf-8; method=${method}`,
     }]
-    // Two files, not one. The rep's carries their notes, the stage the deal is
-    // at and what came of it; the client's carries the appointment. The same
-    // attachment for both would put "Outcome: Not interested" and every candid
-    // remark about them into their calendar, permanently.
-    const repAttachments = pack(buildIcs([m], common))
-    const clientAttachments = pack(buildIcs([m], { ...common, audience: 'attendee' }))
+    // One file now, and it may carry the rep's notes and the stage the deal is
+    // at, because the only people receiving it work here.
+    const attachments = pack(buildIcs([m], common))
 
     const resend = new Resend(process.env.RESEND_API_KEY)
     const stamp = shortWhen(m)
@@ -319,56 +317,32 @@ export async function notifyMeetingChange(
       }
     }
 
-    if (toRep) {
-      const subject =
-        action === 'new' ? `Booked: ${m.company}${stamp ? ` on ${stamp}` : ''}`
-        : action === 'updated' ? `Moved: ${m.company}${stamp ? ` to ${stamp}` : ''}`
-        : `Cancelled: ${m.company}${stamp ? ` on ${stamp}` : ''}`
-      const lead =
-        action === 'new' ? 'This is in your diary. The calendar invitation is attached.'
-        : action === 'updated' ? 'The details changed. The attached invitation replaces the old one.'
-        : 'This one is off. The attachment removes it from your calendar.'
-      await send(
-        toRep, subject,
-        wrap(
-          action === 'cancelled' ? `${m.company} is cancelled` : `${m.company}`,
-          lead,
-          detailBox(m) + (action === 'cancelled' ? '' : addToCalendar(m, repName)),
-          toClient
-            ? `${esc(toClient)} was told as well.`
-            : 'No email address on this meeting, so nobody else was told.',
-        ),
-        repAttachments,
-        // A reply goes to the person they are seeing, which is the only reply
-        // worth making to this.
-        toClient || undefined,
-      )
-    }
+    const who = `${repName}${m.contact_name ? ` with ${m.contact_name}` : ''}`
+    const subject =
+      action === 'new' ? `Booked: ${m.company}${stamp ? ` on ${stamp}` : ''} - ${repName}`
+      : action === 'updated' ? `Moved: ${m.company}${stamp ? ` to ${stamp}` : ''} - ${repName}`
+      : `Cancelled: ${m.company}${stamp ? ` on ${stamp}` : ''} - ${repName}`
+    const lead =
+      action === 'new' ? `${esc(who)} has booked the appointment below. The calendar file is attached.`
+      : action === 'updated' ? 'The details changed. The attached file replaces the old one.'
+      : 'This one is off. The attachment removes it from the calendar.'
+    const body =
+      detailBox(m) + (action === 'cancelled' ? '' : addToCalendar(m, repName))
+    const foot = clientShown
+      ? `The client has NOT been emailed. They are on ${esc(clientShown)} if somebody needs to confirm it with them.`
+      : 'The client has not been emailed, and there is no address on this meeting.'
 
-    if (toClient) {
-      const first = String(m.contact_name || '').trim().split(/\s+/)[0]
-      const hello = first ? `Hi ${esc(first)},` : 'Hi,'
-      const subject =
-        action === 'new' ? `Your meeting with ${repName}${stamp ? ` on ${stamp}` : ''}`
-        : action === 'updated' ? `Your meeting with ${repName} has moved${stamp ? ` to ${stamp}` : ''}`
-        : `Your meeting with ${repName}${stamp ? ` on ${stamp}` : ''} is cancelled`
-      const lead =
-        action === 'new'
-          ? `${hello} ${esc(repName)} from Cardtly has booked the time below with you. Add it to your calendar with the attachment, and just reply here if it does not suit.`
-          : action === 'updated'
-          ? `${hello} the meeting with ${esc(repName)} from Cardtly has changed. The new details are below, and the attachment updates your calendar.`
-          : `${hello} the meeting with ${esc(repName)} from Cardtly has been cancelled. Nothing is needed from you.`
+    // Sent one at a time rather than as one message with several recipients, so
+    // a bounce on the office address cannot take the rep's copy down with it,
+    // and so `sent` reports exactly who got it.
+    for (const to of recipients) {
       await send(
-        toClient, subject,
-        wrap(
-          action === 'cancelled' ? 'Meeting cancelled' : 'Meeting confirmed',
-          lead,
-          detailBox(m, { forClient: repName })
-            + (action === 'cancelled' ? '' : addToCalendar(m, repName)),
-          `Sent by Cardtly on behalf of ${esc(repName)}. Reply to this email to reach them.`,
-        ),
-        clientAttachments,
-        toRep || undefined,
+        to, subject,
+        wrap(action === 'cancelled' ? `${m.company} is cancelled` : m.company, lead, body, foot),
+        attachments,
+        // A reply goes to the rep, who is the one who can answer it. The office
+        // reading this is the commonest reason anybody would reply at all.
+        toRep && to !== toRep ? toRep : undefined,
       )
     }
 
