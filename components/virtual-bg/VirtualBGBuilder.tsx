@@ -419,13 +419,19 @@ export default function VirtualBGBuilder({ cards, defaultCardId }: Props) {
             </div>
           </div>
         </div>
+        {/* A select is width:auto, so it sizes itself to its widest option and
+            min-w-[200px] was only a floor. The labels here are "Name — Job
+            title", so one long one made the control 342px inside a 343px phone
+            column and pushed the page 45px off the right of the screen.
+            flex-1 min-w-0 lets it take the space that is there and shrink to it;
+            the old floor comes back from sm up, where there is room for it. */}
         {cards.length > 1 && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto min-w-0">
             <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">Card:</label>
             <select
               value={selectedCardId}
               onChange={e => setSelectedCardId(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition min-w-[200px]">
+              className="px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition flex-1 min-w-0 sm:flex-none sm:min-w-[200px]">
               {cards.map(c => (
                 <option key={c.id} value={c.id}>{(c as any)._label || c.name}</option>
               ))}
