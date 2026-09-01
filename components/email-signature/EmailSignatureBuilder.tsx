@@ -74,6 +74,8 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
       card.linkedin_url && { label: 'LinkedIn', url: card.linkedin_url, color: '#0A66C2' },
       card.twitter_url && { label: 'X', url: card.twitter_url, color: '#000000' },
       card.instagram_url && { label: 'Instagram', url: card.instagram_url, color: '#E1306C' },
+      (card as any).youtube && { label: 'YouTube', url: (card as any).youtube, color: '#FF0000' },
+      (card as any).tiktok && { label: 'TikTok', url: (card as any).tiktok, color: '#0f172a' },
     ].filter(Boolean) as { label: string; url: string; color: string }[]
 
     if (style === 'minimal') {

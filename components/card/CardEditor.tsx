@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, UserPlan } from '@/types/database'
 import { isPro } from '@/lib/plan'
-import { CardDesign, DEFAULT_DESIGN, parseDesign, serializeDesign, MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES } from '@/types/design'
+import { CardDesign, DEFAULT_DESIGN, parseDesign, serializeDesign, MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES, LINK_SLOTS, IMAGE_SLOTS, linkFieldsFrom, imageFieldsFrom } from '@/types/design'
 import { composeCardSlug, slugifyPart } from '@/lib/card-slug'
 import { toast } from 'sonner'
 import TemplatedCardPreview from './TemplatedCardPreview'
@@ -14,8 +14,9 @@ import ProGate from './ProGate'
 import ImageUploader from './ImageUploader'
 import {
   Save, ExternalLink, Lock, User, Phone, Link2, Image, Palette, Copy, Check, Sparkles,
-  Camera, MapPin, Plus, Building2, Linkedin, Twitter, Instagram, Facebook,
+  Camera, MapPin, Plus, Building2, Linkedin, Twitter, Instagram, Facebook, Youtube,
 } from 'lucide-react'
+import { TikTokGlyph } from '@/components/card/SocialIcons'
 import AIBioModal from './AIBioModal'
 import { isNativeApp } from '@/lib/capacitor'
 import { celebrateFirstSave, hasCelebratedFirstSave, markFirstSaveCelebrated } from '@/lib/celebrate'
@@ -56,10 +57,9 @@ const TABS: {
 const TAB_FIELDS: Record<TabId, string[]> = {
   basic:   ['profile_image_url', 'name', 'title', 'company', 'bio', 'certifications'],
   contact: ['email', 'phone', 'work_phone', 'whatsapp', 'address', 'website',
-            'linkedin_url', 'twitter_url', 'instagram_url', 'facebook_url'],
-  links:   ['link_1_url', 'link_2_url', 'link_3_url', 'link_4_url', 'link_5_url'],
-  media:   ['company_logo_url', 'image_1_url', 'image_2_url', 'image_3_url',
-            'image_4_url', 'image_5_url', 'image_6_url'],
+            'linkedin_url', 'twitter_url', 'instagram_url', 'facebook_url', 'youtube', 'tiktok'],
+  links:   LINK_SLOTS.map(i => `link_${i}_url`),
+  media:   ['company_logo_url', ...IMAGE_SLOTS.map(i => `image_${i}_url`)],
   design:  [],
 }
 
@@ -74,6 +74,8 @@ const SOCIALS: { key: string; label: string; placeholder: string; colour: string
   { key: 'facebook_url',  label: 'Facebook',    placeholder: 'https://facebook.com/yourpage', colour: '#1877F2', icon: <Facebook className="w-3 h-3" /> },
   { key: 'instagram_url', label: 'Instagram',   placeholder: 'https://instagram.com/you',     colour: '#E4405F', icon: <Instagram className="w-3 h-3" /> },
   { key: 'twitter_url',   label: 'Twitter / X', placeholder: 'https://x.com/you',             colour: '#0f172a', icon: <Twitter className="w-3 h-3" /> },
+  { key: 'youtube',       label: 'YouTube',     placeholder: 'https://youtube.com/@you',      colour: '#FF0000', icon: <Youtube className="w-3 h-3" /> },
+  { key: 'tiktok',        label: 'TikTok',      placeholder: 'https://tiktok.com/@you',       colour: '#0f172a', icon: <TikTokGlyph className="w-3 h-3" /> },
 ]
 
 // A titled block of related fields, in the tab's colour.
@@ -118,31 +120,15 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
     twitter_url:       card?.twitter_url || '',
     instagram_url:     card?.instagram_url || '',
     facebook_url:      card?.facebook_url || '',
+    youtube:           (card as any)?.youtube || '',
+    tiktok:            (card as any)?.tiktok || '',
     profile_image_url: card?.profile_image_url || '',
     company_logo_url:  card?.company_logo_url || '',
-    image_1_url:       card?.image_1_url || '',
-    image_1_link:      card?.image_1_link || '',
-    image_2_url:       card?.image_2_url || '',
-    image_2_link:      card?.image_2_link || '',
-    image_3_url:       card?.image_3_url || '',
-    image_3_link:      card?.image_3_link || '',
-    image_4_url:       card?.image_4_url || '',
-    image_4_link:      card?.image_4_link || '',
-    image_5_url:       card?.image_5_url || '',
-    image_5_link:      card?.image_5_link || '',
-    image_6_url:       card?.image_6_url || '',
-    image_6_link:      card?.image_6_link || '',
+    // Generated from IMAGE_SLOTS, so raising the limit is one number rather
+    // than eight more lines somebody has to remember to add.
+    ...imageFieldsFrom(card),
     certifications:    card?.certifications || '',
-    link_1_title:      card?.link_1_title || '',
-    link_1_url:        card?.link_1_url || '',
-    link_2_title:      card?.link_2_title || '',
-    link_2_url:        card?.link_2_url || '',
-    link_3_title:      card?.link_3_title || '',
-    link_3_url:        card?.link_3_url || '',
-    link_4_title:      card?.link_4_title || '',
-    link_4_url:        card?.link_4_url || '',
-    link_5_title:      card?.link_5_title || '',
-    link_5_url:        card?.link_5_url || '',
+    ...linkFieldsFrom(card),
   })
 
   const update = useCallback((field: string, value: string) => {
@@ -225,15 +211,27 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
     // with no error at all. Without checking that a row came back we told the
     // user "Card saved" and even "Your card is live!" while saving nothing,
     // and they would only find out later that their edits were gone.
-    const { data: updated, error } = await supabase
-      .from('cards')
-      .update({
-        ...form,
-        color_theme: serializeDesign(design),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', card.id)
-      .select('id')
+    const payload: Record<string, any> = {
+      ...form,
+      color_theme: serializeDesign(design),
+      updated_at: new Date().toISOString(),
+    }
+    const write = () => supabase.from('cards').update(payload).eq('id', card.id).select('id')
+    let { data: updated, error } = await write()
+
+    // Photos 7 to 10 arrive with migration 060, applied by hand after the
+    // deploy. Postgres fails the whole update over one unknown column, so in
+    // that window somebody fixing a typo in their name would be told their card
+    // could not be saved. Drop the columns the table has not got and save the
+    // rest, rather than losing everything they just typed.
+    let late = 0
+    if (error && ((error as any).code === '42703' || /column .* does not exist/i.test(error.message || ''))) {
+      for (const key of Object.keys(payload)) {
+        const n = Number(key.match(/^image_(\d+)_/)?.[1] ?? 0)
+        if (n > 6) { delete payload[key]; late++ }
+      }
+      if (late > 0) ({ data: updated, error } = await write())
+    }
 
     if (error) toast.error('Failed to save: ' + error.message)
     else if (!updated || updated.length === 0) {

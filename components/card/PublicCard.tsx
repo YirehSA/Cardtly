@@ -1,4 +1,5 @@
 import { Card, extractLinks } from '@/types/database'
+import { IMAGE_SLOTS } from '@/types/design'
 import { Phone, Mail, MapPin, Globe, MessageCircle, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 
@@ -15,6 +16,9 @@ export default function PublicCard({ card, isPro }: Props) {
     card.linkedin_url && { platform: 'LinkedIn', url: card.linkedin_url },
     card.twitter_url && { platform: 'Twitter / X', url: card.twitter_url },
     card.instagram_url && { platform: 'Instagram', url: card.instagram_url },
+    (card as any).facebook_url && { platform: 'Facebook', url: (card as any).facebook_url },
+    (card as any).youtube && { platform: 'YouTube', url: (card as any).youtube },
+    (card as any).tiktok && { platform: 'TikTok', url: (card as any).tiktok },
   ].filter(Boolean) : []
 
   // Parse certifications
@@ -23,14 +27,9 @@ export default function PublicCard({ card, isPro }: Props) {
     : []
 
   // Gallery images
-  const galleryImages = isPro ? [
-    card.image_1_url,
-    card.image_2_url,
-    card.image_3_url,
-    card.image_4_url,
-    card.image_5_url,
-    (card as any).image_6_url,
-  ].filter(Boolean) as string[] : []
+  const galleryImages = isPro
+    ? IMAGE_SLOTS.map(i => (card as any)[`image_${i}_url`]).filter(Boolean) as string[]
+    : []
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">

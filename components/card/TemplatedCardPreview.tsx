@@ -198,7 +198,9 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
     const hasTwitter  = isPro && !!(form as any).twitter_url
     const hasFacebook = isPro && !!(form as any).facebook_url
     const hasInstagram = isPro && !!(form as any).instagram_url
-    const hasAnySocial = hasLinkedin || hasTwitter || hasFacebook || hasInstagram
+    const hasYoutube  = isPro && !!(form as any).youtube
+    const hasTiktok   = isPro && !!(form as any).tiktok
+    const hasAnySocial = hasLinkedin || hasTwitter || hasFacebook || hasInstagram || hasYoutube || hasTiktok
     return (
       <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden', minHeight: 480 }}>
         {/* Static gradient orbs (preview thumbnail) - same colours as
@@ -530,6 +532,8 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
     const hasTwitter  = isPro && !!(form as any).twitter_url
     const hasFacebook = isPro && !!(form as any).facebook_url
     const hasInstagram = isPro && !!(form as any).instagram_url
+    const hasYoutube  = isPro && !!(form as any).youtube
+    const hasTiktok   = isPro && !!(form as any).tiktok
     return (
       <div style={pageStyle}>
         <div style={{ background: waveHeroBg, position: 'relative' }}>

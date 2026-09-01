@@ -146,10 +146,12 @@ export default async function LeadCapturePage({ searchParams }: { searchParams: 
         </div>
       )}
 
+      {/* contactExchange reads !== false, matching PublicCardView: it is on by
+          default, and this toggle has to show what the card is actually doing. */}
       <CardFeatureToggles
         key={selKey}
         target={{ table: selected.table, id: selected.id }}
-        contactExchange={!!selected.addons?.contactExchange}
+        contactExchange={selected.addons?.contactExchange !== false}
         questionnaireEnabled={questionnaireOn}
         teamWide={isTeamWide}
       />

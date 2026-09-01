@@ -686,7 +686,9 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
       {design.logoPosition !== 'hidden' && (
         <div>
           <label className="block text-sm font-semibold mb-1">Logo size</label>
-          <input type="range" min="40" max="250" step="4"
+          {/* Up from 250. A logo is often the only mark a customer recognises,
+              and the old ceiling stopped well short of "as big as the name". */}
+          <input type="range" min="40" max="400" step="5"
             value={design.logoSize ?? 100}
             onChange={e => update({ logoSize: parseInt(e.target.value) })}
             className="w-full accent-blue-500" />

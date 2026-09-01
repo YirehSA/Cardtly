@@ -13,11 +13,18 @@ export const BRAND_FIELDS = [
   'twitter_url',
   'instagram_url',
   'facebook_url',
+  'youtube',
+  'tiktok',
   'link_1_title', 'link_1_url',
   'link_2_title', 'link_2_url',
   'link_3_title', 'link_3_url',
   'link_4_title', 'link_4_url',
   'link_5_title', 'link_5_url',
+  'link_6_title', 'link_6_url',
+  'link_7_title', 'link_7_url',
+  'link_8_title', 'link_8_url',
+  'link_9_title', 'link_9_url',
+  'link_10_title', 'link_10_url',
   'certifications',
   'image_1_url', 'image_1_link',
   'image_2_url', 'image_2_link',
@@ -25,9 +32,35 @@ export const BRAND_FIELDS = [
   'image_4_url', 'image_4_link',
   'image_5_url', 'image_5_link',
   'image_6_url', 'image_6_link',
+  'image_7_url', 'image_7_link',
+  'image_8_url', 'image_8_link',
+  'image_9_url', 'image_9_link',
+  'image_10_url', 'image_10_link',
 ] as const
 
 export type BrandField = typeof BRAND_FIELDS[number]
+
+/**
+ * The look copied when a new team card is started from an existing one.
+ *
+ * Everything the brand covers except the company name and the gallery: the name
+ * comes from the organisation anyway, and somebody's photographs are theirs
+ * rather than part of a house style.
+ *
+ * Derived from BRAND_FIELDS rather than listed again. The two places that copy
+ * a card - adding one by hand and importing a spreadsheet - each had their own
+ * copy of this list, both stopping at link 5, so a card with six links lost the
+ * sixth the moment anyone copied it.
+ */
+export const COPYABLE_LOOK_FIELDS: string[] =
+  BRAND_FIELDS.filter(f => f !== 'company' && !f.startsWith('image_'))
+
+export function copyLook(source: Record<string, any> | null | undefined): Record<string, any> {
+  const out: Record<string, any> = {}
+  if (!source) return out
+  for (const f of COPYABLE_LOOK_FIELDS) out[f] = source[f] ?? null
+  return out
+}
 
 // Pull just the brand fields out of a card (used by "use my card as
 // the brand").

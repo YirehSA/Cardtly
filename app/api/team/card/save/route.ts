@@ -111,16 +111,39 @@ export async function POST(request: Request) {
   payload.updated_at = new Date().toISOString()
 
   // .select() so a write that matched nothing cannot report success.
-  const { data: updated, error } = await admin
-    .from('team_cards')
-    .update(payload)
-    .eq('id', cardId)
-    .select('id')
+  const write = () => admin.from('team_cards').update(payload).eq('id', cardId).select('id')
+  let { data: updated, error } = await write()
+
+  // The columns from migration 060 - the second five links, photos 7 to 10,
+  // YouTube and TikTok - are applied by hand after the deploy. In the window
+  // between the two, the editor offers fields the table has not got, and
+  // Postgres fails the WHOLE update over one unknown column: somebody
+  // correcting their phone number would be told their card could not be saved.
+  //
+  // Drop what the table cannot take, save the rest, and say which ones waited.
+  const late: string[] = []
+  if (error && (error.code === '42703' || /column .* does not exist/i.test(String(error.message || '')))) {
+    for (const key of Object.keys(payload)) {
+      const n = Number(key.match(/^link_(\d+)_/)?.[1] ?? key.match(/^image_(\d+)_/)?.[1] ?? 0)
+      if (key === 'youtube' || key === 'tiktok' || (key.startsWith('link_') && n > 5) || (key.startsWith('image_') && n > 6)) {
+        delete payload[key]
+        late.push(key)
+      }
+    }
+    if (late.length > 0) ({ data: updated, error } = await write())
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!updated || updated.length === 0) {
     return NextResponse.json({ error: 'Your changes were not saved. Please refresh and try again.' }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true, saved: Object.keys(payload).length - 1, removed })
+  return NextResponse.json({
+    success: true,
+    saved: Object.keys(payload).length - 1,
+    removed,
+    warning: late.length > 0
+      ? 'Saved. The extra links, photos and the YouTube and TikTok fields need migration 060 before they can be stored.'
+      : null,
+  })
 }

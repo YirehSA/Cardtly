@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo, useEffect } from 'react'
-import { CardDesign, parseDesign, serializeDesign } from '@/types/design'
+import { CardDesign, parseDesign, serializeDesign, LINK_SLOTS, IMAGE_SLOTS, MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES, linkFieldsFrom, imageFieldsFrom, type LinkSlot, type ImageSlot } from '@/types/design'
 import { mergeBrand } from '@/lib/team-brand'
 import { lockedColumns, LOCK_GROUPS } from '@/lib/team-locks'
 import { INDUSTRIES_BY_GROUP } from '@/lib/industries'
@@ -14,7 +14,14 @@ import AIBioModal from '@/components/card/AIBioModal'
 import { Save, ExternalLink, ArrowLeft, User, Phone, Link2, Image, Palette, Copy, Check, Lock, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 
-interface TeamCard {
+// The repeated slot columns, declared from the shared lists rather than typed
+// out. They used to be twenty lines here and twenty more in the form below, and
+// raising the limit meant remembering both.
+type SlotColumns =
+  & { [K in ImageSlot as `image_${K}_url` | `image_${K}_link`]?: string | null }
+  & { [K in LinkSlot as `link_${K}_title` | `link_${K}_url`]?: string | null }
+
+interface TeamCard extends SlotColumns {
   id: string
   organization_id: string
   name: string
@@ -32,20 +39,9 @@ interface TeamCard {
   instagram_url: string | null
   profile_image_url: string | null
   company_logo_url: string | null
-  image_1_url: string | null
-  image_2_url: string | null
-  image_3_url: string | null
-  image_4_url: string | null
-  image_5_url: string | null
-  image_6_url: string | null
   certifications: string | null
   color_theme: string | null
   slug: string | null
-  link_1_title: string | null; link_1_url: string | null
-  link_2_title: string | null; link_2_url: string | null
-  link_3_title: string | null; link_3_url: string | null
-  link_4_title: string | null; link_4_url: string | null
-  link_5_title: string | null; link_5_url: string | null
   allow_homepage_feature?: boolean | null
   industry?: string | null
   hide_from_network?: boolean | null
@@ -100,10 +96,9 @@ const ALL_TABS: { id: TabId; label: string; hint: string; icon: React.ReactNode;
 const TAB_FIELDS: Record<TabId, string[]> = {
   basic:   ['profile_image_url', 'name', 'title', 'company', 'bio', 'certifications'],
   contact: ['email', 'phone', 'work_phone', 'whatsapp', 'address', 'website',
-            'linkedin_url', 'twitter_url', 'instagram_url', 'facebook_url'],
-  links:   ['link_1_url', 'link_2_url', 'link_3_url', 'link_4_url', 'link_5_url'],
-  media:   ['company_logo_url', 'image_1_url', 'image_2_url', 'image_3_url',
-            'image_4_url', 'image_5_url', 'image_6_url'],
+            'linkedin_url', 'twitter_url', 'instagram_url', 'facebook_url', 'youtube', 'tiktok'],
+  links:   LINK_SLOTS.map(i => `link_${i}_url`),
+  media:   ['company_logo_url', ...IMAGE_SLOTS.map(i => `image_${i}_url`)],
   design:  [],
 }
 
@@ -244,26 +239,13 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
     twitter_url:       card.twitter_url || '',
     instagram_url:     card.instagram_url || '',
     facebook_url:      (card as any).facebook_url || '',
+    youtube:           (card as any).youtube || '',
+    tiktok:            (card as any).tiktok || '',
     profile_image_url: card.profile_image_url || '',
     company_logo_url:  card.company_logo_url || '',
-    image_1_url:       card.image_1_url || '',
-    image_1_link:      (card as any).image_1_link || '',
-    image_2_url:       card.image_2_url || '',
-    image_2_link:      (card as any).image_2_link || '',
-    image_3_url:       card.image_3_url || '',
-    image_3_link:      (card as any).image_3_link || '',
-    image_4_url:       card.image_4_url || '',
-    image_4_link:      (card as any).image_4_link || '',
-    image_5_url:       card.image_5_url || '',
-    image_5_link:      (card as any).image_5_link || '',
-    image_6_url:       card.image_6_url || '',
-    image_6_link:      (card as any).image_6_link || '',
+    ...imageFieldsFrom(card),
     certifications:    card.certifications || '',
-    link_1_title:      card.link_1_title || '', link_1_url: card.link_1_url || '',
-    link_2_title:      card.link_2_title || '', link_2_url: card.link_2_url || '',
-    link_3_title:      card.link_3_title || '', link_3_url: card.link_3_url || '',
-    link_4_title:      card.link_4_title || '', link_4_url: card.link_4_url || '',
-    link_5_title:      card.link_5_title || '', link_5_url: card.link_5_url || '',
+    ...linkFieldsFrom(card),
   })
 
   const update = useCallback((field: string, value: string) => {
@@ -602,6 +584,12 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
               <Field label="Facebook URL" locked={isLocked('facebook_url')} lockedBy={org.name}>
                 <Input type="url" value={(form as any).facebook_url || ''} onChange={e => update('facebook_url', e.target.value)} placeholder="https://facebook.com/yourpage" disabled={isLocked('facebook_url')} />
               </Field>
+              <Field label="YouTube URL" locked={isLocked('youtube')} lockedBy={org.name}>
+                <Input type="url" value={(form as any).youtube || ''} onChange={e => update('youtube', e.target.value)} placeholder="https://youtube.com/@you" disabled={isLocked('youtube')} />
+              </Field>
+              <Field label="TikTok URL" locked={isLocked('tiktok')} lockedBy={org.name}>
+                <Input type="url" value={(form as any).tiktok || ''} onChange={e => update('tiktok', e.target.value)} placeholder="https://tiktok.com/@you" disabled={isLocked('tiktok')} />
+              </Field>
             </>
           )}
 
@@ -615,9 +603,9 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                   </p>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Add up to 5 custom links to this card.</p>
+                <p className="text-sm text-muted-foreground">Add up to {MAX_CUSTOM_LINKS} custom links to this card.</p>
               )}
-              {[1,2,3,4,5].map(i => (
+              {LINK_SLOTS.map(i => (
                 <div key={i} className="rounded-xl border border-border p-4 space-y-2.5 bg-muted/30">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Link {i}</p>
                   <div>
@@ -656,14 +644,14 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                 <p className="text-xs text-muted-foreground mb-3">
                   {isLocked('image_1_url')
                     ? `The gallery on this card is set by ${org.name}.`
-                    : 'Up to 6 images shown on the card'}
+                    : `Up to ${MAX_GALLERY_IMAGES} images shown on the card`}
                 </p>
                 {isLocked('image_1_url') ? (
                   // Read-only when the company owns the gallery. Showing upload
                   // controls that silently discard the upload would be worse
                   // than showing none.
                   <div className="flex flex-wrap gap-3">
-                    {[1,2,3,4,5,6]
+                    {IMAGE_SLOTS
                       .map(i => (form as any)[`image_${i}_url`] as string)
                       .filter(Boolean)
                       .map((url, i) => (
@@ -671,13 +659,13 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                         <img key={i} src={url} alt={`Gallery image ${i + 1}`}
                           className="h-20 w-20 rounded-lg border border-border object-cover opacity-70" />
                       ))}
-                    {![1,2,3,4,5,6].some(i => (form as any)[`image_${i}_url`]) && (
+                    {!IMAGE_SLOTS.some(i => (form as any)[`image_${i}_url`]) && (
                       <p className="text-xs text-muted-foreground">No gallery images set.</p>
                     )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-4">
-                    {[1,2,3,4,5,6].map(i => (
+                    {IMAGE_SLOTS.map(i => (
                       <div key={i} className="rounded-xl border border-border p-3 space-y-2 bg-muted/20">
                         <p className="text-xs font-semibold text-muted-foreground">Image {i}</p>
                         <ImageUploader value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" />

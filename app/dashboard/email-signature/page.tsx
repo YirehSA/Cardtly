@@ -15,7 +15,7 @@ export default async function EmailSignaturePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const CARD_FIELDS = 'id, name, title, company, email, phone, website, linkedin_url, twitter_url, instagram_url, profile_image_url, company_logo_url, color_theme, slug'
+  const CARD_FIELDS = 'id, name, title, company, email, phone, website, linkedin_url, twitter_url, instagram_url, facebook_url, youtube, tiktok, profile_image_url, company_logo_url, color_theme, slug'
 
   const [plan, personalCard] = await Promise.all([
     getUserPlan(user.id),

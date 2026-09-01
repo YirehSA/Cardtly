@@ -1,11 +1,51 @@
 // What a person can actually create through the editor, which is not the same
-// as what the database can hold. cards has link_1..link_14 columns and
-// extractLinks will render all fourteen, but the editor only ever offers five
-// slots - so "up to 14 custom links" was true of the schema and false of the
-// product, and it sat on three marketing pages. Copy is checked against these
-// by scripts/check-facts.mjs.
-export const MAX_CUSTOM_LINKS = 5
-export const MAX_GALLERY_IMAGES = 6
+// as what the database can hold. cards has link_1..link_20 columns and
+// extractLinks will render all twenty, but the editor only offers these - so
+// "up to 14 custom links" was true of the schema and false of the product, and
+// it sat on three marketing pages. Copy is checked against these by
+// scripts/check-facts.mjs.
+//
+// Raised from 5 and 6 in migration 060, which added the columns team_cards was
+// missing. Every list of slots in the app counts off these two numbers rather
+// than writing [1,2,3,4,5] out again, because the ones that did were how the
+// team editor ended up offering five links while the schema held twenty.
+export const MAX_CUSTOM_LINKS = 10
+export const MAX_GALLERY_IMAGES = 10
+
+// Written out and `as const` rather than counted with Array.from, because the
+// literal tuple is what lets TypeScript know `link_7_url` is a real field name.
+// Generated slots typed as plain strings would have every form and preview
+// silently accept a key that does not exist.
+//
+// scripts/check-facts.mjs reads the two numbers above by regex, and the pair
+// below is checked against them at module load, so the two cannot drift.
+export const LINK_SLOTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const
+export const IMAGE_SLOTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const
+
+export type LinkSlot = typeof LINK_SLOTS[number]
+export type ImageSlot = typeof IMAGE_SLOTS[number]
+
+if (LINK_SLOTS.length !== MAX_CUSTOM_LINKS || IMAGE_SLOTS.length !== MAX_GALLERY_IMAGES) {
+  throw new Error('types/design: LINK_SLOTS / IMAGE_SLOTS do not match the MAX_ constants')
+}
+
+/** Every link column, exactly, so a form holding these satisfies a preview. */
+export type LinkFields = { [K in LinkSlot as `link_${K}_title` | `link_${K}_url`]: string }
+export type ImageFields = { [K in ImageSlot as `image_${K}_url` | `image_${K}_link`]: string }
+
+export function linkFieldsFrom(card: any): LinkFields {
+  return Object.fromEntries(LINK_SLOTS.flatMap(i => [
+    [`link_${i}_title`, card?.[`link_${i}_title`] || ''],
+    [`link_${i}_url`, card?.[`link_${i}_url`] || ''],
+  ])) as LinkFields
+}
+
+export function imageFieldsFrom(card: any): ImageFields {
+  return Object.fromEntries(IMAGE_SLOTS.flatMap(i => [
+    [`image_${i}_url`, card?.[`image_${i}_url`] || ''],
+    [`image_${i}_link`, card?.[`image_${i}_link`] || ''],
+  ])) as ImageFields
+}
 
 export type TemplateId = 'classic' | 'modern' | 'bold' | 'minimal' | 'executive' | 'creative' | 'wave' | 'split' | 'neon' | 'studio' | 'frost' | 'editorial'
 export type FontId = 'sans' | 'serif' | 'modern' | 'rounded' | 'mono'

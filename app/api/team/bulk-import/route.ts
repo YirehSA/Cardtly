@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { copyLook } from '@/lib/team-brand'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { newTeamCardSlug, newTeamPersonSlug, orgIndustry } from '@/lib/card-slug-server'
@@ -237,19 +238,6 @@ async function brandFrom(admin: any, cardId: string, orgId: string): Promise<Rec
   if (!source) return null
 
   return {
-    color_theme: source.color_theme,
-    company_logo_url: source.company_logo_url,
-    website: source.website,
-    address: source.address,
-    linkedin_url: source.linkedin_url,
-    twitter_url: source.twitter_url,
-    instagram_url: source.instagram_url,
-    facebook_url: source.facebook_url,
-    certifications: source.certifications,
-    link_1_title: source.link_1_title, link_1_url: source.link_1_url,
-    link_2_title: source.link_2_title, link_2_url: source.link_2_url,
-    link_3_title: source.link_3_title, link_3_url: source.link_3_url,
-    link_4_title: source.link_4_title, link_4_url: source.link_4_url,
-    link_5_title: source.link_5_title, link_5_url: source.link_5_url,
+    ...copyLook(source),
   }
 }

@@ -12,7 +12,7 @@
 // passes happily while the source drifts underneath it, which is worse than
 // no test because it reads like coverage.
 
-import { readFileSync, mkdtempSync, rmSync } from 'node:fs'
+import { readFileSync, mkdtempSync, rmSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -41,10 +41,23 @@ try {
 // CommonJS, because tsc emits extensionless relative imports that Node's ESM
 // loader refuses; require resolves them without a build step to fix up.
 const require = createRequire(import.meta.url)
+
+// tsc flattens the output only while every input sits in one directory. The
+// moment a library under test imports something outside lib/ - team-locks
+// reaching types/design for the link and photo slot lists - the emit gains a
+// lib/ level and every require here broke on a path that no longer existed.
+// Look in both rather than hard-coding whichever is true this week.
+const compiled = name => {
+  for (const p of [join(out, name), join(out, 'lib', name)]) {
+    if (existsSync(p)) return require(p)
+  }
+  throw new Error(`compiled module not found: ${name}`)
+}
+
 const {
   rowsToCsv, parseDelimited, detectColumns, looksLikeHeader, toRows, checkRows,
-} = require(join(out, 'csv-import.js'))
-const { companyFacets, filterCompanyCards } = require(join(out, 'network.js'))
+} = compiled('csv-import.js')
+const { companyFacets, filterCompanyCards } = compiled('network.js')
 
 let pass = 0
 const fail = []
@@ -236,7 +249,7 @@ eq('a legacy single-column file still routes', legacy[0].departmentId, 'L1')
 // both hold a department called Sales. Naming the department was ambiguous and
 // refused; naming the company was refused too, because cards cannot attach to
 // a company. There was no third thing an admin could type.
-const { matchDepartment, routingHint } = require(join(out, 'csv-import.js'))
+const { matchDepartment, routingHint } = compiled('csv-import.js')
 
 const GROUP = [
   { id: 'coA', name: 'Cardtly', kind: 'company', parentName: null },

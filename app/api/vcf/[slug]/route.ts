@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { fetchCardImage } from '@/lib/card-image'
 import { foldLine } from '@/lib/text-fold'
+import { LINK_SLOTS } from '@/types/design'
 
 // The .vcf a visitor gets when they tap Save Contact.
 //
@@ -17,10 +18,10 @@ import { foldLine } from '@/lib/text-fold'
 const COLS = [
   'name', 'email', 'phone', 'work_phone', 'whatsapp', 'company', 'title',
   'website', 'address', 'bio', 'certifications', 'profile_image_url',
-  'linkedin_url', 'twitter_url', 'instagram_url', 'facebook_url',
-  'link_1_title', 'link_1_url', 'link_2_title', 'link_2_url',
-  'link_3_title', 'link_3_url', 'link_4_title', 'link_4_url',
-  'link_5_title', 'link_5_url',
+  'linkedin_url', 'twitter_url', 'instagram_url', 'facebook_url', 'youtube', 'tiktok',
+  // Counted off LINK_SLOTS: naming five of ten here is how a card with six
+  // links saved a vCard carrying five.
+  ...LINK_SLOTS.flatMap(i => [`link_${i}_title`, `link_${i}_url`]),
 ].join(', ')
 
 // vCard escaping: comma, semicolon and backslash are structural, and a newline
@@ -86,7 +87,7 @@ export async function GET(
   // third, and a heavy vCard is one phones refuse to import.
   const photo = await fetchCardImage(c.profile_image_url, { size: 256, forceJpeg: true })
 
-  const customLinks = [1, 2, 3, 4, 5]
+  const customLinks = LINK_SLOTS
     .map(i => ({ title: c[`link_${i}_title`], url: c[`link_${i}_url`] }))
     .filter(l => l.url)
 
@@ -95,6 +96,8 @@ export async function GET(
     { url: c.twitter_url, service: 'twitter', label: 'X' },
     { url: c.instagram_url, service: 'instagram', label: 'Instagram' },
     { url: c.facebook_url, service: 'facebook', label: 'Facebook' },
+    { url: c.youtube, service: 'youtube', label: 'YouTube' },
+    { url: c.tiktok, service: 'tiktok', label: 'TikTok' },
   ].filter(s => s.url)
 
   // The note is the safety net. NOTE is the one field every phone imports and

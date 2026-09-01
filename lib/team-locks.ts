@@ -1,3 +1,8 @@
+// Relative, not '@/': scripts/test-import-directory compiles these libraries on
+// their own with tsc, where the path alias does not exist. Same reason as
+// lib/resolve-card-brand.
+import { LINK_SLOTS, IMAGE_SLOTS } from '../types/design'
+
 // Which parts of a team card a member may not change.
 //
 // Locks are chosen as GROUPS, not raw columns. "Socials" is one decision to a
@@ -51,28 +56,24 @@ export const LOCK_GROUPS: LockGroup[] = [
   {
     id: 'socials',
     label: 'Social profiles',
-    hint: 'LinkedIn, Facebook, Instagram and X',
-    columns: ['linkedin_url', 'facebook_url', 'instagram_url', 'twitter_url'],
+    hint: 'LinkedIn, Facebook, Instagram, X, YouTube and TikTok',
+    columns: ['linkedin_url', 'facebook_url', 'instagram_url', 'twitter_url', 'youtube', 'tiktok'],
   },
+  // Counted off LINK_SLOTS and IMAGE_SLOTS rather than written out. This is the
+  // exact case the group comment above describes: raising the limit from five
+  // to ten would otherwise leave the new slots unlocked on every card in the
+  // country, with nothing to say so.
   {
     id: 'links',
     label: 'Link buttons',
     hint: 'The custom buttons on the card',
-    columns: [
-      'link_1_title', 'link_1_url', 'link_2_title', 'link_2_url',
-      'link_3_title', 'link_3_url', 'link_4_title', 'link_4_url',
-      'link_5_title', 'link_5_url',
-    ],
+    columns: LINK_SLOTS.flatMap(i => [`link_${i}_title`, `link_${i}_url`]),
   },
   {
     id: 'images',
     label: 'Gallery photos',
     hint: 'The photos shown on the card',
-    columns: [
-      'image_1_url', 'image_1_link', 'image_2_url', 'image_2_link',
-      'image_3_url', 'image_3_link', 'image_4_url', 'image_4_link',
-      'image_5_url', 'image_5_link', 'image_6_url', 'image_6_link',
-    ],
+    columns: IMAGE_SLOTS.flatMap(i => [`image_${i}_url`, `image_${i}_link`]),
   },
   {
     id: 'design',

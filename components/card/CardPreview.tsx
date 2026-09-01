@@ -1,4 +1,5 @@
 import { Phone, Mail, MapPin, Globe, MessageCircle, ExternalLink } from 'lucide-react'
+import { LINK_SLOTS } from '@/types/design'
 
 const THEME_COLORS: Record<string, string> = {
   blue: '#3b82f6',
@@ -65,7 +66,7 @@ export default function CardPreview({ form, isPro }: Props) {
     ? form.certifications.split(',').map(c => c.trim()).filter(Boolean)
     : []
 
-  const customLinks = [1, 2, 3, 4, 5]
+  const customLinks = LINK_SLOTS
     .map(i => ({
       title: form[`link_${i}_title` as keyof PreviewForm],
       url: form[`link_${i}_url` as keyof PreviewForm],
@@ -76,6 +77,8 @@ export default function CardPreview({ form, isPro }: Props) {
     form.linkedin_url && { label: 'LinkedIn', url: form.linkedin_url },
     form.twitter_url && { label: 'Twitter / X', url: form.twitter_url },
     form.instagram_url && { label: 'Instagram', url: form.instagram_url },
+    (form as any).youtube && { label: 'YouTube', url: (form as any).youtube },
+    (form as any).tiktok && { label: 'TikTok', url: (form as any).tiktok },
   ].filter(Boolean) : []
 
   return (

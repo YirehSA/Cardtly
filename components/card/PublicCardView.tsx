@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Card, extractLinks } from '@/types/database'
-import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg } from '@/types/design'
+import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS } from '@/types/design'
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
   Instagram, Linkedin, Twitter, Facebook, UserPlus, X
-} from 'lucide-react'
+, Youtube } from 'lucide-react'
 import { toast } from 'sonner'
+import { TikTokGlyph } from '@/components/card/SocialIcons'
 import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
 import { isInAppBrowser, detectInAppBrowser, isAndroid, chromeIntentUrl } from '@/lib/in-app-browser'
 import { waShareLink } from '@/lib/whatsapp'
@@ -94,7 +95,10 @@ const SOCIAL_BRAND_COLORS = {
   instagram: '#E4405F',
   facebook: '#1877F2',
   whatsapp: '#25D366',
+  youtube: '#FF0000',
+  tiktok: '#000000',
 }
+
 
 // Mixes a hex toward black. Used by the templates that build a gradient or a
 // second wash from the single accent colour the user picked.
@@ -221,7 +225,11 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
   const addons = (card as any).addons || {}
   // Contact-exchange: after the visitor saves this contact, offer to
   // share their details back.
-  const contactExchangeOn = !!addons.contactExchange
+  // On unless it has been switched off. It used to be off unless switched on,
+  // which meant the single feature that turns a scanned card into a saved lead
+  // was dark on every card until somebody found the toggle - and nothing on the
+  // card said it existed.
+  const contactExchangeOn = addons.contactExchange !== false
   const [exchangeOpen, setExchangeOpen] = useState(false)
   // Custom questionnaire: only show if enabled AND the client has
   // actually built at least one question.
@@ -680,18 +688,21 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
     ? card.certifications.split(',').map(c => c.trim()).filter(Boolean)
     : []
   const galleryImages = isPro ? [
-    { url: card.image_1_url, link: (card as any).image_1_link },
-    { url: card.image_2_url, link: (card as any).image_2_link },
-    { url: card.image_3_url, link: (card as any).image_3_link },
-    { url: card.image_4_url, link: (card as any).image_4_link },
-    { url: card.image_5_url, link: (card as any).image_5_link },
-    { url: (card as any).image_6_url, link: (card as any).image_6_link },
+    // Counted off IMAGE_SLOTS, so raising the limit does not need this list
+    // rewritten - which is how slots 7 to 10 could exist in the editor and
+    // never appear on the card.
+    ...IMAGE_SLOTS.map(i => ({
+      url: (card as any)[`image_${i}_url`],
+      link: (card as any)[`image_${i}_link`],
+    })),
   ].filter(item => item.url) as { url: string; link?: string }[] : []
   const socialLinks = isPro ? [
     card.linkedin_url && { platform: 'LinkedIn', url: card.linkedin_url, icon: <Linkedin className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.linkedin },
     card.twitter_url && { platform: 'Twitter / X', url: card.twitter_url, icon: <Twitter className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.twitter },
     card.instagram_url && { platform: 'Instagram', url: card.instagram_url, icon: <Instagram className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.instagram },
     (card as any).facebook_url && { platform: 'Facebook', url: (card as any).facebook_url, icon: <Facebook className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.facebook },
+    (card as any).youtube && { platform: 'YouTube', url: (card as any).youtube, icon: <Youtube className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.youtube },
+    (card as any).tiktok && { platform: 'TikTok', url: (card as any).tiktok, icon: <TikTokGlyph className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.tiktok },
     card.whatsapp && { platform: 'WhatsApp', url: `https://wa.me/${card.whatsapp.replace(/\D/g, '')}`, icon: <MessageCircle className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.whatsapp },
   ].filter(Boolean) as { platform: string; url: string; icon: React.ReactNode; color: string }[] : []
 
@@ -1241,14 +1252,29 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
       : design.cardStyle === 'glass'
         ? `linear-gradient(180deg, ${accentHex}cc 0%, ${accentHex}88 100%)`
         : accentHex
+    // The rail is fixed, so it is out of the page flow. The content beside it
+    // was ALSO flex: 1 inside a flex row, which made it a full-width child that
+    // a margin-left then pushed 80px further right - so every Split card
+    // overflowed by exactly the width of its own sidebar. A plain block sizes
+    // itself to what is left, which is what the margin was always for.
+    const logoW = Math.min(140, calcLogoHeight(50, design))
+    // The rail grows with the logo rather than cropping it, so "bigger logo"
+    // means bigger here too instead of quietly hitting a 50px ceiling.
+    //
+    // Capped against the viewport as well, in CSS rather than JS because this
+    // renders on the server and there is no width to measure yet. Without the
+    // cap a 250% logo took 148px of a 375px phone and left the details column
+    // too narrow to hold a phone number - the logo got bigger by making
+    // everything else unreadable.
+    const rail = `min(${Math.max(80, logoW + 24)}px, 30vw)`
     return (
-      <div style={{ ...pageStyle, display: 'flex', minHeight: '100vh' }} className="animate-fade-up">
+      <div style={{ ...pageStyle, minHeight: '100vh' }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
-        <div style={{ width: 80, flexShrink: 0, background: sidebarBg, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 8px', gap: 16, position: 'fixed', top: 0, bottom: 0, left: 0 }}>
+        <div style={{ width: rail, background: sidebarBg, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 8px', gap: 16, position: 'fixed', top: 0, bottom: 0, left: 0 }}>
           <Avatar {...shared} size={60} rounded="full" extraStyle={{ border: design.profileBorder === false ? 'none' : '3px solid rgba(255,255,255,0.3)' }} />
           <div style={{ width: '60%', height: 1, backgroundColor: 'rgba(255,255,255,0.3)' }} />
           {card.company_logo_url && design.logoPosition !== 'hidden' && (
-            <img src={card.company_logo_url} style={{ width: 50, height: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)', opacity: 0.85 }} />
+            <img src={card.company_logo_url} style={{ width: '100%', maxWidth: logoW, height: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)', opacity: 0.85 }} />
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 8 }}>
             {card.phone && <Phone style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.8)' }} />}
@@ -1259,7 +1285,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
             <Share2 style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.6)' }} />
           </button>
         </div>
-        <div style={{ flex: 1, marginLeft: 80, padding: '28px 24px', maxWidth: 460 }}>
+        <div style={{ marginLeft: rail, padding: '28px 24px', maxWidth: 460 }}>
           <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(26, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text) }}>{card.name}</h1>
           {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentHex), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
           {card.company && <p style={{ margin: '0 0 16px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
