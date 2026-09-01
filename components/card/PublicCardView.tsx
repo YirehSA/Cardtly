@@ -645,8 +645,11 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
       {(card as any).addons?.cardtlyBadge !== false ? (
         <div className="mt-10 flex flex-col items-center gap-2">
           <div className="w-16 h-px" style={{ background: bg.subtext, opacity: 0.25 }} />
+          {/* Straight to signup, not the homepage. Somebody who has just tapped
+              a card and liked it has already been sold to; a landing page is
+              one more thing between them and having one. */}
           <a
-            href="/?ref=card"
+            href="/signup?ref=card"
             className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-bold text-white transition hover:opacity-90 active:scale-95"
             style={{
               background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)',
