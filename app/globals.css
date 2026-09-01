@@ -83,6 +83,28 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
+  /* Dropdown lists, everywhere.
+     ---------------------------------------------------------------------
+     An <option> has no background of its own - it computes to transparent -
+     so the browser draws an open <select> on its own white system popup,
+     while the option text inherits the near-white foreground of the field
+     above it. White on white: the choices are there and invisible.
+
+     There are fifty-odd options across seventeen components and every one of
+     them had it, so this is a rule rather than a prop. Both values are the
+     theme's own tokens, so it follows light and dark.
+
+     color-scheme tells the browser to draw the parts we cannot style - the
+     scrollbar in a long list, the focus ring - to match. */
+  select {
+    color-scheme: light dark;
+  }
+  select option,
+  select optgroup {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+
   /* Grain texture overlay on body */
   body::before {
     content: '';

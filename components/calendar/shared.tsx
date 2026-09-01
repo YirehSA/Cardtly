@@ -55,21 +55,6 @@ export const inputStyle: CSSProperties = {
 }
 
 /**
- * The rows inside an open <select>.
- *
- * A select's own colours do not reach its dropdown list: the browser draws that
- * with the system background, which is white, while the option text inherited
- * the near-white --cal-text from the field. Every list in this form was white on
- * white - open the Rep picker and the reps were there but invisible.
- *
- * Both values come from the theme, so this is right in light mode as well.
- */
-export const optionStyle: CSSProperties = {
-  background: 'var(--cal-input)',
-  color: 'var(--cal-text)',
-}
-
-/**
  * True once the browser has taken over.
  *
  * Every time on this page is rendered in the viewer's timezone. On the server

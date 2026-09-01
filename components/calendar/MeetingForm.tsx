@@ -11,7 +11,7 @@ import {
   DEFAULT_DURATION_MINUTES, meetingDuration,
   type CalendarMeeting, type MeetingStatus,
 } from '@/lib/rep-meetings'
-import { inputClass, inputStyle, optionStyle, GRAD } from './shared'
+import { inputClass, inputStyle, GRAD } from './shared'
 
 // One form, used for booking and for writing up, by a rep for themselves and by
 // an admin on a rep's behalf.
@@ -158,8 +158,8 @@ export default function MeetingForm({
             <Field label="Rep *">
               <select value={form.repId} onChange={e => setForm(f => ({ ...f, repId: e.target.value }))}
                 className={inputClass} style={inputStyle}>
-                <option style={optionStyle} value="">Choose a rep...</option>
-                {reps.map(r => <option style={optionStyle} key={r.id} value={r.id}>{r.name}</option>)}
+                <option value="">Choose a rep...</option>
+                {reps.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
             </Field>
           )}
@@ -199,7 +199,7 @@ export default function MeetingForm({
             <Field label="How long">
               <select value={form.duration} onChange={e => setForm(f => ({ ...f, duration: Number(e.target.value) }))}
                 className={inputClass} style={inputStyle}>
-                {DURATION_CHOICES.map(d => <option style={optionStyle} key={d} value={d}>{fmtDuration(d)}</option>)}
+                {DURATION_CHOICES.map(d => <option key={d} value={d}>{fmtDuration(d)}</option>)}
               </select>
             </Field>
           </div>
@@ -228,7 +228,7 @@ export default function MeetingForm({
                   // form honest with what the server will store.
                   setForm(f => ({ ...f, status, outcome: status === 'planned' ? '' : f.outcome }))
                 }}>
-                {MEETING_STATUSES.map(s => <option style={optionStyle} key={s.id} value={s.id}>{s.label}</option>)}
+                {MEETING_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
               </select>
             </Field>
             <Field label="Outcome">
@@ -247,8 +247,8 @@ export default function MeetingForm({
                   }))
                 }}
                 className={inputClass + ' disabled:opacity-40'} style={inputStyle}>
-                <option style={optionStyle} value="">Not recorded</option>
-                {MEETING_OUTCOMES.map(o => <option style={optionStyle} key={o.id} value={o.id}>{o.label}</option>)}
+                <option value="">Not recorded</option>
+                {MEETING_OUTCOMES.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
               </select>
             </Field>
           </div>
