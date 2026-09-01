@@ -1295,26 +1295,31 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
       background: 'rgba(255,255,255,0.18)', color: '#fff', textDecoration: 'none', flexShrink: 0,
     }
 
-    // Centre the pair once there is room for them.
+    // The card is one centred column, and the rail is a band inside the top of
+    // it rather than a full-height stripe.
     //
-    // The rail is fixed to the viewport's left edge and the content is a fixed
-    // width beside it, so on a desktop the whole card sat hard left with the
-    // rest of the screen empty - 672px of it at 1280, more than half the
-    // window. Every other template centres, which is what made this one look
-    // like it had spilled to one side.
+    // The rail used to run the whole page, so everything below the person's bio
+    // - the contact buttons, the links, the gallery - was squeezed into the
+    // 263px left over beside it, on a phone, for the entire length of the card.
+    // The sidebar has nothing in it past the icons; it was costing a quarter of
+    // every screen to show more yellow.
     //
-    // A gutter of zero below the group's own width leaves phones exactly as
-    // they are, so this only ever changes the case that was wrong.
+    // So it stops where its own content does, and the rest of the card gets the
+    // full width back.
     const GROUP = rail + 460
-    const gutter = `max(0px, calc(50vw - ${GROUP / 2}px))`
+    const column: React.CSSProperties = { maxWidth: GROUP, margin: '0 auto' }
     return (
       <div style={{ ...pageStyle, minHeight: '100vh' }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
+        {/* The header band: rail on the left, who they are on the right.
+            alignItems stretch is what makes the yellow end exactly level with
+            the bio rather than at some guessed height. */}
+        <div style={{ ...column, display: 'flex', alignItems: 'stretch' }}>
         {/* paddingTop clears the back button, which the app fixes at 12px from
             the top and 40px tall and which was sitting across the photo. */}
         <div style={{
-          width: rail, background: sidebarBg, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', gap: 12, position: 'fixed', top: 0, bottom: 0, left: gutter,
+          width: rail, flexShrink: 0, background: sidebarBg, display: 'flex',
+          flexDirection: 'column', alignItems: 'center', gap: 12,
           padding: 'calc(env(safe-area-inset-top, 0px) + 64px) 10px 24px',
         }}>
           <Avatar {...shared} size={60} rounded="full" extraStyle={{
@@ -1353,16 +1358,20 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
             </button>
           </div>
         </div>
-        {/* rail is a number, so it needs its unit here: calc() drops the whole
-            declaration for one unitless term, which put the content back under
-            the sidebar with no warning anywhere. */}
-        <div style={{ marginLeft: `calc(${gutter} + ${rail}px)`, padding: '28px 24px', maxWidth: 460 }}>
+        {/* minWidth 0 so a long unbroken word - an email address, a URL - makes
+            this column wrap rather than push the band wider than the screen. */}
+        <div style={{ flex: 1, minWidth: 0, padding: '28px 24px' }}>
           <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(26, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text) }}>{card.name}</h1>
           {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentHex), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
           {card.company && <p style={{ margin: '0 0 16px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
           <div style={{ width: 32, height: 3, backgroundColor: accentHex, marginBottom: 12, borderRadius: 2 }} />
           <LogoZone {...shared} />
-          {card.bio && <p className="mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
+          {card.bio && <p className="leading-relaxed" style={{ margin: 0, fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
+        </div>
+        </div>
+
+        {/* Everything from here down gets the whole width. */}
+        <div style={{ ...column, padding: '24px 24px 28px' }}>
           <AllContacts {...shared} socialLinks={socialLinks} />
           <BottomSection {...bottomProps} />
         </div>
