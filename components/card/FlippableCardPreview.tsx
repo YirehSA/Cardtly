@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { RotateCw, QrCode, Repeat2 } from 'lucide-react'
 import QRCode from 'qrcode'
-import TemplatedCardPreview from './TemplatedCardPreview'
+import CardPreview from './CardPreview'
 import { CardDesign, getAccentHex } from '@/types/design'
 
 interface PreviewData {
@@ -36,7 +36,7 @@ interface Props {
 
 // Live card preview that flips on click to reveal a QR code "back" of
 // the card. Same metaphor as a real business card you can flip in your
-// hand. The front is the existing TemplatedCardPreview, the back is a
+// hand. The front is the real card scaled down by CardPreview, the back is a
 // large QR code with the card's URL plus a hint to tap to flip back.
 
 export default function FlippableCardPreview({ form, isPro, design, cardUrl }: Props) {
@@ -75,7 +75,7 @@ export default function FlippableCardPreview({ form, isPro, design, cardUrl }: P
         {/* Front */}
         <div className="flip-card-face rounded-2xl overflow-hidden shadow-2xl border border-gray-800"
           style={{ maxHeight: '82vh', overflowY: flipped ? 'hidden' : 'auto' }}>
-          <TemplatedCardPreview form={form} isPro={isPro} design={design} />
+          <CardPreview form={form} isPro={isPro} design={design} />
         </div>
         {/* Back */}
         <div className="flip-card-face flip-card-back rounded-2xl overflow-hidden shadow-2xl border flex flex-col items-center justify-center p-8 gap-6"

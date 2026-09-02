@@ -177,7 +177,7 @@ export const POSTS: BlogPost[] = [
 <p>Getting a card live takes a few minutes and costs nothing to try.</p>
 <ol>
 <li>Create your account. No credit card is needed for the first 7 days.</li>
-<li>Pick one of the 12 templates and add your details, links, and logo.</li>
+<li>Pick one of the 15 templates and add your details, links, and logo.</li>
 <li>Share your card by link, QR, or NFC, and start saving contacts.</li>
 </ol>
 <p>Analytics, lead capture and the AI card scanner are all in the 7 days, and keeping them is R97 a month. If you run a team, the Teams plan keeps everyone on-brand at R97 per card. There is also an Android app on Google Play, with iOS on the way. Ready to begin? <a href="/signup">Create your card</a> and share it today.</p>`,
@@ -260,7 +260,7 @@ export const POSTS: BlogPost[] = [
       'A beginner-friendly, step-by-step guide to making a digital business card, free for 7 days, that you can share by link, QR code or NFC tap.',
     date: '2026-07-03',
     readMins: 7,
-    body: `<p>To make a digital business card free of charge, sign up on <a href="/signup">Cardtly</a>, pick one of the 12 templates, then add your name, role, contact details, socials and links. Customise the colours, fonts and logo, and you instantly get a public card URL like cardtly.com/card/yourname plus a downloadable QR code. Share it by link, QR code or an NFC tap, add it to Google Wallet, and track your views from your dashboard. It costs nothing to build and nothing for the first 7 days, with no credit card needed. Keeping it live after that is R97 a month.</p>
+    body: `<p>To make a digital business card free of charge, sign up on <a href="/signup">Cardtly</a>, pick one of the 15 templates, then add your name, role, contact details, socials and links. Customise the colours, fonts and logo, and you instantly get a public card URL like cardtly.com/card/yourname plus a downloadable QR code. Share it by link, QR code or an NFC tap, add it to Google Wallet, and track your views from your dashboard. It costs nothing to build and nothing for the first 7 days, with no credit card needed. Keeping it live after that is R97 a month.</p>
 
 <p>A paper business card gets lost, goes out of date the moment your number changes, and there is no way to know if anyone ever looked at it. A digital business card fixes all of that. It is a live web page, so you edit it once and everyone who already has your link sees the update. Below is the full walkthrough for South African professionals who are starting from scratch.</p>
 
@@ -307,7 +307,7 @@ export const POSTS: BlogPost[] = [
 
 <ul>
 <li>Your public card URL and downloadable QR code</li>
-<li>12 templates with full control of colours, fonts, logo and light or dark mode</li>
+<li>15 templates with full control of colours, fonts, logo and light or dark mode</li>
 <li>Contact details, socials, custom links, gallery and WhatsApp button</li>
 <li>Sharing by link, QR or NFC tap, and Add to Google Wallet</li>
 <li>Analytics, lead capture and the contacts CRM</li>

@@ -503,7 +503,7 @@ export default function HomePage() {
       <TemplatesShowcase />
 
       {/* Interactive customization demo — extends the templates story:
-          12 templates, and every one is fully editable */}
+          15 templates, and every one is fully editable */}
 
       {/* ── Company controls: departments, locks, per-rep reporting ──────────
              None of this was advertised anywhere on the site - not here, not on

@@ -947,7 +947,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
 
 // Wrapper exists purely so the suspension notice is rendered ONCE.
 //
-// The card body has twelve template branches, each with its own return. The
+// The card body has fifteen template branches, each with its own return. The
 // old founder ribbon was threaded through all twelve by hand, which is how it
 // ended up impossible to remove cleanly. Not repeating that: anything that
 // applies to every template goes here, above the body, in one place.

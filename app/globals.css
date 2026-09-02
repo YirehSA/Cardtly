@@ -445,3 +445,12 @@
   }
   .article-prose tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
 }
+
+/* A card rendered as a preview is a picture of a card, not a card. Its back
+   button and share button are position-fixed, which inside the preview's
+   transformed wrapper means they land in the corner of the thumbnail rather
+   than the corner of a phone. Hidden here, centrally, instead of adding a
+   flag to every template branch that draws them. */
+.cardtly-card-preview .fixed {
+  display: none !important;
+}

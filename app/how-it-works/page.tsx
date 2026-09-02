@@ -33,7 +33,7 @@ const STEPS = [
     n: '02',
     time: '2 minutes',
     title: 'Type in your details',
-    desc: 'Name, job title, number, email. Pick one of 12 templates and a colour. That is the whole build.',
+    desc: 'Name, job title, number, email. Pick one of 15 templates and a colour. That is the whole build.',
     detail: 'No design skills. Every template already looks right - you are choosing, not designing.',
     color: '#7c3aed',
   },

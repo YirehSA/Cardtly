@@ -8,7 +8,7 @@ import {
 } from '@/types/design'
 import { Check, Lock, Sun, Moon, AlignLeft, AlignCenter, AlignRight, EyeOff, Pipette } from 'lucide-react'
 import Link from 'next/link'
-import TemplatedCardPreview from './TemplatedCardPreview'
+import CardPreview from './CardPreview'
 import { useIosApp } from '@/components/dashboard/PlatformProvider'
 
 interface Props {
@@ -34,20 +34,28 @@ const BG_PRESETS = [
 // Sample form data used to render real mini-previews inside the template
 // picker tiles. Realistic-looking fake content so each tile shows what
 // the actual template will look like with a populated card.
+// Tio's real card, which is Cardtly's own. A sample shown to every visitor
+// and to every customer opening the template picker has to be a card the
+// company actually owns - the previous one used a stock face that is not
+// ours. It doubles as a fair test of the templates: a real photograph, a real
+// logo, a bio long enough to wrap, and socials.
 const PICKER_SAMPLE_FORM = {
-  name: 'Andre Nel',
-  title: 'Founder & CEO',
-  company: 'Yireh',
-  bio: 'Building digital products that connect people.',
-  email: 'andre@example.com',
-  phone: '+27 82 000 0000',
-  whatsapp: '+27 82 000 0000',
-  address: 'Pretoria',
-  website: 'yireh.co.za',
-  profile_image_url: '',
-  company_logo_url: '',
-  certifications: 'Web Design, SEO',
-  link_1_title: 'Portfolio', link_1_url: 'https://example.com',
+  name: 'Tio Geldenhuys',
+  title: 'Co-Founder',
+  company: 'Cardtly',
+  bio: 'Helping teams generate more leads and secure more meetings.',
+  email: 'tio@cardtly.com',
+  phone: '+27 62 460 7440',
+  work_phone: '',
+  whatsapp: '+27624607440',
+  address: 'Benoni, Gauteng',
+  website: 'https://www.cardtly.com/',
+  profile_image_url: 'https://xdrvryzsfrvfekntszcj.supabase.co/storage/v1/object/public/card-images/e32fd093-310a-490e-8d3c-68b7795afd6a/1784647251097.webp',
+  company_logo_url: 'https://xdrvryzsfrvfekntszcj.supabase.co/storage/v1/object/public/company-logos/86ee397a-55a8-4664-9855-1f5bf42f25a4/1784625815181.webp',
+  certifications: 'NFC, Networking',
+  linkedin_url: 'https://www.linkedin.com/company/cardtly/',
+  instagram_url: 'https://www.instagram.com/cardtlydigital/',
+  link_1_title: 'See how it works', link_1_url: 'https://www.cardtly.com/features',
   link_2_title: '',         link_2_url: '',
   link_3_title: '',         link_3_url: '',
 }
@@ -131,21 +139,7 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
                   the expanded grid so toggling feels seamless */}
               <div className="relative rounded-xl overflow-hidden border-2 border-blue-500 flex-1 max-w-[200px]">
                 <div className="relative h-32 bg-card overflow-hidden">
-                  <div
-                    style={{
-                      transform: 'scale(0.35)',
-                      transformOrigin: 'top left',
-                      width: 'calc(100% / 0.35)',
-                      height: 'calc(100% / 0.35)',
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    <TemplatedCardPreview
-                      form={PICKER_SAMPLE_FORM}
-                      isPro={true}
-                      design={previewDesign}
-                    />
-                  </div>
+                  <CardPreview form={PICKER_SAMPLE_FORM} isPro={true} design={previewDesign} frameHeight={820} />
                   <div className="absolute top-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center z-10">
                     <Check className="w-3 h-3 text-white" />
                   </div>
@@ -181,31 +175,16 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
                 bgMode: t.defaultBgMode,
               }
               return (
-                <button
+                // The button is an overlay sibling, not a wrapper. The
+                // preview renders the real card, and the real card is full of
+                // anchors - an <a> inside a <button> is invalid HTML, and
+                // React refuses to hydrate it.
+                <div
                   key={t.id}
-                  onClick={() => {
-                    if (locked) return
-                    update({ templateId: t.id, bgMode: t.defaultBgMode })
-                    setTemplatePickerOpen(false)
-                  }}
-                  className={`relative rounded-xl overflow-hidden border-2 transition text-left ${active ? 'border-blue-500' : 'border-border hover:border-foreground/20'} ${locked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  className={`relative rounded-xl overflow-hidden border-2 transition text-left ${active ? 'border-blue-500' : 'border-border hover:border-foreground/20'} ${locked ? 'opacity-50' : ''}`}
                 >
                   <div className="relative h-32 bg-card overflow-hidden">
-                    <div
-                      style={{
-                        transform: 'scale(0.35)',
-                        transformOrigin: 'top left',
-                        width: 'calc(100% / 0.35)',
-                        height: 'calc(100% / 0.35)',
-                        pointerEvents: 'none',
-                      }}
-                    >
-                      <TemplatedCardPreview
-                        form={PICKER_SAMPLE_FORM}
-                        isPro={true}
-                        design={previewDesign}
-                      />
-                    </div>
+                    <CardPreview form={PICKER_SAMPLE_FORM} isPro={true} design={previewDesign} frameHeight={820} />
                     {active && <div className="absolute top-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center z-10"><Check className="w-3 h-3 text-white" /></div>}
                     {locked && <div className="absolute top-2 right-2 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center z-10"><Lock className="w-3 h-3 text-white" /></div>}
                   </div>
@@ -213,7 +192,16 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
                     <p className="text-xs font-semibold leading-tight">{t.name}</p>
                     {locked && <p className="text-xs text-muted-foreground">Pro</p>}
                   </div>
-                </button>
+                  <button
+                    onClick={() => {
+                      if (locked) return
+                      update({ templateId: t.id, bgMode: t.defaultBgMode })
+                      setTemplatePickerOpen(false)
+                    }}
+                    aria-label={`Use the ${t.name} template`}
+                    className={`absolute inset-0 z-20 ${locked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                  />
+                </div>
               )
             })}
           </div>

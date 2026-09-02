@@ -5,7 +5,7 @@ import { Check } from 'lucide-react'
 
 // "Make it yours" section: a live mini-card the visitor restyles
 // with real controls (accent colour, font, light/dark). Sits right
-// after the templates showcase so the story reads "12 templates -
+// after the templates showcase so the story reads "15 templates -
 // and every one is fully yours". The chips below list the rest of
 // the design system honestly (all features that exist in
 // types/design.ts) without UI for each.

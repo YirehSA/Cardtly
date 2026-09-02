@@ -7,7 +7,7 @@ import { lockedColumns, LOCK_GROUPS } from '@/lib/team-locks'
 import { INDUSTRIES_BY_GROUP } from '@/lib/industries'
 import { orgSlugPrefix, composeCardSlug, slugifyPart } from '@/lib/card-slug'
 import { toast } from 'sonner'
-import TemplatedCardPreview from '@/components/card/TemplatedCardPreview'
+import CardPreview from '@/components/card/CardPreview'
 import DesignPanel from '@/components/card/DesignPanel'
 import ImageUploader from '@/components/card/ImageUploader'
 import AIBioModal from '@/components/card/AIBioModal'
@@ -775,7 +775,7 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
         <div className="sticky top-6">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Live Preview</p>
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-800" style={{ maxHeight: '82vh', overflowY: 'auto' }}>
-            <TemplatedCardPreview
+            <CardPreview
               form={usesBrand ? mergeBrand(form, orgBrand, locked) : form}
               isPro={true}
               design={usesBrand && orgBrand.color_theme ? parseDesign(orgBrand.color_theme) : design}

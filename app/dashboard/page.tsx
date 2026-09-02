@@ -484,7 +484,7 @@ export default async function DashboardPage() {
                 <p className="font-bold text-sm" style={{ color: accentHex }}>Unlock everything with Pro</p>
               </div>
               <p className="text-sm text-muted-foreground max-w-md">
-                12 templates, analytics, email signature, virtual background, contact form, custom design and more.
+                15 templates, analytics, email signature, virtual background, contact form, custom design and more.
               </p>
             </div>
             <Link href="/dashboard/upgrade"
