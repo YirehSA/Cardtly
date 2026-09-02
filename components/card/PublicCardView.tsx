@@ -1494,6 +1494,25 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
   }
 
   if (design.templateId === 'creative') {
+    // Creative used to spend all of its personality in the top 200px - washes,
+    // arcs, a gradient name - and then hand off to the same centred column and
+    // the same shared contact buttons as everything else. Past the photograph
+    // it stopped being creative at all.
+    //
+    // It is art-directed the whole way down now: a tilted photograph on a hard
+    // offset block, a drawn stroke under the name, and contacts as colour
+    // blocks rather than a list of outlined buttons.
+    const photoSize = calcPhotoSize(132, design)
+    const deep = darkenHex(accentHex, 0.3)
+
+    const tiles: { key: string; label: string; value: string; href: string; icon: React.ReactNode; wide?: boolean }[] = [
+      card.phone && { key: 'tel', label: 'Call', value: card.phone, href: `tel:${card.phone}`, icon: <Phone className="w-5 h-5" /> },
+      isPro && card.work_phone && { key: 'dir', label: 'Direct', value: card.work_phone, href: `tel:${card.work_phone}`, icon: <Phone className="w-5 h-5" /> },
+      card.email && { key: 'eml', label: 'Email', value: card.email, href: `mailto:${card.email}`, icon: <Mail className="w-5 h-5" /> },
+      card.website && { key: 'web', label: 'Website', value: card.website.replace(/^https?:\/\//, '').replace(/\/$/, ''), href: card.website.startsWith('http') ? card.website : `https://${card.website}`, icon: <Globe className="w-5 h-5" /> },
+      isPro && card.address && { key: 'off', label: 'Find me', value: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}`, icon: <MapPin className="w-5 h-5" />, wide: true },
+    ].filter(Boolean) as { key: string; label: string; value: string; href: string; icon: React.ReactNode; wide?: boolean }[]
+
     return (
       <div style={{ ...pageStyle, overflow: 'hidden', position: 'relative' }} className="animate-fade-up">
         {/* Colour-field backdrop: three overlapping washes rather than two flat
@@ -1501,7 +1520,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
             like a gradient someone forgot to finish. */}
         <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: '-18%', right: '-22%', width: '75vw', height: '75vw', maxWidth: 460, maxHeight: 460, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}55 0%, transparent 68%)`, filter: 'blur(28px)' }} />
-          <div style={{ position: 'absolute', bottom: '-14%', left: '-24%', width: '68vw', height: '68vw', maxWidth: 420, maxHeight: 420, borderRadius: '50%', background: `radial-gradient(circle, ${darkenHex(accentHex, 0.25)}44 0%, transparent 70%)`, filter: 'blur(32px)' }} />
+          <div style={{ position: 'absolute', bottom: '-14%', left: '-24%', width: '68vw', height: '68vw', maxWidth: 420, maxHeight: 420, borderRadius: '50%', background: `radial-gradient(circle, ${deep}44 0%, transparent 70%)`, filter: 'blur(32px)' }} />
           <div style={{ position: 'absolute', top: '34%', left: '38%', width: '52vw', height: '52vw', maxWidth: 320, maxHeight: 320, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}22 0%, transparent 72%)`, filter: 'blur(36px)' }} />
         </div>
 
@@ -1511,36 +1530,40 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
         </button>
 
         <div className="max-w-md mx-auto px-6 py-8 relative">
-          <div className="mb-5" style={{ position: 'relative', zIndex: 2, display: 'inline-block' }}>
-            {/* A hand-drawn-feeling arc behind the photo. Purely decorative, and
-                the one thing that makes this template read as "creative"
-                rather than "centred card with a glow". */}
-            <svg viewBox="0 0 200 200" style={{ position: 'absolute', inset: -18, width: 'calc(100% + 36px)', height: 'calc(100% + 36px)', pointerEvents: 'none' }}>
-              <circle cx="100" cy="100" r="92" fill="none" stroke={accentHex} strokeWidth="3"
-                strokeLinecap="round" strokeDasharray="150 420" opacity="0.85" transform="rotate(-35 100 100)" />
-              <circle cx="100" cy="100" r="92" fill="none" stroke={accentHex} strokeWidth="3"
-                strokeLinecap="round" strokeDasharray="60 500" opacity="0.45" transform="rotate(150 100 100)" />
+          {/* A tilted photograph on a hard offset block. The offset is a solid
+              edge rather than a soft shadow on purpose: a blurred shadow reads
+              as depth, a hard one reads as print, and print is the register
+              this template is going for. The block is squared off for the same
+              reason - every other template in the set puts the face in a
+              circle, so a circle here says nothing. */}
+          <div style={{ position: 'relative', display: 'inline-block', marginBottom: 26 }}>
+            <div aria-hidden style={{
+              position: 'absolute', left: 12, top: 12, width: photoSize, height: photoSize,
+              borderRadius: 26, backgroundColor: accentHex, transform: 'rotate(-4deg)',
+            }} />
+            <div style={{
+              position: 'relative', width: photoSize, height: photoSize,
+              borderRadius: 26, overflow: 'hidden', transform: 'rotate(3deg)',
+              border: design.profileBorder === false ? 'none' : `3px solid ${bg.page}`,
+              boxShadow: `0 14px 40px ${accentHex}33`,
+            }}>
+              {card.profile_image_url
+                ? <img src={card.profile_image_url} alt={card.name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <div style={{ width: '100%', height: '100%', backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.33, fontWeight: 800, fontFamily: font.heading }}>{card.name?.[0]?.toUpperCase()}</div>}
+            </div>
+            {/* A small drawn asterisk, the mark a designer leaves on a layout. */}
+            <svg aria-hidden width="30" height="30" viewBox="0 0 30 30" style={{ position: 'absolute', right: -16, top: -14 }}>
+              <g stroke={accentHex} strokeWidth="2.6" strokeLinecap="round">
+                <line x1="15" y1="4" x2="15" y2="26" /><line x1="5" y1="9" x2="25" y2="21" /><line x1="25" y1="9" x2="5" y2="21" />
+              </g>
             </svg>
-            {(() => {
-              const photoSize = calcPhotoSize(96, design)
-              const inner = (
-                <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, border: design.profileBorder === false ? 'none' : `4px solid ${bg.page}` }}>
-                  {card.profile_image_url
-                    ? <img src={card.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
-                    : <div style={{ width: photoSize, height: photoSize, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.33, fontWeight: 700 }}>{card.name?.[0]?.toUpperCase()}</div>}
-                </div>
-              )
-              return design.profileBorder === false ? inner : (
-                <div style={{ display: 'inline-block', padding: 4, borderRadius: '50%', background: `conic-gradient(from 140deg, ${accentHex}, ${darkenHex(accentHex, 0.3)}, ${accentHex})`, boxShadow: `0 12px 40px ${accentHex}40`, position: 'relative' }}>{inner}</div>
-              )
-            })()}
           </div>
 
           {/* The name carries the accent as a gradient rather than a flat fill,
               which is what gives this template its signature look. */}
           <h1 className="font-bold leading-tight" style={{
-            fontFamily: font.heading, fontSize: calcNameSize(28, design),
-            letterSpacing: '-0.02em',
+            fontFamily: font.heading, fontSize: calcNameSize(34, design),
+            letterSpacing: '-0.03em', margin: 0,
             ...(design.nameColor
               ? { color: design.nameColor }
               : {
@@ -1550,18 +1573,71 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                 }),
           }}>{card.name}</h1>
 
+          {/* A drawn stroke under the name. Fixed width and left aligned rather
+              than sized to the text: measuring the name would mean a layout
+              pass on every render, and a stroke that starts under the first
+              letter and runs out reads as drawn anyway. */}
+          <svg aria-hidden width="170" height="12" viewBox="0 0 170 12" style={{ display: 'block', marginTop: 4 }}>
+            <path d="M3,8 C34,3 62,10 92,5 C118,1 144,7 167,4" fill="none"
+              stroke={accentHex} strokeWidth="3.5" strokeLinecap="round" opacity="0.9" />
+          </svg>
+
           {isPro && card.title && (
             <span style={{
-              display: 'inline-block', marginTop: 8, padding: '5px 13px', borderRadius: 999,
+              display: 'inline-block', marginTop: 14, padding: '6px 15px', borderRadius: 999,
               fontSize: calcTitleSize(13, design), fontWeight: 700,
               color: getTitleColor(design, accentHex),
               background: accentHex + '1f', border: `1px solid ${accentHex}44`,
             }}>{card.title}</span>
           )}
-          {card.company && <p className="mt-2" style={{ fontSize: calcCompanySize(14, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
+          {card.company && <p className="mt-2.5" style={{ fontSize: calcCompanySize(14, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
           <LogoZone {...shared} />
-          {card.bio && <p className="mt-3 mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
-          <AllContacts {...shared} socialLinks={socialLinks} />
+          {card.bio && <p className="mt-3 leading-relaxed" style={{ fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
+
+          {/* Colour blocks, not a list of outlined buttons. The icon is large
+              and the label is a verb, so the grid reads as a set of things to
+              do rather than a table of fields. An address is the one value
+              long enough to need the full row. */}
+          {tiles.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 26 }}>
+              {tiles.map((t, i) => (
+                <a key={t.key} href={t.href}
+                  target={t.href.startsWith('http') ? '_blank' : undefined}
+                  rel={t.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  className="hover:opacity-90 transition"
+                  style={{
+                    display: 'block', padding: '14px 15px', minHeight: 84,
+                    borderRadius: 18, textDecoration: 'none',
+                    // Alternating weight so the grid has rhythm instead of
+                    // reading as four identical swatches.
+                    background: i % 2 === 0
+                      ? `linear-gradient(150deg, ${accentHex}2e 0%, ${accentHex}12 100%)`
+                      : `linear-gradient(150deg, ${deep}2e 0%, ${deep}10 100%)`,
+                    border: `1px solid ${accentHex}33`,
+                    gridColumn: t.wide ? '1 / -1' : undefined,
+                  }}>
+                  <span style={{ display: 'block', color: accentHex, marginBottom: 8 }}>{t.icon}</span>
+                  <span style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: bg.subtext, marginBottom: 3 }}>{t.label}</span>
+                  <span className="truncate" style={{ display: 'block', fontSize: getBodyFontSize(design), fontWeight: 600, color: bg.text }}>{t.value}</span>
+                </a>
+              ))}
+            </div>
+          )}
+
+          {socialLinks.length > 0 && (
+            <div className="flex flex-wrap gap-2.5" style={{ marginTop: 14 }}>
+              {socialLinks.map(s => (
+                <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
+                  aria-label={s.platform} title={s.platform}
+                  style={{
+                    width: 48, height: 48, borderRadius: 16, display: 'grid', placeItems: 'center',
+                    backgroundColor: s.color || accentHex, color: '#fff', textDecoration: 'none',
+                    boxShadow: `0 6px 18px ${(s.color || accentHex)}55`,
+                  }}>{s.icon}</a>
+              ))}
+            </div>
+          )}
+
           <BottomSection {...bottomProps} />
         </div>
       </div>

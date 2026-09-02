@@ -476,31 +476,26 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           <div style={{ position: 'absolute', top: '34%', left: '38%', width: 160, height: 160, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}22 0%, transparent 72%)`, filter: 'blur(22px)' }} />
         </div>
         <div style={{ padding: 16, position: 'relative' }}>
-          <div style={{ marginBottom: 6, display: 'inline-block', position: 'relative', zIndex: 2 }}>
-            {/* The decorative arc that gives Creative its signature. */}
-            <svg viewBox="0 0 200 200" style={{ position: 'absolute', inset: -13, width: 'calc(100% + 26px)', height: 'calc(100% + 26px)', pointerEvents: 'none' }}>
-              <circle cx="100" cy="100" r="92" fill="none" stroke={accentHex} strokeWidth="4"
-                strokeLinecap="round" strokeDasharray="150 420" opacity="0.85" transform="rotate(-35 100 100)" />
-              <circle cx="100" cy="100" r="92" fill="none" stroke={accentHex} strokeWidth="4"
-                strokeLinecap="round" strokeDasharray="60 500" opacity="0.45" transform="rotate(150 100 100)" />
+          {/* Tilted photograph on a hard offset block, as on the real card.
+              Squared off on purpose: every other template puts the face in a
+              circle, so a circle here says nothing. */}
+          <div style={{ marginBottom: 10, display: 'inline-block', position: 'relative', zIndex: 2 }}>
+            <div aria-hidden style={{ position: 'absolute', left: 7, top: 7, width: photoSize, height: photoSize, borderRadius: 15, backgroundColor: accentHex, transform: 'rotate(-4deg)' }} />
+            <div style={{
+              position: 'relative', width: photoSize, height: photoSize, borderRadius: 15, overflow: 'hidden',
+              transform: 'rotate(3deg)',
+              border: design.profileBorder === false ? 'none' : `2px solid ${bg.page}`,
+              boxShadow: `0 8px 26px ${accentHex}33`,
+            }}>
+              {form.profile_image_url
+                ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <div style={{ width: '100%', height: '100%', backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.33, fontWeight: 800, fontFamily: font.heading }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
+            </div>
+            <svg aria-hidden width="18" height="18" viewBox="0 0 30 30" style={{ position: 'absolute', right: -9, top: -8 }}>
+              <g stroke={accentHex} strokeWidth="3" strokeLinecap="round">
+                <line x1="15" y1="4" x2="15" y2="26" /><line x1="5" y1="9" x2="25" y2="21" /><line x1="25" y1="9" x2="5" y2="21" />
+              </g>
             </svg>
-            {design.profileBorder === false ? (
-              <div style={{ display: 'inline-block', borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, position: 'relative' }}>
-                {form.profile_image_url
-                  ? <img src={form.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
-                  : <div style={{ width: photoSize, height: photoSize, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700 }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
-              </div>
-            ) : (
-              <div style={{ display: 'inline-block', padding: 3, borderRadius: '50%', position: 'relative',
-                background: `conic-gradient(from 140deg, ${accentHex}, ${darkenHex(accentHex, 0.3)}, ${accentHex})`,
-                boxShadow: `0 8px 26px ${accentHex}40` }}>
-                <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, border: `3px solid ${bg.page}` }}>
-                  {form.profile_image_url
-                    ? <img src={form.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
-                    : <div style={{ width: photoSize, height: photoSize, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700 }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
-                </div>
-              </div>
-            )}
           </div>
           <h2 style={{ margin: '4px 0 3px', fontSize: calcNameSize(20, design), fontWeight: 800, fontFamily: font.heading, letterSpacing: '-0.02em',
             ...(design.nameColor
@@ -511,6 +506,10 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
                   WebkitTextFillColor: 'transparent', color: 'transparent',
                 }),
           }}>{form.name || 'Your Name'}</h2>
+          {/* The drawn stroke under the name, as on the real card. */}
+          <svg aria-hidden width="96" height="8" viewBox="0 0 170 12" style={{ display: 'block', margin: '2px 0 2px' }}>
+            <path d="M3,8 C34,3 62,10 92,5 C118,1 144,7 167,4" fill="none" stroke={accentHex} strokeWidth="5" strokeLinecap="round" opacity="0.9" />
+          </svg>
           {isPro && form.title && (
             <span style={{ display: 'inline-block', marginTop: 4, marginBottom: 2, padding: '3px 9px', borderRadius: 999,
               fontSize: calcTitleSize(11, design), fontWeight: 700,
@@ -520,7 +519,29 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(11, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
           <LogoZone />
           {isPro && form.bio && <p style={{ fontSize: calcBioSize(11, design), color: getBioColor(design, bg.subtext), lineHeight: 1.5, marginBottom: 10 }}>{form.bio}</p>}
-          <ContactList /><Certs />
+          {/* Colour blocks with a verb for a label, as on the real card. */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 12 }}>
+            {([
+              form.phone && { key: 'tel', label: 'Call', value: form.phone, icon: <Phone style={{ width: 11, height: 11 }} /> },
+              form.email && { key: 'eml', label: 'Email', value: form.email, icon: <Mail style={{ width: 11, height: 11 }} /> },
+              form.website && { key: 'web', label: 'Website', value: form.website.replace(/^https?:\/\//, '').replace(/\/$/, ''), icon: <Globe style={{ width: 11, height: 11 }} /> },
+              isPro && (form as any).address && { key: 'off', label: 'Find me', value: (form as any).address, icon: <MapPin style={{ width: 11, height: 11 }} />, wide: true },
+            ].filter(Boolean) as any[]).map((t, i) => (
+              <div key={t.key} style={{
+                padding: '8px 9px', borderRadius: 11,
+                background: i % 2 === 0
+                  ? `linear-gradient(150deg, ${accentHex}2e 0%, ${accentHex}12 100%)`
+                  : `linear-gradient(150deg, ${darkenHex(accentHex, 0.3)}2e 0%, ${darkenHex(accentHex, 0.3)}10 100%)`,
+                border: `1px solid ${accentHex}33`,
+                gridColumn: t.wide ? '1 / -1' : undefined,
+              }}>
+                <span style={{ display: 'block', color: accentHex, marginBottom: 4 }}>{t.icon}</span>
+                <span style={{ display: 'block', fontSize: 6.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: bg.subtext, marginBottom: 1 }}>{t.label}</span>
+                <span style={{ display: 'block', fontSize: getBodyFontSize(design) - 5, fontWeight: 600, color: bg.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.value}</span>
+              </div>
+            ))}
+          </div>
+          <Certs />
           <div style={{ marginTop: 12, padding: '10px 0', borderRadius: 12, textAlign: 'center', fontSize: getButtonFontSize(design) - 2, fontWeight: 700, color: buttonText,
             background: `linear-gradient(135deg, ${buttonBg}, ${buttonBg}aa)`,
             border: buttonBorder ? `2px solid ${buttonBorder}` : 'none',
