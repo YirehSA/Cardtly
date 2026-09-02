@@ -287,6 +287,18 @@ const FROST_FACETS: { x: number; y: number; size: number; rot: number; op: numbe
   { x: 36, y: 90, size: 70, rot: 40, op: 0.26 },
 ]
 
+// The shards breaking off the crystal the Frost photograph is set in. Fixed
+// positions for the same reason as the facets behind it: this renders twice,
+// and random placement would put the shards somewhere else on the client.
+// Percentages of the setting, so they hold their arrangement at any photo size.
+const FROST_SHARDS: { x: number; y: number; size: number; rot: number; op: number }[] = [
+  { x: 2, y: 16, size: 20, rot: 14, op: 0.85 },
+  { x: 84, y: 10, size: 15, rot: -20, op: 0.7 },
+  { x: 90, y: 60, size: 22, rot: 32, op: 0.75 },
+  { x: -3, y: 62, size: 13, rot: -10, op: 0.6 },
+  { x: 46, y: 92, size: 17, rot: 24, op: 0.65 },
+]
+
 // ── Meridian ──────────────────────────────────────────────────────────────────
 // Initials for the hero when a card carries no photograph. Two letters at
 // most: three-word names are common, and three letters set at hero size read
@@ -2787,6 +2799,13 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
     ].filter(Boolean) as { key: string; icon: React.ReactNode; label: string; href: string }[]
 
     const photoSize = calcPhotoSize(128, design)
+    // Room around the photograph for the setting and the shards.
+    const crystalBox = Math.round(photoSize * 1.5)
+    // A specular glint, not a companion hue. companionHex rotates 150 degrees,
+    // which turns a teal card's rim magenta - a hot colour on a template whose
+    // whole argument is cold. White is what an ice edge actually does with
+    // light, and it stays right whatever accent the card is set to.
+    const frostPrism = '#ffffff'
     // A hexagon, cut with clip-path. Every other template frames the face in a
     // circle or a rectangle; a six-sided crystal is the one shape that says
     // ice without a caption.
@@ -2832,16 +2851,34 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
         </button>
 
         <div className="max-w-md mx-auto px-5 relative" style={{ zIndex: 1, paddingTop: 'calc(env(safe-area-inset-top, 0px) + 74px)', paddingBottom: 32 }}>
-          {/* The hexagon overlaps the top edge of the pane, so the pane reads
-              as a sheet the photograph is set into rather than a box with a
-              picture inside it. A fifth of it, not half: at half the pane's
-              frosting covered the face from the nose down. */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: -Math.round(photoSize * 0.2) }}>
+          {/* The photograph is set in a crystal rather than tucked under the
+              pane. It used to overlap the pane by a fifth, which still meant a
+              frosted sheet lying across the chin - the only overlap that never
+              costs any of the face is none.
+
+              So it earns its place instead: an outer hexagon ring turned 30
+              degrees so its points sit against the photograph's flats, the way
+              a stone sits in a setting, with shards breaking off around it.
+              The rim runs accent into companion, because a real crystal edge
+              splits the light rather than showing one colour. */}
+          <div style={{ position: 'relative', width: crystalBox, height: crystalBox, margin: '0 auto 24px' }}>
+            <svg aria-hidden viewBox="0 0 100 100" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', transform: 'rotate(30deg)' }}>
+              <polygon points="50,3 91,26.5 91,73.5 50,97 9,73.5 9,26.5" fill="none" stroke={accentHex} strokeWidth="0.8" opacity="0.55" />
+              <polygon points="50,12 83,31 83,69 50,88 17,69 17,31" fill="none" stroke={accentHex} strokeWidth="0.5" opacity="0.3" />
+            </svg>
+            {FROST_SHARDS.map((sh, i) => (
+              <svg key={i} aria-hidden viewBox="0 0 100 100"
+                style={{ position: 'absolute', left: `${sh.x}%`, top: `${sh.y}%`, width: sh.size, height: sh.size, transform: `rotate(${sh.rot}deg)`, opacity: sh.op }}>
+                <polygon points="50,2 96,28 96,72 50,98 4,72 4,28" fill={accentHex} opacity="0.28" />
+                <polygon points="50,2 96,28 96,72 50,98 4,72 4,28" fill="none" stroke={accentHex} strokeWidth="4" />
+              </svg>
+            ))}
             <div style={{
-              width: photoSize, height: photoSize, clipPath: hex,
-              background: `linear-gradient(150deg, ${accentHex}, ${isLight ? '#ffffff' : accentHex + '55'})`,
-              display: 'grid', placeItems: 'center',
-              filter: `drop-shadow(0 14px 30px ${accentHex}55)`,
+              position: 'absolute', left: '50%', top: '50%', width: photoSize, height: photoSize,
+              marginLeft: -photoSize / 2, marginTop: -photoSize / 2,
+              clipPath: hex, display: 'grid', placeItems: 'center',
+              background: `linear-gradient(140deg, ${accentHex} 0%, ${frostPrism} 46%, ${accentHex} 78%, ${frostPrism} 100%)`,
+              filter: `drop-shadow(0 16px 34px ${accentHex}66)`,
             }}>
               <div style={{ width: photoSize - 7, height: photoSize - 7, clipPath: hex, overflow: 'hidden', background: isLight ? '#ffffff' : bg.page }}>
                 {card.profile_image_url
@@ -2855,7 +2892,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
             backgroundColor: paneBg,
             backdropFilter: 'blur(30px) saturate(150%)', WebkitBackdropFilter: 'blur(30px) saturate(150%)',
             border: `1px solid ${paneEdge}`, borderRadius: 30, boxShadow: paneLift,
-            padding: `${Math.round(photoSize * 0.2) + 24}px 24px 28px`,
+            padding: '28px 24px 28px',
           }}>
             <h1 style={{
               margin: 0, textAlign: 'center', fontFamily: font.heading,

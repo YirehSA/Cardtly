@@ -10,6 +10,15 @@ import {
 } from '@/types/design'
 import { Phone, Mail, Globe, MapPin, MessageCircle, ExternalLink, ChevronRight, Twitter, Facebook, Linkedin } from 'lucide-react'
 
+// The shards around the Frost crystal, shared shape with the real card.
+const FROST_SHARDS: { x: number; y: number; size: number; rot: number; op: number }[] = [
+  { x: 2, y: 16, size: 20, rot: 14, op: 0.85 },
+  { x: 84, y: 10, size: 15, rot: -20, op: 0.7 },
+  { x: 90, y: 60, size: 22, rot: 32, op: 0.75 },
+  { x: -3, y: 62, size: 13, rot: -10, op: 0.6 },
+  { x: 46, y: 92, size: 17, rot: 24, op: 0.65 },
+]
+
 // Frost's crystal facets, thinned for a thumbnail. Fixed table for the same
 // reason as the rest: the server and the client must draw the same shards.
 const FROST_PREVIEW_FACETS: { x: number; y: number; size: number; rot: number; op: number }[] = [
@@ -1084,6 +1093,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
     const facetInk = light ? '#ffffff' : accentHex
     const hex = 'polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)'
     const photoSize = calcPhotoSize(66, design)
+    const crystalBox = Math.round(photoSize * 1.5)
     const rows = [
       form.phone && { key: 'tel', icon: <Phone style={{ width: 10, height: 10 }} />, label: form.phone },
       form.email && { key: 'eml', icon: <Mail style={{ width: 10, height: 10 }} />, label: form.email },
@@ -1103,8 +1113,26 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         </div>
 
         <div style={{ position: 'relative', padding: '16px 14px 14px' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: -Math.round(photoSize * 0.2) }}>
-            <div style={{ width: photoSize, height: photoSize, clipPath: hex, background: `linear-gradient(150deg, ${accentHex}, ${light ? '#ffffff' : accentHex + '55'})`, display: 'grid', placeItems: 'center' }}>
+          {/* The crystal setting, as on the real card: a hexagon ring turned
+              30 degrees, shards around it, and a glint on the rim. */}
+          <div style={{ position: 'relative', width: crystalBox, height: crystalBox, margin: '0 auto 12px' }}>
+            <svg aria-hidden viewBox="0 0 100 100" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', transform: 'rotate(30deg)' }}>
+              <polygon points="50,3 91,26.5 91,73.5 50,97 9,73.5 9,26.5" fill="none" stroke={accentHex} strokeWidth="1.2" opacity="0.55" />
+              <polygon points="50,12 83,31 83,69 50,88 17,69 17,31" fill="none" stroke={accentHex} strokeWidth="0.8" opacity="0.3" />
+            </svg>
+            {FROST_SHARDS.map((sh, i) => (
+              <svg key={i} aria-hidden viewBox="0 0 100 100"
+                style={{ position: 'absolute', left: `${sh.x}%`, top: `${sh.y}%`, width: Math.round(sh.size * 0.55), height: Math.round(sh.size * 0.55), transform: `rotate(${sh.rot}deg)`, opacity: sh.op }}>
+                <polygon points="50,2 96,28 96,72 50,98 4,72 4,28" fill={accentHex} opacity="0.28" />
+                <polygon points="50,2 96,28 96,72 50,98 4,72 4,28" fill="none" stroke={accentHex} strokeWidth="6" />
+              </svg>
+            ))}
+            <div style={{
+              position: 'absolute', left: '50%', top: '50%', width: photoSize, height: photoSize,
+              marginLeft: -photoSize / 2, marginTop: -photoSize / 2,
+              clipPath: hex, display: 'grid', placeItems: 'center',
+              background: `linear-gradient(140deg, ${accentHex} 0%, #ffffff 46%, ${accentHex} 78%, #ffffff 100%)`,
+            }}>
               <div style={{ width: photoSize - 4, height: photoSize - 4, clipPath: hex, overflow: 'hidden', background: light ? '#ffffff' : bg.page }}>
                 {form.profile_image_url
                   ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -1113,7 +1141,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
             </div>
           </div>
 
-          <div style={{ backgroundColor: paneBg, border: `1px solid ${paneEdge}`, borderRadius: 20, padding: `${Math.round(photoSize * 0.2) + 14}px 14px 16px` }}>
+          <div style={{ backgroundColor: paneBg, border: `1px solid ${paneEdge}`, borderRadius: 20, padding: '16px 14px' }}>
             <h2 style={{ margin: 0, textAlign: 'center', fontFamily: font.heading, fontSize: calcNameSize(18, design), fontWeight: 700, letterSpacing: '0.02em', color: getNameColor(design, ink) }}>{form.name || 'Your Name'}</h2>
             {isPro && form.title && <p style={{ margin: '6px 0 0', textAlign: 'center', fontSize: calcTitleSize(7.5, design), fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: getTitleColor(design, accentHex) }}>{form.title}</p>}
             {form.company && <p style={{ margin: '4px 0 0', textAlign: 'center', fontSize: calcCompanySize(9, design), color: getCompanyColor(design, inkSoft) }}>{form.company}</p>}
