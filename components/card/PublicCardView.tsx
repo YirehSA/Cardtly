@@ -355,7 +355,7 @@ function ContactBtn({ icon, label, sublabel, href, accentHex, bg, cardEffect, bo
   return (
     <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
       className="flex items-center gap-4 rounded-2xl px-4 py-3.5 transition hover:opacity-80"
-      style={{ backgroundColor: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow, border: cardEffect.borderStyle }}>
+      style={{ background: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow, border: cardEffect.borderStyle }}>
       <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
         style={{ backgroundColor: accentHex + '22', color: accentHex }}>{icon}</div>
       <div className="flex-1 min-w-0">
@@ -535,7 +535,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
               <a key={l.index} href={l.url.startsWith('http') ? l.url : `https://${l.url}`}
                 target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-4 rounded-2xl px-4 py-3.5 transition hover:opacity-80"
-                style={{ backgroundColor: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow, border: cardEffect.borderStyle }}>
+                style={{ background: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow, border: cardEffect.borderStyle }}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: accentHex + '22', color: accentHex }}>
                   <ExternalLink className="w-4 h-4" />
                 </div>
@@ -1097,8 +1097,11 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                 together into one grey block with no lines between them. */}
             {rows.length > 0 && (
               <div style={{
-                border: `1px solid ${bg.border}`, borderRadius: 16, overflow: 'hidden',
-                backgroundColor: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow,
+                // borderStyle, not bg.border: the rim is the strongest signal
+                // that Glass is glass, and taking the border from the palette
+                // instead of the style meant Glass never got to draw it.
+                border: cardEffect.borderStyle, borderRadius: 16, overflow: 'hidden',
+                background: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow,
               }}>
                 {rows.map((r, i) => (
                   <a key={r.key} href={r.href}
@@ -1906,7 +1909,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                         padding: '12px 14px', minHeight: 44, textDecoration: 'none',
                         fontSize: bodySize, fontWeight: 600, color: bg.text,
                         border: `1px solid ${accentHex}`, borderRadius: 12,
-                        backgroundColor: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow,
+                        background: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow,
                       }}>
                       {r.icon}
                       <span className="truncate">{r.label}</span>
@@ -2271,7 +2274,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
               <div style={{
                 marginBottom: 26, padding: '14px 16px',
                 border: `1px solid ${bg.border}`, borderLeft: `3px solid ${accentHex}`,
-                borderRadius: 10, backgroundColor: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow,
+                borderRadius: 10, background: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow,
               }}>
                 <span style={label}>About</span>
                 <p className="leading-relaxed" style={{
@@ -2295,7 +2298,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                     style={{
                       display: 'block', padding: '13px 15px', minHeight: 64,
                       border: `1px solid ${bg.border}`, borderRadius: 10,
-                      backgroundColor: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow, textDecoration: 'none',
+                      background: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow, textDecoration: 'none',
                       ...(isWide(t.value) ? { gridColumn: '1 / -1' } : {}),
                     }}>
                     <span style={label}>
@@ -2315,7 +2318,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                     aria-label={s.platform} title={s.platform}
                     style={{
                       width: 44, height: 44, borderRadius: '50%', display: 'grid', placeItems: 'center',
-                      border: `1px solid ${bg.border}`, backgroundColor: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow,
+                      border: `1px solid ${bg.border}`, background: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow,
                       color: bg.text, textDecoration: 'none',
                     }}>{s.icon}</a>
                 ))}

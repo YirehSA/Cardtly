@@ -274,6 +274,25 @@ export const TEMPLATES: TemplateConfig[] = [
 ]
 
 // Card style visual effects — returns CSS properties to apply
+// Blend two hex colours. Used to give Flat a genuinely opaque panel: a
+// translucent white tint over the page and an opaque colour mixed from it look
+// identical on their own, but the tint is glass-adjacent by construction and
+// the mix is not, which is the whole distinction the style picker is selling.
+// Returns null for anything that is not a plain hex - a custom background can
+// be an rgba string - and callers fall back to a tint there.
+function mixHex(base: string, towards: string, amount: number): string | null {
+  const parse = (h: string) => {
+    const c = h.replace('#', '')
+    const full = c.length === 3 ? c.split('').map(x => x + x).join('') : c
+    if (!/^[0-9a-f]{6}$/i.test(full)) return null
+    return [parseInt(full.slice(0, 2), 16), parseInt(full.slice(2, 4), 16), parseInt(full.slice(4, 6), 16)]
+  }
+  const a = parse(base), b = parse(towards)
+  if (!a || !b) return null
+  const to = (v: number) => Math.round(v).toString(16).padStart(2, '0')
+  return `#${a.map((v, i) => to(v + (b[i] - v) * amount)).join('')}`
+}
+
 export function getCardStyleEffect(style: CardStyle, accentHex: string, bgPage: string): {
   heroBg: string
   surfaceBg: string
@@ -291,6 +310,7 @@ export function getCardStyleEffect(style: CardStyle, accentHex: string, bgPage: 
   // them was dark. Pick a yellow background and the contact rows became a
   // white wash on yellow - technically applied, effectively invisible.
   const light = isLightBg(bgPage)
+  const towards = light ? '#000000' : '#ffffff'
   switch (style) {
     case 'gradient':
       return {
@@ -301,28 +321,34 @@ export function getCardStyleEffect(style: CardStyle, accentHex: string, bgPage: 
         surfaceShadow: 'none',
       }
     case 'glass':
-      // Glass had no blur, no lit edge and no highlight: it was a slightly
-      // different flat tint sitting under a control that said "Frosted look".
-      // The hero keeps a wash on purpose, because frosting needs something
-      // behind it to work with.
+      // A sheen down the panel, not a flat tint. Glass had no blur, no lit
+      // edge and no highlight, and then had all three at strengths too close
+      // to Flat to tell apart: 7% white against 6%. It is meant to look like a
+      // pane with light catching the top of it, so it is lighter, it has a
+      // bright rim, and the fill falls off from top to bottom.
+      // The hero keeps a wash on purpose: frosting needs something behind it.
       return {
         heroBg: `linear-gradient(135deg, ${accentHex}3d 0%, ${accentHex}14 100%)`,
-        surfaceBg: light ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.07)',
-        borderStyle: light ? '1px solid rgba(255,255,255,0.85)' : '1px solid rgba(255,255,255,0.18)',
+        surfaceBg: light
+          ? 'linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.45) 100%)'
+          : 'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 100%)',
+        borderStyle: light ? '1px solid rgba(255,255,255,0.95)' : '1px solid rgba(255,255,255,0.38)',
         backdropFilter: 'blur(18px) saturate(160%)',
         surfaceShadow: light
-          ? 'inset 0 1px 0 rgba(255,255,255,0.9), 0 6px 20px rgba(0,0,0,0.07)'
-          : 'inset 0 1px 0 rgba(255,255,255,0.14), 0 6px 20px rgba(0,0,0,0.28)',
+          ? 'inset 0 1px 0 rgba(255,255,255,1), 0 8px 24px rgba(0,0,0,0.10)'
+          : 'inset 0 1px 0 rgba(255,255,255,0.38), 0 10px 28px rgba(0,0,0,0.40)',
       }
     case 'flat':
     default:
-      // Flat means flat. This was a linear-gradient, under a control labelled
-      // "Solid colours" - so the one option promising no fade was drawing one,
-      // and Gradient was the only style doing what its name said.
+      // Flat means flat. The hero was a linear-gradient under a control
+      // labelled "Solid colours", and the panels were a translucent tint one
+      // percent away from Glass. Both are opaque now: the panel is a colour
+      // mixed off the page rather than a wash laid over it, so it reads matte
+      // next to Glass instead of nearly identical to it.
       return {
-        heroBg: `${accentHex}2b`,
-        surfaceBg: light ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)',
-        borderStyle: '1px solid transparent',
+        heroBg: mixHex(bgPage, accentHex, 0.22) ?? `${accentHex}2b`,
+        surfaceBg: mixHex(bgPage, towards, 0.09) ?? (light ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)'),
+        borderStyle: `1px solid ${mixHex(bgPage, towards, 0.18) ?? 'transparent'}`,
         backdropFilter: 'none',
         surfaceShadow: 'none',
       }
