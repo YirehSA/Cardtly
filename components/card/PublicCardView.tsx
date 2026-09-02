@@ -208,7 +208,9 @@ function CircuitBookButton({ card, accentHex, companion }: { card: Card; accentH
 // with their own phone, which is the whole reason a card on a screen carries
 // a QR at all. Generated in the browser: it is derived from the slug and
 // nothing needs to store it.
-function CircuitQR({ slug, accentHex, companion, label }: { slug: string; accentHex: string; companion: string; label: string }) {
+function CircuitQR({ slug, accentHex, companion, label, logoUrl }: {
+  slug: string; accentHex: string; companion: string; label: string; logoUrl?: string | null
+}) {
   const [svg, setSvg] = useState<string>('')
   useEffect(() => {
     let live = true
@@ -217,8 +219,14 @@ function CircuitQR({ slug, accentHex, companion, label }: { slug: string; accent
       // Inverted codes are unreliable to scan - iOS Camera in particular often
       // will not read light-on-dark - and a QR nobody can scan is worse than
       // no QR at all. The neon frame around it carries the look instead.
+      //
+      // Error correction H, not the default M: the logo covers the middle of
+      // the code, and only H's 30% redundancy can lose that much and still
+      // decode. Raised unconditionally rather than only when there is a logo,
+      // so the code a visitor scans does not change shape depending on whether
+      // the card happens to have one.
       .then(m => m.default.toString(`https://cardtly.com/card/${slug}`, {
-        type: 'svg', margin: 1, width: 200,
+        type: 'svg', margin: 1, width: 200, errorCorrectionLevel: 'H',
         color: { dark: '#0a1428', light: '#ffffff' },
       }))
       .then(s => { if (live) setSvg(s) })
@@ -230,6 +238,7 @@ function CircuitQR({ slug, accentHex, companion, label }: { slug: string; accent
     <div style={{ flexShrink: 0, textAlign: 'center' }}>
       <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: companion }}>{label}</p>
       <div style={{
+        position: 'relative',
         width: 132, height: 132, padding: 7, borderRadius: 18,
         border: `2px solid ${companion}`, boxShadow: `0 0 20px ${companion}66`,
         backgroundColor: '#ffffff', overflow: 'hidden',
@@ -240,6 +249,20 @@ function CircuitQR({ slug, accentHex, companion, label }: { slug: string; accent
             Nothing until it resolves, rather than a broken frame. */}
         {svg && <div className="[&>svg]:block [&>svg]:w-full [&>svg]:h-full"
           style={{ width: '100%', height: '100%' }} dangerouslySetInnerHTML={{ __html: svg }} />}
+        {/* Only once the code is there: a logo floating on an empty white
+            panel while the generator resolves looks like a failure. The white
+            backing is what keeps the modules it covers from being read as
+            part of the pattern. */}
+        {svg && logoUrl && (
+          <span style={{
+            position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+            width: 30, height: 30, borderRadius: 8, overflow: 'hidden',
+            backgroundColor: '#ffffff', border: '2px solid #ffffff',
+            display: 'grid', placeItems: 'center',
+          }}>
+            <img src={logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </span>
+        )}
       </div>
     </div>
   )
@@ -1952,7 +1975,10 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                     <CircuitBookButton card={card} accentHex={accentHex} companion={companion} />
                   </div>
                 )}
-                {card.slug && <CircuitQR slug={card.slug} accentHex={accentHex} companion={companion} label="Scan to connect" />}
+                {card.slug && (
+                  <CircuitQR slug={card.slug} accentHex={accentHex} companion={companion}
+                    label="Scan to connect" logoUrl={card.company_logo_url} />
+                )}
               </div>
             )}
           </div>
