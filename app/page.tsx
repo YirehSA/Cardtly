@@ -188,7 +188,12 @@ export default function HomePage() {
             {[
               { n: 'R97',      label: 'Per card, per month' },
               { n: '15',       label: 'Designed templates' },
-              { n: '20',       label: 'Seats per team' },
+              // Not "20 seats per team". Twenty is the ceiling on self-serve
+              // Paystack billing, not a limit on the product: above it a team
+              // moves to Enterprise on debit order, where there is no cap and
+              // we run teams in the thousands. Stating 20 read as the most a
+              // team could ever be, which undersells it badly.
+              { n: 'Unlimited', label: 'Seats with Enterprise' },
               { n: '5–7 days', label: 'NFC card delivery, SA' },
             ].map(({ n, label }, i) => (
               <Reveal key={label} delay={i * 90}>

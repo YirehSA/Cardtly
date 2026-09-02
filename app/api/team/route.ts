@@ -6,6 +6,11 @@ import { hydrateBrandSources } from '@/lib/brand-source'
 import { newTeamCardSlug, newTeamPersonSlug, orgIndustry } from '@/lib/card-slug-server'
 import { slugifyPart, isReservedSlug } from '@/lib/card-slug'
 import { isIndustryId } from '@/lib/industries'
+// Imported, not restated. Both were declared again here, which is two copies
+// of a number that decides what customers are charged - and exporting them
+// from a route file is also what Next complains about, since a route may only
+// export handlers.
+import { SEAT_PRICE_RAND, MAX_SELF_SERVE_SEATS } from '@/lib/org-billing'
 
 // generateSlug used to live here and again in app/api/department/route.ts,
 // with the two copies already drifted apart - this one truncated at 20 and
@@ -40,8 +45,6 @@ const TEAM_PLANS: Record<number, string> = {
   20: 'PLN_q07zajjnp7gdmv0',
 }
 
-export const SEAT_PRICE_RAND = 97
-export const MAX_SELF_SERVE_SEATS = 20
 
 // Find plan code for an exact seat count. Above MAX_SELF_SERVE_SEATS there is
 // no plan on purpose: those go to Enterprise.
