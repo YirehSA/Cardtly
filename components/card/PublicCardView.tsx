@@ -54,10 +54,35 @@ interface Shared {
 }
 
 // ── Circuit backdrop ──────────────────────────────────────────────────────────
-// The star field behind the Circuit hero. The points are a fixed table, not
-// random: this component renders on the server and again on the client, and
-// Math.random() would hand each pass different coordinates and blow up
-// hydration. Percentages, so it spreads to whatever width the card gets.
+// The faint mesh behind the hero: thin triangles with a lit node at each
+// corner, tiled. A tile rather than one stretched drawing, because a viewBox
+// stretched to the height of a card turns every triangle into a sliver and
+// every dot into a dash. Tiling keeps the geometry true at any size.
+function circuitMeshUrl(accentHex: string, companion: string): string {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'>`
+    // Faint. At 0.30 the triangles read as a wireframe cage over the card
+    // rather than something behind it, and they cut through the body text.
+    + `<g fill='none' stroke='${accentHex}' stroke-width='0.7' opacity='0.10'>`
+    + `<path d='M14 44 L78 10 L132 66 L62 104 Z'/>`
+    + `<path d='M132 66 L212 28 L248 98 L178 128 Z'/>`
+    + `<path d='M62 104 L132 66 L178 128 L104 170 Z'/>`
+    + `<path d='M104 170 L178 128 L230 192 L152 232 Z'/>`
+    + `<path d='M10 162 L104 170 L152 232 L44 246 Z'/>`
+    + `<path d='M14 44 L62 104 L10 162'/>`
+    + `</g>`
+    + `<g fill='${companion}' opacity='0.30'>`
+    + `<circle cx='78' cy='10' r='1.8'/><circle cx='132' cy='66' r='1.8'/>`
+    + `<circle cx='212' cy='28' r='1.5'/><circle cx='178' cy='128' r='1.8'/>`
+    + `<circle cx='104' cy='170' r='1.6'/><circle cx='152' cy='232' r='1.5'/>`
+    + `<circle cx='62' cy='104' r='1.5'/><circle cx='10' cy='162' r='1.4'/>`
+    + `</g></svg>`
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`
+}
+
+// Loose stars over the mesh. Positioned in percentages but sized in pixels,
+// so each stays round however tall the card grows; a fixed table rather than
+// random placement, because this renders on the server and again on the
+// client and Math.random() would blow up hydration.
 const CIRCUIT_STARS: [number, number, number][] = [
   [6, 12, 1.6], [14, 30, 1], [9, 52, 2.1], [21, 8, 1.2], [27, 44, 1],
   [33, 22, 1.7], [41, 62, 1.1], [47, 14, 1], [52, 38, 2], [58, 55, 1.3],
@@ -65,12 +90,7 @@ const CIRCUIT_STARS: [number, number, number][] = [
   [90, 28, 1], [94, 60, 1.9], [17, 71, 1.2], [37, 84, 1], [56, 78, 1.5],
   [71, 88, 1.1], [88, 76, 1.3], [3, 82, 1], [45, 95, 1.2], [66, 41, 1],
 ]
-// Positioned in percentages but sized in pixels, so every star stays round.
-// Drawn as SVG circles in a stretched viewBox they came out as vertical
-// dashes, and the lines joining them turned into long diagonals across the
-// whole card - a viewBox stretched to a tall card distorts everything in it.
-// The network motif lives in the contact traces instead, which is where it
-// carries meaning rather than decorating.
+
 function CircuitStars({ companion }: { companion: string }) {
   return (
     <div aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
@@ -86,84 +106,77 @@ function CircuitStars({ companion }: { companion: string }) {
   )
 }
 
-// The sweeping ribbon that opens and closes the hero. preserveAspectRatio none
-// so it stretches edge to edge at any width: it is a decorative sweep, and a
-// sweep that keeps its aspect ratio would leave a gap on a wide screen.
-function CircuitRibbon({ accentHex, companion, flip = false }: { accentHex: string; companion: string; flip?: boolean }) {
+// The sweep across the top of the hero. Not a horizontal band: on the
+// reference the ribbon rises from the left edge and arcs away to the right,
+// which is what makes it read as a ribbon laid over the card rather than a
+// stripe printed across it. Stretching is fine here and wanted - a long lazy
+// curve is the point - so the stroke widths are pinned with non-scaling-stroke
+// and only the geometry stretches.
+function CircuitSweep({ accentHex, companion, flip = false }: { accentHex: string; companion: string; flip?: boolean }) {
+  const id = `sw-${flip ? 'b' : 't'}`
   return (
-    <svg aria-hidden viewBox="0 0 400 110" preserveAspectRatio="none"
-      style={{ position: 'absolute', left: 0, right: 0, width: '100%', height: 110, [flip ? 'bottom' : 'top']: 0, transform: flip ? 'scaleY(-1)' : undefined }}>
+    <svg aria-hidden viewBox="0 0 400 220" preserveAspectRatio="none"
+      style={{
+        position: 'absolute', left: 0, width: '100%', height: 220,
+        [flip ? 'bottom' : 'top']: 0,
+        transform: flip ? 'scale(-1,-1)' : undefined,
+      }}>
       <defs>
-        <linearGradient id={`cr-a-${flip ? 'b' : 't'}`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor={accentHex} stopOpacity="0.85" />
-          <stop offset="55%" stopColor={companion} stopOpacity="0.55" />
-          <stop offset="100%" stopColor={accentHex} stopOpacity="0.2" />
+        <linearGradient id={id} x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0%" stopColor={accentHex} stopOpacity="0.95" />
+          <stop offset="48%" stopColor={companion} stopOpacity="0.75" />
+          <stop offset="100%" stopColor={accentHex} stopOpacity="0.35" />
         </linearGradient>
       </defs>
-      {/* Layered: a wide sweep, a second one riding under it, then two thin
-          traces. One thin band read as a stripe someone had left on by
-          accident - the reference gets its weight from several curves stacked
-          at different depths, which is what makes it a ribbon. */}
-      <path
-        d="M0,30 C70,4 126,44 198,14 C280,-20 336,34 400,-8 L400,30 C336,72 280,18 198,52 C126,86 70,46 0,74 Z"
-        fill={`url(#cr-a-${flip ? 'b' : 't'})`} opacity="0.9" />
-      <path
-        d="M0,60 C66,36 120,74 192,44 C272,10 334,64 400,24 L400,44 C334,84 272,30 192,64 C120,94 66,56 0,80 Z"
-        fill={accentHex} opacity="0.35" />
-      <path d="M0,88 C58,70 108,98 176,72 C256,42 322,98 400,56" fill="none" stroke={companion} strokeWidth="2.5" opacity="0.9" />
-      <path d="M0,99 C64,83 112,109 184,83 C262,55 330,109 400,69" fill="none" stroke={accentHex} strokeWidth="1.5" opacity="0.7" />
+      {/* The body of the ribbon: rises out of the left edge and away up the
+          right, thick at the shoulder and tapering as it leaves. */}
+      <path d="M-10,150 C60,150 96,96 168,62 C244,26 320,34 410,-30 L410,26 C326,78 250,72 178,106 C104,142 66,186 -10,186 Z"
+        fill={`url(#${id})`} />
+      {/* Two lines riding the same arc, one in each tone. */}
+      <path d="M-10,196 C70,196 108,138 182,102 C258,64 332,66 410,6"
+        fill="none" stroke={companion} strokeWidth="2.5" opacity="0.95" vectorEffect="non-scaling-stroke" />
+      <path d="M-10,208 C74,208 114,150 190,114 C266,76 340,80 410,20"
+        fill="none" stroke={accentHex} strokeWidth="1.5" opacity="0.7" vectorEffect="non-scaling-stroke" />
     </svg>
   )
 }
 
-// The faint geometry drifting behind the hero - triangles and diamonds, as on
-// the reference. Fixed table for the same reason the stars are: this renders
-// on the server and again on the client.
-const CIRCUIT_SHAPES: { x: number; y: number; size: number; kind: 'tri' | 'dia' }[] = [
-  { x: 12, y: 26, size: 26, kind: 'tri' }, { x: 78, y: 16, size: 18, kind: 'dia' },
-  { x: 88, y: 52, size: 30, kind: 'tri' }, { x: 22, y: 62, size: 20, kind: 'dia' },
-  { x: 58, y: 78, size: 34, kind: 'tri' }, { x: 6, y: 86, size: 16, kind: 'dia' },
-  { x: 68, y: 38, size: 14, kind: 'dia' }, { x: 40, y: 92, size: 22, kind: 'tri' },
-]
-
-function CircuitShapes({ accentHex, companion }: { accentHex: string; companion: string }) {
+// The arcs curling around the photo. Fixed size and a square viewBox, unlike
+// the sweep: an arc is only an arc while both axes scale together, and
+// stretched it becomes an ellipse that no longer follows the circle it is
+// supposed to be hugging.
+function CircuitPhotoArc({ box, accentHex, companion }: { box: number; accentHex: string; companion: string }) {
   return (
-    <div aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-      {CIRCUIT_SHAPES.map((s, i) => {
-        const tone = i % 2 ? companion : accentHex
-        return s.kind === 'tri' ? (
-          <span key={i} style={{
-            position: 'absolute', left: `${s.x}%`, top: `${s.y}%`, width: 0, height: 0,
-            borderLeft: `${s.size / 2}px solid transparent`, borderRight: `${s.size / 2}px solid transparent`,
-            borderBottom: `${s.size}px solid ${tone}`, opacity: 0.09,
-            transform: `rotate(${i * 37}deg)`,
-          }} />
-        ) : (
-          <span key={i} style={{
-            position: 'absolute', left: `${s.x}%`, top: `${s.y}%`, width: s.size, height: s.size,
-            border: `1.5px solid ${tone}`, opacity: 0.16, transform: 'rotate(45deg)',
-          }} />
-        )
-      })}
-    </div>
+    <svg aria-hidden width={box} height={box} viewBox="0 0 200 200"
+      style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none' }}>
+      <path d="M96,6 A94,94 0 0 1 194,104" fill="none" stroke={accentHex} strokeWidth="7" strokeLinecap="round" />
+      <path d="M194,104 A94,94 0 0 1 150,180" fill="none" stroke={companion} strokeWidth="4.5" strokeLinecap="round" />
+      <path d="M6,104 A94,94 0 0 0 58,182" fill="none" stroke={accentHex} strokeWidth="4" strokeLinecap="round" opacity="0.6" />
+      <path d="M18,62 A94,94 0 0 1 60,18" fill="none" stroke={companion} strokeWidth="3" strokeLinecap="round" opacity="0.75" />
+    </svg>
   )
 }
 
-// The step in a contact trace. Fixed width and height so the diagonal keeps
-// its angle: stretching an SVG to fill the row would flatten or steepen it
-// depending on how much room was left over, and every row would differ.
-function CircuitElbow({ up, from, to }: { up: boolean; from: string; to: string }) {
-  const id = `el-${up ? 'u' : 'd'}-${from.replace('#', '')}-${to.replace('#', '')}`
+// The trace running off a contact row. A long curve that leaves the text at
+// one height and settles into the node at the row's centre, alternating which
+// side it comes from - the reference's wires flow, they do not step. The
+// earlier version was a 34px elbow, which at seven rows read as a column of
+// identical little brackets.
+function CircuitTrace({ up, from, to }: { up: boolean; from: string; to: string }) {
+  const id = `tr-${up ? 'u' : 'd'}-${from.replace('#', '')}-${to.replace('#', '')}`
   return (
-    <svg aria-hidden width="34" height="26" viewBox="0 0 34 26" style={{ flexShrink: 0, overflow: 'visible' }}>
+    <svg aria-hidden viewBox="0 0 120 44" preserveAspectRatio="none"
+      style={{ flex: 1, minWidth: 44, height: 44, overflow: 'visible' }}>
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor={from} />
+          <stop offset="0%" stopColor={from} stopOpacity="0.1" />
+          <stop offset="30%" stopColor={from} stopOpacity="0.95" />
           <stop offset="100%" stopColor={to} />
         </linearGradient>
       </defs>
-      <path d={up ? 'M0,20 H10 L20,6 H34' : 'M0,6 H10 L20,20 H34'}
-        fill="none" stroke={`url(#${id})`} strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter" />
+      <path d={up ? 'M0,36 C46,36 60,22 120,22' : 'M0,8 C46,8 60,22 120,22'}
+        fill="none" stroke={`url(#${id})`} strokeWidth="1.5"
+        strokeLinecap="round" vectorEffect="non-scaling-stroke" />
     </svg>
   )
 }
@@ -179,7 +192,7 @@ function CircuitBookButton({ card, accentHex, companion }: { card: Card; accentH
         style={{
           width: '100%', minHeight: 44, padding: '11px 18px', borderRadius: 999,
           backgroundColor: `${accentHex}1f`, border: `1.5px solid ${accentHex}`,
-          color: companion, fontSize: 14, fontWeight: 600,
+          color: companion, fontSize: 15, fontWeight: 600,
           boxShadow: `0 0 16px ${accentHex}33`,
         }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
@@ -215,10 +228,10 @@ function CircuitQR({ slug, accentHex, companion, label }: { slug: string; accent
 
   return (
     <div style={{ flexShrink: 0, textAlign: 'center' }}>
-      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: companion }}>{label}</p>
+      <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: companion }}>{label}</p>
       <div style={{
-        width: 128, height: 128, padding: 7, borderRadius: 16,
-        border: `1.5px solid ${companion}`, boxShadow: `0 0 18px ${companion}55`,
+        width: 132, height: 132, padding: 7, borderRadius: 18,
+        border: `2px solid ${companion}`, boxShadow: `0 0 20px ${companion}66`,
         backgroundColor: '#ffffff', overflow: 'hidden',
       }}>
         {/* The generated SVG carries its own width and height attributes, so
@@ -1805,7 +1818,9 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
     const GROUP = 560
     const column: React.CSSProperties = { maxWidth: GROUP, margin: '0 auto' }
     const bodySize = getBodyFontSize(design)
-    const avatarSize = calcPhotoSize(104, design)
+    const avatarSize = calcPhotoSize(124, design)
+    // Room around the photo for the arcs to curl through.
+    const arcBox = avatarSize + 44
 
     const traceRows: { key: string; icon: React.ReactNode; label: string; href: string }[] = [
       card.phone && { key: 'phone', icon: <Phone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
@@ -1820,38 +1835,52 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
       <div style={{ ...pageStyle, minHeight: '100vh' }} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
 
-        {/* The hero owns its own overflow, so the ribbons can run off the edge
+        {/* The hero owns its own overflow, so the sweeps can run off the edge
             without clipping the modals and the image viewer further down. */}
         <div style={{ position: 'relative', overflow: 'hidden' }}>
-          <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-            <CircuitShapes accentHex={accentHex} companion={companion} />
+          <div aria-hidden style={{
+            position: 'absolute', inset: 0, pointerEvents: 'none',
+            backgroundImage: circuitMeshUrl(accentHex, companion), backgroundRepeat: 'repeat',
+          }}>
             <CircuitStars companion={companion} />
-            <CircuitRibbon accentHex={accentHex} companion={companion} />
-            <CircuitRibbon accentHex={accentHex} companion={companion} flip />
+            <CircuitSweep accentHex={accentHex} companion={companion} />
+            <CircuitSweep accentHex={accentHex} companion={companion} flip />
           </div>
 
-          {/* 96px at the foot, not 26: the closing ribbon is 110px tall and
-              sits at the base of this zone, so a short pad left the QR and the last
-              contact row lying across it. */}
-          <div style={{ ...column, position: 'relative', padding: 'calc(env(safe-area-inset-top, 0px) + 76px) 22px 124px' }}>
-            {/* Logo one side, photo the other, as on the reference. The photo
-                gets a double ring - companion outside, accent inside - which is
-                what makes it read as a badge rather than a pasted circle. */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 22 }}>
-              <div style={{ flex: 1, minWidth: 0, paddingTop: 6 }}>
+          {/* 124px at the foot: the closing sweep is 220px tall and sits at the
+              base of this zone, so a short pad left the QR and the last contact
+              row lying across it. */}
+          <div style={{ ...column, position: 'relative', padding: 'calc(env(safe-area-inset-top, 0px) + 74px) 22px 124px' }}>
+            {/* Logo one side, photo the other. The photo is the anchor of the
+                whole header on the reference, so it is large and the ribbon
+                arcs curl around it rather than a flat ring being drawn on. */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 26 }}>
+              <div style={{ flex: 1, minWidth: 0, paddingTop: 14 }}>
                 {card.company_logo_url && design.logoPosition !== 'hidden' && (
-                  <img src={card.company_logo_url} alt="" style={{ height: calcLogoHeight(44, design), width: 'auto', maxWidth: '100%', objectFit: 'contain' }} />
+                  <img src={card.company_logo_url} alt="" style={{ height: calcLogoHeight(52, design), width: 'auto', maxWidth: '100%', objectFit: 'contain' }} />
                 )}
               </div>
-              <div style={{
-                flexShrink: 0, borderRadius: '50%', padding: 3,
-                background: `linear-gradient(135deg, ${companion} 0%, ${accentHex} 100%)`,
-                boxShadow: `0 0 22px ${companion}55`,
-              }}>
-                <Avatar {...shared} size={104} rounded="full" extraStyle={{
-                  width: avatarSize, height: avatarSize, aspectRatio: '1 / 1',
-                  border: `3px solid ${bg.page}`, backgroundColor: bg.page, display: 'block',
-                }} />
+              {/* The arc box is bigger than the photo, and the photo is centred
+                  inside it, so the arcs read as curling around it. */}
+              <div style={{ position: 'relative', flexShrink: 0, width: arcBox, height: arcBox }}>
+                <CircuitPhotoArc box={arcBox} accentHex={accentHex} companion={companion} />
+                {/* inset 0 and grid-centred, not left/top 50% with a translate:
+                    an absolutely positioned box anchored at left 50% can only
+                    shrink-to-fit the half of the container to its right, which
+                    squeezed a 124px photo into 78 and turned the circle into
+                    an egg. */}
+                <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
+                  <div style={{
+                    borderRadius: '50%', padding: 3, lineHeight: 0,
+                    background: `linear-gradient(135deg, ${companion} 0%, ${accentHex} 100%)`,
+                    boxShadow: `0 0 26px ${companion}66`,
+                  }}>
+                    <Avatar {...shared} size={avatarSize} rounded="full" extraStyle={{
+                      width: avatarSize, height: avatarSize, aspectRatio: '1 / 1',
+                      border: `3px solid ${bg.page}`, backgroundColor: bg.page, display: 'block',
+                    }} />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1860,11 +1889,16 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
               textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.1,
               color: getNameColor(design, accentHex),
             }}>{card.name}</h1>
+            {/* The title sits in the accent alongside the name, not in the
+                companion. On the reference both lines are the same warm tone;
+                splitting them meant a blue accent put a salmon subtitle under
+                a blue name, and the pair fought. The companion earns its keep
+                in the ribbon, the arcs, the traces and the QR frame. */}
             {isPro && card.title && (
               <p style={{
-                margin: '0 0 6px', fontSize: calcTitleSize(14, design), fontWeight: 600,
-                textTransform: 'uppercase', letterSpacing: '0.12em',
-                color: getTitleColor(design, companion),
+                margin: '0 0 6px', fontSize: calcTitleSize(15, design), fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: '0.1em',
+                color: getTitleColor(design, accentHex), opacity: 0.85,
               }}>{card.title}</p>
             )}
             {card.company && (
@@ -1894,13 +1928,8 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                     border: `1.5px solid ${accentHex}`, color: accentHex,
                     backgroundColor: accentHex + '1f', boxShadow: `0 0 14px ${accentHex}44`,
                   }}>{r.icon}</span>
-                  <span className="truncate" style={{ fontSize: bodySize, fontWeight: 500, color: bg.text, maxWidth: '58%' }}>{r.label}</span>
-                  <span aria-hidden style={{
-                    flex: 1, minWidth: 10, height: 1.5,
-                    background: `linear-gradient(90deg, ${accentHex} 0%, ${accentHex} 60%, ${companion} 100%)`,
-                    opacity: 0.75,
-                  }} />
-                  <CircuitElbow up={i % 2 === 0} from={companion} to={companion} />
+                  <span className="truncate" style={{ fontSize: bodySize + 2, fontWeight: 500, color: bg.text, maxWidth: '56%' }}>{r.label}</span>
+                  <CircuitTrace up={i % 2 === 0} from={accentHex} to={companion} />
                   <span aria-hidden style={{
                     width: 8, height: 8, flexShrink: 0, borderRadius: '50%',
                     backgroundColor: companion, boxShadow: `0 0 10px ${companion}`,

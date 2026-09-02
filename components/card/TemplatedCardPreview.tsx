@@ -706,7 +706,8 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
   // same template in PublicCardView.
   if (design.templateId === 'circuit') {
     const companion = companionHex(accentHex)
-    const avatar = calcPhotoSize(46, design)
+    const avatar = calcPhotoSize(54, design)
+    const arcBox = avatar + 20
     const traces = [
       form.phone && { key: 'ph', icon: <Phone style={{ width: 11, height: 11 }} />, label: form.phone },
       form.email && { key: 'em', icon: <Mail style={{ width: 11, height: 11 }} />, label: form.email },
@@ -715,21 +716,30 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
       isPro && (form as any).linkedin_url && { key: 'li', icon: <Linkedin style={{ width: 11, height: 11 }} />, label: 'LinkedIn' },
     ].filter(Boolean) as { key: string; icon: React.ReactNode; label: string }[]
 
-    // Layered like the real one: one thin band read as a stray stripe.
-    const ribbon = (flip: boolean) => (
-      <svg aria-hidden viewBox="0 0 400 110" preserveAspectRatio="none"
-        style={{ position: 'absolute', left: 0, width: '100%', height: 46, [flip ? 'bottom' : 'top']: 0, transform: flip ? 'scaleY(-1)' : undefined }}>
-        <path d="M0,30 C70,4 126,44 198,14 C280,-20 336,34 400,-8 L400,30 C336,72 280,18 198,52 C126,86 70,46 0,74 Z" fill={companion} opacity="0.55" />
-        <path d="M0,60 C66,36 120,74 192,44 C272,10 334,64 400,24 L400,44 C334,84 272,30 192,64 C120,94 66,56 0,80 Z" fill={accentHex} opacity="0.5" />
-        <path d="M0,88 C58,70 108,98 176,72 C256,42 322,98 400,56" fill="none" stroke={companion} strokeWidth="4" opacity="0.9" />
-        <path d="M0,99 C64,83 112,109 184,83 C262,55 330,109 400,69" fill="none" stroke={accentHex} strokeWidth="2.5" opacity="0.7" />
+    // The same rising arc the real card has, not a horizontal band: the sweep
+    // is what makes it read as a ribbon laid over the card rather than a
+    // stripe printed across it.
+    const sweep = (flip: boolean) => (
+      <svg aria-hidden viewBox="0 0 400 220" preserveAspectRatio="none"
+        style={{ position: 'absolute', left: 0, width: '100%', height: 92, [flip ? 'bottom' : 'top']: 0, transform: flip ? 'scale(-1,-1)' : undefined }}>
+        <defs>
+          <linearGradient id={`pw-${flip ? 'b' : 't'}-${accentHex.replace('#', '')}`} x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0%" stopColor={accentHex} stopOpacity="0.95" />
+            <stop offset="48%" stopColor={companion} stopOpacity="0.75" />
+            <stop offset="100%" stopColor={accentHex} stopOpacity="0.35" />
+          </linearGradient>
+        </defs>
+        <path d="M-10,150 C60,150 96,96 168,62 C244,26 320,34 410,-30 L410,26 C326,78 250,72 178,106 C104,142 66,186 -10,186 Z"
+          fill={`url(#pw-${flip ? 'b' : 't'}-${accentHex.replace('#', '')})`} />
+        <path d="M-10,196 C70,196 108,138 182,102 C258,64 332,66 410,6" fill="none" stroke={companion} strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
+        <path d="M-10,208 C74,208 114,150 190,114 C266,76 340,80 410,20" fill="none" stroke={accentHex} strokeWidth="1.5" opacity="0.7" vectorEffect="non-scaling-stroke" />
       </svg>
     )
 
     return (
       <div style={{ ...pageStyle, minHeight: 380, position: 'relative', overflow: 'hidden' }}>
-        {ribbon(false)}
-        {ribbon(true)}
+        {sweep(false)}
+        {sweep(true)}
         {CIRCUIT_PREVIEW_STARS.map(([x, y], i) => (
           <span key={i} aria-hidden style={{
             position: 'absolute', left: `${x}%`, top: `${y}%`, width: 2, height: 2, borderRadius: '50%',
@@ -737,23 +747,34 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           }} />
         ))}
 
-        <div style={{ position: 'relative', padding: '46px 14px 46px' }}>
+        <div style={{ position: 'relative', padding: '54px 14px 62px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
             <div style={{ flex: 1, minWidth: 0 }}><LogoZone /></div>
-            <div style={{
-              flexShrink: 0, borderRadius: '50%', padding: 2,
-              background: `linear-gradient(135deg, ${companion} 0%, ${accentHex} 100%)`,
-            }}>
-              <div style={{ borderRadius: '50%', overflow: 'hidden', width: avatar, height: avatar, border: `2px solid ${bg.page}` }}>
-                {form.profile_image_url
-                  ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <div style={{ width: '100%', height: '100%', backgroundColor: accentHex + '33', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: avatar * 0.36, fontWeight: 700, color: accentHex }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
+            {/* Arcs curling round the photo, as on the real card. Square
+                viewBox and fixed size, so they stay arcs. */}
+            <div style={{ position: 'relative', flexShrink: 0, width: arcBox, height: arcBox }}>
+              <svg aria-hidden width={arcBox} height={arcBox} viewBox="0 0 200 200" style={{ position: 'absolute', left: 0, top: 0 }}>
+                <path d="M96,6 A94,94 0 0 1 194,104" fill="none" stroke={accentHex} strokeWidth="9" strokeLinecap="round" />
+                <path d="M194,104 A94,94 0 0 1 150,180" fill="none" stroke={companion} strokeWidth="6" strokeLinecap="round" />
+                <path d="M6,104 A94,94 0 0 0 58,182" fill="none" stroke={accentHex} strokeWidth="5" strokeLinecap="round" opacity="0.6" />
+              </svg>
+              <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
+                <div style={{
+                  borderRadius: '50%', padding: 2, lineHeight: 0,
+                  background: `linear-gradient(135deg, ${companion} 0%, ${accentHex} 100%)`,
+                }}>
+                  <div style={{ borderRadius: '50%', overflow: 'hidden', width: avatar, height: avatar, border: `2px solid ${bg.page}` }}>
+                    {form.profile_image_url
+                      ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <div style={{ width: '100%', height: '100%', backgroundColor: accentHex + '33', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: avatar * 0.36, fontWeight: 700, color: accentHex }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           <h2 style={{ margin: '0 0 2px', fontSize: calcNameSize(17, design), fontWeight: 800, fontFamily: font.heading, textTransform: 'uppercase', lineHeight: 1.1, color: getNameColor(design, accentHex) }}>{form.name || 'Your Name'}</h2>
-          {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: calcTitleSize(9, design), fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: getTitleColor(design, companion) }}>{form.title}</p>}
+          {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: calcTitleSize(9, design), fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: getTitleColor(design, accentHex), opacity: 0.85 }}>{form.title}</p>}
           {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(10, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
           {isPro && form.bio && <p style={{ margin: '8px 0 0', fontSize: calcBioSize(10, design), color: getBioColor(design, bg.subtext), lineHeight: 1.6 }}>{form.bio}</p>}
 
@@ -765,9 +786,12 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
               <div key={t.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ width: 24, height: 24, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', border: `1px solid ${accentHex}`, color: accentHex, backgroundColor: accentHex + '1f' }}>{t.icon}</span>
                 <span style={{ fontSize: getBodyFontSize(design) - 4, color: bg.text, maxWidth: '52%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
-                <span style={{ flex: 1, minWidth: 4, height: 1, background: `linear-gradient(90deg, ${accentHex}, ${companion})`, opacity: 0.75 }} />
-                <svg aria-hidden width="18" height="14" viewBox="0 0 34 26" style={{ flexShrink: 0, overflow: 'visible' }}>
-                  <path d={i % 2 === 0 ? 'M0,20 H10 L20,6 H34' : 'M0,6 H10 L20,20 H34'} fill="none" stroke={companion} strokeWidth="2" />
+                {/* A flowing curve, as on the real card. Wires flow there,
+                    they do not step. */}
+                <svg aria-hidden viewBox="0 0 120 24" preserveAspectRatio="none"
+                  style={{ flex: 1, minWidth: 24, height: 24, overflow: 'visible' }}>
+                  <path d={i % 2 === 0 ? 'M0,20 C46,20 60,12 120,12' : 'M0,4 C46,4 60,12 120,12'}
+                    fill="none" stroke={companion} strokeWidth="1.5" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
                 </svg>
                 <span style={{ width: 4, height: 4, flexShrink: 0, borderRadius: '50%', backgroundColor: companion }} />
               </div>
