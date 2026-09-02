@@ -40,33 +40,22 @@ interface Props {
 
 export default function CardPreview({ form, isPro, design, frameHeight }: Props) {
   const box = useRef<HTMLDivElement>(null)
-  const inner = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(0)
-  const [cardHeight, setCardHeight] = useState(0)
 
-  // Measured rather than passed in: these sit in responsive grids, and a scale
+  // Measured rather than passed in: tiles sit in responsive grids, and a scale
   // hardcoded per call site goes wrong the moment a breakpoint changes.
+  //
+  // Read once directly before observing. Waiting for the observer's first
+  // callback meant the tile rendered nothing until it arrived, and in at least
+  // one place - the editor's flip card - it never arrived at all, so the live
+  // preview was simply blank. A measurement we can take now should not be
+  // waited for.
   useEffect(() => {
     const el = box.current
-    if (!el) return
-    const ro = new ResizeObserver(entries => {
-      const w = entries[0]?.contentRect.width
-      if (w) setScale(w / FRAME_WIDTH)
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
-  // The card's own height, so an uncropped preview can reserve exactly the
-  // room the scaled card needs. Without this the wrapper would have no height
-  // at all, since the card inside it is absolutely positioned.
-  useEffect(() => {
-    const el = inner.current
-    if (!el || frameHeight) return
-    const ro = new ResizeObserver(entries => {
-      const h = entries[0]?.contentRect.height
-      if (h) setCardHeight(h)
-    })
+    if (!el || !frameHeight) return
+    const apply = (w: number) => { if (w > 0) setScale(w / FRAME_WIDTH) }
+    apply(el.getBoundingClientRect().width)
+    const ro = new ResizeObserver(entries => apply(entries[0]?.contentRect.width ?? 0))
     ro.observe(el)
     return () => ro.disconnect()
   }, [frameHeight])
@@ -82,6 +71,18 @@ export default function CardPreview({ form, isPro, design, frameHeight }: Props)
     user_id: null,
   }
 
+  // No frame height means the live preview, which is not a thumbnail: the
+  // panel it sits in is already about phone width, and the card is responsive,
+  // so it can simply be rendered. Scaling it there bought nothing and cost the
+  // whole preview when the measurement was late.
+  if (!frameHeight) {
+    return (
+      <div aria-hidden className="cardtly-card-preview" style={{ pointerEvents: 'none' }}>
+        <PublicCardView card={card} isPro={isPro} />
+      </div>
+    )
+  }
+
   return (
     <div
       ref={box}
@@ -90,8 +91,10 @@ export default function CardPreview({ form, isPro, design, frameHeight }: Props)
         width: '100%',
         // The scaled card is absolutely positioned, so the box needs a height
         // of its own or it collapses to nothing.
-        height: scale ? Math.round((frameHeight ?? cardHeight) * scale) || undefined : undefined,
-        aspectRatio: scale || !frameHeight ? undefined : `${FRAME_WIDTH} / ${frameHeight}`,
+        height: scale ? Math.round(frameHeight * scale) : undefined,
+        // Before the first measurement the box still needs a height, or it
+        // collapses and the tile shows as an empty strip.
+        aspectRatio: scale ? undefined : `${FRAME_WIDTH} / ${frameHeight}`,
         overflow: 'hidden',
         position: 'relative',
         // A preview is a picture of a card, not a card. Without this the
@@ -102,13 +105,12 @@ export default function CardPreview({ form, isPro, design, frameHeight }: Props)
     >
       {scale > 0 && (
         <div
-          ref={inner}
           style={{
             position: 'absolute', top: 0, left: 0,
             width: FRAME_WIDTH, height: frameHeight,
             transform: `scale(${scale})`,
             transformOrigin: 'top left',
-            overflow: frameHeight ? 'hidden' : undefined,
+            overflow: 'hidden',
           }}
           // The back button and the share button are position-fixed and are
           // written inline in all fifteen template branches. One scoped rule
