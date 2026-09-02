@@ -951,11 +951,38 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
 // old founder ribbon was threaded through all twelve by hand, which is how it
 // ended up impossible to remove cleanly. Not repeating that: anything that
 // applies to every template goes here, above the body, in one place.
+// Cards are designed for a phone, and on a desktop they were being stretched
+// to the width of the browser: the decorative sweeps ran the full 1900px while
+// the content sat in a 560px column on the left, which is not a layout anyone
+// chose. Everything is held to a phone's width and centred instead, so a card
+// opened on a laptop is the same card the person was shown on a phone.
+const CARD_FRAME_WIDTH = 430
+
 export default function PublicCardView(props: Props) {
+  const design = parseDesign(props.card.color_theme)
+  const bg = getBgColors(design.bgMode, design.templateId, design.customBgColor)
+  const surround = isLightBg(design.customBgColor || bg.page) ? '#e8ecf1' : '#05070b'
+
   return (
     <>
       {props.suspendedMessage != null && <SuspendedBanner message={props.suspendedMessage} />}
-      <CardBody {...props} />
+      <div style={{ minHeight: '100vh', background: surround }}>
+        <div
+          style={{
+            maxWidth: CARD_FRAME_WIDTH,
+            margin: '0 auto',
+            minHeight: '100vh',
+            position: 'relative',
+            overflow: 'hidden',
+            // Makes the frame a containing block for the position-fixed chrome
+            // and the templates' fixed backdrops, so they land inside the card
+            // rather than in the corner of a desktop window.
+            transform: 'translateZ(0)',
+          }}
+        >
+          <CardBody {...props} />
+        </div>
+      </div>
     </>
   )
 }

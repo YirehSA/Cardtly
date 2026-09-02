@@ -6,6 +6,11 @@ import ProPlanPrice from '@/components/marketing/ProPlanPrice'
 import Reveal from '@/components/marketing/Reveal'
 import UsdEstimate from '@/components/marketing/UsdEstimate'
 import { Check, ArrowRight, Zap, Building2 } from 'lucide-react'
+// Read from the billing code rather than typed in. The seat ceiling appears in
+// four places on this page, and the Enterprise tile had drifted to "20+" while
+// self-serve Teams already included the twentieth seat - so a team of exactly
+// 20 was claimed by both tiers.
+import { MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND } from '@/lib/org-billing'
 
 export const metadata: Metadata = {
   title: 'Digital Business Card Pricing, R97 a Month',
@@ -116,12 +121,13 @@ export default function PricingPage() {
 
           {/* The three things people actually want to know before scrolling. */}
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-4">
-            {/* The first two were both R97 saying the same thing, which also
-                made two rows share a React key. */}
+            {/* One tile per plan, in the order they scale. These were two
+                identical R97 rows and a third about cancellation, which told
+                nobody which plan they were on. */}
             {[
-              { k: 'R97', v: 'Per card, per month, everything included' },
-              { k: 'Up to 20', v: 'Seats on one team, one invoice' },
-              { k: 'Cancel anytime', v: 'No lock-in, no cancellation fee' },
+              { k: `R${SEAT_PRICE_RAND}`, v: 'Individual: per card, per month' },
+              { k: `R${SEAT_PRICE_RAND} / seat`, v: `Pro Teams: 2 to ${MAX_SELF_SERVE_SEATS} seats, one invoice` },
+              { k: `${MAX_SELF_SERVE_SEATS + 1}+ seats`, v: 'Enterprise: quoted on your seat count' },
             ].map(({ k, v }) => (
               <div key={v} className="rounded-2xl p-5"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -177,7 +183,7 @@ export default function PricingPage() {
               </div>
               <UsdEstimate zar={97} suffix="/seat/mo" className="block text-sm font-medium mb-1 text-white/70" />
               <p className="text-sm mb-8 mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                2 to 20 seats. Set it up yourself in minutes.
+                2 to {MAX_SELF_SERVE_SEATS} seats. Set it up yourself in minutes.
               </p>
             </div>
 
@@ -207,11 +213,11 @@ export default function PricingPage() {
                 <Building2 className="w-3.5 h-3.5" />Enterprise
               </p>
               <div className="flex items-end gap-2 mb-1">
-                <span className="text-5xl font-black">20+</span>
+                <span className="text-5xl font-black">{MAX_SELF_SERVE_SEATS + 1}+</span>
                 <span className="text-base pb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>seats</span>
               </div>
               <p className="text-sm mb-8 mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                Billed by debit order. We will quote you on the seats you need.
+                Quoted on the number of seats you need, and billed by debit order.
               </p>
             </div>
             <div className="space-y-3 flex-1">
