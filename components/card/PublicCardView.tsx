@@ -1458,17 +1458,29 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
     const column: React.CSSProperties = { maxWidth: GROUP, margin: '0 auto' }
     const bodySize = getBodyFontSize(design)
 
-    // One list, in the order somebody would actually use it: how to reach them,
-    // then where to find them, then whatever they chose to link.
+    // Rows are the details you have to READ: a number, an address, a link
+    // somebody named. Each one earns the width of the card.
+    //
+    // The socials do not. A LinkedIn row said "LinkedIn" next to the LinkedIn
+    // mark - the label repeated the icon and told you nothing the glyph had not
+    // already said. They stack in the rail under the photo instead, where the
+    // icon IS the whole message.
     const rows: { key: string; icon: React.ReactNode; label: string; sub?: string; href: string }[] = [
       card.phone && { key: 'phone', icon: <Phone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
       isPro && card.work_phone && { key: 'work', icon: <Phone className="w-4 h-4" />, label: card.work_phone, sub: 'Work', href: `tel:${card.work_phone}` },
       card.email && { key: 'email', icon: <Mail className="w-4 h-4" />, label: card.email, href: `mailto:${card.email}` },
       isPro && card.address && { key: 'addr', icon: <MapPin className="w-4 h-4" />, label: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}` },
       card.website && { key: 'web', icon: <Globe className="w-4 h-4" />, label: card.website.replace(/^https?:\/\//, ''), href: card.website.startsWith('http') ? card.website : `https://${card.website}` },
-      ...socialLinks.map(s => ({ key: s.platform, icon: s.icon, label: s.platform, href: s.url })),
       ...(isPro ? links.map(l => ({ key: `link${l.index}`, icon: <ExternalLink className="w-4 h-4" />, label: l.title, href: l.url })) : []),
     ].filter(Boolean) as { key: string; icon: React.ReactNode; label: string; sub?: string; href: string }[]
+
+    // 40px, and a soft chip in whatever reads on the rail, so they look like
+    // the buttons they are rather than decoration printed on the sidebar.
+    const socialChip: React.CSSProperties = {
+      width: 40, height: 40, borderRadius: '50%', display: 'grid', placeItems: 'center',
+      color: onRail, textDecoration: 'none', flexShrink: 0,
+      background: onRail === '#ffffff' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)',
+    }
 
     return (
       <div style={{ ...pageStyle, minHeight: '100vh' }} className="animate-fade-up">
@@ -1489,14 +1501,23 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
             position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 0,
             padding: 'calc(env(safe-area-inset-top, 0px) + 64px) 20px 14px 0',
           }}>
-            <div style={{ width: railW, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
+            {/* Photo, then the socials directly under it. */}
+            <div style={{ width: railW, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
               <Avatar {...shared} size={56} rounded="full" extraStyle={{
                 width: avatarSize, height: avatarSize, aspectRatio: '1 / 1',
                 border: design.profileBorder === false ? 'none' : `3px solid ${onRail === '#ffffff' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)'}`,
                 backgroundColor: bg.page,
               }} />
+              {socialLinks.map(s => (
+                <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
+                  aria-label={s.platform} title={s.platform} style={socialChip}>
+                  {s.icon}
+                </a>
+              ))}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Centred: the name block and the bio read as the front of the
+                card, not as a caption running off the photo. */}
+            <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
               <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(26, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text) }}>{card.name}</h1>
               {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentHex), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
               {card.company && <p style={{ margin: '0 0 14px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}

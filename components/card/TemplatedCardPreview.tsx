@@ -8,7 +8,7 @@ import {
   getNameColor, getTitleColor, getCompanyColor, getBioColor,
   getBodyFontSize, getButtonFontSize, isLightBg
 } from '@/types/design'
-import { Phone, Mail, Globe, MessageCircle, ExternalLink, ChevronRight, Twitter, Facebook } from 'lucide-react'
+import { Phone, Mail, Globe, MessageCircle, ExternalLink, ChevronRight, Twitter, Facebook, Linkedin } from 'lucide-react'
 
 interface PreviewData {
   name: string; title: string; company: string; bio: string
@@ -636,14 +636,29 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         <div aria-hidden style={{ position: 'absolute', left: 0, top: 0, bottom: 64, width: railW, background: railBg }} />
 
         <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', padding: '16px 14px 10px 0' }}>
-          <div style={{ width: railW, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
+          {/* Photo, then the socials under it - the icon is the whole message,
+              so they need no label and take none. */}
+          <div style={{ width: railW, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
             <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, border: design.profileBorder === false ? 'none' : `2px solid ${onRail === '#ffffff' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)'}` }}>
               {form.profile_image_url
                 ? <img src={form.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
                 : <div style={{ width: photoSize, height: photoSize, backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700, color: '#fff' }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
             </div>
+            {[
+              isPro && (form as any).linkedin_url && <Linkedin key="li" style={{ width: 11, height: 11 }} />,
+              isPro && (form as any).instagram_url && <ExternalLink key="ig" style={{ width: 11, height: 11 }} />,
+              isPro && (form as any).facebook_url && <Facebook key="fb" style={{ width: 11, height: 11 }} />,
+              isPro && (form as any).twitter_url && <Twitter key="tw" style={{ width: 11, height: 11 }} />,
+              isPro && form.whatsapp && <MessageCircle key="wa" style={{ width: 11, height: 11 }} />,
+            ].filter(Boolean).map((icon, i) => (
+              <span key={i} style={{
+                width: 22, height: 22, borderRadius: '50%', display: 'grid', placeItems: 'center', color: onRail,
+                background: onRail === '#ffffff' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)',
+              }}>{icon}</span>
+            ))}
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Centred, matching the real card. */}
+          <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
             <h2 style={{ margin: '0 0 3px', fontSize: calcNameSize(16, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text), lineHeight: 1.2 }}>{form.name || 'Your Name'}</h2>
             {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: calcTitleSize(10, design), fontWeight: 600, color: getTitleColor(design, accentHex), textTransform: 'uppercase', letterSpacing: '0.06em' }}>{form.title}</p>}
             {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(10, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
