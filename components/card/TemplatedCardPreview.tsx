@@ -8,7 +8,7 @@ import {
   getNameColor, getTitleColor, getCompanyColor, getBioColor,
   getBodyFontSize, getButtonFontSize, isLightBg
 } from '@/types/design'
-import { Phone, Mail, Globe, MessageCircle, ExternalLink, ChevronRight, Twitter, Facebook, Linkedin } from 'lucide-react'
+import { Phone, Mail, Globe, MapPin, MessageCircle, ExternalLink, ChevronRight, Twitter, Facebook, Linkedin } from 'lucide-react'
 
 interface PreviewData {
   name: string; title: string; company: string; bio: string
@@ -612,9 +612,10 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
   }
 
   // ── SPLIT PRO ─────────────────────────────────────────────────────────────
-  // Split, with the rail running the whole way down and every detail hanging
-  // off it: icon in the rail, value in a box outlined in the rail's colour and
-  // joined to it. See the same template in PublicCardView.
+  // Split, with the rail running the whole way down to just above the gallery.
+  // Every icon that speaks for itself lives in the rail (call, mail, map, site,
+  // socials); the name block and the named links sit beside it. See the same
+  // template in PublicCardView.
   if (design.templateId === 'splitpro') {
     const railW = 52
     const photoSize = Math.min(railW - 14, calcPhotoSize(36, design))
@@ -624,16 +625,15 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         ? `linear-gradient(180deg, ${accentHex}cc 0%, ${accentHex}88 100%)`
         : accentHex
     const onRail = getReadableTextOn(accentHex)
-    const rows = [
-      form.phone && { key: 'p', icon: <Phone style={{ width: 12, height: 12 }} />, label: form.phone },
-      form.email && { key: 'e', icon: <Mail style={{ width: 12, height: 12 }} />, label: form.email },
-      form.website && { key: 'w', icon: <Globe style={{ width: 12, height: 12 }} />, label: form.website.replace(/^https?:\/\//, '') },
-      ...links.slice(0, 2).map(l => ({ key: l.title, icon: <Globe style={{ width: 12, height: 12 }} />, label: l.title })),
-    ].filter(Boolean) as { key: string; icon: React.ReactNode; label: string }[]
+    const rows = (links.slice(0, 2) as { title: string }[]).map(l => ({ key: l.title, label: l.title }))
 
     return (
-      <div style={{ ...pageStyle, minHeight: 380, position: 'relative' }}>
-        <div aria-hidden style={{ position: 'absolute', left: 0, top: 0, bottom: 64, width: railW, background: railBg }} />
+      <div style={{ ...pageStyle, minHeight: 380, display: 'flex', flexDirection: 'column' }}>
+        {/* The rail is absolute inside this region rather than the page, so it
+            ends exactly where the Save Contact block begins. Guessing at the
+            bottom block's height put the button on top of the rail. */}
+        <div style={{ position: 'relative', flex: 1 }}>
+        <div aria-hidden style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: railW, background: railBg }} />
 
         <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', padding: '16px 14px 10px 0' }}>
           {/* Photo, then the socials under it - the icon is the whole message,
@@ -645,6 +645,10 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
                 : <div style={{ width: photoSize, height: photoSize, backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700, color: '#fff' }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
             </div>
             {[
+              form.phone && <Phone key="ph" style={{ width: 11, height: 11 }} />,
+              form.email && <Mail key="em" style={{ width: 11, height: 11 }} />,
+              isPro && (form as any).address && <MapPin key="ad" style={{ width: 11, height: 11 }} />,
+              form.website && <Globe key="we" style={{ width: 11, height: 11 }} />,
               isPro && (form as any).linkedin_url && <Linkedin key="li" style={{ width: 11, height: 11 }} />,
               isPro && (form as any).instagram_url && <ExternalLink key="ig" style={{ width: 11, height: 11 }} />,
               isPro && (form as any).facebook_url && <Facebook key="fb" style={{ width: 11, height: 11 }} />,
@@ -664,25 +668,23 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
             {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(10, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
             <LogoZone />
             {isPro && form.bio && <p style={{ fontSize: calcBioSize(10, design), color: getBioColor(design, bg.subtext), lineHeight: 1.6, margin: '6px 0 0' }}>{form.bio}</p>}
+            {/* Beside the rail, not below it: the rail is a stack of chips and
+                the name block is four lines, so anything below the pair would
+                start level with the BOTTOM of the rail and leave a dead gap. */}
+            {rows.map(r => (
+              <div key={r.key} style={{
+                marginTop: 8, padding: '6px 9px',
+                fontSize: getBodyFontSize(design) - 4, color: bg.text,
+                border: `1px solid ${accentHex}`, borderRadius: 8,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{r.label}</div>
+            ))}
+            <div style={{ marginTop: 8 }}><Certs /></div>
           </div>
         </div>
-
-        <div style={{ position: 'relative' }}>
-          {rows.map(r => (
-            <div key={r.key} style={{ display: 'flex', alignItems: 'stretch', marginBottom: 6 }}>
-              <span style={{ width: railW, flexShrink: 0, display: 'grid', placeItems: 'center', color: onRail }}>{r.icon}</span>
-              <span style={{
-                flex: 1, minWidth: 0, marginRight: 14, padding: '6px 9px',
-                fontSize: getBodyFontSize(design) - 4, color: bg.text,
-                border: `1px solid ${accentHex}`, borderLeft: 'none', borderRadius: '0 8px 8px 0',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>{r.label}</span>
-            </div>
-          ))}
-          <div style={{ marginLeft: railW, marginRight: 14 }}><Certs /></div>
         </div>
 
-        <div style={{ position: 'relative', padding: '12px 14px 14px' }}>
+        <div style={{ padding: '12px 14px 14px' }}>
           <div style={{ padding: '8px 0', borderRadius: 8, textAlign: 'center', fontSize: getButtonFontSize(design) - 3, fontWeight: 700, color: buttonText, backgroundColor: buttonBg, border: buttonBorder ? `2px solid ${buttonBorder}` : 'none' }}>Save Contact</div>
         </div>
       </div>

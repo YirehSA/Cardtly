@@ -1458,21 +1458,26 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
     const column: React.CSSProperties = { maxWidth: GROUP, margin: '0 auto' }
     const bodySize = getBodyFontSize(design)
 
-    // Rows are the details you have to READ: a number, an address, a link
-    // somebody named. Each one earns the width of the card.
+    // The rail is the whole contact sheet: photo, then everything a tap does.
+    // Phone, email, location and website say the same thing as their glyph and
+    // the tap does the rest, so none of them needs a row of the card to hold a
+    // number nobody is going to copy out by hand. Save Contact is still there
+    // for anyone who wants the details themselves.
     //
-    // The socials do not. A LinkedIn row said "LinkedIn" next to the LinkedIn
-    // mark - the label repeated the icon and told you nothing the glyph had not
-    // already said. They stack in the rail under the photo instead, where the
-    // icon IS the whole message.
-    const rows: { key: string; icon: React.ReactNode; label: string; sub?: string; href: string }[] = [
-      card.phone && { key: 'phone', icon: <Phone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
-      isPro && card.work_phone && { key: 'work', icon: <Phone className="w-4 h-4" />, label: card.work_phone, sub: 'Work', href: `tel:${card.work_phone}` },
-      card.email && { key: 'email', icon: <Mail className="w-4 h-4" />, label: card.email, href: `mailto:${card.email}` },
+    // Titled as well as labelled: on a desktop, hovering says which number is
+    // which, and a screen reader gets the same from aria-label.
+    const railIcons: { key: string; icon: React.ReactNode; label: string; href: string }[] = [
+      card.phone && { key: 'phone', icon: <Phone className="w-4 h-4" />, label: `Call ${card.phone}`, href: `tel:${card.phone}` },
+      isPro && card.work_phone && { key: 'work', icon: <Phone className="w-4 h-4" />, label: `Call ${card.work_phone} (work)`, href: `tel:${card.work_phone}` },
+      card.email && { key: 'email', icon: <Mail className="w-4 h-4" />, label: `Email ${card.email}`, href: `mailto:${card.email}` },
       isPro && card.address && { key: 'addr', icon: <MapPin className="w-4 h-4" />, label: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}` },
       card.website && { key: 'web', icon: <Globe className="w-4 h-4" />, label: card.website.replace(/^https?:\/\//, ''), href: card.website.startsWith('http') ? card.website : `https://${card.website}` },
-      ...(isPro ? links.map(l => ({ key: `link${l.index}`, icon: <ExternalLink className="w-4 h-4" />, label: l.title, href: l.url })) : []),
-    ].filter(Boolean) as { key: string; icon: React.ReactNode; label: string; sub?: string; href: string }[]
+    ].filter(Boolean) as { key: string; icon: React.ReactNode; label: string; href: string }[]
+
+    // What is left as a row is what the glyph cannot say: a link somebody named
+    // themselves. "Book a demo" is the whole reason that row exists.
+    const rows: { key: string; icon: React.ReactNode; label: string; sub?: string; href: string }[] =
+      isPro ? links.map(l => ({ key: `link${l.index}`, icon: <ExternalLink className="w-4 h-4" />, label: l.title, href: l.url })) : []
 
     // 40px, and a soft chip in whatever reads on the rail, so they look like
     // the buttons they are rather than decoration printed on the sidebar.
@@ -1508,6 +1513,22 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                 border: design.profileBorder === false ? 'none' : `3px solid ${onRail === '#ffffff' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)'}`,
                 backgroundColor: bg.page,
               }} />
+              {railIcons.map(r => (
+                <a key={r.key} href={r.href}
+                  target={r.href.startsWith('http') ? '_blank' : undefined}
+                  rel={r.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  aria-label={r.label} title={r.label} style={socialChip}>
+                  {r.icon}
+                </a>
+              ))}
+              {/* How to reach them, then where to find them. One hairline so
+                  the two groups do not read as one long undifferentiated run. */}
+              {railIcons.length > 0 && socialLinks.length > 0 && (
+                <div style={{
+                  width: 22, height: 1, margin: '2px 0',
+                  background: onRail === '#ffffff' ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.25)',
+                }} />
+              )}
               {socialLinks.map(s => (
                 <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
                   aria-label={s.platform} title={s.platform} style={socialChip}>
@@ -1523,44 +1544,42 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
               {card.company && <p style={{ margin: '0 0 14px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
               <LogoZone {...shared} />
               {card.bio && <p className="leading-relaxed" style={{ margin: 0, fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
+
+              {/* Inside the content column, not in a block underneath it.
+                  The rail now holds nine chips and the header holds four lines,
+                  so a block below the pair started level with the BOTTOM of the
+                  rail - a screen of empty space between the bio and the first
+                  link. Here they flow straight on under the bio while the chips
+                  run down beside them. */}
+              {rows.length > 0 && (
+                <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {rows.map(r => (
+                    <a key={r.key} href={r.href}
+                      target={r.href.startsWith('http') ? '_blank' : undefined}
+                      rel={r.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        padding: '12px 14px', minHeight: 44, textDecoration: 'none',
+                        fontSize: bodySize, fontWeight: 600, color: bg.text,
+                        border: `1px solid ${accentHex}`, borderRadius: 12,
+                        backgroundColor: cardEffect.surfaceBg,
+                      }}>
+                      {r.icon}
+                      <span className="truncate">{r.label}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              {certifications.length > 0 && (
+                <div className="flex flex-wrap gap-2 justify-center" style={{ marginTop: 16 }}>
+                  {certifications.map(c => (
+                    <span key={c} className="text-xs px-3 py-1.5 rounded-full"
+                      style={{ backgroundColor: accentHex + '22', color: accentHex, border: `1px solid ${accentHex}44` }}>#{c}</span>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-
-          {/* Every row: icon in the rail, value hanging off it. */}
-          <div style={{ position: 'relative' }}>
-            {rows.map(r => (
-              <a key={r.key} href={r.href}
-                target={r.href.startsWith('http') ? '_blank' : undefined}
-                rel={r.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                style={{ display: 'flex', alignItems: 'stretch', textDecoration: 'none', marginBottom: 8 }}>
-                <span style={{
-                  width: railW, flexShrink: 0, display: 'grid', placeItems: 'center',
-                  color: onRail,
-                }}>
-                  {r.icon}
-                </span>
-                <span style={{
-                  flex: 1, minWidth: 0, marginRight: 20,
-                  display: 'flex', flexDirection: 'column', justifyContent: 'center',
-                  padding: '11px 14px', fontSize: bodySize, color: bg.text,
-                  border: `1px solid ${accentHex}`, borderLeft: 'none',
-                  borderRadius: '0 12px 12px 0',
-                  backgroundColor: cardEffect.surfaceBg,
-                }}>
-                  <span className="truncate">{r.label}</span>
-                  {r.sub && <span className="text-xs" style={{ color: bg.subtext }}>{r.sub}</span>}
-                </span>
-              </a>
-            ))}
-
-            {certifications.length > 0 && (
-              <div style={{ marginLeft: railW, marginRight: 20, padding: '10px 0 2px' }} className="flex flex-wrap gap-2">
-                {certifications.map(c => (
-                  <span key={c} className="text-xs px-3 py-1.5 rounded-full"
-                    style={{ backgroundColor: accentHex + '22', color: accentHex, border: `1px solid ${accentHex}44` }}>#{c}</span>
-                ))}
-              </div>
-            )}
           </div>
 
           <div style={{ height: 18 }} />

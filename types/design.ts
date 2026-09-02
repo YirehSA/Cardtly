@@ -222,7 +222,7 @@ export const TEMPLATES: TemplateConfig[] = [
   { id: 'creative',  name: 'Creative',  description: 'Radial glow, accent avatar ring',     proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-violet-950 to-fuchsia-950' },
   { id: 'wave',      name: 'Wave',      description: 'Two-column hero with SVG wave',       proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-cyan-900 to-gray-900' },
   { id: 'split',     name: 'Split',     description: 'Accent sidebar, content right',       proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-blue-900 to-gray-900' },
-  { id: 'splitpro',  name: 'Split Pro',  description: 'Sidebar runs the page, details hang off it', proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-sky-900 to-gray-900' },
+  { id: 'splitpro',  name: 'Split Pro',  description: 'Sidebar runs the page, contacts live in it', proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-sky-900 to-gray-900' },
   { id: 'neon',      name: 'Neon',      description: 'Glowing borders, dark cyberpunk',     proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-gray-950 to-purple-950' },
   { id: 'studio',    name: 'Studio',    description: 'Bold black header, curved accent bottom', proOnly: true, defaultBgMode: 'dark', previewGradient: 'from-black to-amber-900' },
   { id: 'frost',     name: 'Frost',     description: 'Glassmorphism on a soft gradient mesh',    proOnly: true, defaultBgMode: 'light', previewGradient: 'from-sky-200 to-violet-200' },
