@@ -1479,13 +1479,16 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
     const rows: { key: string; icon: React.ReactNode; label: string; sub?: string; href: string }[] =
       isPro ? links.map(l => ({ key: `link${l.index}`, icon: <ExternalLink className="w-4 h-4" />, label: l.title, href: l.url })) : []
 
-    // 40px, and a soft chip in whatever reads on the rail, so they look like
+    // 46px, and a soft chip in whatever reads on the rail, so they look like
     // the buttons they are rather than decoration printed on the sidebar.
     const socialChip: React.CSSProperties = {
-      width: 40, height: 40, borderRadius: '50%', display: 'grid', placeItems: 'center',
+      width: 46, height: 46, borderRadius: '50%', display: 'grid', placeItems: 'center',
       color: onRail, textDecoration: 'none', flexShrink: 0,
       background: onRail === '#ffffff' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)',
     }
+    // socialLinks is shared by every template and hands its glyphs down at
+    // w-4, so the size is set here on the chip rather than at the source.
+    const CHIP_GLYPH = '[&_svg]:w-5 [&_svg]:h-5'
 
     return (
       <div style={{ ...pageStyle, minHeight: '100vh' }} className="animate-fade-up">
@@ -1508,16 +1511,19 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
           }}>
             {/* Photo, then the socials directly under it. */}
             <div style={{ width: railW, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+              {/* marginBottom, not a bigger gap: the breathing room belongs
+                  between the photo and the run of chips, not between every
+                  chip in it. */}
               <Avatar {...shared} size={56} rounded="full" extraStyle={{
                 width: avatarSize, height: avatarSize, aspectRatio: '1 / 1',
                 border: design.profileBorder === false ? 'none' : `3px solid ${onRail === '#ffffff' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)'}`,
-                backgroundColor: bg.page,
+                backgroundColor: bg.page, marginBottom: 12,
               }} />
               {railIcons.map(r => (
                 <a key={r.key} href={r.href}
                   target={r.href.startsWith('http') ? '_blank' : undefined}
                   rel={r.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                  aria-label={r.label} title={r.label} style={socialChip}>
+                  aria-label={r.label} title={r.label} style={socialChip} className={CHIP_GLYPH}>
                   {r.icon}
                 </a>
               ))}
@@ -1531,14 +1537,16 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
               )}
               {socialLinks.map(s => (
                 <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
-                  aria-label={s.platform} title={s.platform} style={socialChip}>
+                  aria-label={s.platform} title={s.platform} style={socialChip} className={CHIP_GLYPH}>
                   {s.icon}
                 </a>
               ))}
             </div>
             {/* Centred: the name block and the bio read as the front of the
-                card, not as a caption running off the photo. */}
-            <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
+                card, not as a caption running off the photo. paddingLeft so
+                the bio and the link buttons clear the rail instead of butting
+                straight up against its edge. */}
+            <div style={{ flex: 1, minWidth: 0, textAlign: 'center', paddingLeft: 20 }}>
               <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(26, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text) }}>{card.name}</h1>
               {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentHex), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
               {card.company && <p style={{ margin: '0 0 14px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
@@ -1584,6 +1592,11 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
 
           <div style={{ height: 18 }} />
         </div>
+
+        {/* Closes the rail off across the whole card, the same way Split
+            finishes its band: the accent at full strength, edge to edge, so
+            the sidebar ends on a line rather than just stopping. */}
+        <div style={{ ...column, height: 2, backgroundColor: accentHex }} />
 
         {/* From the gallery down, the rail is finished and the card is one
             column again. */}

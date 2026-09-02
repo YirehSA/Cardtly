@@ -639,30 +639,30 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           {/* Photo, then the socials under it - the icon is the whole message,
               so they need no label and take none. */}
           <div style={{ width: railW, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-            <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, border: design.profileBorder === false ? 'none' : `2px solid ${onRail === '#ffffff' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)'}` }}>
+            <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, marginBottom: 6, border: design.profileBorder === false ? 'none' : `2px solid ${onRail === '#ffffff' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)'}` }}>
               {form.profile_image_url
                 ? <img src={form.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
                 : <div style={{ width: photoSize, height: photoSize, backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700, color: '#fff' }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
             </div>
             {[
-              form.phone && <Phone key="ph" style={{ width: 11, height: 11 }} />,
-              form.email && <Mail key="em" style={{ width: 11, height: 11 }} />,
-              isPro && (form as any).address && <MapPin key="ad" style={{ width: 11, height: 11 }} />,
-              form.website && <Globe key="we" style={{ width: 11, height: 11 }} />,
-              isPro && (form as any).linkedin_url && <Linkedin key="li" style={{ width: 11, height: 11 }} />,
-              isPro && (form as any).instagram_url && <ExternalLink key="ig" style={{ width: 11, height: 11 }} />,
-              isPro && (form as any).facebook_url && <Facebook key="fb" style={{ width: 11, height: 11 }} />,
-              isPro && (form as any).twitter_url && <Twitter key="tw" style={{ width: 11, height: 11 }} />,
-              isPro && form.whatsapp && <MessageCircle key="wa" style={{ width: 11, height: 11 }} />,
+              form.phone && <Phone key="ph" style={{ width: 13, height: 13 }} />,
+              form.email && <Mail key="em" style={{ width: 13, height: 13 }} />,
+              isPro && (form as any).address && <MapPin key="ad" style={{ width: 13, height: 13 }} />,
+              form.website && <Globe key="we" style={{ width: 13, height: 13 }} />,
+              isPro && (form as any).linkedin_url && <Linkedin key="li" style={{ width: 13, height: 13 }} />,
+              isPro && (form as any).instagram_url && <ExternalLink key="ig" style={{ width: 13, height: 13 }} />,
+              isPro && (form as any).facebook_url && <Facebook key="fb" style={{ width: 13, height: 13 }} />,
+              isPro && (form as any).twitter_url && <Twitter key="tw" style={{ width: 13, height: 13 }} />,
+              isPro && form.whatsapp && <MessageCircle key="wa" style={{ width: 13, height: 13 }} />,
             ].filter(Boolean).map((icon, i) => (
               <span key={i} style={{
-                width: 22, height: 22, borderRadius: '50%', display: 'grid', placeItems: 'center', color: onRail,
+                width: 26, height: 26, borderRadius: '50%', display: 'grid', placeItems: 'center', color: onRail,
                 background: onRail === '#ffffff' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)',
               }}>{icon}</span>
             ))}
           </div>
-          {/* Centred, matching the real card. */}
-          <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
+          {/* Centred, matching the real card, and padded off the rail. */}
+          <div style={{ flex: 1, minWidth: 0, textAlign: 'center', paddingLeft: 12 }}>
             <h2 style={{ margin: '0 0 3px', fontSize: calcNameSize(16, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text), lineHeight: 1.2 }}>{form.name || 'Your Name'}</h2>
             {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: calcTitleSize(10, design), fontWeight: 600, color: getTitleColor(design, accentHex), textTransform: 'uppercase', letterSpacing: '0.06em' }}>{form.title}</p>}
             {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(10, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
@@ -683,6 +683,9 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           </div>
         </div>
         </div>
+
+        {/* Closes the rail off across the card, as on the real one. */}
+        <div style={{ height: 2, backgroundColor: accentHex }} />
 
         <div style={{ padding: '12px 14px 14px' }}>
           <div style={{ padding: '8px 0', borderRadius: 8, textAlign: 'center', fontSize: getButtonFontSize(design) - 3, fontWeight: 700, color: buttonText, backgroundColor: buttonBg, border: buttonBorder ? `2px solid ${buttonBorder}` : 'none' }}>Save Contact</div>
