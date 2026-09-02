@@ -171,21 +171,30 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
     const heroBackground = design.solidBackground ? accentHex : cardEffect.heroBg
     return (
       <div style={pageStyle}>
-        <div style={{ height: 72, background: heroBackground, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ height: 104, background: heroBackground, position: 'relative', overflow: 'hidden' }}>
           {!design.solidBackground && (
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 180, height: 180, background: `radial-gradient(circle, ${accentHex}22 0%, transparent 70%)`, pointerEvents: 'none' }} />
+            <>
+              <div style={{ position: 'absolute', top: '-40%', left: '-10%', width: 190, height: 190, background: `radial-gradient(circle, ${accentHex}38 0%, transparent 70%)`, pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', top: '10%', right: '-15%', width: 150, height: 150, background: `radial-gradient(circle, ${accentHex}28 0%, transparent 70%)`, pointerEvents: 'none' }} />
+            </>
           )}
+          {/* Scoops the page colour into the band, as on the real card. */}
+          <div aria-hidden style={{ position: 'absolute', left: '-8%', right: '-8%', bottom: -1, height: 30, backgroundColor: bg.page, borderRadius: '50% 50% 0 0 / 100% 100% 0 0' }} />
         </div>
-        <div style={{ padding: '0 16px 20px', marginTop: -(photoSize / 2) }}>
+        <div style={{ padding: '0 16px 20px', marginTop: -(photoSize / 2) - 8 }}>
           <div style={{ textAlign: 'center', marginBottom: 12 }}>
-            <div style={{ display: 'inline-block', zIndex: 2, position: 'relative' }}><Avatar base={76} extraStyle={{ border: 'none' }} /></div>
-            <h2 style={{ margin: '8px 0 2px', fontSize: calcNameSize(17, design), fontWeight: 700, fontFamily: font.heading, color: getNameColor(design, bg.text), letterSpacing: '-0.01em' }}>{form.name || 'Your Name'}</h2>
-            {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentHex), letterSpacing: '0.04em' }}>{form.title}</p>}
-            {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(11, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
-            {/* Accent rule matching PublicCardView */}
-            <div style={{ width: 28, height: 2, background: accentHex, margin: '8px auto 0', borderRadius: 2, boxShadow: `0 0 8px ${accentHex}66` }} />
+            <div style={{
+              display: 'inline-block', zIndex: 2, position: 'relative', borderRadius: '50%',
+              padding: design.profileBorder === false ? 0 : 3,
+              background: design.profileBorder === false ? 'none' : `linear-gradient(140deg, ${accentHex} 0%, ${accentHex}44 60%, ${accentHex}22 100%)`,
+            }}><Avatar base={76} extraStyle={{ border: `2px solid ${bg.page}`, display: 'block' }} /></div>
+            <h2 style={{ margin: '10px 0 3px', fontSize: calcNameSize(18, design), fontWeight: 700, fontFamily: font.heading, color: getNameColor(design, bg.text), letterSpacing: '-0.02em' }}>{form.name || 'Your Name'}</h2>
+            {isPro && form.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(9, design), fontWeight: 700, color: getTitleColor(design, accentHex), letterSpacing: '0.16em', textTransform: 'uppercase' }}>{form.title}</p>}
+            {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(9, design), fontWeight: 600, color: getCompanyColor(design, bg.subtext), letterSpacing: '0.12em', textTransform: 'uppercase' }}>{form.company}</p>}
+            {/* A rule that fades at both ends, matching PublicCardView. */}
+            <div style={{ width: 80, height: 1, margin: '10px auto 0', background: `linear-gradient(90deg, transparent, ${accentHex}, transparent)` }} />
             <LogoZone />
-            {isPro && form.bio && <p style={{ margin: '4px 0 0', fontSize: 11, color: bg.subtext, lineHeight: 1.5 }}>{form.bio}</p>}
+            {isPro && form.bio && <p style={{ margin: '6px 0 0', fontSize: 11, color: bg.subtext, lineHeight: 1.5 }}>{form.bio}</p>}
           </div>
           <ContactList /><Certs /><SaveBtn />
           {!isPro && <p style={{ textAlign: 'center', fontSize: 10, color: bg.border, marginTop: 8 }}>Powered by Cardtly</p>}

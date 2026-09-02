@@ -998,43 +998,147 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
   const pageStyle: React.CSSProperties = { minHeight: '100vh', backgroundColor: bg.page, color: bg.text, fontFamily: font.body }
 
   if (design.templateId === 'classic') {
-    // Hero band background: accent-tinted gradient (default) or a solid
-    // block of the accent colour when the user picks the Solid option in
-    // the design panel. Solid uses accentHex so the top band stays a
-    // distinct colour instead of disappearing into the page bg.
+    // Classic is the default and the only template that is not Pro, so it is
+    // both the most-seen card in the product and the one that has to hold up
+    // on the least content. A free card has no title, no socials, no work
+    // number and no address: name, company, photograph, phone, email and
+    // website is the whole of it. Everything below is built to look
+    // deliberate with exactly that and no more, which is why the weight sits
+    // in the hero and the contact card rather than in a busy layout that
+    // needs a full card to make sense of.
+    //
+    // Hero band background: accent-tinted gradient (default) or a solid block
+    // of the accent colour when the user picks the Solid option in the design
+    // panel. Solid uses accentHex so the top band stays a distinct colour
+    // instead of disappearing into the page bg.
     const heroBackground = design.solidBackground ? accentHex : cardEffect.heroBg
+    const onHero = design.solidBackground ? getReadableTextOn(accentHex) : bg.text
+
+    const rows: { key: string; label: string; value: string; href: string; icon: React.ReactNode }[] = [
+      card.phone && { key: 'tel', label: 'Phone', value: card.phone, href: `tel:${card.phone}`, icon: <Phone className="w-4 h-4" /> },
+      isPro && card.work_phone && { key: 'dir', label: 'Direct', value: card.work_phone, href: `tel:${card.work_phone}`, icon: <Phone className="w-4 h-4" /> },
+      card.email && { key: 'eml', label: 'Email', value: card.email, href: `mailto:${card.email}`, icon: <Mail className="w-4 h-4" /> },
+      isPro && card.address && { key: 'off', label: 'Address', value: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}`, icon: <MapPin className="w-4 h-4" /> },
+      card.website && { key: 'web', label: 'Website', value: card.website.replace(/^https?:\/\//, '').replace(/\/$/, ''), href: card.website.startsWith('http') ? card.website : `https://${card.website}`, icon: <Globe className="w-4 h-4" /> },
+    ].filter(Boolean) as { key: string; label: string; value: string; href: string; icon: React.ReactNode }[]
+
     return (
       <div style={pageStyle} className="animate-fade-up">
         <InAppBackButton bgMode={design.bgMode} />
         <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
-        <div className="max-w-md mx-auto">
-          {/* Hero band - either accent-tinted gradient or flat page colour.
-              When gradient, add a subtle radial accent glow for depth. */}
-          <div style={{ height: 110, background: heroBackground, position: 'relative', overflow: 'hidden' }}>
+
+        {/* 512, not the 448 this used to be. On a phone it makes no odds -
+            both are wider than the screen - but on a desktop the card was a
+            narrow strip down the middle with the contact rows squeezed into
+            it. */}
+        <div style={{ maxWidth: 512, margin: '0 auto' }}>
+          <div style={{ height: 176, background: heroBackground, position: 'relative', overflow: 'hidden' }}>
+            {/* Two offset glows rather than one centred circle: a single glow
+                behind the middle of the band is symmetrical enough to read as
+                a flat panel, where two off-centre ones give it a direction
+                and some depth. Skipped on Solid, which is meant to be flat. */}
             {!design.solidBackground && (
-              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 280, height: 280, background: `radial-gradient(circle, ${accentHex}22 0%, transparent 70%)`, pointerEvents: 'none' }} />
+              <>
+                <div style={{ position: 'absolute', top: '-40%', left: '-10%', width: 320, height: 320, background: `radial-gradient(circle, ${accentHex}38 0%, transparent 70%)`, pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', top: '10%', right: '-15%', width: 260, height: 260, background: `radial-gradient(circle, ${accentHex}28 0%, transparent 70%)`, pointerEvents: 'none' }} />
+              </>
             )}
+            {/* Scoops the page colour up into the band so the photograph sits
+                in a curve rather than straddling a hard horizontal line.
+                Inset past both edges so the arc stays shallow at any width. */}
+            <div aria-hidden style={{
+              position: 'absolute', left: '-8%', right: '-8%', bottom: -1, height: 52,
+              backgroundColor: bg.page, borderRadius: '50% 50% 0 0 / 100% 100% 0 0',
+            }} />
           </div>
-          <div className="px-6 pb-10" style={{ marginTop: -64 }}>
-            <div className="text-center mb-6">
-              <div style={{ display: 'inline-block', position: 'relative', zIndex: 2 }}>
-                {/* extraStyle border: none overrides the Avatar
-                    component's default 4px page-bg border. The border
-                    becomes visible against the accent hero band and
-                    was reading as an unwanted outline around the photo */}
-                <Avatar {...shared} size={120} extraStyle={{ border: 'none' }} />
+
+          <div className="px-6 pb-10" style={{ marginTop: -78 }}>
+            <div className="text-center mb-7">
+              {/* The ring is a gradient rather than a flat border, so it reads
+                  as a lit edge instead of an outline drawn round the crop. */}
+              <div style={{
+                display: 'inline-block', position: 'relative', zIndex: 2,
+                padding: design.profileBorder === false ? 0 : 4, borderRadius: '50%',
+                background: design.profileBorder === false ? 'none'
+                  : `linear-gradient(140deg, ${accentHex} 0%, ${accentHex}44 60%, ${accentHex}22 100%)`,
+                boxShadow: `0 10px 34px ${accentHex}33`,
+              }}>
+                <Avatar {...shared} size={124} extraStyle={{ border: `3px solid ${bg.page}`, display: 'block' }} />
               </div>
-              <h1 className="font-bold mt-4 leading-tight" style={{ fontFamily: font.heading, letterSpacing: '-0.01em', fontSize: calcNameSize(24, design), color: getNameColor(design, bg.text) }}>{card.name}</h1>
-              {isPro && card.title && <p className="font-semibold mt-1" style={{ color: getTitleColor(design, accentHex), fontSize: calcTitleSize(14, design), letterSpacing: '0.04em' }}>{card.title}</p>}
-              {card.company && <p className="mt-1" style={{ color: getCompanyColor(design, bg.subtext), fontSize: calcCompanySize(14, design) }}>{card.company}</p>}
-              {/* Subtle accent rule for visual polish */}
-              <div style={{ width: 40, height: 2, background: accentHex, margin: '14px auto 0', borderRadius: 2, boxShadow: `0 0 12px ${accentHex}66` }} />
-              <div className="mt-3"><LogoZone {...shared} /></div>
+
+              <h1 className="font-bold mt-5 leading-tight" style={{ fontFamily: font.heading, letterSpacing: '-0.02em', fontSize: calcNameSize(28, design), color: getNameColor(design, bg.text) }}>{card.name}</h1>
+              {isPro && card.title && (
+                <p className="mt-2" style={{ color: getTitleColor(design, accentHex), fontSize: calcTitleSize(12, design), fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' }}>{card.title}</p>
+              )}
+              {/* Set in small caps whether or not there is a title above it.
+                  On a free card there is no title, and a plain grey company
+                  line under the name was the whole of the type hierarchy. */}
+              {card.company && (
+                <p className="mt-1.5" style={{ color: getCompanyColor(design, bg.subtext), fontSize: calcCompanySize(12, design), fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{card.company}</p>
+              )}
+
+              {/* A rule that fades out at both ends instead of a solid bar
+                  with a glow under it. */}
+              <div style={{ width: 132, height: 1, margin: '18px auto 0', background: `linear-gradient(90deg, transparent, ${accentHex}, transparent)` }} />
+
+              <div className="mt-4"><LogoZone {...shared} /></div>
               {card.bio && <p className="mt-3 leading-relaxed" style={{ color: getBioColor(design, bg.subtext), fontSize: calcBioSize(14, design) }}>{card.bio}</p>}
             </div>
-            <AllContacts {...shared} socialLinks={socialLinks} />
+
+            {/* One panel with hairlines between the rows, not five separate
+                outlined buttons. Three loose buttons is what a free card used
+                to come to, and it read as a list of leftovers; a single card
+                with three rows in it reads as a card. */}
+            {/* The divider is derived from the mode rather than taken from
+                bg.border. On a light card border is #e2e8f0, which is lighter
+                than the tinted panel it would be drawn on, so the rows ran
+                together into one grey block with no lines between them. */}
+            {rows.length > 0 && (
+              <div style={{
+                border: `1px solid ${bg.border}`, borderRadius: 16, overflow: 'hidden',
+                backgroundColor: cardEffect.surfaceBg,
+              }}>
+                {rows.map((r, i) => (
+                  <a key={r.key} href={r.href}
+                    target={r.href.startsWith('http') ? '_blank' : undefined}
+                    rel={r.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                    className="hover:opacity-90 transition"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '13px 15px', minHeight: 60, textDecoration: 'none',
+                      borderTop: i === 0 ? 'none' : `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.09)'}`,
+                    }}>
+                    <span style={{
+                      width: 40, height: 40, flexShrink: 0, borderRadius: 12,
+                      display: 'grid', placeItems: 'center',
+                      backgroundColor: accentHex + '1f', color: accentHex,
+                    }}>{r.icon}</span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: bg.subtext, marginBottom: 2 }}>{r.label}</span>
+                      <span className="truncate" style={{ display: 'block', fontSize: getBodyFontSize(design), fontWeight: 500, color: bg.text }}>{r.value}</span>
+                    </span>
+                    <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: bg.subtext }} />
+                  </a>
+                ))}
+              </div>
+            )}
+
+            {socialLinks.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-3" style={{ marginTop: 18 }}>
+                {socialLinks.map(s => (
+                  <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
+                    aria-label={s.platform} title={s.platform}
+                    style={{
+                      width: 44, height: 44, borderRadius: '50%', display: 'grid', placeItems: 'center',
+                      backgroundColor: s.color || accentHex, color: '#fff', textDecoration: 'none',
+                      boxShadow: `0 4px 14px ${(s.color || accentHex)}55`,
+                    }}>{s.icon}</a>
+                ))}
+              </div>
+            )}
+
             <BottomSection {...bottomProps} />
           </div>
         </div>
