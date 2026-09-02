@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Card, extractLinks } from '@/types/database'
-import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS } from '@/types/design'
+import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS } from '@/types/design'
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
@@ -51,6 +51,65 @@ interface Shared {
   font: { heading: string; body: string }
   cardEffect: { surfaceBg: string; borderStyle: string; heroBg: string }
   design: ReturnType<typeof parseDesign>
+}
+
+// ── Circuit backdrop ──────────────────────────────────────────────────────────
+// The star field behind the Circuit hero. The points are a fixed table, not
+// random: this component renders on the server and again on the client, and
+// Math.random() would hand each pass different coordinates and blow up
+// hydration. Percentages, so it spreads to whatever width the card gets.
+const CIRCUIT_STARS: [number, number, number][] = [
+  [6, 12, 1.6], [14, 30, 1], [9, 52, 2.1], [21, 8, 1.2], [27, 44, 1],
+  [33, 22, 1.7], [41, 62, 1.1], [47, 14, 1], [52, 38, 2], [58, 55, 1.3],
+  [63, 9, 1.5], [69, 33, 1], [74, 66, 1.8], [79, 20, 1.1], [85, 47, 1.4],
+  [90, 28, 1], [94, 60, 1.9], [17, 71, 1.2], [37, 84, 1], [56, 78, 1.5],
+  [71, 88, 1.1], [88, 76, 1.3], [3, 82, 1], [45, 95, 1.2], [66, 41, 1],
+]
+// Positioned in percentages but sized in pixels, so every star stays round.
+// Drawn as SVG circles in a stretched viewBox they came out as vertical
+// dashes, and the lines joining them turned into long diagonals across the
+// whole card - a viewBox stretched to a tall card distorts everything in it.
+// The network motif lives in the contact traces instead, which is where it
+// carries meaning rather than decorating.
+function CircuitStars({ companion }: { companion: string }) {
+  return (
+    <div aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+      {CIRCUIT_STARS.map(([x, y, r], i) => (
+        <span key={i} style={{
+          position: 'absolute', left: `${x}%`, top: `${y}%`,
+          width: r * 2, height: r * 2, borderRadius: '50%',
+          backgroundColor: i % 3 === 0 ? companion : '#ffffff',
+          opacity: i % 3 === 0 ? 0.5 : 0.3,
+        }} />
+      ))}
+    </div>
+  )
+}
+
+// The sweeping ribbon that opens and closes the hero. preserveAspectRatio none
+// so it stretches edge to edge at any width: it is a decorative sweep, and a
+// sweep that keeps its aspect ratio would leave a gap on a wide screen.
+function CircuitRibbon({ accentHex, companion, flip = false }: { accentHex: string; companion: string; flip?: boolean }) {
+  return (
+    <svg aria-hidden viewBox="0 0 400 110" preserveAspectRatio="none"
+      style={{ position: 'absolute', left: 0, right: 0, width: '100%', height: 110, [flip ? 'bottom' : 'top']: 0, transform: flip ? 'scaleY(-1)' : undefined }}>
+      <defs>
+        <linearGradient id={`cr-a-${flip ? 'b' : 't'}`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={accentHex} stopOpacity="0.85" />
+          <stop offset="55%" stopColor={companion} stopOpacity="0.55" />
+          <stop offset="100%" stopColor={accentHex} stopOpacity="0.2" />
+        </linearGradient>
+      </defs>
+      {/* A band with two curved edges, not a shape anchored to the top of the
+          frame: filling from the edge down turned the whole corner into a
+          wash, where the point is a ribbon sweeping across it. */}
+      <path
+        d="M0,44 C62,24 112,52 182,26 C260,-2 326,50 400,12 L400,40 C326,78 260,26 182,54 C112,80 62,52 0,72 Z"
+        fill={`url(#cr-a-${flip ? 'b' : 't'})`} opacity="0.8" />
+      <path d="M0,80 C58,62 108,90 176,64 C256,34 322,90 400,48" fill="none" stroke={companion} strokeWidth="2" opacity="0.75" />
+      <path d="M0,92 C64,76 112,102 184,76 C262,48 330,102 400,62" fill="none" stroke={accentHex} strokeWidth="1" opacity="0.5" />
+    </svg>
+  )
 }
 
 // ── LogoZone ──────────────────────────────────────────────────────────────────
@@ -1602,6 +1661,125 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
             column again. */}
         <div style={{ ...column, padding: '0 20px 28px' }}>
           <BottomSection {...bottomProps} omitAboveGallery />
+        </div>
+      </div>
+    )
+  }
+
+  // ── Circuit ────────────────────────────────────────────────────────────
+  // Two tones, a star field and a ribbon top and bottom. The signature is the
+  // contact row: a ringed icon, the value, then a trace running out to a node
+  // on the right edge, alternating between the two tones down the list.
+  //
+  // No QR block, unlike the reference this was drawn from. That was a printed
+  // card, where a QR is the only way in; here the visitor is already on the
+  // card and scanning it would only bring them back to where they are. The
+  // share sheet at the bottom is the equivalent, and /qr is where a printable
+  // one lives.
+  if (design.templateId === 'circuit') {
+    const companion = companionHex(accentHex)
+    const GROUP = 560
+    const column: React.CSSProperties = { maxWidth: GROUP, margin: '0 auto' }
+    const bodySize = getBodyFontSize(design)
+    const avatarSize = calcPhotoSize(104, design)
+
+    const traceRows: { key: string; icon: React.ReactNode; label: string; href: string }[] = [
+      card.phone && { key: 'phone', icon: <Phone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
+      isPro && card.work_phone && { key: 'work', icon: <Phone className="w-4 h-4" />, label: card.work_phone, href: `tel:${card.work_phone}` },
+      card.email && { key: 'email', icon: <Mail className="w-4 h-4" />, label: card.email, href: `mailto:${card.email}` },
+      isPro && card.address && { key: 'addr', icon: <MapPin className="w-4 h-4" />, label: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}` },
+      card.website && { key: 'web', icon: <Globe className="w-4 h-4" />, label: card.website.replace(/^https?:\/\//, ''), href: card.website.startsWith('http') ? card.website : `https://${card.website}` },
+      ...socialLinks.map(s => ({ key: s.platform, icon: s.icon, label: s.platform, href: s.url })),
+    ].filter(Boolean) as { key: string; icon: React.ReactNode; label: string; href: string }[]
+
+    return (
+      <div style={{ ...pageStyle, minHeight: '100vh' }} className="animate-fade-up">
+        <InAppBackButton bgMode={design.bgMode} />
+
+        {/* The hero owns its own overflow, so the ribbons can run off the edge
+            without clipping the modals and the image viewer further down. */}
+        <div style={{ position: 'relative', overflow: 'hidden' }}>
+          <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+            <CircuitStars companion={companion} />
+            <CircuitRibbon accentHex={accentHex} companion={companion} />
+            <CircuitRibbon accentHex={accentHex} companion={companion} flip />
+          </div>
+
+          {/* 96px at the foot, not 26: the closing ribbon is 110px tall and
+              sits at the base of this zone, so a short pad left the last
+              contact row lying across it. */}
+          <div style={{ ...column, position: 'relative', padding: 'calc(env(safe-area-inset-top, 0px) + 76px) 22px 96px' }}>
+            {/* Logo one side, photo the other, as on the reference. The photo
+                gets a double ring - companion outside, accent inside - which is
+                what makes it read as a badge rather than a pasted circle. */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 22 }}>
+              <div style={{ flex: 1, minWidth: 0, paddingTop: 6 }}>
+                {card.company_logo_url && design.logoPosition !== 'hidden' && (
+                  <img src={card.company_logo_url} alt="" style={{ height: calcLogoHeight(44, design), width: 'auto', maxWidth: '100%', objectFit: 'contain' }} />
+                )}
+              </div>
+              <div style={{
+                flexShrink: 0, borderRadius: '50%', padding: 3,
+                background: `linear-gradient(135deg, ${companion} 0%, ${accentHex} 100%)`,
+                boxShadow: `0 0 22px ${companion}55`,
+              }}>
+                <Avatar {...shared} size={104} rounded="full" extraStyle={{
+                  width: avatarSize, height: avatarSize, aspectRatio: '1 / 1',
+                  border: `3px solid ${bg.page}`, backgroundColor: bg.page, display: 'block',
+                }} />
+              </div>
+            </div>
+
+            <h1 style={{
+              margin: '0 0 4px', fontSize: calcNameSize(30, design), fontWeight: 800, fontFamily: font.heading,
+              textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.1,
+              color: getNameColor(design, accentHex),
+            }}>{card.name}</h1>
+            {isPro && card.title && (
+              <p style={{
+                margin: '0 0 6px', fontSize: calcTitleSize(14, design), fontWeight: 600,
+                textTransform: 'uppercase', letterSpacing: '0.12em',
+                color: getTitleColor(design, companion),
+              }}>{card.title}</p>
+            )}
+            {card.company && (
+              <p style={{ margin: '0 0 4px', fontSize: calcCompanySize(14, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>
+            )}
+            {card.bio && (
+              <p className="leading-relaxed" style={{ margin: '12px 0 0', fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>
+            )}
+
+            {/* The traces. The line is aria-hidden decoration; the row itself
+                is the link, and the label is what a screen reader reads. */}
+            <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {traceRows.map((r, i) => {
+                const tone = i % 2 === 0 ? accentHex : companion
+                return (
+                  <a key={r.key} href={r.href}
+                    target={r.href.startsWith('http') ? '_blank' : undefined}
+                    rel={r.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                    style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 44, textDecoration: 'none' }}>
+                    <span style={{
+                      width: 42, height: 42, flexShrink: 0, borderRadius: '50%',
+                      display: 'grid', placeItems: 'center',
+                      border: `1.5px solid ${tone}`, color: tone,
+                      backgroundColor: tone + '18', boxShadow: `0 0 12px ${tone}33`,
+                    }}>{r.icon}</span>
+                    <span className="truncate" style={{ fontSize: bodySize, fontWeight: 500, color: bg.text, maxWidth: '62%' }}>{r.label}</span>
+                    <span aria-hidden style={{ flex: 1, minWidth: 12, height: 1, backgroundColor: tone, opacity: 0.55 }} />
+                    <span aria-hidden style={{
+                      width: 7, height: 7, flexShrink: 0, borderRadius: '50%',
+                      backgroundColor: tone, boxShadow: `0 0 8px ${tone}`,
+                    }} />
+                  </a>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ ...column, padding: '4px 22px 28px' }}>
+          <BottomSection {...bottomProps} />
         </div>
       </div>
     )

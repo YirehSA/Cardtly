@@ -47,7 +47,7 @@ export function imageFieldsFrom(card: any): ImageFields {
   ])) as ImageFields
 }
 
-export type TemplateId = 'classic' | 'modern' | 'bold' | 'minimal' | 'executive' | 'creative' | 'wave' | 'split' | 'splitpro' | 'neon' | 'studio' | 'frost' | 'editorial'
+export type TemplateId = 'classic' | 'modern' | 'bold' | 'minimal' | 'executive' | 'creative' | 'wave' | 'split' | 'splitpro' | 'circuit' | 'neon' | 'studio' | 'frost' | 'editorial'
 export type FontId = 'sans' | 'serif' | 'modern' | 'rounded' | 'mono'
 export type AccentColor = 'blue' | 'purple' | 'green' | 'red' | 'orange' | 'pink' | 'teal' | 'gold' | 'custom'
 export type LogoPosition = 'left' | 'center' | 'right' | 'hidden'
@@ -169,6 +169,48 @@ export function getReadableTextOn(hex: string): string {
   return L > 0.55 ? '#0a0a0a' : '#ffffff'
 }
 
+// Circuit draws in two tones: the accent, and a companion rotated round the
+// wheel from it. Gold and cyan on the reference card; whatever the user picked
+// and its opposite number in practice, so the pairing follows their brand
+// instead of hardcoding somebody else's.
+//
+// 150 degrees rather than a straight 180: a true complement of a warm gold
+// lands on a cold blue that fights it, where a third of a turn keeps the two
+// related. Saturation gets a floor and lightness a lift, so the companion
+// reads as a highlight on a dark ground even when the accent is muted or
+// nearly black. A greyscale accent stays greyscale - rotating the hue of
+// something with no hue produces a colour out of nowhere.
+export function companionHex(hex: string): string {
+  const h = hex.replace('#', '')
+  if (h.length !== 3 && h.length !== 6) return hex
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h
+  if (!/^[0-9a-f]{6}$/i.test(full)) return hex
+  const r = parseInt(full.slice(0, 2), 16) / 255
+  const g = parseInt(full.slice(2, 4), 16) / 255
+  const b = parseInt(full.slice(4, 6), 16) / 255
+
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+  const d = max - min
+  const l = (max + min) / 2
+  if (d === 0) return hex
+  let hue = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4
+  hue = (hue * 60 + 360) % 360
+  const s = d / (1 - Math.abs(2 * l - 1))
+
+  const hue2 = (hue + 150) % 360
+  const s2 = Math.min(1, Math.max(0.45, s))
+  const l2 = Math.min(0.72, Math.max(0.55, l + 0.12))
+
+  const c = (1 - Math.abs(2 * l2 - 1)) * s2
+  const x = c * (1 - Math.abs(((hue2 / 60) % 2) - 1))
+  const m = l2 - c / 2
+  const [rr, gg, bb] =
+    hue2 < 60 ? [c, x, 0] : hue2 < 120 ? [x, c, 0] : hue2 < 180 ? [0, c, x] :
+    hue2 < 240 ? [0, x, c] : hue2 < 300 ? [x, 0, c] : [c, 0, x]
+  const to = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, '0')
+  return `#${to(rr)}${to(gg)}${to(bb)}`
+}
+
 // Is this colour light enough that we should be layering dark things on it?
 // Shares the threshold with getReadableTextOn so the surface tints and the
 // text colour can never disagree about which way round the card is.
@@ -223,6 +265,7 @@ export const TEMPLATES: TemplateConfig[] = [
   { id: 'wave',      name: 'Wave',      description: 'Two-column hero with SVG wave',       proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-cyan-900 to-gray-900' },
   { id: 'split',     name: 'Split',     description: 'Accent sidebar, content right',       proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-blue-900 to-gray-900' },
   { id: 'splitpro',  name: 'Split Pro',  description: 'Sidebar runs the page, contacts live in it', proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-sky-900 to-gray-900' },
+  { id: 'circuit',   name: 'Circuit',   description: 'Ribbons, star field and contact traces', proOnly: true, defaultBgMode: 'dark', previewGradient: 'from-slate-950 to-amber-900' },
   { id: 'neon',      name: 'Neon',      description: 'Glowing borders, dark cyberpunk',     proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-gray-950 to-purple-950' },
   { id: 'studio',    name: 'Studio',    description: 'Bold black header, curved accent bottom', proOnly: true, defaultBgMode: 'dark', previewGradient: 'from-black to-amber-900' },
   { id: 'frost',     name: 'Frost',     description: 'Glassmorphism on a soft gradient mesh',    proOnly: true, defaultBgMode: 'light', previewGradient: 'from-sky-200 to-violet-200' },
@@ -300,6 +343,10 @@ export function getBgColors(mode: BgMode, templateId: TemplateId, customBgColor?
     // Split Pro shares Split's palette but sits a shade darker: the rail runs
     // the whole page there, so the ground it runs down needs to stay behind it.
     splitpro:  { page: '#0b1220', card: '#161f33', surface: '#1e293b', text: '#f1f5f9', subtext: '#94a3b8', border: '#334155' },
+    // Deep navy rather than near-black: the ribbons and the star field are
+    // drawn in the accent, and they need a ground with some colour in it to
+    // sit on or the whole card reads as line art on black.
+    circuit:   { page: '#0a1428', card: '#101d38', surface: '#16294d', text: '#f4f7fb', subtext: '#93a4c4', border: '#22375f' },
     neon:      { page: '#050510', card: '#0a0a1a', surface: '#10102a', text: '#e0e0ff', subtext: '#6060a0', border: '#1a1a3a' },
     studio:    { page: '#000000', card: '#f5f5f5', surface: '#ffffff', text: '#0a0a0a', subtext: '#525252', border: '#e5e5e5' },
     frost:     { page: '#f8fafc', card: 'rgba(255,255,255,0.6)', surface: 'rgba(255,255,255,0.4)', text: '#0f172a', subtext: '#64748b', border: 'rgba(255,255,255,0.4)' },

@@ -6,9 +6,16 @@ import {
   getCardStyleEffect, TEXT_POSITION_TEMPLATES,
   calcNameSize, calcTitleSize, calcCompanySize, calcBioSize,
   getNameColor, getTitleColor, getCompanyColor, getBioColor,
-  getBodyFontSize, getButtonFontSize, isLightBg
+  getBodyFontSize, getButtonFontSize, isLightBg, companionHex
 } from '@/types/design'
 import { Phone, Mail, Globe, MapPin, MessageCircle, ExternalLink, ChevronRight, Twitter, Facebook, Linkedin } from 'lucide-react'
+
+// Circuit's star field, thinned for a thumbnail. A fixed table rather than
+// random placement, so the server and the client draw the same stars.
+const CIRCUIT_PREVIEW_STARS: [number, number][] = [
+  [8, 18], [19, 40], [12, 62], [31, 26], [44, 54], [39, 12], [57, 34],
+  [63, 68], [72, 22], [84, 48], [91, 30], [26, 76], [51, 84], [78, 80],
+]
 
 interface PreviewData {
   name: string; title: string; company: string; bio: string
@@ -689,6 +696,80 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
 
         <div style={{ padding: '12px 14px 14px' }}>
           <div style={{ padding: '8px 0', borderRadius: 8, textAlign: 'center', fontSize: getButtonFontSize(design) - 3, fontWeight: 700, color: buttonText, backgroundColor: buttonBg, border: buttonBorder ? `2px solid ${buttonBorder}` : 'none' }}>Save Contact</div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── CIRCUIT ───────────────────────────────────────────────────────────────
+  // Ribbon top and bottom, a scatter of stars, and the contact traces. See the
+  // same template in PublicCardView.
+  if (design.templateId === 'circuit') {
+    const companion = companionHex(accentHex)
+    const avatar = calcPhotoSize(46, design)
+    const traces = [
+      form.phone && { key: 'ph', icon: <Phone style={{ width: 11, height: 11 }} />, label: form.phone },
+      form.email && { key: 'em', icon: <Mail style={{ width: 11, height: 11 }} />, label: form.email },
+      isPro && (form as any).address && { key: 'ad', icon: <MapPin style={{ width: 11, height: 11 }} />, label: (form as any).address },
+      form.website && { key: 'we', icon: <Globe style={{ width: 11, height: 11 }} />, label: form.website.replace(/^https?:\/\//, '') },
+      isPro && (form as any).linkedin_url && { key: 'li', icon: <Linkedin style={{ width: 11, height: 11 }} />, label: 'LinkedIn' },
+    ].filter(Boolean) as { key: string; icon: React.ReactNode; label: string }[]
+
+    const ribbon = (flip: boolean) => (
+      <svg aria-hidden viewBox="0 0 400 110" preserveAspectRatio="none"
+        style={{ position: 'absolute', left: 0, width: '100%', height: 46, [flip ? 'bottom' : 'top']: 0, transform: flip ? 'scaleY(-1)' : undefined }}>
+        <path d="M0,44 C62,24 112,52 182,26 C260,-2 326,50 400,12 L400,40 C326,78 260,26 182,54 C112,80 62,52 0,72 Z" fill={accentHex} opacity="0.45" />
+        <path d="M0,80 C58,62 108,90 176,64 C256,34 322,90 400,48" fill="none" stroke={companion} strokeWidth="4" opacity="0.7" />
+      </svg>
+    )
+
+    return (
+      <div style={{ ...pageStyle, minHeight: 380, position: 'relative', overflow: 'hidden' }}>
+        {ribbon(false)}
+        {ribbon(true)}
+        {CIRCUIT_PREVIEW_STARS.map(([x, y], i) => (
+          <span key={i} aria-hidden style={{
+            position: 'absolute', left: `${x}%`, top: `${y}%`, width: 2, height: 2, borderRadius: '50%',
+            backgroundColor: i % 3 === 0 ? companion : '#ffffff', opacity: 0.45,
+          }} />
+        ))}
+
+        <div style={{ position: 'relative', padding: '46px 14px 46px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}><LogoZone /></div>
+            <div style={{
+              flexShrink: 0, borderRadius: '50%', padding: 2,
+              background: `linear-gradient(135deg, ${companion} 0%, ${accentHex} 100%)`,
+            }}>
+              <div style={{ borderRadius: '50%', overflow: 'hidden', width: avatar, height: avatar, border: `2px solid ${bg.page}` }}>
+                {form.profile_image_url
+                  ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <div style={{ width: '100%', height: '100%', backgroundColor: accentHex + '33', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: avatar * 0.36, fontWeight: 700, color: accentHex }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
+              </div>
+            </div>
+          </div>
+
+          <h2 style={{ margin: '0 0 2px', fontSize: calcNameSize(17, design), fontWeight: 800, fontFamily: font.heading, textTransform: 'uppercase', lineHeight: 1.1, color: getNameColor(design, accentHex) }}>{form.name || 'Your Name'}</h2>
+          {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: calcTitleSize(9, design), fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: getTitleColor(design, companion) }}>{form.title}</p>}
+          {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(10, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
+          {isPro && form.bio && <p style={{ margin: '8px 0 0', fontSize: calcBioSize(10, design), color: getBioColor(design, bg.subtext), lineHeight: 1.6 }}>{form.bio}</p>}
+
+          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {traces.map((t, i) => {
+              const tone = i % 2 === 0 ? accentHex : companion
+              return (
+                <div key={t.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 24, height: 24, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', border: `1px solid ${tone}`, color: tone, backgroundColor: tone + '18' }}>{t.icon}</span>
+                  <span style={{ fontSize: getBodyFontSize(design) - 4, color: bg.text, maxWidth: '58%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
+                  <span style={{ flex: 1, minWidth: 6, height: 1, backgroundColor: tone, opacity: 0.55 }} />
+                  <span style={{ width: 4, height: 4, flexShrink: 0, borderRadius: '50%', backgroundColor: tone }} />
+                </div>
+              )
+            })}
+          </div>
+
+          <Certs />
+          <div style={{ marginTop: 12, padding: '8px 0', borderRadius: 8, textAlign: 'center', fontSize: getButtonFontSize(design) - 3, fontWeight: 700, color: buttonText, backgroundColor: buttonBg, border: buttonBorder ? `2px solid ${buttonBorder}` : 'none' }}>Save Contact</div>
         </div>
       </div>
     )
