@@ -2053,16 +2053,22 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
               instead, which is the corner the button never occupies.
 
               Profile photo size drives the height of the hero here, since
-              there is no avatar to make bigger. calcPhotoSize(125) is the
-              height as a percentage of the width, so 100% is the 4:5 the
-              template is drawn for, 60% is a broad landscape crop and 160%
-              is a tall portrait. The vh clamp scales with it and then stops
-              at 88, so the far end of the slider still leaves something on
-              screen below the fold rather than a full page of photograph. */}
+              there is no avatar to make bigger. calcPhotoSize(100) is the
+              height as a percentage of the width, so the default is square,
+              60% is a broad landscape crop and 160% is a tall portrait. The
+              vh clamp scales with it and then stops at 80, so the far end of
+              the slider still leaves something on screen below the fold
+              rather than a full page of photograph.
+
+              Square at 100, not the 4:5 this started at: a 4:5 hero is 469px
+              on a 375 phone, more than half the screen before the name is
+              even reached, and it read as a photo with a card attached rather
+              than a card with a photograph on it. Anyone who wants the taller
+              crop still has the top of the slider. */}
           <div style={{
             position: 'relative', width: '100%',
-            aspectRatio: 100 / calcPhotoSize(125, design),
-            maxHeight: `${Math.min(88, Math.round(calcPhotoSize(64, design)))}vh`,
+            aspectRatio: 100 / calcPhotoSize(100, design),
+            maxHeight: `${Math.min(80, Math.round(calcPhotoSize(52, design)))}vh`,
             overflow: 'hidden', backgroundColor: bg.card,
           }}>
             {card.profile_image_url ? (
@@ -2103,7 +2109,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                 name block is a fixed height and the hero is not: with only a
                 percentage fade, shrinking the hero with the photo size slider
                 moved the name up into the part of the picture the scrim had
-                barely touched, and at 60% it was grey on grey. 190px always
+                barely touched, and at 60% it was grey on grey. 168px always
                 covers the kicker, the name and the company line whatever the
                 hero is doing.
 
@@ -2113,7 +2119,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                 black scrim would band across the bottom of the photograph. */}
             <div aria-hidden style={{
               position: 'absolute', inset: 0,
-              background: `linear-gradient(to top, ${bg.page} 0px, ${bg.page}e8 72px, ${bg.page}00 190px), `
+              background: `linear-gradient(to top, ${bg.page} 0px, ${bg.page}e8 66px, ${bg.page}00 168px), `
                 + `linear-gradient(to bottom, ${bg.page}00 30%, ${bg.page}70 68%, ${bg.page}c0 100%)`,
             }} />
 
@@ -2150,11 +2156,24 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
           </div>
 
           <div style={{ padding: '4px 24px 26px' }}>
+            {/* The bio in a block of its own, labelled and ruled down the
+                accent edge, so it reads as a statement rather than a caption
+                left floating between the photograph and the grid. Same
+                border, radius and surface as the contact tiles, so the page
+                below the hero is one system: the accent edge is what marks
+                it as the one block that is prose and not a field. */}
             {card.bio && (
-              <p className="leading-relaxed" style={{
-                margin: '0 0 26px', fontSize: calcBioSize(15, design),
-                color: getBioColor(design, bg.subtext),
-              }}>{card.bio}</p>
+              <div style={{
+                marginBottom: 26, padding: '14px 16px',
+                border: `1px solid ${bg.border}`, borderLeft: `3px solid ${accentHex}`,
+                borderRadius: 10, backgroundColor: cardEffect.surfaceBg,
+              }}>
+                <span style={label}>About</span>
+                <p className="leading-relaxed" style={{
+                  margin: 0, fontSize: calcBioSize(15, design),
+                  color: getBioColor(design, bg.subtext),
+                }}>{card.bio}</p>
+              </div>
             )}
 
             {/* Two columns, with the long values taking a whole row. A street

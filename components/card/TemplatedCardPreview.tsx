@@ -846,13 +846,13 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
 
     return (
       <div style={{ ...pageStyle, minHeight: 380 }}>
-        <div style={{ position: 'relative', width: '100%', aspectRatio: 100 / calcPhotoSize(125, design), maxHeight: calcPhotoSize(210, design), overflow: 'hidden', backgroundColor: bg.card }}>
+        <div style={{ position: 'relative', width: '100%', aspectRatio: 100 / calcPhotoSize(100, design), maxHeight: calcPhotoSize(168, design), overflow: 'hidden', backgroundColor: bg.card }}>
           {form.profile_image_url
             ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 18%', transform: `scale(${Math.max(1, (design.boldImageZoom ?? 100) / 100)})`, transformOrigin: '50% 18%' }} />
             : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', background: `linear-gradient(150deg, ${accentHex}44 0%, ${bg.card} 55%, ${bg.page} 100%)` }}>
                 <span style={{ fontFamily: font.heading, fontSize: calcPhotoSize(46, design), fontWeight: 300, letterSpacing: '0.06em', color: accentHex, opacity: 0.9 }}>{initials}</span>
               </div>}
-          <div aria-hidden style={{ position: 'absolute', inset: 0, background: `linear-gradient(to top, ${bg.page} 0px, ${bg.page}e8 34px, ${bg.page}00 92px), linear-gradient(to bottom, ${bg.page}00 30%, ${bg.page}70 68%, ${bg.page}c0 100%)` }} />
+          <div aria-hidden style={{ position: 'absolute', inset: 0, background: `linear-gradient(to top, ${bg.page} 0px, ${bg.page}e8 30px, ${bg.page}00 82px), linear-gradient(to bottom, ${bg.page}00 30%, ${bg.page}70 68%, ${bg.page}c0 100%)` }} />
           {form.company_logo_url && design.logoPosition !== 'hidden' && (
             <img src={form.company_logo_url} style={{ position: 'absolute', right: 10, top: 10, height: calcLogoHeight(18, design), width: 'auto', maxWidth: '42%', objectFit: 'contain' }} />
           )}
@@ -869,7 +869,12 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         </div>
 
         <div style={{ padding: '2px 12px 14px' }}>
-          {isPro && form.bio && <p style={{ margin: '0 0 12px', fontSize: calcBioSize(9, design), color: getBioColor(design, bg.subtext), lineHeight: 1.6 }}>{form.bio}</p>}
+          {isPro && form.bio && (
+            <div style={{ marginBottom: 12, padding: '7px 8px', border: `1px solid ${bg.border}`, borderLeft: `2px solid ${accentHex}`, borderRadius: 6, backgroundColor: cardEffect.surfaceBg }}>
+              <span style={label}>About</span>
+              <p style={{ margin: 0, fontSize: calcBioSize(9, design), color: getBioColor(design, bg.subtext), lineHeight: 1.6 }}>{form.bio}</p>
+            </div>
+          )}
 
           {tiles.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
