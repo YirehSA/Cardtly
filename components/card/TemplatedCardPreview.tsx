@@ -848,7 +848,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
       <div style={{ ...pageStyle, minHeight: 380 }}>
         <div style={{ position: 'relative', width: '100%', aspectRatio: 100 / calcPhotoSize(125, design), maxHeight: calcPhotoSize(210, design), overflow: 'hidden', backgroundColor: bg.card }}>
           {form.profile_image_url
-            ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 18%' }} />
+            ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 18%', transform: `scale(${Math.max(1, (design.boldImageZoom ?? 100) / 100)})`, transformOrigin: '50% 18%' }} />
             : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', background: `linear-gradient(150deg, ${accentHex}44 0%, ${bg.card} 55%, ${bg.page} 100%)` }}>
                 <span style={{ fontFamily: font.heading, fontSize: calcPhotoSize(46, design), fontWeight: 300, letterSpacing: '0.06em', color: accentHex, opacity: 0.9 }}>{initials}</span>
               </div>}

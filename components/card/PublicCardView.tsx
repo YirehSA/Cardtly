@@ -2068,8 +2068,22 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
             {card.profile_image_url ? (
               // 50% 18%, not centred: a portrait centred on its own box puts
               // the crop through the chin on anything taller than it is wide.
+              //
+              // Photo zoom scales the subject inside the frame. Profile photo
+              // size only changes how tall the frame is, and because the image
+              // always fills the width, that moves the crop without ever
+              // making the person any bigger - which reads as the name sliding
+              // up and down and nothing else. This is the control that makes
+              // them larger. Floored at 1: below that a cover-cropped image
+              // pulls away from the frame and leaves gaps down the sides.
+              // The origin matches objectPosition so the face stays put as it
+              // scales rather than drifting out of frame.
               <img src={card.profile_image_url} alt={card.name || ''}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 18%' }} />
+                style={{
+                  width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 18%',
+                  transform: `scale(${Math.max(1, (design.boldImageZoom ?? 100) / 100)})`,
+                  transformOrigin: '50% 18%',
+                }} />
             ) : (
               <div style={{
                 width: '100%', height: '100%', display: 'grid', placeItems: 'center',

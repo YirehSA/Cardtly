@@ -653,17 +653,29 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
 
       {/* Hero photo zoom - sits right below the profile photo size so the
           frame + zoom controls are grouped together. Shown for templates
-          with a full-bleed hero image (Bold, Executive). */}
-      {(design.templateId === 'bold' || design.templateId === 'executive') && (
+          with a full-bleed hero image (Bold, Executive, Meridian).
+
+          Meridian starts at 100, not 70. Its hero is cropped to fill the
+          frame, so the photo is already scaled up to cover it and there is
+          nothing to zoom out to: below 100 the image would pull away from
+          the edges and leave gaps. Bold and Executive fit the whole photo
+          inside their frame, so they have room in both directions. */}
+      {(design.templateId === 'bold' || design.templateId === 'executive' || design.templateId === 'meridian') && (
         <div>
           <label className="block text-sm font-semibold mb-1">Photo zoom</label>
-          <p className="text-xs text-muted-foreground mb-2">Zooms the photo inside the frame above.</p>
-          <input type="range" min="70" max="160" step="4"
-            value={design.boldImageZoom ?? 100}
+          <p className="text-xs text-muted-foreground mb-2">
+            {design.templateId === 'meridian'
+              ? 'Makes the person larger in the photo above. Use Profile photo size for how tall the photo is.'
+              : 'Zooms the photo inside the frame above.'}
+          </p>
+          <input type="range" min={design.templateId === 'meridian' ? 100 : 70} max="160" step="4"
+            value={Math.max(design.templateId === 'meridian' ? 100 : 70, design.boldImageZoom ?? 100)}
             onChange={e => update({ boldImageZoom: parseInt(e.target.value) })}
             className="w-full accent-blue-500" />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
-            <span>Zoom out</span><span>{design.boldImageZoom ?? 100}%</span><span>Zoom in</span>
+            <span>{design.templateId === 'meridian' ? 'Fills frame' : 'Zoom out'}</span>
+            <span>{Math.max(design.templateId === 'meridian' ? 100 : 70, design.boldImageZoom ?? 100)}%</span>
+            <span>Zoom in</span>
           </div>
         </div>
       )}
