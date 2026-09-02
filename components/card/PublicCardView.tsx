@@ -178,6 +178,10 @@ interface BottomProps {
   // Position in the first 100 members, if any. Rendered as a small "N/100"
   // badge under the wallet button.
   founderNumber?: number | null
+  /** Split Pro renders the certifications and the link buttons itself, up in
+   *  the sidebar zone where they hang off the rail. Without this they would
+   *  appear twice - once attached to the rail and once again down here. */
+  omitAboveGallery?: boolean
 }
 
 // Helper that renders the Book a Meeting button. Encapsulates the modal
@@ -207,7 +211,7 @@ function BookingTrigger({ card, accentHex, buttonBg, buttonText, buttonBorder }:
   )
 }
 
-function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare, founderNumber }: BottomProps) {
+function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false }: BottomProps) {
   const [showContactForm, setShowContactForm] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -280,7 +284,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
 
   return (
     <>
-      {certifications.length > 0 && (
+      {!omitAboveGallery && certifications.length > 0 && (
         <div className="mt-8">
           <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Certifications</p>
           <div className="flex flex-wrap gap-2">
@@ -291,7 +295,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
         </div>
       )}
 
-      {links.length > 0 && (
+      {!omitAboveGallery && links.length > 0 && (
         <div className="mt-8">
           <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Links</p>
           <div className="space-y-2.5">
@@ -1420,6 +1424,131 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
         <div style={{ ...column, padding: '24px 24px 28px' }}>
           <AllContacts {...shared} socialLinks={socialLinks} />
           <BottomSection {...bottomProps} />
+        </div>
+      </div>
+    )
+  }
+
+  // ── Split Pro ──────────────────────────────────────────────────────────
+  //
+  // Split, with the sidebar doing more of the work. Two differences:
+  //
+  //   1. The rail runs the whole way down to just above the gallery, instead of
+  //      stopping level with the bio.
+  //   2. Everything above the gallery hangs off it. Each contact, social and
+  //      link is one row: the icon sits INSIDE the rail, and its value is a box
+  //      to the right, outlined in the rail's own colour and joined to it - no
+  //      left border, so the two read as one shape rather than a rail and a
+  //      separate button beside it.
+  //
+  // The rail is absolutely positioned inside the zone wrapper, so "down to just
+  // above the gallery" needs no measuring: the wrapper ends where the gallery
+  // begins and the rail is stretched to it.
+  if (design.templateId === 'splitpro') {
+    // Wide enough to hold the photo, which sits in it like Split.
+    const railW = 84
+    const avatarSize = Math.min(railW - 20, calcPhotoSize(56, design))
+    const railBg = design.cardStyle === 'gradient'
+      ? `linear-gradient(180deg, ${accentHex} 0%, ${accentHex}cc 100%)`
+      : design.cardStyle === 'glass'
+        ? `linear-gradient(180deg, ${accentHex}cc 0%, ${accentHex}88 100%)`
+        : accentHex
+    const onRail = getReadableTextOn(accentHex)
+    const GROUP = 560
+    const column: React.CSSProperties = { maxWidth: GROUP, margin: '0 auto' }
+    const bodySize = getBodyFontSize(design)
+
+    // One list, in the order somebody would actually use it: how to reach them,
+    // then where to find them, then whatever they chose to link.
+    const rows: { key: string; icon: React.ReactNode; label: string; sub?: string; href: string }[] = [
+      card.phone && { key: 'phone', icon: <Phone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
+      isPro && card.work_phone && { key: 'work', icon: <Phone className="w-4 h-4" />, label: card.work_phone, sub: 'Work', href: `tel:${card.work_phone}` },
+      card.email && { key: 'email', icon: <Mail className="w-4 h-4" />, label: card.email, href: `mailto:${card.email}` },
+      isPro && card.address && { key: 'addr', icon: <MapPin className="w-4 h-4" />, label: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}` },
+      card.website && { key: 'web', icon: <Globe className="w-4 h-4" />, label: card.website.replace(/^https?:\/\//, ''), href: card.website.startsWith('http') ? card.website : `https://${card.website}` },
+      ...socialLinks.map(s => ({ key: s.platform, icon: s.icon, label: s.platform, href: s.url })),
+      ...(isPro ? links.map(l => ({ key: `link${l.index}`, icon: <ExternalLink className="w-4 h-4" />, label: l.title, href: l.url })) : []),
+    ].filter(Boolean) as { key: string; icon: React.ReactNode; label: string; sub?: string; href: string }[]
+
+    return (
+      <div style={{ ...pageStyle, minHeight: '100vh' }} className="animate-fade-up">
+        <InAppBackButton bgMode={design.bgMode} />
+
+        <div style={{ ...column, position: 'relative' }}>
+          {/* The rail. Absolute and stretched, so it ends exactly where this
+              wrapper does - which is the line just above the gallery. */}
+          <div aria-hidden style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0, width: railW,
+            background: railBg,
+          }} />
+
+          {/* Photo in the rail, name beside it - the same arrangement Split
+              has. paddingTop clears the app's back button, which is fixed 12px
+              from the top and 40px tall. */}
+          <div style={{
+            position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 0,
+            padding: 'calc(env(safe-area-inset-top, 0px) + 64px) 20px 14px 0',
+          }}>
+            <div style={{ width: railW, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
+              <Avatar {...shared} size={56} rounded="full" extraStyle={{
+                width: avatarSize, height: avatarSize, aspectRatio: '1 / 1',
+                border: design.profileBorder === false ? 'none' : `3px solid ${onRail === '#ffffff' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)'}`,
+                backgroundColor: bg.page,
+              }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(26, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text) }}>{card.name}</h1>
+              {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentHex), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
+              {card.company && <p style={{ margin: '0 0 14px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
+              <LogoZone {...shared} />
+              {card.bio && <p className="leading-relaxed" style={{ margin: 0, fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
+            </div>
+          </div>
+
+          {/* Every row: icon in the rail, value hanging off it. */}
+          <div style={{ position: 'relative' }}>
+            {rows.map(r => (
+              <a key={r.key} href={r.href}
+                target={r.href.startsWith('http') ? '_blank' : undefined}
+                rel={r.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                style={{ display: 'flex', alignItems: 'stretch', textDecoration: 'none', marginBottom: 8 }}>
+                <span style={{
+                  width: railW, flexShrink: 0, display: 'grid', placeItems: 'center',
+                  color: onRail,
+                }}>
+                  {r.icon}
+                </span>
+                <span style={{
+                  flex: 1, minWidth: 0, marginRight: 20,
+                  display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                  padding: '11px 14px', fontSize: bodySize, color: bg.text,
+                  border: `1px solid ${accentHex}`, borderLeft: 'none',
+                  borderRadius: '0 12px 12px 0',
+                  backgroundColor: cardEffect.surfaceBg,
+                }}>
+                  <span className="truncate">{r.label}</span>
+                  {r.sub && <span className="text-xs" style={{ color: bg.subtext }}>{r.sub}</span>}
+                </span>
+              </a>
+            ))}
+
+            {certifications.length > 0 && (
+              <div style={{ marginLeft: railW, marginRight: 20, padding: '10px 0 2px' }} className="flex flex-wrap gap-2">
+                {certifications.map(c => (
+                  <span key={c} className="text-xs px-3 py-1.5 rounded-full"
+                    style={{ backgroundColor: accentHex + '22', color: accentHex, border: `1px solid ${accentHex}44` }}>#{c}</span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ height: 18 }} />
+        </div>
+
+        {/* From the gallery down, the rail is finished and the card is one
+            column again. */}
+        <div style={{ ...column, padding: '0 20px 28px' }}>
+          <BottomSection {...bottomProps} omitAboveGallery />
         </div>
       </div>
     )

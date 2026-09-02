@@ -611,6 +611,69 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
     )
   }
 
+  // ── SPLIT PRO ─────────────────────────────────────────────────────────────
+  // Split, with the rail running the whole way down and every detail hanging
+  // off it: icon in the rail, value in a box outlined in the rail's colour and
+  // joined to it. See the same template in PublicCardView.
+  if (design.templateId === 'splitpro') {
+    const railW = 52
+    const photoSize = Math.min(railW - 14, calcPhotoSize(36, design))
+    const railBg = design.cardStyle === 'gradient'
+      ? `linear-gradient(180deg, ${accentHex} 0%, ${accentHex}cc 100%)`
+      : design.cardStyle === 'glass'
+        ? `linear-gradient(180deg, ${accentHex}cc 0%, ${accentHex}88 100%)`
+        : accentHex
+    const onRail = getReadableTextOn(accentHex)
+    const rows = [
+      form.phone && { key: 'p', icon: <Phone style={{ width: 12, height: 12 }} />, label: form.phone },
+      form.email && { key: 'e', icon: <Mail style={{ width: 12, height: 12 }} />, label: form.email },
+      form.website && { key: 'w', icon: <Globe style={{ width: 12, height: 12 }} />, label: form.website.replace(/^https?:\/\//, '') },
+      ...links.slice(0, 2).map(l => ({ key: l.title, icon: <Globe style={{ width: 12, height: 12 }} />, label: l.title })),
+    ].filter(Boolean) as { key: string; icon: React.ReactNode; label: string }[]
+
+    return (
+      <div style={{ ...pageStyle, minHeight: 380, position: 'relative' }}>
+        <div aria-hidden style={{ position: 'absolute', left: 0, top: 0, bottom: 64, width: railW, background: railBg }} />
+
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', padding: '16px 14px 10px 0' }}>
+          <div style={{ width: railW, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
+            <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, border: design.profileBorder === false ? 'none' : `2px solid ${onRail === '#ffffff' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)'}` }}>
+              {form.profile_image_url
+                ? <img src={form.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
+                : <div style={{ width: photoSize, height: photoSize, backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700, color: '#fff' }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
+            </div>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ margin: '0 0 3px', fontSize: calcNameSize(16, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text), lineHeight: 1.2 }}>{form.name || 'Your Name'}</h2>
+            {isPro && form.title && <p style={{ margin: '0 0 2px', fontSize: calcTitleSize(10, design), fontWeight: 600, color: getTitleColor(design, accentHex), textTransform: 'uppercase', letterSpacing: '0.06em' }}>{form.title}</p>}
+            {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(10, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
+            <LogoZone />
+            {isPro && form.bio && <p style={{ fontSize: calcBioSize(10, design), color: getBioColor(design, bg.subtext), lineHeight: 1.6, margin: '6px 0 0' }}>{form.bio}</p>}
+          </div>
+        </div>
+
+        <div style={{ position: 'relative' }}>
+          {rows.map(r => (
+            <div key={r.key} style={{ display: 'flex', alignItems: 'stretch', marginBottom: 6 }}>
+              <span style={{ width: railW, flexShrink: 0, display: 'grid', placeItems: 'center', color: onRail }}>{r.icon}</span>
+              <span style={{
+                flex: 1, minWidth: 0, marginRight: 14, padding: '6px 9px',
+                fontSize: getBodyFontSize(design) - 4, color: bg.text,
+                border: `1px solid ${accentHex}`, borderLeft: 'none', borderRadius: '0 8px 8px 0',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{r.label}</span>
+            </div>
+          ))}
+          <div style={{ marginLeft: railW, marginRight: 14 }}><Certs /></div>
+        </div>
+
+        <div style={{ position: 'relative', padding: '12px 14px 14px' }}>
+          <div style={{ padding: '8px 0', borderRadius: 8, textAlign: 'center', fontSize: getButtonFontSize(design) - 3, fontWeight: 700, color: buttonText, backgroundColor: buttonBg, border: buttonBorder ? `2px solid ${buttonBorder}` : 'none' }}>Save Contact</div>
+        </div>
+      </div>
+    )
+  }
+
   // ── 9. NEON ───────────────────────────────────────────────────────────────
   if (design.templateId === 'neon') {
     const glow = `0 0 10px ${accentHex}66`
