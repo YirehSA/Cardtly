@@ -44,6 +44,12 @@ interface Props {
   user: { id: string; email: string }
   previousOrders: Order[]
   teamCards?: TeamCard[]
+  /** Printed cards we have actually made, tagged with the tier each is an
+   *  example of. The tier buttons described the two designs in words and
+   *  showed neither, so "standard" and "custom" meant nothing until the order
+   *  arrived. Filtered on the server for files that exist, so nothing here can
+   *  render as a broken image. */
+  samples?: { name: string; role: string; front: string; back: string; tier?: { label: string } }[]
 }
 
 type Color = 'black' | 'white'
@@ -68,7 +74,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   delivered:       { label: 'Delivered',         color: '#10b981' },
 }
 
-export default function NFCOrderPage({ card, user, previousOrders, teamCards = [] }: Props) {
+export default function NFCOrderPage({ card, user, previousOrders, teamCards = [], samples = [] }: Props) {
   const searchParams = useSearchParams()
   const paymentStatus = searchParams.get('status')
 
@@ -496,6 +502,40 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
                 <p className="text-[11px] text-muted-foreground">
                   Per card. Shipping is {formatZAR(NFC_SHIPPING_RAND)} for the whole order, not per card.
                 </p>
+
+                {/* What the selected tier actually looks like, front and back.
+                    Matched on the tier's own label rather than an index, so
+                    adding a sample or reordering the list cannot silently show
+                    a custom card next to the standard price. */}
+                {(() => {
+                  const shown = samples.filter(sm => sm.tier?.label === NFC_TIERS[tier].label)
+                  if (shown.length === 0) return null
+                  const sample = shown[0]
+                  return (
+                    <div className="mt-3 rounded-xl border p-3" style={{ borderColor: 'var(--border)' }}>
+                      <p className="text-xs font-semibold mb-2">
+                        {NFC_TIERS[tier].label}: a card we printed
+                        <span className="text-muted-foreground font-normal"> — {sample.name}, {sample.role}</span>
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[{ src: sample.front, label: 'Front' }, { src: sample.back, label: 'Back' }].map(side => (
+                          <figure key={side.label} className="m-0">
+                            <img src={side.src} alt={`${sample.name} NFC card, ${side.label.toLowerCase()}`}
+                              loading="lazy"
+                              className="w-full rounded-lg border"
+                              style={{ aspectRatio: '85.6 / 54', objectFit: 'cover', borderColor: 'var(--border)' }} />
+                            <figcaption className="text-[11px] text-muted-foreground mt-1">{side.label}</figcaption>
+                          </figure>
+                        ))}
+                      </div>
+                      {shown.length > 1 && (
+                        <p className="text-[11px] text-muted-foreground mt-2">
+                          {shown.length - 1} more {NFC_TIERS[tier].label.toLowerCase()} example{shown.length - 1 > 1 ? 's' : ''} above.
+                        </p>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
 
               {allCards.length > 1 && includedLines.length > 0 && (

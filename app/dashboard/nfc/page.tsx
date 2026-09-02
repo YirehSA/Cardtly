@@ -74,6 +74,7 @@ export default async function NFCPage() {
         user={{ id: user.id, email: user.email || '' }}
         previousOrders={orders || []}
         teamCards={teamCards || []}
+        samples={availableSamples()}
       />
     </>
   )

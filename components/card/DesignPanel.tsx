@@ -5,6 +5,7 @@ import {
   TEMPLATES, ACCENT_COLORS, FONTS, CardDesign, TEXT_POSITION_TEMPLATES,
   AccentColor, FontId, LogoPosition, CardStyle, BgMode, getAccentHex,
   getButtonBg, getButtonText, DEFAULT_DESIGN,
+  supportsControl,
 } from '@/types/design'
 import { Check, Lock, Sun, Moon, AlignLeft, AlignCenter, AlignRight, EyeOff, Pipette } from 'lucide-react'
 import Link from 'next/link'
@@ -39,6 +40,29 @@ const BG_PRESETS = [
 // company actually owns - the previous one used a stock face that is not
 // ours. It doubles as a fair test of the templates: a real photograph, a real
 // logo, a bio long enough to wrap, and socials.
+// Wraps a control that only some templates read. Rather than hiding it - which
+// makes the panel jump around as you switch template, and leaves people
+// wondering where a setting went - it stays put, dimmed, with a line saying
+// which templates it works on. The alternative was what we had: a live slider
+// that moved nothing.
+function OnlySomeTemplates({ applies, control, children }: {
+  applies: boolean
+  control: string
+  children: React.ReactNode
+}) {
+  if (applies) return <>{children}</>
+  const on = TEMPLATES.filter(t => supportsControl(t.id, control)).map(t => t.name)
+  return (
+    <div>
+      <div className="opacity-40 pointer-events-none select-none" aria-hidden>{children}</div>
+      <p className="text-xs mt-1.5 text-muted-foreground">
+        This template does not use this setting.{' '}
+        {on.length > 0 && <>Works on {on.slice(0, 4).join(', ')}{on.length > 4 ? ` and ${on.length - 4} more` : ''}.</>}
+      </p>
+    </div>
+  )
+}
+
 const PICKER_SAMPLE_FORM = {
   name: 'Tio Geldenhuys',
   title: 'Co-Founder',
@@ -96,8 +120,22 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
     onChange({ ...design, ...patch })
   }
 
+  const activeName = TEMPLATES.find(t => t.id === design.templateId)?.name || 'this template'
+
   return (
     <div className="space-y-6">
+      {/* Said once, up front, as well as on each control that is dimmed. The
+          per-control note explains a specific greyed-out slider; this explains
+          why the panel has greyed-out sliders at all, which is the thing that
+          reads as broken if you only ever meet it one control at a time. */}
+      <div className="rounded-xl px-3 py-2.5 text-xs leading-relaxed"
+        style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)' }}>
+        <span className="font-semibold">Templates differ.</span>{' '}
+        Each one uses the settings that suit its layout, so some controls below are
+        greyed out on {activeName}. They are not broken - that template just does not
+        use them. Switch template and they come back.
+      </div>
+
       {/* Tab bar at the top - wraps on narrow widths */}
       <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
         {DESIGN_TABS.map(tab => {
@@ -222,7 +260,9 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
       {/* ── COLOURS TAB ─────────────────────────────────────────── */}
       <div className="space-y-8" style={{ display: activeTab === 'colours' ? 'block' : 'none' }}>
 
-      {/* Card style — visible effect description */}
+      {/* Card style. Only three templates read cardEffect - the rest draw
+          their own surfaces - so on the other twelve this changed nothing. */}
+      <OnlySomeTemplates applies={supportsControl(design.templateId, 'cardStyle')} control="cardStyle">
       <div>
         <label className="block text-sm font-semibold mb-1">Card style</label>
         <p className="text-xs text-muted-foreground mb-3">Controls how the hero area and surfaces are rendered</p>
@@ -240,6 +280,7 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
           ))}
         </div>
       </div>
+      </OnlySomeTemplates>
 
       {/* Card background: Dark / Light preset, or any colour at all.
           This used to be two buttons and a small unlabelled pipette, sitting
@@ -608,8 +649,9 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
       {/* ── PROFILE TAB ─────────────────────────────────────────── */}
       <div className="space-y-8" style={{ display: activeTab === 'profile' ? 'block' : 'none' }}>
 
-      {/* Profile photo border toggle - applies to every template via
+      {/* Profile photo border toggle - honoured by eight templates via
           the shared Avatar component */}
+      <OnlySomeTemplates applies={supportsControl(design.templateId, 'profileBorder')} control="profileBorder">
       <div>
         <label className="block text-sm font-semibold mb-1">Profile border</label>
         <p className="text-xs text-muted-foreground mb-3">Show or hide the ring around the profile photo</p>
@@ -626,8 +668,11 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
           </button>
         </div>
       </div>
+      </OnlySomeTemplates>
 
-      {/* Profile photo size */}
+      {/* Profile photo size. Only eight of the fifteen templates size the
+          photograph; the rest fix it or run it full bleed. */}
+      <OnlySomeTemplates applies={supportsControl(design.templateId, 'photoSize')} control="photoSize">
       <div>
         <label className="block text-sm font-semibold mb-1">Profile photo size</label>
         <input type="range" min="60" max="160" step="4"
@@ -638,17 +683,22 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
           <span>Smaller</span><span>{design.profilePhotoSize ?? 100}%</span><span>Larger</span>
         </div>
       </div>
+      </OnlySomeTemplates>
 
       {/* Hero photo zoom - sits right below the profile photo size so the
           frame + zoom controls are grouped together. Shown for templates
-          with a full-bleed hero image (Bold, Executive, Meridian).
+          with a full-bleed hero image (Executive, Meridian).
+
+          Bold was on this list and never read boldImageZoom - the control is
+          named after it - so the slider sat there doing nothing. Checked
+          against the source by scripts/check-template-controls.mjs.
 
           Meridian starts at 100, not 70. Its hero is cropped to fill the
           frame, so the photo is already scaled up to cover it and there is
           nothing to zoom out to: below 100 the image would pull away from
           the edges and leave gaps. Bold and Executive fit the whole photo
           inside their frame, so they have room in both directions. */}
-      {(design.templateId === 'bold' || design.templateId === 'executive' || design.templateId === 'meridian') && (
+      {supportsControl(design.templateId, 'photoZoom') && (
         <div>
           <label className="block text-sm font-semibold mb-1">Photo zoom</label>
           <p className="text-xs text-muted-foreground mb-2">

@@ -54,8 +54,46 @@ export type LogoPosition = 'left' | 'center' | 'right' | 'hidden'
 export type CardStyle = 'flat' | 'glass' | 'gradient'
 export type BgMode = 'dark' | 'light'
 
-// Templates that support text position nudging
-export const TEXT_POSITION_TEMPLATES: TemplateId[] = ['bold', 'executive', 'wave', 'modern', 'neon']
+// Templates that support text position nudging.
+//
+// Executive was on this list and does not read textNudge, so the nudge
+// controls appeared on it and did nothing. Checked against the source by
+// scripts/check-template-controls.mjs.
+export const TEXT_POSITION_TEMPLATES: TemplateId[] = ['bold', 'wave', 'modern', 'neon']
+
+// Which design controls each template actually honours.
+//
+// Not every template reads every setting - most hardcode their own surfaces,
+// and only some size the photograph - so a customer could drag a slider on a
+// template that ignores it and watch nothing happen. The panel greys those out
+// and says why, which it can only do from a list like this.
+//
+// Generated from the template source, not written by hand:
+//   node scripts/check-template-controls.mjs --print
+// and checked against it, so a template that stops reading a setting cannot
+// leave the panel promising it.
+export const TEMPLATE_CONTROLS: Record<TemplateId, string[]> = {
+  classic: ['profileBorder', 'logo', 'cardStyle', 'solidBackground', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
+  modern: ['logo', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition'],
+  bold: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition'],
+  minimal: ['profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
+  executive: ['photoZoom', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
+  creative: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
+  wave: ['logo', 'solidBackground', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition'],
+  split: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
+  splitpro: ['photoSize', 'profileBorder', 'logo', 'cardStyle', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
+  circuit: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
+  meridian: ['photoSize', 'photoZoom', 'logo', 'cardStyle', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
+  neon: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition'],
+  studio: ['profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
+  frost: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
+  editorial: ['profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
+}
+
+/** Does this template read this setting at all? */
+export function supportsControl(templateId: TemplateId, control: string): boolean {
+  return (TEMPLATE_CONTROLS[templateId] || []).includes(control)
+}
 
 export interface CardDesign {
   templateId: TemplateId
