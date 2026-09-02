@@ -47,7 +47,7 @@ export function imageFieldsFrom(card: any): ImageFields {
   ])) as ImageFields
 }
 
-export type TemplateId = 'classic' | 'modern' | 'bold' | 'minimal' | 'executive' | 'creative' | 'wave' | 'split' | 'splitpro' | 'circuit' | 'neon' | 'studio' | 'frost' | 'editorial'
+export type TemplateId = 'classic' | 'modern' | 'bold' | 'minimal' | 'executive' | 'creative' | 'wave' | 'split' | 'splitpro' | 'circuit' | 'sovereign' | 'neon' | 'studio' | 'frost' | 'editorial'
 export type FontId = 'sans' | 'serif' | 'modern' | 'rounded' | 'mono'
 export type AccentColor = 'blue' | 'purple' | 'green' | 'red' | 'orange' | 'pink' | 'teal' | 'gold' | 'custom'
 export type LogoPosition = 'left' | 'center' | 'right' | 'hidden'
@@ -266,6 +266,7 @@ export const TEMPLATES: TemplateConfig[] = [
   { id: 'split',     name: 'Split',     description: 'Accent sidebar, content right',       proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-blue-900 to-gray-900' },
   { id: 'splitpro',  name: 'Split Pro',  description: 'Sidebar runs the page, contacts live in it', proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-sky-900 to-gray-900' },
   { id: 'circuit',   name: 'Circuit',   description: 'Ribbons, star field and contact traces', proOnly: true, defaultBgMode: 'dark', previewGradient: 'from-slate-950 to-amber-900' },
+  { id: 'sovereign', name: 'Sovereign', description: 'Engraved guilloche, monogram seal, ledger detail', proOnly: true, defaultBgMode: 'dark', previewGradient: 'from-slate-950 to-yellow-950' },
   { id: 'neon',      name: 'Neon',      description: 'Glowing borders, dark cyberpunk',     proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-gray-950 to-purple-950' },
   { id: 'studio',    name: 'Studio',    description: 'Bold black header, curved accent bottom', proOnly: true, defaultBgMode: 'dark', previewGradient: 'from-black to-amber-900' },
   { id: 'frost',     name: 'Frost',     description: 'Glassmorphism on a soft gradient mesh',    proOnly: true, defaultBgMode: 'light', previewGradient: 'from-sky-200 to-violet-200' },
@@ -347,6 +348,10 @@ export function getBgColors(mode: BgMode, templateId: TemplateId, customBgColor?
     // drawn in the accent, and they need a ground with some colour in it to
     // sit on or the whole card reads as line art on black.
     circuit:   { page: '#0a1428', card: '#101d38', surface: '#16294d', text: '#f4f7fb', subtext: '#93a4c4', border: '#22375f' },
+    // Warm off-white for the text, not the blue-white the other dark
+    // templates use: the whole card is pretending to be ink and foil on
+    // paper, and a cold white gives that away immediately.
+    sovereign: { page: '#0c1017', card: '#141a24', surface: '#1b222e', text: '#f5f1e8', subtext: '#98a2b3', border: '#2a323f' },
     neon:      { page: '#050510', card: '#0a0a1a', surface: '#10102a', text: '#e0e0ff', subtext: '#6060a0', border: '#1a1a3a' },
     studio:    { page: '#000000', card: '#f5f5f5', surface: '#ffffff', text: '#0a0a0a', subtext: '#525252', border: '#e5e5e5' },
     frost:     { page: '#f8fafc', card: 'rgba(255,255,255,0.6)', surface: 'rgba(255,255,255,0.4)', text: '#0f172a', subtext: '#64748b', border: 'rgba(255,255,255,0.4)' },

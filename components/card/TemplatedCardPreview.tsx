@@ -824,6 +824,96 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
     )
   }
 
+  // ── SOVEREIGN ─────────────────────────────────────────────────────────────
+  // Engraved certificate: guilloche rosette, monogram seal, ledger rows.
+  // See the same template in PublicCardView.
+  if (design.templateId === 'sovereign') {
+    const seal = calcPhotoSize(46, design)
+    const parts = (form.name || '').trim().split(/\s+/).filter(Boolean)
+    const initials = parts.length
+      ? ((parts[0][0] || '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase()
+      : '?'
+    const ledger = [
+      form.phone && { key: 'tel', label: 'Telephone', value: form.phone },
+      form.email && { key: 'eml', label: 'Email', value: form.email },
+      isPro && (form as any).address && { key: 'off', label: 'Office', value: (form as any).address },
+      form.website && { key: 'web', label: 'Website', value: form.website.replace(/^https?:\/\//, '').replace(/\/$/, '') },
+    ].filter(Boolean) as { key: string; label: string; value: string }[]
+
+    const caps: React.CSSProperties = {
+      fontSize: 6.5, fontWeight: 600, letterSpacing: '0.18em',
+      textTransform: 'uppercase', color: bg.subtext,
+    }
+
+    return (
+      <div style={{ ...pageStyle, minHeight: 380, position: 'relative', padding: '20px 20px 16px' }}>
+        <div aria-hidden style={{ position: 'absolute', inset: 7, border: `1px solid ${accentHex}`, opacity: 0.35 }} />
+        <div aria-hidden style={{ position: 'absolute', inset: 11, border: `1px solid ${bg.border}`, opacity: 0.6 }} />
+
+        <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+          <span style={{ ...caps, color: accentHex }}>{form.company || 'Cardtly'}</span>
+          <span style={caps}>No. 0042</span>
+        </div>
+        <div style={{ height: 1, backgroundColor: accentHex, opacity: 0.55, margin: '6px 0 2px' }} />
+        <div style={{ height: 1, backgroundColor: bg.border, marginBottom: 14 }} />
+
+        {/* The rosette, thinned for a thumbnail: 36 ellipses at this size is
+            a grey smudge, where 18 still reads as engraving. */}
+        <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+          <svg aria-hidden width={seal * 2.4} height={seal * 2.4} viewBox="0 0 200 200"
+            style={{ position: 'absolute', left: '50%', top: '50%', marginLeft: -(seal * 2.4) / 2, marginTop: -(seal * 2.4) / 2 }}>
+            <g fill="none" stroke={accentHex} strokeWidth="0.7" opacity="0.5">
+              {Array.from({ length: 18 }, (_, i) => (
+                <ellipse key={i} cx="100" cy="100" rx="78" ry="30" transform={`rotate(${i * 20} 100 100)`} />
+              ))}
+            </g>
+            <circle cx="100" cy="100" r="86" fill="none" stroke={accentHex} strokeWidth="0.7" opacity="0.55" />
+          </svg>
+          <div style={{
+            position: 'relative', width: seal + 10, height: seal + 10, borderRadius: '50%',
+            border: `1px solid ${accentHex}`, display: 'grid', placeItems: 'center', backgroundColor: bg.page,
+          }}>
+            <div style={{
+              width: seal, height: seal, borderRadius: '50%', overflow: 'hidden',
+              border: `2px double ${accentHex}`, display: 'grid', placeItems: 'center', backgroundColor: bg.card,
+            }}>
+              {form.profile_image_url
+                ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <span style={{ fontFamily: font.heading, fontSize: seal * 0.34, letterSpacing: '0.06em', color: accentHex }}>{initials}</span>}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ position: 'relative', textAlign: 'center' }}>
+          <h2 style={{
+            margin: '0 0 6px', fontFamily: font.heading, fontSize: calcNameSize(15, design), fontWeight: 500,
+            letterSpacing: '0.14em', textTransform: 'uppercase', lineHeight: 1.25, color: getNameColor(design, bg.text),
+          }}>{form.name || 'Your Name'}</h2>
+          <div style={{ width: 26, height: 1, backgroundColor: accentHex, margin: '0 auto 6px', opacity: 0.8 }} />
+          {isPro && form.title && <p style={{ margin: 0, ...caps, fontSize: calcTitleSize(7, design), color: getTitleColor(design, bg.text) }}>{form.title}</p>}
+          {isPro && form.bio && <p style={{ margin: '8px auto 0', maxWidth: 200, fontSize: calcBioSize(9, design), color: getBioColor(design, bg.subtext), lineHeight: 1.6 }}>{form.bio}</p>}
+        </div>
+
+        {ledger.length > 0 && (
+          <div style={{ position: 'relative', marginTop: 14 }}>
+            <div style={{ height: 1, backgroundColor: accentHex, opacity: 0.55 }} />
+            {ledger.map(r => (
+              <div key={r.key} style={{
+                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10,
+                padding: '6px 1px', borderBottom: `1px solid ${bg.border}`,
+              }}>
+                <span style={{ ...caps, flexShrink: 0 }}>{r.label}</span>
+                <span style={{ fontSize: getBodyFontSize(design) - 4, color: bg.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ position: 'relative', marginTop: 12, padding: '8px 0', borderRadius: 8, textAlign: 'center', fontSize: getButtonFontSize(design) - 3, fontWeight: 700, color: buttonText, backgroundColor: buttonBg, border: buttonBorder ? `2px solid ${buttonBorder}` : 'none' }}>Save Contact</div>
+      </div>
+    )
+  }
+
   // ── 9. NEON ───────────────────────────────────────────────────────────────
   if (design.templateId === 'neon') {
     const glow = `0 0 10px ${accentHex}66`

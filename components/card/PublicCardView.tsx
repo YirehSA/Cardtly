@@ -268,6 +268,76 @@ function CircuitQR({ slug, accentHex, companion, label, logoUrl }: {
   )
 }
 
+// ── Sovereign ─────────────────────────────────────────────────────────────────
+// The engraved rosette behind the seal. Guilloche is the pattern on banknotes,
+// share certificates and passports, and it is doing real work here: it is the
+// one visual language that reads as "institution" without a word of copy.
+//
+// Built from rotated ellipses rather than plotting the hypotrochoid it
+// imitates. The real curve needs a couple of thousand points to look smooth,
+// which is a 30KB path string inlined into every render for a watermark at
+// 8% opacity. Thirty-six ellipses give the same moire and cost nothing.
+function SovereignRosette({ accentHex, size }: { accentHex: string; size: number }) {
+  return (
+    <svg aria-hidden width={size} height={size} viewBox="0 0 200 200"
+      style={{ position: 'absolute', left: '50%', top: '50%', marginLeft: -size / 2, marginTop: -size / 2, pointerEvents: 'none' }}>
+      <g fill="none" stroke={accentHex} strokeWidth="0.4" opacity="0.5">
+        {Array.from({ length: 36 }, (_, i) => (
+          <ellipse key={`a${i}`} cx="100" cy="100" rx="78" ry="30" transform={`rotate(${i * 10} 100 100)`} />
+        ))}
+      </g>
+      <g fill="none" stroke={accentHex} strokeWidth="0.35" opacity="0.4">
+        {Array.from({ length: 24 }, (_, i) => (
+          <ellipse key={`b${i}`} cx="100" cy="100" rx="52" ry="18" transform={`rotate(${i * 15 + 7} 100 100)`} />
+        ))}
+      </g>
+      <circle cx="100" cy="100" r="86" fill="none" stroke={accentHex} strokeWidth="0.5" opacity="0.55" />
+      <circle cx="100" cy="100" r="90" fill="none" stroke={accentHex} strokeWidth="0.3" opacity="0.35" />
+    </svg>
+  )
+}
+
+// The certificate border: a hairline inset from the edge, with the corners
+// drawn as separate marks so they read as engraved rather than as a box.
+function SovereignFrame({ accentHex, bg }: { accentHex: string; bg: Shared['bg'] }) {
+  const corner = (style: React.CSSProperties) => (
+    <span aria-hidden style={{ position: 'absolute', width: 16, height: 16, ...style }} />
+  )
+  return (
+    <div aria-hidden style={{ position: 'absolute', inset: 12, pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', inset: 0, border: `1px solid ${accentHex}`, opacity: 0.35 }} />
+      <div style={{ position: 'absolute', inset: 5, border: `1px solid ${bg.border}`, opacity: 0.6 }} />
+      {corner({ left: -3, top: -3, borderLeft: `2px solid ${accentHex}`, borderTop: `2px solid ${accentHex}` })}
+      {corner({ right: -3, top: -3, borderRight: `2px solid ${accentHex}`, borderTop: `2px solid ${accentHex}` })}
+      {corner({ left: -3, bottom: -3, borderLeft: `2px solid ${accentHex}`, borderBottom: `2px solid ${accentHex}` })}
+      {corner({ right: -3, bottom: -3, borderRight: `2px solid ${accentHex}`, borderBottom: `2px solid ${accentHex}` })}
+    </div>
+  )
+}
+
+// Initials for the monogram, when there is no photograph. Two letters at most:
+// three-word names are common and a three-letter monogram in a seal reads as
+// an acronym rather than a person.
+function initialsOf(name: string | null | undefined): string {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  const first = parts[0][0] || ''
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
+  return (first + last).toUpperCase()
+}
+
+// A stable reference number, the way a certificate carries one. Uses the
+// founder number when the card has one, since that is a real number the holder
+// already knows. Otherwise it is derived from the slug: it has to be the same
+// on the server and the client and the same on every visit, so it is a hash of
+// something fixed rather than anything random or time-based.
+function sovereignRef(slug: string, founderNumber?: number | null): string {
+  if (founderNumber) return String(founderNumber).padStart(4, '0')
+  let h = 0
+  for (let i = 0; i < slug.length; i++) h = (h * 31 + slug.charCodeAt(i)) >>> 0
+  return String(h % 9000 + 1000)
+}
+
 // ── LogoZone ──────────────────────────────────────────────────────────────────
 function LogoZone({ card, design, accentHex }: Pick<Shared, 'card' | 'design' | 'accentHex'>) {
   if (!card.company_logo_url || design.logoPosition === 'hidden') return null
@@ -1986,6 +2056,144 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
 
         <div style={{ ...column, padding: '4px 22px 28px' }}>
           <BottomSection {...bottomProps} omitBooking />
+        </div>
+      </div>
+    )
+  }
+
+  // ── Sovereign ──────────────────────────────────────────────────────────
+  // An engraved certificate. Every other template in the set hands you a
+  // contact as an icon and a value in a tinted button; this one sets them as
+  // a ledger, label left in small caps and value right, ruled between. That
+  // is what a statement from a private bank looks like, and it is the whole
+  // reason to reach for this template over the other twelve.
+  //
+  // Restraint is the effect. No glow, no gradient, no colour beyond the
+  // accent used as foil: one hairline weight, one rule, generous air.
+  if (design.templateId === 'sovereign') {
+    const GROUP = 560
+    const column: React.CSSProperties = { maxWidth: GROUP, margin: '0 auto' }
+    const bodySize = getBodyFontSize(design)
+    const sealSize = calcPhotoSize(112, design)
+    const ref = sovereignRef(card.slug || 'cardtly', founderNumber)
+
+    // Labelled, not iconned. The label is the point: a card that says
+    // TELEPHONE and DIRECT and OFFICE reads as letterhead.
+    const ledger: { key: string; label: string; value: string; href: string }[] = [
+      card.phone && { key: 'tel', label: 'Telephone', value: card.phone, href: `tel:${card.phone}` },
+      isPro && card.work_phone && { key: 'dir', label: 'Direct', value: card.work_phone, href: `tel:${card.work_phone}` },
+      card.email && { key: 'eml', label: 'Email', value: card.email, href: `mailto:${card.email}` },
+      isPro && card.address && { key: 'off', label: 'Office', value: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}` },
+      card.website && { key: 'web', label: 'Website', value: card.website.replace(/^https?:\/\//, '').replace(/\/$/, ''), href: card.website.startsWith('http') ? card.website : `https://${card.website}` },
+    ].filter(Boolean) as { key: string; label: string; value: string; href: string }[]
+
+    const rule = { height: 1, backgroundColor: bg.border }
+    const smallCaps: React.CSSProperties = {
+      fontSize: 10, fontWeight: 600, letterSpacing: '0.18em',
+      textTransform: 'uppercase', color: bg.subtext,
+    }
+
+    return (
+      <div style={{ ...pageStyle, minHeight: '100vh' }} className="animate-fade-up">
+        <InAppBackButton bgMode={design.bgMode} />
+
+        <div style={{ ...column, position: 'relative', padding: 'calc(env(safe-area-inset-top, 0px) + 66px) 34px 30px' }}>
+          <SovereignFrame accentHex={accentHex} bg={bg} />
+
+          {/* The masthead: the house on the left, the reference on the right,
+              the way a certificate is headed. */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+            <span style={{ ...smallCaps, color: accentHex }}>{card.company || 'Cardtly'}</span>
+            <span style={{ ...smallCaps }}>No. {ref}</span>
+          </div>
+          <div style={{ ...rule, margin: '10px 0 4px', backgroundColor: accentHex, opacity: 0.55 }} />
+          <div style={{ ...rule, marginBottom: 34 }} />
+
+          {/* The seal, on the rosette. Photograph if there is one, monogram if
+              there is not - a monogram is a proper answer here rather than a
+              placeholder, which is why this template does not fall back to a
+              grey silhouette like the others. */}
+          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', marginBottom: 26 }}>
+            <SovereignRosette accentHex={accentHex} size={sealSize * 2.4} />
+            <div style={{
+              position: 'relative', width: sealSize + 20, height: sealSize + 20,
+              borderRadius: '50%', border: `1px solid ${accentHex}`,
+              display: 'grid', placeItems: 'center', backgroundColor: bg.page,
+            }}>
+              <div style={{
+                width: sealSize, height: sealSize, borderRadius: '50%',
+                border: `3px double ${accentHex}`, overflow: 'hidden',
+                display: 'grid', placeItems: 'center', backgroundColor: bg.card,
+              }}>
+                {card.profile_image_url
+                  ? <img src={card.profile_image_url} alt={card.name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <span style={{
+                      fontFamily: font.heading, fontSize: sealSize * 0.34, fontWeight: 500,
+                      letterSpacing: '0.06em', color: accentHex,
+                    }}>{initialsOf(card.name)}</span>}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ position: 'relative', textAlign: 'center' }}>
+            <h1 style={{
+              margin: '0 0 12px', fontFamily: font.heading,
+              fontSize: calcNameSize(30, design), fontWeight: 500,
+              letterSpacing: '0.14em', textTransform: 'uppercase', lineHeight: 1.25,
+              color: getNameColor(design, bg.text),
+            }}>{card.name}</h1>
+            {/* A short centred rule under the name, the engraver's full stop. */}
+            <div style={{ width: 46, height: 1, backgroundColor: accentHex, margin: '0 auto 12px', opacity: 0.8 }} />
+            {isPro && card.title && (
+              <p style={{ margin: '0 0 6px', ...smallCaps, fontSize: calcTitleSize(11, design), color: getTitleColor(design, bg.text) }}>{card.title}</p>
+            )}
+            {card.bio && (
+              <p className="leading-relaxed" style={{
+                margin: '18px auto 0', maxWidth: 400,
+                fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext),
+              }}>{card.bio}</p>
+            )}
+            <LogoZone {...shared} />
+          </div>
+
+          {/* The ledger. */}
+          {ledger.length > 0 && (
+            <div style={{ position: 'relative', marginTop: 34 }}>
+              <div style={{ ...rule, backgroundColor: accentHex, opacity: 0.55 }} />
+              {ledger.map(r => (
+                <a key={r.key} href={r.href}
+                  target={r.href.startsWith('http') ? '_blank' : undefined}
+                  rel={r.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  style={{
+                    display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+                    gap: 18, padding: '14px 2px', minHeight: 44,
+                    borderBottom: `1px solid ${bg.border}`, textDecoration: 'none',
+                  }}>
+                  <span style={{ ...smallCaps, flexShrink: 0 }}>{r.label}</span>
+                  <span className="truncate" style={{ fontSize: bodySize, color: bg.text, textAlign: 'right' }}>{r.value}</span>
+                </a>
+              ))}
+            </div>
+          )}
+
+          {/* Socials as ruled squares, not brand-coloured pills: a sheet of
+              engraved letterhead does not carry seven logos in seven colours. */}
+          {socialLinks.length > 0 && (
+            <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 26 }}>
+              {socialLinks.map(s => (
+                <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
+                  aria-label={s.platform} title={s.platform}
+                  style={{
+                    width: 44, height: 44, display: 'grid', placeItems: 'center',
+                    border: `1px solid ${bg.border}`, color: accentHex, textDecoration: 'none',
+                  }}>{s.icon}</a>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{ ...column, padding: '10px 34px 28px' }}>
+          <BottomSection {...bottomProps} />
         </div>
       </div>
     )
