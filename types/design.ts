@@ -293,6 +293,32 @@ function mixHex(base: string, towards: string, amount: number): string | null {
   return `#${a.map((v, i) => to(v + (b[i] - v) * amount)).join('')}`
 }
 
+// The alpha of a black scrim needed before white text clears `target` contrast
+// against every colour given. Creative paints text over gradients built from
+// the user's accent, and a fixed scrim cannot serve every accent: too light
+// and a pale gold fails, too heavy and a deep purple is muddied for nothing.
+// Solving it per card means the scrim is only ever as strong as that accent
+// needs, and a dark accent gets none at all.
+//
+// Capped, because past a point the colour is closer to black than to the
+// accent, and a card that cannot be loud legibly should stay legible.
+//
+// Lives here rather than in the template so the card and its editor thumbnail
+// cannot drift apart - the same mistake that let Glass lose its blur.
+export function scrimAlphaForWhite(hexes: string[], target = 4.5, cap = 0.62): number {
+  const lum = (hex: string, a: number): number => {
+    const h = hex.replace('#', '')
+    const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h
+    if (!/^[0-9a-f]{6}$/i.test(full)) return 0
+    const toLin = (c: number) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+    const ch = [0, 2, 4].map(i => toLin((parseInt(full.slice(i, i + 2), 16) / 255) * (1 - a)))
+    return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2]
+  }
+  const worst = (a: number) => Math.min(...hexes.map(h => 1.05 / (lum(h, a) + 0.05)))
+  for (let a = 0; a <= cap; a += 0.02) if (worst(a) >= target) return a
+  return cap
+}
+
 export function getCardStyleEffect(style: CardStyle, accentHex: string, bgPage: string): {
   heroBg: string
   surfaceBg: string
