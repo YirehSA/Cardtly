@@ -268,6 +268,25 @@ function CircuitQR({ slug, accentHex, companion, label, logoUrl }: {
   )
 }
 
+// ── Frost ─────────────────────────────────────────────────────────────────────
+// The crystal facets scattered behind the Frost pane. A fixed table, not
+// random placement: this renders on the server and again on the client, and
+// Math.random() would hand each pass different shards and break hydration.
+// Sized in pixels and placed by percentage, so a shard stays a shard however
+// tall the card grows.
+const FROST_FACETS: { x: number; y: number; size: number; rot: number; op: number }[] = [
+  { x: 6, y: 7, size: 96, rot: 12, op: 0.5 },
+  { x: 72, y: 4, size: 132, rot: -22, op: 0.42 },
+  { x: 40, y: 18, size: 62, rot: 34, op: 0.3 },
+  { x: -4, y: 30, size: 150, rot: -8, op: 0.34 },
+  { x: 80, y: 34, size: 78, rot: 26, op: 0.4 },
+  { x: 18, y: 52, size: 112, rot: -30, op: 0.3 },
+  { x: 64, y: 62, size: 92, rot: 16, op: 0.36 },
+  { x: 2, y: 76, size: 130, rot: 20, op: 0.28 },
+  { x: 76, y: 84, size: 104, rot: -14, op: 0.32 },
+  { x: 36, y: 90, size: 70, rot: 40, op: 0.26 },
+]
+
 // ── Meridian ──────────────────────────────────────────────────────────────────
 // Initials for the hero when a card carries no photograph. Two letters at
 // most: three-word names are common, and three letters set at hero size read
@@ -2736,53 +2755,171 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
   // Soft pastel mesh gradient background + a single floating glassmorphic
   // card containing everything. Heavy backdrop-blur, light-mode dominant.
   if (design.templateId === 'frost') {
+    // Frost was a pastel mesh - cream into pink into lavender into mint - which
+    // is a sunset, not ice, and it ignored the user's accent entirely while
+    // doing it. It also stopped being its own idea the moment the Glass card
+    // style got real frosting: both were "a blurred white panel", and one of
+    // them has to be more than that.
+    //
+    // So this is actual ice rather than generic glassmorphism: a cold ground
+    // built from the accent, crystal facets cracking across it, a frost bloom
+    // at the top, and the content behind one tall pane. The geometry is the
+    // part Glass cannot do - a blur has no shape, and a facet does.
+    const cold = isLight
+      ? `linear-gradient(168deg, #f6fbff 0%, ${accentHex}1f 34%, #eef4fa 62%, ${accentHex}14 100%)`
+      : `linear-gradient(168deg, #070d16 0%, ${accentHex}2b 36%, #0a1220 66%, ${accentHex}1c 100%)`
+    const paneBg = isLight ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.07)'
+    const paneEdge = isLight ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.20)'
+    const paneLift = isLight
+      ? 'inset 0 1px 0 rgba(255,255,255,1), 0 30px 70px rgba(15,23,42,0.14)'
+      : 'inset 0 1px 0 rgba(255,255,255,0.26), 0 30px 70px rgba(0,0,0,0.5)'
+    const ink = isLight ? '#0f172a' : bg.text
+    const inkSoft = isLight ? '#64748b' : bg.subtext
+    const rowBg = isLight ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.05)'
+    const facetInk = isLight ? '#ffffff' : accentHex
+
+    const rows: { key: string; icon: React.ReactNode; label: string; href: string }[] = [
+      card.phone && { key: 'tel', icon: <Phone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
+      isPro && card.work_phone && { key: 'dir', icon: <Phone className="w-4 h-4" />, label: card.work_phone, href: `tel:${card.work_phone}` },
+      card.email && { key: 'eml', icon: <Mail className="w-4 h-4" />, label: card.email, href: `mailto:${card.email}` },
+      isPro && card.address && { key: 'off', icon: <MapPin className="w-4 h-4" />, label: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}` },
+      card.website && { key: 'web', icon: <Globe className="w-4 h-4" />, label: card.website.replace(/^https?:\/\//, '').replace(/\/$/, ''), href: card.website.startsWith('http') ? card.website : `https://${card.website}` },
+    ].filter(Boolean) as { key: string; icon: React.ReactNode; label: string; href: string }[]
+
+    const photoSize = calcPhotoSize(128, design)
+    // A hexagon, cut with clip-path. Every other template frames the face in a
+    // circle or a rectangle; a six-sided crystal is the one shape that says
+    // ice without a caption.
+    const hex = 'polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)'
+
+    // backgroundImage, not the background shorthand. The gradient's stops are
+    // accent tints with alpha, and the shorthand also resets background-color,
+    // so bg.page was being cleared out from under them and the translucent half
+    // of the gradient composited over the browser's own ground instead of over
+    // the card's.
     return (
-      <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden', background: design.customBgColor || 'linear-gradient(135deg, #fef3c7 0%, #fce7f3 25%, #e0e7ff 60%, #ccfbf1 100%)' }} className="animate-fade-up">
-        {/* Decorative gradient blobs for the mesh-y feel */}
-        <div style={{ position: 'absolute', top: -120, right: -80, width: 320, height: 320, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}55 0%, transparent 70%)`, pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: -100, left: -80, width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.4) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{
+        ...pageStyle, position: 'relative', overflow: 'hidden',
+        backgroundColor: design.customBgColor || bg.page,
+        backgroundImage: design.customBgColor ? 'none' : cold,
+      }} className="animate-fade-up">
+        <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+          {/* Breath on a window: a soft bloom at the top the facets sit in. */}
+          <div style={{
+            position: 'absolute', top: '-24%', left: '50%', transform: 'translateX(-50%)',
+            width: '150vw', maxWidth: 760, height: 560, borderRadius: '50%',
+            background: isLight
+              ? 'radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 68%)'
+              : `radial-gradient(circle, ${accentHex}3a 0%, rgba(255,255,255,0) 70%)`,
+            filter: 'blur(24px)',
+          }} />
+          {/* Facets. Each is its own fixed-size SVG placed by percentage, not
+              one stretched drawing: a viewBox stretched to a tall card turns
+              every shard into a splinter. Rotations come off the table so the
+              field is the same on the server and the client. */}
+          {FROST_FACETS.map((f, i) => (
+            <svg key={i} width={f.size} height={f.size} viewBox="0 0 100 100"
+              style={{ position: 'absolute', left: `${f.x}%`, top: `${f.y}%`, transform: `rotate(${f.rot}deg)`, opacity: f.op }}>
+              <polygon points="50,2 96,28 96,72 50,98 4,72 4,28" fill="none" stroke={facetInk} strokeWidth="1.4" />
+              <polygon points="50,20 79,37 79,63 50,80 21,63 21,37" fill={facetInk} opacity="0.14" />
+            </svg>
+          ))}
+        </div>
+
         <InAppBackButton bgMode={design.bgMode} />
-        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md" style={{ backgroundColor: 'rgba(255,255,255,0.5)' }}>
-          <Share2 className="w-4 h-4" style={{ color: '#0f172a' }} />
+        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md" style={{ backgroundColor: isLight ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.14)' }}>
+          <Share2 className="w-4 h-4" style={{ color: ink }} />
         </button>
-        <div className="max-w-md mx-auto px-5 py-12 relative" style={{ zIndex: 1 }}>
-          {/* Single big glass card */}
-          <div style={{ backgroundColor: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)', border: '1px solid rgba(255,255,255,0.6)', borderRadius: 32, padding: '36px 28px', boxShadow: '0 32px 80px rgba(0,0,0,0.12)' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-              <Avatar {...shared} size={120} rounded="full" extraStyle={{ border: design.profileBorder === false ? 'none' : '4px solid rgba(255,255,255,0.9)', boxShadow: '0 12px 28px rgba(0,0,0,0.15)' }} />
+
+        <div className="max-w-md mx-auto px-5 relative" style={{ zIndex: 1, paddingTop: 'calc(env(safe-area-inset-top, 0px) + 74px)', paddingBottom: 32 }}>
+          {/* The hexagon overlaps the top edge of the pane, so the pane reads
+              as a sheet the photograph is set into rather than a box with a
+              picture inside it. A fifth of it, not half: at half the pane's
+              frosting covered the face from the nose down. */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: -Math.round(photoSize * 0.2) }}>
+            <div style={{
+              width: photoSize, height: photoSize, clipPath: hex,
+              background: `linear-gradient(150deg, ${accentHex}, ${isLight ? '#ffffff' : accentHex + '55'})`,
+              display: 'grid', placeItems: 'center',
+              filter: `drop-shadow(0 14px 30px ${accentHex}55)`,
+            }}>
+              <div style={{ width: photoSize - 7, height: photoSize - 7, clipPath: hex, overflow: 'hidden', background: isLight ? '#ffffff' : bg.page }}>
+                {card.profile_image_url
+                  ? <img src={card.profile_image_url} alt={card.name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: accentHex, fontFamily: font.heading, fontSize: photoSize * 0.3, fontWeight: 700 }}>{initialsOf(card.name)}</div>}
+              </div>
             </div>
-            <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(28, design), fontWeight: 800, color: getNameColor(design, '#0f172a'), textAlign: 'center', fontFamily: font.heading, letterSpacing: '-0.01em' }}>{card.name}</h1>
-            {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(14, design), fontWeight: 600, color: getTitleColor(design, accentHex), textAlign: 'center' }}>{card.title}</p>}
-            {card.company && <p style={{ margin: '4px 0 16px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, '#64748b'), textAlign: 'center' }}>{card.company}</p>}
+          </div>
+
+          <div style={{
+            backgroundColor: paneBg,
+            backdropFilter: 'blur(30px) saturate(150%)', WebkitBackdropFilter: 'blur(30px) saturate(150%)',
+            border: `1px solid ${paneEdge}`, borderRadius: 30, boxShadow: paneLift,
+            padding: `${Math.round(photoSize * 0.2) + 24}px 24px 28px`,
+          }}>
+            <h1 style={{
+              margin: 0, textAlign: 'center', fontFamily: font.heading,
+              fontSize: calcNameSize(29, design), fontWeight: 700,
+              letterSpacing: '0.02em', color: getNameColor(design, ink),
+            }}>{card.name}</h1>
+            {isPro && card.title && (
+              <p style={{ margin: '10px 0 0', textAlign: 'center', fontSize: calcTitleSize(11, design), fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: getTitleColor(design, accentHex) }}>{card.title}</p>
+            )}
+            {card.company && (
+              <p style={{ margin: '6px 0 0', textAlign: 'center', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, inkSoft) }}>{card.company}</p>
+            )}
+
+            {/* A shard of a rule rather than a plain line. */}
+            <div aria-hidden style={{ display: 'flex', justifyContent: 'center', margin: '18px 0 0' }}>
+              <svg width="86" height="9" viewBox="0 0 86 9">
+                <path d="M0,4.5 H30 L36,1 L42,8 L48,1 L54,8 L60,4.5 H86" fill="none" stroke={accentHex} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
+              </svg>
+            </div>
+
             <LogoZone {...shared} />
-            {card.bio && <p style={{ fontSize: calcBioSize(13, design), color: getBioColor(design, '#475569'), textAlign: 'center', lineHeight: 1.65, margin: '0 0 20px' }}>{card.bio}</p>}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[
-                card.phone && { icon: <Phone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
-                card.email && { icon: <Mail className="w-4 h-4" />, label: card.email, href: `mailto:${card.email}` },
-                isPro && card.whatsapp && { icon: <MessageCircle className="w-4 h-4" />, label: card.whatsapp, href: `https://wa.me/${card.whatsapp.replace(/\D/g, '')}` },
-                isPro && card.address && { icon: <MapPin className="w-4 h-4" />, label: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}` },
-                card.website && { icon: <Globe className="w-4 h-4" />, label: card.website.replace(/^https?:\/\//, ''), href: card.website.startsWith('http') ? card.website : `https://${card.website}` },
-              ].filter(Boolean).map((item: any, i) => (
-                <a key={i} href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 14, textDecoration: 'none' }}>
-                  <span style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{item.icon}</span>
-                  <span style={{ fontSize: 13, color: '#0f172a', fontWeight: 500, wordBreak: 'break-word' }}>{item.label}</span>
-                </a>
-              ))}
-            </div>
-            {socialLinks.length > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 20 }}>
-                {socialLinks.map(s => (
-                  <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full flex items-center justify-center transition hover:scale-110"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.7)', color: accentHex, border: '1px solid rgba(255,255,255,0.6)' }}>
-                    {s.icon}
+            {card.bio && (
+              <p style={{ margin: '16px 0 0', textAlign: 'center', fontSize: calcBioSize(14, design), color: getBioColor(design, inkSoft), lineHeight: 1.7 }}>{card.bio}</p>
+            )}
+
+            {rows.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 22 }}>
+                {rows.map(r => (
+                  <a key={r.key} href={r.href}
+                    target={r.href.startsWith('http') ? '_blank' : undefined}
+                    rel={r.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                    className="hover:opacity-90 transition"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '13px 14px', minHeight: 52, borderRadius: 16, textDecoration: 'none',
+                      backgroundColor: rowBg, border: `1px solid ${paneEdge}`,
+                      boxShadow: isLight ? 'inset 0 1px 0 rgba(255,255,255,0.9)' : 'inset 0 1px 0 rgba(255,255,255,0.14)',
+                    }}>
+                    <span style={{
+                      width: 34, height: 34, flexShrink: 0, display: 'grid', placeItems: 'center',
+                      clipPath: hex, backgroundColor: accentHex + '26', color: accentHex,
+                    }}>{r.icon}</span>
+                    <span className="truncate" style={{ fontSize: getBodyFontSize(design), fontWeight: 500, color: ink }}>{r.label}</span>
                   </a>
                 ))}
               </div>
             )}
+
+            {socialLinks.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2.5" style={{ marginTop: 20 }}>
+                {socialLinks.map(s => (
+                  <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
+                    aria-label={s.platform} title={s.platform}
+                    className="transition hover:scale-110"
+                    style={{
+                      width: 44, height: 44, display: 'grid', placeItems: 'center',
+                      clipPath: hex, backgroundColor: isLight ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.12)',
+                      color: accentHex, textDecoration: 'none',
+                    }}>{s.icon}</a>
+                ))}
+              </div>
+            )}
           </div>
+
           <div className="mt-6">
             <BottomSection {...bottomProps} />
           </div>
@@ -2791,9 +2928,6 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
     )
   }
 
-  // ── 12. EDITORIAL ─────────────────────────────────────────────────────────
-  // Serif typography on warm paper bg. Newspaper-style: massive name, drop
-  // capital lead, classical contact list with rules.
   if (design.templateId === 'editorial') {
     // Editorial prints straight onto the page - no panel, no glass, nothing
     // between the type and the background. Ink, rules and muted text were all

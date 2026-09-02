@@ -10,6 +10,17 @@ import {
 } from '@/types/design'
 import { Phone, Mail, Globe, MapPin, MessageCircle, ExternalLink, ChevronRight, Twitter, Facebook, Linkedin } from 'lucide-react'
 
+// Frost's crystal facets, thinned for a thumbnail. Fixed table for the same
+// reason as the rest: the server and the client must draw the same shards.
+const FROST_PREVIEW_FACETS: { x: number; y: number; size: number; rot: number; op: number }[] = [
+  { x: 4, y: 8, size: 54, rot: 12, op: 0.5 },
+  { x: 70, y: 3, size: 72, rot: -22, op: 0.42 },
+  { x: -6, y: 40, size: 80, rot: -8, op: 0.32 },
+  { x: 78, y: 46, size: 58, rot: 26, op: 0.38 },
+  { x: 20, y: 72, size: 66, rot: -30, op: 0.28 },
+  { x: 72, y: 84, size: 60, rot: 16, op: 0.3 },
+]
+
 // Circuit's star field, thinned for a thumbnail. A fixed table rather than
 // random placement, so the server and the client draw the same stars.
 const CIRCUIT_PREVIEW_STARS: [number, number][] = [
@@ -1057,40 +1068,78 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
     )
   }
 
-  // ── 11. FROST ─────────────────────────────────────────────────────────────
+  // ── FROST ─────────────────────────────────────────────────────────────────
+  // Ice rather than generic glassmorphism: a cold ground built from the accent,
+  // crystal facets, a hexagon photo. See the same template in PublicCardView.
   if (design.templateId === 'frost') {
-    const frostBg = design.customBgColor || 'linear-gradient(135deg, #fef3c7 0%, #fce7f3 25%, #e0e7ff 60%, #ccfbf1 100%)'
+    const light = design.bgMode !== 'dark'
+    const cold = light
+      ? `linear-gradient(168deg, #f6fbff 0%, ${accentHex}1f 34%, #eef4fa 62%, ${accentHex}14 100%)`
+      : `linear-gradient(168deg, #070d16 0%, ${accentHex}2b 36%, #0a1220 66%, ${accentHex}1c 100%)`
+    const paneBg = light ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.07)'
+    const paneEdge = light ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.20)'
+    const ink = light ? '#0f172a' : bg.text
+    const inkSoft = light ? '#64748b' : bg.subtext
+    const rowBg = light ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.05)'
+    const facetInk = light ? '#ffffff' : accentHex
+    const hex = 'polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)'
+    const photoSize = calcPhotoSize(66, design)
+    const rows = [
+      form.phone && { key: 'tel', icon: <Phone style={{ width: 10, height: 10 }} />, label: form.phone },
+      form.email && { key: 'eml', icon: <Mail style={{ width: 10, height: 10 }} />, label: form.email },
+      form.website && { key: 'web', icon: <Globe style={{ width: 10, height: 10 }} />, label: form.website.replace(/^https?:\/\//, '').replace(/\/$/, '') },
+    ].filter(Boolean) as any[]
+
     return (
-      <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden', background: frostBg }}>
-        <div style={{ position: 'absolute', top: -40, right: -30, width: 120, height: 120, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}55 0%, transparent 70%)` }} />
-        <div style={{ position: 'absolute', bottom: -30, left: -30, width: 100, height: 100, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.4) 0%, transparent 70%)' }} />
-        <div style={{ position: 'relative', padding: '16px 14px', zIndex: 1 }}>
-          <div style={{ backgroundColor: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.6)', borderRadius: 18, padding: '16px 12px', boxShadow: '0 12px 32px rgba(0,0,0,0.12)' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-              <div style={{ borderRadius: '50%', overflow: 'hidden', border: design.profileBorder === false ? 'none' : '2px solid rgba(255,255,255,0.9)' }}>
-                <Avatar base={64} />
+      <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden', minHeight: 380, backgroundColor: design.customBgColor || bg.page, backgroundImage: design.customBgColor ? 'none' : cold }}>
+        <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: '-22%', left: '50%', transform: 'translateX(-50%)', width: 320, height: 240, borderRadius: '50%', filter: 'blur(20px)', background: light ? 'radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 68%)' : `radial-gradient(circle, ${accentHex}3a 0%, rgba(255,255,255,0) 70%)` }} />
+          {FROST_PREVIEW_FACETS.map((f, i) => (
+            <svg key={i} width={f.size} height={f.size} viewBox="0 0 100 100" style={{ position: 'absolute', left: `${f.x}%`, top: `${f.y}%`, transform: `rotate(${f.rot}deg)`, opacity: f.op }}>
+              <polygon points="50,2 96,28 96,72 50,98 4,72 4,28" fill="none" stroke={facetInk} strokeWidth="2" />
+              <polygon points="50,20 79,37 79,63 50,80 21,63 21,37" fill={facetInk} opacity="0.14" />
+            </svg>
+          ))}
+        </div>
+
+        <div style={{ position: 'relative', padding: '16px 14px 14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: -Math.round(photoSize * 0.2) }}>
+            <div style={{ width: photoSize, height: photoSize, clipPath: hex, background: `linear-gradient(150deg, ${accentHex}, ${light ? '#ffffff' : accentHex + '55'})`, display: 'grid', placeItems: 'center' }}>
+              <div style={{ width: photoSize - 4, height: photoSize - 4, clipPath: hex, overflow: 'hidden', background: light ? '#ffffff' : bg.page }}>
+                {form.profile_image_url
+                  ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: accentHex, fontFamily: font.heading, fontSize: photoSize * 0.3, fontWeight: 700 }}>{(form.name || '?')[0]?.toUpperCase()}</div>}
               </div>
             </div>
-            <h2 style={{ margin: '0 0 3px', fontSize: calcNameSize(15, design), fontWeight: 800, color: getNameColor(design, '#0f172a'), textAlign: 'center', fontFamily: font.heading }}>{form.name || 'Your Name'}</h2>
-            {isPro && form.title && <p style={{ margin: 0, fontSize: calcTitleSize(9, design), fontWeight: 600, color: getTitleColor(design, accentHex), textAlign: 'center' }}>{form.title}</p>}
-            {form.company && <p style={{ margin: '3px 0 8px', fontSize: calcCompanySize(8, design), color: getCompanyColor(design, '#64748b'), textAlign: 'center' }}>{form.company}</p>}
-            {/* Logo and bio both render on the live card. The preview showed
-                neither, so a user's logo was invisible until they published. */}
-            <LogoZone />
-            {isPro && form.bio && <p style={{ fontSize: calcBioSize(9, design), color: getBioColor(design, '#475569'), lineHeight: 1.6, marginBottom: 8, textAlign: 'center' }}>{form.bio}</p>}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {form.phone && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Phone style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: getBodyFontSize(design) - 6, color: '#0f172a' }}>{form.phone}</span></div>}
-              {form.email && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Mail style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: getBodyFontSize(design) - 6, color: '#0f172a' }}>{form.email}</span></div>}
-              {form.website && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 7px', backgroundColor: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 7 }}><span style={{ width: 16, height: 16, borderRadius: 5, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Globe style={{ width: 9, height: 9 }} /></span><span style={{ fontSize: getBodyFontSize(design) - 6, color: '#0f172a' }}>{form.website.replace(/^https?:\/\//, '')}</span></div>}
+          </div>
+
+          <div style={{ backgroundColor: paneBg, border: `1px solid ${paneEdge}`, borderRadius: 20, padding: `${Math.round(photoSize * 0.2) + 14}px 14px 16px` }}>
+            <h2 style={{ margin: 0, textAlign: 'center', fontFamily: font.heading, fontSize: calcNameSize(18, design), fontWeight: 700, letterSpacing: '0.02em', color: getNameColor(design, ink) }}>{form.name || 'Your Name'}</h2>
+            {isPro && form.title && <p style={{ margin: '6px 0 0', textAlign: 'center', fontSize: calcTitleSize(7.5, design), fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: getTitleColor(design, accentHex) }}>{form.title}</p>}
+            {form.company && <p style={{ margin: '4px 0 0', textAlign: 'center', fontSize: calcCompanySize(9, design), color: getCompanyColor(design, inkSoft) }}>{form.company}</p>}
+            <div aria-hidden style={{ display: 'flex', justifyContent: 'center', margin: '10px 0 0' }}>
+              <svg width="58" height="7" viewBox="0 0 86 9"><path d="M0,4.5 H30 L36,1 L42,8 L48,1 L54,8 L60,4.5 H86" fill="none" stroke={accentHex} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" /></svg>
             </div>
-            <SaveBtn />
+            <LogoZone />
+            {isPro && form.bio && <p style={{ margin: '10px 0 0', textAlign: 'center', fontSize: calcBioSize(9, design), color: getBioColor(design, inkSoft), lineHeight: 1.7 }}>{form.bio}</p>}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 12 }}>
+              {rows.map(r => (
+                <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 10, backgroundColor: rowBg, border: `1px solid ${paneEdge}` }}>
+                  <span style={{ width: 20, height: 20, flexShrink: 0, display: 'grid', placeItems: 'center', clipPath: hex, backgroundColor: accentHex + '26', color: accentHex }}>{r.icon}</span>
+                  <span style={{ fontSize: getBodyFontSize(design) - 4, fontWeight: 500, color: ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</span>
+                </div>
+              ))}
+            </div>
+
+            <Certs />
+            <div style={{ marginTop: 10, padding: '8px 0', borderRadius: 12, textAlign: 'center', fontSize: getButtonFontSize(design) - 2, fontWeight: 700, color: buttonText, backgroundColor: buttonBg, border: buttonBorder ? `2px solid ${buttonBorder}` : 'none' }}>Save Contact</div>
           </div>
         </div>
       </div>
     )
   }
 
-  // ── 12. EDITORIAL ─────────────────────────────────────────────────────────
   if (design.templateId === 'editorial') {
     // Mirrors PublicCardView: this template prints straight onto the page, so
     // the ink has to follow the paper or a dark background hides the type.

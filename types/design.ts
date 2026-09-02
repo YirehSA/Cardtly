@@ -429,7 +429,12 @@ export function getBgColors(mode: BgMode, templateId: TemplateId, customBgColor?
     meridian:  { page: '#0e1113', card: '#171b1f', surface: '#20262b', text: '#f2f4f5', subtext: '#9aa5ad', border: '#2b3238' },
     neon:      { page: '#050510', card: '#0a0a1a', surface: '#10102a', text: '#e0e0ff', subtext: '#6060a0', border: '#1a1a3a' },
     studio:    { page: '#000000', card: '#f5f5f5', surface: '#ffffff', text: '#0a0a0a', subtext: '#525252', border: '#e5e5e5' },
-    frost:     { page: '#f8fafc', card: 'rgba(255,255,255,0.6)', surface: 'rgba(255,255,255,0.4)', text: '#0f172a', subtext: '#64748b', border: 'rgba(255,255,255,0.4)' },
+    // Frost's dark entry used to be a light palette - page #f8fafc, text
+    // #0f172a - which was harmless while the template hardcoded its own
+    // colours and ignored the palette. Now that it reads bg.text, a card set
+    // to dark mode was drawing near-black text on a dark ground. This is a
+    // real dark palette: night ice rather than day ice.
+    frost:     { page: '#070d16', card: 'rgba(255,255,255,0.07)', surface: 'rgba(255,255,255,0.05)', text: '#eaf2fb', subtext: '#93a7bd', border: 'rgba(255,255,255,0.16)' },
     editorial: { page: '#fafaf9', card: '#ffffff', surface: '#f5f5f4', text: '#1c1917', subtext: '#78716c', border: '#e7e5e4' },
   }
   return applyCustomBg(dark[templateId] || dark.classic)
