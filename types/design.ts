@@ -360,11 +360,32 @@ export function getBgColors(mode: BgMode, templateId: TemplateId, customBgColor?
   return applyCustomBg(dark[templateId] || dark.classic)
 }
 
+// Templates that have been renamed or replaced, pointing at what took their
+// place. A card stores its template as a string in color_theme, so retiring an
+// id orphans every card already saved with it - and both PublicCardView and
+// TemplatedCardPreview end their template chain with `return null`, so an
+// orphaned card does not fall back to anything: it renders a blank page.
+// Sovereign shipped, was replaced by Meridian the same day, and took the cards
+// that had already selected it dark.
+const TEMPLATE_ALIASES: Record<string, TemplateId> = {
+  sovereign: 'meridian',
+}
+
+// Anything that is not a live template and has no alias is coerced to the
+// default. Blank is never the right answer for a card someone has printed on
+// an NFC tag: the wrong template still shows their name and number.
+function resolveTemplateId(id: unknown): TemplateId {
+  if (typeof id !== 'string') return DEFAULT_DESIGN.templateId
+  if (TEMPLATES.some(t => t.id === id)) return id as TemplateId
+  return TEMPLATE_ALIASES[id] ?? DEFAULT_DESIGN.templateId
+}
+
 export function parseDesign(colorTheme: string | null): CardDesign {
   if (!colorTheme) return DEFAULT_DESIGN
   try {
     const parsed = JSON.parse(colorTheme)
     if (parsed.templateId) {
+      parsed.templateId = resolveTemplateId(parsed.templateId)
       // Migrate old logo position values
       const oldToNew: Record<string, LogoPosition> = {
         'top-left': 'left', 'top-right': 'right',
