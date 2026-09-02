@@ -464,94 +464,105 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
   }
 
   // ── 6. CREATIVE ───────────────────────────────────────────────────────────
+  // ── CREATIVE ──────────────────────────────────────────────────────────────
+  // A bento grid, the one shape nothing else in the set uses. See the same
+  // template in PublicCardView.
   if (design.templateId === 'creative') {
-    const photoSize = calcPhotoSize(72, design)
+    const deep = darkenHex(accentHex, 0.3)
+    const onAccent = getReadableTextOn(accentHex)
+    const parts = (form.name || '').trim().split(/\s+/).filter(Boolean)
+    const initials = parts.length
+      ? ((parts[0][0] || '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase()
+      : '?'
+
+    const tile: React.CSSProperties = {
+      borderRadius: 12, padding: '9px 10px',
+      background: cardEffect.surfaceBg,
+      border: `1px solid ${accentHex}26`,
+    }
+    const tileLabel: React.CSSProperties = {
+      display: 'block', fontSize: 6, fontWeight: 700, letterSpacing: '0.14em',
+      textTransform: 'uppercase', color: bg.subtext, marginBottom: 2,
+    }
+
+    const contacts = [
+      form.phone && { key: 'tel', label: 'Call', value: form.phone, icon: <Phone style={{ width: 10, height: 10 }} /> },
+      form.email && { key: 'eml', label: 'Email', value: form.email, icon: <Mail style={{ width: 10, height: 10 }} />, wide: true },
+      form.website && { key: 'web', label: 'Website', value: form.website.replace(/^https?:\/\//, '').replace(/\/$/, ''), icon: <Globe style={{ width: 10, height: 10 }} />, wide: true },
+    ].filter(Boolean) as any[]
+
     return (
-      <div style={{ ...pageStyle, overflow: 'hidden', position: 'relative' }}>
-        {/* Same three-wash colour field as the live card, sized to the preview
-            box. Absolute rather than fixed, since this renders inside a frame. */}
+      <div style={{ ...pageStyle, overflow: 'hidden', position: 'relative', minHeight: 380 }}>
+        {/* The same three-wash colour field as the live card, sized to the
+            preview box. Absolute rather than fixed, since this is in a frame. */}
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: '-18%', right: '-22%', width: 230, height: 230, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}55 0%, transparent 68%)`, filter: 'blur(18px)' }} />
-          <div style={{ position: 'absolute', bottom: '-14%', left: '-24%', width: 210, height: 210, borderRadius: '50%', background: `radial-gradient(circle, ${darkenHex(accentHex, 0.25)}44 0%, transparent 70%)`, filter: 'blur(20px)' }} />
+          <div style={{ position: 'absolute', bottom: '-14%', left: '-24%', width: 210, height: 210, borderRadius: '50%', background: `radial-gradient(circle, ${deep}44 0%, transparent 70%)`, filter: 'blur(20px)' }} />
           <div style={{ position: 'absolute', top: '34%', left: '38%', width: 160, height: 160, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}22 0%, transparent 72%)`, filter: 'blur(22px)' }} />
         </div>
-        <div style={{ padding: 16, position: 'relative' }}>
-          {/* Tilted photograph on a hard offset block, as on the real card.
-              Squared off on purpose: every other template puts the face in a
-              circle, so a circle here says nothing. */}
-          <div style={{ marginBottom: 10, display: 'inline-block', position: 'relative', zIndex: 2 }}>
-            <div aria-hidden style={{ position: 'absolute', left: 7, top: 7, width: photoSize, height: photoSize, borderRadius: 15, backgroundColor: accentHex, transform: 'rotate(-4deg)' }} />
-            <div style={{
-              position: 'relative', width: photoSize, height: photoSize, borderRadius: 15, overflow: 'hidden',
-              transform: 'rotate(3deg)',
-              border: design.profileBorder === false ? 'none' : `2px solid ${bg.page}`,
-              boxShadow: `0 8px 26px ${accentHex}33`,
-            }}>
+
+        <div style={{ position: 'relative', padding: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+            <div style={{ ...tile, padding: 0, overflow: 'hidden', aspectRatio: '1 / 1' }}>
               {form.profile_image_url
-                ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <div style={{ width: '100%', height: '100%', backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.33, fontWeight: 800, fontFamily: font.heading }}>{form.name?.[0]?.toUpperCase() || '?'}</div>}
+                ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', background: `linear-gradient(150deg, ${accentHex}55, ${deep}22)`, color: accentHex, fontFamily: font.heading, fontSize: 26, fontWeight: 800 }}>{initials}</div>}
             </div>
-            <svg aria-hidden width="18" height="18" viewBox="0 0 30 30" style={{ position: 'absolute', right: -9, top: -8 }}>
-              <g stroke={accentHex} strokeWidth="3" strokeLinecap="round">
-                <line x1="15" y1="4" x2="15" y2="26" /><line x1="5" y1="9" x2="25" y2="21" /><line x1="25" y1="9" x2="5" y2="21" />
-              </g>
-            </svg>
-          </div>
-          <h2 style={{ margin: '4px 0 3px', fontSize: calcNameSize(20, design), fontWeight: 800, fontFamily: font.heading, letterSpacing: '-0.02em',
-            ...(design.nameColor
-              ? { color: design.nameColor }
-              : {
-                  background: `linear-gradient(120deg, ${bg.text} 12%, ${accentHex} 92%)`,
-                  WebkitBackgroundClip: 'text', backgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent', color: 'transparent',
-                }),
-          }}>{form.name || 'Your Name'}</h2>
-          {/* The drawn stroke under the name, as on the real card. */}
-          <svg aria-hidden width="96" height="8" viewBox="0 0 170 12" style={{ display: 'block', margin: '2px 0 2px' }}>
-            <path d="M3,8 C34,3 62,10 92,5 C118,1 144,7 167,4" fill="none" stroke={accentHex} strokeWidth="5" strokeLinecap="round" opacity="0.9" />
-          </svg>
-          {isPro && form.title && (
-            <span style={{ display: 'inline-block', marginTop: 4, marginBottom: 2, padding: '3px 9px', borderRadius: 999,
-              fontSize: calcTitleSize(11, design), fontWeight: 700,
-              color: getTitleColor(design, accentHex),
-              background: accentHex + '1f', border: `1px solid ${accentHex}44` }}>{form.title}</span>
-          )}
-          {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(11, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
-          <LogoZone />
-          {isPro && form.bio && <p style={{ fontSize: calcBioSize(11, design), color: getBioColor(design, bg.subtext), lineHeight: 1.5, marginBottom: 10 }}>{form.bio}</p>}
-          {/* Colour blocks with a verb for a label, as on the real card. */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 12 }}>
-            {([
-              form.phone && { key: 'tel', label: 'Call', value: form.phone, icon: <Phone style={{ width: 11, height: 11 }} /> },
-              form.email && { key: 'eml', label: 'Email', value: form.email, icon: <Mail style={{ width: 11, height: 11 }} /> },
-              form.website && { key: 'web', label: 'Website', value: form.website.replace(/^https?:\/\//, '').replace(/\/$/, ''), icon: <Globe style={{ width: 11, height: 11 }} /> },
-              isPro && (form as any).address && { key: 'off', label: 'Find me', value: (form as any).address, icon: <MapPin style={{ width: 11, height: 11 }} />, wide: true },
-            ].filter(Boolean) as any[]).map((t, i) => (
-              <div key={t.key} style={{
-                padding: '8px 9px', borderRadius: 11,
-                background: i % 2 === 0
-                  ? `linear-gradient(150deg, ${accentHex}2e 0%, ${accentHex}12 100%)`
-                  : `linear-gradient(150deg, ${darkenHex(accentHex, 0.3)}2e 0%, ${darkenHex(accentHex, 0.3)}10 100%)`,
-                border: `1px solid ${accentHex}33`,
-                gridColumn: t.wide ? '1 / -1' : undefined,
-              }}>
-                <span style={{ display: 'block', color: accentHex, marginBottom: 4 }}>{t.icon}</span>
-                <span style={{ display: 'block', fontSize: 6.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: bg.subtext, marginBottom: 1 }}>{t.label}</span>
-                <span style={{ display: 'block', fontSize: getBodyFontSize(design) - 5, fontWeight: 600, color: bg.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.value}</span>
+
+            {/* The one solid accent tile: a bento where every cell has the same
+                weight is a spreadsheet, and this is what stops it being one. */}
+            <div style={{ ...tile, aspectRatio: '1 / 1', background: accentHex, border: 'none', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <svg aria-hidden width="14" height="14" viewBox="0 0 30 30">
+                <g stroke={onAccent} strokeWidth="3" strokeLinecap="round" opacity="0.9">
+                  <line x1="15" y1="4" x2="15" y2="26" /><line x1="5" y1="9" x2="25" y2="21" /><line x1="25" y1="9" x2="5" y2="21" />
+                </g>
+              </svg>
+              {isPro && form.title && (
+                <span style={{ fontFamily: font.heading, fontSize: calcTitleSize(10, design), fontWeight: 800, lineHeight: 1.08, letterSpacing: '-0.02em', color: onAccent }}>{form.title}</span>
+              )}
+            </div>
+
+            <div style={{ ...tile, gridColumn: '1 / -1' }}>
+              <h2 style={{
+                margin: 0, fontFamily: font.heading, fontSize: calcNameSize(20, design), fontWeight: 800,
+                letterSpacing: '-0.035em', lineHeight: 1.02,
+                ...(design.nameColor
+                  ? { color: design.nameColor }
+                  : {
+                      background: `linear-gradient(120deg, ${bg.text} 12%, ${accentHex} 92%)`,
+                      WebkitBackgroundClip: 'text', backgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent', color: 'transparent',
+                    }),
+              }}>{form.name || 'Your Name'}</h2>
+              {form.company && <p style={{ margin: '5px 0 0', fontSize: calcCompanySize(8, design), fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
+              <LogoZone />
+            </div>
+
+            {isPro && form.bio && (
+              <div style={{ ...tile, gridColumn: '1 / -1' }}>
+                <span style={tileLabel}>About</span>
+                <p style={{ margin: 0, fontSize: calcBioSize(9, design), color: getBioColor(design, bg.subtext), lineHeight: 1.55 }}>{form.bio}</p>
+              </div>
+            )}
+
+            {contacts.map(c => (
+              <div key={c.key} style={{ ...tile, gridColumn: c.wide ? '1 / -1' : undefined }}>
+                <span style={{ display: 'block', color: accentHex, marginBottom: 5 }}>{c.icon}</span>
+                <span style={tileLabel}>{c.label}</span>
+                <span style={{ display: 'block', fontSize: getBodyFontSize(design) - 5, fontWeight: 600, color: bg.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.value}</span>
               </div>
             ))}
           </div>
+
           <Certs />
-          <div style={{ marginTop: 12, padding: '10px 0', borderRadius: 12, textAlign: 'center', fontSize: getButtonFontSize(design) - 2, fontWeight: 700, color: buttonText,
+          <div style={{ marginTop: 10, padding: '9px 0', borderRadius: 12, textAlign: 'center', fontSize: getButtonFontSize(design) - 2, fontWeight: 700, color: buttonText,
             background: `linear-gradient(135deg, ${buttonBg}, ${buttonBg}aa)`,
-            border: buttonBorder ? `2px solid ${buttonBorder}` : 'none',
-            boxShadow: design.cardStyle === 'glass' ? `0 0 12px ${accentHex}66` : undefined }}>Save Contact</div>
+            border: buttonBorder ? `2px solid ${buttonBorder}` : 'none' }}>Save Contact</div>
         </div>
       </div>
     )
   }
 
-  // ── 7. WAVE ───────────────────────────────────────────────────────────────
   if (design.templateId === 'wave') {
     // Mirror PublicCardView Wave: solid accent block when
     // solidBackground, otherwise the accent gradient. Brand-coloured

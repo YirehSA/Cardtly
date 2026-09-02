@@ -1494,30 +1494,52 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
   }
 
   if (design.templateId === 'creative') {
-    // Creative used to spend all of its personality in the top 200px - washes,
-    // arcs, a gradient name - and then hand off to the same centred column and
-    // the same shared contact buttons as everything else. Past the photograph
-    // it stopped being creative at all.
+    // A bento grid, which is the one shape nothing else in the set uses.
+    // Every other template here is a vertical stack: hero, then name, then a
+    // list of contacts, then the bottom. Two rebuilds of Creative kept that
+    // stack and redecorated the top of it, and both times what was left below
+    // the photograph was the same card as everything else. Changing the shape
+    // is the only thing that actually makes it a different template.
     //
-    // It is art-directed the whole way down now: a tilted photograph on a hard
-    // offset block, a drawn stroke under the name, and contacts as colour
-    // blocks rather than a list of outlined buttons.
-    const photoSize = calcPhotoSize(132, design)
+    // The grid is two columns at every width. Tiles that hold a long value
+    // take both, tiles that hold a short one take one, and a tile whose field
+    // is empty is simply not rendered - so a sparse card closes up into a
+    // smaller arrangement instead of leaving holes.
     const deep = darkenHex(accentHex, 0.3)
+    const onAccent = getReadableTextOn(accentHex)
 
-    const tiles: { key: string; label: string; value: string; href: string; icon: React.ReactNode; wide?: boolean }[] = [
-      card.phone && { key: 'tel', label: 'Call', value: card.phone, href: `tel:${card.phone}`, icon: <Phone className="w-5 h-5" /> },
-      isPro && card.work_phone && { key: 'dir', label: 'Direct', value: card.work_phone, href: `tel:${card.work_phone}`, icon: <Phone className="w-5 h-5" /> },
-      card.email && { key: 'eml', label: 'Email', value: card.email, href: `mailto:${card.email}`, icon: <Mail className="w-5 h-5" /> },
-      card.website && { key: 'web', label: 'Website', value: card.website.replace(/^https?:\/\//, '').replace(/\/$/, ''), href: card.website.startsWith('http') ? card.website : `https://${card.website}`, icon: <Globe className="w-5 h-5" /> },
-      isPro && card.address && { key: 'off', label: 'Find me', value: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}`, icon: <MapPin className="w-5 h-5" />, wide: true },
+    const tile: React.CSSProperties = {
+      borderRadius: 20, padding: '16px 17px',
+      background: cardEffect.surfaceBg,
+      backdropFilter: cardEffect.backdropFilter,
+      WebkitBackdropFilter: cardEffect.backdropFilter,
+      boxShadow: cardEffect.surfaceShadow,
+      border: `1px solid ${accentHex}26`,
+      textDecoration: 'none', display: 'block',
+    }
+    const tileLabel: React.CSSProperties = {
+      display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+      textTransform: 'uppercase', color: bg.subtext, marginBottom: 6,
+    }
+    const tileValue: React.CSSProperties = {
+      display: 'block', fontSize: getBodyFontSize(design), fontWeight: 600, color: bg.text,
+    }
+
+    const contactTiles: { key: string; label: string; value: string; href: string; icon: React.ReactNode; wide?: boolean }[] = [
+      card.phone && { key: 'tel', label: 'Call', value: card.phone, href: `tel:${card.phone}`, icon: <Phone className="w-4 h-4" /> },
+      isPro && card.work_phone && { key: 'dir', label: 'Direct', value: card.work_phone, href: `tel:${card.work_phone}`, icon: <Phone className="w-4 h-4" /> },
+      card.email && { key: 'eml', label: 'Email', value: card.email, href: `mailto:${card.email}`, icon: <Mail className="w-4 h-4" />, wide: true },
+      card.website && { key: 'web', label: 'Website', value: card.website.replace(/^https?:\/\//, '').replace(/\/$/, ''), href: card.website.startsWith('http') ? card.website : `https://${card.website}`, icon: <Globe className="w-4 h-4" />, wide: true },
+      isPro && card.address && { key: 'off', label: 'Find me', value: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}`, icon: <MapPin className="w-4 h-4" />, wide: true },
     ].filter(Boolean) as { key: string; label: string; value: string; href: string; icon: React.ReactNode; wide?: boolean }[]
 
     return (
       <div style={{ ...pageStyle, overflow: 'hidden', position: 'relative' }} className="animate-fade-up">
         {/* Colour-field backdrop: three overlapping washes rather than two flat
             radials, so the background has depth and movement instead of looking
-            like a gradient someone forgot to finish. */}
+            like a gradient someone forgot to finish. Kept from the old design:
+            it is the part that was working, and it gives the tiles something to
+            sit on rather than floating on a flat page. */}
         <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: '-18%', right: '-22%', width: '75vw', height: '75vw', maxWidth: 460, maxHeight: 460, borderRadius: '50%', background: `radial-gradient(circle, ${accentHex}55 0%, transparent 68%)`, filter: 'blur(28px)' }} />
           <div style={{ position: 'absolute', bottom: '-14%', left: '-24%', width: '68vw', height: '68vw', maxWidth: 420, maxHeight: 420, borderRadius: '50%', background: `radial-gradient(circle, ${deep}44 0%, transparent 70%)`, filter: 'blur(32px)' }} />
@@ -1529,114 +1551,89 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
           <Share2 className="w-4 h-4" style={{ color: bg.text }} />
         </button>
 
-        <div className="max-w-md mx-auto px-6 py-8 relative">
-          {/* A tilted photograph on a hard offset block. The offset is a solid
-              edge rather than a soft shadow on purpose: a blurred shadow reads
-              as depth, a hard one reads as print, and print is the register
-              this template is going for. The block is squared off for the same
-              reason - every other template in the set puts the face in a
-              circle, so a circle here says nothing. */}
-          <div style={{ position: 'relative', display: 'inline-block', marginBottom: 26 }}>
-            <div aria-hidden style={{
-              position: 'absolute', left: 12, top: 12, width: photoSize, height: photoSize,
-              borderRadius: 26, backgroundColor: accentHex, transform: 'rotate(-4deg)',
-            }} />
-            <div style={{
-              position: 'relative', width: photoSize, height: photoSize,
-              borderRadius: 26, overflow: 'hidden', transform: 'rotate(3deg)',
-              border: design.profileBorder === false ? 'none' : `3px solid ${bg.page}`,
-              boxShadow: `0 14px 40px ${accentHex}33`,
-            }}>
+        <div className="max-w-md mx-auto px-5 relative" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 64px)', paddingBottom: 32 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+
+            {/* Photograph, square, filling its cell edge to edge. */}
+            <div style={{ ...tile, padding: 0, overflow: 'hidden', aspectRatio: '1 / 1' }}>
               {card.profile_image_url
-                ? <img src={card.profile_image_url} alt={card.name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <div style={{ width: '100%', height: '100%', backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.33, fontWeight: 800, fontFamily: font.heading }}>{card.name?.[0]?.toUpperCase()}</div>}
+                ? <img src={card.profile_image_url} alt={card.name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', background: `linear-gradient(150deg, ${accentHex}55, ${deep}22)`, color: accentHex, fontFamily: font.heading, fontSize: 52, fontWeight: 800 }}>{initialsOf(card.name)}</div>}
             </div>
-            {/* A small drawn asterisk, the mark a designer leaves on a layout. */}
-            <svg aria-hidden width="30" height="30" viewBox="0 0 30 30" style={{ position: 'absolute', right: -16, top: -14 }}>
-              <g stroke={accentHex} strokeWidth="2.6" strokeLinecap="round">
-                <line x1="15" y1="4" x2="15" y2="26" /><line x1="5" y1="9" x2="25" y2="21" /><line x1="25" y1="9" x2="5" y2="21" />
-              </g>
-            </svg>
+
+            {/* The one solid accent tile. A bento grid with every cell the same
+                weight is a spreadsheet; one block of flat colour is what stops
+                it being one. It carries the title when there is one, and the
+                asterisk alone when there is not, so the cell is never empty. */}
+            <div style={{ ...tile, aspectRatio: '1 / 1', background: accentHex, border: 'none', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <svg aria-hidden width="26" height="26" viewBox="0 0 30 30">
+                <g stroke={onAccent} strokeWidth="2.6" strokeLinecap="round" opacity="0.9">
+                  <line x1="15" y1="4" x2="15" y2="26" /><line x1="5" y1="9" x2="25" y2="21" /><line x1="25" y1="9" x2="5" y2="21" />
+                </g>
+              </svg>
+              {isPro && card.title && (
+                <span style={{
+                  fontFamily: font.heading, fontSize: calcTitleSize(19, design), fontWeight: 800,
+                  lineHeight: 1.08, letterSpacing: '-0.02em', color: onAccent,
+                }}>{card.title}</span>
+              )}
+            </div>
+
+            {/* Name across the full width, as large as it will go. */}
+            <div style={{ ...tile, gridColumn: '1 / -1', paddingTop: 18, paddingBottom: 18 }}>
+              <h1 className="font-bold" style={{
+                margin: 0, fontFamily: font.heading, fontSize: calcNameSize(36, design),
+                letterSpacing: '-0.035em', lineHeight: 1.02,
+                ...(design.nameColor
+                  ? { color: design.nameColor }
+                  : {
+                      background: `linear-gradient(120deg, ${bg.text} 12%, ${accentHex} 92%)`,
+                      WebkitBackgroundClip: 'text', backgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent', color: 'transparent',
+                    }),
+              }}>{card.name}</h1>
+              {card.company && (
+                <p style={{ margin: '10px 0 0', fontSize: calcCompanySize(13, design), fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>
+              )}
+              <LogoZone {...shared} />
+            </div>
+
+            {card.bio && (
+              <div style={{ ...tile, gridColumn: '1 / -1' }}>
+                <span style={tileLabel}>About</span>
+                <p className="leading-relaxed" style={{ margin: 0, fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>
+              </div>
+            )}
+
+            {contactTiles.map(t => (
+              <a key={t.key} href={t.href}
+                target={t.href.startsWith('http') ? '_blank' : undefined}
+                rel={t.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                className="hover:opacity-90 transition"
+                style={{ ...tile, minHeight: 92, gridColumn: t.wide ? '1 / -1' : undefined }}>
+                <span style={{ display: 'block', color: accentHex, marginBottom: 10 }}>{t.icon}</span>
+                <span style={tileLabel}>{t.label}</span>
+                <span className="truncate" style={tileValue}>{t.value}</span>
+              </a>
+            ))}
+
+            {socialLinks.length > 0 && (
+              <div style={{ ...tile, gridColumn: '1 / -1' }}>
+                <span style={tileLabel}>Elsewhere</span>
+                <div className="flex flex-wrap gap-2.5">
+                  {socialLinks.map(s => (
+                    <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
+                      aria-label={s.platform} title={s.platform}
+                      style={{
+                        width: 46, height: 46, borderRadius: 14, display: 'grid', placeItems: 'center',
+                        backgroundColor: s.color || accentHex, color: '#fff', textDecoration: 'none',
+                        boxShadow: `0 6px 18px ${(s.color || accentHex)}55`,
+                      }}>{s.icon}</a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-
-          {/* The name carries the accent as a gradient rather than a flat fill,
-              which is what gives this template its signature look. */}
-          <h1 className="font-bold leading-tight" style={{
-            fontFamily: font.heading, fontSize: calcNameSize(34, design),
-            letterSpacing: '-0.03em', margin: 0,
-            ...(design.nameColor
-              ? { color: design.nameColor }
-              : {
-                  background: `linear-gradient(120deg, ${bg.text} 12%, ${accentHex} 92%)`,
-                  WebkitBackgroundClip: 'text', backgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent', color: 'transparent',
-                }),
-          }}>{card.name}</h1>
-
-          {/* A drawn stroke under the name. Fixed width and left aligned rather
-              than sized to the text: measuring the name would mean a layout
-              pass on every render, and a stroke that starts under the first
-              letter and runs out reads as drawn anyway. */}
-          <svg aria-hidden width="170" height="12" viewBox="0 0 170 12" style={{ display: 'block', marginTop: 4 }}>
-            <path d="M3,8 C34,3 62,10 92,5 C118,1 144,7 167,4" fill="none"
-              stroke={accentHex} strokeWidth="3.5" strokeLinecap="round" opacity="0.9" />
-          </svg>
-
-          {isPro && card.title && (
-            <span style={{
-              display: 'inline-block', marginTop: 14, padding: '6px 15px', borderRadius: 999,
-              fontSize: calcTitleSize(13, design), fontWeight: 700,
-              color: getTitleColor(design, accentHex),
-              background: accentHex + '1f', border: `1px solid ${accentHex}44`,
-            }}>{card.title}</span>
-          )}
-          {card.company && <p className="mt-2.5" style={{ fontSize: calcCompanySize(14, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
-          <LogoZone {...shared} />
-          {card.bio && <p className="mt-3 leading-relaxed" style={{ fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
-
-          {/* Colour blocks, not a list of outlined buttons. The icon is large
-              and the label is a verb, so the grid reads as a set of things to
-              do rather than a table of fields. An address is the one value
-              long enough to need the full row. */}
-          {tiles.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 26 }}>
-              {tiles.map((t, i) => (
-                <a key={t.key} href={t.href}
-                  target={t.href.startsWith('http') ? '_blank' : undefined}
-                  rel={t.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                  className="hover:opacity-90 transition"
-                  style={{
-                    display: 'block', padding: '14px 15px', minHeight: 84,
-                    borderRadius: 18, textDecoration: 'none',
-                    // Alternating weight so the grid has rhythm instead of
-                    // reading as four identical swatches.
-                    background: i % 2 === 0
-                      ? `linear-gradient(150deg, ${accentHex}2e 0%, ${accentHex}12 100%)`
-                      : `linear-gradient(150deg, ${deep}2e 0%, ${deep}10 100%)`,
-                    border: `1px solid ${accentHex}33`,
-                    gridColumn: t.wide ? '1 / -1' : undefined,
-                  }}>
-                  <span style={{ display: 'block', color: accentHex, marginBottom: 8 }}>{t.icon}</span>
-                  <span style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: bg.subtext, marginBottom: 3 }}>{t.label}</span>
-                  <span className="truncate" style={{ display: 'block', fontSize: getBodyFontSize(design), fontWeight: 600, color: bg.text }}>{t.value}</span>
-                </a>
-              ))}
-            </div>
-          )}
-
-          {socialLinks.length > 0 && (
-            <div className="flex flex-wrap gap-2.5" style={{ marginTop: 14 }}>
-              {socialLinks.map(s => (
-                <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
-                  aria-label={s.platform} title={s.platform}
-                  style={{
-                    width: 48, height: 48, borderRadius: 16, display: 'grid', placeItems: 'center',
-                    backgroundColor: s.color || accentHex, color: '#fff', textDecoration: 'none',
-                    boxShadow: `0 6px 18px ${(s.color || accentHex)}55`,
-                  }}>{s.icon}</a>
-              ))}
-            </div>
-          )}
 
           <BottomSection {...bottomProps} />
         </div>
