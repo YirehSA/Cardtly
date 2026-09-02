@@ -182,10 +182,13 @@ export default function HomePage() {
                 "500K+ views served"; the real figures at the time of writing
                 were 66 cards and 1,695 views. Numbers on a sales page have to
                 be ones we could stand behind if somebody asked. */}
+            {/* Four different facts. Two of these were both R97 - "Per card,
+                per month" and "A card a month" - which is the same price said
+                twice, and read as a mistake because it is one. */}
             {[
               { n: 'R97',      label: 'Per card, per month' },
-              { n: 'R97',  label: 'A card a month' },
-              { n: '12',       label: 'Designed templates' },
+              { n: '15',       label: 'Designed templates' },
+              { n: '20',       label: 'Seats per team' },
               { n: '5–7 days', label: 'NFC card delivery, SA' },
             ].map(({ n, label }, i) => (
               <Reveal key={label} delay={i * 90}>

@@ -90,9 +90,13 @@ if (!/nfc-pricing/.test(nfcPage)) {
 const design = read('types/design.ts')
 const maxLinks = Number(design.match(/MAX_CUSTOM_LINKS\s*=\s*(\d+)/)?.[1])
 const maxImages = Number(design.match(/MAX_GALLERY_IMAGES\s*=\s*(\d+)/)?.[1])
+// Counted from the TEMPLATES table rather than a constant, because the table
+// is the only place the number exists. Copy said twelve for a long time after
+// the thirteenth shipped.
+const templateCount = (design.match(/^\s*\{ id: '[a-z]+',\s+name:/gm) || []).length
 
-if (!Number.isFinite(maxLinks) || !Number.isFinite(maxImages)) {
-  console.error('check-facts: could not read MAX_CUSTOM_LINKS / MAX_GALLERY_IMAGES from types/design.ts')
+if (!Number.isFinite(maxLinks) || !Number.isFinite(maxImages) || templateCount === 0) {
+  console.error('check-facts: could not read MAX_CUSTOM_LINKS / MAX_GALLERY_IMAGES / TEMPLATES from types/design.ts')
   process.exit(1)
 }
 
@@ -127,6 +131,13 @@ const COUNT_CLAIMS = [
     re: /(\d+)\s+(?:custom\s+)?link(?:\s+button)?s/gi },
   { what: 'gallery images', actual: maxImages,
     re: /(?:gallery of up to|up to)\s+(\d+)\s+(?:gallery\s+)?(?:images|photos)/gi },
+  { what: 'templates', actual: templateCount,
+    re: /(\d+)\s+(?:designed\s+)?templates/gi },
+  // The stats bar on the home page splits the number away from the word, so
+  // the prose rule above cannot see it. That is exactly where "12 designed
+  // templates" survived a sweep that fixed every sentence on the site.
+  { what: 'templates (stat tile)', actual: templateCount,
+    re: /n:\s*'(\d+)'[^}]*label:\s*'Designed templates'/gi },
 ]
 
 for (const file of MARKETING) {

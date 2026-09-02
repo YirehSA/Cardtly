@@ -116,12 +116,14 @@ export default function PricingPage() {
 
           {/* The three things people actually want to know before scrolling. */}
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-4">
+            {/* The first two were both R97 saying the same thing, which also
+                made two rows share a React key. */}
             {[
-              { k: 'R97', v: 'A card a month, all features' },
               { k: 'R97', v: 'Per card, per month, everything included' },
+              { k: 'Up to 20', v: 'Seats on one team, one invoice' },
               { k: 'Cancel anytime', v: 'No lock-in, no cancellation fee' },
             ].map(({ k, v }) => (
-              <div key={k} className="rounded-2xl p-5"
+              <div key={v} className="rounded-2xl p-5"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <p className="text-2xl font-black tracking-tight whitespace-nowrap" style={gradText}>{k}</p>
                 <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.55)' }}>{v}</p>
