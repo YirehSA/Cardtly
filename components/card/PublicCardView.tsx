@@ -2050,10 +2050,20 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
         <div style={{ ...column, position: 'relative' }}>
           {/* The hero runs to the top edge, so nothing can be padded down from
               it to clear the app's back button. The logo goes to the right
-              instead, which is the corner the button never occupies. */}
+              instead, which is the corner the button never occupies.
+
+              Profile photo size drives the height of the hero here, since
+              there is no avatar to make bigger. calcPhotoSize(125) is the
+              height as a percentage of the width, so 100% is the 4:5 the
+              template is drawn for, 60% is a broad landscape crop and 160%
+              is a tall portrait. The vh clamp scales with it and then stops
+              at 88, so the far end of the slider still leaves something on
+              screen below the fold rather than a full page of photograph. */}
           <div style={{
-            position: 'relative', width: '100%', aspectRatio: '4 / 5',
-            maxHeight: '64vh', overflow: 'hidden', backgroundColor: bg.card,
+            position: 'relative', width: '100%',
+            aspectRatio: 100 / calcPhotoSize(125, design),
+            maxHeight: `${Math.min(88, Math.round(calcPhotoSize(64, design)))}vh`,
+            overflow: 'hidden', backgroundColor: bg.card,
           }}>
             {card.profile_image_url ? (
               // 50% 18%, not centred: a portrait centred on its own box puts
@@ -2066,18 +2076,31 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                 background: `linear-gradient(150deg, ${accentHex}44 0%, ${bg.card} 55%, ${bg.page} 100%)`,
               }}>
                 <span style={{
-                  fontFamily: font.heading, fontSize: 96, fontWeight: 300,
+                  fontFamily: font.heading, fontSize: calcPhotoSize(96, design), fontWeight: 300,
                   letterSpacing: '0.06em', color: accentHex, opacity: 0.9,
                 }}>{initialsOf(card.name)}</span>
               </div>
             )}
 
             {/* Fades the photograph into the page so the name sits on solid
-                ground. Ending on bg.page exactly, not on black: on a light
-                card a black scrim would band across the bottom of the photo. */}
+                ground. Two layers, and the order matters.
+
+                The first is measured in pixels from the bottom, because the
+                name block is a fixed height and the hero is not: with only a
+                percentage fade, shrinking the hero with the photo size slider
+                moved the name up into the part of the picture the scrim had
+                barely touched, and at 60% it was grey on grey. 190px always
+                covers the kicker, the name and the company line whatever the
+                hero is doing.
+
+                The second is the soft blend over the whole picture.
+
+                Both end on bg.page exactly, not on black: on a light card a
+                black scrim would band across the bottom of the photograph. */}
             <div aria-hidden style={{
               position: 'absolute', inset: 0,
-              background: `linear-gradient(to bottom, ${bg.page}00 26%, ${bg.page}b8 62%, ${bg.page}f2 84%, ${bg.page} 100%)`,
+              background: `linear-gradient(to top, ${bg.page} 0px, ${bg.page}e8 72px, ${bg.page}00 190px), `
+                + `linear-gradient(to bottom, ${bg.page}00 30%, ${bg.page}70 68%, ${bg.page}c0 100%)`,
             }} />
 
             {card.company_logo_url && design.logoPosition !== 'hidden' && (

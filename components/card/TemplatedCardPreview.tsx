@@ -846,13 +846,13 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
 
     return (
       <div style={{ ...pageStyle, minHeight: 380 }}>
-        <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 5', maxHeight: 210, overflow: 'hidden', backgroundColor: bg.card }}>
+        <div style={{ position: 'relative', width: '100%', aspectRatio: 100 / calcPhotoSize(125, design), maxHeight: calcPhotoSize(210, design), overflow: 'hidden', backgroundColor: bg.card }}>
           {form.profile_image_url
             ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 18%' }} />
             : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', background: `linear-gradient(150deg, ${accentHex}44 0%, ${bg.card} 55%, ${bg.page} 100%)` }}>
-                <span style={{ fontFamily: font.heading, fontSize: 46, fontWeight: 300, letterSpacing: '0.06em', color: accentHex, opacity: 0.9 }}>{initials}</span>
+                <span style={{ fontFamily: font.heading, fontSize: calcPhotoSize(46, design), fontWeight: 300, letterSpacing: '0.06em', color: accentHex, opacity: 0.9 }}>{initials}</span>
               </div>}
-          <div aria-hidden style={{ position: 'absolute', inset: 0, background: `linear-gradient(to bottom, ${bg.page}00 26%, ${bg.page}b8 62%, ${bg.page}f2 84%, ${bg.page} 100%)` }} />
+          <div aria-hidden style={{ position: 'absolute', inset: 0, background: `linear-gradient(to top, ${bg.page} 0px, ${bg.page}e8 34px, ${bg.page}00 92px), linear-gradient(to bottom, ${bg.page}00 30%, ${bg.page}70 68%, ${bg.page}c0 100%)` }} />
           {form.company_logo_url && design.logoPosition !== 'hidden' && (
             <img src={form.company_logo_url} style={{ position: 'absolute', right: 10, top: 10, height: calcLogoHeight(18, design), width: 'auto', maxWidth: '42%', objectFit: 'contain' }} />
           )}
