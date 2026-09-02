@@ -103,7 +103,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
 
   function Row({ icon, label, sublabel }: { icon: React.ReactNode; label: string; sublabel?: string }) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, backgroundColor: cardEffect.surfaceBg, borderRadius: 10, padding: '8px 12px', border: cardEffect.borderStyle }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, backgroundColor: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow, borderRadius: 10, padding: '8px 12px', border: cardEffect.borderStyle }}>
         <span style={{ color: accentHex, flexShrink: 0 }}>{icon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: getBodyFontSize(design) - 3, fontWeight: 500, margin: 0, color: bg.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</p>
@@ -879,7 +879,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
 
         <div style={{ padding: '2px 12px 14px' }}>
           {isPro && form.bio && (
-            <div style={{ marginBottom: 12, padding: '7px 8px', border: `1px solid ${bg.border}`, borderLeft: `2px solid ${accentHex}`, borderRadius: 6, backgroundColor: cardEffect.surfaceBg }}>
+            <div style={{ marginBottom: 12, padding: '7px 8px', border: `1px solid ${bg.border}`, borderLeft: `2px solid ${accentHex}`, borderRadius: 6, backgroundColor: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow }}>
               <span style={label}>About</span>
               <p style={{ margin: 0, fontSize: calcBioSize(9, design), color: getBioColor(design, bg.subtext), lineHeight: 1.6 }}>{form.bio}</p>
             </div>
@@ -888,7 +888,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           {tiles.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
               {tiles.map(t => (
-                <div key={t.key} style={{ padding: '6px 7px', border: `1px solid ${bg.border}`, borderRadius: 6, backgroundColor: cardEffect.surfaceBg }}>
+                <div key={t.key} style={{ padding: '6px 7px', border: `1px solid ${bg.border}`, borderRadius: 6, backgroundColor: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow }}>
                   <span style={label}>
                     <span style={{ display: 'inline-flex', verticalAlign: '-1px', marginRight: 3, color: accentHex }}>{t.icon}</span>
                     {t.label}

@@ -278,6 +278,14 @@ export function getCardStyleEffect(style: CardStyle, accentHex: string, bgPage: 
   heroBg: string
   surfaceBg: string
   borderStyle: string
+  /** Frosting for Glass, 'none' for the other two. Applied next to surfaceBg
+   *  wherever a panel is drawn. Needs the -webkit- prefix as well: iOS Safari
+   *  is where most of these cards are read and it still wants it. */
+  backdropFilter: string
+  /** The lit top edge. This, more than the blur, is what actually reads as
+   *  glass: a blur has nothing to work with on a flat page, where a bright
+   *  inner edge reads as a pane of something in any light. */
+  surfaceShadow: string
 } {
   // These tints used to be white-only, which silently assumed the page behind
   // them was dark. Pick a yellow background and the contact rows became a
@@ -289,19 +297,34 @@ export function getCardStyleEffect(style: CardStyle, accentHex: string, bgPage: 
         heroBg: `linear-gradient(135deg, ${accentHex}55 0%, ${accentHex}22 50%, ${bgPage} 100%)`,
         surfaceBg: `linear-gradient(135deg, ${accentHex}18 0%, transparent 100%)`,
         borderStyle: `1px solid ${accentHex}44`,
+        backdropFilter: 'none',
+        surfaceShadow: 'none',
       }
     case 'glass':
+      // Glass had no blur, no lit edge and no highlight: it was a slightly
+      // different flat tint sitting under a control that said "Frosted look".
+      // The hero keeps a wash on purpose, because frosting needs something
+      // behind it to work with.
       return {
-        heroBg: `linear-gradient(135deg, ${accentHex}33 0%, ${accentHex}11 100%)`,
-        surfaceBg: light ? `rgba(0,0,0,0.05)` : `rgba(255,255,255,0.04)`,
-        borderStyle: light ? `1px solid rgba(0,0,0,0.10)` : `1px solid rgba(255,255,255,0.12)`,
+        heroBg: `linear-gradient(135deg, ${accentHex}3d 0%, ${accentHex}14 100%)`,
+        surfaceBg: light ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.07)',
+        borderStyle: light ? '1px solid rgba(255,255,255,0.85)' : '1px solid rgba(255,255,255,0.18)',
+        backdropFilter: 'blur(18px) saturate(160%)',
+        surfaceShadow: light
+          ? 'inset 0 1px 0 rgba(255,255,255,0.9), 0 6px 20px rgba(0,0,0,0.07)'
+          : 'inset 0 1px 0 rgba(255,255,255,0.14), 0 6px 20px rgba(0,0,0,0.28)',
       }
     case 'flat':
     default:
+      // Flat means flat. This was a linear-gradient, under a control labelled
+      // "Solid colours" - so the one option promising no fade was drawing one,
+      // and Gradient was the only style doing what its name said.
       return {
-        heroBg: `linear-gradient(180deg, ${accentHex}33 0%, ${bgPage} 100%)`,
-        surfaceBg: light ? `rgba(0,0,0,0.07)` : `rgba(255,255,255,0.06)`,
-        borderStyle: `1px solid transparent`,
+        heroBg: `${accentHex}2b`,
+        surfaceBg: light ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)',
+        borderStyle: '1px solid transparent',
+        backdropFilter: 'none',
+        surfaceShadow: 'none',
       }
   }
 }
