@@ -715,11 +715,14 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
       isPro && (form as any).linkedin_url && { key: 'li', icon: <Linkedin style={{ width: 11, height: 11 }} />, label: 'LinkedIn' },
     ].filter(Boolean) as { key: string; icon: React.ReactNode; label: string }[]
 
+    // Layered like the real one: one thin band read as a stray stripe.
     const ribbon = (flip: boolean) => (
       <svg aria-hidden viewBox="0 0 400 110" preserveAspectRatio="none"
         style={{ position: 'absolute', left: 0, width: '100%', height: 46, [flip ? 'bottom' : 'top']: 0, transform: flip ? 'scaleY(-1)' : undefined }}>
-        <path d="M0,44 C62,24 112,52 182,26 C260,-2 326,50 400,12 L400,40 C326,78 260,26 182,54 C112,80 62,52 0,72 Z" fill={accentHex} opacity="0.45" />
-        <path d="M0,80 C58,62 108,90 176,64 C256,34 322,90 400,48" fill="none" stroke={companion} strokeWidth="4" opacity="0.7" />
+        <path d="M0,30 C70,4 126,44 198,14 C280,-20 336,34 400,-8 L400,30 C336,72 280,18 198,52 C126,86 70,46 0,74 Z" fill={companion} opacity="0.55" />
+        <path d="M0,60 C66,36 120,74 192,44 C272,10 334,64 400,24 L400,44 C334,84 272,30 192,64 C120,94 66,56 0,80 Z" fill={accentHex} opacity="0.5" />
+        <path d="M0,88 C58,70 108,98 176,72 C256,42 322,98 400,56" fill="none" stroke={companion} strokeWidth="4" opacity="0.9" />
+        <path d="M0,99 C64,83 112,109 184,83 C262,55 330,109 400,69" fill="none" stroke={accentHex} strokeWidth="2.5" opacity="0.7" />
       </svg>
     )
 
@@ -754,18 +757,40 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           {form.company && <p style={{ margin: 0, fontSize: calcCompanySize(10, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
           {isPro && form.bio && <p style={{ margin: '8px 0 0', fontSize: calcBioSize(10, design), color: getBioColor(design, bg.subtext), lineHeight: 1.6 }}>{form.bio}</p>}
 
+          {/* Accent at the icon running to companion at the node on every row.
+              Alternating the whole row between the two tones made every second
+              one look like a warning. What alternates is the step direction. */}
           <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {traces.map((t, i) => {
-              const tone = i % 2 === 0 ? accentHex : companion
-              return (
-                <div key={t.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ width: 24, height: 24, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', border: `1px solid ${tone}`, color: tone, backgroundColor: tone + '18' }}>{t.icon}</span>
-                  <span style={{ fontSize: getBodyFontSize(design) - 4, color: bg.text, maxWidth: '58%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
-                  <span style={{ flex: 1, minWidth: 6, height: 1, backgroundColor: tone, opacity: 0.55 }} />
-                  <span style={{ width: 4, height: 4, flexShrink: 0, borderRadius: '50%', backgroundColor: tone }} />
-                </div>
-              )
-            })}
+            {traces.map((t, i) => (
+              <div key={t.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 24, height: 24, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', border: `1px solid ${accentHex}`, color: accentHex, backgroundColor: accentHex + '1f' }}>{t.icon}</span>
+                <span style={{ fontSize: getBodyFontSize(design) - 4, color: bg.text, maxWidth: '52%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
+                <span style={{ flex: 1, minWidth: 4, height: 1, background: `linear-gradient(90deg, ${accentHex}, ${companion})`, opacity: 0.75 }} />
+                <svg aria-hidden width="18" height="14" viewBox="0 0 34 26" style={{ flexShrink: 0, overflow: 'visible' }}>
+                  <path d={i % 2 === 0 ? 'M0,20 H10 L20,6 H34' : 'M0,6 H10 L20,20 H34'} fill="none" stroke={companion} strokeWidth="2" />
+                </svg>
+                <span style={{ width: 4, height: 4, flexShrink: 0, borderRadius: '50%', backgroundColor: companion }} />
+              </div>
+            ))}
+          </div>
+
+          {/* Book on the left, scan on the right, as on the real card. The QR
+              is a placeholder grid here: a thumbnail is far too small to scan,
+              and generating a real one per preview keystroke is wasted work. */}
+          <div style={{ marginTop: 14, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: '0 0 6px', fontSize: 8, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: accentHex }}>Schedule a chat</p>
+              <div style={{ padding: '5px 0', borderRadius: 999, textAlign: 'center', fontSize: 9, fontWeight: 600, color: companion, border: `1px solid ${accentHex}`, backgroundColor: accentHex + '1f' }}>Book a slot</div>
+            </div>
+            <div aria-hidden style={{
+              width: 44, height: 44, flexShrink: 0, borderRadius: 8, padding: 3,
+              border: `1px solid ${companion}`, backgroundColor: '#ffffff',
+              display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 1,
+            }}>
+              {[1,1,1,0,1, 1,0,1,0,1, 1,1,0,1,1, 0,0,1,0,1, 1,1,0,1,1].map((on, i) => (
+                <span key={i} style={{ backgroundColor: on ? '#0a1428' : 'transparent', borderRadius: 1 }} />
+              ))}
+            </div>
           </div>
 
           <Certs />

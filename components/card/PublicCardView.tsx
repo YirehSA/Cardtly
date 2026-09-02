@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Card, extractLinks } from '@/types/database'
 import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS } from '@/types/design'
@@ -100,15 +100,135 @@ function CircuitRibbon({ accentHex, companion, flip = false }: { accentHex: stri
           <stop offset="100%" stopColor={accentHex} stopOpacity="0.2" />
         </linearGradient>
       </defs>
-      {/* A band with two curved edges, not a shape anchored to the top of the
-          frame: filling from the edge down turned the whole corner into a
-          wash, where the point is a ribbon sweeping across it. */}
+      {/* Layered: a wide sweep, a second one riding under it, then two thin
+          traces. One thin band read as a stripe someone had left on by
+          accident - the reference gets its weight from several curves stacked
+          at different depths, which is what makes it a ribbon. */}
       <path
-        d="M0,44 C62,24 112,52 182,26 C260,-2 326,50 400,12 L400,40 C326,78 260,26 182,54 C112,80 62,52 0,72 Z"
-        fill={`url(#cr-a-${flip ? 'b' : 't'})`} opacity="0.8" />
-      <path d="M0,80 C58,62 108,90 176,64 C256,34 322,90 400,48" fill="none" stroke={companion} strokeWidth="2" opacity="0.75" />
-      <path d="M0,92 C64,76 112,102 184,76 C262,48 330,102 400,62" fill="none" stroke={accentHex} strokeWidth="1" opacity="0.5" />
+        d="M0,30 C70,4 126,44 198,14 C280,-20 336,34 400,-8 L400,30 C336,72 280,18 198,52 C126,86 70,46 0,74 Z"
+        fill={`url(#cr-a-${flip ? 'b' : 't'})`} opacity="0.9" />
+      <path
+        d="M0,60 C66,36 120,74 192,44 C272,10 334,64 400,24 L400,44 C334,84 272,30 192,64 C120,94 66,56 0,80 Z"
+        fill={accentHex} opacity="0.35" />
+      <path d="M0,88 C58,70 108,98 176,72 C256,42 322,98 400,56" fill="none" stroke={companion} strokeWidth="2.5" opacity="0.9" />
+      <path d="M0,99 C64,83 112,109 184,83 C262,55 330,109 400,69" fill="none" stroke={accentHex} strokeWidth="1.5" opacity="0.7" />
     </svg>
+  )
+}
+
+// The faint geometry drifting behind the hero - triangles and diamonds, as on
+// the reference. Fixed table for the same reason the stars are: this renders
+// on the server and again on the client.
+const CIRCUIT_SHAPES: { x: number; y: number; size: number; kind: 'tri' | 'dia' }[] = [
+  { x: 12, y: 26, size: 26, kind: 'tri' }, { x: 78, y: 16, size: 18, kind: 'dia' },
+  { x: 88, y: 52, size: 30, kind: 'tri' }, { x: 22, y: 62, size: 20, kind: 'dia' },
+  { x: 58, y: 78, size: 34, kind: 'tri' }, { x: 6, y: 86, size: 16, kind: 'dia' },
+  { x: 68, y: 38, size: 14, kind: 'dia' }, { x: 40, y: 92, size: 22, kind: 'tri' },
+]
+
+function CircuitShapes({ accentHex, companion }: { accentHex: string; companion: string }) {
+  return (
+    <div aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+      {CIRCUIT_SHAPES.map((s, i) => {
+        const tone = i % 2 ? companion : accentHex
+        return s.kind === 'tri' ? (
+          <span key={i} style={{
+            position: 'absolute', left: `${s.x}%`, top: `${s.y}%`, width: 0, height: 0,
+            borderLeft: `${s.size / 2}px solid transparent`, borderRight: `${s.size / 2}px solid transparent`,
+            borderBottom: `${s.size}px solid ${tone}`, opacity: 0.09,
+            transform: `rotate(${i * 37}deg)`,
+          }} />
+        ) : (
+          <span key={i} style={{
+            position: 'absolute', left: `${s.x}%`, top: `${s.y}%`, width: s.size, height: s.size,
+            border: `1.5px solid ${tone}`, opacity: 0.16, transform: 'rotate(45deg)',
+          }} />
+        )
+      })}
+    </div>
+  )
+}
+
+// The step in a contact trace. Fixed width and height so the diagonal keeps
+// its angle: stretching an SVG to fill the row would flatten or steepen it
+// depending on how much room was left over, and every row would differ.
+function CircuitElbow({ up, from, to }: { up: boolean; from: string; to: string }) {
+  const id = `el-${up ? 'u' : 'd'}-${from.replace('#', '')}-${to.replace('#', '')}`
+  return (
+    <svg aria-hidden width="34" height="26" viewBox="0 0 34 26" style={{ flexShrink: 0, overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={from} />
+          <stop offset="100%" stopColor={to} />
+        </linearGradient>
+      </defs>
+      <path d={up ? 'M0,20 H10 L20,6 H34' : 'M0,6 H10 L20,20 H34'}
+        fill="none" stroke={`url(#${id})`} strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter" />
+    </svg>
+  )
+}
+
+// Circuit's own booking button. BookingTrigger's is a full-width pill styled
+// for the foot of the card; this one sits in a two-up beside the QR.
+function CircuitBookButton({ card, accentHex, companion }: { card: Card; accentHex: string; companion: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button onClick={() => setOpen(true)}
+        className="flex items-center justify-center gap-2 hover:opacity-90 transition"
+        style={{
+          width: '100%', minHeight: 44, padding: '11px 18px', borderRadius: 999,
+          backgroundColor: `${accentHex}1f`, border: `1.5px solid ${accentHex}`,
+          color: companion, fontSize: 14, fontWeight: 600,
+          boxShadow: `0 0 16px ${accentHex}33`,
+        }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+        Book a slot
+      </button>
+      <BookingModal open={open} onClose={() => setOpen(false)} cardId={card.id} cardName={card.name || ''} accentHex={accentHex} />
+    </>
+  )
+}
+
+// Scan-to-connect. The visitor is on the card, but the person holding the
+// phone is usually showing it to someone else - that second person scans this
+// with their own phone, which is the whole reason a card on a screen carries
+// a QR at all. Generated in the browser: it is derived from the slug and
+// nothing needs to store it.
+function CircuitQR({ slug, accentHex, companion, label }: { slug: string; accentHex: string; companion: string; label: string }) {
+  const [svg, setSvg] = useState<string>('')
+  useEffect(() => {
+    let live = true
+    import('qrcode')
+      // Dark modules on a light panel, not the reference's glowing inverse.
+      // Inverted codes are unreliable to scan - iOS Camera in particular often
+      // will not read light-on-dark - and a QR nobody can scan is worse than
+      // no QR at all. The neon frame around it carries the look instead.
+      .then(m => m.default.toString(`https://cardtly.com/card/${slug}`, {
+        type: 'svg', margin: 1, width: 200,
+        color: { dark: '#0a1428', light: '#ffffff' },
+      }))
+      .then(s => { if (live) setSvg(s) })
+      .catch(() => {})
+    return () => { live = false }
+  }, [slug])
+
+  return (
+    <div style={{ flexShrink: 0, textAlign: 'center' }}>
+      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: companion }}>{label}</p>
+      <div style={{
+        width: 128, height: 128, padding: 7, borderRadius: 16,
+        border: `1.5px solid ${companion}`, boxShadow: `0 0 18px ${companion}55`,
+        backgroundColor: '#ffffff', overflow: 'hidden',
+      }}>
+        {/* The generated SVG carries its own width and height attributes, so
+            without this it ignores the frame and renders at its natural size,
+            straight off the side of the card.
+            Nothing until it resolves, rather than a broken frame. */}
+        {svg && <div className="[&>svg]:block [&>svg]:w-full [&>svg]:h-full"
+          style={{ width: '100%', height: '100%' }} dangerouslySetInnerHTML={{ __html: svg }} />}
+      </div>
+    </div>
   )
 }
 
@@ -241,6 +361,10 @@ interface BottomProps {
    *  the sidebar zone where they hang off the rail. Without this they would
    *  appear twice - once attached to the rail and once again down here. */
   omitAboveGallery?: boolean
+  /** Circuit puts Book a slot up in the hero, beside the QR. Without this it
+   *  would appear again down here, and a card offering to book you twice is
+   *  worse than one that never offers. */
+  omitBooking?: boolean
 }
 
 // Helper that renders the Book a Meeting button. Encapsulates the modal
@@ -270,7 +394,7 @@ function BookingTrigger({ card, accentHex, buttonBg, buttonText, buttonBorder }:
   )
 }
 
-function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false }: BottomProps) {
+function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false }: BottomProps) {
   const [showContactForm, setShowContactForm] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -471,7 +595,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
         document.body
       )}
 
-      {isPro && (
+      {isPro && !omitBooking && (
         <BookingTrigger card={card} accentHex={accentHex} buttonBg={buttonBg} buttonText={buttonText} buttonBorder={buttonBorder} />
       )}
       <div className="mt-8 flex gap-3">
@@ -1700,15 +1824,16 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
             without clipping the modals and the image viewer further down. */}
         <div style={{ position: 'relative', overflow: 'hidden' }}>
           <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+            <CircuitShapes accentHex={accentHex} companion={companion} />
             <CircuitStars companion={companion} />
             <CircuitRibbon accentHex={accentHex} companion={companion} />
             <CircuitRibbon accentHex={accentHex} companion={companion} flip />
           </div>
 
           {/* 96px at the foot, not 26: the closing ribbon is 110px tall and
-              sits at the base of this zone, so a short pad left the last
+              sits at the base of this zone, so a short pad left the QR and the last
               contact row lying across it. */}
-          <div style={{ ...column, position: 'relative', padding: 'calc(env(safe-area-inset-top, 0px) + 76px) 22px 96px' }}>
+          <div style={{ ...column, position: 'relative', padding: 'calc(env(safe-area-inset-top, 0px) + 76px) 22px 124px' }}>
             {/* Logo one side, photo the other, as on the reference. The photo
                 gets a double ring - companion outside, accent inside - which is
                 what makes it read as a badge rather than a pasted circle. */}
@@ -1749,37 +1874,63 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
               <p className="leading-relaxed" style={{ margin: '12px 0 0', fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>
             )}
 
-            {/* The traces. The line is aria-hidden decoration; the row itself
-                is the link, and the label is what a screen reader reads. */}
-            <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {traceRows.map((r, i) => {
-                const tone = i % 2 === 0 ? accentHex : companion
-                return (
-                  <a key={r.key} href={r.href}
-                    target={r.href.startsWith('http') ? '_blank' : undefined}
-                    rel={r.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                    style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 44, textDecoration: 'none' }}>
-                    <span style={{
-                      width: 42, height: 42, flexShrink: 0, borderRadius: '50%',
-                      display: 'grid', placeItems: 'center',
-                      border: `1.5px solid ${tone}`, color: tone,
-                      backgroundColor: tone + '18', boxShadow: `0 0 12px ${tone}33`,
-                    }}>{r.icon}</span>
-                    <span className="truncate" style={{ fontSize: bodySize, fontWeight: 500, color: bg.text, maxWidth: '62%' }}>{r.label}</span>
-                    <span aria-hidden style={{ flex: 1, minWidth: 12, height: 1, backgroundColor: tone, opacity: 0.55 }} />
-                    <span aria-hidden style={{
-                      width: 7, height: 7, flexShrink: 0, borderRadius: '50%',
-                      backgroundColor: tone, boxShadow: `0 0 8px ${tone}`,
-                    }} />
-                  </a>
-                )
-              })}
+            {/* The traces. Every row is drawn the same way - accent at the
+                icon running to companion at the node - rather than alternating
+                the whole row between the two tones, which made every second
+                line look like a warning rather than a design. What alternates
+                is the direction of the step, which is what gives a circuit
+                board its character.
+                The line is aria-hidden decoration; the row is the link, and
+                the label is what a screen reader reads. */}
+            <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {traceRows.map((r, i) => (
+                <a key={r.key} href={r.href}
+                  target={r.href.startsWith('http') ? '_blank' : undefined}
+                  rel={r.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 44, textDecoration: 'none' }}>
+                  <span style={{
+                    width: 44, height: 44, flexShrink: 0, borderRadius: '50%',
+                    display: 'grid', placeItems: 'center',
+                    border: `1.5px solid ${accentHex}`, color: accentHex,
+                    backgroundColor: accentHex + '1f', boxShadow: `0 0 14px ${accentHex}44`,
+                  }}>{r.icon}</span>
+                  <span className="truncate" style={{ fontSize: bodySize, fontWeight: 500, color: bg.text, maxWidth: '58%' }}>{r.label}</span>
+                  <span aria-hidden style={{
+                    flex: 1, minWidth: 10, height: 1.5,
+                    background: `linear-gradient(90deg, ${accentHex} 0%, ${accentHex} 60%, ${companion} 100%)`,
+                    opacity: 0.75,
+                  }} />
+                  <CircuitElbow up={i % 2 === 0} from={companion} to={companion} />
+                  <span aria-hidden style={{
+                    width: 8, height: 8, flexShrink: 0, borderRadius: '50%',
+                    backgroundColor: companion, boxShadow: `0 0 10px ${companion}`,
+                  }} />
+                </a>
+              ))}
             </div>
+
+            {/* Book on the left, scan on the right, as on the reference. The
+                booking button is lifted out of BottomSection rather than added
+                beside it - two Book buttons on one card is worse than none. */}
+            {(isPro || card.slug) && (
+              <div style={{ marginTop: 30, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
+                {isPro && (
+                  <div style={{ flex: '1 1 180px', minWidth: 160 }}>
+                    <p style={{
+                      margin: '0 0 10px', fontSize: 15, fontWeight: 800, letterSpacing: '0.06em',
+                      textTransform: 'uppercase', color: accentHex,
+                    }}>Schedule a chat</p>
+                    <CircuitBookButton card={card} accentHex={accentHex} companion={companion} />
+                  </div>
+                )}
+                {card.slug && <CircuitQR slug={card.slug} accentHex={accentHex} companion={companion} label="Scan to connect" />}
+              </div>
+            )}
           </div>
         </div>
 
         <div style={{ ...column, padding: '4px 22px 28px' }}>
-          <BottomSection {...bottomProps} />
+          <BottomSection {...bottomProps} omitBooking />
         </div>
       </div>
     )
