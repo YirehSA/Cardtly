@@ -2053,22 +2053,23 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
               instead, which is the corner the button never occupies.
 
               Profile photo size drives the height of the hero here, since
-              there is no avatar to make bigger. calcPhotoSize(100) is the
-              height as a percentage of the width, so the default is square,
-              60% is a broad landscape crop and 160% is a tall portrait. The
-              vh clamp scales with it and then stops at 80, so the far end of
-              the slider still leaves something on screen below the fold
-              rather than a full page of photograph.
+              there is no avatar to make bigger. calcPhotoSize(80) is the
+              height as a percentage of the width, so the default is a wide
+              head-and-shoulders crop, 60% is a slim band and 160% is a tall
+              portrait. The vh clamp scales with it and then stops at 72, so
+              the far end of the slider still leaves something on screen below
+              the fold rather than a full page of photograph.
 
-              Square at 100, not the 4:5 this started at: a 4:5 hero is 469px
-              on a 375 phone, more than half the screen before the name is
-              even reached, and it read as a photo with a card attached rather
-              than a card with a photograph on it. Anyone who wants the taller
-              crop still has the top of the slider. */}
+              80, down from 4:5 and then from square. A 4:5 hero is 469px on a
+              375 phone and square is 375, and both spend more of the first
+              screen on the photograph than on anything the card is for. At 80
+              it is 300px, a bit over a third, and the name, the bio and the
+              first contacts are all in view without scrolling. The top of the
+              slider still reaches a full portrait for anyone who wants one. */}
           <div style={{
             position: 'relative', width: '100%',
-            aspectRatio: 100 / calcPhotoSize(100, design),
-            maxHeight: `${Math.min(80, Math.round(calcPhotoSize(52, design)))}vh`,
+            aspectRatio: 100 / calcPhotoSize(80, design),
+            maxHeight: `${Math.min(72, Math.round(calcPhotoSize(44, design)))}vh`,
             overflow: 'hidden', backgroundColor: bg.card,
           }}>
             {card.profile_image_url ? (
@@ -2109,7 +2110,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                 name block is a fixed height and the hero is not: with only a
                 percentage fade, shrinking the hero with the photo size slider
                 moved the name up into the part of the picture the scrim had
-                barely touched, and at 60% it was grey on grey. 168px always
+                barely touched, and at 60% it was grey on grey. 150px always
                 covers the kicker, the name and the company line whatever the
                 hero is doing.
 
@@ -2119,7 +2120,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                 black scrim would band across the bottom of the photograph. */}
             <div aria-hidden style={{
               position: 'absolute', inset: 0,
-              background: `linear-gradient(to top, ${bg.page} 0px, ${bg.page}e8 66px, ${bg.page}00 168px), `
+              background: `linear-gradient(to top, ${bg.page} 0px, ${bg.page}e8 58px, ${bg.page}00 150px), `
                 + `linear-gradient(to bottom, ${bg.page}00 30%, ${bg.page}70 68%, ${bg.page}c0 100%)`,
             }} />
 
