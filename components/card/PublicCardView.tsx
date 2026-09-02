@@ -141,43 +141,18 @@ function CircuitSweep({ accentHex, companion, flip = false }: { accentHex: strin
   )
 }
 
-// The ribbon looping around the photo, in two layers.
-//
-// This is the move the reference turns on and the thing a single ring can
-// never fake: the ribbon passes BEHIND the photo down one side and in FRONT
-// of it across the other, so it reads as wrapped rather than drawn on. So it
-// renders twice, once either side of the photo in the DOM, and each layer
-// draws only its own half.
-//
-// Fixed size and a square viewBox, unlike the sweep: an arc is only an arc
-// while both axes scale together, and stretched it becomes an ellipse that no
-// longer follows the circle it is supposed to be hugging. The taper comes
-// from overlapping segments at falling stroke widths, which is cheaper and
-// steadier than filling a crescent.
-function CircuitPhotoArc({ box, accentHex, companion, layer }: {
-  box: number; accentHex: string; companion: string; layer: 'back' | 'front'
-}) {
-  const common: React.CSSProperties = { position: 'absolute', left: 0, top: 0, pointerEvents: 'none' }
+// The arcs curling around the photo. Fixed size and a square viewBox, unlike
+// the sweep: an arc is only an arc while both axes scale together, and
+// stretched it becomes an ellipse that no longer follows the circle it is
+// supposed to be hugging.
+function CircuitPhotoArc({ box, accentHex, companion }: { box: number; accentHex: string; companion: string }) {
   return (
-    <svg aria-hidden width={box} height={box} viewBox="0 0 200 200" style={common}>
-      {layer === 'back' ? (
-        <>
-          {/* Comes in from the left, thick, and dives behind the photo. */}
-          <path d="M2,150 A99,99 0 0 1 16,66" fill="none" stroke={accentHex} strokeWidth="15" strokeLinecap="round" />
-          <path d="M16,66 A99,99 0 0 1 62,14" fill="none" stroke={accentHex} strokeWidth="12" strokeLinecap="round" />
-          <path d="M62,14 A99,99 0 0 1 120,4" fill="none" stroke={accentHex} strokeWidth="9" strokeLinecap="round" opacity="0.9" />
-          <path d="M10,124 A87,87 0 0 1 30,56" fill="none" stroke={companion} strokeWidth="4" strokeLinecap="round" opacity="0.8" />
-        </>
-      ) : (
-        <>
-          {/* Comes back out over the photo on the right and tapers away. */}
-          <path d="M138,12 A99,99 0 0 1 196,84" fill="none" stroke={accentHex} strokeWidth="11" strokeLinecap="round" />
-          <path d="M196,84 A99,99 0 0 1 186,140" fill="none" stroke={accentHex} strokeWidth="7" strokeLinecap="round" opacity="0.95" />
-          <path d="M186,140 A99,99 0 0 1 152,180" fill="none" stroke={companion} strokeWidth="5" strokeLinecap="round" />
-          <path d="M152,180 A99,99 0 0 1 116,195" fill="none" stroke={companion} strokeWidth="3" strokeLinecap="round" opacity="0.8" />
-          <path d="M172,44 A87,87 0 0 1 188,104" fill="none" stroke={companion} strokeWidth="3.5" strokeLinecap="round" opacity="0.85" />
-        </>
-      )}
+    <svg aria-hidden width={box} height={box} viewBox="0 0 200 200"
+      style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none' }}>
+      <path d="M96,6 A94,94 0 0 1 194,104" fill="none" stroke={accentHex} strokeWidth="7" strokeLinecap="round" />
+      <path d="M194,104 A94,94 0 0 1 150,180" fill="none" stroke={companion} strokeWidth="4.5" strokeLinecap="round" />
+      <path d="M6,104 A94,94 0 0 0 58,182" fill="none" stroke={accentHex} strokeWidth="4" strokeLinecap="round" opacity="0.6" />
+      <path d="M18,62 A94,94 0 0 1 60,18" fill="none" stroke={companion} strokeWidth="3" strokeLinecap="round" opacity="0.75" />
     </svg>
   )
 }
@@ -233,9 +208,7 @@ function CircuitBookButton({ card, accentHex, companion }: { card: Card; accentH
 // with their own phone, which is the whole reason a card on a screen carries
 // a QR at all. Generated in the browser: it is derived from the slug and
 // nothing needs to store it.
-function CircuitQR({ slug, accentHex, companion, label, logoUrl }: {
-  slug: string; accentHex: string; companion: string; label: string; logoUrl?: string | null
-}) {
+function CircuitQR({ slug, accentHex, companion, label }: { slug: string; accentHex: string; companion: string; label: string }) {
   const [svg, setSvg] = useState<string>('')
   useEffect(() => {
     let live = true
@@ -244,13 +217,8 @@ function CircuitQR({ slug, accentHex, companion, label, logoUrl }: {
       // Inverted codes are unreliable to scan - iOS Camera in particular often
       // will not read light-on-dark - and a QR nobody can scan is worse than
       // no QR at all. The neon frame around it carries the look instead.
-      //
-      // Error correction H, not the default M: the logo sits over the middle
-      // of the code, and only H's 30% redundancy can lose that much and still
-      // decode. It also costs a denser code, which is why the logo is kept to
-      // a fifth of the width.
       .then(m => m.default.toString(`https://cardtly.com/card/${slug}`, {
-        type: 'svg', margin: 1, width: 200, errorCorrectionLevel: 'H',
+        type: 'svg', margin: 1, width: 200,
         color: { dark: '#0a1428', light: '#ffffff' },
       }))
       .then(s => { if (live) setSvg(s) })
@@ -260,11 +228,11 @@ function CircuitQR({ slug, accentHex, companion, label, logoUrl }: {
 
   return (
     <div style={{ flexShrink: 0, textAlign: 'center' }}>
-      <p style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 500, letterSpacing: '0.04em', color: companion }}>{label}</p>
+      <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: companion }}>{label}</p>
       <div style={{
-        position: 'relative', width: 132, height: 132, padding: 7, borderRadius: 22,
-        border: `2px solid ${companion}`, boxShadow: `0 0 20px ${companion}66, 0 0 44px ${companion}22`,
-        backgroundColor: '#ffffff',
+        width: 132, height: 132, padding: 7, borderRadius: 18,
+        border: `2px solid ${companion}`, boxShadow: `0 0 20px ${companion}66`,
+        backgroundColor: '#ffffff', overflow: 'hidden',
       }}>
         {/* The generated SVG carries its own width and height attributes, so
             without this it ignores the frame and renders at its natural size,
@@ -272,16 +240,6 @@ function CircuitQR({ slug, accentHex, companion, label, logoUrl }: {
             Nothing until it resolves, rather than a broken frame. */}
         {svg && <div className="[&>svg]:block [&>svg]:w-full [&>svg]:h-full"
           style={{ width: '100%', height: '100%' }} dangerouslySetInnerHTML={{ __html: svg }} />}
-        {svg && logoUrl && (
-          <span style={{
-            position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
-            width: 30, height: 30, borderRadius: 8, overflow: 'hidden',
-            backgroundColor: '#ffffff', border: `2px solid #ffffff`,
-            display: 'grid', placeItems: 'center',
-          }}>
-            <img src={logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-          </span>
-        )}
       </div>
     </div>
   )
@@ -1862,7 +1820,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
     const bodySize = getBodyFontSize(design)
     const avatarSize = calcPhotoSize(124, design)
     // Room around the photo for the arcs to curl through.
-    const arcBox = avatarSize + 56
+    const arcBox = avatarSize + 44
 
     const traceRows: { key: string; icon: React.ReactNode; label: string; href: string }[] = [
       card.phone && { key: 'phone', icon: <Phone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
@@ -1905,9 +1863,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
               {/* The arc box is bigger than the photo, and the photo is centred
                   inside it, so the arcs read as curling around it. */}
               <div style={{ position: 'relative', flexShrink: 0, width: arcBox, height: arcBox }}>
-                {/* Back half, photo, front half. The order in the DOM is what
-                    makes the ribbon wrap rather than sit on top. */}
-                <CircuitPhotoArc box={arcBox} accentHex={accentHex} companion={companion} layer="back" />
+                <CircuitPhotoArc box={arcBox} accentHex={accentHex} companion={companion} />
                 {/* inset 0 and grid-centred, not left/top 50% with a translate:
                     an absolutely positioned box anchored at left 50% can only
                     shrink-to-fit the half of the container to its right, which
@@ -1925,7 +1881,6 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                     }} />
                   </div>
                 </div>
-                <CircuitPhotoArc box={arcBox} accentHex={accentHex} companion={companion} layer="front" />
               </div>
             </div>
 
@@ -1968,10 +1923,10 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                   rel={r.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 44, textDecoration: 'none' }}>
                   <span style={{
-                    width: 38, height: 38, flexShrink: 0, borderRadius: '50%',
+                    width: 44, height: 44, flexShrink: 0, borderRadius: '50%',
                     display: 'grid', placeItems: 'center',
-                    border: `1px solid ${accentHex}`, color: accentHex,
-                    backgroundColor: accentHex + '14', boxShadow: `0 0 10px ${accentHex}33`,
+                    border: `1.5px solid ${accentHex}`, color: accentHex,
+                    backgroundColor: accentHex + '1f', boxShadow: `0 0 14px ${accentHex}44`,
                   }}>{r.icon}</span>
                   <span className="truncate" style={{ fontSize: bodySize + 2, fontWeight: 500, color: bg.text, maxWidth: '56%' }}>{r.label}</span>
                   <CircuitTrace up={i % 2 === 0} from={accentHex} to={companion} />
@@ -1989,12 +1944,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
             {(isPro || card.slug) && (
               <div style={{ marginTop: 30, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
                 {isPro && (
-                  <div style={{ flex: '1 1 180px', minWidth: 160, textAlign: 'center' }}>
-                    <svg aria-hidden width="22" height="22" viewBox="0 0 24 24" fill="none"
-                      stroke={accentHex} strokeWidth="1.8" style={{ display: 'inline-block', marginBottom: 6 }}>
-                      <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" />
-                      <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                    </svg>
+                  <div style={{ flex: '1 1 180px', minWidth: 160 }}>
                     <p style={{
                       margin: '0 0 10px', fontSize: 15, fontWeight: 800, letterSpacing: '0.06em',
                       textTransform: 'uppercase', color: accentHex,
@@ -2002,10 +1952,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                     <CircuitBookButton card={card} accentHex={accentHex} companion={companion} />
                   </div>
                 )}
-                {card.slug && (
-                  <CircuitQR slug={card.slug} accentHex={accentHex} companion={companion}
-                    label="Scan to Connect" logoUrl={card.company_logo_url} />
-                )}
+                {card.slug && <CircuitQR slug={card.slug} accentHex={accentHex} companion={companion} label="Scan to connect" />}
               </div>
             )}
           </div>

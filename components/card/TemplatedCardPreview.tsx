@@ -707,7 +707,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
   if (design.templateId === 'circuit') {
     const companion = companionHex(accentHex)
     const avatar = calcPhotoSize(54, design)
-    const arcBox = avatar + 30
+    const arcBox = avatar + 20
     const traces = [
       form.phone && { key: 'ph', icon: <Phone style={{ width: 11, height: 11 }} />, label: form.phone },
       form.email && { key: 'em', icon: <Mail style={{ width: 11, height: 11 }} />, label: form.email },
@@ -750,15 +750,13 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
         <div style={{ position: 'relative', padding: '54px 14px 62px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
             <div style={{ flex: 1, minWidth: 0 }}><LogoZone /></div>
-            {/* The ribbon loops round the photo, behind it one side and in
-                front the other, as on the real card. Two SVGs either side of
-                the photo in the DOM is what makes it wrap rather than sit on
-                top. Square viewBox and fixed size, so the arcs stay arcs. */}
+            {/* Arcs curling round the photo, as on the real card. Square
+                viewBox and fixed size, so they stay arcs. */}
             <div style={{ position: 'relative', flexShrink: 0, width: arcBox, height: arcBox }}>
               <svg aria-hidden width={arcBox} height={arcBox} viewBox="0 0 200 200" style={{ position: 'absolute', left: 0, top: 0 }}>
-                <path d="M2,150 A99,99 0 0 1 16,66" fill="none" stroke={accentHex} strokeWidth="15" strokeLinecap="round" />
-                <path d="M16,66 A99,99 0 0 1 62,14" fill="none" stroke={accentHex} strokeWidth="12" strokeLinecap="round" />
-                <path d="M62,14 A99,99 0 0 1 120,4" fill="none" stroke={accentHex} strokeWidth="9" strokeLinecap="round" opacity="0.9" />
+                <path d="M96,6 A94,94 0 0 1 194,104" fill="none" stroke={accentHex} strokeWidth="9" strokeLinecap="round" />
+                <path d="M194,104 A94,94 0 0 1 150,180" fill="none" stroke={companion} strokeWidth="6" strokeLinecap="round" />
+                <path d="M6,104 A94,94 0 0 0 58,182" fill="none" stroke={accentHex} strokeWidth="5" strokeLinecap="round" opacity="0.6" />
               </svg>
               <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
                 <div style={{
@@ -772,12 +770,6 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
                   </div>
                 </div>
               </div>
-              <svg aria-hidden width={arcBox} height={arcBox} viewBox="0 0 200 200" style={{ position: 'absolute', left: 0, top: 0 }}>
-                <path d="M138,12 A99,99 0 0 1 196,84" fill="none" stroke={accentHex} strokeWidth="11" strokeLinecap="round" />
-                <path d="M196,84 A99,99 0 0 1 186,140" fill="none" stroke={accentHex} strokeWidth="7" strokeLinecap="round" opacity="0.95" />
-                <path d="M186,140 A99,99 0 0 1 152,180" fill="none" stroke={companion} strokeWidth="5" strokeLinecap="round" />
-                <path d="M152,180 A99,99 0 0 1 116,195" fill="none" stroke={companion} strokeWidth="3" strokeLinecap="round" opacity="0.8" />
-              </svg>
             </div>
           </div>
 
@@ -792,7 +784,7 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
           <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {traces.map((t, i) => (
               <div key={t.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ width: 24, height: 24, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', border: `1px solid ${accentHex}`, color: accentHex, backgroundColor: accentHex + '14' }}>{t.icon}</span>
+                <span style={{ width: 24, height: 24, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', border: `1px solid ${accentHex}`, color: accentHex, backgroundColor: accentHex + '1f' }}>{t.icon}</span>
                 <span style={{ fontSize: getBodyFontSize(design) - 4, color: bg.text, maxWidth: '52%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
                 {/* A flowing curve, as on the real card. Wires flow there,
                     they do not step. */}
