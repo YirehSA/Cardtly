@@ -824,92 +824,70 @@ export default function TemplatedCardPreview({ form, isPro, design }: Props) {
     )
   }
 
-  // ── SOVEREIGN ─────────────────────────────────────────────────────────────
-  // Engraved certificate: guilloche rosette, monogram seal, ledger rows.
+  // ── MERIDIAN ──────────────────────────────────────────────────────────────
+  // Full-bleed portrait with the name over the fade, then labelled tiles.
   // See the same template in PublicCardView.
-  if (design.templateId === 'sovereign') {
-    const seal = calcPhotoSize(46, design)
+  if (design.templateId === 'meridian') {
     const parts = (form.name || '').trim().split(/\s+/).filter(Boolean)
     const initials = parts.length
       ? ((parts[0][0] || '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase()
       : '?'
-    const ledger = [
-      form.phone && { key: 'tel', label: 'Telephone', value: form.phone },
-      form.email && { key: 'eml', label: 'Email', value: form.email },
-      isPro && (form as any).address && { key: 'off', label: 'Office', value: (form as any).address },
-      form.website && { key: 'web', label: 'Website', value: form.website.replace(/^https?:\/\//, '').replace(/\/$/, '') },
-    ].filter(Boolean) as { key: string; label: string; value: string }[]
+    const tiles = [
+      form.phone && { key: 'tel', label: 'Telephone', value: form.phone, icon: <Phone style={{ width: 9, height: 9 }} /> },
+      form.email && { key: 'eml', label: 'Email', value: form.email, icon: <Mail style={{ width: 9, height: 9 }} /> },
+      isPro && (form as any).address && { key: 'off', label: 'Office', value: (form as any).address, icon: <MapPin style={{ width: 9, height: 9 }} /> },
+      form.website && { key: 'web', label: 'Website', value: form.website.replace(/^https?:\/\//, '').replace(/\/$/, ''), icon: <Globe style={{ width: 9, height: 9 }} /> },
+    ].filter(Boolean) as { key: string; label: string; value: string; icon: React.ReactNode }[]
 
-    const caps: React.CSSProperties = {
-      fontSize: 6.5, fontWeight: 600, letterSpacing: '0.18em',
-      textTransform: 'uppercase', color: bg.subtext,
+    const label: React.CSSProperties = {
+      display: 'block', fontSize: 6, fontWeight: 600, letterSpacing: '0.14em',
+      textTransform: 'uppercase', color: bg.subtext, marginBottom: 2,
     }
 
     return (
-      <div style={{ ...pageStyle, minHeight: 380, position: 'relative', padding: '20px 20px 16px' }}>
-        <div aria-hidden style={{ position: 'absolute', inset: 7, border: `1px solid ${accentHex}`, opacity: 0.35 }} />
-        <div aria-hidden style={{ position: 'absolute', inset: 11, border: `1px solid ${bg.border}`, opacity: 0.6 }} />
-
-        <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-          <span style={{ ...caps, color: accentHex }}>{form.company || 'Cardtly'}</span>
-          <span style={caps}>No. 0042</span>
-        </div>
-        <div style={{ height: 1, backgroundColor: accentHex, opacity: 0.55, margin: '6px 0 2px' }} />
-        <div style={{ height: 1, backgroundColor: bg.border, marginBottom: 14 }} />
-
-        {/* The rosette, thinned for a thumbnail: 36 ellipses at this size is
-            a grey smudge, where 18 still reads as engraving. */}
-        <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-          <svg aria-hidden width={seal * 2.4} height={seal * 2.4} viewBox="0 0 200 200"
-            style={{ position: 'absolute', left: '50%', top: '50%', marginLeft: -(seal * 2.4) / 2, marginTop: -(seal * 2.4) / 2 }}>
-            <g fill="none" stroke={accentHex} strokeWidth="0.7" opacity="0.5">
-              {Array.from({ length: 18 }, (_, i) => (
-                <ellipse key={i} cx="100" cy="100" rx="78" ry="30" transform={`rotate(${i * 20} 100 100)`} />
-              ))}
-            </g>
-            <circle cx="100" cy="100" r="86" fill="none" stroke={accentHex} strokeWidth="0.7" opacity="0.55" />
-          </svg>
-          <div style={{
-            position: 'relative', width: seal + 10, height: seal + 10, borderRadius: '50%',
-            border: `1px solid ${accentHex}`, display: 'grid', placeItems: 'center', backgroundColor: bg.page,
-          }}>
-            <div style={{
-              width: seal, height: seal, borderRadius: '50%', overflow: 'hidden',
-              border: `2px double ${accentHex}`, display: 'grid', placeItems: 'center', backgroundColor: bg.card,
-            }}>
-              {form.profile_image_url
-                ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <span style={{ fontFamily: font.heading, fontSize: seal * 0.34, letterSpacing: '0.06em', color: accentHex }}>{initials}</span>}
-            </div>
-          </div>
-        </div>
-
-        <div style={{ position: 'relative', textAlign: 'center' }}>
-          <h2 style={{
-            margin: '0 0 6px', fontFamily: font.heading, fontSize: calcNameSize(15, design), fontWeight: 500,
-            letterSpacing: '0.14em', textTransform: 'uppercase', lineHeight: 1.25, color: getNameColor(design, bg.text),
-          }}>{form.name || 'Your Name'}</h2>
-          <div style={{ width: 26, height: 1, backgroundColor: accentHex, margin: '0 auto 6px', opacity: 0.8 }} />
-          {isPro && form.title && <p style={{ margin: 0, ...caps, fontSize: calcTitleSize(7, design), color: getTitleColor(design, bg.text) }}>{form.title}</p>}
-          {isPro && form.bio && <p style={{ margin: '8px auto 0', maxWidth: 200, fontSize: calcBioSize(9, design), color: getBioColor(design, bg.subtext), lineHeight: 1.6 }}>{form.bio}</p>}
-        </div>
-
-        {ledger.length > 0 && (
-          <div style={{ position: 'relative', marginTop: 14 }}>
-            <div style={{ height: 1, backgroundColor: accentHex, opacity: 0.55 }} />
-            {ledger.map(r => (
-              <div key={r.key} style={{
-                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10,
-                padding: '6px 1px', borderBottom: `1px solid ${bg.border}`,
-              }}>
-                <span style={{ ...caps, flexShrink: 0 }}>{r.label}</span>
-                <span style={{ fontSize: getBodyFontSize(design) - 4, color: bg.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.value}</span>
+      <div style={{ ...pageStyle, minHeight: 380 }}>
+        <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 5', maxHeight: 210, overflow: 'hidden', backgroundColor: bg.card }}>
+          {form.profile_image_url
+            ? <img src={form.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 18%' }} />
+            : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', background: `linear-gradient(150deg, ${accentHex}44 0%, ${bg.card} 55%, ${bg.page} 100%)` }}>
+                <span style={{ fontFamily: font.heading, fontSize: 46, fontWeight: 300, letterSpacing: '0.06em', color: accentHex, opacity: 0.9 }}>{initials}</span>
+              </div>}
+          <div aria-hidden style={{ position: 'absolute', inset: 0, background: `linear-gradient(to bottom, ${bg.page}00 26%, ${bg.page}b8 62%, ${bg.page}f2 84%, ${bg.page} 100%)` }} />
+          {form.company_logo_url && design.logoPosition !== 'hidden' && (
+            <img src={form.company_logo_url} style={{ position: 'absolute', right: 10, top: 10, height: calcLogoHeight(18, design), width: 'auto', maxWidth: '42%', objectFit: 'contain' }} />
+          )}
+          <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '0 12px 10px' }}>
+            {isPro && form.title && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+                <span style={{ width: 14, height: 1.5, backgroundColor: accentHex, flexShrink: 0 }} />
+                <span style={{ fontSize: calcTitleSize(6.5, design), fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: getTitleColor(design, accentHex) }}>{form.title}</span>
               </div>
-            ))}
+            )}
+            <h2 style={{ margin: 0, fontFamily: font.heading, fontSize: calcNameSize(19, design), fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1.02, color: getNameColor(design, bg.text) }}>{form.name || 'Your Name'}</h2>
+            {form.company && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(8, design), color: getCompanyColor(design, bg.subtext) }}>{form.company}</p>}
           </div>
-        )}
+        </div>
 
-        <div style={{ position: 'relative', marginTop: 12, padding: '8px 0', borderRadius: 8, textAlign: 'center', fontSize: getButtonFontSize(design) - 3, fontWeight: 700, color: buttonText, backgroundColor: buttonBg, border: buttonBorder ? `2px solid ${buttonBorder}` : 'none' }}>Save Contact</div>
+        <div style={{ padding: '2px 12px 14px' }}>
+          {isPro && form.bio && <p style={{ margin: '0 0 12px', fontSize: calcBioSize(9, design), color: getBioColor(design, bg.subtext), lineHeight: 1.6 }}>{form.bio}</p>}
+
+          {tiles.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
+              {tiles.map(t => (
+                <div key={t.key} style={{ padding: '6px 7px', border: `1px solid ${bg.border}`, borderRadius: 6, backgroundColor: cardEffect.surfaceBg }}>
+                  <span style={label}>
+                    <span style={{ display: 'inline-flex', verticalAlign: '-1px', marginRight: 3, color: accentHex }}>{t.icon}</span>
+                    {t.label}
+                  </span>
+                  <span style={{ display: 'block', fontSize: getBodyFontSize(design) - 5, fontWeight: 500, color: bg.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <Certs />
+          <div style={{ marginTop: 12, padding: '8px 0', borderRadius: 8, textAlign: 'center', fontSize: getButtonFontSize(design) - 3, fontWeight: 700, color: buttonText, backgroundColor: buttonBg, border: buttonBorder ? `2px solid ${buttonBorder}` : 'none' }}>Save Contact</div>
+        </div>
       </div>
     )
   }
