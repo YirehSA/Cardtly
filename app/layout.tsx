@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Plus_Jakarta_Sans, Syne } from 'next/font/google'
+import { Plus_Jakarta_Sans, Instrument_Sans } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'sonner'
 import CapacitorBackButton from '@/components/CapacitorBackButton'
@@ -13,7 +13,13 @@ const jakarta = Plus_Jakarta_Sans({
   display: 'swap',
 })
 
-const syne = Syne({
+// Headings. This was Syne, a geometric display face that reads creative
+// agency: wide counters, a quirky lowercase g, and enough personality that at
+// the 900 weight the dashboard used it at, it looked like a consumer app.
+// Cardtly sells to corporates, and the heading font is the loudest single
+// signal of who a product is for. Instrument Sans is a neutral grotesque with
+// tight apertures that holds authority at 600 and 700 without shouting.
+const display = Instrument_Sans({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
@@ -68,7 +74,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${jakarta.variable} ${syne.variable} dark`} suppressHydrationWarning>
+    <html lang="en" className={`${jakarta.variable} ${display.variable} dark`} suppressHydrationWarning>
       <body className="font-sans antialiased bg-background text-foreground">
         {children}
         <Toaster

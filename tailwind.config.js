@@ -45,8 +45,16 @@ module.exports = {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        sans: ['Plus Jakarta Sans', 'sans-serif'],
-        display: ['Syne', 'sans-serif'],
+        // These read the variables next/font sets in app/layout.tsx. They used
+        // to name the families directly, which quietly bypassed next/font: the
+        // layout still downloaded and preloaded whichever face it declared,
+        // and the page still rendered the one hardcoded here. Swapping a font
+        // in the layout appeared to do nothing at all.
+        //
+        // next/font puts its own generated fallback inside each variable, so
+        // the extra names here only matter if the variable is missing.
+        sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       keyframes: {
         'fade-in': {

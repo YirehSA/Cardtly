@@ -20,7 +20,7 @@ import TeammatesCard from '@/components/dashboard/TeammatesCard'
 import AddToGoogleWalletButton from '@/components/wallet/AddToGoogleWalletButton'
 import {
   CreditCard, BarChart2, Eye, Users, ArrowUpRight, QrCode, Mail, Monitor,
-  Sparkles, ChevronRight, CheckCircle2, Circle, Rocket, TrendingUp,
+  ChevronRight, Check, Circle, TrendingUp,
 } from 'lucide-react'
 
 interface CardSummary {
@@ -42,6 +42,12 @@ interface CardSummary {
 // still missing instead of leaving them to guess.
 const CARD_FIELDS =
   'id, name, title, company, slug, view_count, color_theme, profile_image_url, company_logo_url, bio, phone, email'
+
+// The label above every number and every panel. Small, tracked and uppercase:
+// the convention corporate reporting uses to separate what a figure is from
+// what it says, and the cheapest way to make a screen read as an instrument
+// rather than a feed.
+const LABEL = 'text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -148,110 +154,121 @@ export default async function DashboardPage() {
   // "what do I do next" answer, driven by the card itself rather than a
   // generic checklist that never changes.
   const checks = card ? [
-    { done: !!card.profile_image_url, label: 'Add your photo',        why: 'People remember a face' },
-    { done: !!card.title,             label: 'Add your job title',    why: 'Say what you do' },
-    { done: !!card.company,           label: 'Add your company',      why: 'Where you work' },
-    { done: !!card.phone,             label: 'Add your phone number', why: 'So people can call you' },
-    { done: !!card.email,             label: 'Add your email',        why: 'So people can email you' },
-    { done: !!card.bio,               label: 'Write a short intro',   why: 'A line or two about you' },
-    { done: !!card.company_logo_url,  label: 'Add your company logo', why: 'Makes it look official' },
+    { done: !!card.profile_image_url, label: 'Profile photo',   why: 'People remember a face' },
+    { done: !!card.title,             label: 'Job title',       why: 'Says what you do' },
+    { done: !!card.company,           label: 'Company',         why: 'Where you work' },
+    { done: !!card.phone,             label: 'Phone number',    why: 'So people can call you' },
+    { done: !!card.email,             label: 'Email address',   why: 'So people can email you' },
+    { done: !!card.bio,               label: 'Short intro',     why: 'A line or two about you' },
+    { done: !!card.company_logo_url,  label: 'Company logo',    why: 'Carries the brand' },
   ] : []
   const doneCount = checks.filter(c => c.done).length
   const percent = checks.length ? Math.round((doneCount / checks.length) * 100) : 0
   const todo = checks.filter(c => !c.done)
 
   const QUICK_ACTIONS = [
-    { href: editCardHref,                 label: 'Edit my card',           icon: CreditCard, desc: 'Change your details, photo and design' },
-    { href: '/dashboard/qr',              label: 'My QR code',             icon: QrCode,     desc: 'Download it to print or share' },
-    { href: '/dashboard/analytics',       label: "Who's looking",          icon: BarChart2,  desc: 'See who opened your card' },
-    { href: '/dashboard/contacts',        label: 'People who reached out', icon: Users,      desc: 'Their details, saved for you', pro: true },
-    { href: '/dashboard/email-signature', label: 'Email signature',        icon: Mail,       desc: 'Put your card in every email', pro: true },
-    { href: '/dashboard/virtual-bg',      label: 'Video call background',  icon: Monitor,    desc: 'For Zoom and Teams', pro: true },
+    { href: editCardHref,                 label: 'Edit card',        icon: CreditCard, desc: 'Details, photo and design' },
+    { href: '/dashboard/qr',              label: 'QR code',          icon: QrCode,     desc: 'Download to print or share' },
+    { href: '/dashboard/analytics',       label: 'Analytics',        icon: BarChart2,  desc: 'Views, taps and sources' },
+    { href: '/dashboard/contacts',        label: 'Contacts',         icon: Users,      desc: 'Everyone who left details', pro: true },
+    { href: '/dashboard/email-signature', label: 'Email signature',  icon: Mail,       desc: 'Your card in every email', pro: true },
+    { href: '/dashboard/virtual-bg',      label: 'Video background', icon: Monitor,    desc: 'For Zoom and Teams', pro: true },
   ]
 
   // No card at all: one thing to do, said plainly.
   if (!card) {
     return (
-      <div className="max-w-xl mx-auto py-16 text-center animate-fade-in">
-        <div className="w-16 h-16 rounded-3xl grid place-items-center text-white mx-auto mb-5"
-          style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-          <Rocket className="w-7 h-7" />
+      <div className="max-w-lg mx-auto py-20 animate-fade-in">
+        <div className="rounded-xl border border-border bg-card p-8">
+          <div className="w-11 h-11 rounded-lg grid place-items-center mb-5"
+            style={{ background: accentHex + '14', color: accentHex }}>
+            <CreditCard className="w-5 h-5" />
+          </div>
+          <h1 className="font-display text-2xl font-bold tracking-tight">Create your card</h1>
+          <p className="text-sm text-muted-foreground mt-2 mb-6 leading-relaxed">
+            Setup takes about two minutes. Add your name and photo, and you will have a
+            link you can share with anyone.
+          </p>
+          <Link href="/dashboard/card"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
+            style={{ background: accentHex }}>
+            Create card <ArrowUpRight className="w-4 h-4" />
+          </Link>
         </div>
-        <h1 className="font-display text-3xl font-black tracking-tight">Let&apos;s make your card</h1>
-        <p className="text-muted-foreground mt-2 mb-6">
-          It takes about two minutes. Add your name and photo, and you will have a link you can share with anyone.
-        </p>
-        <Link href="/dashboard/card"
-          className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold text-white transition hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-          Create my card <ArrowUpRight className="w-4 h-4" />
-        </Link>
       </div>
     )
   }
 
   const statusLabel = isExpired ? 'Offline' : isTrial ? `Trial - ${trialDaysLeft} ${trialDaysLeft === 1 ? 'day' : 'days'} left` : 'Live'
   const statusTone = isExpired ? '#ef4444' : isTrial && trialDaysLeft <= 7 ? '#f59e0b' : '#22c55e'
+  const roleLine = [card.title, card.company].filter(Boolean).join(' · ')
+
+  const METRICS = [
+    { label: 'Total views',    value: card.view_count ?? 0, note: 'Since the card went live', icon: Eye },
+    { label: 'Last 30 days',   value: viewsThisMonth ?? 0,  note: 'Views this period',        icon: TrendingUp },
+    { label: 'Contacts',       value: contactCount ?? 0,    note: 'People who left details',  icon: Users },
+  ]
 
   return (
-    <div className="space-y-6 animate-fade-in pb-16">
+    <div className="space-y-5 animate-fade-in pb-16">
       <OnboardingTour />
       {/* Pushes the card URL + name to the Android home-screen QR widget.
           Renders nothing; no-op on web. */}
       <WidgetSync slug={card?.slug ?? null} name={card?.name ?? null} />
 
-      {/* Hero */}
-      <div className="rounded-3xl border border-border overflow-hidden">
-        <div className="p-6 sm:p-8" style={{ background: `linear-gradient(135deg, ${accentHex}1f, transparent 65%)` }}>
-          <div className="flex items-start justify-between flex-wrap gap-4">
-            <div>
-              <p className="text-xs font-medium mb-1 text-muted-foreground">
-                {new Date().toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' })}
-              </p>
-              <h1 className="font-display text-3xl sm:text-4xl font-black tracking-tight">
-                Hey, {firstName} 👋
-              </h1>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full"
-                  style={{ background: statusTone + '1f', color: statusTone }}>
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusTone }} />
-                  {statusLabel}
-                </span>
-                <p className="text-sm text-muted-foreground">
-                  {isExpired ? 'Your card link no longer opens.' : 'Your card is out there working for you.'}
-                </p>
-              </div>
+      {/* Header. A rule rather than a tinted gradient panel: the page opens on
+          who this account is and what state it is in, and spends no vertical
+          space decorating that. */}
+      <header className="pb-5 border-b border-border">
+        <div className="flex items-start justify-between flex-wrap gap-4">
+          <div className="min-w-0">
+            <p className={LABEL}>
+              {new Date().toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
+            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight mt-1.5">
+              {card.name || 'Your card'}
+            </h1>
+            <div className="flex items-center gap-2.5 mt-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-md border"
+                style={{ borderColor: statusTone + '40', background: statusTone + '12', color: statusTone }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusTone }} />
+                {statusLabel}
+              </span>
+              {roleLine && <p className="text-sm text-muted-foreground truncate">{roleLine}</p>}
+              {cardKind === 'team' && (
+                <span className={`${LABEL} px-1.5 py-0.5 rounded border border-border`}>Team card</span>
+              )}
             </div>
-            {!isPaid && !iosApp && (
-              <Link href="/dashboard/upgrade"
-                className="flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold text-white transition hover:opacity-90"
-                style={{ background: `linear-gradient(135deg, ${accentHex}, ${accentHex}cc)`, boxShadow: `0 6px 24px ${accentHex}44` }}>
-                <Sparkles className="w-4 h-4" />
-                {isExpired ? 'Bring my card back' : 'Subscribe now'}
-              </Link>
-            )}
           </div>
+          {!isPaid && !iosApp && (
+            <Link href="/dashboard/upgrade"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition hover:opacity-90 shrink-0"
+              style={{ background: accentHex }}>
+              {isExpired ? 'Reactivate card' : 'Subscribe'}
+              <ArrowUpRight className="w-4 h-4" />
+            </Link>
+          )}
         </div>
-      </div>
+      </header>
 
       {/* Trial countdown / expired notice. Nobody should lose their card
           without being told it was coming. */}
       {(isTrial || isExpired) && (
-        <div className="rounded-2xl p-4 flex flex-wrap items-center gap-3"
+        <div className="rounded-lg px-4 py-3 border"
           style={isExpired
-            ? { background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.35)' }
+            ? { background: 'rgba(239,68,68,0.07)', borderColor: 'rgba(239,68,68,0.30)' }
             : trialDaysLeft <= 7
-              ? { background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.35)' }
-              : { background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.28)' }}>
+              ? { background: 'rgba(245,158,11,0.07)', borderColor: 'rgba(245,158,11,0.30)' }
+              : { background: 'rgba(139,92,246,0.06)', borderColor: 'rgba(139,92,246,0.24)' }}>
           {/* The iOS wording states the fact and stops there. Apple's 3.1.1
               covers "calls to action that direct customers to purchasing
               mechanisms other than IAP", and that includes naming the price or
               telling somebody to go and subscribe - so on iOS this says what is
               true about their card and offers nothing to buy. */}
-          <p className="text-sm flex-1 min-w-[240px]">
+          <p className="text-sm leading-relaxed">
             {isExpired ? (
               <>
-                <span className="font-bold">Your card is offline.</span>{' '}
+                <span className="font-semibold">Your card is offline.</span>{' '}
                 <span className="text-muted-foreground">
                   Your trial has ended, so {card?.slug ? `cardtly.com/card/${card.slug}` : 'your card link'} no longer opens.
                   {iosApp
@@ -261,7 +278,7 @@ export default async function DashboardPage() {
               </>
             ) : (
               <>
-                <span className="font-bold">
+                <span className="font-semibold">
                   {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'} left on your trial.
                 </span>{' '}
                 <span className="text-muted-foreground">
@@ -274,53 +291,71 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Your card - the star of the page */}
-        <div className="lg:col-span-2 rounded-3xl border border-border bg-card overflow-hidden">
-          <div className="p-5 border-b border-border flex items-center justify-between">
-            <p className="font-semibold text-sm flex items-center gap-2">
-              Your card
-              {cardKind === 'team' && (
-                <span className="text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded"
-                  style={{ background: accentHex + '20', color: accentHex }}>Team</span>
-              )}
-            </p>
+      {/* Metrics. One panel divided by hairlines rather than three floating
+          cards in three different hues - the figures are the same kind of
+          thing, so they are read across one row and coloured the same. */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        {/* Three across at every width. Stacked, these three rows filled the
+            whole of a phone screen and pushed the card itself under the fold,
+            which put the least urgent thing on the page first. The icon and
+            the note are what get dropped on a narrow screen, because the
+            label and the figure are the only parts carrying information. */}
+        <div className="grid grid-cols-3 divide-x divide-border">
+          {METRICS.map(({ label, value, note, icon: Icon }) => (
+            <div key={label} className="p-3 sm:p-5">
+              <div className="flex items-center gap-2">
+                <Icon className="w-3.5 h-3.5 text-muted-foreground hidden sm:block shrink-0" />
+                <p className={LABEL}>{label}</p>
+              </div>
+              <p className="font-display text-2xl sm:text-3xl font-bold tracking-tight tabular-nums mt-2 sm:mt-2.5 leading-none">
+                <AnimatedCounter to={value as number} />
+              </p>
+              <p className="text-xs text-muted-foreground mt-1.5 hidden sm:block">{note}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+        {/* The card itself */}
+        <div className="lg:col-span-2 rounded-xl border border-border bg-card overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+            <p className={LABEL}>Your card</p>
             <Link href={editCardHref}
               className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition">
               Edit <ArrowUpRight className="w-3 h-3" />
             </Link>
           </div>
 
-          <div className="p-5 sm:p-6 grid sm:grid-cols-[minmax(0,200px)_1fr] gap-6 items-start">
+          <div className="p-5 grid sm:grid-cols-[minmax(0,180px)_1fr] gap-5 items-start">
             {/* Mini preview */}
-            <div className="rounded-2xl overflow-hidden mx-auto w-full max-w-[200px]"
-              style={{ background: `linear-gradient(135deg, ${accentHex}22, ${accentHex}08)`, border: `1px solid ${accentHex}22` }}>
-              <div className="h-14" style={{ background: `linear-gradient(135deg, ${accentHex}, ${accentHex}88)` }} />
-              <div className="px-4 pb-4 text-center" style={{ marginTop: -26 }}>
+            <div className="rounded-lg overflow-hidden mx-auto w-full max-w-[180px] border border-border bg-background">
+              <div className="h-1" style={{ background: accentHex }} />
+              <div className="px-4 py-4 text-center">
                 {card.profile_image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={card.profile_image_url} alt=""
-                    className="w-13 h-13 rounded-full object-cover border-4 border-white mx-auto"
-                    style={{ width: 52, height: 52 }} />
+                    className="rounded-full object-cover mx-auto"
+                    style={{ width: 52, height: 52, border: '1px solid hsl(var(--border))' }} />
                 ) : (
-                  <div className="rounded-full mx-auto flex items-center justify-center text-white font-bold border-4 border-white"
+                  <div className="rounded-full mx-auto flex items-center justify-center text-white font-semibold"
                     style={{ background: accentHex, width: 52, height: 52 }}>
                     {card.name?.[0]?.toUpperCase() || '?'}
                   </div>
                 )}
-                <p className="font-bold mt-2 text-sm leading-tight">{card.name || 'Your name'}</p>
-                {card.title && <p className="text-[11px] mt-0.5" style={{ color: accentHex }}>{card.title}</p>}
-                {card.company && <p className="text-[11px] text-muted-foreground mt-0.5">{card.company}</p>}
+                <p className="font-semibold mt-2.5 text-sm leading-tight">{card.name || 'Your name'}</p>
+                {card.title && <p className="text-[11px] text-muted-foreground mt-1">{card.title}</p>}
+                {card.company && <p className="text-[11px] text-muted-foreground">{card.company}</p>}
               </div>
             </div>
 
             {/* Actions */}
             {card.slug && (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 <a href={`/card/${card.slug}`} target="_blank" rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-sm font-bold text-white transition hover:opacity-90"
-                  style={{ background: `linear-gradient(135deg, ${accentHex}, ${accentHex}cc)`, boxShadow: `0 6px 24px ${accentHex}44` }}>
-                  <Eye className="w-4 h-4" /> Open my card
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
+                  style={{ background: accentHex }}>
+                  <Eye className="w-4 h-4" /> Open card
                 </a>
 
                 <TapToShareButton
@@ -331,7 +366,7 @@ export default async function DashboardPage() {
 
                 <div className="flex items-center gap-2 flex-wrap">
                   <a href={`/card/${card.slug}`} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-xs font-mono px-3 py-2 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition min-w-0">
+                    className="flex items-center gap-1.5 text-xs font-mono px-3 py-2 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition min-w-0">
                     <span className="truncate">cardtly.com/card/{card.slug}</span>
                     <ArrowUpRight className="w-3 h-3 shrink-0" />
                   </a>
@@ -346,26 +381,42 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Numbers */}
-        <div className="space-y-3">
-          <p className="text-sm font-semibold px-1">Your numbers</p>
-          {[
-            { label: 'People who opened your card', value: card.view_count ?? 0, icon: Eye, color: accentHex },
-            { label: 'Opened in the last 30 days', value: viewsThisMonth ?? 0, icon: TrendingUp, color: '#10b981' },
-            { label: 'People who left their details', value: contactCount ?? 0, icon: Users, color: '#f59e0b' },
-          ].map(({ label, value, icon: Icon, color }) => (
-            <div key={label} className="rounded-2xl p-4 border border-border bg-card flex items-center gap-4">
-              <div className="w-11 h-11 rounded-2xl grid place-items-center shrink-0" style={{ background: color + '18' }}>
-                <Icon className="w-5 h-5" style={{ color }} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-2xl font-black tracking-tight leading-none" style={{ color }}>
-                  <AnimatedCounter to={value as number} />
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">{label}</p>
-              </div>
+        {/* Completeness */}
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-border">
+            <p className={LABEL}>Profile completeness</p>
+          </div>
+          <div className="px-5 py-4">
+            <div className="flex items-baseline justify-between">
+              <p className="font-display text-3xl font-bold tracking-tight tabular-nums leading-none">{percent}%</p>
+              <p className="text-xs text-muted-foreground tabular-nums">{doneCount} of {checks.length}</p>
             </div>
-          ))}
+            <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-3">
+              <div className="h-full rounded-full transition-all"
+                style={{ width: `${percent}%`, background: accentHex }} />
+            </div>
+          </div>
+
+          {todo.length > 0 ? (
+            <div className="border-t border-border divide-y divide-border">
+              {todo.slice(0, 4).map(item => (
+                <Link key={item.label} href={editCardHref}
+                  className="flex items-center gap-3 px-5 py-3 hover:bg-muted/50 transition group">
+                  <Circle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium leading-tight">{item.label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{item.why}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="border-t border-border px-5 py-3.5 flex items-center gap-2 text-sm text-muted-foreground">
+              <Check className="w-4 h-4 shrink-0" style={{ color: '#22c55e' }} />
+              Every field is filled in.
+            </div>
+          )}
         </div>
       </div>
 
@@ -379,52 +430,9 @@ export default async function DashboardPage() {
         />
       )}
 
-      {/* Finish your card - the "what do I do next" answer */}
-      <div className="rounded-3xl border border-border bg-card p-5 sm:p-6">
-        <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-          <div>
-            <h2 className="font-semibold text-sm">
-              {todo.length === 0 ? 'Your card is complete 🎉' : 'Finish your card'}
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {todo.length === 0
-                ? 'Nothing left to fill in. Go share it with someone.'
-                : `${doneCount} of ${checks.length} done. Each one makes your card work harder.`}
-            </p>
-          </div>
-          <span className="text-2xl font-black tracking-tight" style={{ color: accentHex }}>{percent}%</span>
-        </div>
-
-        <div className="h-2 rounded-full bg-muted overflow-hidden mb-4">
-          <div className="h-full rounded-full transition-all"
-            style={{ width: `${percent}%`, background: `linear-gradient(90deg, ${accentHex}, ${accentHex}aa)` }} />
-        </div>
-
-        {todo.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {todo.slice(0, 4).map(item => (
-              <Link key={item.label} href={editCardHref}
-                className="flex items-center gap-3 p-3 rounded-2xl border border-border hover:border-foreground/20 hover:-translate-y-0.5 transition-all group">
-                <Circle className="w-4 h-4 text-muted-foreground shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{item.label}</p>
-                  <p className="text-xs text-muted-foreground">{item.why}</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <CheckCircle2 className="w-4 h-4 text-green-500" />
-            Everything filled in - photo, title, company, contact details and logo.
-          </div>
-        )}
-      </div>
-
-      {/* Everything else */}
+      {/* Tools */}
       <div>
-        <p className="text-sm font-semibold mb-3 px-1">What else you can do</p>
+        <p className={`${LABEL} mb-2.5 px-0.5`}>Tools</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {QUICK_ACTIONS.map(({ href, label, icon: Icon, desc, pro }) => {
             const locked = pro && !isPro
@@ -433,22 +441,21 @@ export default async function DashboardPage() {
               // goes to the feature instead, where the gate explains what Pro
               // is without offering anywhere to buy it.
               <Link key={href} href={locked && !iosApp ? '/dashboard/upgrade' : href}
-                className="flex items-center gap-3 p-4 rounded-2xl border border-border bg-card hover:border-foreground/20 hover:-translate-y-0.5 hover:shadow-md transition-all group">
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: accentHex + '18', color: accentHex }}>
-                  <Icon className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />
+                className="flex items-center gap-3 p-4 rounded-lg border border-border bg-card hover:border-foreground/25 transition-colors group">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-muted text-muted-foreground group-hover:text-foreground transition-colors">
+                  <Icon style={{ width: 17, height: 17 }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold truncate">{label}</p>
                     {locked && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0"
-                        style={{ background: accentHex + '18', color: accentHex }}>Pro</span>
+                      <span className="text-[9px] font-semibold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border shrink-0"
+                        style={{ borderColor: accentHex + '40', color: accentHex }}>Pro</span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{desc}</p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform shrink-0" />
+                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
               </Link>
             )
           })}
@@ -473,26 +480,19 @@ export default async function DashboardPage() {
           the whole panel is a call to action towards a purchase Apple does
           not take a cut of, which is precisely what 3.1.1 forbids. */}
       {!isPro && !iosApp && (
-        <div className="rounded-3xl p-6 relative overflow-hidden"
-          style={{ background: `linear-gradient(135deg, ${accentHex}22 0%, ${accentHex}08 100%)`, border: `1px solid ${accentHex}33` }}>
-          <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl pointer-events-none"
-            style={{ background: accentHex + '10', transform: 'translate(30%, -30%)' }} />
-          <div className="relative flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Sparkles className="w-4 h-4" style={{ color: accentHex }} />
-                <p className="font-bold text-sm" style={{ color: accentHex }}>Unlock everything with Pro</p>
-              </div>
-              <p className="text-sm text-muted-foreground max-w-md">
-                15 templates, analytics, email signature, virtual background, contact form, custom design and more.
-              </p>
-            </div>
-            <Link href="/dashboard/upgrade"
-              className="flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold text-white transition hover:opacity-90 flex-shrink-0"
-              style={{ background: accentHex, boxShadow: `0 4px 20px ${accentHex}44` }}>
-              Upgrade to Pro <ArrowUpRight className="w-4 h-4" />
-            </Link>
+        <div className="rounded-xl border border-border bg-card p-5 flex items-center justify-between flex-wrap gap-4">
+          <div className="min-w-0">
+            <p className={LABEL}>Cardtly Pro</p>
+            <p className="text-sm text-muted-foreground mt-1.5 max-w-md leading-relaxed">
+              15 templates, analytics, email signature, virtual background, contact form,
+              custom design and more.
+            </p>
           </div>
+          <Link href="/dashboard/upgrade"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition hover:opacity-90 flex-shrink-0"
+            style={{ background: accentHex }}>
+            Upgrade <ArrowUpRight className="w-4 h-4" />
+          </Link>
         </div>
       )}
     </div>
