@@ -37,9 +37,15 @@ export default function AddToPhoneButton({ contact }: Props) {
       address: contact.address,
     })
     if (r.ok) {
-      toast.success(r.method === 'native' ? 'Added to your phone contacts' : 'Contact downloaded — open it to add')
+      toast.success(
+        r.method === 'native' ? 'Added to your phone contacts'
+        : r.method === 'share' ? 'Choose Contacts to save it'
+        : 'Contact downloaded — open it to add'
+      )
     } else if (r.reason === 'denied') {
       toast.error('Contacts permission denied')
+    } else if (r.reason === 'cancelled') {
+      // Not an error: they closed the share sheet.
     } else {
       toast.error('Could not add to phone')
     }

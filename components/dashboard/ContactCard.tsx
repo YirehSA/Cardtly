@@ -8,6 +8,7 @@ import {
   Pencil, Trash2, Check, X, Loader2, MessageCircle,
 } from 'lucide-react'
 import AddToPhoneButton from './AddToPhoneButton'
+import ShareContactButton from './ShareContactButton'
 import { waLink } from '@/lib/whatsapp'
 
 export interface ContactRow {
@@ -252,7 +253,7 @@ export default function ContactCard({ contact, viaLabel }: { contact: ContactRow
             <a href={wa} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition"
               style={{ background: 'rgba(37,211,102,0.12)', color: '#25D366' }}>
-              <MessageCircle className="w-3 h-3" />WhatsApp
+              <MessageCircle className="w-3 h-3" />Message them
             </a>
           ) : null
         })()}
@@ -263,6 +264,7 @@ export default function ContactCard({ contact, viaLabel }: { contact: ContactRow
           </a>
         )}
         <AddToPhoneButton contact={contact} />
+        <ShareContactButton contact={contact} />
         <button onClick={() => setEditing(true)}
           className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/70 transition">
           <Pencil className="w-3 h-3" />Edit

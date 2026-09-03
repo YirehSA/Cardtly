@@ -113,9 +113,15 @@ export async function saveContactNative(card: CardContactInput): Promise<void> {
 
   const { given, family } = splitName(card.name)
 
+  // The office number was dropped here entirely, so a contact saved in the app
+  // kept one number where the same contact saved from the web kept both. The
+  // web vCard has carried workPhone for a while; this had not.
   const phones = [
     card.phone ? { type: PhoneType.Mobile, label: 'Mobile', number: card.phone } : null,
-    card.whatsapp && card.whatsapp !== card.phone
+    card.workPhone && card.workPhone !== card.phone
+      ? { type: PhoneType.Work, label: 'Work', number: card.workPhone }
+      : null,
+    card.whatsapp && card.whatsapp !== card.phone && card.whatsapp !== card.workPhone
       ? { type: PhoneType.Custom, label: 'WhatsApp', number: card.whatsapp }
       : null,
   ].filter(Boolean) as { type: PhoneType; label: string; number: string }[]

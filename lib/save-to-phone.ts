@@ -37,8 +37,14 @@ function buildVcard(c: CardContactInput): string {
 }
 
 export type SaveToPhoneResult =
-  | { ok: true; method: 'native' | 'vcard' }
-  | { ok: false; reason: 'denied' | 'error' }
+  | { ok: true; method: 'native' | 'share' | 'vcard' }
+  | { ok: false; reason: 'denied' | 'cancelled' | 'error' }
+
+/** The contact as a .vcf file, for the share sheet or a download. */
+export function vcardFile(contact: CardContactInput): File {
+  const name = contact.name?.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'contact'
+  return new File([buildVcard(contact)], `${name}.vcf`, { type: 'text/vcard' })
+}
 
 export async function saveToPhone(contact: CardContactInput): Promise<SaveToPhoneResult> {
   // Native app: write straight to the address book.
@@ -52,14 +58,30 @@ export async function saveToPhone(contact: CardContactInput): Promise<SaveToPhon
     }
   }
 
-  // Web: download a vCard the OS opens into the contacts app.
+  // Share sheet first, where the browser has one. A .vcf handed to the OS
+  // opens straight into "Add contact", and it is the only route that works
+  // inside an in-app browser - WhatsApp's and Instagram's have no download
+  // manager, so the anchor click below does nothing at all there. It also does
+  // not throw when it is ignored, which is why this used to report success and
+  // save nothing.
+  const file = vcardFile(contact)
+  if (typeof navigator !== 'undefined' && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: contact.name })
+      return { ok: true, method: 'share' }
+    } catch (e: any) {
+      // Dismissing the sheet is a choice, not a failure.
+      if (e?.name === 'AbortError') return { ok: false, reason: 'cancelled' }
+      // Anything else: fall through and try the download.
+    }
+  }
+
+  // Otherwise download the vCard, which phones open into "Add contact".
   try {
-    const vcard = buildVcard(contact)
-    const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
+    const url = URL.createObjectURL(file)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${contact.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'contact'}.vcf`
+    a.download = file.name
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
