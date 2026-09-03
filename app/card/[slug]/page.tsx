@@ -22,7 +22,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   let card: any = null
   const { data: personalCard } = await supabase
     .from('cards')
-    .select('name, company, title, bio, profile_image_url')
+    // select('*'), not named columns. Naming a column the database does not
+    // have comes back as an empty result rather than an error here, so a
+    // missing updated_at would turn every card page into "Card not found"
+    // instead of just skipping the cache-busting.
+    .select('*')
     .eq('slug', slug)
     .single()
 
@@ -31,7 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   } else {
     const { data: teamCard } = await supabase
       .from('team_cards')
-      .select('name, company, title, bio, profile_image_url')
+      .select('*')
       .eq('slug', slug)
       .single()
     if (teamCard) card = teamCard
@@ -42,7 +46,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const ogTitle = [card.name, card.company].filter(Boolean).join(' — ')
   const description = card.bio || `Connect with ${card.name}${card.title ? `, ${card.title}` : ''}${card.company ? ` at ${card.company}` : ''}`
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com'
-  const ogImageUrl = `${appUrl}/api/og/card/${slug}`
+  // Versioned by the card's own updated_at.
+  //
+  // The share image is generated once and cached hard - a day at our CDN, a
+  // week of stale-while-revalidate - and WhatsApp, Facebook and LinkedIn cache
+  // by URL for far longer than that and re-fetch on their own schedule. With a
+  // fixed URL, a card shared before its photograph was added kept showing the
+  // initials avatar afterwards, no matter how many times the photograph was
+  // re-uploaded. Changing the URL when the card changes is the only thing that
+  // reliably reaches caches we do not control.
+  const cardVersion = card.updated_at ? Date.parse(card.updated_at) : 0
+  const ogImageUrl = `${appUrl}/api/og/card/${slug}${cardVersion ? `?v=${cardVersion}` : ''}`
 
   return {
     title: ogTitle,

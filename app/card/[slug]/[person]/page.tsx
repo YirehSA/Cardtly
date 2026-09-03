@@ -96,7 +96,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       url,
-      images: [`${appUrl}/api/og/card/${c.slug}`],
+      // Versioned like the single-card route, so an edited card gets a fresh
+      // share image instead of whatever WhatsApp cached first.
+      images: [`${appUrl}/api/og/card/${c.slug}${c.updated_at ? `?v=${Date.parse(c.updated_at)}` : ''}`],
       type: 'profile',
     },
   }
