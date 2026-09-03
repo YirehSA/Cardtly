@@ -172,7 +172,7 @@ export default function MobileBottomNav({ isAdmin = false, isPro = false, manage
                     href={href}
                     prefetch={true}
                     onClick={() => setMoreOpen(false)}
-                    className="flex flex-col items-center gap-1.5 py-3 rounded-2xl transition active:scale-95"
+                    className="flex flex-col items-center gap-1.5 py-3 rounded-lg transition active:scale-95"
                     style={{
                       background: active ? 'hsl(var(--sidebar-accent) / 0.15)' : 'transparent',
                       border: '1px solid',

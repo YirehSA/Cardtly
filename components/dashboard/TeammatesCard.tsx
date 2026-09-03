@@ -12,7 +12,7 @@ interface Mate {
   profile_image_url: string | null
 }
 
-const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
+const grad = 'hsl(var(--accent))'
 
 // "Share a teammate's card" - shown on the dashboard for team
 // members. Lists the other active cards in their org with copy +
@@ -67,10 +67,10 @@ export default function TeammatesCard() {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6">
+    <div className="rounded-lg border border-border bg-card p-6">
       <div className="flex items-center gap-3 mb-5">
         <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)' }}>
+          style={{ background: 'hsl(var(--accent) / 0.10)', border: '1px solid hsl(var(--accent) / 0.28)' }}>
           <Users className="w-4 h-4" style={{ color: '#a78bfa' }} />
         </div>
         <div>
@@ -89,7 +89,7 @@ export default function TeammatesCard() {
               <img src={mate.profile_image_url} alt={mate.name || 'Teammate'}
                 className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
             ) : (
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-black text-white flex-shrink-0"
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
                 style={{ background: grad }}>
                 {(mate.name || '?').charAt(0).toUpperCase()}
               </div>

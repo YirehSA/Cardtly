@@ -12,15 +12,15 @@ export default function NFCSamplesSection({ samples }: { samples: CardSample[] }
   if (!samples.length) return null
 
   return (
-    <div className="rounded-3xl border border-border overflow-hidden mb-5">
+    <div className="rounded-xl border border-border overflow-hidden mb-5">
       <div
         className="p-6 sm:p-8"
-        style={{ background: 'linear-gradient(135deg, rgba(20,184,166,0.14), transparent 65%)' }}
+        style={{ background: 'hsl(var(--card))' }}
       >
         <div className="flex items-center gap-3">
           <div
-            className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
-            style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}
+            className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
+            style={{ background: 'hsl(var(--accent))' }}
           >
             <Sparkles className="w-5 h-5" aria-hidden="true" />
           </div>

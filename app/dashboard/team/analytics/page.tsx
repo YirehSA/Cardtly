@@ -3,8 +3,9 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ArrowLeft, Eye, Users, TrendingUp, ExternalLink, MousePointerClick, BarChart3, AlertCircle,
+  ArrowLeft, Eye, Users, TrendingUp, ExternalLink, MousePointerClick, AlertCircle,
 } from 'lucide-react'
+import { LABEL } from '@/components/dashboard/ui'
 
 export const metadata = { title: 'Team Analytics' }
 
@@ -78,50 +79,44 @@ export default async function TeamAnalyticsPage() {
   const quiet = rows.filter((r: any) => r.allTime === 0).length
 
   const stats = [
-    { label: 'Opens, last 30 days', value: sum('views30'), icon: TrendingUp, color: '#00d4ff' },
-    { label: 'Opens, all time', value: sum('allTime'), icon: Eye, color: '#a855f7' },
-    { label: 'Buttons tapped, 30 days', value: sum('taps30'), icon: MousePointerClick, color: '#8b5cf6' },
-    { label: 'People who left details', value: sum('leads'), icon: Users, color: '#22c55e' },
+    { label: 'Opens, last 30 days', value: sum('views30'), icon: TrendingUp },
+    { label: 'Opens, all time', value: sum('allTime'), icon: Eye },
+    { label: 'Buttons tapped, 30 days', value: sum('taps30'), icon: MousePointerClick },
+    { label: 'Details left', value: sum('leads'), icon: Users },
   ]
 
   return (
     <div className="max-w-5xl mx-auto space-y-5 animate-fade-in pb-16">
       {/* Header */}
-      <div className="rounded-3xl border border-border overflow-hidden">
-        <div className="p-6 sm:p-8" style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.14), transparent 65%)' }}>
-          <Link href="/dashboard/team"
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition mb-3">
-            <ArrowLeft className="w-3.5 h-3.5" />{org.name}
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-              <BarChart3 className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="font-display text-2xl font-bold leading-tight">How your team is doing</h1>
-              <p className="text-muted-foreground text-sm">Who is getting their card in front of people, and who needs a nudge.</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <header className="pb-5 border-b border-border">
+        <Link href="/dashboard/team"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition">
+          <ArrowLeft className="w-3.5 h-3.5" />{org.name}
+        </Link>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight mt-2">How your team is doing</h1>
+        <p className="text-sm text-muted-foreground mt-1.5">
+          Who is getting their card in front of people, and who needs a nudge.
+        </p>
+      </header>
 
       {/* Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {stats.map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="rounded-3xl border border-border bg-card p-5">
-            <div className="w-10 h-10 rounded-2xl grid place-items-center mb-3" style={{ background: color + '18' }}>
-              <Icon className="w-5 h-5" style={{ color }} />
+        {stats.map(({ label, value, icon: Icon }) => (
+          <div key={label} className="rounded-xl border border-border bg-card p-4 sm:p-5">
+            <div className="flex items-center gap-2">
+              <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <p className={LABEL}>{label}</p>
             </div>
-            <p className="text-3xl font-black tracking-tight tabular-nums" style={{ color }}>{value.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground mt-1">{label}</p>
+            <p className="font-display text-2xl sm:text-3xl font-bold tracking-tight tabular-nums mt-2.5 leading-none">
+              {value.toLocaleString()}
+            </p>
           </div>
         ))}
       </div>
 
       {/* A card nobody has opened is a seat being paid for and not used. */}
       {quiet > 0 && rows.length > 0 && (
-        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 flex items-start gap-3">
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 flex items-start gap-3">
           <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
           <p className="text-sm">
             <span className="font-medium">{quiet} {quiet === 1 ? 'card has' : 'cards have'} never been opened.</span>{' '}
@@ -135,7 +130,7 @@ export default async function TeamAnalyticsPage() {
       {/* Per member. A list rather than a table, so it reads properly on a
           phone instead of forcing a sideways scroll. */}
       {rows.length === 0 ? (
-        <div className="rounded-3xl border border-border bg-card p-16 text-center">
+        <div className="rounded-xl border border-border bg-card p-16 text-center">
           <Users className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">No active team cards yet.</p>
         </div>
@@ -143,7 +138,7 @@ export default async function TeamAnalyticsPage() {
         <div className="space-y-2">
           <p className="text-sm font-semibold px-1">Every card, busiest first</p>
           {rows.map((r: any) => (
-            <div key={r.id} className="rounded-2xl border border-border bg-card p-4">
+            <div key={r.id} className="rounded-lg border border-border bg-card p-4">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="min-w-0">
                   <p className="font-semibold text-sm truncate">{r.name || 'Unnamed'}</p>
@@ -158,13 +153,13 @@ export default async function TeamAnalyticsPage() {
               </div>
               <div className="grid grid-cols-4 gap-2 mt-3">
                 {[
-                  { k: 'Last 30 days', v: r.views30, tone: r.views30 > 0 ? '#00d4ff' : undefined },
+                  { k: 'Last 30 days', v: r.views30, tone: undefined },
                   { k: 'All time', v: r.allTime, tone: undefined },
-                  { k: 'Taps', v: r.taps30, tone: r.taps30 > 0 ? '#8b5cf6' : undefined },
+                  { k: 'Taps', v: r.taps30, tone: undefined },
                   { k: 'Contacts', v: r.leads, tone: r.leads > 0 ? '#22c55e' : undefined },
                 ].map(({ k, v, tone }) => (
                   <div key={k} className="rounded-xl bg-muted/50 p-2.5 text-center">
-                    <p className="text-lg font-black leading-none tabular-nums"
+                    <p className="text-lg font-bold leading-none tabular-nums"
                       style={tone ? { color: tone } : { color: 'hsl(var(--muted-foreground))' }}>
                       {v.toLocaleString()}
                     </p>

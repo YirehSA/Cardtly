@@ -15,7 +15,7 @@ export default function PastDueBanner({ graceDaysLeft }: { graceDaysLeft?: numbe
 
   return (
     <div
-      className="mb-5 rounded-2xl border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3"
+      className="mb-5 rounded-lg border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3"
       style={{ borderColor: 'rgba(245,158,11,0.35)', background: 'rgba(245,158,11,0.10)' }}
     >
       <span
@@ -33,7 +33,7 @@ export default function PastDueBanner({ graceDaysLeft }: { graceDaysLeft?: numbe
       <a
         href="/upgrade"
         className="shrink-0 inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
-        style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}
+        style={{ background: 'hsl(var(--accent))' }}
       >
         Fix payment
       </a>

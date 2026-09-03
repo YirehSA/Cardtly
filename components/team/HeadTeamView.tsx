@@ -39,13 +39,13 @@ export type HeadLead = {
 
 type Tab = 'people' | 'analytics' | 'leads'
 
-// Same treatment as the owner's tabs on Team Cards: a solid Cardtly colour on
-// the selected one, with the text colour measured against it rather than
-// assumed white. #00d4ff carries white at 1.77:1, which is unreadable.
-const TABS: Array<{ id: Tab; label: string; icon: any; solid: string; on: string }> = [
-  { id: 'people', label: 'My people', icon: Users, solid: '#00d4ff', on: '#062a33' },
-  { id: 'analytics', label: 'Team analytics', icon: BarChart2, solid: '#7c3aed', on: '#ffffff' },
-  { id: 'leads', label: 'Leads', icon: Inbox, solid: '#db2777', on: '#ffffff' },
+// Same treatment as the owner's tabs on Team Cards: an underline on the
+// selected one. See the note at the tab strip for why the colour-per-tab
+// scheme it replaced could not be made to pass contrast.
+const TABS: Array<{ id: Tab; label: string; icon: any }> = [
+  { id: 'people', label: 'My people', icon: Users },
+  { id: 'analytics', label: 'Team analytics', icon: BarChart2 },
+  { id: 'leads', label: 'Leads', icon: Inbox },
 ]
 
 const fmtDate = (iso: string) => {
@@ -95,8 +95,8 @@ export default function HeadTeamView({
   return (
     <div className="space-y-6">
       <div className="flex items-start gap-3">
-        <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+        <div className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: 'hsl(var(--accent))' }}>
           <Users className="w-5 h-5 text-white" />
         </div>
         <div className="min-w-0">
@@ -111,7 +111,7 @@ export default function HeadTeamView({
       </div>
 
       {cards.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card p-8 text-center">
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
           <Users className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
           <p className="font-semibold">Nobody here yet</p>
           <p className="text-sm text-muted-foreground mt-1">
@@ -130,30 +130,41 @@ export default function HeadTeamView({
               { label: 'Using their card', value: claimed, tone: '#22c55e', hint: 'People who accepted their invitation and opened their card' },
               { label: 'Leads captured', value: totalLeads, tone: totalLeads > 0 ? '#22c55e' : undefined, hint: 'People who left their details on one of your team\'s cards' },
             ].map(({ label, value, tone, hint }) => (
-              <div key={label} className="rounded-2xl bg-card border border-border p-3" title={hint}>
-                <p className="text-xl font-black leading-none tabular-nums" style={{ color: tone }}>{value}</p>
+              <div key={label} className="rounded-lg bg-card border border-border p-3" title={hint}>
+                <p className="text-xl font-bold leading-none tabular-nums" style={{ color: tone }}>{value}</p>
                 <p className="text-[11px] text-muted-foreground mt-1">{label}</p>
               </div>
             ))}
           </div>
 
-          <div className="flex gap-1.5 p-1.5 rounded-2xl bg-muted w-fit max-w-full overflow-x-auto">
-            {TABS.map(({ id, label, icon: Icon, solid, on }) => {
+          {/* Underline tabs, one accent.
+              Each tab used to take a different brand colour when selected, and the
+              text colour on each had to be hand-solved against it. Measured on the
+              real tokens, none of the alternatives worked: white on the accent is
+              3.64:1 in dark mode, accent text on the muted track is 3.93:1 light
+              and 4.36:1 dark, and a card-coloured pill on a muted track is 1.11:1,
+              which is the invisibility that drove the colour-coding in the first
+              place.
+              An underline sidesteps all of it. The active label is --foreground at
+              15.6:1, the inactive one is --muted-foreground, which the tokens
+              already hold above 4.5:1, and the accent is left carrying only the
+              rule, where the requirement is 3:1 for a non-text indicator. */}
+          <div className="flex gap-6 border-b border-border overflow-x-auto">
+            {TABS.map(({ id, label, icon: Icon }) => {
               const active = tab === id
               const count = id === 'people' ? cards.length : id === 'leads' ? leads.length : null
               return (
                 <button key={id} onClick={() => setTab(id)}
                   aria-current={active ? 'page' : undefined}
-                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition ${
-                    active ? 'shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background/60'}`}
-                  style={active ? { background: solid, color: on } : undefined}>
+                  className={`inline-flex items-center gap-2 pb-3 -mb-px border-b-2 text-sm whitespace-nowrap transition-colors ${
+                    active
+                      ? 'border-current text-foreground font-semibold'
+                      : 'border-transparent text-muted-foreground hover:text-foreground font-medium'}`}
+                  style={active ? { borderBottomColor: 'hsl(var(--accent))' } : undefined}>
                   <Icon className="w-4 h-4" />
                   {label}
                   {count !== null && count > 0 && (
-                    <span className="text-[11px] font-black tabular-nums px-1.5 py-0.5 rounded-md"
-                      style={active
-                        ? { background: 'rgba(0,0,0,0.18)', color: on }
-                        : { background: 'var(--muted-foreground)', color: 'var(--muted)', opacity: 0.5 }}>
+                    <span className="text-[11px] font-semibold tabular-nums px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                       {count}
                     </span>
                   )}
@@ -215,12 +226,12 @@ export default function HeadTeamView({
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Stat icon={Eye} label="Views in total" value={totalViews} tone="#00d4ff" />
-                <Stat icon={Inbox} label="Leads captured" value={totalLeads} tone="#22c55e" />
-                <Stat icon={Users} label="Cards being used" value={`${claimed}/${cards.length}`} tone="#7c3aed" />
+                <Stat icon={Eye} label="Views in total" value={totalViews} />
+                <Stat icon={Inbox} label="Leads captured" value={totalLeads} />
+                <Stat icon={Users} label="Cards being used" value={`${claimed}/${cards.length}`} />
               </div>
 
-              <div className="rounded-2xl border border-border bg-card overflow-hidden">
+              <div className="rounded-lg border border-border bg-card overflow-hidden">
                 <div className="px-4 py-3 border-b border-border">
                   <p className="font-bold text-sm">Card by card</p>
                   <p className="text-xs text-muted-foreground">Busiest first.</p>
@@ -240,7 +251,7 @@ export default function HeadTeamView({
                           <div className="h-full rounded-full"
                             style={{
                               width: busiest > 0 ? `${Math.max(2, (c.views / busiest) * 100)}%` : '0%',
-                              background: 'linear-gradient(90deg, #00d4ff, #7c3aed)',
+                              background: 'hsl(var(--accent))',
                             }} />
                         </div>
                       </div>
@@ -270,7 +281,7 @@ export default function HeadTeamView({
               />
 
               {leads.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+                <div className="rounded-lg border border-dashed border-border p-10 text-center">
                   <Inbox className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
                   <p className="text-sm font-medium">No leads yet</p>
                   <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
@@ -280,7 +291,7 @@ export default function HeadTeamView({
               ) : (
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {leads.map(l => (
-                    <li key={l.id} className="rounded-2xl border border-border bg-card p-4 space-y-2">
+                    <li key={l.id} className="rounded-lg border border-border bg-card p-4 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <p className="font-bold text-sm truncate">{l.name || 'Someone'}</p>
                         <span className="text-[11px] text-muted-foreground shrink-0 inline-flex items-center gap-1">
@@ -326,20 +337,20 @@ export default function HeadTeamView({
 // numbers with no explanation is where most of them stop.
 function Explainer({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-muted/40 p-4">
+    <div className="rounded-lg border border-border bg-muted/40 p-4">
       <p className="font-bold text-sm">{title}</p>
       <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-2xl">{body}</p>
     </div>
   )
 }
 
-function Stat({ icon: Icon, label, value, tone }: {
-  icon: any; label: string; value: number | string; tone: string
+function Stat({ icon: Icon, label, value }: {
+  icon: any; label: string; value: number | string
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
-      <Icon className="w-4 h-4 mb-2" style={{ color: tone }} />
-      <p className="text-2xl font-black leading-none tabular-nums">{value}</p>
+    <div className="rounded-lg border border-border bg-card p-4">
+      <Icon className="w-4 h-4 mb-2 text-muted-foreground" />
+      <p className="text-2xl font-bold leading-none tabular-nums">{value}</p>
       <p className="text-xs text-muted-foreground mt-1">{label}</p>
     </div>
   )

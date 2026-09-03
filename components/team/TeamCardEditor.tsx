@@ -11,7 +11,7 @@ import CardPreview from '@/components/card/CardPreview'
 import DesignPanel from '@/components/card/DesignPanel'
 import ImageUploader from '@/components/card/ImageUploader'
 import AIBioModal from '@/components/card/AIBioModal'
-import { Save, ExternalLink, ArrowLeft, User, Phone, Link2, Image, Palette, Copy, Check, Lock, Sparkles } from 'lucide-react'
+import { Save, ExternalLink, ArrowLeft, User, Phone, Link2, Image, Palette, Copy, Check, Lock, Sparkles, Briefcase } from 'lucide-react'
 import Link from 'next/link'
 
 // The repeated slot columns, declared from the shared lists rather than typed
@@ -82,12 +82,12 @@ function snapshotOf(form: Record<string, unknown>, design: CardDesign): string {
 type TabId = 'basic' | 'contact' | 'links' | 'media' | 'design'
 
 // Colours match the personal card editor so the two feel like one product.
-const ALL_TABS: { id: TabId; label: string; hint: string; icon: React.ReactNode; colour: string }[] = [
-  { id: 'basic',   label: 'Profile', hint: 'Photo, name, what you do', icon: <User className="w-4 h-4" />,    colour: '#3b82f6' },
-  { id: 'contact', label: 'Contact', hint: 'How people reach you',     icon: <Phone className="w-4 h-4" />,   colour: '#22c55e' },
-  { id: 'links',   label: 'Links',   hint: 'Send people anywhere',     icon: <Link2 className="w-4 h-4" />,   colour: '#8b5cf6' },
-  { id: 'media',   label: 'Media',   hint: 'Logo and pictures',        icon: <Image className="w-4 h-4" />,   colour: '#f59e0b' },
-  { id: 'design',  label: 'Design',  hint: 'Colours and layout',       icon: <Palette className="w-4 h-4" />, colour: '#ec4899' },
+const ALL_TABS: { id: TabId; label: string; hint: string; icon: React.ReactNode }[] = [
+  { id: 'basic',   label: 'Profile', hint: 'Photo, name, what you do', icon: <User className="w-4 h-4" /> },
+  { id: 'contact', label: 'Contact', hint: 'How people reach you',     icon: <Phone className="w-4 h-4" /> },
+  { id: 'links',   label: 'Links',   hint: 'Send people anywhere',     icon: <Link2 className="w-4 h-4" /> },
+  { id: 'media',   label: 'Media',   hint: 'Logo and pictures',        icon: <Image className="w-4 h-4" /> },
+  { id: 'design',  label: 'Design',  hint: 'Colours and layout',       icon: <Palette className="w-4 h-4" /> },
 ]
 
 // Which fields each tab owns, so each tab can show how much of itself is
@@ -414,8 +414,8 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                       className="px-3 py-1.5 rounded-r-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring transition w-44" />
                     <button onClick={saveSlug} disabled={slugSaving || !slug || !slugChanges}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
-                      style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-                      {slugSaving ? '...' : slugSuccess ? '✓ Saved' : 'Update URL'}
+                      style={{ background: 'hsl(var(--accent))' }}>
+                      {slugSaving ? '...' : slugSuccess ? 'Saved' : 'Update URL'}
                     </button>
                     {slugError && <span className="text-xs text-destructive">{slugError}</span>}
                   </div>
@@ -438,7 +438,7 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
             </span>
             <button onClick={save} disabled={saving || !dirty}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+              style={{ background: 'hsl(var(--accent))' }}>
               <Save className="w-4 h-4" />
               {saving ? 'Saving...' : dirty ? 'Save' : 'Saved'}
             </button>
@@ -451,8 +451,8 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
             when the company had left them open. It now lists what is actually
             locked, or says plainly that nothing is. */}
         {isMember && (
-          <div className="mb-5 rounded-xl p-4 border flex items-start gap-3" style={{ borderColor: 'rgba(124,58,237,0.3)', background: 'linear-gradient(135deg, rgba(0,212,255,0.06), rgba(124,58,237,0.08), rgba(236,72,153,0.06))' }}>
-            <div className="text-lg mt-0.5">💼</div>
+          <div className="mb-5 rounded-xl p-4 border flex items-start gap-3" style={{ borderColor: 'hsl(var(--accent) / 0.3)', background: 'hsl(var(--accent) / 0.07)' }}>
+            <Briefcase className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'hsl(var(--accent))' }} />
             <div className="flex-1 text-sm">
               <p className="font-semibold mb-0.5">You&rsquo;re editing your team card</p>
               {lockedGroups.length === 0 ? (
@@ -478,9 +478,13 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
           </div>
         )}
 
-        {/* Tabs. Each owns a colour, carries its own hint, and shows how much
-            of itself is filled in, so the next thing to do is visible without
-            opening every tab to check. */}
+        {/* Tabs. Each carries its own hint and shows how much of itself is
+            filled in, so the next thing to do is visible without opening every
+            tab to check.
+            They used to own a colour each - blue, green, violet, amber, pink -
+            which meant the editor changed colour as you moved through it. The
+            selected one now takes the accent, like every other selected thing
+            in the dashboard. */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mb-6">
           {TABS.map(tab => {
             const on = activeTab === tab.id
@@ -488,9 +492,9 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
             return (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                 className={`text-left p-3 rounded-xl border-2 transition ${on ? '' : 'border-border hover:border-foreground/20'}`}
-                style={on ? { borderColor: tab.colour, background: tab.colour + '14' } : undefined}>
+                style={on ? { borderColor: 'hsl(var(--accent))', background: 'hsl(var(--accent) / 0.08)' } : undefined}>
                 <div className="flex items-center justify-between mb-1">
-                  <span style={{ color: on ? tab.colour : undefined }}
+                  <span style={{ color: on ? 'hsl(var(--accent))' : undefined }}
                     className={on ? '' : 'text-muted-foreground'}>{tab.icon}</span>
                   {total > 0 && (
                     <span className="text-[10px] font-semibold tabular-nums"
@@ -500,7 +504,7 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                   )}
                 </div>
                 <p className="text-sm font-semibold leading-tight"
-                  style={{ color: on ? tab.colour : undefined }}>{tab.label}</p>
+                  style={{ color: on ? 'hsl(var(--accent))' : undefined }}>{tab.label}</p>
                 <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">{tab.hint}</p>
               </button>
             )
@@ -508,7 +512,7 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
         </div>
 
         {/* Tab content */}
-        <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
+        <div className="bg-card border border-border rounded-lg p-6 space-y-5">
 
           {activeTab === 'basic' && (
             <>
@@ -541,7 +545,7 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                     className="w-full px-4 py-2.5 pr-32 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition resize-none" />
                   <button type="button" onClick={() => setAiBioOpen(true)}
                     className="absolute top-2 right-2 flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-white transition hover:opacity-90"
-                    style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                    style={{ background: 'hsl(var(--accent))' }}>
                     <Sparkles className="w-3 h-3" />Write it for me
                   </button>
                 </div>
@@ -701,7 +705,7 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
             disabled={featureSaving}
             onClick={() => !featureSaving && toggleFeature(!allowFeature)}
             className="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition disabled:opacity-50"
-            style={{ background: allowFeature ? 'linear-gradient(135deg, #00d4ff, #7c3aed)' : 'rgba(255,255,255,0.15)' }}>
+            style={{ background: allowFeature ? 'hsl(var(--accent))' : 'rgba(255,255,255,0.15)' }}>
             <span className="inline-block h-5 w-5 transform rounded-full bg-white transition"
               style={{ transform: allowFeature ? 'translateX(22px)' : 'translateX(2px)' }} />
           </button>
@@ -723,7 +727,7 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
               disabled={networkSaving || orgExcluded}
               onClick={() => !networkSaving && !orgExcluded && toggleNetwork(!inNetwork)}
               className="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition disabled:opacity-50"
-              style={{ background: inNetwork && !orgExcluded ? 'linear-gradient(135deg, #00d4ff, #7c3aed)' : 'rgba(255,255,255,0.15)' }}>
+              style={{ background: inNetwork && !orgExcluded ? 'hsl(var(--accent))' : 'rgba(255,255,255,0.15)' }}>
               <span className="inline-block h-5 w-5 transform rounded-full bg-white transition"
                 style={{ transform: inNetwork && !orgExcluded ? 'translateX(22px)' : 'translateX(2px)' }} />
             </button>
@@ -763,7 +767,7 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
         <div className="mt-4 flex justify-end">
           <button onClick={save} disabled={saving || !dirty}
             className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+            style={{ background: 'hsl(var(--accent))' }}>
             <Save className="w-4 h-4" />
             {saving ? 'Saving...' : dirty ? 'Save changes' : 'Saved'}
           </button>
@@ -774,7 +778,7 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
       <div className="xl:w-80 xl:flex-shrink-0">
         <div className="sticky top-6">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Live Preview</p>
-          <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-800" style={{ maxHeight: '82vh', overflowY: 'auto' }}>
+          <div className="rounded-lg overflow-hidden shadow-2xl border border-gray-800" style={{ maxHeight: '82vh', overflowY: 'auto' }}>
             <CardPreview
               form={usesBrand ? mergeBrand(form, orgBrand, locked) : form}
               isPro={true}

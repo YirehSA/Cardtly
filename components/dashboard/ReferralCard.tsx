@@ -39,16 +39,16 @@ export default function ReferralCard({ referralCode, firstName }: Props) {
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl p-6"
+      className="relative overflow-hidden rounded-lg p-6"
       style={{
-        background: 'linear-gradient(135deg, rgba(0,212,255,0.10) 0%, rgba(124,58,237,0.12) 50%, rgba(236,72,153,0.10) 100%)',
-        border: '1px solid rgba(124,58,237,0.25)',
+        background: 'hsl(var(--accent) / 0.07)',
+        border: '1px solid hsl(var(--accent) / 0.24)',
       }}
     >
       {/* Decorative ambient glow */}
       <div
         className="absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.25) 0%, transparent 70%)' }}
+        style={{ background: 'transparent' }}
       />
 
       <div className="relative flex flex-col lg:flex-row lg:items-center gap-5">
@@ -56,10 +56,10 @@ export default function ReferralCard({ referralCode, firstName }: Props) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)', boxShadow: '0 4px 16px rgba(124,58,237,0.4)' }}>
+              style={{ background: 'hsl(var(--accent))' }}>
               <Heart className="w-4 h-4 text-white" />
             </div>
-            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#ec4899' }}>
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'hsl(var(--accent))' }}>
               Refer &amp; earn entries
             </p>
           </div>
@@ -89,7 +89,7 @@ export default function ReferralCard({ referralCode, firstName }: Props) {
             <button
               onClick={shareNative}
               className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)', boxShadow: '0 4px 16px rgba(124,58,237,0.35)' }}
+              style={{ background: 'hsl(var(--accent))' }}
             >
               <Share2 className="w-4 h-4" />Share
             </button>

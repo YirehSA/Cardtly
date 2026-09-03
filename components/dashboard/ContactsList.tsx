@@ -5,6 +5,7 @@ import ContactCard, { ContactRow, SOURCE_META, sourceMeta } from './ContactCard'
 import ExportContactsButton from './ExportContactsButton'
 import EmptyState from '@/components/EmptyState'
 import { Search, Users, X, Inbox, CalendarClock } from 'lucide-react'
+import { LABEL } from '@/components/dashboard/ui'
 
 interface Props {
   // `_via` is the team member whose card captured the lead. Present only on
@@ -94,35 +95,35 @@ export default function ContactsList({ rows, ownerName, headerAction, emptyTitle
   }
 
   const STATS = [
-    { label: 'People in total', value: stats.total, icon: Users, colour: '#f59e0b' },
-    { label: 'Came in this week', value: stats.thisWeek, icon: CalendarClock, colour: '#10b981' },
-    { label: 'Came in this month', value: stats.thisMonth, icon: Inbox, colour: '#8b5cf6' },
+    { label: 'In total', value: stats.total, icon: Users },
+    { label: 'This week', value: stats.thisWeek, icon: CalendarClock },
+    { label: 'This month', value: stats.thisMonth, icon: Inbox },
   ]
 
   return (
     <div className="space-y-5">
       {/* Numbers */}
       <div className="grid grid-cols-3 gap-3">
-        {STATS.map(({ label, value, icon: Icon, colour }) => (
-          <div key={label} className="rounded-2xl border border-border bg-card p-4">
-            <div className="w-9 h-9 rounded-xl grid place-items-center mb-2" style={{ background: colour + '18' }}>
-              <Icon className="w-4 h-4" style={{ color: colour }} />
+        {STATS.map(({ label, value, icon: Icon }) => (
+          <div key={label} className="rounded-lg border border-border bg-card p-3 sm:p-4">
+            <div className="flex items-center gap-2">
+              <Icon className="w-3.5 h-3.5 text-muted-foreground hidden sm:block shrink-0" />
+              <p className={LABEL}>{label}</p>
             </div>
-            <p className="text-2xl font-black tracking-tight leading-none" style={{ color: colour }}>{value}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">{label}</p>
+            <p className="font-display text-2xl font-bold tracking-tight tabular-nums leading-none mt-2">{value}</p>
           </div>
         ))}
       </div>
 
       {/* Find someone */}
-      <div className="rounded-3xl border border-border bg-card p-4 space-y-3">
+      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search by name, email, phone or company"
-            className="w-full pl-10 pr-10 py-3 rounded-2xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
+            className="w-full pl-10 pr-10 py-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
           />
           {query && (
             <button onClick={() => setQuery('')} aria-label="Clear search"
@@ -165,7 +166,7 @@ export default function ContactsList({ rows, ownerName, headerAction, emptyTitle
 
       {/* Results */}
       {filtered.length === 0 ? (
-        <div className="rounded-3xl border border-border bg-card p-10 text-center">
+        <div className="rounded-xl border border-border bg-card p-10 text-center">
           <Search className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
           <p className="font-semibold mb-1">Nobody matches that</p>
           <p className="text-sm text-muted-foreground mb-4">

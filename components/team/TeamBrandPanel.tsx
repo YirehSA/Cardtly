@@ -81,7 +81,7 @@ export default function TeamBrandPanel({ orgId, brand, hasBrand, totalCards = 0,
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-border bg-card p-6">
+      <div className="rounded-lg border border-border bg-card p-6">
         <div className="flex items-start gap-4 flex-wrap">
           {brand.company_logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -128,7 +128,7 @@ export default function TeamBrandPanel({ orgId, brand, hasBrand, totalCards = 0,
       <div className="flex flex-wrap gap-3">
         <button onClick={syncFromCard} disabled={busy}
           className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-60"
-          style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+          style={{ background: 'hsl(var(--accent))' }}>
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
           {hasBrand ? 'Update brand from my card' : 'Set brand from my card'}
         </button>

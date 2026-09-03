@@ -94,7 +94,7 @@ export default async function CardPage() {
     if (insertError || !newCard) {
       console.error('Failed to create primary card for user', user.id, insertError)
       return (
-        <div className="max-w-md mx-auto mt-20 p-6 rounded-2xl border border-destructive/30 bg-destructive/5">
+        <div className="max-w-md mx-auto mt-20 p-6 rounded-lg border border-destructive/30 bg-destructive/5">
           <h2 className="font-semibold text-lg mb-2 text-destructive">Could not load your card</h2>
           <p className="text-sm text-muted-foreground mb-4">
             We could not create or fetch your personal card. Please email <a href="mailto:andre@cardtly.com" className="underline">andre@cardtly.com</a> with your account email and we will fix it manually.

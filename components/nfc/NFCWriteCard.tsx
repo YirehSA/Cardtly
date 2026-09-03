@@ -42,7 +42,7 @@ export default function NFCWriteCard({ cardUrl, cardName }: Props) {
   // page layout doesn't jump when we resolve.
   if (nfcReady === 'unknown') {
     return (
-      <div className="rounded-3xl border border-border p-6 mb-6 animate-pulse h-32" />
+      <div className="rounded-xl border border-border p-6 mb-6 animate-pulse h-32" />
     )
   }
 
@@ -76,12 +76,12 @@ export default function NFCWriteCard({ cardUrl, cardName }: Props) {
 
   return (
     <>
-      <div className="rounded-3xl border border-border p-6 mb-6"
-        style={{ background: 'rgba(0,212,255,0.04)', borderColor: 'rgba(0,212,255,0.2)' }}>
+      <div className="rounded-xl border border-border p-6 mb-6"
+        style={{ background: 'hsl(var(--accent) / 0.05)', borderColor: 'hsl(var(--accent) / 0.22)' }}>
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(124,58,237,0.2))' }}>
-            <Wifi className="w-5 h-5" style={{ color: '#00d4ff' }} />
+          <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: 'hsl(var(--accent) / 0.16)' }}>
+            <Wifi className="w-5 h-5" style={{ color: 'hsl(var(--accent))' }} />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-base mb-1">Write to your own NFC tag</h3>
@@ -93,7 +93,7 @@ export default function NFCWriteCard({ cardUrl, cardName }: Props) {
               onClick={handleWrite}
               disabled={writing}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition hover:opacity-90 disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+              style={{ background: 'hsl(var(--accent))' }}>
               {writing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wifi className="w-4 h-4" />}
               {writing ? 'Waiting for tag' : 'Write to NFC tag'}
             </button>
@@ -105,7 +105,7 @@ export default function NFCWriteCard({ cardUrl, cardName }: Props) {
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
           style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
           onClick={dismiss}>
-          <div className="rounded-3xl p-8 max-w-sm w-full text-center relative"
+          <div className="rounded-xl p-8 max-w-sm w-full text-center relative"
             style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)' }}
             onClick={(e) => e.stopPropagation()}>
             <button onClick={dismiss}
@@ -131,7 +131,7 @@ export default function NFCWriteCard({ cardUrl, cardName }: Props) {
                 <p className="text-sm text-muted-foreground mb-5">{error}</p>
                 <button onClick={handleWrite}
                   className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition hover:opacity-90"
-                  style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                  style={{ background: 'hsl(var(--accent))' }}>
                   Try again
                 </button>
               </>
@@ -143,8 +143,8 @@ export default function NFCWriteCard({ cardUrl, cardName }: Props) {
                   <span className="nfc-pulse-ring absolute inset-0 rounded-full" style={{ animationDelay: '0.6s' }} />
                   <span className="nfc-pulse-ring absolute inset-0 rounded-full" style={{ animationDelay: '1.2s' }} />
                   <div className="relative w-16 h-16 rounded-full flex items-center justify-center"
-                    style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.25), rgba(124,58,237,0.25))' }}>
-                    <Wifi className="w-8 h-8" style={{ color: '#00d4ff' }} />
+                    style={{ background: 'hsl(var(--accent) / 0.16)' }}>
+                    <Wifi className="w-8 h-8" style={{ color: 'hsl(var(--accent))' }} />
                   </div>
                 </div>
                 <h3 className="text-xl font-bold mb-2">Hold a tag near your phone</h3>

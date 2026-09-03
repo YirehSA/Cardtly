@@ -77,7 +77,7 @@ export default function HeadTeamCard({
   }
 
   return (
-    <div className="bg-card border border-border rounded-2xl overflow-hidden">
+    <div className="bg-card border border-border rounded-lg overflow-hidden">
       <div className="h-1.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
       <div className="p-5 space-y-4">
 
@@ -89,7 +89,7 @@ export default function HeadTeamCard({
               className="w-12 h-12 rounded-full object-cover shrink-0 ring-2 ring-border" />
           ) : (
             <span className="w-12 h-12 rounded-full shrink-0 flex items-center justify-center font-bold text-sm text-white"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed)' }}>
+              style={{ background: 'hsl(var(--accent))' }}>
               {initials(card.name || card.inviteEmail)}
             </span>
           )}
@@ -243,7 +243,7 @@ function Toggle({ icon: Icon, label, checked, busy, hint, onChange }: {
         disabled={busy}
         onClick={() => onChange(!checked)}
         className="relative w-11 h-6 rounded-full transition disabled:opacity-50 shrink-0"
-        style={{ background: checked ? 'linear-gradient(135deg, #00d4ff, #7c3aed)' : 'rgba(120,120,130,0.35)' }}>
+        style={{ background: checked ? 'hsl(var(--accent))' : 'rgba(120,120,130,0.35)' }}>
         <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
           style={{ left: checked ? '1.375rem' : '0.125rem' }} />
       </button>

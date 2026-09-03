@@ -18,6 +18,7 @@ import TapToShareButton from '@/components/nfc/TapToShareButton'
 import WidgetSync from '@/components/dashboard/WidgetSync'
 import TeammatesCard from '@/components/dashboard/TeammatesCard'
 import AddToGoogleWalletButton from '@/components/wallet/AddToGoogleWalletButton'
+import { LABEL } from '@/components/dashboard/ui'
 import {
   CreditCard, BarChart2, Eye, Users, ArrowUpRight, QrCode, Mail, Monitor,
   ChevronRight, Check, Circle, TrendingUp,
@@ -42,12 +43,6 @@ interface CardSummary {
 // still missing instead of leaving them to guess.
 const CARD_FIELDS =
   'id, name, title, company, slug, view_count, color_theme, profile_image_url, company_logo_url, bio, phone, email'
-
-// The label above every number and every panel. Small, tracked and uppercase:
-// the convention corporate reporting uses to separate what a figure is from
-// what it says, and the cheapest way to make a screen read as an instrument
-// rather than a feed.
-const LABEL = 'text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground'
 
 export default async function DashboardPage() {
   const supabase = await createClient()

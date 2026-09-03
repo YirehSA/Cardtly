@@ -52,7 +52,7 @@ export default function OrgIdentityPanel({
   const clean = slugifyPart(prefix, 24)
 
   return (
-    <div className="rounded-3xl border border-border bg-card p-6 space-y-6">
+    <div className="rounded-xl border border-border bg-card p-6 space-y-6">
       <div>
         <div className="flex items-center gap-2.5 mb-1">
           <span className="w-9 h-9 rounded-xl grid place-items-center bg-muted shrink-0">
@@ -79,7 +79,7 @@ export default function OrgIdentityPanel({
             onClick={() => save({ card_slug_prefix: clean }, 'prefix', 'Company link updated').then(ok => { if (ok) setSavedPrefix(clean) })}
             disabled={saving === 'prefix' || clean.length < 2 || clean === savedPrefix}
             className="ml-auto px-4 py-2 rounded-xl text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-40 flex items-center gap-1.5"
-            style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+            style={{ background: 'hsl(var(--accent))' }}>
             {saving === 'prefix' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
             Save
           </button>

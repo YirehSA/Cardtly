@@ -161,14 +161,14 @@ function Broadcasting({ cardName }: { cardName?: string }) {
       <div className="relative w-56 h-56 mx-auto mb-8">
         {/* Animated pulse rings */}
         <span className="absolute inset-0 rounded-full animate-pulse-ring"
-          style={{ border: '3px solid rgba(0,212,255,0.7)' }} />
+          style={{ border: '3px solid hsl(var(--accent) / 0.7)' }} />
         <span className="absolute inset-0 rounded-full animate-pulse-ring-2"
-          style={{ border: '3px solid rgba(124,58,237,0.7)' }} />
+          style={{ border: '3px solid hsl(var(--accent) / 0.7)' }} />
         <span className="absolute inset-0 rounded-full animate-pulse-ring-3"
-          style={{ border: '3px solid rgba(236,72,153,0.7)' }} />
+          style={{ border: '3px solid hsl(var(--accent) / 0.45)' }} />
         {/* Centre puck */}
         <div className="absolute inset-8 rounded-full flex items-center justify-center"
-          style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)', boxShadow: '0 12px 60px rgba(124,58,237,0.6)' }}>
+          style={{ background: 'hsl(var(--accent))', boxShadow: '0 12px 60px hsl(var(--accent) / 0.6)' }}>
           <Wifi className="w-16 h-16 text-white" />
         </div>
       </div>
@@ -179,7 +179,7 @@ function Broadcasting({ cardName }: { cardName?: string }) {
         Broadcasting
       </p>
 
-      <h2 className="text-3xl font-black mb-3">Hold your phone to theirs</h2>
+      <h2 className="text-3xl font-bold mb-3">Hold your phone to theirs</h2>
       <p className="text-sm leading-relaxed max-w-xs mx-auto" style={{ color: 'rgba(255,255,255,0.65)' }}>
         {cardName ? `${cardName}'s` : 'Your'} Cardtly card will open on the other phone in a second. Both phones need NFC turned on. Back-to-back works best.
       </p>
@@ -221,7 +221,7 @@ function SuccessScreen() {
         Shared
       </p>
 
-      <h2 className="text-3xl font-black mb-3">Card sent!</h2>
+      <h2 className="text-3xl font-bold mb-3">Card sent!</h2>
       <p className="text-sm leading-relaxed max-w-xs mx-auto" style={{ color: 'rgba(255,255,255,0.65)' }}>
         Your Cardtly card just landed on their phone. They can save your contact or visit your card directly.
       </p>
@@ -296,7 +296,7 @@ function InfoScreen({ icon, title, body }: { icon: React.ReactNode; title: strin
   return (
     <div className="space-y-4">
       <div className="flex justify-center">{icon}</div>
-      <h2 className="text-2xl font-black">{title}</h2>
+      <h2 className="text-2xl font-bold">{title}</h2>
       <p className="text-sm max-w-xs mx-auto leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>{body}</p>
     </div>
   )

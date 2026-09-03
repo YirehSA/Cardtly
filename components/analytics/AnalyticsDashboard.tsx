@@ -8,6 +8,7 @@ import {
   Eye, Users, TrendingUp, TrendingDown, Minus, Smartphone, Monitor,
   Tablet, Globe, QrCode, ArrowUpRight, BarChart3, MousePointerClick, UserPlus,
 } from 'lucide-react'
+import { LABEL } from '@/components/dashboard/ui'
 import ExportAnalyticsButton from '@/components/analytics/ExportAnalyticsButton'
 
 interface EventRow {
@@ -222,21 +223,21 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
     new Date(iso + 'T12:00:00').toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })
 
   const HEADLINE = [
-    { label: 'Times your card was opened', value: stats.views, prev: stats.prevViews, icon: Eye, colour: accent },
-    { label: 'Buttons and links tapped', value: stats.clicks, prev: stats.prevClicks, icon: MousePointerClick, colour: '#8b5cf6' },
-    { label: 'Saved your contact', value: stats.saves, prev: stats.prevSaves, icon: UserPlus, colour: '#10b981' },
-    { label: 'People who left their details', value: stats.leads, prev: stats.prevLeads, icon: Users, colour: '#f59e0b' },
+    { label: 'Card opened', value: stats.views, prev: stats.prevViews, icon: Eye },
+    { label: 'Buttons tapped', value: stats.clicks, prev: stats.prevClicks, icon: MousePointerClick },
+    { label: 'Contact saved', value: stats.saves, prev: stats.prevSaves, icon: UserPlus },
+    { label: 'Details left', value: stats.leads, prev: stats.prevLeads, icon: Users },
   ]
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in pb-16">
       {/* Header */}
-      <div className="rounded-3xl border border-border overflow-hidden">
-        <div className="p-6 sm:p-8" style={{ background: `linear-gradient(135deg, ${accent}1f, transparent 65%)` }}>
+      <div className="rounded-xl border border-border overflow-hidden">
+        <div className="p-6 sm:p-8" style={{ background: 'hsl(var(--card))' }}>
           <div className="flex items-start justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
-                style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+              <div className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
+                style={{ background: 'hsl(var(--accent))' }}>
                 <BarChart3 className="w-5 h-5" />
               </div>
               <div>
@@ -249,7 +250,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex gap-1 bg-muted p-1 rounded-2xl">
+              <div className="flex gap-1 bg-muted p-1 rounded-lg">
                 {PERIODS.map(p => (
                   <button key={p.value} onClick={() => setPeriod(p.value)}
                     className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition ${period === p.value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
@@ -273,24 +274,26 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
 
       {/* Headline numbers */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {HEADLINE.map(({ label, value, prev, icon: Icon, colour }) => (
-          <div key={label} className="rounded-3xl border border-border bg-card p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-2xl grid place-items-center" style={{ background: colour + '18' }}>
-                <Icon className="w-5 h-5" style={{ color: colour }} />
-              </div>
+        {HEADLINE.map(({ label, value, prev, icon: Icon }) => (
+          <div key={label} className="rounded-xl border border-border bg-card p-4 sm:p-5">
+            <div className="flex items-center gap-2">
+              <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <p className={LABEL}>{label}</p>
             </div>
-            <p className="text-3xl font-black tracking-tight" style={{ color: colour }}>{value.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground mt-1 mb-2">{label}</p>
-            <Trend now={value} prev={prev} days={period} />
+            <p className="font-display text-2xl sm:text-3xl font-bold tracking-tight tabular-nums mt-2.5 leading-none">
+              {value.toLocaleString()}
+            </p>
+            <div className="mt-2">
+              <Trend now={value} prev={prev} days={period} />
+            </div>
           </div>
         ))}
       </div>
 
       {stats.views === 0 ? (
         /* Nothing to show yet - say what to do about it rather than "no data". */
-        <div className="rounded-3xl border border-border bg-card p-10 text-center">
-          <div className="w-14 h-14 rounded-3xl grid place-items-center mx-auto mb-4"
+        <div className="rounded-xl border border-border bg-card p-10 text-center">
+          <div className="w-14 h-14 rounded-xl grid place-items-center mx-auto mb-4"
             style={{ background: accent + '18' }}>
             <TrendingUp className="w-6 h-6" style={{ color: accent }} />
           </div>
@@ -315,7 +318,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
       ) : (
         <>
           {/* When people opened it */}
-          <div className="rounded-3xl border border-border bg-card p-5 sm:p-6">
+          <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
             <div className="flex items-start justify-between flex-wrap gap-2 mb-5">
               <div>
                 <h2 className="font-semibold text-sm">When people opened it</h2>
@@ -356,7 +359,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
           {/* What they tapped. Only appears once there is something to show,
               rather than sitting there as a permanent row of zeros. */}
           {stats.topLinks.length > 0 && (
-            <div className="rounded-3xl border border-border bg-card p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex items-center gap-2 mb-1">
                 <MousePointerClick className="w-4 h-4 text-muted-foreground" />
                 <h3 className="font-semibold text-sm">What they tapped most</h3>
@@ -378,7 +381,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
                           </span>
                         </div>
                         <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: '#8b5cf6' }} />
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: accent }} />
                         </div>
                       </div>
                     </div>
@@ -390,7 +393,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
 
           {/* How they got the card, where they came from, what they used */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div className="rounded-3xl border border-border bg-card p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex items-center gap-2 mb-1">
                 <QrCode className="w-4 h-4 text-muted-foreground" />
                 <h3 className="font-semibold text-sm">How they got your card</h3>
@@ -407,7 +410,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
               </p>
             </div>
 
-            <div className="rounded-3xl border border-border bg-card p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex items-center gap-2 mb-1">
                 <Globe className="w-4 h-4 text-muted-foreground" />
                 <h3 className="font-semibold text-sm">Where they came from</h3>
@@ -418,7 +421,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
               <Bars rows={stats.bySource} total={stats.views} colour={accent} />
             </div>
 
-            <div className="rounded-3xl border border-border bg-card p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex items-center gap-2 mb-1">
                 <Smartphone className="w-4 h-4 text-muted-foreground" />
                 <h3 className="font-semibold text-sm">What they opened it on</h3>
@@ -433,15 +436,15 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
                   const Icon = kind === 'mobile' ? Smartphone : kind === 'tablet' ? Tablet : Monitor
                   const nice = kind === 'mobile' ? 'Phone' : kind === 'desktop' ? 'Computer' : 'Tablet'
                   return (
-                    <div key={kind} className="rounded-2xl bg-muted/50 p-3 text-center">
+                    <div key={kind} className="rounded-lg bg-muted/50 p-3 text-center">
                       <Icon className="w-4 h-4 mx-auto mb-1.5 text-muted-foreground" />
-                      <p className="text-lg font-black leading-none" style={{ color: accent }}>{pct}%</p>
+                      <p className="text-lg font-bold leading-none" style={{ color: accent }}>{pct}%</p>
                       <p className="text-[11px] text-muted-foreground mt-1">{nice}</p>
                     </div>
                   )
                 })}
               </div>
-              <Bars rows={stats.byBrowser} total={stats.views} colour="#8b5cf6" />
+              <Bars rows={stats.byBrowser} total={stats.views} colour={accent} />
             </div>
           </div>
         </>

@@ -58,12 +58,12 @@ export default function WebhookPanel({ orgId }: { orgId: string }) {
   }
 
   if (!loaded) {
-    return <div className="rounded-2xl border border-border bg-card p-5 flex items-center gap-2 text-sm text-muted-foreground">
+    return <div className="rounded-lg border border-border bg-card p-5 flex items-center gap-2 text-sm text-muted-foreground">
       <Loader2 className="w-4 h-4 animate-spin" />Loading integrations
     </div>
   }
   if (unavailable) {
-    return <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">{unavailable}</div>
+    return <div className="rounded-lg border border-border bg-card p-5 text-sm text-muted-foreground">{unavailable}</div>
   }
 
   const statusOf = (d: Delivery) => {
@@ -74,7 +74,7 @@ export default function WebhookPanel({ orgId }: { orgId: string }) {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+    <div className="rounded-lg border border-border bg-card p-5 space-y-4">
       <div className="flex items-center gap-2.5">
         <Webhook className="w-5 h-5 text-muted-foreground" />
         <div className="min-w-0">
@@ -126,7 +126,7 @@ export default function WebhookPanel({ orgId }: { orgId: string }) {
                 if (data) { setFreshSecret(data.secret); setName(''); setUrl(''); setAdding(false); load() }
               }}
               className="px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-40"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+              style={{ background: 'hsl(var(--accent))' }}>
               {busy === 'create' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
             </button>
             <button onClick={() => { setAdding(false); setName(''); setUrl('') }}

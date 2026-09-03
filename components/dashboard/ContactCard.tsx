@@ -125,7 +125,7 @@ export default function ContactCard({ contact, viaLabel }: { contact: ContactRow
   // ── Edit mode ──────────────────────────────────────────────
   if (editing) {
     return (
-      <div className="bg-card border border-border rounded-2xl p-5">
+      <div className="bg-card border border-border rounded-lg p-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {FIELDS.map(({ key, label, placeholder, type }) => (
             <div key={key} className={key === 'address' || key === 'message' ? 'sm:col-span-2' : ''}>
@@ -143,7 +143,7 @@ export default function ContactCard({ contact, viaLabel }: { contact: ContactRow
         <div className="flex items-center gap-2 mt-4">
           <button onClick={save} disabled={busy}
             className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg text-white transition hover:opacity-90 disabled:opacity-60"
-            style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+            style={{ background: 'hsl(var(--accent))' }}>
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
             Save changes
           </button>
@@ -158,7 +158,7 @@ export default function ContactCard({ contact, viaLabel }: { contact: ContactRow
 
   // ── View mode ──────────────────────────────────────────────
   return (
-    <div className="bg-card border border-border rounded-2xl p-5">
+    <div className="bg-card border border-border rounded-lg p-5">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary font-bold text-sm">

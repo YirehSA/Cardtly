@@ -246,7 +246,7 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
 
   return (
     <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/60 backdrop-blur-sm p-4 sm:p-8">
-      <div className="bg-card border border-border rounded-2xl w-full max-w-3xl my-auto">
+      <div className="bg-card border border-border rounded-lg w-full max-w-3xl my-auto">
 
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div className="flex items-center gap-2.5">
@@ -464,7 +464,7 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
               <div className="flex flex-wrap gap-2 mt-5">
                 <button onClick={run} disabled={ready === 0}
                   className="px-5 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                  style={{ background: 'hsl(var(--accent))' }}>
                   {ready === 0 ? 'Nothing to import' : `Add ${ready} ${ready === 1 ? 'person' : 'people'}${sendInvites ? ' and invite them' : ''}`}
                 </button>
                 <button onClick={() => { setText(''); setPhase('paste') }}
@@ -481,7 +481,7 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
               <p className="font-medium">Adding people to {orgName}</p>
               <p className="text-sm text-muted-foreground mt-1">{done} of {ready} done</p>
               <div className="h-1.5 bg-muted rounded-full mt-4 max-w-xs mx-auto overflow-hidden">
-                <div className="h-full rounded-full transition-all" style={{ width: `${ready ? (done / ready) * 100 : 0}%`, background: 'linear-gradient(90deg, #00d4ff, #7c3aed, #ec4899)' }} />
+                <div className="h-full rounded-full transition-all" style={{ width: `${ready ? (done / ready) * 100 : 0}%`, background: 'hsl(var(--accent))' }} />
               </div>
               <p className="text-xs text-muted-foreground mt-4">Leave this open until it finishes.</p>
             </div>
@@ -524,7 +524,7 @@ export default function BulkImportModal({ orgId, orgName, seatsAvailable, cards,
 
               <button onClick={onClose}
                 className="mt-5 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                style={{ background: 'hsl(var(--accent))' }}>
                 Done
               </button>
             </div>

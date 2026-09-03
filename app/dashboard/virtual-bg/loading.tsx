@@ -14,7 +14,7 @@ export default function VirtualBGLoading() {
             <div className="skeleton h-12 w-full rounded-xl" />
           </div>
         </div>
-        <div className="skeleton h-[400px] rounded-2xl" />
+        <div className="skeleton h-[400px] rounded-lg" />
       </div>
     </div>
   )

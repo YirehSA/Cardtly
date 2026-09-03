@@ -75,11 +75,11 @@ export default function OnboardingTour() {
     <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-6"
       style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
       onClick={dismiss}>
-      <div className="relative max-w-md w-full rounded-3xl p-8 max-h-[90dvh] overflow-y-auto"
+      <div className="relative max-w-md w-full rounded-xl p-8 max-h-[90dvh] overflow-y-auto"
         style={{
           background: '#0a0a0a',
           border: '1px solid rgba(255,255,255,0.1)',
-          boxShadow: '0 30px 60px -20px rgba(124,58,237,0.4)',
+          boxShadow: '0 24px 48px -24px rgba(0,0,0,0.45)',
         }}
         onClick={(e) => e.stopPropagation()}>
 
@@ -89,12 +89,12 @@ export default function OnboardingTour() {
           <X className="w-4 h-4" />
         </button>
 
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
-          style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.25), rgba(124,58,237,0.25))' }}>
-          <Icon className="w-8 h-8" style={{ color: '#00d4ff' }} />
+        <div className="w-16 h-16 rounded-lg flex items-center justify-center mb-5"
+          style={{ background: 'hsl(var(--accent) / 0.16)' }}>
+          <Icon className="w-8 h-8" style={{ color: 'hsl(var(--accent))' }} />
         </div>
 
-        <h2 className="text-2xl font-black tracking-tight text-white mb-2">{current.title}</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-white mb-2">{current.title}</h2>
         <p className="text-sm leading-relaxed mb-8" style={{ color: 'rgba(255,255,255,0.65)' }}>
           {current.description}
         </p>
@@ -106,7 +106,7 @@ export default function OnboardingTour() {
               style={{
                 width: i === step ? 24 : 6,
                 background: i === step
-                  ? 'linear-gradient(90deg, #00d4ff, #7c3aed)'
+                  ? 'hsl(var(--accent))'
                   : 'rgba(255,255,255,0.2)',
               }} />
           ))}
@@ -130,8 +130,8 @@ export default function OnboardingTour() {
             <button onClick={dismiss}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
               style={{
-                background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)',
-                boxShadow: '0 8px 24px -6px rgba(124,58,237,0.5)',
+                background: 'hsl(var(--accent))',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.10)',
               }}>
               Got it
               <Sparkles className="w-4 h-4" />
@@ -140,8 +140,8 @@ export default function OnboardingTour() {
             <button onClick={() => setStep(s => s + 1)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
               style={{
-                background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
-                boxShadow: '0 8px 24px -6px rgba(124,58,237,0.5)',
+                background: 'hsl(var(--accent))',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.10)',
               }}>
               Next
               <ArrowRight className="w-4 h-4" />

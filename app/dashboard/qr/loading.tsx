@@ -5,8 +5,8 @@ export default function QRLoading() {
         <div className="skeleton h-7 w-32" />
         <div className="skeleton h-4 w-80" />
       </div>
-      <div className="bg-card border border-border rounded-2xl p-8 flex flex-col items-center gap-6">
-        <div className="skeleton w-72 h-72 rounded-2xl" />
+      <div className="bg-card border border-border rounded-lg p-8 flex flex-col items-center gap-6">
+        <div className="skeleton w-72 h-72 rounded-lg" />
         <div className="space-y-2 text-center w-full max-w-xs">
           <div className="skeleton h-4 w-32 mx-auto" />
           <div className="skeleton h-3 w-48 mx-auto" />

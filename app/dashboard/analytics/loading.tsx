@@ -7,13 +7,13 @@ export default function AnalyticsLoading() {
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="rounded-2xl p-5 border border-border bg-card space-y-3">
+          <div key={i} className="rounded-lg p-5 border border-border bg-card space-y-3">
             <div className="skeleton h-3 w-20" />
             <div className="skeleton h-8 w-16" />
           </div>
         ))}
       </div>
-      <div className="skeleton h-64 w-full rounded-2xl" />
+      <div className="skeleton h-64 w-full rounded-lg" />
     </div>
   )
 }

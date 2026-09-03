@@ -394,8 +394,8 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+            <div className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
+              style={{ background: 'hsl(var(--accent))' }}>
               <Mail className="w-5 h-5" />
             </div>
             <div>
@@ -427,7 +427,7 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
         <div className="space-y-6">
 
           {/* Style picker */}
-          <div className="bg-card border border-border rounded-2xl p-5">
+          <div className="bg-card border border-border rounded-lg p-5">
             <label className="block text-sm font-semibold mb-3">Style</label>
             <div className="grid grid-cols-2 gap-3">
               {([
@@ -448,7 +448,7 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
           </div>
 
           {/* Include toggles */}
-          <div className="bg-card border border-border rounded-2xl p-5">
+          <div className="bg-card border border-border rounded-lg p-5">
             <label className="block text-sm font-semibold mb-3">Include</label>
             <div className="space-y-3">
               {[
@@ -474,8 +474,8 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
               is the big button and the code is tucked behind a small one. */}
           <div className="space-y-2">
             <button onClick={copySignature}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm text-white transition hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-lg font-bold text-sm text-white transition hover:opacity-90"
+              style={{ background: 'hsl(var(--accent))' }}>
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               {copied ? 'Copied - now paste it' : 'Copy my signature'}
             </button>
@@ -498,7 +498,7 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
           </div>
 
           {/* Install instructions */}
-          <div className="bg-card border border-border rounded-2xl p-5">
+          <div className="bg-card border border-border rounded-lg p-5">
             <p className="text-sm font-semibold mb-3">How to install</p>
             <div className="space-y-4 text-xs text-muted-foreground">
               <div>
@@ -539,7 +539,7 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
         {/* Right — live preview */}
         <div>
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Preview</p>
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200" style={{ overflow: "hidden" }}>
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200" style={{ overflow: "hidden" }}>
 
             {style === 'modern' && (
               <div style={{ background: `linear-gradient(135deg, ${accentHex}22, ${accentHex}08)`, borderRadius: 12, padding: 16 }}>

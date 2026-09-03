@@ -7,7 +7,7 @@ import Link from 'next/link'
 import {
   Users, Plus, Edit2, Trash2, ExternalLink, Loader2,
   CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail, UserCheck, Send, BarChart2, Sparkles, ClipboardList, Network,
-  Search, Eye, Inbox, FileSpreadsheet,
+  Search, Eye, Inbox, FileSpreadsheet, Phone,
 } from 'lucide-react'
 import UsdEstimate from '@/components/marketing/UsdEstimate'
 import BulkImportModal from '@/components/team/BulkImportModal'
@@ -448,7 +448,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
         </div>
 
         {resuming && (
-          <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 flex items-start gap-3">
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 flex items-start gap-3">
             <CreditCard className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
             <div>
               <p className="font-medium text-sm">You started setting up {org?.name}, but the payment did not go through</p>
@@ -467,8 +467,8 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
             { label: 'Plans from', value: '5', sub: 'cards, scale to 50' },
             { label: 'Admin controls', value: '100%', sub: 'You manage all cards' },
           ].map(({ label, value, sub }) => (
-            <div key={label} className="bg-card border border-border rounded-2xl p-4 text-center">
-              <p className="text-2xl font-black">{value}</p>
+            <div key={label} className="bg-card border border-border rounded-lg p-4 text-center">
+              <p className="text-2xl font-bold">{value}</p>
               <p className="text-xs font-semibold mt-0.5">{label}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>
             </div>
@@ -476,7 +476,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
         </div>
 
         {/* Setup form */}
-        <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
+        <div className="bg-card border border-border rounded-lg p-6 space-y-5">
           <h2 className="font-semibold text-lg">{resuming ? 'Finish setting up your team' : 'Set up your team'}</h2>
 
           <div>
@@ -496,7 +496,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                 return (
                   <button key={seats} type="button" onClick={() => setSeatCount(seats)}
                     className={`px-3 py-2.5 rounded-xl border text-sm font-bold transition ${active ? 'border-transparent text-white' : 'border-border text-foreground hover:bg-muted'}`}
-                    style={active ? { background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' } : undefined}>
+                    style={active ? { background: 'hsl(var(--accent))' } : undefined}>
                     {seats} cards
                     <span className="block text-[11px] font-medium opacity-80">R{seats * SEAT_PRICE}/mo</span>
                   </button>
@@ -526,7 +526,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           </div>
 
           <button onClick={handleCreateOrg} disabled={loading || !orgName.trim()}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)', boxShadow: '0 4px 20px rgba(124,58,237,0.35)' }}>
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50" style={{ background: 'hsl(var(--accent))' }}>
             {loading
               ? <><Loader2 className="w-4 h-4 animate-spin" />Redirecting to payment...</>
               : <><CreditCard className="w-4 h-4" />Pay R{seatCount * SEAT_PRICE}/month — {resuming ? 'Finish setup' : 'Start team plan'}</>}
@@ -541,12 +541,12 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
     <div className="max-w-5xl mx-auto space-y-8">
 
       {/* Header */}
-      <div className="rounded-3xl border border-border overflow-hidden">
-        <div className="p-5 sm:p-6" style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.12), transparent 65%)' }}>
+      <div className="rounded-xl border border-border overflow-hidden">
+        <div className="p-5 sm:p-6" style={{ background: 'hsl(var(--card))' }}>
           <div className="flex items-start justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
-                style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+              <div className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
+                style={{ background: 'hsl(var(--accent))' }}>
                 <Building2 className="w-5 h-5" />
               </div>
               <div>
@@ -584,14 +584,14 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
               {tab === 'people' && (seatsAvailable > 0 || seatsTotal === 0) && (
                 <button onClick={() => setShowAddCard(p => !p)}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
-                  style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)', boxShadow: '0 4px 20px rgba(124,58,237,0.3)' }}>
+                  style={{ background: 'hsl(var(--accent))' }}>
                   <Plus className="w-4 h-4" />Add card
                 </button>
               )}
               {tab === 'billing' && (
                 <button onClick={() => setShowAddSeats(p => !p)}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
-                  style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)', boxShadow: '0 4px 20px rgba(124,58,237,0.3)' }}>
+                  style={{ background: 'hsl(var(--accent))' }}>
                   <Plus className="w-4 h-4" />Add seats
                   {showAddSeats ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                 </button>
@@ -605,13 +605,13 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
               glance, and still clearly not the main button. */}
           <div className="flex items-center gap-2 flex-wrap mt-4 pt-4 border-t border-border/60">
             {[
-              { href: '/dashboard/team/brand', label: 'Team brand', icon: Sparkles, tone: '#00d4ff' },
-              { href: '/dashboard/team/analytics', label: 'Team analytics', icon: BarChart2, tone: '#7c3aed' },
-              { href: '/dashboard/team/contacts', label: 'All leads', icon: Mail, tone: '#ec4899' },
-            ].map(({ href, label, icon: Icon, tone }) => (
+              { href: '/dashboard/team/brand', label: 'Team brand', icon: Sparkles },
+              { href: '/dashboard/team/analytics', label: 'Team analytics', icon: BarChart2 },
+              { href: '/dashboard/team/contacts', label: 'All leads', icon: Mail },
+            ].map(({ href, label, icon: Icon }) => (
               <Link key={href} href={href}
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-background text-sm font-semibold text-foreground hover:bg-muted hover:border-foreground/20 transition">
-                <Icon className="w-4 h-4" style={{ color: tone }} />{label}
+                <Icon className="w-4 h-4 text-muted-foreground" />{label}
               </Link>
             ))}
           </div>
@@ -658,35 +658,37 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           unrelated - nobody comes here to add a person AND change billing -
           and a page that shows everything at once means hunting for the thing
           you came for. */}
-      {/* Solid Cardtly colour on the selected tab. It used to be bg-card on
-          bg-muted, which in dark mode is two greys a shade apart: the tab you
-          were on was almost impossible to pick out.
-
-          Text colour is measured, not assumed. White on #00d4ff is 1.77:1, so
-          the cyan tab takes near-black (8.55:1). Purple clears white at 5.7:1.
-          Brand pink #ec4899 only reaches 3.53:1, which fails AA at this size,
-          so the billing tab uses #db2777 - the same pink one step down, at
-          4.6:1. */}
-      <div className="flex gap-1.5 p-1.5 rounded-2xl bg-muted w-fit max-w-full overflow-x-auto">
+      {/* Underline tabs, one accent.
+          Each tab used to take a different brand colour when selected, and the
+          text colour on each had to be hand-solved against it. Measured on the
+          real tokens, none of the alternatives worked: white on the accent is
+          3.64:1 in dark mode, accent text on the muted track is 3.93:1 light
+          and 4.36:1 dark, and a card-coloured pill on a muted track is 1.11:1,
+          which is the invisibility that drove the colour-coding in the first
+          place.
+          An underline sidesteps all of it. The active label is --foreground at
+          15.6:1, the inactive one is --muted-foreground, which the tokens
+          already hold above 4.5:1, and the accent is left carrying only the
+          rule, where the requirement is 3:1 for a non-text indicator. */}
+      <div className="flex gap-6 border-b border-border overflow-x-auto">
         {([
-          ['people', 'People', Users, cards.length || null, '#00d4ff', '#062a33'],
-          ['integrations', 'Integrations', Network, null, '#7c3aed', '#ffffff'],
-          ['billing', 'Billing', CreditCard, null, '#db2777', '#ffffff'],
-        ] as const).map(([id, label, Icon, count, solid, on]) => {
+          ['people', 'People', Users, cards.length || null],
+          ['integrations', 'Integrations', Network, null],
+          ['billing', 'Billing', CreditCard, null],
+        ] as const).map(([id, label, Icon, count]) => {
           const active = tab === id
           return (
             <button key={id} onClick={() => setTab(id)}
               aria-current={active ? 'page' : undefined}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition ${
-                active ? 'shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background/60'}`}
-              style={active ? { background: solid, color: on } : undefined}>
+              className={`inline-flex items-center gap-2 pb-3 -mb-px border-b-2 text-sm whitespace-nowrap transition-colors ${
+                active
+                  ? 'border-current text-foreground font-semibold'
+                  : 'border-transparent text-muted-foreground hover:text-foreground font-medium'}`}
+              style={active ? { borderBottomColor: 'hsl(var(--accent))' } : undefined}>
               <Icon className="w-4 h-4" />
               {label}
               {count !== null && (
-                <span className="text-[11px] font-black tabular-nums px-1.5 py-0.5 rounded-md"
-                  style={active
-                    ? { background: 'rgba(0,0,0,0.18)', color: on }
-                    : { background: 'var(--muted-foreground)', color: 'var(--muted)', opacity: 0.5 }}>
+                <span className="text-[11px] font-semibold tabular-nums px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                   {count}
                 </span>
               )}
@@ -697,7 +699,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
       {/* Add seats panel */}
       {tab === 'billing' && showAddSeats && (
-        <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+        <div className="bg-card border border-border rounded-lg p-5 space-y-4">
           <p className="font-semibold text-sm">Upgrade seat plan</p>
           <div className="flex items-center gap-4 flex-wrap">
             <select
@@ -713,7 +715,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
             </select>
             <button onClick={handleAddSeats} disabled={loading}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+              style={{ background: 'hsl(var(--accent))' }}>
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Upgrade plan'}
             </button>
           </div>
@@ -759,7 +761,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
       {/* Add card panel */}
       {showAddCard && (
-        <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
+        <div className="bg-card border border-border rounded-lg p-6 space-y-4">
           <div className="flex items-center justify-between">
             <p className="font-semibold">New team member card</p>
             <button onClick={() => { setShowAddCard(false); setCopyFromId('') }} className="text-muted-foreground hover:text-foreground">
@@ -805,7 +807,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
               Cancel
             </button>
             <button onClick={handleAddCard} disabled={loading || !newCard.name.trim()}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50" style={{ background: 'hsl(var(--accent))' }}>
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create card'}
             </button>
           </div>
@@ -814,12 +816,12 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
       {/* Cards grid */}
       {tab === 'people' && (cards.length === 0 ? (
-        <div className="bg-card border border-border rounded-2xl p-16 text-center">
+        <div className="bg-card border border-border rounded-lg p-16 text-center">
           <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h2 className="font-semibold text-lg mb-2">No cards yet</h2>
           <p className="text-sm text-muted-foreground mb-5">Create your first team member card to get started.</p>
           <button onClick={() => setShowAddCard(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90" style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)', boxShadow: '0 4px 20px rgba(124,58,237,0.35)' }}>
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90" style={{ background: 'hsl(var(--accent))' }}>
             <Plus className="w-4 h-4" />Add first card
           </button>
         </div>
@@ -859,7 +861,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {visibleCards.map(card => (
-            <div key={card.id} className="bg-card border border-border rounded-2xl overflow-hidden group">
+            <div key={card.id} className="bg-card border border-border rounded-lg overflow-hidden group">
               {/* Card colour strip */}
               <div className="h-1.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
 
@@ -881,7 +883,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                       said so: the tile looked identical to a live one, so an
                       admin had no way to tell which links still work. */}
                   {!card.is_active && (
-                    <span className="ml-auto shrink-0 text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg bg-muted text-muted-foreground"
+                    <span className="ml-auto shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg bg-muted text-muted-foreground"
                       title="This card is not published. Its public link and QR code do not resolve. Invite somebody to put it back online.">
                       Offline
                     </span>
@@ -890,9 +892,9 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
                 {/* Details */}
                 <div className="space-y-1 mb-4">
-                  {card.email && <p className="text-xs text-muted-foreground truncate">✉️ {card.email}</p>}
-                  {card.phone && <p className="text-xs text-muted-foreground">📞 {card.phone}</p>}
-                  {card.company && <p className="text-xs text-muted-foreground truncate">🏢 {card.company}</p>}
+                  {card.email && <p className="text-xs text-muted-foreground truncate flex items-center gap-1.5"><Mail className="w-3 h-3 shrink-0" />{card.email}</p>}
+                  {card.phone && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Phone className="w-3 h-3 shrink-0" />{card.phone}</p>}
+                  {card.company && <p className="text-xs text-muted-foreground truncate flex items-center gap-1.5"><Building2 className="w-3 h-3 shrink-0" />{card.company}</p>}
                 </div>
 
                 {/* Is this card doing anything?
@@ -988,7 +990,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                             <button onClick={() => sendInvite(card.id, inviteEmail)}
                               disabled={inviteSending || !inviteEmail.trim()}
                               className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-50"
-                              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                              style={{ background: 'hsl(var(--accent))' }}>
                               {inviteSending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
                               Send invite
                             </button>
@@ -1024,7 +1026,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                       ? 'Set up a team brand first, otherwise this changes nothing.'
                       : card.use_team_brand ? 'This card shows the team brand. Tap to use its own branding.' : 'This card uses its own branding. Tap to apply the team brand.'}
                     className="relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition disabled:opacity-40 disabled:cursor-not-allowed"
-                    style={{ background: card.use_team_brand && hasTeamBrand ? 'linear-gradient(135deg, #00d4ff, #7c3aed)' : 'hsl(var(--muted))' }}>
+                    style={{ background: card.use_team_brand && hasTeamBrand ? 'hsl(var(--accent))' : 'hsl(var(--muted))' }}>
                     <span className="inline-block h-4 w-4 rounded-full bg-white transition"
                       style={{ transform: card.use_team_brand && hasTeamBrand ? 'translateX(18px)' : 'translateX(2px)' }} />
                   </button>
@@ -1048,7 +1050,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                       ? 'This card is kept out of the Network directory. Tap to allow it.'
                       : 'This card may appear in the Network directory. Tap to keep it out.'}
                     className="relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition"
-                    style={{ background: !card.org_hide_from_network ? 'linear-gradient(135deg, #00d4ff, #7c3aed)' : 'hsl(var(--muted))' }}>
+                    style={{ background: !card.org_hide_from_network ? 'hsl(var(--accent))' : 'hsl(var(--muted))' }}>
                     <span className="inline-block h-4 w-4 rounded-full bg-white transition"
                       style={{ transform: !card.org_hide_from_network ? 'translateX(18px)' : 'translateX(2px)' }} />
                   </button>
@@ -1112,7 +1114,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
       {editingCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
-          <div className="bg-card border border-border rounded-3xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div className="bg-card border border-border rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-bold text-lg">Edit {editingCard.name}'s card</h2>
               <button onClick={() => setEditingCard(null)} className="text-muted-foreground hover:text-foreground">
@@ -1159,7 +1161,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                 Cancel
               </button>
               <button onClick={handleSaveEdit} disabled={loading}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50" style={{ background: 'hsl(var(--accent))' }}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save changes'}
               </button>
             </div>
@@ -1169,7 +1171,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
       {/* Plan summary */}
       {tab === 'billing' && (
-      <div className="bg-card border border-border rounded-2xl p-5 flex items-center justify-between flex-wrap gap-4">
+      <div className="bg-card border border-border rounded-lg p-5 flex items-center justify-between flex-wrap gap-4">
         <div className="text-sm">
           <p className="font-semibold">{org.name} · Team plan</p>
           <p className="text-muted-foreground text-xs mt-0.5">

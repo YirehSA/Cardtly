@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { parseDesign, getAccentHex } from '@/types/design'
 import { toast } from 'sonner'
-import { Package, CreditCard, MapPin, CheckCircle, Loader2, ChevronRight, Wifi, Trash2, ChevronDown, Check } from 'lucide-react'
+import { Package, CreditCard, MapPin, CheckCircle, Loader2, ChevronRight, Wifi, Trash2, ChevronDown, Check, Ruler, Printer, Truck } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import {
   NFC_TIERS, NFC_TIER_LIST, NFC_SHIPPING_RAND, formatZAR, type NfcTier,
@@ -169,7 +169,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
     const subtext = color === 'black' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)'
     return (
       <div
-        className="relative rounded-2xl overflow-hidden shadow-2xl"
+        className="relative rounded-lg overflow-hidden shadow-2xl"
         style={{
           width: '100%',
           aspectRatio: '1.586',
@@ -190,7 +190,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
           </div>
         ) : (
           <div className="absolute top-5 left-5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-sm"
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm"
               style={{ background: accentHex }}>
               C
             </div>
@@ -199,7 +199,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
 
         {/* Name and title — bottom left */}
         <div className="absolute bottom-5 left-5">
-          <p className="font-black text-base leading-tight" style={{ color: text }}>
+          <p className="font-bold text-base leading-tight" style={{ color: text }}>
             {nameOnCard || 'Your Name'}
           </p>
           {titleOnCard && (
@@ -233,7 +233,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
 
     return (
       <div
-        className="relative rounded-2xl overflow-hidden shadow-2xl flex flex-col items-center justify-center gap-3"
+        className="relative rounded-lg overflow-hidden shadow-2xl flex flex-col items-center justify-center gap-3"
         style={{
           width: '100%',
           aspectRatio: '1.586',
@@ -317,14 +317,14 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
         <div className="flex items-center gap-3 text-sm">
           <div className="px-3 py-1.5 rounded-full text-xs font-bold"
             style={{ background: accentHex + '18', color: accentHex }}>
-            🇿🇦 South Africa only
+            South Africa only
           </div>
         </div>
       </div>
 
       {/* Previous orders */}
       {previousOrders.length > 0 && (
-        <div className="bg-card border border-border rounded-2xl p-5">
+        <div className="bg-card border border-border rounded-lg p-5">
           <p className="text-sm font-semibold mb-3">Your orders</p>
           <div className="space-y-2">
             {(() => {
@@ -426,11 +426,11 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
           {/* Specs */}
           <div className="bg-muted/50 rounded-xl p-4 text-xs text-muted-foreground space-y-1.5">
             <p className="font-semibold text-foreground text-sm mb-2">Card specs</p>
-            <p>📏 Standard credit card size (85.6 × 54mm)</p>
-            <p>📶 NFC chip — tap to open your card on any phone</p>
-            <p>🖨️ Premium PVC print — matte or gloss finish</p>
-            <p>🚚 Delivered within 5–7 business days</p>
-            <p>🇿🇦 Shipped within South Africa only</p>
+            <p className="flex items-center gap-2"><Ruler className="w-3.5 h-3.5 shrink-0" />Standard credit card size (85.6 x 54mm)</p>
+            <p className="flex items-center gap-2"><Wifi className="w-3.5 h-3.5 shrink-0" />NFC chip, tap to open your card on any phone</p>
+            <p className="flex items-center gap-2"><Printer className="w-3.5 h-3.5 shrink-0" />Premium PVC print, matte or gloss finish</p>
+            <p className="flex items-center gap-2"><Truck className="w-3.5 h-3.5 shrink-0" />Delivered within 5-7 business days</p>
+            <p className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 shrink-0" />Shipped within South Africa only</p>
           </div>
         </div>
 
@@ -443,7 +443,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
               <div key={s} className="flex items-center gap-2">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${step === s ? 'text-white' : steps.indexOf(step) > i ? 'text-white' : 'bg-muted text-muted-foreground'}`}
                   style={step === s || ['design', 'shipping', 'confirm'].indexOf(step) > i ? { background: accentHex } : {}}>
-                  {['design', 'shipping', 'confirm'].indexOf(step) > i ? '✓' : i + 1}
+                  {['design', 'shipping', 'confirm'].indexOf(step) > i ? <Check className="w-3.5 h-3.5" /> : i + 1}
                 </div>
                 <span className={`text-xs font-medium capitalize ${step === s ? 'text-foreground' : 'text-muted-foreground'}`}>{s}</span>
                 {i < 2 && <ChevronRight className="w-3 h-3 text-muted-foreground" />}
@@ -453,7 +453,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
 
           {/* Step 1 — Design details */}
           {step === 'design' && (
-            <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
+            <div className="bg-card border border-border rounded-lg p-6 space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <h2 className="font-semibold">Who needs an NFC card?</h2>
@@ -640,7 +640,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
 
           {/* Step 2 — Shipping */}
           {step === 'shipping' && (
-            <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
+            <div className="bg-card border border-border rounded-lg p-6 space-y-4">
               <h2 className="font-semibold flex items-center gap-2">
                 <MapPin className="w-4 h-4" />Shipping address
               </h2>
@@ -685,7 +685,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
 
           {/* Step 3 — Confirm & pay */}
           {step === 'confirm' && (
-            <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
+            <div className="bg-card border border-border rounded-lg p-6 space-y-5">
               <h2 className="font-semibold flex items-center gap-2">
                 <CreditCard className="w-4 h-4" />Order summary
               </h2>
@@ -752,13 +752,13 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
               </div>
 
               <p className="text-xs text-center text-muted-foreground">
-                📧 We will send you an invoice · Delivered within 5-7 business days after payment
+                We will send you an invoice · Delivered within 5-7 business days after payment
               </p>
             </div>
           )}
 
           {/* What you get */}
-          <div className="bg-card border border-border rounded-2xl p-5">
+          <div className="bg-card border border-border rounded-lg p-5">
             <p className="text-sm font-semibold mb-3 flex items-center gap-2">
               <Package className="w-4 h-4" />What you get
             </p>

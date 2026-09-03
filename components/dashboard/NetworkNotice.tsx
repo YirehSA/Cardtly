@@ -35,13 +35,13 @@ export default function NetworkNotice() {
 
   return (
     <div
-      className="mb-5 rounded-2xl border p-4 sm:p-5"
-      style={{ borderColor: 'rgba(0,212,255,0.28)', background: 'rgba(0,212,255,0.07)' }}
+      className="mb-5 rounded-lg border p-4 sm:p-5"
+      style={{ borderColor: 'hsl(var(--accent) / 0.28)', background: 'hsl(var(--accent) / 0.07)' }}
     >
       <div className="flex items-start gap-4">
         <span
           className="w-10 h-10 rounded-xl grid place-items-center shrink-0"
-          style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}
+          style={{ background: 'hsl(var(--accent))' }}
         >
           <Network className="w-5 h-5 text-white" aria-hidden="true" />
         </span>

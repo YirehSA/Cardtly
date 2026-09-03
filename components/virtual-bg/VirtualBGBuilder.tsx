@@ -407,8 +407,8 @@ export default function VirtualBGBuilder({ cards, defaultCardId }: Props) {
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+            <div className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
+              style={{ background: 'hsl(var(--accent))' }}>
               <Monitor className="w-5 h-5" />
             </div>
             <div>
@@ -443,7 +443,7 @@ export default function VirtualBGBuilder({ cards, defaultCardId }: Props) {
       {/* Preview — full width */}
       <div>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Preview</p>
-        <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-border" style={{ aspectRatio: '16/9' }}>
+        <div className="relative rounded-lg overflow-hidden shadow-2xl border border-border" style={{ aspectRatio: '16/9' }}>
           <canvas
             ref={canvasRef}
             className="w-full h-full"
@@ -464,7 +464,7 @@ export default function VirtualBGBuilder({ cards, defaultCardId }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
         {/* Background designs */}
-        <div className="bg-card border border-border rounded-2xl p-4">
+        <div className="bg-card border border-border rounded-lg p-4">
           <label className="block text-sm font-semibold mb-3">Background design</label>
           <div className="grid grid-cols-2 gap-2">
             {BG_DESIGNS.map(d => (
@@ -479,7 +479,7 @@ export default function VirtualBGBuilder({ cards, defaultCardId }: Props) {
         </div>
 
         {/* Scene backgrounds */}
-        <div className="bg-card border border-border rounded-2xl p-4">
+        <div className="bg-card border border-border rounded-lg p-4">
           <label className="block text-sm font-semibold mb-3">Scene backgrounds</label>
           <div className="grid grid-cols-2 gap-2">
             {STOCK_IMAGES.map(s => (
@@ -506,7 +506,7 @@ export default function VirtualBGBuilder({ cards, defaultCardId }: Props) {
         </div>
 
         {/* Elements + Custom upload */}
-        <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+        <div className="bg-card border border-border rounded-lg p-4 space-y-4">
           <div>
             <label className="block text-sm font-semibold mb-3">Elements</label>
             <div className="space-y-3">
@@ -536,7 +536,7 @@ export default function VirtualBGBuilder({ cards, defaultCardId }: Props) {
 
         {/* Upload + Download */}
         <div className="space-y-4">
-          <div className="bg-card border border-border rounded-2xl p-4">
+          <div className="bg-card border border-border rounded-lg p-4">
             <label className="block text-sm font-semibold mb-1">Custom image</label>
             <p className="text-xs text-muted-foreground mb-3">Upload your own background</p>
             <label className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border-2 border-dashed text-xs font-medium cursor-pointer transition hover:border-foreground/30 ${customBg ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border text-muted-foreground'}`}>

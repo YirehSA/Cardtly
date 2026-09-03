@@ -11,27 +11,30 @@ import {
 import { createClient } from '@/lib/supabase/client'
 
 // Each nav item gets its own brand-pillar colour. Icons render
-// inside a small chip - desaturated by default, fully lit on
-// active/hover so the sidebar feels alive instead of flat grey.
+// inside a small chip. Every item used to carry its own hue - blue, purple,
+// pink, cyan, green, violet, sky, amber, indigo, teal, slate, orange - which
+// put a nine-colour rainbow down the side of every single page. The nav now
+// works the way the mobile bar already did: one accent marks where you are,
+// everything else is quiet.
 const NAV = [
-  { href: '/dashboard',                 label: 'Overview',        icon: Home,        color: '#3b82f6' }, // blue
-  { href: '/dashboard/card',            label: 'My Card',         icon: CreditCard,  color: '#8b5cf6' }, // purple
-  { href: '/dashboard/qr',              label: 'QR Code',         icon: QrCode,      color: '#ec4899' }, // pink
-  { href: '/dashboard/analytics',       label: 'Analytics',       icon: BarChart2,   color: '#06b6d4' }, // cyan
-  { href: '/dashboard/contacts',        label: 'Contacts',        icon: Users,       color: '#22c55e' }, // green
-  { href: '/dashboard/scan',            label: 'Scan Card',       icon: ScanLine,    color: '#a855f7' }, // violet
-  { href: '/dashboard/network',         label: 'Network',         icon: Network,     color: '#0ea5e9' }, // sky
-  { href: '/dashboard/email-signature', label: 'Email Signature', icon: Mail,        color: '#f59e0b' }, // amber
-  { href: '/dashboard/virtual-bg',      label: 'Virtual BG',      icon: Monitor,     color: '#6366f1' }, // indigo
-  { href: '/dashboard/nfc',             label: 'NFC Cards',       icon: Wifi,        color: '#14b8a6' }, // teal
-  { href: '/dashboard/settings',        label: 'Settings',        icon: Settings,    color: '#94a3b8' }, // slate
+  { href: '/dashboard',                 label: 'Overview',        icon: Home },
+  { href: '/dashboard/card',            label: 'My Card',         icon: CreditCard },
+  { href: '/dashboard/qr',              label: 'QR Code',         icon: QrCode },
+  { href: '/dashboard/analytics',       label: 'Analytics',       icon: BarChart2 },
+  { href: '/dashboard/contacts',        label: 'Contacts',        icon: Users },
+  { href: '/dashboard/scan',            label: 'Scan Card',       icon: ScanLine },
+  { href: '/dashboard/network',         label: 'Network',         icon: Network },
+  { href: '/dashboard/email-signature', label: 'Email Signature', icon: Mail },
+  { href: '/dashboard/virtual-bg',      label: 'Virtual BG',      icon: Monitor },
+  { href: '/dashboard/nfc',             label: 'NFC Cards',       icon: Wifi },
+  { href: '/dashboard/settings',        label: 'Settings',        icon: Settings },
 ]
 
 // Team Cards, which not everybody should be offered. See showTeamCards below.
-const TEAM_TAB = { href: '/dashboard/team', label: 'Team Cards', icon: Building2, color: '#fb923c' } // orange
+const TEAM_TAB = { href: '/dashboard/team', label: 'Team Cards', icon: Building2 }
 
 // Only a sales rep sees this: their own meetings and notes.
-const MEETINGS_TAB = { href: '/dashboard/meetings', label: 'My Calendar', icon: CalendarClock, color: '#0ea5e9' } // sky
+const MEETINGS_TAB = { href: '/dashboard/meetings', label: 'My Calendar', icon: CalendarClock }
 
 interface SidebarProps {
   isPro: boolean
@@ -46,7 +49,7 @@ interface SidebarProps {
   userEmail: string
 }
 
-const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
+const grad = 'hsl(var(--accent))'
 
 export default function Sidebar({ isPro, isAdmin = false, managesDepartments = false, showTeamCards = true, isRep = false, teamTabLabel, userName, userEmail }: SidebarProps) {
   const pathname = usePathname()
@@ -55,7 +58,7 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
   // user switches each one on inside; the link is always there so nobody has
   // to know it exists before they can find it.
   const nav = [
-    ...(isPro ? [...NAV, { href: '/dashboard/questionnaire', label: 'Lead capture', icon: ClipboardList, color: '#0ea5e9' }] : NAV),
+    ...(isPro ? [...NAV, { href: '/dashboard/questionnaire', label: 'Lead capture', icon: ClipboardList }] : NAV),
     // Hidden from anyone who is in a team they do not own. Team Cards is the
     // payer's console - seats, billing, every card in the company - so for a
     // department head or a member it is somebody else's page, and clicking it
@@ -64,7 +67,7 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
     ...(showTeamCards ? [{ ...TEAM_TAB, label: teamTabLabel || TEAM_TAB.label }] : []),
     // Only a department manager sees this. Their whole scoped surface lives
     // behind it.
-    ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers, color: '#a855f7' }] : []),
+    ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers }] : []),
     ...(isRep ? [MEETINGS_TAB] : []),
   ]
   const router = useRouter()
@@ -95,15 +98,15 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
       <div className="flex items-center gap-3 px-6 py-6" style={{ borderBottom: '1px solid hsl(var(--sidebar-border))' }}>
         <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition" aria-label="Cardtly home">
           <img src="/cardtly-icon.png" alt="Cardtly" className="h-11 w-11 rounded-full" />
-          <span className="font-black text-base tracking-tight"
-            style={{ background: 'linear-gradient(90deg, #00d4ff, #7c3aed, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          <span className="font-bold text-base tracking-tight"
+            style={{ background: 'hsl(var(--accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             Cardtly
           </span>
         </Link>
         {isPro && (
           <span
-            className="ml-auto text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full flex items-center gap-1 text-white"
-            style={{ background: grad, boxShadow: '0 4px 14px rgba(124,58,237,0.4)' }}
+            className="ml-auto text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full flex items-center gap-1 text-white"
+            style={{ background: grad }}
           >
             <Sparkles className="w-2.5 h-2.5" />Pro
           </span>
@@ -119,7 +122,7 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
           short windows rather than as the normal state. */}
       <nav className="flex-1 px-3 py-2 overflow-y-auto scrollbar-thin">
         <div className="grid grid-cols-2 gap-1">
-          {nav.map(({ href, label, icon: Icon, color }) => {
+          {nav.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
             return (
               <NavTile
@@ -127,7 +130,6 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
                 href={href}
                 label={label}
                 Icon={Icon}
-                color={color}
                 active={active}
               />
             )
@@ -147,14 +149,12 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
                 href="/admin"
                 label="Admin"
                 Icon={Shield}
-                color="#fbbf24"
                 active={pathname.startsWith('/admin')}
               />
               <NavTile
                 href="/admin?tab=meetings"
                 label="Calendar"
                 Icon={CalendarClock}
-                color="#0ea5e9"
                 active={false}
               />
             </div>
@@ -180,8 +180,8 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
               style={{ background: theme === 'dark' ? 'rgba(251,191,36,0.16)' : 'rgba(99,102,241,0.16)' }}
             >
               {theme === 'dark'
-                ? <Sun className="w-4 h-4" style={{ color: '#fbbf24' }} />
-                : <Moon className="w-4 h-4" style={{ color: '#6366f1' }} />}
+                ? <Sun className="w-4 h-4" style={{ color: 'hsl(var(--sidebar-fg))' }} />
+                : <Moon className="w-4 h-4" style={{ color: 'hsl(var(--sidebar-fg))' }} />}
             </span>
             <span className="text-[11px] font-medium leading-tight">
               {theme === 'dark' ? 'Light mode' : 'Dark mode'}
@@ -212,8 +212,8 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
           style={{ background: 'hsl(var(--sidebar-border) / 0.4)' }}
         >
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 text-white relative"
-            style={{ background: grad, boxShadow: '0 4px 12px rgba(124,58,237,0.35)' }}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 text-white relative"
+            style={{ background: grad }}
           >
             {initials}
             {/* Tiny green online dot */}
@@ -243,14 +243,12 @@ function NavTile({
   href,
   label,
   Icon,
-  color,
   active,
   wide = false,
 }: {
   href: string
   label: string
   Icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
-  color: string
   active: boolean
   wide?: boolean
 }) {
@@ -266,18 +264,15 @@ function NavTile({
           : 'flex-col items-center justify-center gap-1 px-1.5 py-1.5'
       }`}
       style={{
-        background: active ? `${color}1f` : 'transparent',
-        boxShadow: active ? `inset 0 0 0 1px ${color}59` : 'none',
+        background: active ? 'hsl(var(--sidebar-accent) / 0.14)' : 'transparent',
+        boxShadow: active ? 'inset 0 0 0 1px hsl(var(--sidebar-accent) / 0.35)' : 'none',
       }}
     >
-      <span
-        className="relative z-10 w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105"
-        style={{
-          background: active ? color : `${color}1f`,
-          boxShadow: active ? `0 4px 14px ${color}66` : 'none',
-        }}
-      >
-        <Icon className="w-4 h-4" style={{ color: active ? '#fff' : color }} />
+      <span className="relative z-10 w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0">
+        <Icon
+          className="w-4 h-4"
+          style={{ color: active ? 'hsl(var(--sidebar-accent))' : 'hsl(var(--sidebar-fg))' }}
+        />
       </span>
       <span
         className={`relative z-10 leading-tight transition-colors ${
@@ -285,7 +280,7 @@ function NavTile({
         }`}
         style={{
           color: active ? 'hsl(var(--sidebar-active))' : 'hsl(var(--sidebar-fg))',
-          fontWeight: active ? 700 : 500,
+          fontWeight: active ? 600 : 500,
         }}
       >
         {label}

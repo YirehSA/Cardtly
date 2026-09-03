@@ -51,7 +51,7 @@ export default function ArchivedCardBanner({ cards }: { cards: ArchivedCard[] })
 
   return (
     <div
-      className="mb-5 rounded-2xl border p-4 sm:p-5"
+      className="mb-5 rounded-lg border p-4 sm:p-5"
       style={{ borderColor: 'rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.08)' }}
     >
       <div className="flex items-start gap-4">
@@ -95,7 +95,7 @@ export default function ArchivedCardBanner({ cards }: { cards: ArchivedCard[] })
                   onClick={() => restore(card)}
                   disabled={pending === card.id}
                   className="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}
+                  style={{ background: 'hsl(var(--accent))' }}
                 >
                   {pending === card.id && (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />

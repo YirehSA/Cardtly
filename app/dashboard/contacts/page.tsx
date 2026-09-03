@@ -117,11 +117,11 @@ export default async function ContactsPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-5 animate-fade-in pb-16">
       {/* Header */}
-      <div className="rounded-3xl border border-border overflow-hidden">
-        <div className="p-6 sm:p-8" style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.14), transparent 65%)' }}>
+      <div className="rounded-xl border border-border overflow-hidden">
+        <div className="p-6 sm:p-8" style={{ background: 'hsl(var(--card))' }}>
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+            <div className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
+              style={{ background: 'hsl(var(--accent))' }}>
               <Users className="w-5 h-5" />
             </div>
             <div>

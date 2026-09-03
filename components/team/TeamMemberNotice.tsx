@@ -21,15 +21,15 @@ export default function TeamMemberNotice({
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <div className="rounded-3xl border border-border overflow-hidden">
+      <div className="rounded-xl border border-border overflow-hidden">
         <div
           className="p-6 sm:p-8"
-          style={{ background: 'linear-gradient(135deg, rgba(251,146,60,0.14), transparent 65%)' }}
+          style={{ background: 'hsl(var(--card))' }}
         >
           <div className="flex items-center gap-3">
             <div
-              className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}
+              className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
+              style={{ background: 'hsl(var(--accent))' }}
             >
               <Building2 className="w-5 h-5" aria-hidden="true" />
             </div>
@@ -45,7 +45,7 @@ export default function TeamMemberNotice({
         </div>
       </div>
 
-      <div className="rounded-3xl border border-border bg-card p-6">
+      <div className="rounded-xl border border-border bg-card p-6">
         <p className="text-sm text-muted-foreground leading-relaxed">
           This page is for the person who owns the team account and pays for the
           seats. You do not need to set up or pay for anything.
@@ -56,7 +56,7 @@ export default function TeamMemberNotice({
           {isHead && (
             <Link
               href="/dashboard/departments"
-              className="group rounded-2xl border border-border p-5 hover:border-foreground/20 transition"
+              className="group rounded-lg border border-border p-5 hover:border-foreground/20 transition"
             >
               <span className="w-10 h-10 rounded-xl grid place-items-center bg-muted">
                 <Layers className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
@@ -80,7 +80,7 @@ export default function TeamMemberNotice({
 
           <Link
             href="/dashboard/card"
-            className="group rounded-2xl border border-border p-5 hover:border-foreground/20 transition"
+            className="group rounded-lg border border-border p-5 hover:border-foreground/20 transition"
           >
             <span className="w-10 h-10 rounded-xl grid place-items-center bg-muted">
               <CreditCard className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
