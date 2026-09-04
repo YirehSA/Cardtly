@@ -85,13 +85,23 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
     ? userName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
     : '?'
 
+  // A panel floating on the ground rather than a slab welded to the window
+  // edge. It is the single cheapest thing that makes an application look like
+  // an application instead of a web page, which is why every dashboard worth
+  // copying does it. The gap is a token and is zero below lg, where this is
+  // hidden anyway and an inset would only waste width.
   return (
     <aside
-      className="fixed top-0 left-0 h-screen flex-col z-50 hidden lg:flex lg:translate-x-0"
+      className="fixed flex-col z-50 hidden lg:flex lg:translate-x-0 overflow-hidden"
       style={{
         width: 'var(--sidebar-width)',
+        top: 'var(--shell-gap)',
+        left: 'var(--shell-gap)',
+        height: 'calc(100vh - (var(--shell-gap) * 2))',
+        borderRadius: 16,
         background: 'hsl(var(--sidebar-bg))',
-        borderRight: '1px solid hsl(var(--sidebar-border))',
+        border: '1px solid hsl(var(--sidebar-border))',
+        boxShadow: 'var(--panel-shadow)',
       }}
     >
       {/* Logo + Pro badge */}

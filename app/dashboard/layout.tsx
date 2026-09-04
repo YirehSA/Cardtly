@@ -132,7 +132,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           userName={card?.name || ''}
           userEmail={user.email || ''}
         />
-        <main className="min-h-screen transition-all duration-300 lg:[padding-left:var(--sidebar-width)]">
+        <main className="min-h-screen transition-all duration-300 lg:[padding-left:calc(var(--sidebar-width)+var(--shell-gap)*2)]">
           {/* Bottom padding leaves room for the mobile bottom nav so
               the last scroll item isn't covered. lg:pb-10 reverts to
               the original spacing on desktop where the bar is hidden. */}
