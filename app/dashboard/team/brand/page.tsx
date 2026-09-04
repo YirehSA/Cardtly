@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Sparkles } from 'lucide-react'
+import PageHeader from '@/components/dashboard/PageHeader'
 import TeamBrandPanel from '@/components/team/TeamBrandPanel'
 import OrgIdentityPanel from '@/components/team/OrgIdentityPanel'
 
@@ -62,28 +63,13 @@ export default async function TeamBrandPage() {
   const brandedCards = (cardRows || []).filter((c: any) => c.use_team_brand).length
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5 animate-fade-in pb-16">
-      {/* Header */}
-      <div className="rounded-xl border border-border overflow-hidden">
-        <div className="p-6 sm:p-8" style={{ background: 'hsl(var(--card))' }}>
-          <Link href="/dashboard/team"
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition mb-3">
-            <ArrowLeft className="w-3.5 h-3.5" />{org.name}
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
-              style={{ background: 'hsl(var(--accent))' }}>
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="font-display text-2xl font-bold leading-tight">How your team&apos;s cards look</h1>
-              <p className="text-muted-foreground text-sm">
-                Set your logo and colours once, and every card in the team wears them.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="max-w-3xl mx-auto space-y-5 stagger pb-16">
+      <PageHeader
+        back={{ href: '/dashboard/team', label: org.name }}
+        eyebrow="Team brand"
+        title={<>How your team&apos;s cards look</>}
+        subtitle="Set your logo and colours once, and every card in the team wears them."
+      />
 
       <OrgIdentityPanel orgId={org.id} orgName={org.name}
         slugPrefix={identity.card_slug_prefix} industry={identity.industry}

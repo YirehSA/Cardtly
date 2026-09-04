@@ -8,6 +8,7 @@ import {
   Eye, Users, TrendingUp, TrendingDown, Minus, Smartphone, Monitor,
   Tablet, Globe, QrCode, ArrowUpRight, BarChart3, MousePointerClick, UserPlus,
 } from 'lucide-react'
+import PageHeader from '@/components/dashboard/PageHeader'
 import { LABEL } from '@/components/dashboard/ui'
 import ExportAnalyticsButton from '@/components/analytics/ExportAnalyticsButton'
 
@@ -230,26 +231,14 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
   ]
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 animate-fade-in pb-16">
-      {/* Header */}
-      <div className="rounded-xl border border-border overflow-hidden">
-        <div className="p-6 sm:p-8" style={{ background: 'hsl(var(--card))' }}>
-          <div className="flex items-start justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
-                style={{ background: 'hsl(var(--accent))' }}>
-                <BarChart3 className="w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="font-display text-2xl font-bold leading-tight">How your card is doing</h1>
-                <p className="text-muted-foreground text-sm">
-                  {card.name}
-                  {isTeam && <span className="ml-2 text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded"
-                    style={{ background: accent + '20', color: accent }}>Team</span>}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
+    <div className="max-w-5xl mx-auto space-y-5 stagger pb-16">
+      <PageHeader
+        eyebrow="Analytics"
+        title="How your card is doing"
+        subtitle={<>{card.name}{isTeam && <span className="ml-2 text-[10px] uppercase tracking-[0.12em] font-semibold px-1.5 py-0.5 rounded border"
+          style={{ borderColor: accent + '55', color: accent }}>Team</span>}</>}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
               <div className="flex gap-1 bg-muted p-1 rounded-lg">
                 {PERIODS.map(p => (
                   <button key={p.value} onClick={() => setPeriod(p.value)}
@@ -267,10 +256,9 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
                 period={period}
                 totalViews={card.totalViews}
               />
-            </div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Headline numbers */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -280,7 +268,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
               <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               <p className={LABEL}>{label}</p>
             </div>
-            <p className="font-display text-2xl sm:text-3xl font-bold tracking-tight tabular-nums mt-2.5 leading-none">
+            <p className="stat-figure text-[26px] sm:text-[34px] mt-3">
               {value.toLocaleString()}
             </p>
             <div className="mt-2">

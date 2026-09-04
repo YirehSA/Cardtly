@@ -7,6 +7,7 @@ import { getManagedDepartments } from '@/lib/department-perms'
 import ProGate from '@/components/card/ProGate'
 import ContactsList from '@/components/dashboard/ContactsList'
 import { Users } from 'lucide-react'
+import PageHeader from '@/components/dashboard/PageHeader'
 
 interface CardSummary {
   id: string
@@ -115,28 +116,18 @@ export default async function ContactsPage() {
   ].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
 
   return (
-    <div className="max-w-4xl mx-auto space-y-5 animate-fade-in pb-16">
-      {/* Header */}
-      <div className="rounded-xl border border-border overflow-hidden">
-        <div className="p-6 sm:p-8" style={{ background: 'hsl(var(--card))' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
-              style={{ background: 'hsl(var(--accent))' }}>
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="font-display text-2xl font-bold leading-tight">People who reached out</h1>
-              <p className="text-muted-foreground text-sm">
-                {managed.length > 0
-                  ? <>Everyone who left their details on your card or on a card in {managed.length === 1 ? managed[0].name : 'your departments'}. Tap any of them to reply.</>
-                  : multiple
-                    ? <>Everyone who left their details on any of your cards. Tap any of them to reply.</>
-                    : <>Everyone who left their details on {isTeam ? 'your team card' : 'your card'}. Tap any of them to reply.</>}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="max-w-4xl mx-auto space-y-5 stagger pb-16">
+      <PageHeader
+        eyebrow="Contacts"
+        title="People who reached out"
+        subtitle={
+          managed.length > 0
+            ? <>Everyone who left their details on your card or on a card in {managed.length === 1 ? managed[0].name : 'your departments'}. Tap any of them to reply.</>
+            : multiple
+              ? <>Everyone who left their details on any of your cards. Tap any of them to reply.</>
+              : <>Everyone who left their details on {isTeam ? 'your team card' : 'your card'}. Tap any of them to reply.</>
+        }
+      />
 
       {/* Search, filter, stats and the list itself */}
       <ContactsList rows={rows as any} ownerName={card.name || undefined} />

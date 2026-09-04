@@ -110,6 +110,17 @@
 
      color-scheme tells the browser to draw the parts we cannot style - the
      scrollbar in a long list, the focus ring - to match. */
+  /* One visible focus ring for the whole product.
+     Only :focus-visible, so it appears for a keyboard and not for a mouse
+     press. Sidebar tiles had this and nothing else did, which meant tabbing
+     through any other screen was invisible - the single most common
+     accessibility failure there is, and the cheapest to fix once. */
+  :where(a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
   select {
     color-scheme: light dark;
   }
@@ -166,6 +177,86 @@
     box-shadow: var(--panel-shadow-lift);
     border-color: hsl(var(--foreground) / 0.18);
     transform: translateY(-1px);
+  }
+
+  /* ── Type scale ──────────────────────────────────────────────────────────
+     Every page wrote its own heading, which is how the Overview ended up at
+     42px and everything else at 24px with slightly different tracking each
+     time. The scale lives here now, so a page gets the right size by naming
+     what the text IS rather than by picking a number. */
+  .page-title {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+    font-size: clamp(28px, 1.4rem + 1.6vw, 42px);
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+  }
+  .page-subtitle {
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: hsl(var(--muted-foreground));
+  }
+  .section-title {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 1.0625rem;
+    letter-spacing: -0.015em;
+  }
+  /* The CSS twin of LABEL in components/dashboard/ui.ts, for the places that
+     are styling rather than composing className strings. */
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: hsl(var(--muted-foreground));
+  }
+  /* A figure meant to be read as data: tight, tabular, and never re-flowing
+     as it counts up. */
+  .stat-figure {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Form controls ───────────────────────────────────────────────────────
+     The same input was declared as a local `inputClass` string in several
+     components, each drifting slightly. */
+  .field {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border-radius: 0.5rem;
+    border: 1px solid hsl(var(--border));
+    background-color: hsl(var(--background));
+    font-size: 0.875rem;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+  .field::placeholder { color: hsl(var(--muted-foreground)) }
+  .field:hover { border-color: hsl(var(--foreground) / 0.22) }
+  .field:focus {
+    outline: none;
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 0 3px hsl(var(--ring) / 0.18);
+  }
+
+  /* The quieter button: same shape as the primary, no fill. */
+  .btn-secondary {
+    border: 1px solid hsl(var(--border));
+    background-color: hsl(var(--card));
+    transition: border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+                background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn-secondary:hover {
+    border-color: hsl(var(--foreground) / 0.25);
+    background-color: hsl(var(--muted) / 0.6);
+    transform: translateY(-1px);
+  }
+  .btn-secondary:active { transform: translateY(0) }
+  @media (prefers-reduced-motion: reduce) {
+    .btn-secondary:hover, .btn-secondary:active { transform: none }
   }
 
   /* The primary button.

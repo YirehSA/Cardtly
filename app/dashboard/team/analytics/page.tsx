@@ -5,6 +5,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, Eye, Users, TrendingUp, ExternalLink, MousePointerClick, AlertCircle,
 } from 'lucide-react'
+import PageHeader from '@/components/dashboard/PageHeader'
 import { LABEL } from '@/components/dashboard/ui'
 
 export const metadata = { title: 'Team Analytics' }
@@ -86,18 +87,13 @@ export default async function TeamAnalyticsPage() {
   ]
 
   return (
-    <div className="max-w-5xl mx-auto space-y-5 animate-fade-in pb-16">
-      {/* Header */}
-      <header className="pb-5 border-b border-border">
-        <Link href="/dashboard/team"
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition">
-          <ArrowLeft className="w-3.5 h-3.5" />{org.name}
-        </Link>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight mt-2">How your team is doing</h1>
-        <p className="text-sm text-muted-foreground mt-1.5">
-          Who is getting their card in front of people, and who needs a nudge.
-        </p>
-      </header>
+    <div className="max-w-5xl mx-auto space-y-5 stagger pb-16">
+      <PageHeader
+        back={{ href: '/dashboard/team', label: org.name }}
+        eyebrow="Team analytics"
+        title="How your team is doing"
+        subtitle="Who is getting their card in front of people, and who needs a nudge."
+      />
 
       {/* Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -107,7 +103,7 @@ export default async function TeamAnalyticsPage() {
               <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               <p className={LABEL}>{label}</p>
             </div>
-            <p className="font-display text-2xl sm:text-3xl font-bold tracking-tight tabular-nums mt-2.5 leading-none">
+            <p className="stat-figure text-[26px] sm:text-[34px] mt-3">
               {value.toLocaleString()}
             </p>
           </div>

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { Users, ArrowLeft } from 'lucide-react'
+import PageHeader from '@/components/dashboard/PageHeader'
 import Link from 'next/link'
 import ContactsList from '@/components/dashboard/ContactsList'
 import ExportContactsButton from '@/components/dashboard/ExportContactsButton'
@@ -64,28 +65,13 @@ export default async function TeamContactsPage() {
   })
 
   return (
-    <div className="max-w-5xl mx-auto space-y-5 animate-fade-in pb-16">
-      {/* Header */}
-      <div className="rounded-xl border border-border overflow-hidden">
-        <div className="p-6 sm:p-8" style={{ background: 'hsl(var(--card))' }}>
-          <Link href="/dashboard/team"
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition mb-3">
-            <ArrowLeft className="w-3.5 h-3.5" />{org.name}
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
-              style={{ background: 'hsl(var(--accent))' }}>
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="font-display text-2xl font-bold leading-tight">Everyone your team has met</h1>
-              <p className="text-muted-foreground text-sm">
-                Every lead from every team card in one place. Filter by the person who captured it.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="max-w-5xl mx-auto space-y-5 stagger pb-16">
+      <PageHeader
+        back={{ href: '/dashboard/team', label: org.name }}
+        eyebrow="Team leads"
+        title={<>Everyone your team has met</>}
+        subtitle="Every lead from every team card in one place. Filter by the person who captured it."
+      />
 
       <ContactsList
         rows={tagged as any}

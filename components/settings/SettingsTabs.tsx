@@ -7,6 +7,7 @@ import { INDUSTRIES_BY_GROUP } from '@/lib/industries'
 import { toast } from 'sonner'
 import { useEffect } from 'react'
 import { User, Lock, CreditCard, AlertTriangle, Check, Eye, EyeOff, Download, Loader2 } from 'lucide-react'
+import PageHeader from '@/components/dashboard/PageHeader'
 import PrimaryCardPicker, { type PickerCard } from '@/components/settings/PrimaryCardPicker'
 import { useRouter } from 'next/navigation'
 import { useIosApp } from '@/components/dashboard/PlatformProvider'
@@ -42,22 +43,12 @@ export default function SettingsTabs({ user, profile, plan, subscription, card, 
   const router = useRouter()
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5 animate-fade-in pb-16">
-      {/* Header */}
-      <div className="rounded-xl border border-border overflow-hidden">
-        <div className="p-6 sm:p-8" style={{ background: 'linear-gradient(135deg, hsl(var(--accent) / 0.14), transparent 65%)' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
-              style={{ background: 'hsl(var(--accent))' }}>
-              <User className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="font-display text-2xl font-bold leading-tight">Your account</h1>
-              <p className="text-muted-foreground text-sm">Your details, your password, your plan.</p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="max-w-3xl mx-auto space-y-5 stagger pb-16">
+      <PageHeader
+        eyebrow="Settings"
+        title="Your account"
+        subtitle="Your details, your password, your plan."
+      />
 
       {/* Tab bar — 2 columns on mobile so every tab including Danger is
           visible without scrolling, 4 columns on desktop. */}

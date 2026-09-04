@@ -8,6 +8,7 @@ import { LOCK_GROUPS } from '@/lib/team-locks'
 import Toggle from '@/components/ui/Toggle'
 import OrgChart from '@/components/departments/OrgChart'
 import { Layers, Palette, Loader2, UserPlus, X, ExternalLink, Eye, Users, Check, RefreshCw, Building2, Crown, Plus, Pencil, Trash2, ShieldCheck, ArrowRight, Sparkles, Mail, ChevronLeft, Lock, LockOpen, Link2 } from 'lucide-react'
+import PageHeader from '@/components/dashboard/PageHeader'
 
 interface Card {
   id: string; name: string | null; slug: string | null; claimed: boolean
@@ -122,21 +123,13 @@ export default function DepartmentManager({ departments, ownedOrgs, myCards = []
   // ── Overview: pick a department, or set the company up ───────────────────
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-lg flex items-center justify-center" style={{ background: grad }}>
-          <Layers className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <h1 className="font-display text-2xl font-bold leading-tight">
-            {isCompanyAdmin ? 'Your departments' : 'My department'}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {isCompanyAdmin
-              ? 'Give each team its own look and its own boss.'
-              : 'Everything for your team, in one place.'}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Structure"
+        title={isCompanyAdmin ? 'Your departments' : 'My department'}
+        subtitle={isCompanyAdmin
+          ? 'Give each team its own look and its own boss.'
+          : 'Everything for your team, in one place.'}
+      />
 
       {/* First-run guide for a company admin with nothing yet */}
       {isCompanyAdmin && departments.length === 0 ? (

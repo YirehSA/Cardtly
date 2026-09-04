@@ -565,26 +565,21 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
   // ── Main team dashboard ──────────────────────────────────────────────────────
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-6 stagger">
 
       {/* Header */}
       <div className="rounded-xl border border-border overflow-hidden">
         <div className="p-5 sm:p-6" style={{ background: 'hsl(var(--card))' }}>
           <div className="flex items-start justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
-                style={{ background: 'hsl(var(--accent))' }}>
-                <Building2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="font-display text-2xl font-bold leading-tight">{org.name}</h1>
-                <p className="text-muted-foreground text-sm">
-                  {seatsUsed} of {seatsTotal} cards used
-                  {seatsAvailable > 0
-                    ? ` · ${seatsAvailable} still free`
-                    : seatsTotal > 0 ? ' · all seats taken' : ''}
-                </p>
-              </div>
+            <div className="min-w-0">
+              <p className="section-label">Team cards</p>
+              <h1 className="page-title mt-1.5">{org.name}</h1>
+              <p className="page-subtitle mt-1.5">
+                {seatsUsed} of {seatsTotal} cards used
+                {seatsAvailable > 0
+                  ? ` · ${seatsAvailable} still free`
+                  : seatsTotal > 0 ? ' · all seats taken' : ''}
+              </p>
             </div>
 
             {/* Only the things you DO here.
