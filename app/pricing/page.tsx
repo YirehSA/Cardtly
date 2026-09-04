@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
+import { graph, faqPage, breadcrumb, softwareApplication } from '@/lib/seo-schema'
 import Footer from '@/components/marketing/Footer'
 import ProPlanPrice from '@/components/marketing/ProPlanPrice'
 import Reveal from '@/components/marketing/Reveal'
@@ -79,8 +80,25 @@ const FAQS = [
 ]
 
 export default function PricingPage() {
+  // The FAQs are already on the page; this describes the same array, so the
+  // schema cannot say something the reader cannot find.
+  const jsonLd = graph(
+    faqPage(FAQS),
+    breadcrumb([{ name: 'Pricing', path: '/pricing' }]),
+    softwareApplication({
+      name: 'Cardtly',
+      path: '/pricing',
+      description:
+        'Digital business card platform for individuals, teams and companies. One price per card with the full feature set, billed monthly or annually.',
+      price: SEAT_PRICE_RAND,
+      priceCurrency: 'ZAR',
+      priceNote: 'per card per month',
+    }),
+  )
+
   return (
     <div style={{ background: '#000', color: '#fff' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <Navbar />
 
       {/* Hero. Left-aligned and capped in rem, matching the home and features

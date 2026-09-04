@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
+import { graph, breadcrumb } from '@/lib/seo-schema'
 import Footer from '@/components/marketing/Footer'
 import { ArrowRight, Heart, Zap, Globe, Users } from 'lucide-react'
 
@@ -29,8 +30,14 @@ const VALUES = [
 ]
 
 export default function AboutPage() {
+  const jsonLd = graph(
+    { '@type': 'AboutPage', url: 'https://cardtly.com/about', name: 'About Cardtly' },
+    breadcrumb([{ name: 'About', path: '/about' }]),
+  )
+
   return (
     <div style={{ background: '#000', color: '#fff' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <Navbar />
 
       {/* Hero. Left-aligned with the type capped in rem, matching the rest of

@@ -1,55 +1,8 @@
-// Sitewide JSON-LD for the homepage: Organization + WebSite +
-// SoftwareApplication. Tells Google what Cardtly IS (a SaaS product
-// with a free tier, made by a South African company) rather than
-// leaving it to infer from page text. Rendered server-side - plain
-// script tags, zero client JS.
-
-const ORG = {
-  '@context': 'https://schema.org',
-  '@type': 'Organization',
-  '@id': 'https://cardtly.com/#organization',
-  name: 'Cardtly',
-  url: 'https://cardtly.com',
-  logo: 'https://cardtly.com/cardtly-icon.png',
-  description:
-    'Cardtly is a digital business card platform built in South Africa. Create a free digital business card and share it by NFC tap, QR code, or link.',
-  slogan: 'Your card. One tap away.',
-  address: {
-    '@type': 'PostalAddress',
-    addressCountry: 'ZA',
-  },
-  areaServed: { '@type': 'Country', name: 'South Africa' },
-  // Topics Cardtly is an authority on - helps AI engines map the
-  // brand to the right subject for "best digital business card"
-  // style questions.
-  knowsAbout: [
-    'Digital business cards',
-    'NFC business cards',
-    'QR code contact sharing',
-    'Networking',
-  ],
-  // Every profile that is verifiably Cardtly. This is the part that carries
-  // SEO weight: it lets Google and the AI engines confirm the homepage, the
-  // Android app and these accounts are one entity, which strengthens brand
-  // recognition for "cardtly" searches. Only add profiles that are real and
-  // active - a dead or mis-attributed sameAs weakens the entity graph rather
-  // than helping it, so this list stays in step with the footer icons.
-  sameAs: [
-    'https://play.google.com/store/apps/details?id=com.cardtly.app',
-    'https://www.linkedin.com/company/cardtly',
-    'https://www.instagram.com/cardtlydigital/',
-    'https://www.facebook.com/cardtly',
-  ],
-}
-
-const WEBSITE = {
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  '@id': 'https://cardtly.com/#website',
-  url: 'https://cardtly.com',
-  name: 'Cardtly',
-  publisher: { '@id': 'https://cardtly.com/#organization' },
-}
+// The home page's SoftwareApplication node.
+//
+// Organization and WebSite used to live here too, which meant they appeared on
+// the home page and nowhere else. They are emitted from the root layout now,
+// so every page carries the entity; this file describes the product.
 
 const APP = {
   '@context': 'https://schema.org',
@@ -64,7 +17,7 @@ const APP = {
   // are grounded in the real feature set.
   featureList: [
     'Share by NFC tap, QR code, or link',
-    '12 customisable card templates',
+    '15 customisable card templates',
     'Analytics: views, clicks, and contact saves',
     'Lead capture and built-in contacts CRM',
     'Book-a-meeting button',
@@ -98,13 +51,10 @@ const APP = {
 export default function StructuredData() {
   return (
     <>
-      {[ORG, WEBSITE, APP].map((schema, i) => (
-        <script
-          key={i}
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-        />
-      ))}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(APP) }}
+      />
     </>
   )
 }

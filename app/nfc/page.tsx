@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
+import { graph, faqPage, breadcrumb } from '@/lib/seo-schema'
+import FaqSection from '@/components/marketing/FaqSection'
 import Footer from '@/components/marketing/Footer'
 import { Wifi, ArrowRight, Check, Smartphone, Zap, Shield, Package } from 'lucide-react'
 import CardSamples from '@/components/marketing/CardSamples'
@@ -110,8 +112,31 @@ const SPECS = [
 ]
 
 export default function NFCMarketingPage() {
+const NFC_FAQ = [
+  {
+    q: 'What is an NFC business card?',
+    a: 'An NFC business card is a physical card with a small chip inside that opens a web page when it is held against a phone. There is no battery, no pairing and nothing to charge. The chip stores a link, the phone reads it from a couple of centimetres away, and your Cardtly card opens in the browser the person already has. Because the card only stores a link, the details it shows are whatever is on your Cardtly card at that moment, so a card printed months ago still opens your current job title and phone number. One physical card lasts indefinitely and never needs reprinting when something changes.',
+  },
+  {
+    q: 'Which phones can read an NFC card?',
+    a: 'Effectively every current smartphone. iPhones from the XR onwards read NFC tags in the background with no app and no setting to turn on, and Android phones have supported it for longer still. The person taps nothing and installs nothing: they hold their phone near the card and a notification appears with your link. Where a phone is older or has NFC switched off, the QR code printed on the same card works instead, which is why every Cardtly NFC card carries both. In practice you are never left without a way to share.',
+  },
+  {
+    q: 'What does an NFC business card cost?',
+    a: 'R150 for the standard design, which puts your logo and colours on the Cardtly layout, or R200 for a custom design built around your brand instead. Both include the artwork and a proof before anything is printed. Shipping is R100 per order rather than per card, so ordering ten cards for a team costs the same to ship as ordering one, and delivery is 5 to 7 business days within South Africa. The card is a once-off purchase and is separate from the Cardtly subscription, which is R97 per card per month.',
+  },
+  {
+    q: 'Do I need an NFC card to use Cardtly?',
+    a: 'No, and most people never buy one. Your QR code and your link work on their own at no extra cost, and they are how the majority of cards get shared. The physical card earns its place in face-to-face situations, at an event or across a counter, where holding two phones together is faster and more memorable than asking somebody to open their camera app. It is an accessory to the digital card, never a requirement for it, and everything on your Cardtly card works identically whether or not you own one.',
+  },
+]
+
   return (
     <div style={{ background: '#000', color: '#fff' }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(breadcrumb([{ name: 'NFC cards', path: '/nfc' }]))) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(NFC_PRODUCT_SCHEMA) }}
@@ -385,6 +410,13 @@ export default function NFCMarketingPage() {
           </p>
         </div>
       </section>
+
+      <FaqSection
+        faqs={NFC_FAQ}
+        id="nfc-faq"
+        eyebrow="Questions, answered"
+        heading="NFC business cards, explained."
+      />
 
       <Footer />
     </div>

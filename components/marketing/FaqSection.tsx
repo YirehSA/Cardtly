@@ -1,6 +1,13 @@
 import { ChevronDown } from 'lucide-react'
 
-// Homepage FAQ. Each question targets a real long-tail search query
+// A FAQ section, visible and machine readable from one array.
+//
+// Started life as the homepage FAQ and is now shared, because every marketing
+// page wants the same thing and duplicating it is how the schema and the
+// visible text drift apart. Pass `faqs` to use it elsewhere; the default is
+// still the homepage set.
+//
+// Each question targets a real long-tail search query
 // ("what is a digital business card", "digital business card cost
 // south africa", etc). The same array feeds both the visible
 // accordion and the FAQPage JSON-LD so they can never drift apart -
@@ -64,11 +71,21 @@ const FAQS: Array<{ q: string; a: string }> = [
   },
 ]
 
-export default function FaqSection() {
+interface Props {
+  /** Defaults to the homepage set. */
+  faqs?: Array<{ q: string; a: string }>
+  eyebrow?: string
+  /** Rendered as-is, so a caller can style part of it. */
+  heading?: React.ReactNode
+  id?: string
+}
+
+export default function FaqSection({ faqs, eyebrow, heading, id = 'faq' }: Props = {}) {
+  const items = faqs && faqs.length ? faqs : FAQS
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: FAQS.map(({ q, a }) => ({
+    mainEntity: items.map(({ q, a }) => ({
       '@type': 'Question',
       name: q,
       acceptedAnswer: { '@type': 'Answer', text: a },
@@ -76,7 +93,7 @@ export default function FaqSection() {
   }
 
   return (
-    <section className="py-24 px-6" id="faq" style={{ background: 'rgba(255,255,255,0.02)' }}>
+    <section className="py-24 px-6" id={id} style={{ background: 'rgba(255,255,255,0.02)' }}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
@@ -84,15 +101,15 @@ export default function FaqSection() {
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-14">
           <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#7c3aed' }}>
-            Questions, answered
+            {eyebrow || 'Questions, answered'}
           </p>
           <h2 className="text-4xl md:text-5xl font-black tracking-tight">
-            Digital business cards, <span style={gradText}>explained.</span>
+            {heading || <>Digital business cards, <span style={gradText}>explained.</span></>}
           </h2>
         </div>
 
         <div className="space-y-3">
-          {FAQS.map(({ q, a }) => (
+          {items.map(({ q, a }) => (
             <details
               key={q}
               className="group rounded-2xl border overflow-hidden"

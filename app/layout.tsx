@@ -6,6 +6,7 @@ import CapacitorBackButton from '@/components/CapacitorBackButton'
 import CapacitorDeepLinks from '@/components/CapacitorDeepLinks'
 import CapacitorSessionRefresh from '@/components/CapacitorSessionRefresh'
 import ReferralCapture from '@/components/ReferralCapture'
+import { graph, organization, webSite } from '@/lib/seo-schema'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -86,47 +87,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${jakarta.variable} ${display.variable} dark`} suppressHydrationWarning>
       <body className="font-sans antialiased bg-background text-foreground">
-        {/* Who this company is, on every page. An AI assistant asked to
-            recommend a product has to resolve the brand to an entity before it
-            can cite it, and sameAs is the link between this domain and the
-            places it is talked about. Rendered server-side, since AI crawlers
-            do not run JavaScript. */}
+        {/* Who this company is, on every page. An assistant asked to recommend
+            a product has to resolve the brand to an entity before it can cite
+            it, and this used to appear on the home page only. Server-rendered,
+            since AI crawlers do not run JavaScript. */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@graph': [
-              {
-                '@type': 'Organization',
-                '@id': 'https://cardtly.com/#organization',
-                name: 'Cardtly',
-                url: 'https://cardtly.com',
-                logo: 'https://cardtly.com/cardtly-logo.png',
-                description:
-                  'Cardtly is a digital business card platform for individuals, teams and companies. Cards are shared by NFC tap, QR code or link, and a company can brand and control every employee card centrally.',
-                foundingLocation: { '@type': 'Place', name: 'South Africa' },
-                areaServed: 'Worldwide',
-                sameAs: [
-                  'https://play.google.com/store/apps/details?id=com.cardtly.app',
-                  'https://www.linkedin.com/company/cardtly',
-                ],
-                contactPoint: {
-                  '@type': 'ContactPoint',
-                  contactType: 'sales',
-                  email: 'hello@cardtly.com',
-                  url: 'https://cardtly.com/contact',
-                  availableLanguage: ['en'],
-                },
-              },
-              {
-                '@type': 'WebSite',
-                '@id': 'https://cardtly.com/#website',
-                url: 'https://cardtly.com',
-                name: 'Cardtly',
-                publisher: { '@id': 'https://cardtly.com/#organization' },
-              },
-            ],
-          }) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(organization(), webSite())) }}
         />
         {children}
         <Toaster

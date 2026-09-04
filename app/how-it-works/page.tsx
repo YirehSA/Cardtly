@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
+import { graph, howTo, faqPage, breadcrumb } from '@/lib/seo-schema'
+import FaqSection from '@/components/marketing/FaqSection'
 import Footer from '@/components/marketing/Footer'
 import GeoPricing from '@/components/marketing/GeoPricing'
 import { ArrowRight } from 'lucide-react'
@@ -19,6 +21,25 @@ const gradText: React.CSSProperties = {
   WebkitTextFillColor: 'transparent',
   backgroundClip: 'text',
 }
+
+const HIW_FAQ = [
+  {
+    q: 'How do I make a digital business card?',
+    a: 'Sign up with an email address, and a live card exists immediately at your own address, such as cardtly.com/card/yourname. Add your name, photo, job title and contact details, pick one of 15 templates and set your colours and logo. Your QR code is generated automatically and your link works the moment the card is saved. There is no approval step, no setup wizard and no credit card needed to create the card. Most people have something they are happy to hand out inside two minutes, and everything on it can be changed afterwards without the link ever changing, so a card shared today keeps working after later edits.',
+  },
+  {
+    q: 'How do people receive my card?',
+    a: 'Three ways, and all of them end on an ordinary web page. You can hold an NFC card or an NFC-enabled phone against their phone, let them scan your QR code with the camera app, or send the link through WhatsApp, email or SMS. Nothing is installed on their side and no account is created. Once the card opens they can tap Save Contact and your details go straight into their address book, which is the step a photograph of a paper card never completes. You can also add your own card to Google Wallet so it is one swipe away when somebody asks.',
+  },
+  {
+    q: 'What happens when my details change?',
+    a: 'You edit the card and everyone who has ever received it sees the new version, because they hold a link to a live page rather than a copy of one. A new phone number, a new job title or a company rebrand reaches every QR code already printed on a banner, every email signature and every physical NFC card handed out, with nothing reprinted. If you deliberately change your card link, the old one keeps redirecting to the new one, so anything already in circulation still resolves.',
+  },
+  {
+    q: 'Do I need an NFC card to use Cardtly?',
+    a: 'No. The QR code and the link work on their own and cost nothing extra, and most people share their card that way. A physical NFC card is an optional accessory for meeting people face to face, where holding two phones together is faster than asking somebody to open a camera. If you do order one it is R150 for the standard design or R200 for one designed around your brand, plus R100 shipping for the whole order rather than per card, delivered in 5 to 7 business days within South Africa.',
+  },
+]
 
 const STEPS = [
   {
@@ -76,8 +97,22 @@ const PLAN_FEATURES = [
 ]
 
 export default function HowItWorksPage() {
+  // A HowTo, because this page literally is one, and that is the shape an
+  // assistant answering "how do I make a digital business card" looks for.
+  const jsonLd = graph(
+    howTo({
+      name: 'How to make and share a digital business card',
+      description:
+        'Create a digital business card, get your link and QR code, and share it by NFC tap, QR scan or URL.',
+      totalTime: 'PT2M',
+      steps: STEPS.map(st => ({ name: st.title, text: `${st.desc} ${st.detail}` })),
+    }),
+    breadcrumb([{ name: 'How it works', path: '/how-it-works' }]),
+  )
+
   return (
     <div style={{ background: '#000', color: '#fff' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <Navbar />
 
       {/* Hero. Left-aligned with the type capped in rem, matching home,
@@ -198,6 +233,13 @@ export default function HowItWorksPage() {
           </div>
         </div>
       </section>
+
+      <FaqSection
+        faqs={HIW_FAQ}
+        id="how-it-works-faq"
+        eyebrow="Questions, answered"
+        heading={<>Making and sharing a card, <span style={gradText}>explained.</span></>}
+      />
 
       <Footer />
     </div>
