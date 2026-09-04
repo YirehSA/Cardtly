@@ -122,6 +122,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <ThemeProvider>
       <PlatformProvider iosApp={iosApp}>
       <div className="min-h-screen bg-background">
+        {/* Behind everything, and first in the DOM so ordinary content paints
+            over it without anybody needing a z-index. */}
+        <div aria-hidden className="app-ambient" />
         <Sidebar
           isPro={isPro}
           isAdmin={isAdmin}

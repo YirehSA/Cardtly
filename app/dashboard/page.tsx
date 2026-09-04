@@ -217,7 +217,7 @@ export default async function DashboardPage() {
           wash behind it is a barely visible accent glow: the first pass left
           the top of the page as an empty band, which read as unfinished rather
           than restrained. */}
-      <header className="header-wash pb-6 pt-1 border-b border-border">
+      <header className="header-wash px-5 pb-6 pt-1 border-b border-border">
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div className="min-w-0">
             <p className={LABEL}>

@@ -27,8 +27,13 @@ interface Props {
 }
 
 export default function PageHeader({ eyebrow, title, subtitle, meta, actions, back }: Props) {
+  // px-5 matches a panel's own padding, so the eyebrow, the title and the
+  // first label inside every panel below all sit on one line. Flush against
+  // the panel EDGE, which is where this started, made the header the only text
+  // on the page without an inset and read as missing padding. The rule stays
+  // full width, because padding sits inside the border box.
   return (
-    <header className="header-wash pb-6 pt-1 border-b border-border">
+    <header className="header-wash px-5 pb-6 pt-1 border-b border-border">
       {back && (
         <Link href={back.href}
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition mb-2">
