@@ -99,9 +99,7 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
         left: 'var(--shell-gap)',
         height: 'calc(100vh - (var(--shell-gap) * 2))',
         borderRadius: 16,
-        background: 'hsl(var(--sidebar-bg) / var(--sidebar-glass))',
-        backdropFilter: 'blur(18px) saturate(150%)',
-        WebkitBackdropFilter: 'blur(18px) saturate(150%)',
+        background: 'hsl(var(--sidebar-bg))',
         border: '1px solid hsl(var(--sidebar-border))',
         boxShadow: 'var(--panel-shadow)',
       }}

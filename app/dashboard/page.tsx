@@ -218,20 +218,21 @@ export default async function DashboardPage() {
           THEIR card, so their photograph is the obvious anchor and it was not
           on the page at all above the fold.
 
-          Solid, not glass, and with no texture or wash behind it: Andre tried
-          both and wanted the panel plain. The photo carries the colour here,
-          which on a header this size is enough.
+          No texture and no wash behind it: Andre tried both and wanted the
+          panel plain. The photo carries the colour here, which on a header
+          this size is enough, and every panel is solid now so this needs
+          nothing of its own to say so.
 
           The name is the largest thing on the screen and set tight, because at
           this size default tracking reads as loose rather than grand. */}
-      <header className="panel panel-solid overflow-hidden">
+      <header className="panel overflow-hidden">
         <div className="relative p-5 sm:p-7 flex items-start gap-4 sm:gap-5 flex-wrap">
           {/* self-center, not items-center on the row: the photo lines up with
               the middle of the text block beside it, while the action button
               stays where it belongs at the top. */}
           <div className="shrink-0 self-center rounded-2xl overflow-hidden grid place-items-center"
             style={{
-              width: 76, height: 76,
+              width: 92, height: 92,
               background: accentHex + '1a',
               boxShadow: `inset 0 0 0 1px ${accentHex}55, 0 10px 30px -14px ${accentHex}`,
             }}>
