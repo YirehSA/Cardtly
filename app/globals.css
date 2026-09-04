@@ -302,6 +302,34 @@
     .btn-secondary:hover, .btn-secondary:active { transform: none }
   }
 
+  /* A fine dot grid, fading out across the panel.
+     Texture rather than decoration: it gives a large empty surface something
+     to be, which is what the header was missing when it was three lines of
+     text over a flat field. Masked on the diagonal so it never reads as a
+     pattern with an edge. */
+  .hero-grid::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(hsl(var(--foreground) / 0.16) 1.2px, transparent 1.2px);
+    background-size: 20px 20px;
+    -webkit-mask-image: linear-gradient(105deg, #000 0%, transparent 62%);
+    mask-image: linear-gradient(105deg, #000 0%, transparent 62%);
+  }
+
+  /* The status dot, breathing. Inherits the status colour through
+     currentColor, so one rule covers live, trialling and offline. */
+  .pulse-dot { animation: dot-pulse 2.4s ease-out infinite }
+  @keyframes dot-pulse {
+    0%   { box-shadow: 0 0 0 0 currentColor }
+    70%  { box-shadow: 0 0 0 6px transparent }
+    100% { box-shadow: 0 0 0 0 transparent }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pulse-dot { animation: none }
+  }
+
   /* The primary button.
      A flat rectangle of accent is correct and looks unpressed. One highlight
      along the top edge and a sheen falling off over the top half is what makes

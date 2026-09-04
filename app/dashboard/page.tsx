@@ -212,24 +212,49 @@ export default async function DashboardPage() {
       <WidgetSync slug={card?.slug ?? null} name={card?.name ?? null} />
 
       {/* Header.
-          The name is the largest thing on the page and set tight, because at
-          this size the default tracking reads as loose rather than grand. The
-          wash behind it is a barely visible accent glow: the first pass left
-          the top of the page as an empty band, which read as unfinished rather
-          than restrained. */}
-      <header className="header-wash px-5 pb-6 pt-1 border-b border-border">
-        <div className="flex items-start justify-between flex-wrap gap-4">
-          <div className="min-w-0">
+          This was an eyebrow, a name and a rule: three lines of text on a flat
+          field, which is the least a header can be. It is a panel now, and the
+          thing it was missing is the person's own face - the Overview is about
+          THEIR card, so their photograph is the obvious anchor and it was not
+          on the page at all above the fold.
+
+          The name is the largest thing on the screen and set tight, because at
+          this size default tracking reads as loose rather than grand. */}
+      <header className="panel hero-grid overflow-hidden">
+        {/* A pool of the card's own accent, behind the photo, so the header
+            picks up the colour of the card it is describing rather than the
+            app's. */}
+        <div aria-hidden className="absolute inset-0 pointer-events-none"
+          style={{ background: `radial-gradient(52% 120% at 6% 0%, ${accentHex}24, transparent 68%)` }} />
+
+        <div className="relative p-5 sm:p-7 flex items-start gap-4 sm:gap-5 flex-wrap">
+          <div className="shrink-0 rounded-2xl overflow-hidden grid place-items-center"
+            style={{
+              width: 76, height: 76,
+              background: accentHex + '1a',
+              boxShadow: `inset 0 0 0 1px ${accentHex}55, 0 10px 30px -14px ${accentHex}`,
+            }}>
+            {card.profile_image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={card.profile_image_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="font-display text-2xl font-bold" style={{ color: accentHex }}>
+                {card.name?.[0]?.toUpperCase() || '?'}
+              </span>
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1">
             <p className={LABEL}>
               {new Date().toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
-            <h1 className="font-display text-[32px] sm:text-[42px] font-bold tracking-[-0.03em] leading-[1.05] mt-2">
+            <h1 className="font-display text-[30px] sm:text-[40px] font-bold tracking-[-0.03em] leading-[1.05] mt-1.5">
               {card.name || 'Your card'}
             </h1>
-            <div className="flex items-center gap-2.5 mt-2 flex-wrap">
+            <div className="flex items-center gap-2.5 mt-2.5 flex-wrap">
               <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-md border"
                 style={{ borderColor: statusTone + '40', background: statusTone + '12', color: statusTone }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusTone }} />
+                <span className="pulse-dot w-1.5 h-1.5 rounded-full" style={{ background: 'currentColor' }} />
                 {statusLabel}
               </span>
               {roleLine && <p className="text-sm text-muted-foreground truncate">{roleLine}</p>}
@@ -238,6 +263,7 @@ export default async function DashboardPage() {
               )}
             </div>
           </div>
+
           {!isPaid && !iosApp && (
             <Link href="/dashboard/upgrade"
               className="btn-sheen flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white shrink-0"
