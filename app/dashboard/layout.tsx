@@ -17,6 +17,10 @@ import NetworkNotice from '@/components/dashboard/NetworkNotice'
 import ArchivedCardBanner, { type ArchivedCard } from '@/components/dashboard/ArchivedCardBanner'
 import AnnouncementModal from '@/components/AnnouncementModal'
 import HeartbeatPing from '@/components/dashboard/HeartbeatPing'
+import { getMemberTeamCard } from '@/lib/card-server'
+import { withResolvedBrand } from '@/lib/resolve-card-brand'
+import { parseDesign, getAccentHex } from '@/types/design'
+import { brandThemeStyle } from '@/lib/brand-theme'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -29,7 +33,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   ) as any
   const [plan, { data: card }, isAdmin, managedDepts, noticeSeen, archivedCards, rep] = await Promise.all([
     getUserPlan(user.id),
-    supabase.from('cards').select('name, addons, hide_from_network').eq('user_id', user.id).maybeSingle(),
+    // select('*') for color_theme, which the shell reads to take the
+    // dashboard's accent from this person's own card.
+    supabase.from('cards').select('*').eq('user_id', user.id).maybeSingle(),
     isAdminUser(user.id),
     Promise.all([getManagedDepartments(deptAdmin, user.id), getOwnedOrgs(deptAdmin, user.id)]),
     // Asked on its own and tolerantly. This column arrives with migration 042
@@ -118,10 +124,35 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // the dashboard has to render a purchase button and then take it away again.
   const iosApp = await isIosApp()
 
+  // The dashboard wears the colour of the card it manages.
+  //
+  // A team member has no personal card, and for them the org's brand is the
+  // more useful answer anyway: their whole dashboard comes out in the
+  // company's colour. Asked for only in that case, so the common path costs
+  // nothing extra, and tolerantly, because a colour is the last thing that
+  // should be able to stop every dashboard page rendering.
+  let brandSource: string | null = (card as any)?.color_theme ?? null
+  if (!brandSource) {
+    try {
+      const teamCard = await getMemberTeamCard<Record<string, any>>(user.id, '*')
+      if (teamCard) {
+        const resolved = (await withResolvedBrand(deptAdmin, [teamCard]))[0]
+        brandSource = (resolved as any)?.color_theme ?? null
+      }
+    } catch { /* leave the default palette in place */ }
+  }
+  const brandVars = brandThemeStyle(brandSource ? getAccentHex(parseDesign(brandSource)) : null)
+
   return (
     <ThemeProvider>
       <PlatformProvider iosApp={iosApp}>
-      <div className="min-h-screen bg-background">
+      {/* Every accent surface below reads hsl(var(--accent)), so setting the
+          brand variables here is the whole of it. An empty object leaves the
+          default palette exactly as it was. */}
+      <div
+        className={`min-h-screen bg-background${brandVars['--brand-h'] ? ' brand-scope' : ''}`}
+        style={brandVars as React.CSSProperties}
+      >
         {/* Behind everything, and first in the DOM so ordinary content paints
             over it without anybody needing a z-index. */}
         <div aria-hidden className="app-ambient" />

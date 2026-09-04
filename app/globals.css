@@ -21,6 +21,7 @@
     --muted-foreground: 220 12% 43%;
     --accent:           220 80% 55%;      /* electric blue */
     --accent-foreground:0 0% 100%;
+    --on-accent:        #ffffff;          /* text that sits ON the accent */
     --primary:          220 80% 55%;
     --primary-foreground: 0 0% 100%;
     --secondary:        220 15% 93%;
@@ -70,6 +71,7 @@
     --muted-foreground: 218 15% 56%;
     --accent:           217 91% 60%;
     --accent-foreground:0 0% 100%;
+    --on-accent:        #ffffff;
     --primary:          217 91% 60%;
     --primary-foreground: 0 0% 100%;
     --secondary:        222 25% 15%;
@@ -147,6 +149,35 @@
 }
 
 @layer base {
+  /* The dashboard wears the colour of the card it manages.
+     ---------------------------------------------------------------------
+     The shell carries --brand-* inline, and this re-declares the accent from
+     them ON THAT SAME ELEMENT. It has to be here rather than on :root: a
+     custom property is resolved where it is declared, so composing --accent on
+     :root reads --brand-* from :root, where nothing ever sets it, and the
+     shell's values would never reach it. Descendants would then inherit an
+     already-resolved default and the whole feature would silently do nothing.
+
+     Only the hue and saturation come from the brand. The lightness, and the
+     colour of text sitting on it, are solved against WCAG in lib/brand-theme,
+     because an accent is a surface with text on it and "whatever hex they
+     typed" is not reliably a readable one. The fallbacks reproduce the default
+     palette, so the class is harmless on an account with no colour set. */
+  .brand-scope {
+    --accent:         var(--brand-h, 220) var(--brand-s, 80%) var(--brand-l-light, 55%);
+    --primary:        var(--brand-h, 220) var(--brand-s, 80%) var(--brand-l-light, 55%);
+    --ring:           var(--brand-h, 220) var(--brand-s, 80%) var(--brand-l-light, 55%);
+    --sidebar-accent: var(--brand-h, 220) var(--brand-s, 80%) var(--brand-l-light, 55%);
+    --on-accent:      var(--brand-on-light, #ffffff);
+  }
+  .dark .brand-scope {
+    --accent:         var(--brand-h, 217) var(--brand-s, 91%) var(--brand-l-dark, 60%);
+    --primary:        var(--brand-h, 217) var(--brand-s, 91%) var(--brand-l-dark, 60%);
+    --ring:           var(--brand-h, 217) var(--brand-s, 91%) var(--brand-l-dark, 60%);
+    --sidebar-accent: var(--brand-h, 217) var(--brand-s, 91%) var(--brand-l-dark, 60%);
+    --on-accent:      var(--brand-on-dark, #ffffff);
+  }
+
   /* The shell is inset from the window on desktop only. */
   @media (min-width: 1024px) {
     :root { --shell-gap: 12px }

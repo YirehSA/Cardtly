@@ -185,8 +185,8 @@ export default async function DashboardPage() {
             link you can share with anyone.
           </p>
           <Link href="/dashboard/card"
-            className="btn-sheen inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white"
-            style={{ backgroundColor: accentHex }}>
+            className="btn-sheen inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold"
+            style={{ backgroundColor: 'hsl(var(--accent))', color: 'var(--on-accent)' }}>
             Create card <ArrowUpRight className="w-4 h-4" />
           </Link>
         </div>
@@ -268,8 +268,8 @@ export default async function DashboardPage() {
 
           {!isPaid && !iosApp && (
             <Link href="/dashboard/upgrade"
-              className="btn-sheen flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white shrink-0"
-              style={{ backgroundColor: accentHex }}>
+              className="btn-sheen flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold shrink-0"
+              style={{ backgroundColor: 'hsl(var(--accent))', color: 'var(--on-accent)' }}>
               {isExpired ? 'Reactivate card' : 'Subscribe'}
               <ArrowUpRight className="w-4 h-4" />
             </Link>
@@ -379,8 +379,8 @@ export default async function DashboardPage() {
             {card.slug && (
               <div className="space-y-2.5">
                 <a href={`/card/${card.slug}`} target="_blank" rel="noopener noreferrer"
-                  className="btn-sheen w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white"
-                  style={{ backgroundColor: accentHex }}>
+                  className="btn-sheen w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold"
+                  style={{ backgroundColor: 'hsl(var(--accent))', color: 'var(--on-accent)' }}>
                   <Eye className="w-4 h-4" /> Open card
                 </a>
 
@@ -419,7 +419,7 @@ export default async function DashboardPage() {
             </div>
             <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-3">
               <div className="h-full rounded-full transition-all"
-                style={{ width: `${percent}%`, background: accentHex }} />
+                style={{ width: `${percent}%`, background: 'hsl(var(--accent))' }} />
             </div>
           </div>
 
@@ -515,8 +515,8 @@ export default async function DashboardPage() {
             </p>
           </div>
           <Link href="/dashboard/upgrade"
-            className="btn-sheen flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white flex-shrink-0"
-            style={{ backgroundColor: accentHex }}>
+            className="btn-sheen flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold flex-shrink-0"
+            style={{ backgroundColor: 'hsl(var(--accent))', color: 'var(--on-accent)' }}>
             Upgrade <ArrowUpRight className="w-4 h-4" />
           </Link>
         </div>

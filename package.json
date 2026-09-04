@@ -10,10 +10,11 @@
     "check:facts": "node scripts/check-facts.mjs",
     "check:nav": "node scripts/check-nav.mjs",
     "schema": "node --use-system-ca scripts/dump-schema.mjs",
-    "prebuild": "node scripts/check-facts.mjs && node scripts/check-nav.mjs && node scripts/check-iap.mjs && node scripts/check-dept-select.mjs",
+    "prebuild": "node scripts/check-facts.mjs && node scripts/check-nav.mjs && node scripts/check-iap.mjs && node scripts/check-dept-select.mjs && node scripts/check-brand-theme.mjs",
     "check:seo": "node scripts/check-seo.mjs",
     "check:iap": "node scripts/check-iap.mjs",
-    "check:dept": "node scripts/check-dept-select.mjs"
+    "check:dept": "node scripts/check-dept-select.mjs",
+    "check:brand": "node scripts/check-brand-theme.mjs"
   },
   "dependencies": {
     "@capacitor-community/contacts": "^8.0.0",
