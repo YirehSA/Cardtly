@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 import { createClient } from '@supabase/supabase-js'
 import { parseDesign, getAccentHex, getBgColors, getReadableTextOn } from '@/types/design'
-import { resolveTeamBrand } from '@/lib/team-brand'
+import { ancestorChain, indexById, resolveBrandChain, type DeptNode } from '@/lib/department-tree'
 import { hydrateBrandSources } from '@/lib/brand-source'
 import { CARDTLY_MARK } from '@/lib/og-cardtly-mark'
 
@@ -169,19 +169,40 @@ export async function GET(
     }
     if (!brandCtx) return own
     try {
+      // The whole chain, not just the card's own department.
+      //
+      // This used to read one department and merge it over the org, which is
+      // the two-level model from before migration 053. A card inside a
+      // department inside a company therefore missed the company's brand
+      // entirely, and after 063 it also missed a company that had switched the
+      // group look off - so the preview image showed the group's logo on a
+      // card that does not wear it. This comment promised the image matches
+      // the page; now it does, because both call resolveBrandChain.
       const [orgRes, deptRes] = await Promise.all([
         // select('*') so brand_source comes too: a look that follows a card is
         // read from that card, and the preview image has to match the page.
         supabase.from('organizations').select('*').eq('id', brandCtx.orgId).maybeSingle(),
         brandCtx.deptId
-          ? supabase.from('departments').select('*').eq('id', brandCtx.deptId).maybeSingle()
-          : Promise.resolve({ data: null } as any),
+          ? supabase.from('departments').select('*').eq('organization_id', brandCtx.orgId)
+          : Promise.resolve({ data: [] } as any),
       ])
-      const [hydratedOrg, hydratedDept] = await Promise.all([
+      const [hydratedOrg, hydratedDepts] = await Promise.all([
         hydrateBrandSources(supabase, orgRes.data ? [orgRes.data] : []),
-        hydrateBrandSources(supabase, deptRes.data ? [deptRes.data] : []),
+        hydrateBrandSources(supabase, deptRes.data || []),
       ])
-      const resolved = resolveTeamBrand((hydratedOrg[0] as any)?.brand || {}, (hydratedDept[0] as any)?.brand || {})
+      const nodes: DeptNode[] = (hydratedDepts as any[]).map((d: any) => ({
+        id: d.id,
+        organization_id: d.organization_id,
+        name: d.name,
+        parent_id: d.parent_id ?? null,
+        kind: d.kind === 'company' ? 'company' : 'department',
+        slug_segment: d.slug_segment ?? null,
+        brand: d.brand || {},
+        locked_fields: d.locked_fields ?? null,
+        inherit_brand: d.inherit_brand ?? null,
+      }))
+      const chain = brandCtx.deptId ? ancestorChain(brandCtx.deptId, indexById(nodes)) : []
+      const resolved = resolveBrandChain((hydratedOrg[0] as any)?.brand || {}, chain)
       return {
         colorTheme: resolved.color_theme || own.colorTheme,
         logoUrl: resolved.company_logo_url || own.logoUrl,

@@ -69,10 +69,25 @@ export async function getManagedDepartments(admin: any, userId: string): Promise
   // brand_source arrives with migration 059, and slots into the same cascade:
   // a database without it fails this select and falls through to the one below,
   // where a look simply never reports that it is following anything.
+  // inherit_brand and inherit_brand_locked arrive with migration 063 and get
+  // their own rung on top of the same ladder.
+  //
+  // They were added to the ManagedDept type and read by the departments page
+  // without being added here, and a named select simply does not return a
+  // column it did not ask for. So the page read undefined, computed
+  // `undefined !== false` as "inheriting", and the toggle rendered on and
+  // snapped back to on after every refresh - while the write underneath it had
+  // succeeded. The column list is the read side of the same hand-applied
+  // migration problem the rest of this cascade exists to solve.
   let depts: any[] | null = null
-  const withSource = await admin
+  const withInherit = await admin
     .from('departments')
-    .select('id, organization_id, name, brand, brand_source, locked_fields, parent_id, kind, slug_segment')
+    .select('id, organization_id, name, brand, brand_source, locked_fields, parent_id, kind, slug_segment, inherit_brand, inherit_brand_locked')
+  const withSource = withInherit.error
+    ? await admin
+        .from('departments')
+        .select('id, organization_id, name, brand, brand_source, locked_fields, parent_id, kind, slug_segment')
+    : withInherit
   const withTree = withSource.error
     ? await admin
         .from('departments')
