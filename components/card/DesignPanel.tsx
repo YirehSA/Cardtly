@@ -142,7 +142,7 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
           const on = activeTab === tab.id
           return (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`px-3 py-2.5 rounded-xl text-sm font-bold transition whitespace-nowrap text-center border-2 ${on ? '' : 'border-border text-muted-foreground hover:text-foreground hover:-translate-y-0.5'}`}
+              className={`px-3 py-2.5 rounded-xl text-sm font-bold transition whitespace-nowrap text-center border-2 ${on ? '' : 'border-border text-muted-foreground hover:text-foreground'}`}
               style={on ? { borderColor: tab.colour, background: tab.colour + '14', color: tab.colour } : undefined}>
               {tab.label}
             </button>

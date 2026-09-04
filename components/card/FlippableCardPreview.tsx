@@ -73,19 +73,19 @@ export default function FlippableCardPreview({ form, isPro, design, cardUrl }: P
         className={`flip-card-inner ${spinning ? 'animate-card-spin' : ''}`}
         style={{ minHeight: 500 }}>
         {/* Front */}
-        <div className="flip-card-face rounded-2xl overflow-hidden shadow-2xl border border-gray-800"
+        <div className="flip-card-face rounded-lg overflow-hidden shadow-2xl border border-gray-800"
           style={{ maxHeight: '82vh', overflowY: flipped ? 'hidden' : 'auto' }}>
           <CardPreview form={form} isPro={isPro} design={design} />
         </div>
         {/* Back */}
-        <div className="flip-card-face flip-card-back rounded-2xl overflow-hidden shadow-2xl border flex flex-col items-center justify-center p-8 gap-6"
+        <div className="flip-card-face flip-card-back rounded-lg overflow-hidden shadow-2xl border flex flex-col items-center justify-center p-8 gap-6"
           style={{
             background: `linear-gradient(135deg, ${accent} 0%, #0a0a0a 100%)`,
             borderColor: 'rgba(255,255,255,0.1)',
             minHeight: 500,
           }}>
           <p className="text-xs font-bold uppercase tracking-widest text-white/70">Scan to view card</p>
-          <div className="bg-white rounded-2xl p-4 shadow-xl">
+          <div className="bg-white rounded-lg p-4 shadow-xl">
             {qrSvg ? (
               <div className="w-56 h-56 [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: qrSvg }} />
             ) : (

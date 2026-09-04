@@ -80,7 +80,7 @@ export default function MeetingStats({ summary, onFilter, scope }: {
           const clickable = !!(onFilter && t.filter)
           const Inner = (
             <>
-              <p className="text-xl font-black tracking-tight tabular-nums" style={{ color: t.colour }}>{t.value}</p>
+              <p className="text-xl font-bold tracking-tight tabular-nums" style={{ color: t.colour }}>{t.value}</p>
               <p className="text-[10px] mt-0.5 uppercase tracking-wider leading-tight" style={{ color: 'var(--cal-muted)' }}>
                 {t.label}
               </p>

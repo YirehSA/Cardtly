@@ -78,7 +78,7 @@ export default function TrialsTab({
         }
       >
         {creating && (
-          <div className="rounded-xl border p-4 mb-4" style={{ borderColor: 'rgba(124,58,237,0.4)', background: 'rgba(124,58,237,0.06)' }}>
+          <div className="rounded-xl border p-4 mb-4" style={{ borderColor: 'hsl(var(--accent) / 0.4)', background: 'hsl(var(--accent) / 0.06)' }}>
             <p className="text-xs font-semibold mb-3" style={{ color: '#a78bfa' }}>
               New code. Share it as a link and the trial applies with nothing for them to type.
             </p>

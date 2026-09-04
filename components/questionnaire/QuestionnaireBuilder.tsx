@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { Plus, Trash2, GripVertical, Loader2, Save, Check, Radio, Copy, ClipboardList, ChevronRight, AlertTriangle } from 'lucide-react'
 import { MAX_QUESTIONS, MAX_QUESTIONNAIRES, safeHex, contrastRatio, type Question, type QuestionType, type SavedQuestionnaire } from '@/lib/questionnaire'
 
-const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
+const grad = 'hsl(var(--accent))'
 
 // A colour swatch plus its hex, kept in step. The native picker alone gives no
 // way to paste a brand colour, and a text box alone gives no way to browse.
@@ -215,7 +215,7 @@ export default function QuestionnaireBuilder({ initial, teamWide, target, target
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Form switcher */}
-      <div className="rounded-2xl border border-border bg-card p-4">
+      <div className="rounded-lg border border-border bg-card p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-bold">Your forms</h2>
           <span className="text-xs text-muted-foreground">{forms.length}/{MAX_QUESTIONNAIRES}</span>
@@ -306,7 +306,7 @@ export default function QuestionnaireBuilder({ initial, teamWide, target, target
       </div>
 
       {/* Title of the selected form */}
-      <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="rounded-lg border border-border bg-card p-5">
         <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Form title (optional)</label>
         <input value={selected.title || ''} onChange={e => setTitle(e.target.value)} maxLength={80}
           placeholder="e.g. A few quick questions"
@@ -358,7 +358,7 @@ export default function QuestionnaireBuilder({ initial, teamWide, target, target
                 one look is how they drift, but a preview that lives in a modal
                 on a public page cannot be imported here - so if you change one,
                 change both. */}
-            <div className="w-full py-3 px-3.5 rounded-2xl text-sm font-semibold flex items-center justify-between gap-3"
+            <div className="w-full py-3 px-3.5 rounded-lg text-sm font-semibold flex items-center justify-between gap-3"
               style={btnStyled
                 ? {
                     background: selected.buttonBg || 'transparent',
@@ -367,10 +367,10 @@ export default function QuestionnaireBuilder({ initial, teamWide, target, target
                       : (selected.buttonBg ? `1px solid ${selected.buttonBg}` : 'none'),
                     color: selected.buttonText || '#ffffff',
                   }
-                : { background: 'rgba(124,58,237,0.13)', border: '1px solid rgba(124,58,237,0.35)' }}>
+                : { background: 'hsl(var(--accent) / 0.13)', border: '1px solid hsl(var(--accent) / 0.35)' }}>
               <span className="flex items-center gap-2.5 min-w-0">
                 <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: selected.buttonBg ? 'rgba(255,255,255,0.18)' : (selected.buttonBorder ? selected.buttonBorder + '2e' : 'rgba(124,58,237,0.18)') }}>
+                  style={{ background: selected.buttonBg ? 'rgba(255,255,255,0.18)' : (selected.buttonBorder ? selected.buttonBorder + '2e' : 'hsl(var(--accent) / 0.18)') }}>
                   <ClipboardList className="w-4 h-4" style={{ color: btnStyled ? (selected.buttonText || '#fff') : '#7c3aed' }} />
                 </span>
                 <span className="truncate">{selected.title?.trim() || 'Answer a few questions'}</span>
@@ -392,7 +392,7 @@ export default function QuestionnaireBuilder({ initial, teamWide, target, target
       {/* Questions of the selected form */}
       <div className="space-y-3">
         {selected.questions.map((q, i) => (
-          <div key={q.id} className="rounded-2xl border border-border bg-card p-5">
+          <div key={q.id} className="rounded-lg border border-border bg-card p-5">
             <div className="flex items-center justify-between mb-3">
               <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                 <GripVertical className="w-4 h-4" />Question {i + 1}

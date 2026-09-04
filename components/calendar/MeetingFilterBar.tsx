@@ -66,7 +66,7 @@ export default function MeetingFilterBar({
           style={{
             border: `1px solid ${count > 0 ? '#7c3aed' : 'var(--cal-border)'}`,
             color: count > 0 ? '#a855f7' : 'var(--cal-text)',
-            background: count > 0 ? 'rgba(124,58,237,0.10)' : undefined,
+            background: count > 0 ? 'hsl(var(--accent) / 0.10)' : undefined,
           }}>
           <SlidersHorizontal className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Filters</span>
@@ -87,7 +87,7 @@ export default function MeetingFilterBar({
       )}
 
       {open && (
-        <div className="rounded-2xl border p-3 space-y-3"
+        <div className="rounded-lg border p-3 space-y-3"
           style={{ borderColor: 'var(--cal-border)', background: 'var(--cal-surface)' }}>
 
           <Group label="Status">

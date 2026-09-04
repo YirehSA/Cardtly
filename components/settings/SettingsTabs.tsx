@@ -44,11 +44,11 @@ export default function SettingsTabs({ user, profile, plan, subscription, card, 
   return (
     <div className="max-w-3xl mx-auto space-y-5 animate-fade-in pb-16">
       {/* Header */}
-      <div className="rounded-3xl border border-border overflow-hidden">
-        <div className="p-6 sm:p-8" style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.14), transparent 65%)' }}>
+      <div className="rounded-xl border border-border overflow-hidden">
+        <div className="p-6 sm:p-8" style={{ background: 'linear-gradient(135deg, hsl(var(--accent) / 0.14), transparent 65%)' }}>
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+            <div className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
+              style={{ background: 'hsl(var(--accent))' }}>
               <User className="w-5 h-5" />
             </div>
             <div>
@@ -61,7 +61,7 @@ export default function SettingsTabs({ user, profile, plan, subscription, card, 
 
       {/* Tab bar — 2 columns on mobile so every tab including Danger is
           visible without scrolling, 4 columns on desktop. */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-muted p-1 rounded-2xl">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-muted p-1 rounded-lg">
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition justify-center ${tab === t.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
@@ -71,7 +71,7 @@ export default function SettingsTabs({ user, profile, plan, subscription, card, 
       </div>
 
       {/* Tab content */}
-      <div className="bg-card border border-border rounded-3xl p-6">
+      <div className="bg-card border border-border rounded-xl p-6">
         {tab === 'profile' && (
           <div className="space-y-6">
             <ProfileTab user={user} profile={profile} card={card || undefined} supabase={supabase} />
@@ -243,7 +243,7 @@ function ProfileTab({ user, profile, card, supabase }: { user: Props['user']; pr
                 className="flex-1 px-4 py-2.5 rounded-r-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
               />
               <button onClick={saveSlug} disabled={slugSaving || !slug || slug === card.slug}
-                className="px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap" style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                className="px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap" style={{ background: 'hsl(var(--accent))' }}>
                 {slugSaving ? 'Saving...' : slugSuccess ? '✓ Saved' : 'Update'}
               </button>
             </div>
@@ -275,7 +275,7 @@ function ProfileTab({ user, profile, card, supabase }: { user: Props['user']; pr
                   className="relative shrink-0 inline-flex h-7 w-12 items-center rounded-full transition disabled:opacity-50"
                   style={{
                     background: allowFeature
-                      ? 'linear-gradient(135deg, #00d4ff, #7c3aed)'
+                      ? 'hsl(var(--accent))'
                       : 'rgba(120, 120, 120, 0.3)',
                   }}
                 >
@@ -312,7 +312,7 @@ function ProfileTab({ user, profile, card, supabase }: { user: Props['user']; pr
                   className="relative shrink-0 inline-flex h-7 w-12 items-center rounded-full transition disabled:opacity-50"
                   style={{
                     background: inNetwork
-                      ? 'linear-gradient(135deg, #00d4ff, #7c3aed)'
+                      ? 'hsl(var(--accent))'
                       : 'rgba(120, 120, 120, 0.3)',
                   }}
                 >
@@ -522,10 +522,10 @@ function BillingTab({ plan, subscription }: { plan: UserPlan; subscription: Prop
       </div>
 
       {/* Where you stand */}
-      <div className="rounded-2xl border p-5" style={{ borderColor: HEADER.tone + '55', background: HEADER.tone + '0f' }}>
+      <div className="rounded-lg border p-5" style={{ borderColor: HEADER.tone + '55', background: HEADER.tone + '0f' }}>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl grid place-items-center font-bold text-sm text-white"
+            <div className="w-11 h-11 rounded-lg grid place-items-center font-bold text-sm text-white"
               style={{ background: HEADER.tone }}>
               {HEADER.badge}
             </div>

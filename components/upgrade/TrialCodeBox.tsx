@@ -51,7 +51,7 @@ export default function TrialCodeBox() {
 
   if (done) {
     return (
-      <div className="rounded-2xl border p-4 flex items-start gap-3"
+      <div className="rounded-lg border p-4 flex items-start gap-3"
         style={{ borderColor: 'rgba(34,197,94,0.4)', background: 'rgba(34,197,94,0.08)' }}>
         <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#22c55e' }} />
         <div>
@@ -65,7 +65,7 @@ export default function TrialCodeBox() {
   }
 
   return (
-    <div className="rounded-2xl border border-border p-4">
+    <div className="rounded-lg border border-border p-4">
       <div className="flex items-center gap-2.5 mb-1">
         <span className="w-8 h-8 rounded-xl grid place-items-center bg-muted shrink-0">
           <Ticket className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
@@ -91,7 +91,7 @@ export default function TrialCodeBox() {
           onClick={redeem}
           disabled={busy || code.trim().length < 3}
           className="px-4 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-40 flex items-center gap-1.5"
-          style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}
+          style={{ background: 'hsl(var(--accent))' }}
         >
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
         </button>

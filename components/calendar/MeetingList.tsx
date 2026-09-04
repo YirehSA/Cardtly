@@ -59,7 +59,7 @@ export default function MeetingList({
 
   if (meetings.length === 0) {
     return (
-      <div className="rounded-2xl border p-8 text-center"
+      <div className="rounded-lg border p-8 text-center"
         style={{ borderColor: 'var(--cal-border)', background: 'var(--cal-surface)' }}>
         <CalendarX2 className="w-7 h-7 mx-auto mb-2" style={{ color: 'var(--cal-muted)' }} />
         <p className="text-sm font-semibold" style={{ color: 'var(--cal-text)' }}>Nothing matches</p>
@@ -78,12 +78,12 @@ export default function MeetingList({
       {groups.map((g, gi) => (
         <div key={`${g.key}-${g.upcoming}`}>
         {hasBothHalves && (gi === 0 || groups[gi - 1].upcoming !== g.upcoming) && (
-          <p className="text-[10px] font-black uppercase tracking-widest mb-2 mt-1"
+          <p className="text-[10px] font-bold uppercase tracking-widest mb-2 mt-1"
             style={{ color: g.upcoming ? '#0ea5e9' : 'var(--cal-muted)' }}>
             {g.upcoming ? 'Still to come' : 'Already happened'}
           </p>
         )}
-        <div className="rounded-2xl border overflow-hidden"
+        <div className="rounded-lg border overflow-hidden"
           style={{ borderColor: 'var(--cal-border)', background: 'var(--cal-surface)' }}>
           <div className="px-3.5 py-2 flex items-center justify-between"
             style={{ borderBottom: '1px solid var(--cal-grid)', background: 'var(--cal-raised)' }}>

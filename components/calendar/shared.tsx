@@ -40,10 +40,10 @@ export const ADMIN_SKIN = {
   '--cal-text': '#ffffff',
   '--cal-muted': 'rgba(255,255,255,0.45)',
   '--cal-hover': 'rgba(255,255,255,0.06)',
-  '--cal-today': 'rgba(124,58,237,0.12)',
+  '--cal-today': 'hsl(var(--accent) / 0.12)',
 } as unknown as CSSProperties
 
-export const GRAD = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
+export const GRAD = 'hsl(var(--accent))'
 
 export const inputClass =
   'w-full px-3 py-2 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 transition'
@@ -108,9 +108,9 @@ export function Pill({ label, colour, title }: { label: string; colour: string; 
 export function CalendarSkeleton() {
   return (
     <div className="space-y-3 animate-pulse" aria-hidden="true">
-      <div className="h-16 rounded-2xl" style={{ background: 'var(--cal-raised)' }} />
+      <div className="h-16 rounded-lg" style={{ background: 'var(--cal-raised)' }} />
       <div className="h-11 rounded-xl" style={{ background: 'var(--cal-raised)' }} />
-      <div className="h-[420px] rounded-2xl" style={{ background: 'var(--cal-raised)' }} />
+      <div className="h-[420px] rounded-lg" style={{ background: 'var(--cal-raised)' }} />
     </div>
   )
 }

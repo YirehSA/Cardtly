@@ -201,11 +201,11 @@ export default function OrgChart({ departments, ownedOrgs, rollup, onManage }: {
 
       {/* ── Top block ───────────────────────────────────────────────────── */}
       <div className="flex flex-col items-center">
-        <div className="w-full max-w-xl rounded-2xl p-5 text-center relative overflow-hidden"
+        <div className="w-full max-w-xl rounded-lg p-5 text-center relative overflow-hidden"
           style={{ background: level === 'group' ? GRAD : tone.solid, color: tone.on }}>
           <div className="flex items-center justify-center gap-2 mb-1">
             {level === 'group' ? <Layers className="w-4 h-4" /> : <Building2 className="w-4 h-4" />}
-            <span className="text-[10px] font-black uppercase tracking-[0.14em] opacity-90">
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] opacity-90">
               {tone.label}
             </span>
           </div>
@@ -262,7 +262,7 @@ export default function OrgChart({ departments, ownedOrgs, rollup, onManage }: {
                 const kidCount = childrenOf(d.id).length
                 return (
                   <button key={d.id} onClick={() => setFocusId(d.id)}
-                    className="relative group text-left rounded-2xl border border-border bg-card p-4 aspect-square flex flex-col transition-all hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background"
+                    className="relative group text-left rounded-lg border border-border bg-card p-4 aspect-square flex flex-col transition-all hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background"
                     style={{ boxShadow: `inset 0 3px 0 ${c.solid}` }}>
                     <Drop />
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -338,7 +338,7 @@ export default function OrgChart({ departments, ownedOrgs, rollup, onManage }: {
                 const label = card.name || card.inviteEmail || 'Unclaimed'
                 return (
                   <div key={card.id}
-                    className="relative rounded-2xl border border-border bg-card p-3 flex flex-col items-center text-center gap-1.5">
+                    className="relative rounded-lg border border-border bg-card p-3 flex flex-col items-center text-center gap-1.5">
                     <Drop />
                     {/* Dark initials, not white: white on #22c55e is 2.2:1 and
                         on #94a3b8 is 2.3:1, so the two-letter label is the
@@ -377,7 +377,7 @@ export default function OrgChart({ departments, ownedOrgs, rollup, onManage }: {
       {/* A leaf with nothing under it should say so rather than ending in
           whitespace that reads like a page still loading. */}
       {focus && kids.length === 0 && cards.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-border p-8 text-center">
+        <div className="rounded-lg border border-dashed border-border p-8 text-center">
           <Users className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
           <p className="text-sm font-medium">Nothing under {focus.name} yet</p>
           <button onClick={() => onManage(focus.id)}

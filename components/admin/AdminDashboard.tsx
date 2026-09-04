@@ -219,7 +219,7 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
 
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-2xl font-black text-white tracking-tight">Cardtly admin</h1>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Cardtly admin</h1>
             <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
               {stats.totalUsers} users · {stats.totalCards} cards · {orgs.length} teams
             </p>
@@ -233,7 +233,7 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
         {/* The one thing that needs saying loudly: whose card is dark. */}
         {stats.expired > 0 && (
           <button onClick={() => { setTab('users'); setFilter('expired'); setQ('') }}
-            className="w-full text-left rounded-2xl p-4 flex items-center gap-3 transition hover:opacity-90"
+            className="w-full text-left rounded-lg p-4 flex items-center gap-3 transition hover:opacity-90"
             style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)' }}>
             <AlertTriangle className="w-5 h-5 flex-shrink-0" style={{ color: '#ef4444' }} />
             <div>
@@ -251,7 +251,7 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
             this is not said here it is not said anywhere. */}
         {(stats.teamTrialsLapsed > 0 || stats.teamTrialsEnding > 0 || stats.debitOrdersToCollect > 0) && (
           <button onClick={() => setTab('teams')}
-            className="w-full text-left rounded-2xl p-4 flex items-center gap-3 transition hover:opacity-90"
+            className="w-full text-left rounded-lg p-4 flex items-center gap-3 transition hover:opacity-90"
             style={{ background: 'rgba(245,158,11,0.09)', border: '1px solid rgba(245,158,11,0.4)' }}>
             <Banknote className="w-5 h-5 flex-shrink-0" style={{ color: '#f59e0b' }} />
             <div>

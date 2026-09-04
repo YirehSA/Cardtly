@@ -71,14 +71,14 @@ export default function AIBioModal({ open, onClose, onAccept, initial }: Props) 
     <div className="fixed inset-0 z-[150] flex items-center justify-center px-4"
       style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
       onClick={onClose}>
-      <div className="w-full max-w-lg rounded-2xl overflow-hidden border shadow-2xl"
+      <div className="w-full max-w-lg rounded-lg overflow-hidden border shadow-2xl"
         style={{ background: 'hsl(var(--card))', borderColor: 'hsl(var(--border))' }}
         onClick={(e) => e.stopPropagation()}>
 
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(124,58,237,0.2))' }}>
+              style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.2), hsl(var(--accent) / 0.2))' }}>
               <Sparkles className="w-4 h-4" style={{ color: '#00d4ff' }} />
             </div>
             <div>
@@ -152,14 +152,14 @@ export default function AIBioModal({ open, onClose, onAccept, initial }: Props) 
           {!draft ? (
             <button onClick={generate} disabled={loading || (!role.trim() && !expertise.trim())}
               className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+              style={{ background: 'hsl(var(--accent))' }}>
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               Generate bio
             </button>
           ) : (
             <button onClick={accept} disabled={!draft.trim()}
               className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+              style={{ background: 'hsl(var(--accent))' }}>
               <Check className="w-4 h-4" />
               Use this bio
             </button>

@@ -50,7 +50,7 @@ interface OwnedOrg { id: string; name: string; lockedFields: string[] }
 /** One of the viewer's own personal cards, offered as a look to copy. */
 interface MyCard { id: string; name: string | null; brand: Record<string, any> }
 
-const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
+const grad = 'hsl(var(--accent))'
 
 // A steady palette so each department gets its own colour, cycled by position.
 const ACCENTS = ['#7c3aed', '#06b6d4', '#ec4899', '#f59e0b', '#22c55e', '#3b82f6', '#ef4444', '#14b8a6']
@@ -123,7 +123,7 @@ export default function DepartmentManager({ departments, ownedOrgs, myCards = []
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: grad }}>
+        <div className="w-11 h-11 rounded-lg flex items-center justify-center" style={{ background: grad }}>
           <Layers className="w-5 h-5 text-white" />
         </div>
         <div>
@@ -179,7 +179,7 @@ function CompanyRules({ org, call, loading }: {
   const locked = org.lockedFields || []
   const key = `orglocks-${org.id}`
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
+    <div className="rounded-lg border border-border bg-card p-5">
       <div className="flex items-center gap-2 mb-1">
         <Lock className="w-4 h-4 text-amber-500" />
         <h2 className="font-bold text-sm">Company rules{org.name ? ` for ${org.name}` : ''}</h2>
@@ -262,9 +262,9 @@ function FirstRun({ ownedOrgs, call, loading }: {
     ]
 
   return (
-    <div className="rounded-3xl border border-border bg-card overflow-hidden">
-      <div className="p-6 sm:p-8 text-center" style={{ background: 'linear-gradient(180deg, rgba(124,58,237,0.08), transparent)' }}>
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: grad }}>
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="p-6 sm:p-8 text-center" style={{ background: 'linear-gradient(180deg, hsl(var(--accent) / 0.08), transparent)' }}>
+        <div className="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-3" style={{ background: grad }}>
           <Sparkles className="w-6 h-6 text-white" />
         </div>
         <h2 className="text-xl font-bold">Set up your structure</h2>
@@ -282,18 +282,18 @@ function FirstRun({ ownedOrgs, call, loading }: {
         <div className="p-6 sm:p-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {([
             {
-              id: 'one' as const, icon: Building2, tone: '#00d4ff',
+              id: 'one' as const, icon: Building2, tone: 'hsl(var(--accent))',
               title: 'One business',
               body: 'Everyone works for the same company. You split it into departments like Sales and Admin.',
             },
             {
-              id: 'group' as const, icon: Layers, tone: '#7c3aed',
+              id: 'group' as const, icon: Layers, tone: 'hsl(var(--accent))',
               title: 'A group of businesses',
               body: 'You own several companies. Each keeps its own branding, its own manager and its own web address, on one invoice.',
             },
           ]).map(o => (
             <button key={o.id} onClick={() => setShape(o.id)}
-              className="text-left rounded-2xl border-2 border-border p-4 transition hover:-translate-y-0.5 hover:shadow-lg"
+              className="text-left rounded-lg border-2 border-border p-4 transition hover:shadow-lg"
               style={{ borderColor: `${o.tone}44` }}>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2"
                 style={{ background: `${o.tone}1f`, border: `1px solid ${o.tone}44` }}>
@@ -308,11 +308,11 @@ function FirstRun({ ownedOrgs, call, loading }: {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 px-6 pb-2">
             {steps.map((s, i) => (
-              <div key={i} className="rounded-2xl border border-border p-4 text-center">
+              <div key={i} className="rounded-lg border border-border p-4 text-center">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2 relative"
                   style={{ background: `${s.color}1f`, border: `1px solid ${s.color}44` }}>
                   <s.icon className="w-5 h-5" style={{ color: s.color }} />
-                  <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full text-[10px] font-black text-white flex items-center justify-center" style={{ background: s.color }}>{i + 1}</span>
+                  <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full text-[10px] font-bold text-white flex items-center justify-center" style={{ background: s.color }}>{i + 1}</span>
                 </div>
                 <p className="font-semibold text-sm">{s.title}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{s.text}</p>
@@ -390,7 +390,7 @@ function NewDeptTile({ ownedOrgs, call, loading, departments }: {
   if (!open) {
     const startWith = (k: 'company' | 'department') => { setKind(k); setOpen(true) }
     return (
-      <div className="rounded-2xl border-2 border-dashed border-border p-4 flex flex-col justify-center gap-2 min-h-[104px]">
+      <div className="rounded-lg border-2 border-dashed border-border p-4 flex flex-col justify-center gap-2 min-h-[104px]">
         {!orgHasCompanies && (
           <p className="text-[11px] text-muted-foreground leading-snug">
             Running several businesses under one group? Make a company first, then put
@@ -411,7 +411,7 @@ function NewDeptTile({ ownedOrgs, call, loading, departments }: {
     )
   }
   return (
-    <div className="rounded-2xl border border-purple-500/40 bg-card p-4" style={{ background: 'rgba(124,58,237,0.05)' }}>
+    <div className="rounded-lg border border-purple-500/40 bg-card p-4" style={{ background: 'hsl(var(--accent) / 0.05)' }}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-semibold">
           {kind === 'company' ? 'New company' : 'New department'}
@@ -495,7 +495,7 @@ function SectionHead({ n, accent, icon: Icon, title, body, state, stateTone }: {
   return (
     <div className="mb-4">
       <div className="flex items-center gap-2.5 flex-wrap">
-        <span className="w-7 h-7 rounded-xl shrink-0 flex items-center justify-center text-xs font-black"
+        <span className="w-7 h-7 rounded-xl shrink-0 flex items-center justify-center text-xs font-bold"
           style={{ background: `${accent}22`, color: accent, border: `1px solid ${accent}44` }}>
           {n}
         </span>
@@ -569,7 +569,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
   return (
     <div className="space-y-5">
       {/* Hero */}
-      <div className="rounded-3xl p-5 sm:p-6 relative overflow-hidden border border-border"
+      <div className="rounded-xl p-5 sm:p-6 relative overflow-hidden border border-border"
         style={{ background: `linear-gradient(135deg, ${accent}22, transparent 70%)` }}>
         {onBack && (
           <button onClick={onBack} className="text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1 mb-3">
@@ -577,7 +577,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
           </button>
         )}
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+          <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ background: `${accent}26`, border: `1px solid ${accent}55` }}>
             <Building2 className="w-6 h-6" style={{ color: accent }} />
           </div>
@@ -613,9 +613,9 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
             { label: 'Leads', value: leads, icon: Users },
             { label: 'People', value: `${claimed}/${dept.cards.length}`, icon: UserPlus },
           ].map(({ label, value, icon: Icon }) => (
-            <div key={label} className="rounded-2xl p-3 bg-card/60 backdrop-blur border border-border">
+            <div key={label} className="rounded-lg p-3 bg-card/60 backdrop-blur border border-border">
               <Icon className="w-4 h-4 mb-1.5" style={{ color: accent }} />
-              <p className="text-xl sm:text-2xl font-black tabular-nums leading-none">{value}</p>
+              <p className="text-xl sm:text-2xl font-bold tabular-nums leading-none">{value}</p>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">{label}</p>
             </div>
           ))}
@@ -624,7 +624,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
 
       {/* Owner: who's in charge, rename, delete */}
       {dept.isOwner && (
-        <div className="rounded-2xl border border-border bg-card p-5">
+        <div className="rounded-lg border border-border bg-card p-5">
           <div className="flex items-center gap-2 mb-3">
             <Crown className="w-4 h-4" style={{ color: '#f59e0b' }} />
             <h2 className="font-bold text-sm">Who&apos;s in charge</h2>
@@ -708,7 +708,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
       )}
 
       {/* The look */}
-      <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="rounded-lg border border-border bg-card p-5">
         <SectionHead
           n={1} accent={accent} icon={Palette}
           title="How these cards look"
@@ -856,7 +856,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
       {/* What the team may change. This is the department head's version of
           the company rules: they can add locks for their own team, and the
           company's own locks always apply on top. */}
-      <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="rounded-lg border border-border bg-card p-5">
         <SectionHead
           n={2} accent={accent} icon={Lock}
           title="What your team can change"
@@ -901,7 +901,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
       </div>
 
       {/* The people */}
-      <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="rounded-lg border border-border bg-card p-5">
         <SectionHead
           n={3} accent={accent} icon={Users}
           title="The people"
@@ -952,7 +952,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
 
         {dept.cards.length === 0 ? (
           <div className="text-center py-8">
-            <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center mx-auto mb-3">
               <Users className="w-6 h-6 text-muted-foreground" />
             </div>
             <p className="text-sm font-medium">No one here yet</p>

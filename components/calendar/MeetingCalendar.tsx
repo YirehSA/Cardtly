@@ -117,7 +117,7 @@ function Chip({ m, now, colourBy, selected, onSelect }: {
         {fmtTime(new Date(m.scheduled_at))}
       </span>{' '}
       <span className="font-semibold">{m.company}</span>
-      {overdue && <span className="ml-1 font-black" style={{ color: '#f59e0b' }}>!</span>}
+      {overdue && <span className="ml-1 font-bold" style={{ color: '#f59e0b' }}>!</span>}
     </button>
   )
 }
@@ -133,7 +133,7 @@ function MonthGrid({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-2xl border overflow-hidden"
+      <div className="rounded-lg border overflow-hidden"
         style={{ borderColor: 'var(--cal-border)', background: 'var(--cal-surface)' }}>
         <div className="grid grid-cols-7">
           {names.map(n => (
@@ -246,7 +246,7 @@ function DayPanel({ day, list, now, colourBy, selectedId, onSelectMeeting, onCre
   onCreateAt: ((when: Date) => void) | null
 }) {
   return (
-    <div className="rounded-2xl border p-3.5"
+    <div className="rounded-lg border p-3.5"
       style={{ borderColor: 'var(--cal-border)', background: 'var(--cal-surface)' }}>
       <div className="flex items-center justify-between gap-3 mb-2.5">
         <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--cal-muted)' }}>
@@ -365,7 +365,7 @@ function TimeGrid({
   }
 
   return (
-    <div className="rounded-2xl border overflow-hidden"
+    <div className="rounded-lg border overflow-hidden"
       style={{ borderColor: 'var(--cal-border)', background: 'var(--cal-surface)' }}>
       <div className="overflow-x-auto">
         <div style={{ minWidth: days.length > 1 ? 720 : undefined }}>

@@ -478,11 +478,11 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in pb-16">
       {/* Header */}
-      <div className="rounded-3xl border border-border overflow-hidden">
+      <div className="rounded-xl border border-border overflow-hidden">
         <div className="p-6 sm:p-8" style={{ background: `linear-gradient(135deg, ${fg}18, transparent 70%)` }}>
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+            <div className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
+              style={{ background: 'hsl(var(--accent))' }}>
               <QrCode className="w-5 h-5" />
             </div>
             <div>
@@ -518,7 +518,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
               ))}
             </div>
           ) : (
-            <div className="rounded-2xl border border-border overflow-hidden">
+            <div className="rounded-lg border border-border overflow-hidden">
               <div className="relative border-b border-border">
                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 <input
@@ -570,8 +570,8 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
       <div className="grid lg:grid-cols-[minmax(0,380px)_1fr] gap-6 items-start">
         {/* Preview */}
         <div className="lg:sticky lg:top-6 space-y-3">
-          <div className="rounded-3xl border border-border bg-card p-5 flex flex-col items-center gap-4">
-            <div className="bg-white p-4 rounded-2xl shadow-sm relative">
+          <div className="rounded-xl border border-border bg-card p-5 flex flex-col items-center gap-4">
+            <div className="bg-white p-4 rounded-lg shadow-sm relative">
               <canvas ref={canvasRef} className="w-64 h-64 block"
                 style={{ opacity: generating ? 0.45 : 1, transition: 'opacity .2s' }} />
               {generating && (
@@ -586,14 +586,14 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
                 <img src={card.profile_image_url} alt="" className="w-10 h-10 rounded-full object-cover mx-auto mb-2" />
               ) : (
                 <span className="w-10 h-10 rounded-full grid place-items-center text-sm font-bold text-white mx-auto mb-2"
-                  style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed)' }}>{initials}</span>
+                  style={{ background: 'hsl(var(--accent))' }}>{initials}</span>
               )}
               <p className="text-sm font-semibold">{card.name}</p>
               <p className="text-xs text-muted-foreground">cardtly.com/card/{card.slug}</p>
             </div>
 
             {/* Scannability reassurance - the thing people actually worry about */}
-            <div className="w-full rounded-2xl bg-muted/60 px-3 py-2.5 flex items-start gap-2">
+            <div className="w-full rounded-lg bg-muted/60 px-3 py-2.5 flex items-start gap-2">
               <ShieldCheck className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
               <p className="text-xs text-muted-foreground">
                 <span className="font-medium text-foreground">Ready to scan.</span>{' '}
@@ -621,7 +621,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
         {/* Controls */}
         <div className="space-y-6">
           {/* Colour */}
-          <section className="rounded-3xl border border-border bg-card p-5">
+          <section className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center gap-2 mb-1">
               <Palette className="w-4 h-4 text-muted-foreground" />
               <h2 className="text-sm font-semibold">{cards.length > 1 ? '2. ' : '1. '}Colour</h2>
@@ -633,7 +633,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
                 const preview = makeScannable(s.base).colour
                 return (
                   <button key={s.id} onClick={() => setColour(s.id)}
-                    className={`rounded-2xl border-2 p-3 text-left transition-all ${on ? 'border-primary bg-primary/5' : 'border-border hover:border-foreground/20 hover:-translate-y-0.5'}`}>
+                    className={`rounded-lg border-2 p-3 text-left transition-all ${on ? 'border-primary bg-primary/5' : 'border-border hover:border-foreground/20'}`}>
                     <span className="w-full h-8 rounded-lg block mb-2 border border-border/50" style={{ background: preview }} />
                     <span className="text-xs font-semibold block">{s.label}</span>
                     <span className="text-[11px] text-muted-foreground block">{s.hint}</span>
@@ -650,7 +650,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
           </section>
 
           {/* Centre logo */}
-          <section className="rounded-3xl border border-border bg-card p-5">
+          <section className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center gap-2 mb-1">
               <Sparkles className="w-4 h-4 text-muted-foreground" />
               <h2 className="text-sm font-semibold">{cards.length > 1 ? '3. ' : '2. '}Middle of the code</h2>
@@ -676,7 +676,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
                       }
                       setLogoChoice(opt.id)
                     }}
-                    className={`rounded-2xl border-2 p-3 flex flex-col items-center gap-2 transition-all ${on ? 'border-primary bg-primary/5' : 'border-border hover:border-foreground/20 hover:-translate-y-0.5'} ${locked ? 'opacity-60' : ''}`}>
+                    className={`rounded-lg border-2 p-3 flex flex-col items-center gap-2 transition-all ${on ? 'border-primary bg-primary/5' : 'border-border hover:border-foreground/20'} ${locked ? 'opacity-60' : ''}`}>
                     <span className="w-11 h-11 rounded-xl bg-white border border-border grid place-items-center overflow-hidden">
                       {opt.node}
                     </span>
@@ -709,7 +709,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
           </section>
 
           {/* Download */}
-          <section className="rounded-3xl border border-border bg-card p-5">
+          <section className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center gap-2 mb-1">
               <Download className="w-4 h-4 text-muted-foreground" />
               <h2 className="text-sm font-semibold">{cards.length > 1 ? '4. ' : '3. '}Download it</h2>
@@ -749,7 +749,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
           </section>
 
           {/* Tips */}
-          <section className="rounded-3xl border border-border bg-card p-5">
+          <section className="rounded-xl border border-border bg-card p-5">
             <h2 className="text-sm font-semibold mb-3">Where to put it</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
@@ -760,7 +760,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
                 ['Van or signage', 'Use the vector file so it stays sharp.'],
                 ['WhatsApp status', 'Reaches everyone who has your number.'],
               ].map(([title, blurb]) => (
-                <div key={title} className="rounded-2xl bg-muted/50 p-3">
+                <div key={title} className="rounded-lg bg-muted/50 p-3">
                   <p className="text-xs font-semibold">{title}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">{blurb}</p>
                 </div>
@@ -783,13 +783,13 @@ function CardChoice({ card, on, onPick, row = false }: {
     <button onClick={onPick} aria-pressed={on}
       className={row
         ? `w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition ${on ? 'bg-primary/10' : 'hover:bg-muted'}`
-        : `flex items-center gap-2.5 rounded-2xl border-2 px-3 py-2.5 text-left transition-all ${on ? 'border-primary bg-primary/5' : 'border-border hover:border-foreground/20 hover:-translate-y-0.5'}`}>
+        : `flex items-center gap-2.5 rounded-lg border-2 px-3 py-2.5 text-left transition-all ${on ? 'border-primary bg-primary/5' : 'border-border hover:border-foreground/20'}`}>
       {card.profile_image_url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={card.profile_image_url} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
       ) : (
         <span className="w-8 h-8 rounded-full grid place-items-center text-xs font-bold text-white shrink-0"
-          style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed)' }}>
+          style={{ background: 'hsl(var(--accent))' }}>
           {(card.name || '?').charAt(0).toUpperCase()}
         </span>
       )}

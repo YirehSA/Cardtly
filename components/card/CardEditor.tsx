@@ -82,7 +82,7 @@ function Section({ title, hint, colour, icon, children }: {
   title: string; hint?: string; colour: string; icon?: React.ReactNode; children: React.ReactNode
 }) {
   return (
-    <section className="rounded-2xl border border-border p-4 sm:p-5" style={{ background: colour + '08' }}>
+    <section className="rounded-lg border border-border p-4 sm:p-5" style={{ background: colour + '08' }}>
       <div className="flex items-center gap-2.5 mb-1">
         {icon && (
           <span className="w-7 h-7 rounded-xl grid place-items-center shrink-0"
@@ -303,12 +303,12 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
     <div className="flex flex-col xl:flex-row gap-6 max-w-7xl mx-auto">
       <div className="flex-1 min-w-0">
 
-        <div className="rounded-3xl border border-border overflow-hidden mb-5">
+        <div className="rounded-xl border border-border overflow-hidden mb-5">
           <div className="p-5 sm:p-6" style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.12), transparent 65%)' }}>
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
-                  style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                <div className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
+                  style={{ background: 'hsl(var(--accent))' }}>
                   <User className="w-5 h-5" />
                 </div>
                 <div>
@@ -326,7 +326,7 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                 </span>
                 <button onClick={save} disabled={saving || !dirty}
                   className="flex items-center gap-2 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition hover:opacity-90 disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                  style={{ background: 'hsl(var(--accent))' }}>
                   <Save className="w-4 h-4" />
                   {saving ? 'Saving...' : dirty ? 'Save changes' : 'Saved'}
                 </button>
@@ -334,7 +334,7 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
             </div>
 
             {/* The card's address, and how to change it. */}
-            <div className="mt-5 rounded-2xl border border-border bg-card/60 backdrop-blur p-3.5">
+            <div className="mt-5 rounded-lg border border-border bg-card/60 backdrop-blur p-3.5">
               {cardUrl && (
                 <div className="flex items-center gap-2 flex-wrap mb-3">
                   <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Your link</span>
@@ -386,7 +386,7 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
             const complete = fields.length > 0 && done === fields.length
             return (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`relative rounded-2xl border-2 p-3 text-left transition-all ${on ? '' : 'border-border hover:-translate-y-0.5'} ${locked ? 'opacity-60' : ''}`}
+                className={`relative rounded-lg border-2 p-3 text-left transition-all ${on ? '' : 'border-border'} ${locked ? 'opacity-60' : ''}`}
                 style={on
                   ? { borderColor: tab.colour, background: tab.colour + '14' }
                   : undefined}>
@@ -411,7 +411,7 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
           })}
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
+        <div className="bg-card border border-border rounded-lg p-6 space-y-5">
 
           {activeTab === 'basic' && (<>
             <Section title="Your photo" colour={TAB_COLOUR.basic} icon={<Camera className="w-4 h-4" />}
@@ -441,7 +441,7 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                   {pro && (
                     <button type="button" onClick={() => setAiBioOpen(true)}
                       className="absolute top-2 right-2 flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-white transition hover:opacity-90"
-                      style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                      style={{ background: 'hsl(var(--accent))' }}>
                       <Sparkles className="w-3 h-3" />
                       Write with AI
                     </button>
@@ -503,7 +503,7 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
               <Section title="Buttons that send people somewhere" colour={TAB_COLOUR.links} icon={<Link2 className="w-4 h-4" />}
                 hint={`A menu, a booking page, a price list, your Google reviews. Up to ${MAX_CUSTOM_LINKS}.`}>
                 {Array.from({ length: MAX_CUSTOM_LINKS }, (_, i) => i + 1).slice(0, linkSlots).map(i => (
-                  <div key={i} className="rounded-2xl border border-border p-4 space-y-3 bg-card">
+                  <div key={i} className="rounded-lg border border-border p-4 space-y-3 bg-card">
                     <div className="flex items-center gap-2">
                       <span className="w-6 h-6 rounded-lg grid place-items-center text-[11px] font-bold shrink-0"
                         style={{ background: TAB_COLOUR.links + '1f', color: TAB_COLOUR.links }}>{i}</span>
@@ -521,7 +521,7 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                 ))}
                 {linkSlots < MAX_CUSTOM_LINKS && (
                   <button type="button" onClick={() => setLinkSlots(n => Math.min(MAX_CUSTOM_LINKS, n + 1))}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-border text-sm font-semibold text-muted-foreground hover:border-foreground/30 hover:text-foreground transition">
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed border-border text-sm font-semibold text-muted-foreground hover:border-foreground/30 hover:text-foreground transition">
                     <Plus className="w-4 h-4" />Add another button
                   </button>
                 )}
@@ -539,7 +539,7 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
               <Section title="Photos of your work" colour={TAB_COLOUR.media} icon={<Image className="w-4 h-4" />}
                 hint={`Up to ${MAX_GALLERY_IMAGES}. Finished jobs, your shop, your products - whatever proves you are good at it.`}>
                 {Array.from({ length: MAX_GALLERY_IMAGES }, (_, i) => i + 1).slice(0, photoSlots).map(i => (
-                  <div key={i} className="rounded-2xl border border-border p-4 space-y-3 bg-card">
+                  <div key={i} className="rounded-lg border border-border p-4 space-y-3 bg-card">
                     <div className="flex items-center gap-2">
                       <span className="w-6 h-6 rounded-lg grid place-items-center text-[11px] font-bold shrink-0"
                         style={{ background: TAB_COLOUR.media + '1f', color: TAB_COLOUR.media }}>{i}</span>
@@ -556,7 +556,7 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                 ))}
                 {photoSlots < MAX_GALLERY_IMAGES && (
                   <button type="button" onClick={() => setPhotoSlots(n => Math.min(MAX_GALLERY_IMAGES, n + 1))}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-border text-sm font-semibold text-muted-foreground hover:border-foreground/30 hover:text-foreground transition">
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed border-border text-sm font-semibold text-muted-foreground hover:border-foreground/30 hover:text-foreground transition">
                     <Plus className="w-4 h-4" />Add another photo
                   </button>
                 )}

@@ -193,7 +193,7 @@ export default function MeetingsTab({ initial, reps, initialRepId }: {
   return (
     <div style={ADMIN_SKIN} className="space-y-4">
       {/* Whose calendar */}
-      <div className="rounded-2xl border p-3.5" style={{ borderColor: 'var(--cal-border)', background: 'var(--cal-surface)' }}>
+      <div className="rounded-lg border p-3.5" style={{ borderColor: 'var(--cal-border)', background: 'var(--cal-surface)' }}>
         <div className="flex items-center gap-3 flex-wrap mb-3">
           <div className="w-9 h-9 rounded-lg grid place-items-center shrink-0"
             style={{ background: 'rgba(14,165,233,0.14)', border: '1px solid rgba(14,165,233,0.3)' }}>
@@ -218,7 +218,7 @@ export default function MeetingsTab({ initial, reps, initialRepId }: {
             aria-pressed={filter.repIds.length === 0}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition"
             style={filter.repIds.length === 0
-              ? { background: 'rgba(124,58,237,0.25)', color: '#fff', border: '1px solid #7c3aed' }
+              ? { background: 'hsl(var(--accent) / 0.25)', color: '#fff', border: '1px solid #7c3aed' }
               : { background: 'var(--cal-raised)', color: 'var(--cal-muted)', border: '1px solid transparent' }}>
             <Users className="w-3 h-3" />All reps
           </button>
@@ -249,7 +249,7 @@ export default function MeetingsTab({ initial, reps, initialRepId }: {
       </div>
 
       {chase > 0 && (
-        <div className="rounded-2xl px-3.5 py-3 flex items-center gap-3 flex-wrap"
+        <div className="rounded-lg px-3.5 py-3 flex items-center gap-3 flex-wrap"
           style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.32)' }}>
           <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: '#f59e0b' }} />
           <p className="text-xs flex-1 min-w-[180px]" style={{ color: '#f59e0b' }}>
@@ -333,7 +333,7 @@ export default function MeetingsTab({ initial, reps, initialRepId }: {
 
       {/* Side by side over whatever period is on screen. */}
       {reps.length > 1 && (
-        <div className="rounded-2xl border overflow-hidden"
+        <div className="rounded-lg border overflow-hidden"
           style={{ borderColor: 'var(--cal-border)', background: 'var(--cal-surface)' }}>
           <p className="px-3.5 py-2 text-[10px] font-bold uppercase tracking-widest"
             style={{ color: 'var(--cal-muted)', borderBottom: '1px solid var(--cal-grid)' }}>

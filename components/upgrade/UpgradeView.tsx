@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import UsdEstimate from '@/components/marketing/UsdEstimate'
 import TrialCodeBox from './TrialCodeBox'
 
-const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
+const grad = 'hsl(var(--accent))'
 const gradText: React.CSSProperties = {
   background: grad,
   WebkitBackgroundClip: 'text',
@@ -83,7 +83,7 @@ export default function UpgradeView({ state, trialDaysLeft }: Props) {
           thing to someone on day 2 of a trial, someone whose card had gone
           offline, and someone already paying. */}
       {state === 'expired' && (
-        <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 flex items-start gap-3">
+        <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 flex items-start gap-3">
           <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
           <div>
             <p className="font-semibold text-sm">Your card is offline right now</p>
@@ -97,7 +97,7 @@ export default function UpgradeView({ state, trialDaysLeft }: Props) {
       {state !== 'paid' && <TrialCodeBox />}
 
       {state === 'trial' && (
-        <div className="rounded-2xl border p-4 flex items-start gap-3"
+        <div className="rounded-lg border p-4 flex items-start gap-3"
           style={trialDaysLeft <= 7
             ? { borderColor: 'rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.1)' }
             : { borderColor: 'rgba(139,92,246,0.35)', background: 'rgba(139,92,246,0.08)' }}>
@@ -114,7 +114,7 @@ export default function UpgradeView({ state, trialDaysLeft }: Props) {
         </div>
       )}
       {state === 'paid' && (
-        <div className="rounded-2xl border border-green-500/40 bg-green-500/10 p-4 flex items-start gap-3">
+        <div className="rounded-lg border border-green-500/40 bg-green-500/10 p-4 flex items-start gap-3">
           <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
           <div>
             <p className="font-semibold text-sm">You are already on Pro</p>
@@ -129,10 +129,10 @@ export default function UpgradeView({ state, trialDaysLeft }: Props) {
 
       <div className="text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-4"
-          style={{ background: 'rgba(124,58,237,0.15)', color: '#7c3aed', border: '1px solid rgba(124,58,237,0.3)' }}>
+          style={{ background: 'hsl(var(--accent) / 0.15)', color: '#7c3aed', border: '1px solid hsl(var(--accent) / 0.3)' }}>
           <Zap className="w-3 h-3" />Cardtly Pro
         </div>
-        <h1 className="text-3xl font-black tracking-tight mb-2">
+        <h1 className="text-3xl font-bold tracking-tight mb-2">
           One card. <span style={gradText}>Everything on.</span>
         </h1>
         <p className="text-muted-foreground">
@@ -141,7 +141,7 @@ export default function UpgradeView({ state, trialDaysLeft }: Props) {
       </div>
 
       {/* Billing toggle */}
-      <div className="flex items-center justify-center gap-1 p-1 rounded-2xl bg-muted w-fit mx-auto">
+      <div className="flex items-center justify-center gap-1 p-1 rounded-lg bg-muted w-fit mx-auto">
         <button onClick={() => setBilling('monthly')}
           className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${billing === 'monthly' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
           Monthly
@@ -157,15 +157,15 @@ export default function UpgradeView({ state, trialDaysLeft }: Props) {
       </div>
 
       {/* Pricing card */}
-      <div className="rounded-3xl overflow-hidden border border-border relative"
-        style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.05), rgba(124,58,237,0.08), rgba(236,72,153,0.05))' }}>
+      <div className="rounded-xl overflow-hidden border border-border relative"
+        style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.05), hsl(var(--accent) / 0.08), rgba(236,72,153,0.05))' }}>
         <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl pointer-events-none"
-          style={{ background: 'rgba(124,58,237,0.12)', transform: 'translate(30%, -30%)' }} />
+          style={{ background: 'hsl(var(--accent) / 0.12)', transform: 'translate(30%, -30%)' }} />
 
         <div className="relative p-6 sm:p-8">
           <div className="mb-6">
             <div className="flex items-end gap-2 mb-1">
-              <span className="text-5xl font-black" style={gradText}>{price}</span>
+              <span className="text-5xl font-bold" style={gradText}>{price}</span>
               <span className="text-muted-foreground pb-1">{billing === 'monthly' ? '/ month' : '/ year'}</span>
             </div>
             {/* Derived from the real price, not a copy of it left behind. */}
@@ -195,8 +195,8 @@ export default function UpgradeView({ state, trialDaysLeft }: Props) {
           </div>
 
           <button onClick={handleCheckout} disabled={loading}
-            className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl text-base font-bold text-white transition hover:opacity-90 disabled:opacity-60"
-            style={{ background: grad, boxShadow: '0 8px 32px rgba(124,58,237,0.35)' }}>
+            className="w-full flex items-center justify-center gap-3 py-4 rounded-lg text-base font-bold text-white transition hover:opacity-90 disabled:opacity-60"
+            style={{ background: grad, boxShadow: '0 8px 32px hsl(var(--accent) / 0.35)' }}>
             {loading
               ? <><Loader2 className="w-5 h-5 animate-spin" />Taking you to payment...</>
               : <><Zap className="w-5 h-5" />

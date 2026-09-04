@@ -193,10 +193,10 @@ export default function MeetingsView({ repName, active, initial }: {
   return (
     <div style={APP_SKIN} className="max-w-5xl mx-auto space-y-4 animate-fade-in pb-20">
       {/* Header */}
-      <div className="rounded-3xl border border-border overflow-hidden">
+      <div className="rounded-xl border border-border overflow-hidden">
         <div className="p-5 sm:p-7" style={{ background: 'linear-gradient(135deg, rgba(14,165,233,0.14), transparent 65%)' }}>
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0" style={{ background: GRAD }}>
+            <div className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0" style={{ background: GRAD }}>
               <CalendarClock className="w-5 h-5" aria-hidden="true" />
             </div>
             <div className="flex-1 min-w-[190px]">
@@ -236,7 +236,7 @@ export default function MeetingsView({ repName, active, initial }: {
 
       {/* The pile worth chasing, wherever in the calendar it happens to sit. */}
       {chase > 0 && (
-        <div className="rounded-2xl px-3.5 py-3 flex items-center gap-3 flex-wrap"
+        <div className="rounded-lg px-3.5 py-3 flex items-center gap-3 flex-wrap"
           style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.32)' }}>
           <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: '#f59e0b' }} />
           <p className="text-xs flex-1 min-w-[180px]" style={{ color: '#f59e0b' }}>
@@ -300,7 +300,7 @@ export default function MeetingsView({ repName, active, initial }: {
       )}
 
       {meetings.length === 0 && (
-        <div className="rounded-2xl border border-border p-5 text-center">
+        <div className="rounded-lg border border-border p-5 text-center">
           <p className="text-sm font-semibold">Nothing in the diary yet</p>
           <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
             {active

@@ -142,7 +142,7 @@ export default function MeetingForm({
         className="fixed inset-0" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)' }} />
 
       <div className="relative min-h-full flex items-start sm:items-center justify-center p-3 sm:p-6">
-        <div className="w-full max-w-lg rounded-3xl border p-5 space-y-3"
+        <div className="w-full max-w-lg rounded-xl border p-5 space-y-3"
           style={{ background: 'var(--cal-panel, var(--cal-surface))', borderColor: 'var(--cal-border)', color: 'var(--cal-text)' }}>
 
           <div className="flex items-center justify-between">

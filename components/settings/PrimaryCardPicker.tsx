@@ -79,7 +79,7 @@ export default function PrimaryCardPicker({ cards }: { cards: PickerCard[] }) {
                 </span>
                 <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 <span className="font-semibold text-sm truncate">{c.name || 'Unnamed'}</span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ml-auto shrink-0"
+                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ml-auto shrink-0"
                   style={{ background: 'var(--muted)', color: 'var(--muted-foreground)' }}>
                   {c.kind === 'team' ? 'Team' : 'Personal'}
                 </span>

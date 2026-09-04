@@ -82,7 +82,7 @@ export default function CardFeatureToggles({ target, contactExchange, questionna
   ]
 
   return (
-    <div className="rounded-2xl border border-border bg-card divide-y divide-border">
+    <div className="rounded-lg border border-border bg-card divide-y divide-border">
       {rows.map(({ key, icon: Icon, colour, title, desc, on }) => (
         <div key={key} className="flex items-start gap-4 p-4 sm:p-5">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"

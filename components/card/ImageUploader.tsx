@@ -134,7 +134,7 @@ export default function ImageUploader({ value, onChange, bucket, userId, shape, 
         {allowBackgroundRemoval && (
           <button onClick={removeBackground} disabled={removingBg}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed)' }}>
+            style={{ background: 'hsl(var(--accent))' }}>
             {removingBg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scissors className="w-3.5 h-3.5" />}
             {removingBg ? 'Removing...' : 'Remove background'}
           </button>

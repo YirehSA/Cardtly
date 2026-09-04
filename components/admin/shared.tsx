@@ -2,7 +2,7 @@
 
 import type { UserStatus } from '@/lib/admin-data'
 
-export const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
+export const grad = 'hsl(var(--accent))'
 
 export const inputClass =
   'w-full px-3 py-2 rounded-lg border text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500/40 transition'
@@ -42,12 +42,12 @@ export function Stat({ label, value, colour, hint, warn }: {
   label: string; value: string | number; colour?: string; hint?: string; warn?: boolean
 }) {
   return (
-    <div className="rounded-2xl p-4 border" title={hint}
+    <div className="rounded-lg p-4 border" title={hint}
       style={{
         background: warn ? 'rgba(239,68,68,0.07)' : 'rgba(255,255,255,0.03)',
         borderColor: warn ? 'rgba(239,68,68,0.35)' : 'rgba(255,255,255,0.08)',
       }}>
-      <p className="text-2xl font-black tracking-tight" style={{ color: colour || '#fff' }}>{value}</p>
+      <p className="text-2xl font-bold tracking-tight" style={{ color: colour || '#fff' }}>{value}</p>
       <p className="text-[11px] mt-1 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>{label}</p>
     </div>
   )
@@ -57,7 +57,7 @@ export function Section({ title, sub, children, right }: {
   title: string; sub?: string; children: React.ReactNode; right?: React.ReactNode
 }) {
   return (
-    <div className="rounded-2xl border p-4 sm:p-5" style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.08)' }}>
+    <div className="rounded-lg border p-4 sm:p-5" style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.08)' }}>
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <h2 className="font-bold text-white">{title}</h2>

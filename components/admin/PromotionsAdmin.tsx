@@ -88,7 +88,7 @@ function formatDate(iso: string | null) {
   return d.toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
+const grad = 'hsl(var(--accent))'
 
 export default function PromotionsAdmin({
   counter, founders, referrals, refStats, entriesBySource, totalEntries, topUsers, winners, activePaidCount, totalUsers,
@@ -276,7 +276,7 @@ export default function PromotionsAdmin({
           </div>
 
           {/* Tier progress */}
-          <div className="bg-card border border-border rounded-2xl p-6">
+          <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
               <TrendingUp className="w-5 h-5" />
               Tier progress
@@ -322,13 +322,13 @@ export default function PromotionsAdmin({
                 label="Tier 4 · Grand prize (10,000 paid)"
                 current={activePaidCount}
                 target={10000}
-                gradient="linear-gradient(90deg, #00d4ff, #7c3aed, #ec4899)"
+                gradient="hsl(var(--accent))"
               />
             </div>
           </div>
 
           {/* Referral status breakdown */}
-          <div className="bg-card border border-border rounded-2xl p-6">
+          <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
               <Users className="w-5 h-5" />
               Referral pipeline
@@ -342,7 +342,7 @@ export default function PromotionsAdmin({
           </div>
 
           {/* Entries by source */}
-          <div className="bg-card border border-border rounded-2xl p-6">
+          <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
               <Gift className="w-5 h-5" />
               Entries by source
@@ -380,7 +380,7 @@ export default function PromotionsAdmin({
       {/* ── Founders tab ─────────────────────────────────────── */}
       {tab === 'founders' && (
         <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-border flex items-center justify-between">
               <h2 className="text-lg font-bold flex items-center gap-2">
                 <Crown className="w-5 h-5" style={{ color: '#f59e0b' }} />
@@ -458,7 +458,7 @@ export default function PromotionsAdmin({
       {/* ── Referrals tab ────────────────────────────────────── */}
       {tab === 'referrals' && (
         <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-border">
               <h2 className="text-lg font-bold flex items-center gap-2">
                 <Users className="w-5 h-5" />
@@ -504,7 +504,7 @@ export default function PromotionsAdmin({
       {/* ── Entries tab ──────────────────────────────────────── */}
       {tab === 'entries' && (
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
-          <div className="bg-card border border-border rounded-2xl p-6">
+          <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
               <Gift className="w-5 h-5" />
               By source ({totalEntries} total)
@@ -539,7 +539,7 @@ export default function PromotionsAdmin({
             )}
           </div>
 
-          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-border flex items-center justify-between">
               <h2 className="text-lg font-bold">Top users by entries</h2>
               <p className="text-xs text-muted-foreground">Cap is 10 per user</p>
@@ -582,7 +582,7 @@ export default function PromotionsAdmin({
       {tab === 'winners' && (
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
           {/* Draw form */}
-          <div className="bg-card border border-border rounded-2xl p-6">
+          <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-bold mb-1 flex items-center gap-2">
               <Dice5 className="w-5 h-5" />
               Run a draw
@@ -690,7 +690,7 @@ export default function PromotionsAdmin({
           </div>
 
           {/* Existing winners */}
-          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-border">
               <h2 className="text-lg font-bold flex items-center gap-2">
                 <Award className="w-5 h-5" style={{ color: '#10b981' }} />
@@ -736,7 +736,7 @@ export default function PromotionsAdmin({
 
 function StatCard({ icon, label, value, sub, accent }: { icon: React.ReactNode; label: string; value: string | number; sub?: string; accent: string }) {
   return (
-    <div className="bg-card border border-border rounded-2xl p-5">
+    <div className="bg-card border border-border rounded-lg p-5">
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
         <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: accent }}>

@@ -20,7 +20,7 @@ export default function ProGate({ feature }: Props) {
 
   return (
     <div className="text-center py-10">
-      <div className="w-14 h-14 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
+      <div className="w-14 h-14 bg-muted rounded-lg flex items-center justify-center mx-auto mb-4">
         <Zap className="w-7 h-7 text-muted-foreground" />
       </div>
       <h3 className="font-display font-bold text-lg mb-2">{feature}</h3>

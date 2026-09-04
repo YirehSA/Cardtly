@@ -157,7 +157,7 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
         }
       >
         {creating && (
-          <div className="rounded-xl border p-4 mb-4" style={{ borderColor: 'rgba(124,58,237,0.4)', background: 'rgba(124,58,237,0.06)' }}>
+          <div className="rounded-xl border p-4 mb-4" style={{ borderColor: 'hsl(var(--accent) / 0.4)', background: 'hsl(var(--accent) / 0.06)' }}>
             <p className="text-xs font-semibold mb-3" style={{ color: '#a78bfa' }}>
               New team. Search for the owner, or type their email and we will create the account for them.
             </p>
@@ -740,7 +740,7 @@ function TeamMembers({ cards, departments, onMove, loading }: {
                 disabled={loading === `movecard-${c.id}`}
                 onChange={e => onMove(c.id, e.target.value || null)}
                 className="text-[11px] px-1.5 py-0.5 rounded"
-                style={{ ...inputStyle, border: `1px solid ${c.department_id ? 'rgba(124,58,237,0.4)' : 'rgba(255,255,255,0.1)'}`, color: c.department_id ? '#a78bfa' : 'rgba(255,255,255,0.4)' }}>
+                style={{ ...inputStyle, border: `1px solid ${c.department_id ? 'hsl(var(--accent) / 0.4)' : 'rgba(255,255,255,0.1)'}`, color: c.department_id ? '#a78bfa' : 'rgba(255,255,255,0.4)' }}>
                 <option value="" style={{ background: '#1a1a1a' }}>No department</option>
                 {/* Companies are not offered: a card sits in a department,
                     never in the company above it. Each option carries its
@@ -791,7 +791,7 @@ function DepartmentsSection({ org, users, onDept, loading }: {
   }, [users, userQ])
 
   return (
-    <div className="mb-3 rounded-lg px-3 py-3" style={{ background: 'rgba(124,58,237,0.05)', border: '1px solid rgba(124,58,237,0.2)' }}>
+    <div className="mb-3 rounded-lg px-3 py-3" style={{ background: 'hsl(var(--accent) / 0.05)', border: '1px solid hsl(var(--accent) / 0.2)' }}>
       <p className="text-[11px] font-semibold mb-2 flex items-center gap-1.5" style={{ color: '#a78bfa' }}>
         <Layers className="w-3 h-3" />
         Departments &middot; each can look different and have its own manager
@@ -927,7 +927,7 @@ function ClaimLinkButton({ cardId }: { cardId: string }) {
       <span className="flex items-center gap-1.5 min-w-0">
         <a href={url} target="_blank" rel="noopener noreferrer"
           title={url}
-          className="text-[11px] underline truncate max-w-[150px]" style={{ color: '#00d4ff' }}>
+          className="text-[11px] underline truncate max-w-[150px]" style={{ color: 'hsl(var(--accent))' }}>
           open claim link
         </a>
         <button onClick={() => { navigator.clipboard?.writeText(url); setCopied(true); toast.success('Copied') }}
@@ -942,7 +942,7 @@ function ClaimLinkButton({ cardId }: { cardId: string }) {
     <button onClick={fetchLink} disabled={busy}
       title="Get the link this person would have clicked in their invitation email"
       className="text-[11px] px-1.5 py-0.5 rounded flex-shrink-0 disabled:opacity-50"
-      style={{ background: 'rgba(0,212,255,0.12)', color: '#00d4ff' }}>
+      style={{ background: 'hsl(var(--accent) / 0.12)', color: 'hsl(var(--accent))' }}>
       {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : 'claim link'}
     </button>
   )

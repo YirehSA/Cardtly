@@ -71,7 +71,7 @@ export default function RepsTab({ reps, onSave, onDelete, onLinkLogin, onRecordP
         }
       >
         {creating && (
-          <div className="rounded-xl border p-4 mb-4" style={{ borderColor: 'rgba(124,58,237,0.4)', background: 'rgba(124,58,237,0.06)' }}>
+          <div className="rounded-xl border p-4 mb-4" style={{ borderColor: 'hsl(var(--accent) / 0.4)', background: 'hsl(var(--accent) / 0.06)' }}>
             <RepForm form={form} setForm={setForm} busy={loading === 'rep-save'}
               onSave={async () => { const ok = await onSave(form); if (ok) { setCreating(false); setForm(EMPTY) } }} />
           </div>
