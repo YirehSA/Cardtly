@@ -76,6 +76,16 @@ export const LOCK_GROUPS: LockGroup[] = [
     columns: IMAGE_SLOTS.flatMap(i => [`image_${i}_url`, `image_${i}_link`]),
   },
   {
+    // A bio is personal on a personal card. On a team card it is often the
+    // paragraph about the business that legal signed off, and a group that
+    // standardises everything else has no reason to leave it as the one field
+    // anybody can rewrite.
+    id: 'bio',
+    label: 'Bio',
+    hint: 'The same wording about the business on every card',
+    columns: ['bio'],
+  },
+  {
     id: 'design',
     label: 'Design',
     hint: 'Template, colours and fonts',

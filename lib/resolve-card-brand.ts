@@ -73,6 +73,9 @@ export async function withResolvedBrand<T extends Record<string, any>>(
     slug_segment: d.slug_segment ?? null,
     brand: d.brand || {},
     locked_fields: d.locked_fields ?? null,
+    // ?? null, not ?? true: before migration 063 lands the column is absent,
+    // and resolveBrandChain treats anything other than false as inheriting.
+    inherit_brand: d.inherit_brand ?? null,
   })))
 
   return cards.map(c => {

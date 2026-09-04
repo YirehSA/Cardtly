@@ -82,6 +82,7 @@ export default async function TeamCardPublic({ teamCard }: { teamCard: any }) {
         slug_segment: d.slug_segment ?? null,
         brand: d.brand || {},
         locked_fields: d.locked_fields ?? null,
+        inherit_brand: d.inherit_brand ?? null,
       }))
       deptChain = ancestorChain(teamCard.department_id, indexById(nodes))
     }

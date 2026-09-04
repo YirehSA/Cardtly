@@ -35,6 +35,10 @@ export interface ManagedDept {
   parent_id: string | null
   kind: 'company' | 'department'
   slug_segment: string | null
+  // Migration 063. Optional because the rows are read with select('*') and the
+  // columns are simply absent until it is applied by hand.
+  inherit_brand?: boolean | null
+  inherit_brand_locked?: boolean | null
 }
 
 // Every department this user may manage, resolved once.

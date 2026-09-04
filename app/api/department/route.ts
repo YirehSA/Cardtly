@@ -238,6 +238,54 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, locked: clean })
   }
 
+  // ── Does this company wear the group's look? ──────────────────────────────
+  //
+  // Two actions rather than one, because two different people own the two
+  // decisions. The head of a company chooses their own look; the group owner
+  // chooses whether that head gets the choice at all.
+  if (action === 'set_brand_inheritance') {
+    const { department_id, inherit } = body
+    if (!department_id) return NextResponse.json({ error: 'department_id required' }, { status: 400 })
+
+    // Read the lock before the permission check, because the lock IS part of
+    // the permission check. select('*'): naming inherit_brand_locked would
+    // return nothing on a database where migration 063 has not been applied
+    // yet, and an absent row would read as "not locked" and quietly hand a
+    // department head a power the group owner had taken away.
+    const { data: dept } = await admin
+      .from('departments').select('*').eq('id', department_id).maybeSingle()
+    if (!dept) return NextResponse.json({ error: 'No such department' }, { status: 404 })
+
+    const owner = await ownsOrgOfDepartment(admin, user.id, department_id)
+    if (dept.inherit_brand_locked && !owner) {
+      return NextResponse.json(
+        { error: 'The group owner has locked this. Ask them to change it.' }, { status: 403 })
+    }
+    if (!owner && !(await canManageDepartment(admin, user.id, department_id))) {
+      return NextResponse.json({ error: 'You do not manage that department' }, { status: 403 })
+    }
+
+    const { error } = await admin.from('departments')
+      .update({ inherit_brand: !!inherit, updated_at: new Date().toISOString() })
+      .eq('id', department_id)
+    if (error) return NextResponse.json({ error: `Could not save: ${error.message}` }, { status: 500 })
+    return NextResponse.json({ success: true, inherit_brand: !!inherit })
+  }
+
+  // Group owner only: freeze a company's answer to the above.
+  if (action === 'set_brand_inheritance_lock') {
+    const { department_id, locked } = body
+    if (!department_id) return NextResponse.json({ error: 'department_id required' }, { status: 400 })
+    if (!(await ownsOrgOfDepartment(admin, user.id, department_id))) {
+      return NextResponse.json({ error: 'Only the group owner can lock this' }, { status: 403 })
+    }
+    const { error } = await admin.from('departments')
+      .update({ inherit_brand_locked: !!locked, updated_at: new Date().toISOString() })
+      .eq('id', department_id)
+    if (error) return NextResponse.json({ error: `Could not save: ${error.message}` }, { status: 500 })
+    return NextResponse.json({ success: true, inherit_brand_locked: !!locked })
+  }
+
   if (action === 'set_brand') {
     const { department_id, brand, source } = body
     if (!department_id) return NextResponse.json({ error: 'department_id required' }, { status: 400 })

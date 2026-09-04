@@ -105,6 +105,11 @@ export default async function DepartmentsPage() {
     brandSource: (d as any).brand_source || null,
     brandSourceName: sourceNameFor((d as any).brand_source),
     lockedFields: d.locked_fields || [],
+    // Does this node wear the look from above, and may its own head decide?
+    // Both default to the pre-063 behaviour when the columns are absent:
+    // inheriting, and not locked.
+    inheritBrand: d.inherit_brand !== false,
+    inheritBrandLocked: !!d.inherit_brand_locked,
     heads: headsByDept[d.id] || [],
     cards: (cards || []).filter((c: any) => c.department_id === d.id).map((c: any) => ({
       id: c.id, name: c.name, slug: c.slug, claimed: !!c.claimed_at, inviteEmail: c.invite_email || null,

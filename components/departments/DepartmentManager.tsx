@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { LOCK_GROUPS } from '@/lib/team-locks'
+import Toggle from '@/components/ui/Toggle'
 import OrgChart from '@/components/departments/OrgChart'
 import { Layers, Palette, Loader2, UserPlus, X, ExternalLink, Eye, Users, Check, RefreshCw, Building2, Crown, Plus, Pencil, Trash2, ShieldCheck, ArrowRight, Sparkles, Mail, ChevronLeft, Lock, LockOpen, Link2 } from 'lucide-react'
 
@@ -32,6 +33,10 @@ interface Dept {
   brandSource?: { table: 'cards' | 'team_cards'; id: string } | null
   brandSourceName?: string | null
   lockedFields: string[]
+  // Does this node take the look from the group above it, and has the group
+  // owner frozen that answer? See migration 063.
+  inheritBrand?: boolean
+  inheritBrandLocked?: boolean
   // Does the viewer already hold a card anywhere in this department's org?
   // Heads are appointed without one, so the offer to make theirs only appears
   // when they genuinely have none.
@@ -184,28 +189,24 @@ function CompanyRules({ org, call, loading }: {
         department at once. A department head can lock more for their own team, but cannot unlock
         anything you set here.
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 divide-y sm:divide-y-0 divide-border">
         {LOCK_GROUPS.map(g => {
           const on = locked.includes(g.id)
           return (
-            <button key={g.id} disabled={loading === key}
-              onClick={() => {
-                const next = on ? locked.filter(id => id !== g.id) : [...locked, g.id]
-                call(key, { action: 'set_org_locks', org_id: org.id, locked: next },
-                  on ? `${g.label} unlocked company-wide` : `${g.label} locked company-wide`)
+            <Toggle
+              key={g.id}
+              tone="lock"
+              on={on}
+              disabled={loading === key}
+              label={g.label}
+              hint={on ? g.hint : 'Each company decides'}
+              onChange={next => {
+                call(key,
+                  { action: 'set_org_locks', org_id: org.id,
+                    locked: next ? [...locked, g.id] : locked.filter(id => id !== g.id) },
+                  next ? `${g.label} locked across the group` : `${g.label} unlocked across the group`)
               }}
-              className={`text-left rounded-2xl border-2 p-3 transition-all disabled:opacity-40 ${on ? '' : 'border-border hover:border-foreground/20 hover:-translate-y-0.5'}`}
-              style={on ? { borderColor: '#f59e0b', background: '#f59e0b14' } : undefined}>
-              <span className="flex items-center gap-2">
-                {on
-                  ? <Lock className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-                  : <LockOpen className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
-                <span className={`text-sm font-bold ${on ? 'text-amber-500' : ''}`}>{g.label}</span>
-              </span>
-              <span className="text-[11px] text-muted-foreground block mt-0.5 ml-5.5">
-                {on ? g.hint : 'Each department decides'}
-              </span>
-            </button>
+            />
           )
         })}
       </div>
@@ -542,6 +543,13 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
   const lockedCount = LOCK_GROUPS.filter(g =>
     (dept.lockedFields || []).includes(g.id) || orgLocks.includes(g.id)).length
 
+  // Absent columns mean the pre-063 behaviour: inheriting, and not locked.
+  const inheritOn = dept.inheritBrand !== false
+  const inheritLocked = !!dept.inheritBrandLocked
+  const parentName = dept.parentId
+    ? (departments.find(d => d.id === dept.parentId)?.name || null)
+    : null
+
   // The chain of parents above this node, nearest last. Cycle-guarded: the
   // trigger in migration 053 rejects them, but a walk that trusts the data is
   // one bad row away from hanging the tab.
@@ -796,6 +804,55 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
         )}
       </div>
 
+      {/* Does this one wear the look from above?
+          The switch and the lock on it belong to two different people. The
+          head of a company chooses their own look; the group owner chooses
+          whether that head gets the choice at all. See migration 063. */}
+      <div className="rounded-xl border border-border bg-card p-5">
+        <SectionHead
+          n={2} accent={accent} icon={Building2}
+          title="Where this look comes from"
+          body={dept.kind === 'company'
+            ? 'A company can wear the group look or its own. Switched off, nothing from the group applies here, and the departments inside this company follow this company instead.'
+            : 'A department can wear the look from the company above it or its own.'}
+          state={inheritOn ? 'Group look' : 'Its own look'}
+          stateTone={inheritOn ? accent : undefined} />
+
+        <div className="divide-y divide-border">
+          <Toggle
+            on={inheritOn}
+            disabled={loading === `inherit-${dept.id}` || (inheritLocked && !dept.isOwner)}
+            disabledReason={inheritLocked && !dept.isOwner
+              ? 'The group owner has locked this. Ask them to change it.'
+              : undefined}
+            label={parentName ? `Use the look from ${parentName}` : 'Use the group look'}
+            hint={inheritOn
+              ? 'Anything set above applies here, and anything set here overrides it.'
+              : 'Only the look set here applies. Nothing comes down from above.'}
+            onChange={next => call(`inherit-${dept.id}`,
+              { action: 'set_brand_inheritance', department_id: dept.id, inherit: next },
+              next ? 'Now following the look from above' : 'Now using its own look')}
+          />
+
+          {/* Only the group owner. A head who could lift their own lock would
+              not be locked. */}
+          {dept.isOwner && (
+            <Toggle
+              tone="lock"
+              on={inheritLocked}
+              disabled={loading === `inheritlock-${dept.id}`}
+              label="Lock this choice"
+              hint={inheritLocked
+                ? `Only you can change it. ${dept.name}'s own manager cannot.`
+                : `${dept.name}'s own manager can switch this either way.`}
+              onChange={next => call(`inheritlock-${dept.id}`,
+                { action: 'set_brand_inheritance_lock', department_id: dept.id, locked: next },
+                next ? 'Locked. Only you can change it now.' : 'Unlocked. Their manager can change it.')}
+            />
+          )}
+        </div>
+      </div>
+
       {/* What the team may change. This is the department head's version of
           the company rules: they can add locks for their own team, and the
           company's own locks always apply on top. */}
@@ -811,49 +868,33 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
           edit the rest: their own name, photo, job title and phone number.
           {orgLocks.length > 0 && ' Items the company has already locked are shown here and cannot be unlocked from inside a team.'}
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 divide-y sm:divide-y-0 divide-border">
           {LOCK_GROUPS.map(g => {
             const own = (dept.lockedFields || []).includes(g.id)
             // A company-wide lock already applies to this team - the save
-            // endpoint unions the two sets. This tile used to read only the
+            // endpoint unions the two sets. This row used to read only the
             // department's own list, so anything the company had locked showed
             // here as "Anyone can change this", which was simply untrue. It is
-            // shown as locked and cannot be toggled off from inside a
+            // shown as locked and cannot be switched off from inside a
             // department, because a department can tighten but never loosen.
             const fromCompany = orgLocks.includes(g.id)
-            const on = own || fromCompany
             return (
-              <button key={g.id} disabled={loading === `locks-${dept.id}` || fromCompany}
-                title={fromCompany ? 'Locked for the whole company. Change it in Company rules.' : undefined}
-                onClick={() => {
-                  if (fromCompany) return
-                  const next = own
-                    ? (dept.lockedFields || []).filter(id => id !== g.id)
-                    : [...(dept.lockedFields || []), g.id]
-                  call(`locks-${dept.id}`, { action: 'set_locks', department_id: dept.id, locked: next },
-                    own ? `${g.label} unlocked` : `${g.label} locked`)
+              <Toggle
+                key={g.id}
+                tone="lock"
+                on={own || fromCompany}
+                disabled={loading === `locks-${dept.id}` || fromCompany}
+                disabledReason={fromCompany ? 'Locked for the whole group. Change it in Group rules.' : undefined}
+                label={g.label}
+                hint={own ? g.hint : 'Anyone in this team can change this'}
+                onChange={next => {
+                  const list = dept.lockedFields || []
+                  call(`locks-${dept.id}`,
+                    { action: 'set_locks', department_id: dept.id,
+                      locked: next ? [...list, g.id] : list.filter(id => id !== g.id) },
+                    next ? `${g.label} locked` : `${g.label} unlocked`)
                 }}
-                className={`text-left rounded-2xl border-2 p-3 transition-all disabled:opacity-60 ${on ? '' : 'border-border hover:border-foreground/20 hover:-translate-y-0.5'} ${fromCompany ? 'cursor-not-allowed' : ''}`}
-                style={on ? { borderColor: accent, background: accent + '14' } : undefined}>
-                <span className="flex items-center gap-2">
-                  {on
-                    ? <Lock className="w-3.5 h-3.5 shrink-0" style={{ color: accent }} />
-                    : <LockOpen className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
-                  <span className="text-sm font-bold" style={on ? { color: accent } : undefined}>{g.label}</span>
-                </span>
-                <span className="text-[11px] text-muted-foreground block mt-0.5 ml-5.5">
-                  {fromCompany ? 'Locked by the company' : on ? g.hint : 'Anyone in this team can change this'}
-                </span>
-                {/* State as a word as well as a colour. Nine tiles that differ
-                    only by border shade is not something you can read at a
-                    glance, and it is invisible to anyone colour-blind. */}
-                <span className="text-[10px] font-black uppercase tracking-wider mt-2 inline-block px-1.5 py-0.5 rounded"
-                  style={on
-                    ? { background: accent + '26', color: accent }
-                    : { background: 'var(--muted)', color: 'var(--muted-foreground)' }}>
-                  {on ? 'Locked' : 'Open'}
-                </span>
-              </button>
+              />
             )
           })}
         </div>

@@ -15,6 +15,11 @@ export type DeptNode = {
   slug_segment: string | null
   brand?: Record<string, any> | null
   locked_fields?: string[] | null
+  /** Off restarts the brand cascade at this node. Defaults to inheriting when
+   *  the column is missing, which is how it behaves before migration 063. */
+  inherit_brand?: boolean | null
+  /** While on, only the group owner may change inherit_brand here. */
+  inherit_brand_locked?: boolean | null
 }
 
 export type TreeNode = DeptNode & { children: TreeNode[]; depth: number }
@@ -120,6 +125,19 @@ export function buildTree(depts: DeptNode[]): TreeNode[] {
  * department. Replaces the two-level merge in lib/team-brand for organisations
  * that have a hierarchy; a flat organisation produces exactly the same result
  * as before, because its chain is one department long.
+ *
+ * A node with inherit_brand === false breaks the chain: everything above it is
+ * discarded and its own brand becomes the whole brand. That is what a group of
+ * unrelated businesses needs, because otherwise a company that overrides the
+ * logo and the colour still quietly wears the group's website, address and
+ * socials on every field it did not think to set.
+ *
+ * The break applies to the levels ABOVE it only. Departments under a company
+ * that opted out still inherit from that company, because the chain below the
+ * break is an ordinary cascade.
+ *
+ * Only `=== false` breaks it. Undefined and null both mean inherit, so a row
+ * read before migration 063 lands behaves exactly as it does today.
  */
 export function resolveBrandChain(
   orgBrand: Record<string, any> | null | undefined,
@@ -127,6 +145,7 @@ export function resolveBrandChain(
 ): Record<string, any> {
   let out: Record<string, any> = { ...(orgBrand || {}) }
   for (const node of chain) {
+    if (node.inherit_brand === false) out = {}
     if (node.brand && Object.keys(node.brand).length > 0) out = { ...out, ...node.brand }
   }
   return out
