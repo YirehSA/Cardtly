@@ -32,12 +32,11 @@ interface OwnedOrg { id: string; name: string; lockedFields: string[] }
 // of its own does not report zero.
 interface Rollup { people: number; claimed: number; views30d: number; leads: number }
 
-// Cardtly's full gradient runs cyan to purple to pink, and white text over the
-// cyan end is 1.77:1. That is fine on an icon tile and not fine on a block
-// carrying a heading and a line of detail, so the group block runs only the
-// half of the gradient that can hold text: #7c3aed (5.7:1) to #db2777 (4.6:1),
-// with every blend between them sitting inside that range.
-const GRAD = 'linear-gradient(135deg, #7c3aed, #db2777)'
+// The top block used to be a full-bleed purple-to-pink gradient, with the text
+// colour solved against the darker half so it stayed readable. It is a
+// bordered panel now, like every other panel in the dashboard, which removes
+// the contrast problem rather than budgeting for it: the heading is
+// --foreground, and the level is said in a word rather than a colour.
 
 // Cardtly's palette, one colour per level. Text colour is measured against the
 // background rather than defaulted to white:
@@ -201,18 +200,15 @@ export default function OrgChart({ departments, ownedOrgs, rollup, onManage }: {
 
       {/* ── Top block ───────────────────────────────────────────────────── */}
       <div className="flex flex-col items-center">
-        <div className="w-full max-w-xl rounded-lg p-5 text-center relative overflow-hidden"
-          style={{ background: level === 'group' ? GRAD : tone.solid, color: tone.on }}>
-          <div className="flex items-center justify-center gap-2 mb-1">
+        <div className="w-full max-w-xl rounded-lg p-5 text-center relative overflow-hidden border border-border bg-card">
+          <div className="flex items-center justify-center gap-2 mb-1 text-muted-foreground">
             {level === 'group' ? <Layers className="w-4 h-4" /> : <Building2 className="w-4 h-4" />}
-            <span className="text-[10px] font-bold uppercase tracking-[0.14em] opacity-90">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">
               {tone.label}
             </span>
           </div>
           <h2 className="font-display text-2xl font-bold leading-tight break-words">{headline}</h2>
-          {/* Full opacity: the measured 4.6:1 on this background is the whole
-              budget, and dimming the text spends what is not there. */}
-          <p className="text-sm mt-1">
+          <p className="text-sm mt-1 text-muted-foreground">
             {kids.length > 0 && `${kids.length} ${level === 'group' && hasHierarchy
               ? (kids.length === 1 ? 'company' : 'companies')
               : (kids.length === 1 ? 'department' : 'departments')}`}
@@ -381,8 +377,8 @@ export default function OrgChart({ departments, ownedOrgs, rollup, onManage }: {
           <Users className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
           <p className="text-sm font-medium">Nothing under {focus.name} yet</p>
           <button onClick={() => onManage(focus.id)}
-            className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white transition hover:opacity-90"
-            style={{ background: GRAD }}>
+            className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-white transition hover:opacity-90"
+            style={{ background: 'hsl(var(--accent))' }}>
             <Settings2 className="w-3.5 h-3.5" />Add people to this team
           </button>
         </div>

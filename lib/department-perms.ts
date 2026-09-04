@@ -59,55 +59,28 @@ export async function getManagedDepartments(admin: any, userId: string): Promise
 
   // Pull every candidate department in one query: those in owned orgs, or those
   // named. Then tag how each was reached.
-  // locked_fields arrives with migration 035. Migrations are applied by hand,
-  // so this must not depend on the deploy and the migration landing in a
-  // particular order - if the column is not there yet, carry on without it and
-  // treat everything as unlocked, which is exactly how it behaved before.
-  // parent_id, kind and slug_segment arrive with migration 053, applied by hand
-  // like 035 before it. Each step down is explicit: with hierarchy, then
-  // without it, then without locks.
-  // brand_source arrives with migration 059, and slots into the same cascade:
-  // a database without it fails this select and falls through to the one below,
-  // where a look simply never reports that it is following anything.
-  // inherit_brand and inherit_brand_locked arrive with migration 063 and get
-  // their own rung on top of the same ladder.
   //
-  // They were added to the ManagedDept type and read by the departments page
-  // without being added here, and a named select simply does not return a
-  // column it did not ask for. So the page read undefined, computed
-  // `undefined !== false` as "inheriting", and the toggle rendered on and
-  // snapped back to on after every refresh - while the write underneath it had
-  // succeeded. The column list is the read side of the same hand-applied
-  // migration problem the rest of this cascade exists to solve.
-  let depts: any[] | null = null
-  const withInherit = await admin
-    .from('departments')
-    .select('id, organization_id, name, brand, brand_source, locked_fields, parent_id, kind, slug_segment, inherit_brand, inherit_brand_locked')
-  const withSource = withInherit.error
-    ? await admin
-        .from('departments')
-        .select('id, organization_id, name, brand, brand_source, locked_fields, parent_id, kind, slug_segment')
-    : withInherit
-  const withTree = withSource.error
-    ? await admin
-        .from('departments')
-        .select('id, organization_id, name, brand, locked_fields, parent_id, kind, slug_segment')
-    : withSource
-  if (!withTree.error) {
-    depts = withTree.data
-  } else {
-    const withLocks = await admin
-      .from('departments')
-      .select('id, organization_id, name, brand, locked_fields')
-    if (!withLocks.error) {
-      depts = withLocks.data
-    } else {
-      const fallback = await admin
-        .from('departments')
-        .select('id, organization_id, name, brand')
-      depts = fallback.data
-    }
-  }
+  // select('*'), like every other read of this table.
+  //
+  // This was a five-rung ladder of named column lists, one rung per
+  // hand-applied migration, each dropping the columns the one above needed. It
+  // could not work, and it is worth writing down why so nobody rebuilds it.
+  //
+  // The rungs assumed migrations land in order. They do not: they are applied
+  // by hand, and 059 (brand_source) had never been applied to departments at
+  // all while 063 had. Every rung naming brand_source therefore failed, and the
+  // query fell through to the first rung that omitted it - which also omitted
+  // parent_id's neighbours' successor, inherit_brand. So the departments page
+  // read inherit_brand as undefined, treated it as "inheriting", and the group
+  // look toggle rendered on and snapped back after every refresh, while the
+  // write underneath it had been succeeding all along.
+  //
+  // A ladder needs one rung per SUBSET of applied migrations, not one per
+  // migration, and that is two to the power of the migration count. select('*')
+  // returns whatever the database actually has, which is the only thing that
+  // was ever wanted here, and is what resolve-card-brand, TeamCardPublic,
+  // lib/network and the v1 API have always done.
+  const { data: depts } = await admin.from('departments').select('*')
 
   const all = (depts || []) as any[]
 

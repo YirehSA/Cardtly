@@ -164,7 +164,14 @@ export default function DepartmentManager({ departments, ownedOrgs, myCards = []
               was department by department, and a company with six teams had
               to set the same rule six times. */}
           {isCompanyAdmin && ownedOrgs.map(org => (
-            <CompanyRules key={org.id} org={org} call={call} loading={loading} />
+            <GroupCompanies key={`gc-${org.id}`} org={org}
+              companies={departments.filter(d => d.kind === 'company' && d.organizationId === org.id)}
+              call={call} loading={loading} />
+          ))}
+
+          {isCompanyAdmin && ownedOrgs.map(org => (
+            <CompanyRules key={org.id} org={org} call={call} loading={loading}
+              hasCompanies={departments.some(d => d.kind === 'company' && d.organizationId === org.id)} />
           ))}
         </>
       )}
@@ -172,9 +179,93 @@ export default function DepartmentManager({ departments, ownedOrgs, myCards = []
   )
 }
 
+// ── Every company in the group, in one list (org admin) ─────────────────────
+//
+// The per-company switch already existed on each company's own page, which
+// meant setting up a group of seven businesses was seven pages of clicking to
+// answer the same question seven times. Andre asked for the group-level view,
+// and he is right that it is the natural home: deciding which businesses wear
+// the group look is one decision about the whole group, not seven unrelated
+// ones.
+//
+// Same two actions as the company page, so a change made here and a change
+// made there are the same write.
+function GroupCompanies({ org, companies, call, loading }: {
+  org: OwnedOrg; companies: Dept[]
+  call: (k: string, b: object, m: string) => Promise<boolean>; loading: string | null
+}) {
+  // A flat organisation has no companies, and a list of nothing is noise.
+  if (companies.length === 0) return null
+
+  const onCount = companies.filter(c => c.inheritBrand !== false).length
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-5">
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-1">
+        <div className="flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-muted-foreground" />
+          <h2 className="font-semibold text-sm">
+            Companies in {org.name || 'your group'}
+          </h2>
+        </div>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground tabular-nums">
+          {onCount} of {companies.length} on the group look
+        </span>
+      </div>
+      <p className="text-sm text-muted-foreground mb-3">
+        Switch a company off and nothing from the group applies to it: it wears only its own
+        logo, colours and details, and its own departments follow it instead. Lock the choice
+        and only you can change it.
+      </p>
+
+      <div className="divide-y divide-border">
+        {companies.map(c => {
+          const on = c.inheritBrand !== false
+          const locked = !!c.inheritBrandLocked
+          return (
+            <div key={c.id} className="py-3 first:pt-0 last:pb-0">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate">{c.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {on ? 'Wearing the group look' : 'Its own look'}
+                    {locked && ' · locked'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-5 shrink-0">
+                  <Toggle
+                    on={on}
+                    disabled={loading === `ginherit-${c.id}`}
+                    label="Use group look"
+                    onChange={next => call(`ginherit-${c.id}`,
+                      { action: 'set_brand_inheritance', department_id: c.id, inherit: next },
+                      next ? `${c.name} now uses the group look` : `${c.name} now uses its own look`)}
+                  />
+                  <Toggle
+                    tone="lock"
+                    on={locked}
+                    disabled={loading === `glock-${c.id}`}
+                    label="Lock"
+                    onChange={next => call(`glock-${c.id}`,
+                      { action: 'set_brand_inheritance_lock', department_id: c.id, locked: next },
+                      next ? `${c.name} locked` : `${c.name} unlocked`)}
+                  />
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ── Company-wide locks (org admin) ──────────────────────────────────────────
-function CompanyRules({ org, call, loading }: {
+function CompanyRules({ org, call, loading, hasCompanies = false }: {
   org: OwnedOrg; call: (k: string, b: object, m: string) => Promise<boolean>; loading: string | null
+  // A group of businesses and a single business are the same row in the
+  // database and two different words to the person reading the screen.
+  hasCompanies?: boolean
 }) {
   const locked = org.lockedFields || []
   const key = `orglocks-${org.id}`
@@ -182,12 +273,14 @@ function CompanyRules({ org, call, loading }: {
     <div className="rounded-lg border border-border bg-card p-5">
       <div className="flex items-center gap-2 mb-1">
         <Lock className="w-4 h-4 text-amber-500" />
-        <h2 className="font-bold text-sm">Company rules{org.name ? ` for ${org.name}` : ''}</h2>
+        <h2 className="font-semibold text-sm">
+          {hasCompanies ? 'Group rules' : 'Company rules'}{org.name ? ` for ${org.name}` : ''}
+        </h2>
       </div>
       <p className="text-sm text-muted-foreground mb-4">
-        Tap anything that should stay the same on every card in the company. This applies to every
-        department at once. A department head can lock more for their own team, but cannot unlock
-        anything you set here.
+        {hasCompanies
+          ? 'Anything switched on here stays the same on every card in the group, in every company, whether or not that company uses the group look. A company or a team can lock more of its own, but cannot unlock anything you set here.'
+          : 'Anything switched on here stays the same on every card in the company, in every department at once. A department head can lock more for their own team, but cannot unlock anything you set here.'}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 divide-y sm:divide-y-0 divide-border">
         {LOCK_GROUPS.map(g => {

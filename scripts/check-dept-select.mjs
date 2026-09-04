@@ -1,62 +1,72 @@
-// Does getManagedDepartments actually ask for the columns ManagedDept promises?
+// Every read of the departments table must use select('*').
 //
-// Migration 063 added inherit_brand and inherit_brand_locked. They were added
-// to the ManagedDept type and read by the departments page, but not to the
-// named column list in getManagedDepartments - and a named select does not
-// return a column it did not ask for. So the page read undefined, treated it
-// as "inheriting", and the brand toggle rendered on and snapped back to on
-// after every refresh while the write underneath it had succeeded.
+// The table's columns arrive across migrations that are applied BY HAND, in
+// whatever order somebody gets to them. When this was written, 063 had been
+// applied and 059 had not, so a query naming brand_source failed on a database
+// that already had inherit_brand.
 //
-// Nothing failed. No error, no warning, no type error: the field is optional
-// on the type, undefined is a legal value for it, and the UI has a sensible
-// default for undefined. That is the whole problem, and it will recur on the
-// next migration unless something checks.
+// getManagedDepartments tried to survive that with a ladder of named column
+// lists, one rung per migration, each dropping what the rung above needed. It
+// could not work: a rung naming brand_source failed, the query fell through to
+// a rung that also omitted inherit_brand, and the departments page read
+// inherit_brand as undefined. The group-look toggle rendered on and snapped
+// back after every refresh while the write underneath it succeeded every time.
 //
-// The select cascade below the first rung is deliberately allowed to be
-// narrower: each rung exists to survive a database where a later migration has
-// not been applied by hand yet. Only the richest one has to be complete.
+// A ladder would need one rung per SUBSET of applied migrations, which is two
+// to the power of the migration count. select('*') returns whatever the
+// database actually has, which is the only thing that was ever wanted.
 //
 // Run: node scripts/check-dept-select.mjs
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { join } from 'node:path'
 
-const SRC = 'lib/department-perms.ts'
-const src = readFileSync(SRC, 'utf8')
+const ROOTS = ['app', 'lib', 'components']
+const files = []
+const walk = dir => {
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry)
+    if (entry === 'node_modules' || entry.startsWith('.')) continue
+    if (statSync(full).isDirectory()) walk(full)
+    else if (/\.(ts|tsx)$/.test(entry)) files.push(full)
+  }
+}
+for (const r of ROOTS) { try { walk(r) } catch {} }
 
-const iface = src.match(/export interface ManagedDept \{([\s\S]*?)\n\}/)
-if (!iface) {
-  console.error('check-dept-select: ManagedDept not found in ' + SRC)
+// A read of the table, and what it asked for. Writes (.update/.insert/.delete)
+// and .select('id') after an insert are not reads of the brand columns, so
+// only genuine column lists are considered.
+const READ = /\.from\('departments'\)\s*(?:\r?\n\s*)*\.select\('([^']*)'\)/g
+
+// Narrow reads that genuinely need one or two columns and never feed the brand
+// cascade or ManagedDept. Each is listed with the columns it is allowed.
+const ALLOWED_NARROW = new Set([
+  'id', 'organization_id', 'id, slug_segment', 'organization_id, kind, name',
+  'id, organization_id, name', 'kind, name', 'brand',
+  'id, organization_id, name, brand',
+])
+
+const offenders = []
+for (const f of files) {
+  const src = readFileSync(f, 'utf8')
+  for (const m of src.matchAll(READ)) {
+    const cols = m[1].trim()
+    if (cols === '*') continue
+    if (ALLOWED_NARROW.has(cols)) continue
+    const line = src.slice(0, m.index).split('\n').length
+    offenders.push(`${f}:${line}  select('${cols.slice(0, 90)}${cols.length > 90 ? '...' : ''}')`)
+  }
+}
+
+if (offenders.length) {
+  console.error('check-dept-select: departments read with a named column list:')
+  for (const o of offenders) console.error(`    ${o}`)
+  console.error('\nThe columns arrive across hand-applied migrations, so a named list')
+  console.error("silently returns undefined for anything not yet applied. Use select('*'),")
+  console.error('or add the query to ALLOWED_NARROW here if it truly needs only those columns')
+  console.error('and never feeds the brand cascade or ManagedDept.')
   process.exit(1)
 }
 
-// Every snake_case field is a real column. viaOwner and friends are camelCase
-// and derived in code, so they are not expected in any select.
-const fields = [...iface[1].matchAll(/^\s*([a-z][a-z0-9_]*)\??\s*:/gm)]
-  .map(m => m[1])
-  .filter(f => f.includes('_') || f === 'id' || f === 'name' || f === 'brand' || f === 'kind')
-
-// The richest rung: the longest column list selected from departments here.
-const selects = [...src.matchAll(/\.select\('([^']*)'\)/g)]
-  .map(m => m[1])
-  .filter(s => s.includes('organization_id') && s.includes('brand'))
-if (selects.length === 0) {
-  console.error('check-dept-select: found no department column list in ' + SRC)
-  process.exit(1)
-}
-const richest = selects.sort((a, b) => b.length - a.length)[0]
-const asked = new Set(richest.split(',').map(s => s.trim()))
-
-const missing = fields.filter(f => !asked.has(f))
-if (missing.length) {
-  console.error('check-dept-select: ManagedDept declares columns the query never asks for:')
-  for (const f of missing) console.error(`    ${f}`)
-  console.error('\nA named select returns only the columns it names, so these read as')
-  console.error('undefined forever. Add them to the richest .select() in ' + SRC + ',')
-  console.error('keeping the narrower fallback rungs as they are.')
-  process.exit(1)
-}
-
-console.log(
-  `check-dept-select: ManagedDept declares ${fields.length} columns and the query asks for all of them ` +
-  `(${selects.length} fallback rungs for hand-applied migrations).`
-)
+const total = files.reduce((n, f) => n + [...readFileSync(f, 'utf8').matchAll(READ)].length, 0)
+console.log(`check-dept-select: ${total} departments reads, none using an unapproved column list.`)
