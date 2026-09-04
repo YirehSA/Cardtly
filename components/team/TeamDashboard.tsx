@@ -43,6 +43,8 @@ interface TeamCard {
   org_hide_from_network?: boolean | null
   /** Public opens of this card, all time. */
   view_count?: number | null
+  /** Which department the card sits in, and through it which company. */
+  department_id?: string | null
 }
 
 interface Org {
@@ -66,6 +68,10 @@ interface Props {
   // parentName carries the company a department sits under, which is what
   // lets a spreadsheet pick between two businesses that each have a "Sales".
   importTargets: Array<{ id: string; name: string; kind?: 'company' | 'department'; parentName?: string | null }>
+  // The businesses in this group, and which one each department sits under.
+  // Both empty for a flat organisation, and the filter hides itself.
+  companies?: Array<{ id: string; name: string }>
+  companyByDept?: Record<string, string>
 }
 
 const inputClass = "w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
@@ -78,7 +84,7 @@ const SEAT_PRICE = 97
 const MAX_SELF_SERVE_SEATS = 20
 const SEAT_TIERS = Array.from({ length: MAX_SELF_SERVE_SEATS - 1 }, (_, i) => i + 2) as readonly number[]
 
-export default function TeamDashboard({ user, org: initialOrg, teamCards: initialCards, leadCounts, importTargets }: Props) {
+export default function TeamDashboard({ user, org: initialOrg, teamCards: initialCards, leadCounts, importTargets, companies = [], companyByDept = {} }: Props) {
   const searchParams = useSearchParams()
   const status = searchParams.get('status')
 
@@ -95,10 +101,31 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   // matching on the whole phrase would fail on "anthony sales", which is two
   // true things about one person that are never next to each other.
   const [cardQuery, setCardQuery] = useState('')
+
+  // Which business we are looking at. A group holding several companies showed
+  // every card in every one of them in a single grid, so finding "the Vistio
+  // people" meant knowing all their names. '' is everything.
+  const [companyId, setCompanyId] = useState<string>('')
+  const companyOfCard = (c: TeamCard) =>
+    (c.department_id && companyByDept[c.department_id]) || null
+  const countFor = (id: string) =>
+    id === '' ? cards.length
+      : id === 'none' ? cards.filter(c => !companyOfCard(c)).length
+      : cards.filter(c => companyOfCard(c) === id).length
+  // Cards that belong to no company at all: a flat department, or nobody has
+  // filed them yet. They get their own tab rather than vanishing, because a
+  // filter that can hide a seat you are paying for is worse than no filter.
+  const looseCount = countFor('none')
+
   const visibleCards = (() => {
+    const byCompany = companyId === ''
+      ? cards
+      : companyId === 'none'
+        ? cards.filter(c => !companyOfCard(c))
+        : cards.filter(c => companyOfCard(c) === companyId)
     const terms = cardQuery.trim().toLowerCase().split(/\s+/).filter(Boolean)
-    if (terms.length === 0) return cards
-    return cards.filter(c => {
+    if (terms.length === 0) return byCompany
+    return byCompany.filter(c => {
       const hay = [
         c.name, c.title, c.company, c.email, c.phone, c.slug, c.invite_email,
       ].filter(Boolean).join('  ').toLowerCase()
@@ -827,6 +854,32 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
         </div>
       ) : (
         <>
+        {/* One business at a time. Only for a group that has companies: a
+            single-business team has nothing to switch between, and a row of
+            one tab is furniture. */}
+        {companies.length > 1 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {[
+              { id: '', label: 'All companies' },
+              ...companies.map(c => ({ id: c.id, label: c.name })),
+              ...(looseCount > 0 ? [{ id: 'none', label: 'No company' }] : []),
+            ].map(t => {
+              const active = companyId === t.id
+              return (
+                <button key={t.id || 'all'} onClick={() => setCompanyId(t.id)}
+                  aria-pressed={active}
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition ${
+                    active
+                      ? 'border-foreground/50 bg-muted text-foreground font-semibold'
+                      : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/25 font-medium'}`}>
+                  {t.label}
+                  <span className="text-[11px] tabular-nums text-muted-foreground">{countFor(t.id)}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         {/* Search. Shown from the second card on. It was hidden below seven
             on the theory that a small team is quicker to scan than to type -
             but that also hid it from every team small enough to be new, which
@@ -852,8 +905,8 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
             {cardQuery && (
               <p className="text-xs text-muted-foreground mt-2">
                 {visibleCards.length === 0
-                  ? <>Nothing matches &ldquo;{cardQuery}&rdquo;.</>
-                  : <><strong className="text-foreground">{visibleCards.length}</strong> of {cards.length} cards</>}
+                  ? <>Nothing matches &ldquo;{cardQuery}&rdquo;{companyId ? ' in this company' : ''}.</>
+                  : <><strong className="text-foreground">{visibleCards.length}</strong> of {countFor(companyId)} cards</>}
               </p>
             )}
           </div>

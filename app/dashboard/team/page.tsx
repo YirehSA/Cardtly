@@ -4,6 +4,7 @@ import TeamMemberNotice from '@/components/team/TeamMemberNotice'
 import { redirect } from 'next/navigation'
 import TeamDashboard from '@/components/team/TeamDashboard'
 import HeadTeamView from '@/components/team/HeadTeamView'
+import { companyOf, indexById, type DeptNode } from '@/lib/department-tree'
 
 export const metadata = { title: 'Team Cards' }
 
@@ -216,23 +217,51 @@ export default async function TeamPage() {
     (teamCards || []).map((c: any) => c.id),
   )
 
-  // Departments a spreadsheet import can route people into, matched against
-  // its business-unit column. Empty for a team with no structure, which is
-  // every team that has not created a company.
-  const importTargets = org
+  // The org's structure, read once and used twice: to route a spreadsheet
+  // import, and to let the owner look at one company at a time.
+  const deptRows: any[] = org
     ? ((await (createServiceClient() as any)
         .from('departments')
         .select('*')
         .eq('organization_id', (org as any).id)).data || [])
-        .map((d: any, _i: number, all: any[]) => ({
-          id: d.id,
-          name: d.name,
-          kind: d.kind === 'company' ? 'company' : 'department',
-          // The company above it, so a spreadsheet can say "Vistio Sales"
-          // and pick one of two departments both called Sales.
-          parentName: d.parent_id ? (all.find((p: any) => p.id === d.parent_id)?.name ?? null) : null,
-        }))
     : []
+
+  // Departments a spreadsheet import can route people into, matched against
+  // its business-unit column. Empty for a team with no structure, which is
+  // every team that has not created a company.
+  const importTargets = deptRows.map((d: any) => ({
+    id: d.id,
+    name: d.name,
+    kind: (d.kind === 'company' ? 'company' : 'department') as 'company' | 'department',
+    // The company above it, so a spreadsheet can say "Vistio Sales"
+    // and pick one of two departments both called Sales.
+    parentName: d.parent_id ? (deptRows.find((p: any) => p.id === d.parent_id)?.name ?? null) : null,
+  }))
+
+  // Which company each department belongs to, resolved with companyOf rather
+  // than by reading parent_id once: a card can sit in a department nested
+  // several levels under its company, and only the walk finds it.
+  //
+  // A flat organisation produces an empty map and no companies, and the filter
+  // hides itself, so nothing changes for a team that never created one.
+  const deptNodes: DeptNode[] = deptRows.map((d: any) => ({
+    id: d.id,
+    organization_id: d.organization_id,
+    name: d.name,
+    parent_id: d.parent_id ?? null,
+    kind: d.kind === 'company' ? 'company' : 'department',
+    slug_segment: d.slug_segment ?? null,
+  }))
+  const byId = indexById(deptNodes)
+  const companyByDept: Record<string, string> = {}
+  for (const d of deptNodes) {
+    const c = companyOf(d.id, byId)
+    if (c) companyByDept[d.id] = c.id
+  }
+  const companies = deptNodes
+    .filter(d => d.kind === 'company')
+    .map(d => ({ id: d.id, name: d.name }))
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   return (
     <TeamDashboard
@@ -241,6 +270,8 @@ export default async function TeamPage() {
       teamCards={teamCards || []}
       leadCounts={leadCounts}
       importTargets={importTargets}
+      companies={companies}
+      companyByDept={companyByDept}
     />
   )
 }
