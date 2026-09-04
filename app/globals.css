@@ -39,6 +39,16 @@
 
     --grain-opacity:    0.025;
     --glow-color:       rgba(59, 130, 246, 0.12);
+
+    /* Depth. A panel is a physical thing sitting on a ground, and the two
+       properties that say so are the light catching its top edge and the
+       shadow it drops. On a light ground the highlight is white and reads as
+       almost nothing, so the shadow does the work; in dark mode it is the
+       highlight that does, which is why they are tokens rather than one
+       hardcoded rule. */
+    --edge-light:       255 255 255 / 0.9;
+    --panel-shadow:     0 1px 2px rgba(16, 24, 40, 0.04), 0 12px 32px -20px rgba(16, 24, 40, 0.18);
+    --panel-shadow-lift:0 1px 2px rgba(16, 24, 40, 0.05), 0 20px 44px -24px rgba(16, 24, 40, 0.26);
   }
 
   /* ── Dark mode ──────────────────────────────────────────────────────────── */
@@ -72,6 +82,10 @@
 
     --grain-opacity:    0.04;
     --glow-color:       rgba(59, 130, 246, 0.08);
+
+    --edge-light:       255 255 255 / 0.07;
+    --panel-shadow:     0 1px 2px rgba(0, 0, 0, 0.30), 0 16px 40px -24px rgba(0, 0, 0, 0.60);
+    --panel-shadow-lift:0 1px 2px rgba(0, 0, 0, 0.34), 0 26px 56px -28px rgba(0, 0, 0, 0.72);
   }
 }
 
@@ -119,6 +133,97 @@
 }
 
 @layer utilities {
+  /* ── Surfaces ────────────────────────────────────────────────────────────
+     Every panel in the dashboard, so depth is one decision rather than forty.
+
+     The first corporate pass stripped the product back to hairline boxes on a
+     flat ground, which was correct and read as unfinished. What separates a
+     restrained product from a plain one is not more colour, it is that its
+     surfaces look made: one line of light along the top edge, one soft shadow
+     beneath, and a hover that acknowledges the pointer. */
+  .panel {
+    position: relative;
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.75rem;
+    box-shadow: var(--panel-shadow);
+  }
+  /* The highlight is inset by a corner radius at each end so it does not run
+     out past the curve and read as a scratch. */
+  .panel::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0.75rem; right: 0.75rem; height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--edge-light)), transparent);
+    pointer-events: none;
+  }
+  .panel-hover {
+    transition: box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 220ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .panel-hover:hover {
+    box-shadow: var(--panel-shadow-lift);
+    border-color: hsl(var(--foreground) / 0.18);
+    transform: translateY(-1px);
+  }
+
+  /* The primary button.
+     A flat rectangle of accent is correct and looks unpressed. One highlight
+     along the top edge and a sheen falling off over the top half is what makes
+     it read as a raised, physical control - the same trick as the panels, at a
+     smaller scale.
+
+     The colour still comes from the caller, because it is the card's own
+     accent and differs per user. Callers must set backgroundColor, not the
+     background shorthand, or they wipe out the sheen underneath. */
+  .btn-sheen {
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0) 58%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24),
+                0 1px 2px rgba(16, 24, 40, 0.12),
+                0 10px 24px -14px rgba(16, 24, 40, 0.5);
+    transition: filter 180ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn-sheen:hover { filter: brightness(1.07); transform: translateY(-1px); }
+  .btn-sheen:active { filter: brightness(0.97); transform: translateY(0); }
+  @media (prefers-reduced-motion: reduce) {
+    .btn-sheen:hover, .btn-sheen:active { transform: none }
+  }
+
+  /* A wash of the accent behind a page header. Barely visible and doing a lot:
+     it stops the top of the page reading as an empty white band. */
+  .header-wash {
+    position: relative;
+  }
+  .header-wash::before {
+    content: '';
+    position: absolute;
+    left: -10%; right: -10%; top: -120px; height: 260px;
+    background: radial-gradient(60% 100% at 20% 100%, var(--glow-color), transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* Panels arriving in sequence rather than all at once. 40ms apart is enough
+     to read as deliberate and short enough that the page is never waiting. */
+  .stagger > * {
+    animation: fade-up 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .stagger > *:nth-child(1) { animation-delay: 0ms }
+  .stagger > *:nth-child(2) { animation-delay: 40ms }
+  .stagger > *:nth-child(3) { animation-delay: 80ms }
+  .stagger > *:nth-child(4) { animation-delay: 120ms }
+  .stagger > *:nth-child(5) { animation-delay: 160ms }
+  .stagger > *:nth-child(6) { animation-delay: 200ms }
+  .stagger > *:nth-child(n+7) { animation-delay: 240ms }
+
+  /* Nothing above is worth making somebody motion-sick for. */
+  @media (prefers-reduced-motion: reduce) {
+    .stagger > * { animation: none }
+    .panel-hover:hover { transform: none }
+  }
+
   /* Safe-area-aware top positioning for fixed floating UI on public
      card pages. Falls back to a plain offset on devices/browsers
      that don't expose env(safe-area-inset-top). */

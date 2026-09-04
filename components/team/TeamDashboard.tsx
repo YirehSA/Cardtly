@@ -1167,7 +1167,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
       {editingCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
-          <div className="bg-card border border-border rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div className="panel p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-bold text-lg">Edit {editingCard.name}'s card</h2>
               <button onClick={() => setEditingCard(null)} className="text-muted-foreground hover:text-foreground">

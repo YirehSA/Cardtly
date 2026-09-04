@@ -45,7 +45,7 @@ export default function TeamMemberNotice({
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-6">
+      <div className="panel p-6">
         <p className="text-sm text-muted-foreground leading-relaxed">
           This page is for the person who owns the team account and pays for the
           seats. You do not need to set up or pay for anything.

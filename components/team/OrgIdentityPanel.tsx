@@ -52,7 +52,7 @@ export default function OrgIdentityPanel({
   const clean = slugifyPart(prefix, 24)
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6 space-y-6">
+    <div className="panel p-6 space-y-6">
       <div>
         <div className="flex items-center gap-2.5 mb-1">
           <span className="w-9 h-9 rounded-xl grid place-items-center bg-muted shrink-0">

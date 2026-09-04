@@ -174,7 +174,7 @@ export default async function DashboardPage() {
   if (!card) {
     return (
       <div className="max-w-lg mx-auto py-20 animate-fade-in">
-        <div className="rounded-xl border border-border bg-card p-8">
+        <div className="panel p-8">
           <div className="w-11 h-11 rounded-lg grid place-items-center mb-5"
             style={{ background: accentHex + '14', color: accentHex }}>
             <CreditCard className="w-5 h-5" />
@@ -185,8 +185,8 @@ export default async function DashboardPage() {
             link you can share with anyone.
           </p>
           <Link href="/dashboard/card"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
-            style={{ background: accentHex }}>
+            className="btn-sheen inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white"
+            style={{ backgroundColor: accentHex }}>
             Create card <ArrowUpRight className="w-4 h-4" />
           </Link>
         </div>
@@ -205,22 +205,25 @@ export default async function DashboardPage() {
   ]
 
   return (
-    <div className="space-y-5 animate-fade-in pb-16">
+    <div className="space-y-5 stagger pb-16">
       <OnboardingTour />
       {/* Pushes the card URL + name to the Android home-screen QR widget.
           Renders nothing; no-op on web. */}
       <WidgetSync slug={card?.slug ?? null} name={card?.name ?? null} />
 
-      {/* Header. A rule rather than a tinted gradient panel: the page opens on
-          who this account is and what state it is in, and spends no vertical
-          space decorating that. */}
-      <header className="pb-5 border-b border-border">
+      {/* Header.
+          The name is the largest thing on the page and set tight, because at
+          this size the default tracking reads as loose rather than grand. The
+          wash behind it is a barely visible accent glow: the first pass left
+          the top of the page as an empty band, which read as unfinished rather
+          than restrained. */}
+      <header className="header-wash pb-6 pt-1 border-b border-border">
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div className="min-w-0">
             <p className={LABEL}>
               {new Date().toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight mt-1.5">
+            <h1 className="font-display text-[32px] sm:text-[42px] font-bold tracking-[-0.03em] leading-[1.05] mt-2">
               {card.name || 'Your card'}
             </h1>
             <div className="flex items-center gap-2.5 mt-2 flex-wrap">
@@ -237,8 +240,8 @@ export default async function DashboardPage() {
           </div>
           {!isPaid && !iosApp && (
             <Link href="/dashboard/upgrade"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition hover:opacity-90 shrink-0"
-              style={{ background: accentHex }}>
+              className="btn-sheen flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white shrink-0"
+              style={{ backgroundColor: accentHex }}>
               {isExpired ? 'Reactivate card' : 'Subscribe'}
               <ArrowUpRight className="w-4 h-4" />
             </Link>
@@ -289,7 +292,7 @@ export default async function DashboardPage() {
       {/* Metrics. One panel divided by hairlines rather than three floating
           cards in three different hues - the figures are the same kind of
           thing, so they are read across one row and coloured the same. */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="panel overflow-hidden">
         {/* Three across at every width. Stacked, these three rows filled the
             whole of a phone screen and pushed the card itself under the fold,
             which put the least urgent thing on the page first. The icon and
@@ -297,15 +300,15 @@ export default async function DashboardPage() {
             label and the figure are the only parts carrying information. */}
         <div className="grid grid-cols-3 divide-x divide-border">
           {METRICS.map(({ label, value, note, icon: Icon }) => (
-            <div key={label} className="p-3 sm:p-5">
+            <div key={label} className="p-3 sm:p-5 transition-colors hover:bg-muted/35">
               <div className="flex items-center gap-2">
                 <Icon className="w-3.5 h-3.5 text-muted-foreground hidden sm:block shrink-0" />
                 <p className={LABEL}>{label}</p>
               </div>
-              <p className="font-display text-2xl sm:text-3xl font-bold tracking-tight tabular-nums mt-2 sm:mt-2.5 leading-none">
+              <p className="font-display text-[26px] sm:text-[38px] font-bold tracking-[-0.03em] tabular-nums mt-2 sm:mt-3 leading-none">
                 <AnimatedCounter to={value as number} />
               </p>
-              <p className="text-xs text-muted-foreground mt-1.5 hidden sm:block">{note}</p>
+              <p className="text-xs text-muted-foreground mt-2 hidden sm:block">{note}</p>
             </div>
           ))}
         </div>
@@ -313,7 +316,7 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
         {/* The card itself */}
-        <div className="lg:col-span-2 rounded-xl border border-border bg-card overflow-hidden">
+        <div className="lg:col-span-2 panel overflow-hidden">
           <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
             <p className={LABEL}>Your card</p>
             <Link href={editCardHref}
@@ -348,8 +351,8 @@ export default async function DashboardPage() {
             {card.slug && (
               <div className="space-y-2.5">
                 <a href={`/card/${card.slug}`} target="_blank" rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition hover:opacity-90"
-                  style={{ background: accentHex }}>
+                  className="btn-sheen w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white"
+                  style={{ backgroundColor: accentHex }}>
                   <Eye className="w-4 h-4" /> Open card
                 </a>
 
@@ -377,13 +380,13 @@ export default async function DashboardPage() {
         </div>
 
         {/* Completeness */}
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="panel overflow-hidden">
           <div className="px-5 py-3.5 border-b border-border">
             <p className={LABEL}>Profile completeness</p>
           </div>
           <div className="px-5 py-4">
             <div className="flex items-baseline justify-between">
-              <p className="font-display text-3xl font-bold tracking-tight tabular-nums leading-none">{percent}%</p>
+              <p className="font-display text-[38px] font-bold tracking-[-0.03em] tabular-nums leading-none">{percent}%</p>
               <p className="text-xs text-muted-foreground tabular-nums">{doneCount} of {checks.length}</p>
             </div>
             <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-3">
@@ -436,8 +439,8 @@ export default async function DashboardPage() {
               // goes to the feature instead, where the gate explains what Pro
               // is without offering anywhere to buy it.
               <Link key={href} href={locked && !iosApp ? '/dashboard/upgrade' : href}
-                className="flex items-center gap-3 p-4 rounded-lg border border-border bg-card hover:border-foreground/25 transition-colors group">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-muted text-muted-foreground group-hover:text-foreground transition-colors">
+                className="flex items-center gap-3 p-4 panel panel-hover group">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-muted text-muted-foreground transition-colors group-hover:text-foreground group-hover:bg-muted/70">
                   <Icon style={{ width: 17, height: 17 }} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -450,7 +453,7 @@ export default async function DashboardPage() {
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">{desc}</p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5" />
               </Link>
             )
           })}
@@ -475,7 +478,7 @@ export default async function DashboardPage() {
           the whole panel is a call to action towards a purchase Apple does
           not take a cut of, which is precisely what 3.1.1 forbids. */}
       {!isPro && !iosApp && (
-        <div className="rounded-xl border border-border bg-card p-5 flex items-center justify-between flex-wrap gap-4">
+        <div className="panel p-5 flex items-center justify-between flex-wrap gap-4">
           <div className="min-w-0">
             <p className={LABEL}>Cardtly Pro</p>
             <p className="text-sm text-muted-foreground mt-1.5 max-w-md leading-relaxed">
@@ -484,8 +487,8 @@ export default async function DashboardPage() {
             </p>
           </div>
           <Link href="/dashboard/upgrade"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition hover:opacity-90 flex-shrink-0"
-            style={{ background: accentHex }}>
+            className="btn-sheen flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white flex-shrink-0"
+            style={{ backgroundColor: accentHex }}>
             Upgrade <ArrowUpRight className="w-4 h-4" />
           </Link>
         </div>

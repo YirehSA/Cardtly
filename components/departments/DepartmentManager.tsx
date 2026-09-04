@@ -200,7 +200,7 @@ function GroupCompanies({ org, companies, call, loading }: {
   const onCount = companies.filter(c => c.inheritBrand !== false).length
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="panel p-5">
       <div className="flex items-center justify-between gap-3 flex-wrap mb-1">
         <div className="flex items-center gap-2">
           <Building2 className="w-4 h-4 text-muted-foreground" />
@@ -373,7 +373,7 @@ function FirstRun({ ownedOrgs, call, loading }: {
     ]
 
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
+    <div className="panel overflow-hidden">
       <div className="p-6 sm:p-8 text-center" style={{ background: 'linear-gradient(180deg, hsl(var(--accent) / 0.08), transparent)' }}>
         <div className="w-14 h-14 rounded-lg flex items-center justify-center mx-auto mb-3" style={{ background: grad }}>
           <Sparkles className="w-6 h-6 text-white" />
@@ -919,7 +919,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
           The switch and the lock on it belong to two different people. The
           head of a company chooses their own look; the group owner chooses
           whether that head gets the choice at all. See migration 063. */}
-      <div className="rounded-xl border border-border bg-card p-5">
+      <div className="panel p-5">
         <SectionHead
           n={2} accent={accent} icon={Building2}
           title="Where this look comes from"

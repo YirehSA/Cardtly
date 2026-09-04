@@ -275,7 +275,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
       {/* Headline numbers */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {HEADLINE.map(({ label, value, prev, icon: Icon }) => (
-          <div key={label} className="rounded-xl border border-border bg-card p-4 sm:p-5">
+          <div key={label} className="panel p-4 sm:p-5">
             <div className="flex items-center gap-2">
               <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               <p className={LABEL}>{label}</p>
@@ -292,7 +292,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
 
       {stats.views === 0 ? (
         /* Nothing to show yet - say what to do about it rather than "no data". */
-        <div className="rounded-xl border border-border bg-card p-10 text-center">
+        <div className="panel p-10 text-center">
           <div className="w-14 h-14 rounded-xl grid place-items-center mx-auto mb-4"
             style={{ background: accent + '18' }}>
             <TrendingUp className="w-6 h-6" style={{ color: accent }} />
@@ -318,7 +318,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
       ) : (
         <>
           {/* When people opened it */}
-          <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
+          <div className="panel p-5 sm:p-6">
             <div className="flex items-start justify-between flex-wrap gap-2 mb-5">
               <div>
                 <h2 className="font-semibold text-sm">When people opened it</h2>
@@ -359,7 +359,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
           {/* What they tapped. Only appears once there is something to show,
               rather than sitting there as a permanent row of zeros. */}
           {stats.topLinks.length > 0 && (
-            <div className="rounded-xl border border-border bg-card p-5">
+            <div className="panel p-5">
               <div className="flex items-center gap-2 mb-1">
                 <MousePointerClick className="w-4 h-4 text-muted-foreground" />
                 <h3 className="font-semibold text-sm">What they tapped most</h3>
@@ -393,7 +393,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
 
           {/* How they got the card, where they came from, what they used */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div className="rounded-xl border border-border bg-card p-5">
+            <div className="panel p-5">
               <div className="flex items-center gap-2 mb-1">
                 <QrCode className="w-4 h-4 text-muted-foreground" />
                 <h3 className="font-semibold text-sm">How they got your card</h3>
@@ -410,7 +410,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
               </p>
             </div>
 
-            <div className="rounded-xl border border-border bg-card p-5">
+            <div className="panel p-5">
               <div className="flex items-center gap-2 mb-1">
                 <Globe className="w-4 h-4 text-muted-foreground" />
                 <h3 className="font-semibold text-sm">Where they came from</h3>
@@ -421,7 +421,7 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
               <Bars rows={stats.bySource} total={stats.views} colour={accent} />
             </div>
 
-            <div className="rounded-xl border border-border bg-card p-5">
+            <div className="panel p-5">
               <div className="flex items-center gap-2 mb-1">
                 <Smartphone className="w-4 h-4 text-muted-foreground" />
                 <h3 className="font-semibold text-sm">What they opened it on</h3>

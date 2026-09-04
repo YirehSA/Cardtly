@@ -71,7 +71,7 @@ export default function SettingsTabs({ user, profile, plan, subscription, card, 
       </div>
 
       {/* Tab content */}
-      <div className="bg-card border border-border rounded-xl p-6">
+      <div className="panel p-6">
         {tab === 'profile' && (
           <div className="space-y-6">
             <ProfileTab user={user} profile={profile} card={card || undefined} supabase={supabase} />

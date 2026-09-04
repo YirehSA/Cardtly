@@ -102,7 +102,7 @@ export default async function TeamAnalyticsPage() {
       {/* Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {stats.map(({ label, value, icon: Icon }) => (
-          <div key={label} className="rounded-xl border border-border bg-card p-4 sm:p-5">
+          <div key={label} className="panel p-4 sm:p-5">
             <div className="flex items-center gap-2">
               <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               <p className={LABEL}>{label}</p>
@@ -130,7 +130,7 @@ export default async function TeamAnalyticsPage() {
       {/* Per member. A list rather than a table, so it reads properly on a
           phone instead of forcing a sideways scroll. */}
       {rows.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-16 text-center">
+        <div className="panel p-16 text-center">
           <Users className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">No active team cards yet.</p>
         </div>

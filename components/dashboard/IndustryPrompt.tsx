@@ -53,7 +53,7 @@ export default function IndustryPrompt({ cardId, isTeamCard, accentHex }: Props)
 
   if (saved) {
     return (
-      <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
+      <div className="panel p-5 sm:p-6">
         <p className="flex items-center gap-2 text-sm font-medium">
           <Check className="w-4 h-4 shrink-0" style={{ color: accentHex }} aria-hidden="true" />
           Saved. You will show up when people filter the Network by your industry.
@@ -63,7 +63,7 @@ export default function IndustryPrompt({ cardId, isTeamCard, accentHex }: Props)
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
+    <div className="panel p-5 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div
           className="w-11 h-11 rounded-lg grid place-items-center shrink-0"

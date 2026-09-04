@@ -116,7 +116,7 @@ export default function ContactsList({ rows, ownerName, headerAction, emptyTitle
       </div>
 
       {/* Find someone */}
-      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+      <div className="panel p-4 space-y-3">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <input
@@ -166,7 +166,7 @@ export default function ContactsList({ rows, ownerName, headerAction, emptyTitle
 
       {/* Results */}
       {filtered.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-10 text-center">
+        <div className="panel p-10 text-center">
           <Search className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
           <p className="font-semibold mb-1">Nobody matches that</p>
           <p className="text-sm text-muted-foreground mb-4">

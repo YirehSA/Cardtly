@@ -264,13 +264,26 @@ function NavTile({
           : 'flex-col items-center justify-center gap-1 px-1.5 py-1.5'
       }`}
       style={{
-        background: active ? 'hsl(var(--sidebar-accent) / 0.14)' : 'transparent',
-        boxShadow: active ? 'inset 0 0 0 1px hsl(var(--sidebar-accent) / 0.35)' : 'none',
+        // Three things say "you are here", not one: a wash that is brighter at
+        // the top left where the light would fall, a hairline ring, and the
+        // icon in the accent. A flat tint alone was legible and inert.
+        background: active
+          ? 'linear-gradient(145deg, hsl(var(--sidebar-accent) / 0.22), hsl(var(--sidebar-accent) / 0.08))'
+          : 'transparent',
+        boxShadow: active
+          ? 'inset 0 0 0 1px hsl(var(--sidebar-accent) / 0.38), 0 6px 16px -10px hsl(var(--sidebar-accent) / 0.55)'
+          : 'none',
       }}
     >
+      {/* The lit top edge, the same move the panels use, so the sidebar and
+          the page look like they were made by the same hand. */}
+      {active && (
+        <span aria-hidden className="absolute top-0 left-2 right-2 h-px"
+          style={{ background: 'linear-gradient(90deg, transparent, hsl(var(--sidebar-accent) / 0.7), transparent)' }} />
+      )}
       <span className="relative z-10 w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0">
         <Icon
-          className="w-4 h-4"
+          className="w-4 h-4 transition-transform duration-200 group-hover:scale-110"
           style={{ color: active ? 'hsl(var(--sidebar-accent))' : 'hsl(var(--sidebar-fg))' }}
         />
       </span>
