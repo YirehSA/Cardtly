@@ -212,11 +212,27 @@ function GroupCompanies({ org, companies, call, loading }: {
           {onCount} of {companies.length} on the group look
         </span>
       </div>
-      <p className="text-sm text-muted-foreground mb-3">
-        Switch a company off and nothing from the group applies to it: it wears only its own
-        logo, colours and details, and its own departments follow it instead. Lock the choice
-        and only you can change it.
+      <p className="text-sm text-muted-foreground">
+        The look is the company name, logo, colours and fonts, website, address, social
+        profiles and link buttons on every card.
       </p>
+      <ul className="text-xs text-muted-foreground mt-2 mb-3 space-y-1">
+        <li>
+          <span className="font-semibold text-foreground">Use group look on.</span>{' '}
+          Cards take those details from {org.name || 'the group'}. Anything the company sets
+          for itself still wins.
+        </li>
+        <li>
+          <span className="font-semibold text-foreground">Use group look off.</span>{' '}
+          Nothing from {org.name || 'the group'} reaches it. It wears only what it sets
+          itself, and its own departments follow it instead of the group.
+        </li>
+        <li>
+          <span className="font-semibold text-foreground">Lock.</span>{' '}
+          Freezes that choice so only you can change it. Left off, the company&rsquo;s own
+          manager can switch it either way.
+        </li>
+      </ul>
 
       <div className="divide-y divide-border">
         {companies.map(c => {
@@ -228,8 +244,10 @@ function GroupCompanies({ org, companies, call, loading }: {
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">{c.name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {on ? 'Wearing the group look' : 'Its own look'}
-                    {locked && ' · locked'}
+                    {on
+                      ? `Logo, colours, website, address and socials come from ${org.name || 'the group'}`
+                      : `Uses only its own. Nothing comes from ${org.name || 'the group'}`}
+                    {locked && ' · locked, only you can change it'}
                   </p>
                 </div>
                 <div className="flex items-center gap-5 shrink-0">
@@ -293,12 +311,12 @@ function CompanyRules({ org, call, loading, hasCompanies = false }: {
               disabled={loading === key}
               label={g.label}
               hint={on ? g.hint : 'Each company decides'}
-              onChange={next => {
+              onChange={next =>
                 call(key,
                   { action: 'set_org_locks', org_id: org.id,
                     locked: next ? [...locked, g.id] : locked.filter(id => id !== g.id) },
                   next ? `${g.label} locked across the group` : `${g.label} unlocked across the group`)
-              }}
+              }
             />
           )
         })}
@@ -905,9 +923,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
         <SectionHead
           n={2} accent={accent} icon={Building2}
           title="Where this look comes from"
-          body={dept.kind === 'company'
-            ? 'A company can wear the group look or its own. Switched off, nothing from the group applies here, and the departments inside this company follow this company instead.'
-            : 'A department can wear the look from the company above it or its own.'}
+          body={`The look is the company name, logo, colours and fonts, website, address, social profiles and link buttons. On, ${dept.name} takes those from ${parentName || 'the group'} and anything it sets for itself still wins. Off, nothing from above reaches it and ${dept.kind === 'company' ? 'its own departments follow it instead' : 'it wears only what it sets itself'}.`}
           state={inheritOn ? 'Group look' : 'Its own look'}
           stateTone={inheritOn ? accent : undefined} />
 
@@ -920,8 +936,8 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
               : undefined}
             label={parentName ? `Use the look from ${parentName}` : 'Use the group look'}
             hint={inheritOn
-              ? 'Anything set above applies here, and anything set here overrides it.'
-              : 'Only the look set here applies. Nothing comes down from above.'}
+              ? `Logo, colours, website, address and socials come from ${parentName || 'the group'}. Anything set here overrides them.`
+              : `Uses only what is set here. Nothing comes down from ${parentName || 'the group'}.`}
             onChange={next => call(`inherit-${dept.id}`,
               { action: 'set_brand_inheritance', department_id: dept.id, inherit: next },
               next ? 'Now following the look from above' : 'Now using its own look')}
@@ -982,7 +998,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
                 hint={own ? g.hint : 'Anyone in this team can change this'}
                 onChange={next => {
                   const list = dept.lockedFields || []
-                  call(`locks-${dept.id}`,
+                  return call(`locks-${dept.id}`,
                     { action: 'set_locks', department_id: dept.id,
                       locked: next ? [...list, g.id] : list.filter(id => id !== g.id) },
                     next ? `${g.label} locked` : `${g.label} unlocked`)
