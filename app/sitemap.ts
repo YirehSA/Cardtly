@@ -20,6 +20,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: `${BASE}/`, changeFrequency: 'weekly', priority: 1 },
     { url: `${BASE}/features`, changeFrequency: 'monthly', priority: 0.9 },
+    // The team and company page: the highest-value commercial query on the
+    // site, so it sits with the other primary pages rather than below them.
+    { url: `${BASE}/teams`, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE}/pricing`, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE}/nfc`, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE}/network`, changeFrequency: 'monthly', priority: 0.9 },

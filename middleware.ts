@@ -105,6 +105,7 @@ export const config = {
     '/blog',
     '/blog/:path*',
     '/pricing',
+    '/teams',
     '/upgrade/:path*',
     // Refresh the Supabase session on authenticated API routes so
     // long-running tabs don't hit "Unauthorized" when their access

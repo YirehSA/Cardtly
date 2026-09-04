@@ -49,7 +49,7 @@ export default function Footer() {
               { href: '/how-it-works', label: 'How digital cards work' },
               { href: '/pricing',       label: 'Digital business card pricing' },
               { href: '/blog',          label: 'Digital business card blog' },
-              { href: '/#teams',        label: 'Cardtly for Teams' },
+              { href: '/teams',         label: 'Digital business cards for teams' },
               ...(PROMOS_ENABLED ? [{ href: '/promotions', label: 'Win prizes 🏆' }] : []),
               { href: '/nfc',           label: 'NFC business cards 🇿🇦' },
               { href: '/signup',        label: 'Sign up' },

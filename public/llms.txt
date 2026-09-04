@@ -1,6 +1,6 @@
 # Cardtly
 
-> Cardtly is a digital business card platform built in South Africa. Professionals and whole teams create a branded digital business card and share it instantly by NFC tap, QR code, or link - no app needed by the person receiving it. R97 a card per month in South African rand. Live at https://cardtly.com.
+> Cardtly is a digital business card platform for individuals, teams and companies, used worldwide and built in South Africa. A company gives every employee a branded card it owns and controls centrally: the administrator sets the logo and colours once, locks the fields that must stay the same, and issues a card per person. Cards are shared by NFC tap, QR code or link, with no app needed by the person receiving it. R97 a card per month in South African rand. Live at https://cardtly.com.
 
 ## What Cardtly is
 
@@ -19,7 +19,7 @@ A digital business card is an online profile that replaces a paper business card
 
 - NFC tap-to-share, QR code, and link sharing from one card.
 - Your own short link (cardtly.com/card/yourname). Change it later and the old link keeps redirecting, so anything already printed still works.
-- 12 card templates, fully customisable: accent colours (any hex), fonts, logo, light/dark mode, a custom background colour, and per-element text colours and sizes.
+- 15 card templates, fully customisable: accent colours (any hex), fonts, logo, light/dark mode, a custom background colour, and per-element text colours and sizes.
 - Photo galleries, custom links, WhatsApp, social profiles, certifications, and an AI-written bio.
 - Cardtly Network: a searchable directory of everyone on Cardtly, inside the dashboard. Search by company, person or job title, filter by any of 45 industries, open a company to see its people, and open any card. Included with Pro. Signed-in only, never public. Listings show name, position, company and photo, never a phone number or email address, and anyone can switch their listing off.
 - Analytics per card: views, taps, link clicks and saved contacts.
@@ -38,8 +38,10 @@ A digital business card is an online profile that replaces a paper business card
 
 Cardtly is built for a company rolling cards out to a whole team, not just individuals.
 
+- Three levels: a group, companies inside it, and departments inside those. A holding company with several businesses runs all of them from one account, on one invoice and one seat pool, while each business keeps its own logo, colours, web address and manager.
+- Each company chooses whether to wear the group's look or its own; switched off, nothing from the group applies to it and its own departments follow it instead. The group owner can lock that choice so the company's manager cannot change it.
 - Departments, each with a head. Split the company into Sales, Support, or by branch. Each department head invites their own people, sets their look, and sees their own numbers.
-- Choosable field locks. A company admin decides which of these stay fixed on every card: company logo, company name, office number, website, address, social profiles, link buttons, gallery photos, and card design. A department head can lock more for their own team but cannot unlock anything the company has set.
+- Choosable field locks. A company admin decides which of these stay fixed on every card: company logo, company name, office number, website, address, bio, social profiles, link buttons, gallery photos, skills and accreditations, and card design. A department head can lock more for their own team but cannot unlock anything the company has set.
 - Whatever is not locked stays with the person: their name, photo, job title, bio and mobile number.
 - One brand, or one per department. Set the company look once and apply it to every card; a department can carry its own colours on top.
 - Reporting per person: views, taps, clicks and saved contacts for each team member, and every lead they capture in one shared list.
@@ -49,6 +51,7 @@ Cardtly is built for a company rolling cards out to a whole team, not just indiv
 ## Pages
 
 - [Home](https://cardtly.com/): what Cardtly does for a team - more leads, more meetings, more sales.
+- [For teams and companies](https://cardtly.com/teams): how a company rolls cards out to staff - central brand control, group and department structure, locked fields, seat billing, bulk import and team analytics.
 - [Features](https://cardtly.com/features): every feature grouped, with what is included, what is an add-on, and what needs the Teams plan.
 - [Network](https://cardtly.com/network): the in-dashboard business networking directory - search companies by name or industry, see who works there, open their card.
 - [How it works](https://cardtly.com/how-it-works): create a card, get your link and QR, share by tap, scan, or URL.
@@ -73,3 +76,7 @@ Cardtly is built for a company rolling cards out to a whole team, not just indiv
 - Can a company control what staff put on their cards? Yes. The company admin chooses which fields are locked - logo, company name, website, address, socials, links, gallery, design - and department heads can tighten that further for their own team.
 - How many people can be on a team? 2 to 20 cards self-serve. For more than 20, contact Cardtly.
 - Can I scan paper business cards? Yes: photograph a paper card and AI reads it into a saved contact.
+- What is a digital business card for teams? A web page for each employee, holding their name, role, contact details and links, that the company owns and controls centrally. The administrator brands every card at once, locks the fields that must stay fixed, and keeps the leads those cards capture when a person leaves.
+- Can one account hold more than one company? Yes. A group can contain several companies, each with its own branding, its own manager and its own slice of the web address, billed together on one invoice.
+- Who owns the leads a team's cards capture? The company. Leads land in a shared list in the team dashboard, so a person leaving does not take their contacts with them.
+- Does Cardtly work outside South Africa? Yes. The cards work anywhere with a browser and are used internationally. Billing is in South African rand through Paystack, and only the optional physical NFC cards are limited to South African delivery.

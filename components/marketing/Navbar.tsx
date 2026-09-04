@@ -10,6 +10,7 @@ import { isIosBlockedPath } from '@/lib/app-platform'
 const LINKS = [
   { href: '/',              label: 'Home' },
   { href: '/features',      label: 'Features' },
+  { href: '/teams',         label: 'For teams' },
   { href: '/network',       label: 'Network' },
   { href: '/how-it-works', label: 'How it works' },
   { href: '/nfc',           label: 'NFC Cards', badge: '🇿🇦' },

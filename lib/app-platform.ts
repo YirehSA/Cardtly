@@ -30,7 +30,7 @@ export const IOS_APP_UA_TAG = 'CardtlyiOS'
  */
 export const IOS_BLOCKED_ROUTES = [
   '/dashboard/upgrade', '/pricing', '/upgrade',
-  '/', '/about', '/features', '/how-it-works', '/nfc', '/blog',
+  '/', '/about', '/features', '/how-it-works', '/nfc', '/blog', '/teams',
 ] as const
 
 /** Exact match for '/', prefix match for the rest. */
