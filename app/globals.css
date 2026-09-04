@@ -196,6 +196,14 @@
     border-radius: 0.75rem;
     box-shadow: var(--panel-shadow);
   }
+  /* Opts a panel out of the glass. Declared after .panel so it wins on source
+     order, since both are a single class and specificity ties. */
+  .panel-solid {
+    background-color: hsl(var(--card));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
   /* Without backdrop-filter a translucent panel is just a washed-out one, and
      the text contrast that was solved against the card colour no longer holds.
      Those browsers get the solid fill. */
@@ -300,22 +308,6 @@
   .btn-secondary:active { transform: translateY(0) }
   @media (prefers-reduced-motion: reduce) {
     .btn-secondary:hover, .btn-secondary:active { transform: none }
-  }
-
-  /* A fine dot grid, fading out across the panel.
-     Texture rather than decoration: it gives a large empty surface something
-     to be, which is what the header was missing when it was three lines of
-     text over a flat field. Masked on the diagonal so it never reads as a
-     pattern with an edge. */
-  .hero-grid::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background-image: radial-gradient(hsl(var(--foreground) / 0.16) 1.2px, transparent 1.2px);
-    background-size: 20px 20px;
-    -webkit-mask-image: linear-gradient(105deg, #000 0%, transparent 62%);
-    mask-image: linear-gradient(105deg, #000 0%, transparent 62%);
   }
 
   /* The status dot, breathing. Inherits the status colour through

@@ -218,17 +218,18 @@ export default async function DashboardPage() {
           THEIR card, so their photograph is the obvious anchor and it was not
           on the page at all above the fold.
 
+          Solid, not glass, and with no texture or wash behind it: Andre tried
+          both and wanted the panel plain. The photo carries the colour here,
+          which on a header this size is enough.
+
           The name is the largest thing on the screen and set tight, because at
           this size default tracking reads as loose rather than grand. */}
-      <header className="panel hero-grid overflow-hidden">
-        {/* A pool of the card's own accent, behind the photo, so the header
-            picks up the colour of the card it is describing rather than the
-            app's. */}
-        <div aria-hidden className="absolute inset-0 pointer-events-none"
-          style={{ background: `radial-gradient(52% 120% at 6% 0%, ${accentHex}24, transparent 68%)` }} />
-
+      <header className="panel panel-solid overflow-hidden">
         <div className="relative p-5 sm:p-7 flex items-start gap-4 sm:gap-5 flex-wrap">
-          <div className="shrink-0 rounded-2xl overflow-hidden grid place-items-center"
+          {/* self-center, not items-center on the row: the photo lines up with
+              the middle of the text block beside it, while the action button
+              stays where it belongs at the top. */}
+          <div className="shrink-0 self-center rounded-2xl overflow-hidden grid place-items-center"
             style={{
               width: 76, height: 76,
               background: accentHex + '1a',
