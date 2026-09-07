@@ -1,6 +1,6 @@
 import { pdf } from '@react-pdf/renderer'
 import { invoiceDocument, type DocView } from './invoice-document'
-import { CARDTLY_LOGO_DATA_URI } from './logo'
+import { CARDTLY_LOGO_DATA_URI, CARDTLY_QR_DATA_URI, CARDTLY_SWOOSH_DATA_URI } from './logo'
 
 // Node only. @react-pdf needs Node streams and pdfkit's font files, so every
 // route that calls this must declare `export const runtime = 'nodejs'` or it
@@ -15,9 +15,13 @@ export async function renderDocumentPdf(d: DocView): Promise<Buffer> {
   // assets and the filesystem: it is compiled and run on its own by
   // scripts/check-pdf-document. A document that carries its own logo keeps it,
   // which is what makes an issued document reproducible.
-  const withLogo: DocView = d.from.logoUrl
-    ? d
-    : { ...d, from: { ...d.from, logoUrl: CARDTLY_LOGO_DATA_URI } }
+  const withLogo: DocView = {
+    ...d,
+    from: d.from.logoUrl ? d.from : { ...d.from, logoUrl: CARDTLY_LOGO_DATA_URI },
+    // The letterhead's own QR and corner graphic, unless the caller has already
+    // decided otherwise.
+    stationery: d.stationery ?? { qr: CARDTLY_QR_DATA_URI, swoosh: CARDTLY_SWOOSH_DATA_URI },
+  }
 
   const instance: any = pdf()
   instance.container.document = invoiceDocument(withLogo)

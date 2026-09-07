@@ -45,6 +45,20 @@ export interface DocView {
     branchCode?: string | null; accountType?: string | null; swift?: string | null
   } | null
   terms?: string | null
+
+  /**
+   * The stationery, as opposed to the document.
+   *
+   * Deliberately separate from `from`. Everything in `from` is snapshotted onto
+   * the row at issue and must never change afterwards; these are the printed
+   * decoration of whatever letterhead is current, and reprinting an old invoice
+   * on today's stationery is normal rather than a falsification. Filled in by
+   * lib/pdf/render, which is the only module allowed to know about assets.
+   */
+  stationery?: {
+    qr?: string | null
+    swoosh?: string | null
+  }
 }
 
 // Taken off the letterhead itself rather than picked: these are the exact
@@ -121,11 +135,31 @@ const s: Record<string, Style> = {
   termsBox: { marginTop: 18 },
   termsText: { fontSize: 7.5, color: MUTED, lineHeight: 1.5 },
 
+  // Inset on both sides to clear the QR on the left and the corner graphic on
+  // the right, so the rule runs BETWEEN them rather than under them. 96 and 110
+  // leave the text box very nearly centred on the page (290.6 against 297.6),
+  // which is close enough to read as centred and far enough to never collide.
   footer: {
-    position: 'absolute', bottom: 26, left: 44, right: 44,
+    position: 'absolute', bottom: 26, left: 96, right: 110,
     borderTopWidth: 1, borderTopColor: RULE, paddingTop: 8,
     fontSize: 7, color: MUTED, textAlign: 'center',
   },
+
+  // Bottom-left, opposite the corner graphic. Sized to sit inside the band the
+  // page's 64pt bottom padding already reserves, so it can never land on top of
+  // a line item.
+  qr: { position: 'absolute', left: 44, bottom: 24, width: 40, height: 40 },
+  // bottom 7, not 15. The caption wraps to two lines, and at 15 its first line
+  // ran 2pt into the bottom of the code. A QR with text over its quiet zone is
+  // a QR that scanners refuse.
+  qrCaption: {
+    position: 'absolute', left: 36, bottom: 7, width: 56,
+    fontSize: 5, color: MUTED, textAlign: 'center',
+  },
+
+  // Anchored to the page edge, not the content margin: on the letterhead it
+  // bleeds into the corner, and insetting it would read as a mistake.
+  swoosh: { position: 'absolute', right: 0, bottom: 0, width: 100, height: 71 },
 }
 
 const dateOf = (iso: string | null | undefined) =>
@@ -275,6 +309,21 @@ export function invoiceDocument(d: DocView): PdfNode {
         text({ style: s.label }, 'TERMS AND CONDITIONS'),
         text({ style: s.termsText }, d.terms),
       ) : null,
+
+      // The stationery, drawn last so it sits over the page rather than under
+      // it, and `fixed` so a two-page quote is not a branded first page
+      // followed by a bare second one.
+      d.stationery?.swoosh
+        ? image({ style: s.swoosh, src: d.stationery.swoosh, fixed: true })
+        : null,
+      d.stationery?.qr
+        ? image({ style: s.qr, src: d.stationery.qr, fixed: true })
+        : null,
+      // Says what the code is for. Without it a QR on an invoice reads as
+      // "scan to pay", and this one goes to a business card.
+      d.stationery?.qr
+        ? text({ style: s.qrCaption, fixed: true }, 'SCAN TO SAVE OUR DETAILS')
+        : null,
 
       text({ style: s.footer, fixed: true }, footerText),
     ),
