@@ -31,6 +31,43 @@ function linesOf(rows: Row[]): DocView['lines'] {
   }))
 }
 
+/** Is a quote past the date it said it stood until?
+ *
+ *  Worked out on read rather than written into the row, so it is right without
+ *  a cron job keeping it right. A quote nobody looked at for a month is expired
+ *  the moment somebody looks, not the moment a scheduled task next runs. */
+export function isQuoteExpired(quote: Row, today = new Date()): boolean {
+  if (!quote.valid_until) return false
+  if (['accepted', 'declined', 'cancelled', 'draft'].includes(quote.status)) return false
+  return String(quote.valid_until).slice(0, 10) < today.toISOString().slice(0, 10)
+}
+
+/** What a quote's status should READ as, which is not always what is stored. */
+export function quoteDisplayStatus(quote: Row, today = new Date()): string {
+  return isQuoteExpired(quote, today) ? 'expired' : quote.status
+}
+
+export function docViewFromQuote(
+  quote: Row,
+  lines: Row[],
+  fallback?: {
+    settings?: (BillingSettingsLike & { vat_rate_bp?: number | null }) | null
+    client?: Row | null
+  },
+): DocView {
+  const invoiceShaped = docViewFromInvoice(
+    { ...quote, due_at: null, paid_cents: 0 }, lines, fallback)
+  return {
+    ...invoiceShaped,
+    kind: 'quote',
+    dueAt: null,
+    // A quote lapses rather than falling due. Printing a due date on one would
+    // be asking for payment against a document nobody has agreed to.
+    validUntil: quote.valid_until || null,
+    paidCents: 0,
+  }
+}
+
 export function docViewFromInvoice(
   invoice: Row,
   lines: Row[],
