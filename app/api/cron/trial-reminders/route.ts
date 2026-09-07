@@ -270,12 +270,30 @@ export async function GET(request: Request) {
     webhooks = { error: 'delivery pass failed' }
   }
 
+  // Recurring invoice DRAFTS ride along here too, for the same reason as the
+  // webhooks above: two cron slots, both spoken for, and a third rejects the
+  // whole deployment.
+  //
+  // Daily is the right cadence anyway. A schedule generates when it comes
+  // within its lead days of falling due, so a run missed on one day is picked
+  // up the next, and the idempotency guard in lib/recurring-invoices means a
+  // double run cannot bill anybody twice. Nothing here sends: it drafts, and a
+  // person approves.
+  let recurring: any = null
+  try {
+    const { generateRecurringDrafts } = await import('@/lib/recurring-invoices')
+    recurring = await generateRecurringDrafts(admin)
+  } catch (e: any) {
+    recurring = { error: e?.message || 'recurring pass failed' }
+  }
+
   return NextResponse.json({
     ok: blocked.length === 0,
     delivered,
     failed: failed.length,
     considered: queue.length,
     webhooks,
+    recurring,
     ...(blocked.length ? { blocked } : {}),
     ops,
     payments,

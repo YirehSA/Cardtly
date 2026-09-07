@@ -28,7 +28,7 @@ const FILTERS = [
   { id: 'all', label: 'Everything' },
 ]
 
-export default function InvoicesTab() {
+export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void } = {}) {
   const [loading, setLoading] = useState(true)
   const [unavailable, setUnavailable] = useState<string | null>(null)
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -55,6 +55,14 @@ export default function InvoicesTab() {
   useEffect(() => { load() }, [filter])
 
   function startNew() {
+    // No clients means there is nobody to address this to. Rather than a dead
+    // button with a tooltip nobody sees, say so and go to the screen that fixes
+    // it. A disabled control that will not explain itself is a dead end.
+    if (clients.length === 0) {
+      toast.error('An invoice has to be addressed to somebody. Add a client first.')
+      onAddClient?.()
+      return
+    }
     setEditing({ id: null, client_id: clients[0]?.id || '', notes: '', lines: [{ ...BLANK_LINE }] })
   }
 
@@ -194,10 +202,9 @@ export default function InvoicesTab() {
           </button>
         ))}
         <div className="flex-1" />
-        <button onClick={startNew} disabled={clients.length === 0}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
-          style={{ background: grad, color: '#fff' }}
-          title={clients.length === 0 ? 'Add a client first' : undefined}>
+        <button onClick={startNew}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
+          style={{ background: grad, color: '#fff' }}>
           <Plus className="w-4 h-4" />New invoice
         </button>
       </div>
@@ -354,6 +361,24 @@ export default function InvoicesTab() {
             </button>
           </div>
         </Section>
+      )}
+
+      {clients.length === 0 && (
+        <div className="rounded-lg p-4 flex items-start gap-3 flex-wrap"
+          style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.35)' }}>
+          <div className="flex-1 min-w-[220px]">
+            <p className="text-sm font-semibold text-white">There are no clients yet</p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              An invoice is addressed to somebody, and that name and address get frozen onto the document
+              when it is issued. Add a client and this will work.
+            </p>
+          </div>
+          <button onClick={() => onAddClient?.()}
+            className="px-4 py-2 rounded-xl text-sm font-semibold"
+            style={{ background: grad, color: '#fff' }}>
+            Add a client
+          </button>
+        </div>
       )}
 
       {invoices.length === 0 ? (

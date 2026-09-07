@@ -233,6 +233,49 @@ if (M.defaultDueDate('end_of_month', ISSUE, 14) === M.defaultDueDate('days', ISS
 eq('quote validity', M.quoteValidUntil(new Date('2026-09-04T00:00:00Z')), '2026-09-18')
 eq('quote validity, overridden', M.quoteValidUntil(new Date('2026-09-04T00:00:00Z'), 30), '2026-10-04')
 
+// ── Recurring schedules ───────────────────────────────────────────────────
+{
+  // Advanced from the DUE DATE, so a late run does not drag the cycle with it.
+  eq('monthly advance', M.advanceSchedule('2026-09-05', 'monthly', 5), '2026-10-05')
+  eq('quarterly advance', M.advanceSchedule('2026-09-05', 'quarterly', 5), '2026-12-05')
+  eq('annual advance', M.advanceSchedule('2026-09-05', 'annually', 5), '2027-09-05')
+  eq('advance across a year end', M.advanceSchedule('2026-12-05', 'monthly', 5), '2027-01-05')
+  eq('quarterly across a year end', M.advanceSchedule('2026-11-15', 'quarterly', 15), '2027-02-15')
+
+  // The 31st does not exist in every month, and must come BACK on the months
+  // that have one rather than sticking at 28.
+  eq('31st into February', M.advanceSchedule('2026-01-31', 'monthly', 31), '2026-02-28')
+  eq('and back out again', M.advanceSchedule('2026-02-28', 'monthly', 31), '2026-03-31')
+  eq('31st into a 30-day month', M.advanceSchedule('2026-03-31', 'monthly', 31), '2026-04-30')
+  eq('leap February', M.advanceSchedule('2028-01-31', 'monthly', 31), '2028-02-29')
+
+  // Twelve months of a 31st schedule: one charge per month, never a skip and
+  // never two in one month.
+  {
+    let d = '2026-01-31'
+    const seen = []
+    for (let i = 0; i < 12; i++) { d = M.advanceSchedule(d, 'monthly', 31); seen.push(d.slice(0, 7)) }
+    const months = new Set(seen)
+    if (months.size !== 12) bad(`a 31st schedule did not bill once a month: ${seen.join(', ')}`)
+    if (seen[0] !== '2026-02') bad(`a 31st schedule skipped February: ${seen[0]}`)
+  }
+
+  // Lead time: the draft appears before the money is needed, not on the day.
+  const due = '2026-09-30'
+  eq('not yet, 10 days out with 7 lead', M.shouldGenerate(due, 7, new Date('2026-09-20T00:00:00Z')), false)
+  eq('exactly on the lead day', M.shouldGenerate(due, 7, new Date('2026-09-23T00:00:00Z')), true)
+  eq('after the lead day', M.shouldGenerate(due, 7, new Date('2026-09-28T00:00:00Z')), true)
+  // A missed run must still fire, not be skipped for being late.
+  eq('overdue still generates', M.shouldGenerate(due, 7, new Date('2026-10-14T00:00:00Z')), true)
+  eq('zero lead means on the day', M.shouldGenerate(due, 0, new Date('2026-09-30T00:00:00Z')), true)
+  eq('zero lead, day before', M.shouldGenerate(due, 0, new Date('2026-09-29T00:00:00Z')), false)
+
+  // The period a line covers, in words a bookkeeper can check.
+  eq('monthly period label', M.periodLabel('2026-09-05', 'monthly', 5), '5 Sep 2026 to 5 Oct 2026')
+  eq('quarterly period label', M.periodLabel('2026-09-05', 'quarterly', 5), '5 Sep 2026 to 5 Dec 2026')
+  eq('period label across a year end', M.periodLabel('2026-12-05', 'monthly', 5), '5 Dec 2026 to 5 Jan 2027')
+}
+
 // ── Allocating a receipt across invoices ──────────────────────────────────
 {
   const inv = (id, due, total, paid = 0) => ({ id, dueOn: due, totalCents: total, paidCents: paid })

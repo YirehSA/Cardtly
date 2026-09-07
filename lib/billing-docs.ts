@@ -173,6 +173,57 @@ export function dueDateFor(
   return nextAnniversary(issuedAt, opts.anniversaryDay)
 }
 
+export type Cadence = 'monthly' | 'quarterly' | 'annually'
+
+const MONTHS_PER: Record<Cadence, number> = { monthly: 1, quarterly: 3, annually: 12 }
+
+/**
+ * When a schedule next falls due after the run it just did.
+ *
+ * Advanced from the DUE DATE, never from today. A run that happens late - a
+ * missed cron, a deploy, a day Vercel fired at 07:04 instead of 07:00 - must
+ * not push the cycle later with it, or a client billed on the 5th drifts to the
+ * 6th, then the 8th, and eventually onto a different month than the one they
+ * signed up in.
+ */
+export function advanceSchedule(from: string, cadence: Cadence, anniversaryDay: number): string {
+  const [y, m] = from.split('-').map(Number)
+  // Month index is 0-based here and 1-based in the string.
+  return anniversaryOn(y, (m - 1) + MONTHS_PER[cadence], anniversaryDay)
+}
+
+/**
+ * Is it time to put this one in front of somebody?
+ *
+ * Lead days, not the due date itself. The model is prepaid: the invoice has to
+ * be out, approved and PAID before the period it covers starts, so a draft that
+ * first appears on the due date is already a week late.
+ */
+export function shouldGenerate(nextRunOn: string, leadDays: number, today = new Date()): boolean {
+  const due = Date.parse(nextRunOn + 'T00:00:00Z')
+  if (!Number.isFinite(due)) return false
+  const lead = due - Math.max(0, Math.round(leadDays)) * 86400000
+  return today.getTime() >= lead
+}
+
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/**
+ * What period a recurring line actually covers, in words a client can check.
+ *
+ * "September 2026" would be wrong and worse than useless for a cycle that runs
+ * the 5th to the 5th: it names a month the invoice only half covers, and it is
+ * the first thing a bookkeeper queries.
+ */
+export function periodLabel(startOn: string, cadence: Cadence, anniversaryDay: number): string {
+  const end = advanceSchedule(startOn, cadence, anniversaryDay)
+  const fmt = (iso: string) => {
+    const [y, m, d] = iso.split('-').map(Number)
+    return `${d} ${MONTH_NAMES[m - 1]} ${y}`
+  }
+  return `${fmt(startOn)} to ${fmt(end)}`
+}
+
 /**
  * The charge for a change part way through a paid month.
  *
