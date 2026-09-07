@@ -15,6 +15,7 @@ import ExpiryBoard from './ExpiryBoard'
 import RepsTab from './RepsTab'
 import MeetingsTab from './MeetingsTab'
 import ReportsTab from './ReportsTab'
+import BillingTab from './BillingTab'
 import { Stat, Section, StatusPill, STATUS_META, grad, inputClass, inputStyle, fmtDate, fmtWhen, randFmt } from './shared'
 import { NFC_STATUSES, NFC_STATUS_COLORS, NFC_STATUS_LABELS, type NfcStatus } from '@/lib/nfc'
 import type { AdminUserRow, AdminOrgRow, UserStatus, TrialCodeRow } from '@/lib/admin-data'
@@ -60,7 +61,7 @@ interface Props {
 
 // as const so ?tab= can be checked against it rather than trusted: an unknown
 // value opens Overview instead of rendering nothing at all.
-const TABS = ['overview', 'users', 'teams', 'trials', 'reps', 'meetings', 'calls', 'nfc', 'reports', 'activity'] as const
+const TABS = ['overview', 'users', 'teams', 'trials', 'reps', 'meetings', 'calls', 'nfc', 'billing', 'reports', 'activity'] as const
 type Tab = typeof TABS[number]
 type Filter = 'all' | UserStatus | 'admins' | 'unconfirmed'
 
@@ -279,6 +280,7 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
             ['meetings', 'Calendar', CalendarClock],
             ['calls', 'Call log', PhoneCall],
             ['nfc', 'NFC orders', Wifi],
+            ['billing', 'Billing', Banknote],
             ['reports', 'Reports', Flag],
             ['activity', 'Activity', ScrollText],
           ] as [Tab, string, any][]).map(([id, label, Icon]) => (
@@ -549,6 +551,7 @@ ${r.email} will be able to sign in and log their meetings. If that address has n
         )}
 
         {tab === 'nfc' && <NfcTab orders={nfcOrders} run={run} loading={loading} />}
+        {tab === 'billing' && <BillingTab />}
         {tab === 'reports' && <ReportsTab />}
         {tab === 'activity' && <ActivityTab audit={audit} />}
       </div>

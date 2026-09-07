@@ -192,13 +192,57 @@ for (const n of [1, 3, 7, 20, 250]) {
   if (r.nextPeriodCents !== n * 9700) bad(`recurring amount wrong at ${n} seats: ${r.nextPeriodCents}`)
 }
 
+// ── VAT may only be charged by somebody registered to charge it ───────────
+// billing_settings defaults the rate to 1500 with no VAT number, which is
+// exactly the state Cardtly is in while the application is in. Reading the
+// rate straight off settings there produces an INVOICE that adds 15%.
+eq('no VAT number, no VAT', M.effectiveVatRateBp(null, 1500), 0)
+eq('blank VAT number, no VAT', M.effectiveVatRateBp('   ', 1500), 0)
+eq('registered, rate applies', M.effectiveVatRateBp('4123456789', 1500), 1500)
+eq('registered but zero rated', M.effectiveVatRateBp('4123456789', 0), 0)
+eq('nonsense rate is not charged', M.effectiveVatRateBp('4123456789', NaN), 0)
+// The two must agree: an unregistered document says INVOICE and carries no VAT.
+{
+  const vat = null
+  const totals = M.documentTotals([{ description: 'x', qty: 1, unitPriceCents: 10000 }], M.effectiveVatRateBp(vat, 1500))
+  eq('unregistered document title', M.documentTitle('invoice', vat), 'INVOICE')
+  eq('unregistered document VAT', totals.vatCents, 0)
+  eq('unregistered document total', totals.totalCents, 10000)
+}
+
+// ── The letterhead's own terms ────────────────────────────────────────────
+// "Invoice due date: last day of each month". The month length has to come
+// out of the calendar, not out of a guess.
+eq('end of a 30-day month', M.endOfMonthDue(new Date('2026-09-04T00:00:00Z')), '2026-09-30')
+eq('end of a 31-day month', M.endOfMonthDue(new Date('2026-01-01T00:00:00Z')), '2026-01-31')
+eq('end of February', M.endOfMonthDue(new Date('2026-02-14T00:00:00Z')), '2026-02-28')
+eq('end of a leap February', M.endOfMonthDue(new Date('2028-02-14T00:00:00Z')), '2028-02-29')
+eq('end of December', M.endOfMonthDue(new Date('2026-12-31T00:00:00Z')), '2026-12-31')
+// Issued ON the last day: due that day, not rolled into next month.
+eq('issued on the last day', M.endOfMonthDue(new Date('2026-09-30T00:00:00Z')), '2026-09-30')
+
+const ISSUE = new Date('2026-09-17T00:00:00Z')
+eq('rule end_of_month', M.defaultDueDate('end_of_month', ISSUE, 14), '2026-09-30')
+eq('rule days', M.defaultDueDate('days', ISSUE, 14), '2026-10-01')
+eq('rule on_issue', M.defaultDueDate('on_issue', ISSUE, 14), '2026-09-17')
+// The two rules genuinely differ, which is the reason the column exists.
+if (M.defaultDueDate('end_of_month', ISSUE, 14) === M.defaultDueDate('days', ISSUE, 14)) {
+  bad('end_of_month and days must not collapse to the same date')
+}
+// "Quote valid 14 days".
+eq('quote validity', M.quoteValidUntil(new Date('2026-09-04T00:00:00Z')), '2026-09-18')
+eq('quote validity, overridden', M.quoteValidUntil(new Date('2026-09-04T00:00:00Z'), 30), '2026-10-04')
+
 // ── Snapshots carry the fields a document cannot be rendered without ──────
 const snap = M.bankSnapshot({ bank_name: 'FNB', bank_account_name: 'Cardtly', bank_account_no: '123', bank_branch_code: '250655' })
-for (const k of ['bankName', 'accountName', 'accountNumber', 'branchCode', 'swift']) {
+for (const k of ['bankName', 'accountName', 'accountNumber', 'branchCode', 'accountType', 'swift']) {
   if (!(k in snap)) bad(`bank snapshot is missing ${k}`)
 }
 const from = M.fromSnapshot({ legal_name: 'Cardtly', vat_number: null })
 if (!('vatNumber' in from)) bad('from snapshot must carry vatNumber, or the title cannot be reproduced later')
+// The letterhead prints the website next to the phone and the email. A
+// document that lists two of the three reads truncated.
+if (!('website' in from)) bad('from snapshot must carry website, which the letterhead prints')
 
 rmSync(out, { recursive: true, force: true })
 if (fail) {

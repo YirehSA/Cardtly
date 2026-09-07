@@ -77,6 +77,29 @@ export function documentTitle(kind: DocKind, vatNumber: string | null | undefine
   return registered ? 'TAX INVOICE' : 'INVOICE'
 }
 
+/**
+ * The rate a document may actually charge.
+ *
+ * A business that is not VAT registered may not charge VAT. billing_settings
+ * ships with vat_rate_bp defaulting to 1500 and vat_number null - the state
+ * Cardtly is in right now, mid-application - and reading the rate straight off
+ * settings in that state produces a document headed INVOICE that adds 15%,
+ * which is a document that must not exist. The number is what proves the
+ * entitlement, so the number is what switches the rate on.
+ *
+ * Applied when a document is built, never by editing settings: on the day
+ * registration lands, entering the number starts charging VAT and every
+ * historical document keeps saying exactly what it said.
+ */
+export function effectiveVatRateBp(
+  vatNumber: string | null | undefined,
+  rateBp: number | null | undefined,
+): number {
+  if (!(vatNumber && vatNumber.trim())) return 0
+  const n = Math.round(Number(rateBp))
+  return Number.isFinite(n) && n > 0 ? n : 0
+}
+
 /** Cents to a readable amount, always two decimals.
  *
  *  The thousands separator is a NON-BREAKING space (U+00A0), not a plain one.
@@ -229,6 +252,38 @@ export function dueDateFrom(issuedAt: Date, termsDays: number): string {
 }
 
 /**
+ * The last day of the month an invoice was issued in.
+ *
+ * Day 0 of the NEXT month is the last day of this one, which is the only way
+ * to write it that is right in February and right in a leap year without a
+ * table of month lengths.
+ */
+export function endOfMonthDue(issuedAt: Date): string {
+  const d = new Date(Date.UTC(issuedAt.getUTCFullYear(), issuedAt.getUTCMonth() + 1, 0))
+  return d.toISOString().slice(0, 10)
+}
+
+export type DueRule = 'end_of_month' | 'days' | 'on_issue'
+
+/**
+ * The due date for an ordinary invoice, from the rule in settings.
+ *
+ * Subscriptions do not come through here: they fall due on the anniversary,
+ * which dueDateFor works out, because a prepaid cycle is not a payment term.
+ */
+export function defaultDueDate(rule: DueRule, issuedAt: Date, termsDays: number): string {
+  if (rule === 'on_issue') return issuedAt.toISOString().slice(0, 10)
+  if (rule === 'days') return dueDateFrom(issuedAt, termsDays)
+  return endOfMonthDue(issuedAt)
+}
+
+/** When a quote lapses. Stored in settings rather than fixed at QUOTE_VALID_DAYS
+ *  so changing the promise on the letterhead does not need a deploy. */
+export function quoteValidUntil(issuedAt: Date, validDays = QUOTE_VALID_DAYS): string {
+  return dueDateFrom(issuedAt, validDays)
+}
+
+/**
  * What an invoice's status becomes once a payment lands.
  *
  * Overpayment resolves to paid rather than to an error: the money is in the
@@ -296,11 +351,13 @@ export interface BillingSettingsLike {
   email?: string | null
   phone?: string | null
   address?: string | null
+  website?: string | null
   logo_url?: string | null
   bank_name?: string | null
   bank_account_name?: string | null
   bank_account_no?: string | null
   bank_branch_code?: string | null
+  bank_account_type?: string | null
   bank_swift?: string | null
 }
 
@@ -322,6 +379,7 @@ export function fromSnapshot(s: BillingSettingsLike) {
     email: s.email || null,
     phone: s.phone || null,
     address: s.address || null,
+    website: s.website || null,
     logoUrl: s.logo_url || null,
   }
 }
@@ -345,6 +403,9 @@ export function bankSnapshot(s: BillingSettingsLike) {
     accountName: s.bank_account_name || null,
     accountNumber: s.bank_account_no || null,
     branchCode: s.bank_branch_code || null,
+    // Cheque/Current versus Savings. A South African EFT beneficiary needs it,
+    // and getting it wrong bounces the payment rather than misrouting it.
+    accountType: s.bank_account_type || null,
     swift: s.bank_swift || null,
   }
 }

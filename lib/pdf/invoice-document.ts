@@ -1,0 +1,256 @@
+import { doc, page, view, text, image, type PdfNode, type Style } from './nodes'
+import { formatMoney, documentTitle, paymentReference, type DocKind } from '../billing-docs'
+
+// The printable document: invoice, quote or credit note, from one layout.
+//
+// Laid out from Cardtly's own letterhead rather than invented. The header
+// carries the address, phone, email and website the way the Word template
+// does; the footer carries the legal name and registration number, which is
+// where the letterhead puts them.
+//
+// EVERYTHING RENDERED HERE COMES OFF THE DOCUMENT ROW. Nothing is looked up.
+// An invoice issued today must still render identically in five years, after
+// the bank details change and the address moves, so the snapshots taken at
+// issue are the only source. Code that reaches for current settings rewrites
+// history.
+//
+// Built with the node helpers in ./nodes rather than JSX. See the comment at
+// the top of that file for why.
+
+export interface DocView {
+  kind: DocKind
+  number: string | null
+  issuedAt: string | null
+  dueAt: string | null
+  validUntil?: string | null
+  currency: string
+  subtotalCents: number
+  vatRateBp: number
+  vatCents: number
+  totalCents: number
+  paidCents?: number
+  notes?: string | null
+  lines: Array<{ description: string; qty: number; unitPriceCents: number; lineTotalCents: number }>
+  from: {
+    legalName: string; tradingName?: string | null; regNumber?: string | null
+    vatNumber?: string | null; email?: string | null; phone?: string | null
+    address?: string | null; website?: string | null; logoUrl?: string | null
+  }
+  to: {
+    name: string; contactPerson?: string | null; email?: string | null
+    phone?: string | null; address?: string | null; vatNumber?: string | null
+  }
+  bank?: {
+    bankName?: string | null; accountName?: string | null; accountNumber?: string | null
+    branchCode?: string | null; accountType?: string | null; swift?: string | null
+  } | null
+  terms?: string | null
+}
+
+const INK = '#111111'
+const MUTED = '#666666'
+const RULE = '#DDDDDD'
+
+// Helvetica, Helvetica-Bold and Helvetica-Oblique are the three faces pdfkit
+// carries internally. Anything else has to be registered from a font file,
+// which means shipping the file and reading it at runtime on Vercel. Not worth
+// it for a document whose job is to be read by an accounts department.
+const s: Record<string, Style> = {
+  page: { paddingTop: 40, paddingBottom: 64, paddingHorizontal: 44, fontSize: 9, color: INK, fontFamily: 'Helvetica' },
+  row: { flexDirection: 'row' },
+  // flex-start, not the default stretch: the meta column on the right is the
+  // taller of the two, and a stretched left column centres the brand name
+  // against it, dropping it 16pt below the title it should sit level with.
+  between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+
+  brandName: { fontSize: 18, fontFamily: 'Helvetica-Bold', letterSpacing: -0.4 },
+  tagline: { fontSize: 7, color: MUTED, letterSpacing: 1.1, marginTop: 3 },
+  logo: { width: 46, height: 46, marginRight: 10 },
+
+  title: { fontSize: 22, fontFamily: 'Helvetica-Bold', letterSpacing: -0.6, textAlign: 'right' },
+  meta: { fontSize: 9, color: MUTED, textAlign: 'right', marginTop: 3 },
+
+  hr: { borderBottomWidth: 1, borderBottomColor: RULE, marginVertical: 16 },
+
+  label: { fontSize: 7, color: MUTED, letterSpacing: 1, marginBottom: 4 },
+  labelFlush: { fontSize: 7, color: MUTED, letterSpacing: 1 },
+  block: { flexGrow: 1, flexBasis: 0, paddingRight: 16 },
+  line: { fontSize: 9, lineHeight: 1.5 },
+  strong: { fontFamily: 'Helvetica-Bold' },
+  mutedText: { color: MUTED },
+
+  th: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: INK, paddingBottom: 5, marginTop: 6 },
+  tr: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: RULE, paddingVertical: 7 },
+  cDesc: { flexGrow: 1, flexBasis: 0, paddingRight: 10 },
+  cQty: { width: 46, textAlign: 'right' },
+  cUnit: { width: 78, textAlign: 'right' },
+  cTotal: { width: 84, textAlign: 'right' },
+
+  totals: { marginTop: 14, marginLeft: 'auto', width: 240 },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
+  grand: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7, borderTopWidth: 1, borderTopColor: INK, marginTop: 4 },
+  grandText: { fontSize: 12, fontFamily: 'Helvetica-Bold' },
+
+  panel: { marginTop: 22, borderWidth: 1, borderColor: RULE, borderRadius: 4, padding: 12 },
+  termsBox: { marginTop: 18 },
+  termsText: { fontSize: 7.5, color: MUTED, lineHeight: 1.5 },
+
+  footer: {
+    position: 'absolute', bottom: 26, left: 44, right: 44,
+    borderTopWidth: 1, borderTopColor: RULE, paddingTop: 8,
+    fontSize: 7, color: MUTED, textAlign: 'center',
+  },
+}
+
+const dateOf = (iso: string | null | undefined) =>
+  iso ? new Date(iso).toISOString().slice(0, 10) : ''
+
+/** One label-over-value line, or nothing when there is no value. Keeps the
+ *  address blocks from printing "Reg. No." above an empty space. */
+const optional = (value: string | null | undefined, style: Style | Style[] = s.line, prefix = '') =>
+  value ? text({ style }, `${prefix}${value}`) : null
+
+export function invoiceDocument(d: DocView): PdfNode {
+  const title = documentTitle(d.kind, d.from.vatNumber)
+  const money = (c: number) => formatMoney(c, d.currency)
+  const showVat = d.vatRateBp > 0
+  const outstanding = d.totalCents - (d.paidCents || 0)
+
+  const footerText = [
+    d.from.legalName,
+    d.from.regNumber ? `Registration No. ${d.from.regNumber}` : null,
+    d.from.address,
+  ].filter(Boolean).join('   ·   ')
+
+  return doc(
+    { title: `${title} ${d.number || ''}`.trim(), author: d.from.legalName },
+    page({ size: 'A4', style: s.page },
+
+      // ── Letterhead ──────────────────────────────────────────────────────
+      view({ style: s.between },
+        view({ style: [s.row, { alignItems: 'center' }] },
+          d.from.logoUrl ? image({ style: s.logo, src: d.from.logoUrl }) : null,
+          view(null,
+            text({ style: s.brandName }, d.from.tradingName || d.from.legalName),
+            text({ style: s.tagline }, 'YOUR ESSENCE. ONE CONNECTION'),
+          ),
+        ),
+        view(null,
+          text({ style: s.title }, title),
+          // A draft says so. A preview or an unapproved recurring invoice that
+          // looks numbered is one somebody eventually emails to a client.
+          text({ style: s.meta }, d.number || 'DRAFT'),
+          optional(d.issuedAt ? dateOf(d.issuedAt) : null, s.meta, 'Issued '),
+          d.kind === 'quote'
+            ? optional(d.validUntil ? dateOf(d.validUntil) : null, s.meta, 'Valid until ')
+            : optional(d.dueAt ? dateOf(d.dueAt) : null, s.meta, 'Due '),
+        ),
+      ),
+
+      view({ style: s.hr }),
+
+      // ── Who, and to whom ────────────────────────────────────────────────
+      view({ style: s.row },
+        view({ style: s.block },
+          text({ style: s.label }, 'FROM'),
+          text({ style: [s.line, s.strong] }, d.from.legalName),
+          optional(d.from.regNumber, s.line, 'Reg. No. '),
+          // Printed only when there is one. A business that is not registered
+          // must not show a VAT line at all.
+          optional(d.from.vatNumber, s.line, 'VAT No. '),
+          optional(d.from.address),
+          optional(d.from.phone),
+          optional(d.from.email),
+          optional(d.from.website),
+        ),
+        view({ style: s.block },
+          text({ style: s.label }, d.kind === 'quote' ? 'QUOTE FOR' : 'BILL TO'),
+          text({ style: [s.line, s.strong] }, d.to.name),
+          optional(d.to.contactPerson),
+          optional(d.to.address),
+          optional(d.to.phone),
+          optional(d.to.email),
+          optional(d.to.vatNumber, s.line, 'VAT No. '),
+        ),
+      ),
+
+      // ── Lines ───────────────────────────────────────────────────────────
+      view({ style: s.th },
+        text({ style: [s.cDesc, s.labelFlush] }, 'DESCRIPTION'),
+        text({ style: [s.cQty, s.labelFlush] }, 'QTY'),
+        text({ style: [s.cUnit, s.labelFlush] }, 'UNIT'),
+        text({ style: [s.cTotal, s.labelFlush] }, 'AMOUNT'),
+      ),
+      d.lines.map(l => view({ style: s.tr, wrap: false },
+        text({ style: s.cDesc }, l.description),
+        // Trailing zeros trimmed: "1" not "1.000", and "1.5" survives.
+        text({ style: s.cQty }, String(Number(l.qty))),
+        text({ style: s.cUnit }, money(l.unitPriceCents)),
+        text({ style: s.cTotal }, money(l.lineTotalCents)),
+      )),
+
+      // ── Money ───────────────────────────────────────────────────────────
+      view({ style: s.totals },
+        view({ style: s.totalRow },
+          text({ style: s.mutedText }, 'Subtotal'),
+          text(null, money(d.subtotalCents)),
+        ),
+        showVat ? view({ style: s.totalRow },
+          text({ style: s.mutedText }, `VAT @ ${(d.vatRateBp / 100).toFixed(2)}%`),
+          text(null, money(d.vatCents)),
+        ) : null,
+        view({ style: s.grand },
+          text({ style: s.grandText }, 'Total'),
+          text({ style: s.grandText }, money(d.totalCents)),
+        ),
+        d.paidCents ? view({ style: s.totalRow },
+          text({ style: s.mutedText }, 'Paid'),
+          text(null, money(d.paidCents)),
+        ) : null,
+        d.paidCents ? view({ style: s.totalRow },
+          text({ style: s.strong }, 'Outstanding'),
+          text({ style: s.strong }, money(outstanding)),
+        ) : null,
+      ),
+
+      d.notes ? view({ style: { marginTop: 18 } },
+        text({ style: s.label }, 'NOTES'),
+        text({ style: s.line }, d.notes),
+      ) : null,
+
+      // ── Banking ─────────────────────────────────────────────────────────
+      // On a quote as well as an invoice, so the client can see who they will
+      // be paying before they accept.
+      d.bank && d.bank.accountNumber ? view({ style: s.panel },
+        text({ style: s.label }, 'BANKING DETAILS'),
+        view({ style: s.row },
+          view({ style: s.block },
+            optional(d.bank.bankName),
+            optional(d.bank.accountName),
+            optional(d.bank.accountType),
+          ),
+          view({ style: s.block },
+            optional(d.bank.accountNumber, s.line, 'Account: '),
+            optional(d.bank.branchCode, s.line, 'Branch code: '),
+            optional(d.bank.swift, s.line, 'SWIFT: '),
+          ),
+        ),
+        // The one thing that reconciles a bank line to a document without
+        // anybody guessing. Not on a quote: there is nothing to pay yet, and
+        // a quote number used as a payment reference is a payment nothing can
+        // be matched to.
+        d.number && d.kind !== 'quote'
+          ? text({ style: [s.line, s.strong, { marginTop: 6 }] },
+              `Please use ${paymentReference(d.number)} as your payment reference.`)
+          : null,
+      ) : null,
+
+      d.terms ? view({ style: s.termsBox },
+        text({ style: s.label }, 'TERMS AND CONDITIONS'),
+        text({ style: s.termsText }, d.terms),
+      ) : null,
+
+      text({ style: s.footer, fixed: true }, footerText),
+    ),
+  )
+}
