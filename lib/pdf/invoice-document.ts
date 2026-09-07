@@ -1,4 +1,4 @@
-import { doc, page, view, text, image, type PdfNode, type Style } from './nodes'
+import { doc, page, view, text, image, el, type PdfNode, type Style } from './nodes'
 import { formatMoney, documentTitle, paymentReference, type DocKind } from '../billing-docs'
 
 // The printable document: invoice, quote or credit note, from one layout.
@@ -47,9 +47,36 @@ export interface DocView {
   terms?: string | null
 }
 
-const INK = '#111111'
-const MUTED = '#666666'
+// Taken off the letterhead itself rather than picked: these are the exact
+// values in word/header1.xml and word/footer1.xml of Cardtly Letter Head.docx.
+const INK = '#0B1220'     // the letterhead's near-black navy
+const MUTED = '#6B7280'   // the colour its footer line is set in
 const RULE = '#DDDDDD'
+
+// The letterhead's signature divider, sampled across the gradient bar it uses
+// three times in its header (word/media/image3.png). Drawn rather than
+// embedded so it scales to any width without shipping an asset.
+const GRADIENT = [
+  '#1fbbfb', '#20a1f5', '#2587ef', '#4569eb', '#6a4be6',
+  '#8e39da', '#b42fc9', '#d427ae', '#f12186',
+]
+
+// A4 width less the page's horizontal padding on both sides.
+const CONTENT_W = 595.28 - 44 * 2
+
+/** The gradient rule. An Svg with a real linear gradient, so it stays smooth
+ *  rather than banding into visible steps the way stacked Views would. */
+function gradientRule(height = 3): PdfNode {
+  return el('SVG', { width: CONTENT_W, height, viewBox: `0 0 ${CONTENT_W} ${height}`, style: { marginVertical: 14 } },
+    el('DEFS', null,
+      el('LINEAR_GRADIENT', { id: 'cardtlyRule', x1: '0', y1: '0', x2: '1', y2: '0' },
+        ...GRADIENT.map((c, i) =>
+          el('STOP', { offset: `${(i / (GRADIENT.length - 1)).toFixed(4)}`, stopColor: c })),
+      ),
+    ),
+    el('RECT', { x: 0, y: 0, width: CONTENT_W, height, fill: 'url(#cardtlyRule)' }),
+  )
+}
 
 // Helvetica, Helvetica-Bold and Helvetica-Oblique are the three faces pdfkit
 // carries internally. Anything else has to be registered from a font file,
@@ -70,7 +97,6 @@ const s: Record<string, Style> = {
   title: { fontSize: 22, fontFamily: 'Helvetica-Bold', letterSpacing: -0.6, textAlign: 'right' },
   meta: { fontSize: 9, color: MUTED, textAlign: 'right', marginTop: 3 },
 
-  hr: { borderBottomWidth: 1, borderBottomColor: RULE, marginVertical: 16 },
 
   label: { fontSize: 7, color: MUTED, letterSpacing: 1, marginBottom: 4 },
   labelFlush: { fontSize: 7, color: MUTED, letterSpacing: 1 },
@@ -147,7 +173,7 @@ export function invoiceDocument(d: DocView): PdfNode {
         ),
       ),
 
-      view({ style: s.hr }),
+      gradientRule(),
 
       // ── Who, and to whom ────────────────────────────────────────────────
       view({ style: s.row },

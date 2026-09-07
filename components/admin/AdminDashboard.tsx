@@ -63,6 +63,39 @@ interface Props {
 // value opens Overview instead of rendering nothing at all.
 const TABS = ['overview', 'users', 'teams', 'trials', 'reps', 'meetings', 'calls', 'nfc', 'billing', 'reports', 'activity'] as const
 type Tab = typeof TABS[number]
+
+// Eleven tabs in one row was eleven things to read before doing anything, and
+// it was about to become sixteen once quotes, invoices, payments and statements
+// arrive. So they are grouped by the job being done rather than left flat.
+//
+// The GROUP is the navigation; the tab inside it is the detail. Which group is
+// open is DERIVED from the open tab rather than stored beside it, because two
+// pieces of state that have to agree are two pieces of state that eventually
+// do not: /admin?tab=meetings from the sidebar has to land on Calendar with
+// Sales lit up, and nothing has to remember to do that.
+const GROUPS: { id: string; label: string; icon: any; tabs: Tab[] }[] = [
+  { id: 'overview',   label: 'Overview',   icon: LayoutGrid,     tabs: ['overview'] },
+  { id: 'customers',  label: 'Customers',  icon: UsersIcon,      tabs: ['users', 'teams', 'trials'] },
+  { id: 'sales',      label: 'Sales',      icon: UserCog,        tabs: ['reps', 'meetings', 'calls'] },
+  { id: 'accounting', label: 'Accounting', icon: Banknote,       tabs: ['billing'] },
+  { id: 'operations', label: 'Operations', icon: Wifi,           tabs: ['nfc', 'reports', 'activity'] },
+]
+
+const TAB_META: Record<Tab, { label: string; icon: any }> = {
+  overview: { label: 'Overview',   icon: LayoutGrid },
+  users:    { label: 'Users',      icon: UsersIcon },
+  teams:    { label: 'Teams',      icon: Building2 },
+  trials:   { label: 'Trials',     icon: Ticket },
+  reps:     { label: 'Reps',       icon: UserCog },
+  meetings: { label: 'Calendar',   icon: CalendarClock },
+  calls:    { label: 'Call log',   icon: PhoneCall },
+  nfc:      { label: 'NFC orders', icon: Wifi },
+  billing:  { label: 'Billing',    icon: Banknote },
+  reports:  { label: 'Reports',    icon: Flag },
+  activity: { label: 'Activity',   icon: ScrollText },
+}
+
+const groupOf = (t: Tab) => GROUPS.find(g => g.tabs.includes(t)) || GROUPS[0]
 type Filter = 'all' | UserStatus | 'admins' | 'unconfirmed'
 
 const FILTERS: { id: Filter; label: string }[] = [
@@ -134,6 +167,8 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
   const [tab, setTab] = useState<Tab>(
     (TABS as readonly string[]).includes(initialTab || '') ? (initialTab as Tab) : 'overview'
   )
+  // Derived, never stored. See the comment on GROUPS.
+  const openGroup = groupOf(tab)
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [sort, setSort] = useState<SortId>('joined')
@@ -270,34 +305,63 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
           </button>
         )}
 
-        <div className="flex gap-1.5 flex-wrap">
-          {([
-            ['overview', 'Overview', LayoutGrid],
-            ['users', 'Users', UsersIcon],
-            ['teams', 'Teams', Building2],
-            ['trials', 'Trials', Ticket],
-            ['reps', 'Reps', UserCog],
-            ['meetings', 'Calendar', CalendarClock],
-            ['calls', 'Call log', PhoneCall],
-            ['nfc', 'NFC orders', Wifi],
-            ['billing', 'Billing', Banknote],
-            ['reports', 'Reports', Flag],
-            ['activity', 'Activity', ScrollText],
-          ] as [Tab, string, any][]).map(([id, label, Icon]) => (
-            <button key={id} onClick={() => setTab(id)}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition"
-              style={tab === id
-                ? { background: grad, color: '#fff' }
-                : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <Icon className="w-4 h-4" />
-              {label}
-              {id === 'nfc' && stats.openNfcOrders > 0 && (
-                <span className="px-1.5 rounded text-[10px] font-bold" style={{ background: 'rgba(245,158,11,0.25)', color: '#f59e0b' }}>
-                  {stats.openNfcOrders}
-                </span>
-              )}
-            </button>
-          ))}
+        {/* Two rows: the job, then the detail within it. */}
+        <div className="space-y-2">
+          <div className="flex gap-1.5 flex-wrap">
+            {GROUPS.map(g => {
+              const Icon = g.icon
+              const active = openGroup.id === g.id
+              // How many things in this group want attention, so a group that
+              // is collapsed still says there is something behind it.
+              const badge = g.tabs.reduce((n, t) => n + (t === 'nfc' ? stats.openNfcOrders : 0), 0)
+              return (
+                <button key={g.id} onClick={() => setTab(g.tabs[0])}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition"
+                  style={active
+                    ? { background: grad, color: '#fff' }
+                    : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <Icon className="w-4 h-4" />
+                  {g.label}
+                  {!active && badge > 0 && (
+                    <span className="px-1.5 rounded text-[10px] font-bold" style={{ background: 'rgba(245,158,11,0.25)', color: '#f59e0b' }}>
+                      {badge}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Only shown when the group has more than one thing in it. A single
+              sub-tab under its own name is a row that says nothing twice. */}
+          {openGroup.tabs.length > 1 && (
+            <div className="flex gap-1 flex-wrap items-center pl-1">
+              {openGroup.tabs.map(id => {
+                const { label, icon: Icon } = TAB_META[id]
+                const active = tab === id
+                return (
+                  <button key={id} onClick={() => setTab(id)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition"
+                    style={active
+                      ? { background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)' }
+                      // 0.55, not 0.45. At 0.45 an inactive sub-tab measured
+                      // 4.50:1 against the panel, sitting exactly on the AA
+                      // line, and these replaced tabs that were well clear of
+                      // it. Being quieter than the active one must not mean
+                      // being harder to read.
+                      : { background: 'transparent', color: 'rgba(255,255,255,0.55)', border: '1px solid transparent' }}>
+                    <Icon className="w-3.5 h-3.5" />
+                    {label}
+                    {id === 'nfc' && stats.openNfcOrders > 0 && (
+                      <span className="px-1.5 rounded text-[10px] font-bold" style={{ background: 'rgba(245,158,11,0.25)', color: '#f59e0b' }}>
+                        {stats.openNfcOrders}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {tab === 'overview' && (
