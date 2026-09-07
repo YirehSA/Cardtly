@@ -18,6 +18,10 @@ import { money, toCents, toRands, Empty, fmtDate } from './shared'
 type Pending = {
   id: string; client_name: string; due_at: string | null
   total_cents: number; notes: string | null
+  /** Set when this draft is a mid-cycle seat top-up rather than the monthly
+   *  charge. Approving it is the same act either way; the label is so nobody
+   *  approves a second invoice for one client without knowing why. */
+  adjustment: { from_seats: number; to_seats: number; period_end: string } | null
 }
 type Schedule = {
   id: string; name: string; client_name: string; organization_name: string | null
@@ -64,13 +68,22 @@ export default function RecurringTab() {
     const d = await res.json().catch(() => ({}))
     setBusy(null)
     if (!res.ok) { toast.error(d?.error || 'That did not run'); return }
+    const adj = d.seats || {}
     toast.success(d.created
       ? `${d.created} draft${d.created === 1 ? '' : 's'} raised from ${d.considered} schedule${d.considered === 1 ? '' : 's'}`
       : `Nothing due yet. ${d.considered} schedule${d.considered === 1 ? '' : 's'} checked.`)
-    for (const p of d.problems || []) toast.warning(p, { duration: 8000 })
-    for (const c of d.seatChanges || []) {
-      toast.info(`${c.schedule}: seats went from ${c.from} to ${c.to}`, { duration: 8000 })
+
+    // Seat changes are reported one by one and in words, because "3 adjustments
+    // raised" tells nobody whether that was right.
+    for (const c of adj.changes || []) {
+      toast.info(c.direction === 'increase' && c.chargeNowCents > 0
+        ? `${c.schedule}: ${c.from} to ${c.to} seats. Pro rata ${money(c.chargeNowCents)} drafted.`
+        : c.direction === 'decrease'
+          ? `${c.schedule}: ${c.from} to ${c.to} seats. Nothing refunded; next month bills ${c.to}.`
+          : `${c.schedule}: ${c.from} to ${c.to} seats.`,
+        { duration: 9000 })
     }
+    for (const p of [...(d.problems || []), ...(adj.problems || [])]) toast.warning(p, { duration: 8000 })
     load()
   }
 
@@ -190,9 +203,17 @@ export default function RecurringTab() {
               <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg flex-wrap"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
                 <div className="flex-1 min-w-[160px]">
-                  <p className="text-sm text-white">{p.client_name}</p>
+                  <p className="text-sm text-white">
+                    {p.client_name}
+                    {p.adjustment && (
+                      <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+                        style={{ background: 'rgba(245,158,11,0.18)', color: '#f59e0b' }}>Pro rata</span>
+                    )}
+                  </p>
                   <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                    Due {fmtDate(p.due_at)}
+                    {p.adjustment
+                      ? `Seat top-up, ${p.adjustment.from_seats} to ${p.adjustment.to_seats}, due now`
+                      : `Monthly, due ${fmtDate(p.due_at)}`}
                   </p>
                 </div>
                 <p className="text-sm font-bold text-white w-28 text-right">{money(p.total_cents)}</p>
@@ -350,9 +371,9 @@ export default function RecurringTab() {
                   <div className="flex items-start gap-2 mt-2 text-xs" style={{ color: '#f59e0b' }}>
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                     <span>
-                      Seats changed from {s.last_seats} to {s.seats_now} since the last invoice. The next
-                      draft uses {s.seats_now}. Anything owed for the part-month in between is a separate
-                      invoice.
+                      Seats have moved to {s.seats_now} and this has not been accounted for yet.
+                      Press Check now: an increase raises a pro-rata draft for the rest of this month,
+                      a decrease is recorded without a refund, and either way next month bills {s.seats_now}.
                     </span>
                   </div>
                 )}

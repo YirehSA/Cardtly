@@ -281,8 +281,13 @@ export async function GET(request: Request) {
   // person approves.
   let recurring: any = null
   try {
-    const { generateRecurringDrafts } = await import('@/lib/recurring-invoices')
-    recurring = await generateRecurringDrafts(admin)
+    const { generateRecurringDrafts, adjustSeatChanges } = await import('@/lib/recurring-invoices')
+    // Adjustments FIRST. A seat change on the same day a monthly draft falls
+    // due should be settled against the period that is ending, not trail after
+    // the invoice for the period that is starting.
+    const seats = await adjustSeatChanges(admin)
+    const drafts = await generateRecurringDrafts(admin)
+    recurring = { ...drafts, seats }
   } catch (e: any) {
     recurring = { error: e?.message || 'recurring pass failed' }
   }

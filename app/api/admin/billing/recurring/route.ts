@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin, adminDb, migrationMissing } from '@/lib/admin-api'
-import { generateRecurringDrafts } from '@/lib/recurring-invoices'
+import { generateRecurringDrafts, adjustSeatChanges } from '@/lib/recurring-invoices'
 import { advanceSchedule, nextAnniversary, type Cadence } from '@/lib/billing-docs'
 
 // Recurring schedules, and the queue of drafts they produce.
@@ -36,6 +36,16 @@ export async function GET(request: Request) {
     .from('invoices').select('*').eq('status', 'draft').not('recurring_id', 'is', null)
     .order('due_at')
 
+  // Which of those are mid-cycle seat top-ups rather than the monthly charge.
+  // Read from the event rather than guessed from the notes text, because a
+  // string somebody can edit is not a fact.
+  const pendingIds = (pending || []).map((i: any) => i.id)
+  const { data: adjEvents } = pendingIds.length
+    ? await db.from('document_events').select('doc_id, meta')
+        .eq('doc_type', 'invoice').eq('event', 'seat_adjustment').in('doc_id', pendingIds)
+    : { data: [] }
+  const adjustmentBy = Object.fromEntries((adjEvents || []).map((e: any) => [e.doc_id, e.meta]))
+
   return NextResponse.json({
     schedules: (schedules || []).map((s: any) => {
       const org = s.organization_id ? orgById[s.organization_id] : null
@@ -47,8 +57,12 @@ export async function GET(request: Request) {
         seats_now: seatsNow,
         // Surfaced rather than silently applied: the next draft will use the
         // new number, and somebody should know that before it lands.
-        seats_changed: s.source === 'seats' && s.last_seats != null && seatsNow != null
-          && Number(s.last_seats) !== seatsNow,
+        // Against last_adjusted_seats, not last_seats: the first is what has
+        // been accounted for by any means, the second only moves monthly. A
+        // top-up already raised must stop showing as an outstanding change.
+        seats_changed: s.source === 'seats' && seatsNow != null
+          && (s.last_adjusted_seats ?? s.last_seats) != null
+          && Number(s.last_adjusted_seats ?? s.last_seats) !== seatsNow,
         next_amount_cents: s.source === 'seats' && seatsNow != null
           ? seatsNow * (Number(s.seat_price_cents) || 9700)
           : (Array.isArray(s.template) ? s.template : [])
@@ -58,6 +72,7 @@ export async function GET(request: Request) {
     pending: (pending || []).map((i: any) => ({
       ...i,
       client_name: clientName[i.client_id] || 'Unknown client',
+      adjustment: adjustmentBy[i.id] || null,
     })),
   })
 }
@@ -71,8 +86,12 @@ export async function POST(request: Request) {
   // Generate on demand. Same function the cron calls, and the same idempotency
   // guard, so pressing it twice does not bill anybody twice.
   if (body?.action === 'run') {
-    const result = await generateRecurringDrafts(adminDb())
-    return NextResponse.json(result)
+    const db = adminDb()
+    // Same order and the same two passes the cron runs, so pressing this can
+    // never produce a different outcome from waiting a day.
+    const seats = await adjustSeatChanges(db)
+    const drafts = await generateRecurringDrafts(db)
+    return NextResponse.json({ ...drafts, seats })
   }
 
   if (!body?.client_id) return NextResponse.json({ error: 'A schedule needs a client.' }, { status: 400 })
