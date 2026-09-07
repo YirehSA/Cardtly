@@ -441,6 +441,13 @@ interface BottomProps {
    *  the sidebar zone where they hang off the rail. Without this they would
    *  appear twice - once attached to the rail and once again down here. */
   omitAboveGallery?: boolean
+  /** Studio shows the services as chips under the name, so the footer must not
+   *  list them again. Narrower than omitAboveGallery on purpose: Studio still
+   *  wants its link buttons down here, and the wider flag takes both. This was
+   *  already duplicated before the chips existed - the wedge listed them and
+   *  the footer listed them again - it was just less obvious inside the
+   *  wedge. */
+  omitCertifications?: boolean
   /** Circuit puts Book a slot up in the hero, beside the QR. Without this it
    *  would appear again down here, and a card offering to book you twice is
    *  worse than one that never offers. */
@@ -474,7 +481,7 @@ function BookingTrigger({ card, accentHex, buttonBg, buttonText, buttonBorder }:
   )
 }
 
-function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false }: BottomProps) {
+function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false, omitCertifications = false }: BottomProps) {
   const [showContactForm, setShowContactForm] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -547,7 +554,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
 
   return (
     <>
-      {!omitAboveGallery && certifications.length > 0 && (
+      {!omitAboveGallery && !omitCertifications && certifications.length > 0 && (
         <div className="mt-8">
           <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Certifications</p>
           <div className="flex flex-wrap gap-2">
@@ -2661,6 +2668,38 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
             <h1 style={{ margin: '0 0 8px', fontSize: calcNameSize(40, design), fontWeight: 900, color: getNameColor(design, darkInk), textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.0, fontFamily: font.heading }}>{card.name}</h1>
             {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(14, design), fontWeight: 700, color: getTitleColor(design, darkInk), textTransform: 'uppercase', letterSpacing: '0.22em' }}>{card.title}</p>}
           </div>
+          {/* What they do.
+              This was absolutely positioned inside the wedge below, pinned
+              bottom-right at 55% width, in the same space the action circles
+              ride the curve through. Two or three services fitted; a real
+              agency with ten wrapped straight over the icons, and no amount of
+              nudging the anchor fixes a fixed-size box holding a variable
+              number of things.
+              It is its own band now, in normal flow directly under the name,
+              so it takes the height it needs and can never sit on top of
+              anything. Chips rather than a list, because they wrap instead of
+              running long, and the count is no longer capped at six. */}
+          {certifications.length > 0 && (
+            <div style={{ backgroundColor: lightArea, padding: '16px 20px 4px', display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+              {certifications.map(cert => (
+                <span key={cert}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: darkInk,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    padding: '6px 12px',
+                    borderRadius: 999,
+                    border: `1px solid ${accentHex}59`,
+                    backgroundColor: accentHex + '1a',
+                    lineHeight: 1.2,
+                  }}>
+                  {cert}
+                </span>
+              ))}
+            </div>
+          )}
           {/* Orange section with a CURVED left edge (SVG path), and action
               circles distributed along the SAME Bezier so the icons sit
               naturally on or beside that curve - bottom-left CORNER to
@@ -2704,8 +2743,11 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
               <div style={{ position: 'relative', backgroundColor: lightArea, height: STUDIO_H, overflow: 'hidden' }}>
                 {/* Coloured wedge - linear gradient (brighter top-left to
                     darker bottom-right) plus a soft radial highlight in the
-                    upper area plus a few decorative dots. Stops the wedge
-                    reading as a flat boring block. */}
+                    upper area. Stops the wedge reading as a flat block.
+
+                    There were six white dots scattered here too. At a glance
+                    they read as dirt on the screen rather than as decoration,
+                    which is what Andre saw, so they are gone. */}
                 <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}>
                   <defs>
                     {/* Brighter top-left to slightly transparent bottom-right
@@ -2729,14 +2771,6 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                   <path d={wedgePath} fill="url(#studioWedgeFill)" />
                   <path d={wedgePath} fill="url(#studioWedgeShade)" />
                   <path d={wedgePath} fill="url(#studioWedgeShine)" />
-                  {/* Decorative dots scattered in the wedge for interest.
-                      Sized in viewBox units so they scale with the card. */}
-                  <circle cx="90" cy="14" r="1.6" fill="white" opacity="0.45" />
-                  <circle cx="78" cy="36" r="1.0" fill="white" opacity="0.4" />
-                  <circle cx="92" cy="58" r="1.3" fill="white" opacity="0.3" />
-                  <circle cx="83" cy="78" r="0.9" fill="white" opacity="0.5" />
-                  <circle cx="70" cy="62" r="0.7" fill="white" opacity="0.35" />
-                  <circle cx="95" cy="38" r="0.6" fill="white" opacity="0.4" />
                 </svg>
                 {/* Call pill: anchored top-left, off the arc */}
                 {card.phone && (
@@ -2759,18 +2793,6 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                     </div>
                   )
                 })}
-                {/* Services bullet list - inline-block trick: outer div
-                    right-anchors, inner ul keeps bullets aligned via
-                    text-align: left */}
-                {certifications.length > 0 && (
-                  <div style={{ position: 'absolute', bottom: 28, right: 20, textAlign: 'right', maxWidth: '55%', zIndex: 3 }}>
-                    <ul style={{ display: 'inline-block', textAlign: 'left', margin: 0, padding: 0, listStyle: 'none' }}>
-                      {certifications.slice(0, 6).map(cert => (
-                        <li key={cert} style={{ fontSize: 16, color: '#ffffff', fontWeight: 600, marginBottom: 4, lineHeight: 1.3 }}>• {cert}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </div>
             )
           })()}
@@ -2782,7 +2804,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
           )}
           {/* Footer with custom links / save contact / share / contact form */}
           <div style={{ backgroundColor: lightArea, padding: '8px 20px 24px' }}>
-            <BottomSection {...bottomProps} />
+            <BottomSection {...bottomProps} omitCertifications />
             <p style={{ textAlign: 'center', fontSize: 11, color: '#737373', marginTop: 16, letterSpacing: '0.05em' }}>cardtly.com/{card.slug}</p>
           </div>
         </div>
