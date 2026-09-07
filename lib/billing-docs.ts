@@ -92,6 +92,133 @@ export function formatMoney(cents: number, currency = 'ZAR'): string {
   return `${sign}${symbol}${whole}.${(abs % 100).toString().padStart(2, '0')}`
 }
 
+/** How long a quote stands. */
+export const QUOTE_VALID_DAYS = 14
+
+/**
+ * What a charge IS, which is what decides when it falls due.
+ *
+ * 'subscription' bills on the anniversary of signup and is paid in ADVANCE:
+ * nothing activates until the first payment lands, and each month after falls
+ * due on the same day of the month. 'once_off' is an NFC card order, setup
+ * work, or anything else that is not a recurring seat, and is due immediately
+ * because it is paid before it is fulfilled.
+ */
+export type ChargeKind = 'subscription' | 'once_off'
+
+/**
+ * The anniversary day, clamped to a month that has one.
+ *
+ * A team that signed up on the 31st has no anniversary in February. Clamping
+ * to the last day bills them on the 28th, 29th, 30th or 31st depending on the
+ * month, which keeps exactly one charge per month and never skips February.
+ * Moving them to the 1st instead would shift which month they are paying for,
+ * which on a prepaid cycle is a month of free service or a month of double
+ * billing depending on which way it slipped.
+ */
+export function anniversaryOn(year: number, monthIndex: number, anniversaryDay: number): string {
+  const lastDay = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate()
+  const day = Math.min(Math.max(1, Math.round(anniversaryDay)), lastDay)
+  return new Date(Date.UTC(year, monthIndex, day)).toISOString().slice(0, 10)
+}
+
+/** The next anniversary strictly after `from`. */
+export function nextAnniversary(from: Date, anniversaryDay: number): string {
+  const y = from.getUTCFullYear()
+  const m = from.getUTCMonth()
+  const thisMonth = anniversaryOn(y, m, anniversaryDay)
+  return thisMonth > from.toISOString().slice(0, 10)
+    ? thisMonth
+    : anniversaryOn(y, m + 1, anniversaryDay)
+}
+
+/**
+ * When a document falls due.
+ *
+ * A subscription is prepaid, so the due date is the anniversary the invoice
+ * COVERS rather than a period after issue: the draft is generated with lead
+ * time, approved, sent, and paid by the day the next month starts. A once-off
+ * is due the day it is issued.
+ */
+export function dueDateFor(
+  kind: ChargeKind,
+  issuedAt: Date,
+  opts: { anniversaryDay?: number } = {},
+): string {
+  const issued = issuedAt.toISOString().slice(0, 10)
+  if (kind === 'once_off' || !opts.anniversaryDay) return issued
+  return nextAnniversary(issuedAt, opts.anniversaryDay)
+}
+
+/**
+ * The charge for a change part way through a paid month.
+ *
+ * Counted in whole days and rounded once, at the end. Clamped to the period:
+ * a change dated before the period started is somebody correcting a record,
+ * not a client owing thirteen months.
+ */
+export function proRataCents(
+  fullPeriodCents: number,
+  changeOn: string,
+  periodStart: string,
+  periodEnd: string,
+): number {
+  const DAY = 86400000
+  const start = Date.parse(periodStart + 'T00:00:00Z')
+  const end = Date.parse(periodEnd + 'T00:00:00Z')
+  const change = Date.parse(changeOn + 'T00:00:00Z')
+  const totalDays = Math.round((end - start) / DAY)
+  if (!Number.isFinite(totalDays) || totalDays <= 0) return 0
+  const remaining = Math.min(totalDays, Math.max(0, Math.round((end - change) / DAY)))
+  return Math.round((fullPeriodCents * remaining) / totalDays)
+}
+
+/**
+ * What a seat change does to the money.
+ *
+ * Increases are charged pro rata straight away, because the seats go live
+ * straight away and the model is prepaid. Decreases are not refunded: the
+ * month is paid for and the seats stay usable until the anniversary, which is
+ * the ordinary convention and avoids a credit note every time somebody loses a
+ * person.
+ *
+ * Either direction, the recurring amount from the next anniversary follows the
+ * new count. That is the part that must never depend on somebody remembering
+ * to edit a template, which is why the schedule stores a seat count rather
+ * than a fixed line.
+ */
+export function seatChange(opts: {
+  fromSeats: number
+  toSeats: number
+  seatPriceCents: number
+  changeOn: string
+  periodStart: string
+  periodEnd: string
+}): {
+  direction: 'increase' | 'decrease' | 'none'
+  chargeNowCents: number
+  nextPeriodCents: number
+  description: string
+} {
+  const delta = opts.toSeats - opts.fromSeats
+  const nextPeriodCents = Math.max(0, opts.toSeats) * opts.seatPriceCents
+  if (delta === 0) return { direction: 'none', chargeNowCents: 0, nextPeriodCents, description: 'No change' }
+  if (delta < 0) {
+    return {
+      direction: 'decrease',
+      chargeNowCents: 0,
+      nextPeriodCents,
+      description: `Reduced from ${opts.fromSeats} to ${opts.toSeats} seats, effective ${opts.periodEnd}`,
+    }
+  }
+  return {
+    direction: 'increase',
+    chargeNowCents: proRataCents(delta * opts.seatPriceCents, opts.changeOn, opts.periodStart, opts.periodEnd),
+    nextPeriodCents,
+    description: `${delta} additional seat${delta === 1 ? '' : 's'} pro rata to ${opts.periodEnd}`,
+  }
+}
+
 /** Due date from the issue date and the agreed terms. Returned as YYYY-MM-DD
  *  because that is what a date column wants and it has no timezone to get
  *  wrong. */

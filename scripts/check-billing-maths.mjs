@@ -135,6 +135,63 @@ const sameDay = M.buildStatement(0, [
 eq('same-day invoice sorts before its payment', sameDay.rows[0].kind, 'invoice')
 eq('same-day balance never goes negative', sameDay.rows[0].balanceCents, 10000)
 
+// ── Anniversary billing ───────────────────────────────────────────────────
+eq('quote validity', M.QUOTE_VALID_DAYS, 14)
+eq('ordinary anniversary', M.anniversaryOn(2026, 8, 5), '2026-09-05')
+// The 29th, 30th and 31st do not exist in every month.
+eq('31st clamps in February', M.anniversaryOn(2026, 1, 31), '2026-02-28')
+eq('31st clamps in a leap February', M.anniversaryOn(2028, 1, 31), '2028-02-29')
+eq('31st clamps in a 30 day month', M.anniversaryOn(2026, 8, 31), '2026-09-30')
+eq('31st survives a 31 day month', M.anniversaryOn(2026, 9, 31), '2026-10-31')
+eq('next anniversary later this month', M.nextAnniversary(new Date('2026-09-01T10:00:00Z'), 5), '2026-09-05')
+eq('next anniversary rolls forward', M.nextAnniversary(new Date('2026-09-05T10:00:00Z'), 5), '2026-10-05')
+eq('next anniversary crosses the year', M.nextAnniversary(new Date('2026-12-20T10:00:00Z'), 5), '2027-01-05')
+
+// ── When things fall due ──────────────────────────────────────────────────
+eq('an NFC order is due immediately',
+   M.dueDateFor('once_off', new Date('2026-09-15T10:00:00Z')), '2026-09-15')
+eq('a subscription is due on its anniversary',
+   M.dueDateFor('subscription', new Date('2026-09-28T10:00:00Z'), { anniversaryDay: 5 }), '2026-10-05')
+eq('a subscription with no anniversary falls back to the issue date',
+   M.dueDateFor('subscription', new Date('2026-09-15T10:00:00Z')), '2026-09-15')
+
+// ── Pro rata ──────────────────────────────────────────────────────────────
+// A 5th-to-5th cycle in September is 30 days.
+eq('a change on the first day is the whole period',
+   M.proRataCents(9700, '2026-09-05', '2026-09-05', '2026-10-05'), 9700)
+eq('a change on the last day is nothing',
+   M.proRataCents(9700, '2026-10-05', '2026-09-05', '2026-10-05'), 0)
+eq('20 of 30 days', M.proRataCents(9700, '2026-09-15', '2026-09-05', '2026-10-05'), 6467)
+eq('a change dated before the period cannot exceed it',
+   M.proRataCents(9700, '2025-01-01', '2026-09-05', '2026-10-05'), 9700)
+eq('a nonsense period charges nothing',
+   M.proRataCents(9700, '2026-09-15', '2026-10-05', '2026-09-05'), 0)
+
+// ── Seat changes ──────────────────────────────────────────────────────────
+const up = M.seatChange({ fromSeats: 10, toSeats: 15, seatPriceCents: 9700,
+  changeOn: '2026-09-15', periodStart: '2026-09-05', periodEnd: '2026-10-05' })
+eq('adding seats charges now', up.direction, 'increase')
+eq('5 seats for 20 of 30 days', up.chargeNowCents, 32333)
+eq('next month bills 15 seats', up.nextPeriodCents, 145500)
+
+const down = M.seatChange({ fromSeats: 15, toSeats: 10, seatPriceCents: 9700,
+  changeOn: '2026-09-15', periodStart: '2026-09-05', periodEnd: '2026-10-05' })
+eq('removing seats charges nothing now', down.chargeNowCents, 0)
+eq('removing seats is a decrease', down.direction, 'decrease')
+eq('next month bills 10 seats', down.nextPeriodCents, 97000)
+
+const same = M.seatChange({ fromSeats: 10, toSeats: 10, seatPriceCents: 9700,
+  changeOn: '2026-09-15', periodStart: '2026-09-05', periodEnd: '2026-10-05' })
+eq('no change charges nothing', same.chargeNowCents, 0)
+eq('no change still states the recurring amount', same.nextPeriodCents, 97000)
+// The whole point: the next invoice follows the seat count without anyone
+// editing a template.
+for (const n of [1, 3, 7, 20, 250]) {
+  const r = M.seatChange({ fromSeats: 0, toSeats: n, seatPriceCents: 9700,
+    changeOn: '2026-09-05', periodStart: '2026-09-05', periodEnd: '2026-10-05' })
+  if (r.nextPeriodCents !== n * 9700) bad(`recurring amount wrong at ${n} seats: ${r.nextPeriodCents}`)
+}
+
 // ── Snapshots carry the fields a document cannot be rendered without ──────
 const snap = M.bankSnapshot({ bank_name: 'FNB', bank_account_name: 'Cardtly', bank_account_no: '123', bank_branch_code: '250655' })
 for (const k of ['bankName', 'accountName', 'accountNumber', 'branchCode', 'swift']) {
