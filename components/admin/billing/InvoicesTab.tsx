@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Plus, Save, X, FileText, Send, Trash2, Lock } from 'lucide-react'
+import { Loader2, Plus, Save, X, FileText, Send, Trash2, Lock, Mail } from 'lucide-react'
 import { Section, inputClass, inputStyle, grad } from '../shared'
 import { money, toCents, toRands, StatusPill, Empty, fmtDate } from './shared'
 
@@ -35,6 +35,7 @@ export default function InvoicesTab() {
   const [clients, setClients] = useState<any[]>([])
   const [filter, setFilter] = useState('open')
   const [editing, setEditing] = useState<any | null>(null)
+  const [sending, setSending] = useState<any | null>(null)
   const [busy, setBusy] = useState(false)
 
   async function load() {
@@ -125,6 +126,41 @@ export default function InvoicesTab() {
     if (!res.ok || data?.error) { toast.error(data?.error || 'Could not issue'); return }
     toast.success(`Issued as ${data.invoice.number}, due ${data.invoice.due_at}`)
     setEditing(null); load()
+  }
+
+  async function openSend(inv: Invoice) {
+    const res = await fetch(`/api/admin/billing/invoices/send?id=${inv.id}`)
+    const data = await res.json().catch(() => ({}))
+    const sends = data.sends || []
+    setSending({
+      invoice: inv,
+      to: '',
+      cc: '',
+      message: '',
+      // A second send is a reminder, and saying so in the subject is the
+      // difference between a nudge and looking like a duplicate invoice.
+      reminder: sends.length > 0,
+      previous: sends,
+    })
+  }
+
+  async function send() {
+    setBusy(true)
+    const res = await fetch('/api/admin/billing/invoices/send', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: sending.invoice.id,
+        to: sending.to.trim() || undefined,
+        cc: sending.cc.trim() || undefined,
+        message: sending.message,
+        reminder: sending.reminder,
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setBusy(false)
+    if (!res.ok || data?.error) { toast.error(data?.error || 'Could not send it'); return }
+    toast.success(`Sent to ${data.to}`)
+    setSending(null); load()
   }
 
   async function cancel(inv: Invoice) {
@@ -278,6 +314,48 @@ export default function InvoicesTab() {
         </Section>
       )}
 
+      {sending && (
+        <Section
+          title={`${sending.reminder ? 'Remind about' : 'Send'} ${sending.invoice.number}`}
+          sub={sending.previous.length
+            ? `Already sent ${sending.previous.length} time${sending.previous.length === 1 ? '' : 's'}, last on ${fmtDate(sending.previous[0].created_at)} to ${sending.previous[0].meta?.to || 'unknown'}`
+            : 'The PDF goes out attached to this email.'}
+          right={<button onClick={() => setSending(null)}><X className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} /></button>}>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>To</span>
+              <input className={`${inputClass} mt-1.5`} style={inputStyle}
+                placeholder={sending.invoice.client_name + "'s address on the invoice"}
+                value={sending.to} onChange={e => setSending({ ...sending, to: e.target.value })} />
+            </label>
+            <label className="block">
+              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>CC</span>
+              <input className={`${inputClass} mt-1.5`} style={inputStyle} placeholder="Optional, comma separated"
+                value={sending.cc} onChange={e => setSending({ ...sending, cc: e.target.value })} />
+            </label>
+          </div>
+          <label className="block mt-3">
+            <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>Note</span>
+            <textarea className={`${inputClass} mt-1.5`} style={{ ...inputStyle, minHeight: 70 }}
+              placeholder="Optional. Appears above the invoice details."
+              value={sending.message} onChange={e => setSending({ ...sending, message: e.target.value })} />
+          </label>
+          <label className="flex items-center gap-2 mt-3 text-xs cursor-pointer" style={{ color: 'rgba(255,255,255,0.7)' }}>
+            <input type="checkbox" checked={sending.reminder}
+              onChange={e => setSending({ ...sending, reminder: e.target.checked })} />
+            Send as a reminder
+          </label>
+          <div className="flex justify-end mt-4">
+            <button onClick={send} disabled={busy}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
+              style={{ background: grad, color: '#fff' }}>
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+              {sending.reminder ? 'Send reminder' : 'Send invoice'}
+            </button>
+          </div>
+        </Section>
+      )}
+
       {invoices.length === 0 ? (
         <Empty>{filter === 'open' ? 'Nothing outstanding.' : 'No invoices here.'}</Empty>
       ) : (
@@ -307,6 +385,12 @@ export default function InvoicesTab() {
                   title="PDF" className="p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
                   <FileText className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.6)' }} />
                 </a>
+                {inv.status !== 'draft' && inv.status !== 'cancelled' && (
+                  <button onClick={() => openSend(inv)} title="Email this invoice"
+                    className="p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <Mail className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.6)' }} />
+                  </button>
+                )}
                 <button onClick={() => openDraft(inv)} className="px-3 py-1.5 rounded-lg text-xs font-semibold"
                   style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.7)' }}>
                   {inv.status === 'draft' ? 'Edit' : 'View'}
