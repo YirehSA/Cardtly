@@ -309,6 +309,53 @@ export function statusAfterPayment(
  * summarises, and the day it drifts is the day somebody is chasing a customer
  * who already paid.
  */
+/**
+ * How a receipt should be spread across what a client owes.
+ *
+ * Oldest invoice first, which is both the convention and the only order that
+ * does not quietly age a debt: paying the newest invoice first leaves the old
+ * one sitting there looking unpaid while the client is fully up to date.
+ *
+ * Partial allocation is normal. R500 against a R1,200 invoice leaves the
+ * invoice part paid and the receipt spent; R2,000 against that same invoice
+ * leaves R800 unallocated, which is money the client has genuinely overpaid
+ * and must not be forced onto an invoice that does not exist yet.
+ *
+ * Nothing here writes anything. It proposes; a person confirms.
+ */
+export function allocationPlan(
+  receiptCents: number,
+  invoices: Array<{ id: string; dueOn: string | null; totalCents: number; paidCents: number }>,
+): { allocations: Array<{ invoiceId: string; amountCents: number }>; unallocatedCents: number } {
+  let left = Math.max(0, Math.round(receiptCents))
+  const allocations: Array<{ invoiceId: string; amountCents: number }> = []
+
+  const owing = invoices
+    .map(i => ({ ...i, outstanding: Math.max(0, i.totalCents - i.paidCents) }))
+    .filter(i => i.outstanding > 0)
+    // Undated invoices last: a missing due date is unknown, not urgent.
+    .sort((a, b) =>
+      a.dueOn && b.dueOn ? (a.dueOn < b.dueOn ? -1 : a.dueOn > b.dueOn ? 1 : 0)
+      : a.dueOn ? -1 : b.dueOn ? 1 : 0)
+
+  for (const inv of owing) {
+    if (left <= 0) break
+    const amount = Math.min(left, inv.outstanding)
+    allocations.push({ invoiceId: inv.id, amountCents: amount })
+    left -= amount
+  }
+
+  return { allocations, unallocatedCents: left }
+}
+
+/** What is left of a receipt. Unapplied cash is a normal state, not an error. */
+export function unallocatedCents(
+  receiptCents: number,
+  allocations: Array<{ amountCents: number }>,
+): number {
+  return receiptCents - allocations.reduce((n, a) => n + a.amountCents, 0)
+}
+
 export interface StatementRow {
   date: string
   kind: 'invoice' | 'payment' | 'credit_note'

@@ -8,6 +8,7 @@ import {
   Users as UsersIcon, Building2, Search, Loader2, Trash2, Mail, MailCheck,
   KeyRound, Lock, Shield, Sparkles, ChevronDown, ChevronUp, ExternalLink, Megaphone,
   ScrollText, Wifi, AlertTriangle, CalendarClock, PhoneCall, X, LayoutGrid, UserCog, Banknote, Ticket, Flag,
+  Receipt, Contact, SlidersHorizontal,
 } from 'lucide-react'
 import TeamsTab from './TeamsTab'
 import TrialsTab from './TrialsTab'
@@ -16,6 +17,9 @@ import RepsTab from './RepsTab'
 import MeetingsTab from './MeetingsTab'
 import ReportsTab from './ReportsTab'
 import BillingTab from './BillingTab'
+import ClientsTab from './billing/ClientsTab'
+import InvoicesTab from './billing/InvoicesTab'
+import PaymentsTab from './billing/PaymentsTab'
 import { Stat, Section, StatusPill, STATUS_META, grad, inputClass, inputStyle, fmtDate, fmtWhen, randFmt } from './shared'
 import { NFC_STATUSES, NFC_STATUS_COLORS, NFC_STATUS_LABELS, type NfcStatus } from '@/lib/nfc'
 import type { AdminUserRow, AdminOrgRow, UserStatus, TrialCodeRow } from '@/lib/admin-data'
@@ -61,7 +65,7 @@ interface Props {
 
 // as const so ?tab= can be checked against it rather than trusted: an unknown
 // value opens Overview instead of rendering nothing at all.
-const TABS = ['overview', 'users', 'teams', 'trials', 'reps', 'meetings', 'calls', 'nfc', 'billing', 'reports', 'activity'] as const
+const TABS = ['overview', 'users', 'teams', 'trials', 'reps', 'meetings', 'calls', 'nfc', 'invoices', 'payments', 'clients', 'billing', 'reports', 'activity'] as const
 type Tab = typeof TABS[number]
 
 // Eleven tabs in one row was eleven things to read before doing anything, and
@@ -77,7 +81,7 @@ const GROUPS: { id: string; label: string; icon: any; tabs: Tab[] }[] = [
   { id: 'overview',   label: 'Overview',   icon: LayoutGrid,     tabs: ['overview'] },
   { id: 'customers',  label: 'Customers',  icon: UsersIcon,      tabs: ['users', 'teams', 'trials'] },
   { id: 'sales',      label: 'Sales',      icon: UserCog,        tabs: ['reps', 'meetings', 'calls'] },
-  { id: 'accounting', label: 'Accounting', icon: Banknote,       tabs: ['billing'] },
+  { id: 'accounting', label: 'Accounting', icon: Banknote,       tabs: ['invoices', 'payments', 'clients', 'billing'] },
   { id: 'operations', label: 'Operations', icon: Wifi,           tabs: ['nfc', 'reports', 'activity'] },
 ]
 
@@ -90,7 +94,10 @@ const TAB_META: Record<Tab, { label: string; icon: any }> = {
   meetings: { label: 'Calendar',   icon: CalendarClock },
   calls:    { label: 'Call log',   icon: PhoneCall },
   nfc:      { label: 'NFC orders', icon: Wifi },
-  billing:  { label: 'Billing',    icon: Banknote },
+  invoices: { label: 'Invoices',   icon: Receipt },
+  payments: { label: 'Payments',   icon: Banknote },
+  clients:  { label: 'Clients',    icon: Contact },
+  billing:  { label: 'Settings',   icon: SlidersHorizontal },
   reports:  { label: 'Reports',    icon: Flag },
   activity: { label: 'Activity',   icon: ScrollText },
 }
@@ -615,6 +622,9 @@ ${r.email} will be able to sign in and log their meetings. If that address has n
         )}
 
         {tab === 'nfc' && <NfcTab orders={nfcOrders} run={run} loading={loading} />}
+        {tab === 'invoices' && <InvoicesTab />}
+        {tab === 'payments' && <PaymentsTab />}
+        {tab === 'clients' && <ClientsTab />}
         {tab === 'billing' && <BillingTab />}
         {tab === 'reports' && <ReportsTab />}
         {tab === 'activity' && <ActivityTab audit={audit} />}

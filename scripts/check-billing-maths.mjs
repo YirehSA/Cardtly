@@ -233,6 +233,79 @@ if (M.defaultDueDate('end_of_month', ISSUE, 14) === M.defaultDueDate('days', ISS
 eq('quote validity', M.quoteValidUntil(new Date('2026-09-04T00:00:00Z')), '2026-09-18')
 eq('quote validity, overridden', M.quoteValidUntil(new Date('2026-09-04T00:00:00Z'), 30), '2026-10-04')
 
+// ── Allocating a receipt across invoices ──────────────────────────────────
+{
+  const inv = (id, due, total, paid = 0) => ({ id, dueOn: due, totalCents: total, paidCents: paid })
+
+  // Oldest first, and it must not stop at the first invoice it fills.
+  const a = M.allocationPlan(150000, [
+    inv('new', '2026-10-31', 100000),
+    inv('old', '2026-08-31', 100000),
+  ])
+  eq('oldest invoice is paid first', a.allocations[0].invoiceId, 'old')
+  eq('oldest takes what it needs', a.allocations[0].amountCents, 100000)
+  eq('the rest spills to the next', a.allocations[1].invoiceId, 'new')
+  eq('and only the remainder', a.allocations[1].amountCents, 50000)
+  eq('nothing left over', a.unallocatedCents, 0)
+
+  // Underpayment: one invoice, partly settled, receipt fully spent.
+  const b = M.allocationPlan(50000, [inv('a', '2026-08-31', 120000)])
+  eq('part payment allocates all of it', b.allocations[0].amountCents, 50000)
+  eq('part payment leaves nothing spare', b.unallocatedCents, 0)
+
+  // Overpayment: the excess stays unapplied rather than being forced onto an
+  // invoice that does not exist.
+  const c = M.allocationPlan(200000, [inv('a', '2026-08-31', 120000)])
+  eq('overpayment settles the invoice', c.allocations[0].amountCents, 120000)
+  eq('overpayment leaves the rest unapplied', c.unallocatedCents, 80000)
+
+  // Already-paid invoices are not in the running.
+  const d = M.allocationPlan(100000, [
+    inv('settled', '2026-07-31', 60000, 60000),
+    inv('open', '2026-09-30', 90000),
+  ])
+  eq('a settled invoice is skipped', d.allocations.length, 1)
+  eq('the open one is used', d.allocations[0].invoiceId, 'open')
+  eq('and its balance is respected', d.allocations[0].amountCents, 90000)
+  eq('the surplus is unapplied', d.unallocatedCents, 10000)
+
+  // Partly paid invoices take only their outstanding balance.
+  const e = M.allocationPlan(100000, [inv('half', '2026-08-31', 120000, 70000)])
+  eq('only the outstanding balance is taken', e.allocations[0].amountCents, 50000)
+  eq('the remainder stays unapplied', e.unallocatedCents, 50000)
+
+  // An undated invoice is unknown, not urgent, so it sorts last.
+  const f = M.allocationPlan(100000, [
+    inv('undated', null, 60000),
+    inv('dated', '2026-09-30', 60000),
+  ])
+  eq('a dated invoice outranks an undated one', f.allocations[0].invoiceId, 'dated')
+
+  // Nothing owing: the whole receipt is unapplied, and nothing is invented.
+  const g = M.allocationPlan(100000, [])
+  eq('nothing to allocate against', g.allocations.length, 0)
+  eq('all of it stays unapplied', g.unallocatedCents, 100000)
+
+  // The property that matters: allocations never exceed the receipt, and never
+  // exceed what is owed.
+  for (const amount of [1, 999, 50000, 123456, 1000000]) {
+    const inv3 = [inv('a', '2026-07-31', 30000), inv('b', '2026-08-31', 45000, 5000), inv('c', '2026-09-30', 90000)]
+    const r = M.allocationPlan(amount, inv3)
+    const sum = r.allocations.reduce((n, x) => n + x.amountCents, 0)
+    if (sum + r.unallocatedCents !== amount) bad(`allocation of ${amount} does not add back up: ${sum} + ${r.unallocatedCents}`)
+    if (sum > amount) bad(`allocated more than was received at ${amount}`)
+    for (const al of r.allocations) {
+      const target = inv3.find(x => x.id === al.invoiceId)
+      const outstanding = target.totalCents - target.paidCents
+      if (al.amountCents > outstanding) bad(`allocated ${al.amountCents} to an invoice owing ${outstanding}`)
+      if (al.amountCents <= 0) bad('allocated a zero or negative amount')
+    }
+  }
+
+  eq('unallocated of a fresh receipt', M.unallocatedCents(100000, []), 100000)
+  eq('unallocated after spending it', M.unallocatedCents(100000, [{ amountCents: 60000 }, { amountCents: 40000 }]), 0)
+}
+
 // ── Snapshots carry the fields a document cannot be rendered without ──────
 const snap = M.bankSnapshot({ bank_name: 'FNB', bank_account_name: 'Cardtly', bank_account_no: '123', bank_branch_code: '250655' })
 for (const k of ['bankName', 'accountName', 'accountNumber', 'branchCode', 'accountType', 'swift']) {
