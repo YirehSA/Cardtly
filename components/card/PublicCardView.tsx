@@ -2584,7 +2584,37 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
   if (design.templateId === 'studio') {
     const black = '#000000'
     const lightArea = design.customBgColor || '#f0f0ef'
+    // For text on a LIGHT surface this template owns: the Call pill, the white
+    // website circle, the share button. Those are light whatever the card is.
     const darkInk = '#0a0a0a'
+    // For text sitting directly on the card's own background, which the owner
+    // chooses. This used to be darkInk as well, so a dark background gave
+    // near-black text on near-black and the name, the job title and the
+    // services simply vanished - measured at rgb(10,10,10) on rgb(13,13,13).
+    // It read as a large empty gap under the photo, which is exactly what it
+    // was reported as.
+    const areaInk = getReadableTextOn(lightArea)
+
+    // The photo is sizeable now, so everything that depended on it being 220
+    // is derived instead of assumed. The name follows the photo's real bottom
+    // edge, keeping one constant gap at any size rather than a 70px hole at
+    // the default and an overlap once somebody enlarges it.
+    const STUDIO_PHOTO = Math.round(calcPhotoSize(220, design))
+    const STUDIO_PHOTO_BORDER = design.profileBorder === false ? 0 : 5
+    const STUDIO_HEADER_H = 400
+    // The black shape's curve bottoms out around 90% of the header, and the
+    // whole look is the portrait STRADDLING that edge. So the photo is
+    // anchored by its BOTTOM and grows upward, rather than anchored at the top
+    // and growing down: anchoring the top made a small photo finish high up
+    // inside the black, which dragged the name up onto the black with it. On
+    // the default light card that is dark text on black, invisible.
+    const STUDIO_PHOTO_BOTTOM = 370
+    const STUDIO_PHOTO_BOX = STUDIO_PHOTO + STUDIO_PHOTO_BORDER * 2
+    // Clamped so a large photo pushes down past the header instead of climbing
+    // into the logo and company name.
+    const STUDIO_PHOTO_TOP = Math.max(110, STUDIO_PHOTO_BOTTOM - STUDIO_PHOTO_BOX)
+    const studioNameOffset =
+      STUDIO_PHOTO_TOP + STUDIO_PHOTO_BOX + 16 - STUDIO_HEADER_H
     // Brand-coloured social action circles, matching the reference vibe.
     const STUDIO_COLORS = {
       whatsapp: '#FCC419',  // warm yellow
@@ -2618,7 +2648,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
           {/* Black header shape - LONG side edges, curve dips almost to
               the bottom of the photo wrapping it nearly entirely. Only
               the bottom edge of the photo extends below the curve. */}
-          <div style={{ position: 'relative', height: 400 }}>
+          <div style={{ position: 'relative', height: STUDIO_HEADER_H }}>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', zIndex: 0 }}>
               {/*  M 0 0           top-left corner
                    L 100 0         flat top edge to top-right corner
@@ -2654,19 +2684,19 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
               Top adjusted so the photo's centre lands where the curve
               dips lowest, giving the "wrapped by black" look from the
               user's annotated reference. */}
-          <div style={{ position: 'absolute', top: 140, left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
-            <div style={{ width: 220, height: 220, borderRadius: '50%', overflow: 'hidden', border: design.profileBorder === false ? 'none' : `5px solid #ffffff`, boxShadow: '0 12px 36px rgba(0,0,0,0.55)' }}>
+          <div style={{ position: 'absolute', top: STUDIO_PHOTO_TOP, left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
+            <div style={{ width: STUDIO_PHOTO, height: STUDIO_PHOTO, borderRadius: '50%', overflow: 'hidden', border: design.profileBorder === false ? 'none' : `${STUDIO_PHOTO_BORDER}px solid #ffffff`, boxShadow: '0 12px 36px rgba(0,0,0,0.55)' }}>
               {card.profile_image_url
                 ? <img src={card.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <div style={{ width: '100%', height: '100%', backgroundColor: accentHex + '44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 80, fontWeight: 800, color: accentHex }}>{card.name?.[0]?.toUpperCase()}</div>}
+                : <div style={{ width: '100%', height: '100%', backgroundColor: accentHex + '44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(STUDIO_PHOTO * 0.36), fontWeight: 800, color: accentHex }}>{card.name?.[0]?.toUpperCase()}</div>}
             </div>
           </div>
           {/* Name + designation - top padding leaves room for the
               overlapping photo above. Bio renders AFTER the action arc
               below, not here. */}
-          <div style={{ backgroundColor: lightArea, paddingTop: 30, paddingBottom: 0, paddingLeft: 20, paddingRight: 20, textAlign: 'center' }}>
-            <h1 style={{ margin: '0 0 8px', fontSize: calcNameSize(40, design), fontWeight: 900, color: getNameColor(design, darkInk), textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.0, fontFamily: font.heading }}>{card.name}</h1>
-            {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(14, design), fontWeight: 700, color: getTitleColor(design, darkInk), textTransform: 'uppercase', letterSpacing: '0.22em' }}>{card.title}</p>}
+          <div style={{ backgroundColor: lightArea, marginTop: studioNameOffset, paddingTop: 0, paddingBottom: 0, paddingLeft: 20, paddingRight: 20, textAlign: 'center' }}>
+            <h1 style={{ margin: '0 0 8px', fontSize: calcNameSize(40, design), fontWeight: 900, color: getNameColor(design, areaInk), textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.0, fontFamily: font.heading }}>{card.name}</h1>
+            {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(14, design), fontWeight: 700, color: getTitleColor(design, areaInk), textTransform: 'uppercase', letterSpacing: '0.22em' }}>{card.title}</p>}
           </div>
           {/* What they do.
               This was absolutely positioned inside the wedge below, pinned
@@ -2686,7 +2716,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                   style={{
                     fontSize: 12,
                     fontWeight: 700,
-                    color: darkInk,
+                    color: areaInk,
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
                     padding: '6px 12px',
