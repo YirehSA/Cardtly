@@ -1,9 +1,12 @@
--- Migration 069: quotes and invoices start at 1001
+-- Migration 069: quotes, invoices and credit notes start at 1001
 --
--- 064 started both counters at 1, so the first document out the door would be
+-- 064 started every counter at 1, so the first document out the door would be
 -- INV-2026-0001. Starting at 1001 is the ordinary thing to do and costs
 -- nothing: it does not announce to the first client that they are the first
 -- client.
+--
+-- All three, so a credit note against INV-2026-1001 does not come back as
+-- CN-2026-0001 and read like it came from a different system.
 --
 -- GUARDED, and the guard is the point. This may only move a counter that has
 -- never issued anything. Run again later, after real documents exist, it does
@@ -16,12 +19,14 @@ declare
   v_doc_type text;
   v_issued   integer;
 begin
-  foreach v_doc_type in array array['quote', 'invoice'] loop
+  foreach v_doc_type in array array['quote', 'invoice', 'credit_note'] loop
     -- How many documents of this type have ever been numbered.
     if v_doc_type = 'quote' then
       select count(*) into v_issued from public.quotes where number is not null;
-    else
+    elsif v_doc_type = 'invoice' then
       select count(*) into v_issued from public.invoices where number is not null;
+    else
+      select count(*) into v_issued from public.credit_notes where number is not null;
     end if;
 
     if v_issued = 0 then
@@ -36,4 +41,4 @@ begin
 end $$;
 
 comment on table public.billing_counters is
-  'Gapless per-type document numbering. Quotes and invoices start at 1001; the counter row is locked FOR UPDATE while a number is issued so a rolled-back issue returns the number rather than burning it.';
+  'Gapless per-type document numbering, starting at 1001. The counter row is locked FOR UPDATE while a number is issued, so a rolled-back issue returns the number rather than burning it.';
