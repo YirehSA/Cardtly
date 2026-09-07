@@ -145,8 +145,22 @@ const printed = (view) => textOf(D.invoiceDocument(view)).join('\n')
   if (!t.includes('QUOTATION')) bad('a quote must be headed QUOTATION')
   if (!t.includes('Valid until 2026-09-21')) bad('a quote must state when it lapses')
   if (t.includes('Due ')) bad('a quote has no due date')
-  if (!t.includes('TERMS AND CONDITIONS')) bad('terms must print on a quote')
+  if (!t.includes('Terms and conditions')) bad('terms must print on a quote')
   if (!t.includes('Sample terms apply.')) bad('the terms body must print')
+
+  // On a page of their own. Squeezed under the banking panel they read as
+  // small print nobody is expected to have looked at, which is the opposite of
+  // what a document being signed needs.
+  const root = D.invoiceDocument({ ...BASE, kind: 'quote', number: 'Q-0001', terms: 'Sample terms apply.' })
+  const page = root.children[0]
+  const findBlock = (n) => {
+    if (n.children?.some(c => c.children?.some(g => g.value === 'Terms and conditions'))) return n
+    for (const c of n.children || []) { const hit = findBlock(c); if (hit) return hit }
+    return null
+  }
+  const block = findBlock(page)
+  if (!block) bad('could not find the terms block to check it starts a new page')
+  else if (block.props?.break !== true) bad('terms must start on a page of their own (break)')
   if (!t.includes('First National Bank (FNB)')) bad('banking prints on a quote too')
   // Nothing is owed yet, so there is nothing to reference.
   if (t.includes('payment reference')) bad('a quote must not ask for a payment reference')

@@ -132,8 +132,13 @@ const s: Record<string, Style> = {
   grandText: { fontSize: 12, fontFamily: 'Helvetica-Bold' },
 
   panel: { marginTop: 22, borderWidth: 1, borderColor: RULE, borderRadius: 4, padding: 12 },
-  termsBox: { marginTop: 18 },
-  termsText: { fontSize: 7.5, color: MUTED, lineHeight: 1.5 },
+  // Terms get a page of their own, so there is room to set them at a size a
+  // person can actually read rather than the 7.5pt they were squeezed into
+  // when they had to fit under the banking panel.
+  termsBox: { marginTop: 0 },
+  termsTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', letterSpacing: -0.3, marginBottom: 2 },
+  termsIntro: { fontSize: 8, color: MUTED, marginBottom: 14 },
+  termsText: { fontSize: 8.5, color: INK, lineHeight: 1.6 },
 
   // Inset on both sides to clear the QR on the left and the corner graphic on
   // the right, so the rule runs BETWEEN them rather than under them. 96 and 110
@@ -305,8 +310,14 @@ export function invoiceDocument(d: DocView): PdfNode {
           : null,
       ) : null,
 
-      d.terms ? view({ style: s.termsBox },
-        text({ style: s.label }, 'TERMS AND CONDITIONS'),
+      // `break` starts a fresh page. Terms belong on one of their own: on a
+      // quote they are what the client is being asked to agree to, and squeezed
+      // under the banking panel in 7.5pt grey they read as small print nobody
+      // is expected to have looked at.
+      d.terms ? view({ style: s.termsBox, break: true },
+        text({ style: s.termsTitle }, 'Terms and conditions'),
+        text({ style: s.termsIntro },
+          `These terms form part of ${d.kind === 'quote' ? 'this quotation' : `${title.toLowerCase()} ${d.number || ''}`.trim()}.`),
         text({ style: s.termsText }, d.terms),
       ) : null,
 
