@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Plus, Save, X, FileText, Send, Trash2, Lock, Mail } from 'lucide-react'
+import { Loader2, Plus, Save, X, FileText, Send, Trash2, Lock, Mail, Undo2 } from 'lucide-react'
 import { Section, inputClass, inputStyle, grad } from '../shared'
 import { money, toCents, toRands, StatusPill, Empty, fmtDate } from './shared'
 
@@ -16,6 +16,7 @@ type Invoice = {
   id: string; number: string | null; status: string; client_id: string
   client_name: string; issued_at: string | null; due_at: string | null
   total_cents: number; paid_cents: number; outstanding_cents: number
+  credited_cents: number
 }
 type Line = { description: string; qty: string; unit_price_cents: string }
 
@@ -36,6 +37,7 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
   const [filter, setFilter] = useState('open')
   const [editing, setEditing] = useState<any | null>(null)
   const [sending, setSending] = useState<any | null>(null)
+  const [crediting, setCrediting] = useState<any | null>(null)
   const [busy, setBusy] = useState(false)
 
   async function load() {
@@ -169,6 +171,49 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
     if (!res.ok || data?.error) { toast.error(data?.error || 'Could not send it'); return }
     toast.success(`Sent to ${data.to}`)
     setSending(null); load()
+  }
+
+  function openCredit(inv: Invoice) {
+    const remaining = inv.total_cents - inv.credited_cents
+    setCrediting({
+      invoice: inv,
+      remaining,
+      amount: toRands(remaining),
+      reason: '',
+    })
+  }
+
+  /** Raise the draft and issue it in one go.
+   *
+   *  Unlike an invoice, a credit note has nothing to review between the two
+   *  steps: the amount and the reason ARE the document. Splitting it would be
+   *  ceremony without a decision in the middle. */
+  async function credit() {
+    setBusy(true)
+    const made = await fetch('/api/admin/billing/credit-notes', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        invoice_id: crediting.invoice.id,
+        amount_cents: toCents(crediting.amount),
+        reason: crediting.reason,
+      }),
+    })
+    const mData = await made.json().catch(() => ({}))
+    if (!made.ok || mData?.error) { setBusy(false); toast.error(mData?.error || 'Could not raise it'); return }
+
+    const issued = await fetch('/api/admin/billing/credit-notes', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: mData.creditNote.id }),
+    })
+    const iData = await issued.json().catch(() => ({}))
+    setBusy(false)
+    if (!issued.ok || iData?.error) {
+      toast.warning(`The draft was raised but not issued: ${iData?.error || 'unknown'}`, { duration: 9000 })
+      setCrediting(null); load(); return
+    }
+    toast.success(`${iData.creditNote.number} issued. ${crediting.invoice.number} now owes ${money(iData.invoice.outstanding_cents)}.`,
+      { duration: 8000 })
+    setCrediting(null); load()
   }
 
   async function cancel(inv: Invoice) {
@@ -363,6 +408,53 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
         </Section>
       )}
 
+      {crediting && (
+        <Section title={`Credit ${crediting.invoice.number}`}
+          sub={crediting.invoice.credited_cents > 0
+            ? `${money(crediting.invoice.credited_cents)} already credited. At most ${money(crediting.remaining)} can still be credited.`
+            : `The invoice is ${money(crediting.invoice.total_cents)}. Credit all of it, or part.`}
+          right={<button onClick={() => setCrediting(null)}><X className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} /></button>}>
+
+          <div className="flex items-start gap-2 rounded-lg p-3 text-xs mb-4"
+            style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.35)', color: 'rgba(255,255,255,0.75)' }}>
+            <Undo2 className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#0ea5e9' }} />
+            <div>
+              Both documents stay on the books. The invoice is not altered and not deleted; the credit
+              note sits against it and reduces what is owed. That is what an auditor expects to see, and
+              what the client can reconcile against their own records.
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>Amount (R)</span>
+              <input className={`${inputClass} mt-1.5`} style={inputStyle} inputMode="decimal"
+                value={crediting.amount} onChange={e => setCrediting({ ...crediting, amount: e.target.value })} />
+            </label>
+            <label className="block">
+              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>Reason</span>
+              <input className={`${inputClass} mt-1.5`} style={inputStyle}
+                placeholder="Billed in error, agreed discount, returned hardware"
+                value={crediting.reason} onChange={e => setCrediting({ ...crediting, reason: e.target.value })} />
+            </label>
+          </div>
+
+          <div className="flex items-center justify-between mt-4 flex-wrap gap-2">
+            <p className="text-xs" style={{ color: toCents(crediting.amount) > crediting.remaining ? '#ef4444' : 'rgba(255,255,255,0.55)' }}>
+              {toCents(crediting.amount) > crediting.remaining
+                ? `That is more than can be credited. The most is ${money(crediting.remaining)}.`
+                : `Leaves ${money(crediting.invoice.outstanding_cents - toCents(crediting.amount) > 0 ? crediting.invoice.outstanding_cents - toCents(crediting.amount) : 0)} owing.`}
+            </p>
+            <button onClick={credit}
+              disabled={busy || !crediting.reason.trim() || toCents(crediting.amount) <= 0 || toCents(crediting.amount) > crediting.remaining}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
+              style={{ background: grad, color: '#fff' }}>
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Undo2 className="w-4 h-4" />}Issue credit note
+            </button>
+          </div>
+        </Section>
+      )}
+
       {clients.length === 0 && (
         <div className="rounded-lg p-4 flex items-start gap-3 flex-wrap"
           style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.35)' }}>
@@ -401,7 +493,10 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
               </div>
               <div className="text-right w-32">
                 <p className="text-sm font-bold text-white">{money(inv.total_cents)}</p>
-                {inv.paid_cents > 0 && inv.outstanding_cents > 0 && (
+                {inv.credited_cents > 0 && (
+                  <p className="text-[11px]" style={{ color: '#0ea5e9' }}>{money(inv.credited_cents)} credited</p>
+                )}
+                {(inv.paid_cents > 0 || inv.credited_cents > 0) && inv.outstanding_cents > 0 && (
                   <p className="text-[11px]" style={{ color: '#f59e0b' }}>{money(inv.outstanding_cents)} still owing</p>
                 )}
               </div>
@@ -410,6 +505,12 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
                   title="PDF" className="p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
                   <FileText className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.6)' }} />
                 </a>
+                {inv.status !== 'draft' && inv.status !== 'cancelled' && inv.credited_cents < inv.total_cents && (
+                  <button onClick={() => openCredit(inv)} title="Raise a credit note"
+                    className="p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <Undo2 className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.6)' }} />
+                  </button>
+                )}
                 {inv.status !== 'draft' && inv.status !== 'cancelled' && (
                   <button onClick={() => openSend(inv)} title="Email this invoice"
                     className="p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>

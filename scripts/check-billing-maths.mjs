@@ -233,6 +233,48 @@ if (M.defaultDueDate('end_of_month', ISSUE, 14) === M.defaultDueDate('days', ISS
 eq('quote validity', M.quoteValidUntil(new Date('2026-09-04T00:00:00Z')), '2026-09-18')
 eq('quote validity, overridden', M.quoteValidUntil(new Date('2026-09-04T00:00:00Z'), 30), '2026-10-04')
 
+// ── Credit notes change what is owed ──────────────────────────────────────
+{
+  eq('nothing paid, nothing credited', M.invoiceOutstanding(100000, 0, 0), 100000)
+  eq('part paid', M.invoiceOutstanding(100000, 30000, 0), 70000)
+  eq('part credited', M.invoiceOutstanding(100000, 0, 40000), 60000)
+  eq('both', M.invoiceOutstanding(100000, 30000, 40000), 30000)
+  eq('fully credited owes nothing', M.invoiceOutstanding(100000, 0, 100000), 0)
+  // Over-crediting is somebody correcting a mistake, not a client owing a
+  // negative amount.
+  eq('over credited floors at zero', M.invoiceOutstanding(100000, 0, 150000), 0)
+
+  // Credited is NOT paid. The difference is "we collected the money" versus
+  // "we agreed they did not have to pay it", which is the question a year end
+  // asks.
+  eq('fully credited, nothing received',
+    M.statusAfterPayment(100000, 0, '2026-09-30', new Date('2026-10-05T00:00:00Z'), 100000), 'credited')
+  eq('credited invoices are not overdue',
+    M.statusAfterPayment(100000, 0, '2026-01-01', new Date('2026-10-05T00:00:00Z'), 100000) === 'overdue', false)
+  eq('paid in cash is paid',
+    M.statusAfterPayment(100000, 100000, '2026-09-30', new Date('2026-10-05T00:00:00Z'), 0), 'paid')
+  eq('part paid and part credited to zero reads as paid',
+    M.statusAfterPayment(100000, 60000, '2026-09-30', new Date('2026-10-05T00:00:00Z'), 40000), 'paid')
+  eq('a partial credit still leaves it owing',
+    M.statusAfterPayment(100000, 0, '2026-09-30', new Date('2026-10-05T00:00:00Z'), 40000), 'overdue')
+  // The old four-argument call must keep behaving exactly as it did.
+  eq('credit defaults to zero', M.statusAfterPayment(100000, 100000, null), 'paid')
+  eq('unpaid with no credit', M.statusAfterPayment(100000, 0, null), 'sent')
+
+  // A credited invoice must drop out of what a payment can be allocated to.
+  const plan = M.allocationPlan(100000, [
+    { id: 'credited', dueOn: '2026-08-31', totalCents: 60000, paidCents: 0, creditedCents: 60000 },
+    { id: 'open', dueOn: '2026-09-30', totalCents: 90000, paidCents: 0 },
+  ])
+  eq('a credited invoice is not allocated against', plan.allocations.length, 1)
+  eq('the open one takes it', plan.allocations[0].invoiceId, 'open')
+  const partial = M.allocationPlan(100000, [
+    { id: 'part', dueOn: '2026-08-31', totalCents: 100000, paidCents: 0, creditedCents: 30000 },
+  ])
+  eq('a partly credited invoice takes only its balance', partial.allocations[0].amountCents, 70000)
+  eq('and the rest stays unapplied', partial.unallocatedCents, 30000)
+}
+
 // ── Recurring schedules ───────────────────────────────────────────────────
 {
   // Advanced from the DUE DATE, so a late run does not drag the cycle with it.

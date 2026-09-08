@@ -121,3 +121,61 @@ export function docViewFromInvoice(
     terms: invoice.terms_snapshot || null,
   }
 }
+
+/**
+ * A credit note as a printable document.
+ *
+ * credit_notes has no lines table, so the reason IS the line. That is the
+ * right shape: a credit note says what is being credited and why, and inventing
+ * line items for it would imply a level of detail the record does not hold.
+ *
+ * The snapshots come off the credit note itself once issued, and from the
+ * INVOICE it corrects before that - so a draft preview already shows the party
+ * the original went to rather than whoever that client is called today.
+ */
+export function docViewFromCreditNote(
+  note: Row,
+  invoice: Row,
+  fallback?: {
+    settings?: (BillingSettingsLike & { vat_rate_bp?: number | null }) | null
+  },
+): DocView {
+  const from = note.from_snapshot
+    ? { ...note.from_snapshot }
+    : invoice.from_snapshot
+      ? { ...invoice.from_snapshot }
+      : fromSnapshot(fallback?.settings || {})
+
+  const to = note.to_snapshot
+    ? { ...note.to_snapshot }
+    : invoice.to_snapshot
+      ? { ...invoice.to_snapshot }
+      : { name: 'No client' }
+
+  const reason = String(note.reason || '').trim()
+  return {
+    kind: 'credit_note',
+    number: note.number || null,
+    issuedAt: note.issued_at || null,
+    dueAt: null,
+    currency: invoice.currency || 'ZAR',
+    subtotalCents: toNum(note.subtotal_cents),
+    vatRateBp: toNum(note.vat_rate_bp),
+    vatCents: toNum(note.vat_cents),
+    totalCents: toNum(note.total_cents),
+    // Says which invoice this undoes. A credit note that does not name its
+    // invoice is a credit note nobody can reconcile.
+    notes: `Credit against invoice ${invoice.number || '(draft)'}.`,
+    lines: [{
+      description: reason || `Credit against invoice ${invoice.number || ''}`.trim(),
+      qty: 1,
+      unitPriceCents: toNum(note.subtotal_cents),
+      lineTotalCents: toNum(note.subtotal_cents),
+    }],
+    from: from as DocView['from'],
+    to: to as DocView['to'],
+    // No banking block: nobody pays a credit note.
+    bank: null,
+    terms: null,
+  }
+}

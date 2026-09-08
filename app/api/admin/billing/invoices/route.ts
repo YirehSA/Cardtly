@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin, adminDb, migrationMissing } from '@/lib/admin-api'
 import {
-  documentTotals, effectiveVatRateBp, defaultDueDate,
+  documentTotals, effectiveVatRateBp, defaultDueDate, invoiceOutstanding,
   fromSnapshot, toSnapshot, bankSnapshot, lineTotalCents,
   type DueRule, type DocLine,
 } from '@/lib/billing-docs'
@@ -69,11 +69,25 @@ export async function GET(request: Request) {
   const { data: clients } = await db.from('billing_clients').select('id, name')
   const byId = Object.fromEntries((clients || []).map((c: any) => [c.id, c.name]))
 
+  // Credits reduce what is owed without being payments. An invoice showing the
+  // full amount after it has been credited is one somebody chases for money
+  // that is not due.
+  const ids = (data || []).map((i: any) => i.id)
+  const { data: credits } = ids.length
+    ? await db.from('credit_notes').select('invoice_id, total_cents')
+        .in('invoice_id', ids).eq('status', 'issued')
+    : { data: [] }
+  const creditedBy: Record<string, number> = {}
+  for (const c of credits || []) {
+    creditedBy[c.invoice_id] = (creditedBy[c.invoice_id] || 0) + (c.total_cents || 0)
+  }
+
   return NextResponse.json({
     invoices: (data || []).map((i: any) => ({
       ...i,
       client_name: byId[i.client_id] || 'Unknown client',
-      outstanding_cents: Math.max(0, (i.total_cents || 0) - (i.paid_cents || 0)),
+      credited_cents: creditedBy[i.id] || 0,
+      outstanding_cents: invoiceOutstanding(i.total_cents || 0, i.paid_cents || 0, creditedBy[i.id] || 0),
     })),
   })
 }

@@ -29,6 +29,7 @@ export const INVOICE_STATUS: Record<string, { label: string; colour: string; hin
   overdue:    { label: 'Overdue',    colour: '#ef4444', hint: 'Past its due date and still owing.' },
   cancelled:  { label: 'Cancelled',  colour: '#6b7280', hint: 'Voided before any money moved.' },
   written_off:{ label: 'Written off',colour: '#6b7280', hint: 'Given up on. Still on the books.' },
+  credited:   { label: 'Credited',   colour: '#0ea5e9', hint: 'Credit notes cover the balance. No money was received, so this is not paid.' },
 }
 
 export function StatusPill({ status }: { status: string }) {

@@ -346,8 +346,14 @@ export function statusAfterPayment(
   paidCents: number,
   dueOn: string | null,
   today = new Date(),
-): 'paid' | 'part_paid' | 'overdue' | 'sent' {
-  if (paidCents >= totalCents && totalCents > 0) return 'paid'
+  creditedCents = 0,
+): 'paid' | 'part_paid' | 'overdue' | 'sent' | 'credited' {
+  const settled = paidCents + creditedCents
+  // Credited, not paid. Nothing was received, and calling it paid would make
+  // the money look collected in every report that counts paid invoices.
+  if (settled >= totalCents && totalCents > 0) {
+    return paidCents > 0 ? 'paid' : 'credited'
+  }
   if (paidCents > 0) return 'part_paid'
   if (dueOn && dueOn < today.toISOString().slice(0, 10)) return 'overdue'
   return 'sent'
@@ -374,15 +380,31 @@ export function statusAfterPayment(
  *
  * Nothing here writes anything. It proposes; a person confirms.
  */
+/**
+ * What an invoice still owes.
+ *
+ * Credits count. A credit note is not a payment - no money moved - but it does
+ * reduce what the client has to hand over, and an invoice showing the full
+ * amount owing after it has been credited is an invoice somebody chases for
+ * money that is not due.
+ */
+export function invoiceOutstanding(
+  totalCents: number,
+  paidCents: number,
+  creditedCents = 0,
+): number {
+  return Math.max(0, totalCents - paidCents - creditedCents)
+}
+
 export function allocationPlan(
   receiptCents: number,
-  invoices: Array<{ id: string; dueOn: string | null; totalCents: number; paidCents: number }>,
+  invoices: Array<{ id: string; dueOn: string | null; totalCents: number; paidCents: number; creditedCents?: number }>,
 ): { allocations: Array<{ invoiceId: string; amountCents: number }>; unallocatedCents: number } {
   let left = Math.max(0, Math.round(receiptCents))
   const allocations: Array<{ invoiceId: string; amountCents: number }> = []
 
   const owing = invoices
-    .map(i => ({ ...i, outstanding: Math.max(0, i.totalCents - i.paidCents) }))
+    .map(i => ({ ...i, outstanding: invoiceOutstanding(i.totalCents, i.paidCents, i.creditedCents || 0) }))
     .filter(i => i.outstanding > 0)
     // Undated invoices last: a missing due date is unknown, not urgent.
     .sort((a, b) =>

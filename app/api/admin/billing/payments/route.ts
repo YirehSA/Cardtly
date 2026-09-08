@@ -17,16 +17,28 @@ export const runtime = 'nodejs'
 
 const METHODS = ['eft', 'paystack', 'cash', 'card', 'other']
 
+/** What has been credited against each of these invoices. */
+async function creditsFor(db: any, invoiceIds: string[]): Promise<Record<string, number>> {
+  if (!invoiceIds.length) return {}
+  const { data } = await db
+    .from('credit_notes').select('invoice_id, total_cents')
+    .in('invoice_id', invoiceIds).eq('status', 'issued')
+  const out: Record<string, number> = {}
+  for (const c of data || []) out[c.invoice_id] = (out[c.invoice_id] || 0) + (c.total_cents || 0)
+  return out
+}
+
 async function restatus(db: any, invoiceIds: string[]) {
   if (!invoiceIds.length) return
   // Re-read AFTER the trigger has recomputed paid_cents, or the status would be
   // decided from the figure as it was before the allocation landed.
   const { data: invoices } = await db
     .from('invoices').select('id, total_cents, paid_cents, due_at, status').in('id', invoiceIds)
+  const credited = await creditsFor(db, invoiceIds)
 
   for (const i of invoices || []) {
     if (['draft', 'cancelled', 'written_off'].includes(i.status)) continue
-    const next = statusAfterPayment(i.total_cents, i.paid_cents, i.due_at)
+    const next = statusAfterPayment(i.total_cents, i.paid_cents, i.due_at, new Date(), credited[i.id] || 0)
     if (next !== i.status) {
       await db.from('invoices').update({ status: next, updated_at: new Date().toISOString() }).eq('id', i.id)
     }
@@ -220,8 +232,12 @@ async function propose(db: any, clientId: string, amountCents: number, excludeRe
     rows = rows.map((i: any) => ({ ...i, paid_cents: (i.paid_cents || 0) - (back[i.id] || 0) }))
   }
 
+  // A credited invoice must drop out of what a payment can settle, or a client
+  // paying a round figure has some of it allocated to a balance that is gone.
+  const credited = await creditsFor(db, rows.map((i: any) => i.id))
   const plan = allocationPlan(amountCents, rows.map((i: any) => ({
     id: i.id, dueOn: i.due_at, totalCents: i.total_cents, paidCents: i.paid_cents,
+    creditedCents: credited[i.id] || 0,
   })))
 
   const byId = Object.fromEntries(rows.map((i: any) => [i.id, i]))
@@ -231,7 +247,8 @@ async function propose(db: any, clientId: string, amountCents: number, excludeRe
       amount_cents: a.amountCents,
       invoice_number: byId[a.invoiceId]?.number || null,
       due_at: byId[a.invoiceId]?.due_at || null,
-      outstanding_cents: Math.max(0, (byId[a.invoiceId]?.total_cents || 0) - (byId[a.invoiceId]?.paid_cents || 0)),
+      outstanding_cents: Math.max(0,
+        (byId[a.invoiceId]?.total_cents || 0) - (byId[a.invoiceId]?.paid_cents || 0) - (credited[a.invoiceId] || 0)),
     })),
     unallocated_cents: plan.unallocatedCents,
   }
