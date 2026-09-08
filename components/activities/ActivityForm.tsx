@@ -25,6 +25,9 @@ const KIND_ICON: Record<ActivityKind, React.ReactNode> = {
 
 export interface ActivityFormState {
   id: string | null
+  /** Only used where the caller has to say whose activity this is: the admin.
+   *  A rep's own route takes the rep from their session and ignores it. */
+  repId: string
   kind: ActivityKind
   company: string
   contact_name: string
@@ -38,10 +41,11 @@ export interface ActivityFormState {
   notes: string
 }
 
-export function blankActivity(kind: ActivityKind = 'email'): ActivityFormState {
+export function blankActivity(kind: ActivityKind = 'email', repId = ''): ActivityFormState {
   const now = new Date()
   return {
     id: null,
+    repId,
     kind,
     company: '', contact_name: '', email: '', subject: '',
     // Now, because outreach is nearly always logged the moment it goes out.
@@ -55,6 +59,7 @@ export function activityFormFrom(a: LoggedActivity): ActivityFormState {
   const d = new Date(a.happened_at)
   return {
     id: a.id,
+    repId: a.rep_id,
     kind: a.kind,
     company: a.company,
     contact_name: a.contact_name || '',
@@ -80,6 +85,7 @@ export function withKind(f: ActivityFormState, kind: ActivityKind): ActivityForm
 export function activityToBody(f: ActivityFormState): Record<string, any> {
   return {
     id: f.id,
+    rep_id: f.repId || undefined,
     kind: f.kind,
     company: f.company,
     contact_name: f.contact_name,
@@ -94,9 +100,10 @@ export function activityToBody(f: ActivityFormState): Record<string, any> {
 }
 
 /** Specific, not "invalid input". */
-export function activityError(f: ActivityFormState): string | null {
+export function activityError(f: ActivityFormState, needsRep = false): string | null {
   if (!f.company.trim()) return 'Which company was this with?'
   if (!f.date) return 'When did this happen?'
+  if (needsRep && !f.repId) return 'Choose which rep this belongs to.'
   if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) {
     return 'That email address does not look right.'
   }
@@ -125,13 +132,15 @@ const WORDING: Record<ActivityKind, { subject: string; subjectHint: string; cont
 }
 
 export default function ActivityForm({
-  form, setForm, busy, skin, onClose, onSave, onDelete,
+  form, setForm, busy, skin, reps, onClose, onSave, onDelete,
 }: {
   form: ActivityFormState
   setForm: (f: ActivityFormState | ((f: ActivityFormState) => ActivityFormState)) => void
   busy: boolean
   /** Portalled, so the --cal-* variables have to be handed over. */
   skin: React.CSSProperties
+  /** Passed by the admin only. A rep never chooses whose activity it is. */
+  reps?: { id: string; name: string }[] | null
   onClose: () => void
   onSave: () => void
   onDelete?: () => void
@@ -148,7 +157,8 @@ export default function ActivityForm({
 
   if (!mounted) return null
 
-  const problem = activityError(form)
+  const needsRep = !!reps
+  const problem = activityError(form, needsRep)
   const words = WORDING[form.kind]
   const options = statusesFor(form.kind)
 
@@ -171,6 +181,16 @@ export default function ActivityForm({
             </button>
           </div>
 
+          {reps && (
+            <Field label="Rep *">
+              <select value={form.repId} onChange={e => setForm(f => ({ ...f, repId: e.target.value }))}
+                className={inputClass} style={inputStyle}>
+                <option value="">Choose a rep...</option>
+                {reps.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+            </Field>
+          )}
+
           {/* First, because it changes what everything under it means. */}
           <fieldset>
             <legend className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--cal-muted)' }}>
@@ -184,8 +204,12 @@ export default function ActivityForm({
                     aria-pressed={on}
                     className="min-h-[48px] rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-2 transition"
                     style={{
-                      background: on ? k.colour + '1f' : 'transparent',
-                      border: `1px solid ${on ? k.colour + '66' : 'var(--cal-border)'}`,
+                      // 14, not 1f. The admin panel sits a shade lighter than
+                      // the dashboard, and at 12% the chip's own tint lifted
+                      // the background enough to put its blue label at 4.37:1.
+                      // The border carries the selected state anyway.
+                      background: on ? k.colour + '14' : 'transparent',
+                      border: `1px solid ${on ? k.colour + '99' : 'var(--cal-border)'}`,
                       // The label takes the deep hue on a light panel. `solid`
                       // is the same value the filled buttons use.
                       color: on ? ink(k.colour, k.solid) : 'var(--cal-muted)',

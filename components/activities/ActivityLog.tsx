@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Search, X, Download, Mail, Linkedin, Users, Inbox } from 'lucide-react'
+import { Search, X, Download, Mail, Linkedin, Users, Inbox, Plus } from 'lucide-react'
 import {
   ACTIVITY_KINDS, ACTIVITY_STATUSES, statusMeta, kindMeta, filterActivities,
   activitiesToCsv, dayKey,
@@ -27,6 +27,7 @@ const KIND_ICON: Record<ActivityKind, React.ReactNode> = {
 
 export default function ActivityLog({
   activities, allInTab, kinds, endpoint, skin, canWrite = true, onRefresh, periodName,
+  reps = null, repId = null,
 }: {
   /** Already narrowed to the period by the page above. */
   activities: LoggedActivity[]
@@ -44,6 +45,11 @@ export default function ActivityLog({
   onRefresh: () => Promise<void> | void
   /** For the export filename, so a downloaded file says what is in it. */
   periodName: string
+  /** Admin only: lets an activity be filed against any rep, and turns on the
+   *  Rep column. Its presence is what puts the Rep field in the form. */
+  reps?: { id: string; name: string }[] | null
+  /** Admin only: which rep the log is narrowed to, or null for everyone. */
+  repId?: string | null
 }) {
   const [search, setSearch] = useState('')
   const [kind, setKind] = useState<ActivityKind | null>(null)
@@ -56,9 +62,15 @@ export default function ActivityLog({
   const overdueInk = ink(INK.amber.bright, INK.amber.deep)
   const dateInk = ink(INK.sky.bright, INK.sky.deep)
 
+  // Narrowed to one rep before anything else, so the search, the filters and
+  // the export all agree about whose log is on screen.
+  const scoped = useMemo(
+    () => (repId ? activities.filter(a => a.rep_id === repId) : activities),
+    [activities, repId])
+
   const shown = useMemo(
-    () => filterActivities(activities, search, kind, status),
-    [activities, search, kind, status])
+    () => filterActivities(scoped, search, kind, status),
+    [scoped, search, kind, status])
 
   // Only the statuses that can actually occur in this tab, so the Email log
   // does not offer to filter by "Attended".
@@ -133,6 +145,17 @@ export default function ActivityLog({
           style={{ border: '1px solid var(--cal-border)', color: 'var(--cal-text)' }}>
           <Download className="w-4 h-4" />Export
         </button>
+
+        {/* The rep gets Quick log buttons above the tabs; the admin panel has
+            no room for a strip of them, so the add button lives here. Opens on
+            this tab's own kind, which is the one they are looking at. */}
+        {reps && canWrite && (
+          <button onClick={() => setForm(blankActivity(kind || kinds[0], repId || ''))}
+            className="px-4 min-h-[44px] rounded-xl text-sm font-bold text-white inline-flex items-center gap-2"
+            style={{ background: 'linear-gradient(135deg, #0369a1, #6d28d9, #be185d)' }}>
+            <Plus className="w-4 h-4" />Log activity
+          </button>
+        )}
       </div>
 
       {shown.length === 0 ? (
@@ -159,6 +182,7 @@ export default function ActivityLog({
                 <tr style={{ background: 'var(--cal-raised)' }}>
                   <Th>Date &amp; time</Th><Th>Type</Th><Th>Contact / company</Th>
                   <Th>Subject / notes</Th><Th>Status</Th><Th>Next step</Th>
+                  {reps && <Th>Rep</Th>}
                 </tr>
               </thead>
               <tbody>
@@ -205,6 +229,7 @@ export default function ActivityLog({
                           </span>
                           : <span style={{ color: 'var(--cal-muted)' }}>-</span>}
                       </Td>
+                      {reps && <Td muted={!a.repName}>{a.repName || '-'}</Td>}
                     </tr>
                   )
                 })}
@@ -238,6 +263,7 @@ export default function ActivityLog({
                     <Row label={a.kind === 'networking' ? 'Event' : 'Subject'} value={a.subject} />
                     <Row label="Notes" value={a.notes} />
                     <Row label="Next step" value={a.next_step} />
+                    {reps && <Row label="Rep" value={a.repName} />}
                     {a.follow_up_on && (
                       <Row label="Follow up"
                         value={overdue ? `Due ${a.follow_up_on}` : a.follow_up_on}
@@ -253,13 +279,15 @@ export default function ActivityLog({
 
       {form && (
         <ActivityForm
-          form={form} setForm={setForm as any} busy={busy} skin={skin}
+          form={form} setForm={setForm as any} busy={busy} skin={skin} reps={reps}
           onClose={() => setForm(null)}
           onSave={() => post(activityToBody(form), form.id ? 'Activity updated' : 'Activity logged')}
           onDelete={form.id
             ? () => {
               if (!confirm('Delete this entry?\n\nThe note goes with it.')) return
-              post({ action: 'delete', id: form.id }, 'Entry deleted')
+              // rep_id goes along for the admin route, which cannot take it
+              // from a session. The rep route ignores it and uses their own.
+              post({ action: 'delete', id: form.id, rep_id: form.repId || undefined }, 'Entry deleted')
             }
             : undefined}
         />

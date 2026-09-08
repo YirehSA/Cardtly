@@ -47,6 +47,7 @@ export default async function AdminPage({
       reps={data.reps}
       meetings={data.meetings}
       calls={data.calls}
+      activities={data.activities}
       trialCodes={data.trialCodes}
       stats={data.stats}
       announcement={data.announcement}

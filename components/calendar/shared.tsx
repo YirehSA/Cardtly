@@ -44,7 +44,17 @@ export const ADMIN_SKIN = {
   '--cal-today': 'hsl(var(--accent) / 0.12)',
 } as unknown as CSSProperties
 
-export const GRAD = 'hsl(var(--accent))'
+/**
+ * The primary button on every form in this family: meetings, calls, outreach.
+ *
+ * It was hsl(var(--accent)), and white on that is 3.64:1 in dark mode - the
+ * save button on five different forms, below AA, on the one control each form
+ * exists to reach. --accent is a fixed blue in globals.css rather than anyone's
+ * brand colour, so this is that same blue taken down far enough to carry white
+ * at 6.7:1. Not color-mix: unsupported it resolves to nothing, and a
+ * transparent primary button is white text on a panel.
+ */
+export const GRAD = '#1d4ed8'
 
 /**
  * A hue that is still readable as TEXT on whichever theme is on.

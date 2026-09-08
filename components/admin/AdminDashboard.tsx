@@ -29,7 +29,9 @@ import type { AdminUserRow, AdminOrgRow, UserStatus, TrialCodeRow } from '@/lib/
 import type { RepStats } from '@/lib/reps'
 import type { CalendarMeeting } from '@/lib/rep-meetings'
 import type { LoggedCall } from '@/lib/rep-calls'
+import type { LoggedActivity } from '@/lib/rep-activities'
 import CallLog from '@/components/calls/CallLog'
+import OutreachTab from '@/components/admin/OutreachTab'
 import { ADMIN_SKIN } from '@/components/calendar/shared'
 
 interface Stats {
@@ -61,6 +63,8 @@ interface Props {
   meetings: CalendarMeeting[]
   /** Every rep's calls, flat, each carrying the rep's name. */
   calls: LoggedCall[]
+  /** Every rep's outreach, flat, each carrying the rep's name. */
+  activities: LoggedActivity[]
   trialCodes: TrialCodeRow[]
   stats: Stats
   announcement: any | null
@@ -68,7 +72,7 @@ interface Props {
 
 // as const so ?tab= can be checked against it rather than trusted: an unknown
 // value opens Overview instead of rendering nothing at all.
-const TABS = ['overview', 'users', 'teams', 'trials', 'reps', 'meetings', 'calls', 'nfc', 'accounting', 'quotes', 'invoices', 'recurring', 'payments', 'clients', 'billing', 'reports', 'activity'] as const
+const TABS = ['overview', 'users', 'teams', 'trials', 'reps', 'meetings', 'calls', 'emails', 'networking', 'nfc', 'accounting', 'quotes', 'invoices', 'recurring', 'payments', 'clients', 'billing', 'reports', 'activity'] as const
 type Tab = typeof TABS[number]
 
 // Eleven tabs in one row was eleven things to read before doing anything, and
@@ -83,7 +87,7 @@ type Tab = typeof TABS[number]
 const GROUPS: { id: string; label: string; icon: any; tabs: Tab[] }[] = [
   { id: 'overview',   label: 'Overview',   icon: LayoutGrid,     tabs: ['overview'] },
   { id: 'customers',  label: 'Customers',  icon: UsersIcon,      tabs: ['users', 'teams', 'trials'] },
-  { id: 'sales',      label: 'Sales',      icon: UserCog,        tabs: ['reps', 'meetings', 'calls'] },
+  { id: 'sales',      label: 'Sales',      icon: UserCog,        tabs: ['reps', 'meetings', 'calls', 'emails', 'networking'] },
   { id: 'accounting', label: 'Accounting', icon: Banknote,       tabs: ['accounting', 'quotes', 'invoices', 'recurring', 'payments', 'clients', 'billing'] },
   { id: 'operations', label: 'Operations', icon: Wifi,           tabs: ['nfc', 'reports', 'activity'] },
 ]
@@ -96,6 +100,8 @@ const TAB_META: Record<Tab, { label: string; icon: any }> = {
   reps:     { label: 'Reps',       icon: UserCog },
   meetings: { label: 'Calendar',   icon: CalendarClock },
   calls:    { label: 'Call log',   icon: PhoneCall },
+  emails:   { label: 'Email log',  icon: Mail },
+  networking:{ label: 'Networking',icon: UsersIcon },
   nfc:      { label: 'NFC orders', icon: Wifi },
   accounting:{ label: 'Overview',  icon: LayoutGrid },
   quotes:   { label: 'Quotes',     icon: FileSignature },
@@ -182,7 +188,7 @@ function byNullableAsc(a: number | null, b: number | null): number {
   return a - b
 }
 
-export default function AdminDashboard({ initialTab, users, orgs, cards, teamCards, nfcOrders, audit, reps, meetings, calls, trialCodes, stats, announcement }: Props) {
+export default function AdminDashboard({ initialTab, users, orgs, cards, teamCards, nfcOrders, audit, reps, meetings, calls, activities, trialCodes, stats, announcement }: Props) {
   const router = useRouter()
   // Which tab to open on. The page reads ?tab= and hands it down - see the
   // comment there for why this is not read off window.location.
@@ -651,6 +657,27 @@ ${r.email} will be able to sign in and log their meetings. If that address has n
             calls={calls}
             endpoint="/api/admin/calls"
             skin={ADMIN_SKIN}
+            reps={reps.map(r => ({ id: r.id, name: r.name }))}
+          />
+        )}
+
+        {/* Same two components the rep sees, in the admin skin and pointed at
+            the admin endpoint. The rep picker is what this adds: with nobody
+            chosen the figures are the whole team's. */}
+        {tab === 'emails' && (
+          <OutreachTab
+            kinds={['email']}
+            initial={activities}
+            calls={calls}
+            reps={reps.map(r => ({ id: r.id, name: r.name }))}
+          />
+        )}
+
+        {tab === 'networking' && (
+          <OutreachTab
+            kinds={['linkedin', 'networking']}
+            initial={activities}
+            calls={calls}
             reps={reps.map(r => ({ id: r.id, name: r.name }))}
           />
         )}

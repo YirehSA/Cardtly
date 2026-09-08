@@ -4,7 +4,6 @@ import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import {
   CalendarClock, PhoneCall, Mail, Users, Plus, ChevronLeft, ChevronRight,
-  Handshake, TrendingUp, MessageSquareReply, Linkedin,
 } from 'lucide-react'
 import MeetingsView from '@/components/rep/MeetingsView'
 import CallLog from '@/components/calls/CallLog'
@@ -13,6 +12,7 @@ import ActivityForm, {
   blankActivity, activityToBody, type ActivityFormState,
 } from '@/components/activities/ActivityForm'
 import { APP_SKIN, useMounted, useNow, useInk, INK } from '@/components/calendar/shared'
+import ActivityStats from '@/components/activities/ActivityStats'
 import { shiftAnchor, periodLabel, type CalendarView } from '@/lib/calendar'
 import type { CalendarMeeting } from '@/lib/rep-meetings'
 import type { LoggedCall } from '@/lib/rep-calls'
@@ -87,8 +87,6 @@ export default function RepWorkspace({ repName, active, meetings, calls, activit
       return Number.isFinite(t) && t >= a && t < b
     })
   }, [calls, range?.from?.getTime(), range?.to?.getTime()])
-
-  const stats = useMemo(() => summariseActivities(inPeriod, callsInPeriod), [inPeriod, callsInPeriod])
 
   // The same window, one step back. This is what makes "up 33%" a fact rather
   // than a decoration: without it a card can only ever say how many, never
@@ -194,27 +192,10 @@ export default function RepWorkspace({ repName, active, meetings, calls, activit
         </div>
       </div>
 
-      {/* The four figures. */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat
-          icon={<Mail className="w-5 h-5" />} colour="#3b82f6"
-          value={stats.emailsSent} label="Emails sent"
-          note={delta(stats.emailsSent, previous?.emailsSent, period)} />
-        <Stat
-          icon={<MessageSquareReply className="w-5 h-5" />} colour="#22c55e"
-          value={stats.positive} label="Positive replies"
-          note={stats.responseRate === null
-            ? { text: 'Nothing sent yet', tone: 'muted' }
-            : { text: `${stats.responseRate}% response rate`, tone: 'good' }} />
-        <Stat
-          icon={<Linkedin className="w-5 h-5" />} colour="#a855f7"
-          value={stats.connections} label="New connections"
-          note={{ text: 'LinkedIn and networking', tone: 'muted' }} />
-        <Stat
-          icon={<Handshake className="w-5 h-5" />} colour="#ec4899"
-          value={stats.meetings} label="Meetings booked"
-          note={{ text: 'From outreach and calls', tone: 'muted' }} />
-      </div>
+      {/* The four figures. Shared with the admin panel, so the two screens
+          cannot end up counting a bounce differently. */}
+      <ActivityStats
+        activities={inPeriod} calls={callsInPeriod} previous={previous} period={period} />
 
       {/* Owed a follow-up. Above the tabs, because it is true on all of them. */}
       {due.length > 0 && (
@@ -309,65 +290,6 @@ export default function RepWorkspace({ repName, active, meetings, calls, activit
           onSave={saveQuick}
         />
       )}
-    </div>
-  )
-}
-
-/** How this period compares with the one before it. Says nothing rather than
- *  inventing a percentage when there was nothing to compare against: "up 100%"
- *  from zero to one is arithmetically true and useless. */
-function delta(now: number, before: number | undefined, period: CalendarView): Note {
-  if (before === undefined) return { text: 'All time', tone: 'muted' }
-  const unit = period === 'week' ? 'week' : 'month'
-  if (before === 0) {
-    return now === 0
-      ? { text: `Nothing last ${unit} either`, tone: 'muted' }
-      : { text: `Up from none last ${unit}`, tone: 'good' }
-  }
-  const pct = Math.round(((now - before) / before) * 100)
-  if (pct === 0) return { text: `Same as last ${unit}`, tone: 'muted' }
-  return {
-    text: `${pct > 0 ? 'Up' : 'Down'} ${Math.abs(pct)}% vs last ${unit}`,
-    tone: pct > 0 ? 'good' : 'bad',
-  }
-}
-
-type Note = { text: string; tone: 'good' | 'bad' | 'muted' }
-
-function Stat({ icon, colour, value, label, note }: {
-  icon: React.ReactNode; colour: string; value: number; label: string; note: Note
-}) {
-  const ink = useInk()
-  const TONE: Record<Note['tone'], string> = {
-    good: ink(INK.green.bright, INK.green.deep),
-    bad: ink(INK.amber.bright, INK.amber.deep),
-    muted: 'var(--cal-muted)',
-  }
-  return (
-    <div className="rounded-2xl border p-4 flex items-start gap-3"
-      style={{
-        borderColor: colour + '33',
-        // 0e, not 14. At 8% the green card's own tint pushed the muted note on
-        // it to 4.43:1 - the app sets --muted-foreground precisely to clear
-        // 4.56 on its surfaces, and a decorative wash must not spend that. This
-        // is the same card to look at and leaves the token its headroom.
-        background: `linear-gradient(150deg, ${colour}0e 0%, transparent 60%)`,
-      }}>
-      <span className="w-11 h-11 rounded-xl grid place-items-center flex-shrink-0"
-        style={{ background: colour + '22', color: colour }}>
-        {icon}
-      </span>
-      <div className="min-w-0">
-        <p className="font-display text-3xl font-bold leading-none tabular-nums">{value}</p>
-        <p className="text-sm font-medium mt-1">{label}</p>
-        {/* The tone is carried by an arrow as well as a colour, so it still
-            reads as up or down to somebody who cannot separate the two. */}
-        <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: TONE[note.tone] }}>
-          {note.tone === 'good' && <TrendingUp className="w-3 h-3" />}
-          {note.tone === 'bad' && <TrendingUp className="w-3 h-3 rotate-180" />}
-          {note.text}
-        </p>
-      </div>
     </div>
   )
 }

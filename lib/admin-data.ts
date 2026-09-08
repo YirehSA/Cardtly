@@ -382,6 +382,23 @@ export async function loadAdminData(admin: any) {
   })()
   const loggedCalls = allCalls.map(c => ({ ...c, repName: repNameById[c.rep_id] || null }))
 
+  // Every rep's outreach. Same treatment again, and the same reason: this table
+  // arrives with migration 075, applied by hand, and the admin panel must not
+  // go dark waiting for it.
+  const allActivities: any[] = await (async () => {
+    try {
+      const { data, error } = await admin
+        .from('rep_activities')
+        .select('*')
+        .order('happened_at', { ascending: false })
+      if (error) return []
+      return data || []
+    } catch {
+      return []
+    }
+  })()
+  const loggedActivities = allActivities.map(a => ({ ...a, repName: repNameById[a.rep_id] || null }))
+
   const reps: RepStats[] = ((repRows || []) as RepRow[]).map((rep) => computeRep(
     rep,
     rows.filter(r => r.repId === rep.id).map(r => ({
@@ -465,6 +482,7 @@ export async function loadAdminData(admin: any) {
     reps,
     meetings: calendarMeetings,
     calls: loggedCalls,
+    activities: loggedActivities,
     trialCodes,
     cards: (cards || []).map((c: any) => ({ ...c, views_30d: views30dByCard[c.id] || 0 }))
       .sort((a: any, b: any) => (b.views_30d - a.views_30d) || ((b.view_count || 0) - (a.view_count || 0))),
