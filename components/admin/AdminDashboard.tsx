@@ -626,7 +626,7 @@ ${r.email} will be able to sign in and log their meetings. If that address has n
         )}
 
         {tab === 'nfc' && <NfcTab orders={nfcOrders} run={run} loading={loading} />}
-        {tab === 'quotes' && <QuotesTab onAddClient={() => setTab('clients')} />}
+        {tab === 'quotes' && <QuotesTab />}
         {tab === 'invoices' && <InvoicesTab onAddClient={() => setTab('clients')} />}
         {tab === 'recurring' && <RecurringTab />}
         {tab === 'payments' && <PaymentsTab />}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Plus, Save, X, FileText, Send, Trash2, Lock, Link2, ArrowRight } from 'lucide-react'
+import { Loader2, Plus, Save, X, FileText, Send, Trash2, Lock, Link2, ArrowRight, UserPlus } from 'lucide-react'
 import { Section, inputClass, inputStyle, grad } from '../shared'
 import { money, toCents, toRands, Empty, fmtDate } from './shared'
 
@@ -45,7 +45,7 @@ function Pill({ status }: { status: string }) {
     style={{ background: `${m.colour}1f`, color: m.colour, border: `1px solid ${m.colour}55` }}>{m.label}</span>
 }
 
-export default function QuotesTab({ onAddClient }: { onAddClient?: () => void } = {}) {
+export default function QuotesTab() {
   const [loading, setLoading] = useState(true)
   const [unavailable, setUnavailable] = useState<string | null>(null)
   const [quotes, setQuotes] = useState<Quote[]>([])
@@ -53,6 +53,11 @@ export default function QuotesTab({ onAddClient }: { onAddClient?: () => void } 
   const [filter, setFilter] = useState('open')
   const [editing, setEditing] = useState<any | null>(null)
   const [busy, setBusy] = useState(false)
+  // Adding a client from here, rather than sending somebody to another screen.
+  // A rep quoting a new prospect has nowhere else to go: the Clients tab is
+  // staff only, so without this the first quote of every relationship is a
+  // dead end.
+  const [newClient, setNewClient] = useState<any | null>(null)
 
   async function load() {
     setLoading(true)
@@ -70,13 +75,33 @@ export default function QuotesTab({ onAddClient }: { onAddClient?: () => void } 
   }
   useEffect(() => { load() }, [filter])
 
+  async function createClient() {
+    setBusy(true)
+    const res = await fetch('/api/admin/billing/clients', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newClient),
+    })
+    const d = await res.json().catch(() => ({}))
+    setBusy(false)
+    if (!res.ok || d?.error) { toast.error(d?.error || 'Could not add them'); return }
+
+    // Added to the list AND selected, because the reason somebody added a
+    // client here is that they are about to quote them.
+    const client = d.client
+    setClients(cs => [...cs, client].sort((a, b) => a.name.localeCompare(b.name)))
+    setEditing((e: any) => e
+      ? { ...e, client_id: client.id }
+      : { id: null, client_id: client.id, notes: '', lines: [{ ...BLANK_LINE }] })
+    setNewClient(null)
+    toast.success(`${client.name} added`)
+  }
+
   function startNew() {
     // No clients means there is nobody to address this to. Rather than a dead
     // button with a tooltip nobody sees, say so and go to the screen that fixes
     // it. A disabled control that will not explain itself is a dead end.
     if (clients.length === 0) {
-      toast.error('A quote has to be addressed to somebody. Add a client first.')
-      onAddClient?.()
+      setNewClient({ name: '', contact_person: '', email: '', phone: '' })
       return
     }
     setEditing({ id: null, client_id: clients[0]?.id || '', notes: '', lines: [{ ...BLANK_LINE }] })
@@ -200,6 +225,28 @@ export default function QuotesTab({ onAddClient }: { onAddClient?: () => void } 
         </button>
       </div>
 
+      {newClient && (
+        <Section title="New client" sub="Just enough to address a quote. The rest can be filled in later."
+          right={<button onClick={() => setNewClient(null)}><X className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} /></button>}>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {([['name', 'Company name'], ['contact_person', 'Contact person'], ['email', 'Email'], ['phone', 'Phone']] as const).map(([k, label]) => (
+              <label key={k} className="block">
+                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>{label}</span>
+                <input className={`${inputClass} mt-1.5`} style={inputStyle} value={newClient[k] ?? ''}
+                  onChange={e => setNewClient({ ...newClient, [k]: e.target.value })} />
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end mt-4">
+            <button onClick={createClient} disabled={busy || !newClient.name?.trim()}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
+              style={{ background: grad, color: '#fff' }}>
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}Add and use
+            </button>
+          </div>
+        </Section>
+      )}
+
       {editing && (
         <Section
           title={editing.number ? `Quote ${editing.number}` : editing.id ? 'Edit draft' : 'New quote'}
@@ -216,13 +263,23 @@ export default function QuotesTab({ onAddClient }: { onAddClient?: () => void } 
             </div>
           )}
 
-          <label className="block mb-3">
+          <div className="mb-3">
             <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>Client</span>
-            <select className={`${inputClass} mt-1.5`} style={inputStyle} value={editing.client_id} disabled={frozen}
-              onChange={e => setEditing({ ...editing, client_id: e.target.value })}>
-              {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </label>
+            <div className="flex gap-2 mt-1.5">
+              <select className={inputClass} style={{ ...inputStyle, flex: '1 1 auto' }} value={editing.client_id} disabled={frozen}
+                onChange={e => setEditing({ ...editing, client_id: e.target.value })}>
+                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              {!frozen && (
+                <button onClick={() => setNewClient({ name: '', contact_person: '', email: '', phone: '' })}
+                  title="Add a client without leaving this quote"
+                  className="flex items-center gap-2 px-3 rounded-lg text-sm font-semibold whitespace-nowrap"
+                  style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.75)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <UserPlus className="w-4 h-4" />New
+                </button>
+              )}
+            </div>
+          </div>
 
           <div className="space-y-2">
             {(editing.lines || []).map((l: Line, i: number) => (
@@ -306,7 +363,7 @@ export default function QuotesTab({ onAddClient }: { onAddClient?: () => void } 
               when it is issued. Add a client and this will work.
             </p>
           </div>
-          <button onClick={() => onAddClient?.()}
+          <button onClick={() => setNewClient({ name: '', contact_person: '', email: '', phone: '' })}
             className="px-4 py-2 rounded-xl text-sm font-semibold"
             style={{ background: grad, color: '#fff' }}>
             Add a client
