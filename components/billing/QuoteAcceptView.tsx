@@ -18,6 +18,7 @@ type Quote = {
   lines: { description: string; qty: number; unit: string; amount: string }[]
   from: any; to: any; bank: any; terms: string | null
   acceptedAt: string | null; acceptedName: string | null; canAccept: boolean
+  revision: number
 }
 
 const card: React.CSSProperties = {
@@ -53,11 +54,21 @@ export default function QuoteAcceptView({ token }: { token: string }) {
     setBusy(true); setError(null)
     const res = await fetch(`/api/quote/${token}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(decision === 'accept' ? { decision, name, email } : { decision, reason }),
+      // The revision this page rendered. The server refuses a signature
+      // against a version that has since moved on.
+      body: JSON.stringify(decision === 'accept'
+        ? { decision, name, email, revision: quote?.revision }
+        : { decision, reason }),
     })
     const d = await res.json().catch(() => ({}))
     setBusy(false)
-    if (!res.ok || d?.error) { setError(d?.error || 'That did not go through.'); return }
+    if (!res.ok || d?.error) {
+      setError(d?.error || 'That did not go through.')
+      // A stale revision means the document on screen is out of date, so the
+      // only safe thing is to show them the new one.
+      if (d?.stale) setTimeout(() => window.location.reload(), 2500)
+      return
+    }
     setQuote(q => q ? {
       ...q, status: d.status, canAccept: false,
       acceptedAt: d.acceptedAt || q.acceptedAt, acceptedName: d.acceptedName || q.acceptedName,

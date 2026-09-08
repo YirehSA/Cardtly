@@ -52,6 +52,8 @@ function publicView(quote: any, lines: any[]) {
     terms: quote.terms_snapshot || null,
     acceptedAt: quote.accepted_at,
     acceptedName: quote.accepted_name,
+    // Sent so the accept form can post it back. See the check in POST.
+    revision: Number(quote.revision) || 1,
     canAccept: !expired && ['issued', 'sent'].includes(quote.status),
   }
 }
@@ -108,6 +110,18 @@ export async function POST(request: Request, ctx: { params: Promise<{ token: str
     }, { status: 409 })
   }
 
+  // The quote may have been edited while this page sat open. Signing a version
+  // the client never read is the one failure that makes the whole accept page
+  // worthless, so a stale revision is refused rather than accepted quietly.
+  const current = Number(quote.revision) || 1
+  if (body?.revision != null && Number(body.revision) !== current) {
+    return NextResponse.json({
+      error: 'This quotation was updated while you had it open. Please refresh the page and read it again before accepting.',
+      stale: true,
+
+    }, { status: 409 })
+  }
+
   if (decision === 'decline') {
     await supabase.from('quotes')
       .update({ status: 'declined', updated_at: new Date().toISOString() }).eq('id', quote.id)
@@ -151,7 +165,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ token: str
 
   await supabase.from('document_events').insert({
     doc_type: 'quote', doc_id: quote.id, event: 'accepted',
-    meta: { name, email, ip, ua, terms_id: quote.terms_id, number: quote.number },
+    // The revision is part of the evidence: it says WHICH version was signed.
+    meta: { name, email, ip, ua, terms_id: quote.terms_id, number: quote.number, revision: current },
   })
 
   return NextResponse.json({ ok: true, status: 'accepted', acceptedAt, acceptedName: name })

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Plus, Save, X, FileText, Send, Trash2, Lock, Link2, ArrowRight, UserPlus } from 'lucide-react'
+import { Loader2, Plus, Save, X, FileText, Send, Trash2, Lock, Link2, ArrowRight, UserPlus, Pencil } from 'lucide-react'
 import { Section, inputClass, inputStyle, grad } from '../shared'
 import { money, toCents, toRands, Empty, fmtDate } from './shared'
 
@@ -17,6 +17,7 @@ type Quote = {
   client_id: string; client_name: string; issued_at: string | null; valid_until: string | null
   total_cents: number; public_token: string | null
   accepted_at: string | null; accepted_name: string | null
+  revision: number
 }
 type Line = { description: string; qty: string; unit_price_cents: string }
 const BLANK_LINE: Line = { description: '', qty: '1', unit_price_cents: '' }
@@ -120,6 +121,7 @@ export default function QuotesTab() {
     setEditing({
       id: data.quote.id, client_id: data.quote.client_id, notes: data.quote.notes || '',
       status: data.quote.status, number: data.quote.number, token: data.quote.public_token,
+      revision: data.quote.revision || 1,
       lines: (data.lines || []).map((l: any) => ({
         description: l.description, qty: String(Number(l.qty)), unit_price_cents: toRands(l.unit_price_cents),
       })),
@@ -147,8 +149,11 @@ export default function QuotesTab() {
   }
 
   async function saveAndClose() {
+    if (live && !confirm(
+      `Save changes to ${editing.number}? It keeps its number and its accept link, and the client sees the new version next time they open it. If they are looking at it right now, they will be asked to reload before they can sign.`
+    )) return
     const id = await save()
-    if (id) { toast.success('Draft saved'); setEditing(null); load() }
+    if (id) { toast.success(live ? 'Quote updated' : 'Draft saved'); setEditing(null); load() }
   }
 
   async function issue() {
@@ -203,7 +208,10 @@ export default function QuotesTab() {
   </div>
   if (unavailable) return <p className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>{unavailable}</p>
 
-  const frozen = !!editing?.status && editing.status !== 'draft'
+  // Frozen means somebody has DECIDED, not merely that it was issued. A quote
+  // in flight is the ordinary case for "take line three out".
+  const frozen = ['accepted', 'declined', 'cancelled'].includes(editing?.status)
+  const live = ['issued', 'sent'].includes(editing?.status)
 
   return (
     <div className="space-y-4">
@@ -257,9 +265,25 @@ export default function QuotesTab() {
             <div className="flex items-start gap-2 rounded-lg p-3 text-xs mb-4"
               style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.35)', color: 'rgba(255,255,255,0.75)' }}>
               <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#a855f7' }} />
-              <div>This quote is issued, so it cannot be changed. A signed quote has to be able to prove
-                what was signed, which only works if the document could not move afterwards. Cancel it and
-                raise a new one if the price has changed.</div>
+              <div>
+                {editing.status === 'accepted'
+                  ? 'The client has signed this quote. Its lines are the record of what they agreed to, so they cannot be changed. Raise a new quote for the revised work.'
+                  : editing.status === 'declined'
+                    ? 'This quote was declined. Raise a new one rather than editing it.'
+                    : 'This quote is cancelled.'}
+              </div>
+            </div>
+          )}
+          {live && (
+            <div className="flex items-start gap-2 rounded-lg p-3 text-xs mb-4"
+              style={{ background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.32)', color: 'rgba(255,255,255,0.78)' }}>
+              <Pencil className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#38bdf8' }} />
+              <div>
+                This quote is with the client and can still be changed. It keeps
+                <strong> {editing.number}</strong> and the same accept link
+                {editing.revision > 1 ? `, and is on revision ${editing.revision}` : ''}. Once they sign it,
+                it is frozen.
+              </div>
             </div>
           )}
 
@@ -340,13 +364,16 @@ export default function QuotesTab() {
                 <button onClick={saveAndClose} disabled={busy}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
                   style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.75)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}Save draft
+                  {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {live ? 'Save changes' : 'Save draft'}
                 </button>
-                <button onClick={issue} disabled={busy || draftTotal <= 0}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
-                  style={{ background: grad, color: '#fff' }}>
-                  <Send className="w-4 h-4" />Issue
-                </button>
+                {!live && (
+                  <button onClick={issue} disabled={busy || draftTotal <= 0}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
+                    style={{ background: grad, color: '#fff' }}>
+                    <Send className="w-4 h-4" />Issue
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -417,7 +444,7 @@ export default function QuotesTab() {
                   )}
                   <button onClick={() => openQuote(q)} className="px-3 py-1.5 rounded-lg text-xs font-semibold"
                     style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.7)' }}>
-                    {q.status === 'draft' ? 'Edit' : 'View'}
+                    {['draft', 'issued', 'sent'].includes(q.status) ? 'Edit' : 'View'}
                   </button>
                   {['draft', 'issued', 'sent'].includes(q.status) && (
                     <button onClick={() => cancel(q)} title="Cancel"

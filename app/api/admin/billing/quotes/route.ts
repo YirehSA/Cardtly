@@ -162,10 +162,19 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: true })
   }
 
-  if (quote.status !== 'draft') {
-    return NextResponse.json({
-      error: `Quote ${quote.number} has been issued and cannot be edited. Cancel it and raise a new one.`,
-    }, { status: 409 })
+  // Editable until somebody has made a decision against a specific version.
+  //
+  // A signed quote is evidence of what was agreed, so accepted and declined are
+  // frozen outright - editing one would falsify a signature. Issued and sent
+  // are not decisions, they are a document in flight, and "take line three out"
+  // is the most ordinary thing a client says.
+  const LOCKED: Record<string, string> = {
+    accepted: `Quote ${quote.number} has been signed by the client. Its lines are the record of what they agreed to, so it cannot be changed. Raise a new quote for the revised work.`,
+    declined: `Quote ${quote.number} was declined. Raise a new one rather than editing this.`,
+    cancelled: `Quote ${quote.number} is cancelled.`,
+  }
+  if (LOCKED[quote.status]) {
+    return NextResponse.json({ error: LOCKED[quote.status] }, { status: 409 })
   }
 
   const { data: settings } = await db.from('billing_settings').select('*').eq('id', true).maybeSingle()
@@ -191,9 +200,31 @@ export async function PATCH(request: Request) {
     }
   }
 
+  // Only after issue. A draft has no revisions worth counting because nobody
+  // outside has seen it.
+  const revised = quote.status !== 'draft'
+  if (revised) patch.revision = (Number(quote.revision) || 1) + 1
+
   const { data, error } = await db.from('quotes').update(patch).eq('id', quote.id).select('*').maybeSingle()
-  if (error) return NextResponse.json({ error: error.message || 'Could not save' }, { status: 500 })
-  return NextResponse.json({ quote: data })
+  if (error) {
+    if (/column .* revision .* does not exist/i.test(error.message || '')) {
+      return migrationMissing('Editing an issued quote')
+    }
+    return NextResponse.json({ error: error.message || 'Could not save' }, { status: 500 })
+  }
+
+  if (revised) {
+    await db.from('document_events').insert({
+      doc_type: 'quote', doc_id: quote.id, event: 'revised', actor: actor.userId,
+      meta: {
+        revision: data.revision,
+        from_total_cents: quote.total_cents,
+        to_total_cents: data.total_cents,
+      },
+    })
+  }
+
+  return NextResponse.json({ quote: data, revised })
 }
 
 async function issue(db: any, quote: any, actor: string) {

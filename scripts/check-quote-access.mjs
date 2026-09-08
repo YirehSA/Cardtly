@@ -60,6 +60,39 @@ if (existsSync('app/api/admin/billing/quotes/send')) {
   }
 }
 
+// ── Editable until signed, frozen after ───────────────────────────────────
+// The line moved from "issued" to "decided", and the half that matters is the
+// half that stayed: a signed quote is evidence of what was agreed, so editing
+// one would falsify a signature.
+{
+  const src = readFileSync(QUOTES, 'utf8')
+
+  for (const status of ['accepted', 'declined', 'cancelled']) {
+    if (!new RegExp(`${status}:`).test(src)) bad(`a ${status} quote is no longer locked against edits`)
+  }
+  // The GUARD, not merely the lookup. Checking that the string appears is not
+  // enough: replacing the condition with `if (false)` left the same lookup
+  // sitting in the error message and the check sailed through.
+  if (!src.includes('if (LOCKED[quote.status]) {')) {
+    bad('the locked-status lookup is no longer guarding anything')
+  }
+  if (!/LOCKED\[quote\.status\] \}, \{ status: 409 \}/.test(src)) {
+    bad('a decided quote no longer refuses the edit with a 409')
+  }
+
+  // Editing after issue must bump the revision, or the accept page cannot tell
+  // that the document moved underneath a client who is reading it.
+  if (!/patch\.revision = /.test(src)) bad('editing an issued quote does not bump the revision')
+
+  const accept = readFileSync('app/api/quote/[token]/route.ts', 'utf8')
+  if (!/stale: true/.test(accept)) bad('the accept route does not refuse a stale revision')
+  if (!/body\?\.revision/.test(accept)) bad('the accept route ignores the revision the client rendered')
+  if (!/revision: current/.test(accept)) bad('the signature does not record which revision was signed')
+
+  const view = readFileSync('components/billing/QuoteAcceptView.tsx', 'utf8')
+  if (!/revision: quote\?\.revision/.test(view)) bad('the accept form does not post back the revision it rendered')
+}
+
 // ── The PDF is scoped too ─────────────────────────────────────────────────
 {
   const src = readFileSync(PDF, 'utf8')
@@ -115,5 +148,6 @@ if (fail) {
 }
 console.log(
   'check-quote-access: quotes are not emailed from the system, every quotes read is narrowed to ' +
-  'created_by, reps see client names but no balances, and no other admin route lets a rep in.',
+  'created_by, reps see client names but no balances, a signed quote cannot be edited, and a ' +
+  'signature against a stale revision is refused.',
 )
