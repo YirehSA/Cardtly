@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { adminDb } from '@/lib/admin-api'
 import { requireQuoteAccess } from '@/lib/rep-check'
+import { FOUNDER_ADMIN_USER_ID } from '@/lib/admin-check'
 import { renderDocumentPdf, pdfFilename } from '@/lib/pdf/render'
 import { docViewFromQuote } from '@/lib/billing-view'
 
@@ -23,7 +24,12 @@ export async function GET(request: Request) {
   // Scoped, not just gated: a rep with somebody else's quote id must get a 404
   // rather than a PDF of their pricing.
   let query = db.from('quotes').select('*').eq('id', id)
-  if (!actor.isAdmin) query = query.eq('created_by', actor.userId)
+  if (!actor.isAdmin) {
+    // Same rule as the list: their own, plus anything staff raised.
+    const { data: admins } = await db.from('profiles').select('user_id').eq('is_admin', true)
+    const allowed = [...new Set([actor.userId, FOUNDER_ADMIN_USER_ID, ...(admins || []).map((p: any) => p.user_id)])]
+    query = query.in('created_by', allowed)
+  }
   const { data: quote } = await query.maybeSingle()
   if (!quote) return NextResponse.json({ error: 'No such quote' }, { status: 404 })
 

@@ -41,7 +41,10 @@ if (existsSync('app/api/admin/billing/quotes/send')) {
   if (!/requireQuoteAccess/.test(src)) bad('the quotes route is not behind requireQuoteAccess')
 
   // Any select on quotes must go through mine(), which applies created_by.
-  const selects = [...src.matchAll(/(.{0,60})from\('quotes'\)\s*\.select\(/g)]
+  // [\s\S] rather than . so the lookbehind spans a line break: wrapping a long
+  // call over two lines is not a security regression, and the first version of
+  // this check reported two of them as unscoped reads.
+  const selects = [...src.matchAll(/([\s\S]{0,90})from\('quotes'\)\s*\.select\(/g)]
   if (!selects.length) bad('found no quotes selects to check, so this guard is checking nothing')
   for (const m of selects) {
     if (!/mine\(/.test(m[1])) {
@@ -50,9 +53,13 @@ if (existsSync('app/api/admin/billing/quotes/send')) {
   }
 
   if (!/function mine\(/.test(src)) bad('mine() is gone, so nothing narrows a rep to their own quotes')
-  if (!/actor\.isAdmin \? q : q\.eq\('created_by'/.test(src)) {
-    bad('mine() no longer narrows by created_by')
-  }
+  // A rep sees their own quotes plus anything staff raised - never another
+  // rep's. The narrowing must still be a created_by filter on the QUERY.
+  if (!/q\.in\('created_by'/.test(src)) bad('mine() no longer narrows by created_by')
+  if (!/staffIds/.test(src)) bad('the staff allowance is gone, so a rep cannot see quotes we raised')
+  if (/q\.in\('created_by', \[\]\)/.test(src)) bad('the created_by allowance is empty')
+  // The allowance must be built from admins, not from every rep.
+  if (!/is_admin['"]?, true\)/.test(src)) bad('the staff list is not restricted to admins')
 
   // Converting a quote to an invoice is billing, not selling.
   if (!/isAdmin[\s\S]{0,200}Only Cardtly staff can turn a quote into an invoice/.test(src)) {

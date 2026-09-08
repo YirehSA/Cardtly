@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { isQuoteExpired } from '@/lib/billing-view'
 import { formatMoney } from '@/lib/billing-docs'
+import { Resend } from 'resend'
+import { FROM_EMAIL } from '@/lib/email'
+import {
+  renderQuoteAcceptedEmail, QUOTE_ACCEPTED_TO, QUOTE_ACCEPTED_CC,
+} from '@/lib/billing-email-templates'
 
 // The client's side of a quote. PUBLIC - no session, by design, because the
 // person accepting is somebody else's accounts department and will not have one.
@@ -168,6 +173,48 @@ export async function POST(request: Request, ctx: { params: Promise<{ token: str
     // The revision is part of the evidence: it says WHICH version was signed.
     meta: { name, email, ip, ua, terms_id: quote.terms_id, number: quote.number, revision: current },
   })
+
+  // Tell somebody. A signature nobody hears about is a job that does not get
+  // done, and the client has just agreed to spend money.
+  //
+  // Wrapped, and deliberately AFTER the signature is recorded: if Resend is
+  // down or misconfigured, the client must still be signed. Losing the
+  // notification is an inconvenience; losing the acceptance is the business.
+  // No PDF is rendered here either - this route is public, and pulling the
+  // renderer in would drag pdfkit's fonts into a public bundle.
+  try {
+    const key = process.env.RESEND_API_KEY
+    if (key) {
+      const { subject, html } = renderQuoteAcceptedEmail({
+        number: quote.number,
+        clientName: quote.to_snapshot?.name || 'A client',
+        signerName: name,
+        signerEmail: email,
+        acceptedAt,
+        totalFormatted: formatMoney(quote.total_cents, quote.currency || 'ZAR'),
+        revision: current,
+        ip,
+      })
+      await new Resend(key).emails.send({
+        from: FROM_EMAIL,
+        to: QUOTE_ACCEPTED_TO,
+        cc: [QUOTE_ACCEPTED_CC],
+        subject,
+        html,
+      })
+      await supabase.from('document_events').insert({
+        doc_type: 'quote', doc_id: quote.id, event: 'acceptance_notified',
+        meta: { to: QUOTE_ACCEPTED_TO, cc: QUOTE_ACCEPTED_CC },
+      })
+    }
+  } catch {
+    // Recorded rather than thrown, so the gap is visible without the client
+    // ever seeing a failure.
+    await supabase.from('document_events').insert({
+      doc_type: 'quote', doc_id: quote.id, event: 'acceptance_notify_failed',
+      meta: { to: QUOTE_ACCEPTED_TO },
+    })
+  }
 
   return NextResponse.json({ ok: true, status: 'accepted', acceptedAt, acceptedName: name })
 }

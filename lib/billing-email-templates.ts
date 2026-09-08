@@ -226,3 +226,64 @@ export function reminderTone({ stage, isFinal, daysOverdue }: ReminderToneInput)
       'If it has already been paid, please send the proof of payment.',
   }
 }
+
+// ── When a client signs ───────────────────────────────────────────────────
+
+/** Who hears about an accepted quote. Internal, not the client. */
+export const QUOTE_ACCEPTED_TO = 'anthony@cardtly.com'
+export const QUOTE_ACCEPTED_CC = 'hello@cardtly.com'
+
+export interface QuoteAcceptedInput {
+  number: string
+  clientName: string
+  signerName: string
+  signerEmail: string
+  acceptedAt: string
+  totalFormatted: string
+  revision: number
+  ip?: string | null
+}
+
+/**
+ * The email that says somebody signed.
+ *
+ * Internal, so it is written for whoever has to act on it rather than for a
+ * client: the number, who signed, what it is worth, and the next step, which is
+ * always to turn it into an invoice.
+ *
+ * It carries the SIGNATURE EVIDENCE - name, email, time, revision, IP - because
+ * the moment that is worth capturing is the moment it happens. Going back for
+ * it later means trusting that nothing moved in between.
+ */
+export function renderQuoteAcceptedEmail({
+  number, clientName, signerName, signerEmail, acceptedAt, totalFormatted, revision, ip,
+}: QuoteAcceptedInput): { subject: string; html: string } {
+  const rows: [string, string][] = [
+    ['Quotation', number],
+    ['Client', clientName],
+    ['Signed by', signerName + ' (' + signerEmail + ')'],
+    ['Value', totalFormatted],
+    ['When', acceptedAt.replace('T', ' ').slice(0, 19) + ' UTC'],
+    ['Version signed', `revision ${revision}`],
+    ...(ip ? [['From', ip] as [string, string]] : []),
+  ]
+
+  return {
+    subject: `Accepted: ${number} from ${clientName} (${totalFormatted})`,
+    html: `<div style="font-family:system-ui,-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;color:#111827">
+      <p style="font-size:12px;letter-spacing:1px;color:#059669;font-weight:700;margin:0 0 6px">QUOTE ACCEPTED</p>
+      <h1 style="font-size:21px;margin:0 0 4px;color:#111827">${escapeHtml(clientName)} signed ${escapeHtml(number)}</h1>
+      <p style="color:#4B5563;font-size:14px;margin:0 0 20px">
+        Turn it into an invoice from Accounting, Quotes. The quote is now frozen, so what they signed cannot change.
+      </p>
+      <table style="border-collapse:collapse;margin:0 0 8px">
+        ${rows.map(([k, v]) =>
+          `<tr><td style="color:#6B7280;font-size:13px;padding:3px 14px 3px 0;vertical-align:top">${escapeHtml(k)}</td>` +
+          `<td style="font-size:13px;font-weight:600;color:#111827">${escapeHtml(v)}</td></tr>`).join('')}
+      </table>
+      <p style="color:#9CA3AF;font-size:12px;margin:22px 0 0;border-top:1px solid #E5E7EB;padding-top:14px">
+        Sent automatically when the client signed on the acceptance page.
+      </p>
+    </div>`,
+  }
+}

@@ -154,6 +154,40 @@ const base = {
   if (!/reminder/i.test(plain.subject)) bad('a reminder with no stage stopped saying it is a reminder')
 }
 
+// ── The email that says a client signed ───────────────────────────────────
+// Internal, not a quote going out to a client, so it does not contradict the
+// rule below. It carries the signature evidence because the moment worth
+// capturing is the moment it happens.
+{
+  const { subject, html } = M.renderQuoteAcceptedEmail({
+    number: 'Q-2026-1001', clientName: 'Freshive Digital',
+    signerName: 'Shandini Naidoo', signerEmail: 'shandini@freshive.co.za',
+    acceptedAt: '2026-09-08T10:14:22.000Z', totalFormatted: 'R970.00',
+    revision: 2, ip: '102.65.0.1',
+  })
+  if (M.QUOTE_ACCEPTED_TO !== 'anthony@cardtly.com') bad('the acceptance notice goes to the wrong address')
+  if (M.QUOTE_ACCEPTED_CC !== 'hello@cardtly.com') bad('the acceptance notice is not copied to hello@')
+  for (const must of ['Q-2026-1001', 'Freshive Digital', 'Shandini Naidoo', 'R970.00', 'revision 2', '102.65.0.1']) {
+    if (!html.includes(must)) bad(`the acceptance notice is missing "${must}"`)
+  }
+  if (!/accepted/i.test(subject)) bad('the acceptance subject does not say it was accepted')
+  if (!subject.includes('R970.00')) bad('the acceptance subject does not carry the value')
+  // Signed by a person whose name Cardtly does not choose.
+  const hostile = M.renderQuoteAcceptedEmail({
+    number: 'Q-1', clientName: 'Acme <script>alert(1)</script>',
+    signerName: '<img onerror=alert(2) src=x>', signerEmail: 'a@b.co',
+    acceptedAt: '2026-09-08T10:00:00.000Z', totalFormatted: 'R1.00', revision: 1,
+  })
+  // What matters is that no TAG can form from user input. escapeHtml turns the
+  // angle brackets into entities, so `onerror=` survives as inert text - testing
+  // for that substring is testing the wrong thing, and did fail here first time.
+  // Every interpolation of user data in these templates is element text, never
+  // an attribute value, which is what makes text-only escaping sufficient.
+  if (/<script|<img/i.test(hostile.html)) bad('a tag formed from a signer name')
+  if (!hostile.html.includes('&lt;script&gt;')) bad('the client name was not escaped')
+  if (!hostile.html.includes('&lt;img')) bad('the signer name was not escaped')
+}
+
 // Quotes are not emailed from the system at all, so there is no template to
 // check. The guard against one coming back lives in check-quote-access.
 if (typeof M.renderQuoteEmail === 'function') {

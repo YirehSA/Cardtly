@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { randomBytes } from 'node:crypto'
 import { adminDb, migrationMissing } from '@/lib/admin-api'
 import { requireQuoteAccess, type Actor } from '@/lib/rep-check'
+import { FOUNDER_ADMIN_USER_ID } from '@/lib/admin-check'
 import {
   documentTotals, effectiveVatRateBp, quoteValidUntil, lineTotalCents,
   fromSnapshot, toSnapshot, bankSnapshot, type DocLine,
@@ -40,13 +41,29 @@ function normaliseLines(raw: unknown): DocLine[] {
  *  and a client's pricing, so not Math.random and not the row id. */
 const mintToken = () => randomBytes(16).toString('hex')
 
-/** Narrow a quotes query to what this actor may see.
+/** The user ids that count as staff. Cached per request, not per process: a
+ *  new admin should not have to wait for a deploy to have their quotes seen. */
+async function staffIds(db: any): Promise<string[]> {
+  const { data } = await db.from('profiles').select('user_id').eq('is_admin', true)
+  return [...new Set([FOUNDER_ADMIN_USER_ID, ...(data || []).map((p: any) => p.user_id)])]
+}
+
+/**
+ * Narrow a quotes query to what this actor may see.
  *
- *  An admin sees everything. A rep sees the quotes they created and nothing
- *  else, which is enforced here rather than in the UI, because a UI filter is
- *  a suggestion and a query filter is a rule. */
-function mine(q: any, actor: Actor) {
-  return actor.isAdmin ? q : q.eq('created_by', actor.userId)
+ * An admin sees everything. A rep sees the quotes THEY raised, plus any raised
+ * by staff - which is the shape that is correct now and stays correct later.
+ * With one rep that is every quote on the system, which is what was asked for;
+ * when a second rep arrives they are already walled off from each other with
+ * nobody having to remember to change anything. A permission that has to be
+ * narrowed later is a permission that does not get narrowed.
+ *
+ * Enforced in the query rather than the interface, because a UI filter is a
+ * suggestion and a query filter is a rule.
+ */
+function mine(q: any, actor: Actor, staff: string[]) {
+  if (actor.isAdmin) return q
+  return q.in('created_by', [...new Set([actor.userId, ...staff])])
 }
 
 export async function GET(request: Request) {
@@ -60,7 +77,8 @@ export async function GET(request: Request) {
   const db = adminDb()
 
   if (id) {
-    const { data: quote, error } = await mine(db.from('quotes').select('*').eq('id', id), actor).maybeSingle()
+    const { data: quote, error } = await mine(
+      db.from('quotes').select('*').eq('id', id), actor, await staffIds(db)).maybeSingle()
     if (error || !quote) return NextResponse.json({ error: 'No such quote' }, { status: 404 })
     const { data: lines } = await db
       .from('quote_lines').select('*').eq('quote_id', id).order('position')
@@ -70,7 +88,7 @@ export async function GET(request: Request) {
     })
   }
 
-  let q = mine(db.from('quotes').select('*'), actor)
+  let q = mine(db.from('quotes').select('*'), actor, await staffIds(db))
     .order('created_at', { ascending: false }).limit(300)
   if (status && status !== 'all') {
     q = status === 'open' ? q.in('status', ['draft', 'issued', 'sent']) : q.eq('status', status)
@@ -142,7 +160,8 @@ export async function PATCH(request: Request) {
   if (!body?.id) return NextResponse.json({ error: 'Which quote?' }, { status: 400 })
 
   const db = adminDb()
-  const { data: quote, error: qErr } = await mine(db.from('quotes').select('*').eq('id', body.id), actor).maybeSingle()
+  const { data: quote, error: qErr } = await mine(
+    db.from('quotes').select('*').eq('id', body.id), actor, await staffIds(db)).maybeSingle()
   if (qErr || !quote) return NextResponse.json({ error: 'No such quote' }, { status: 404 })
 
   if (body.action === 'issue') return issue(db, quote, actor.userId)
