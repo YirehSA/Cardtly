@@ -154,44 +154,10 @@ const base = {
   if (!/reminder/i.test(plain.subject)) bad('a reminder with no stage stopped saying it is a reminder')
 }
 
-// ── The quote email ───────────────────────────────────────────────────────
-const quoteBase = {
-  number: 'Q-2026-1001',
-  clientName: 'Acme Holdings (Pty) Ltd',
-  totalFormatted: 'R4 884.00',
-  validUntil: '2026-09-21',
-  acceptUrl: 'https://cardtly.com/quote/9f3c1ab27d5e4610b8c2fe0947a3d156',
-  from: FROM,
-}
-{
-  const { subject, html } = M.renderQuoteEmail(quoteBase)
-  for (const must of ['Q-2026-1001', 'Acme Holdings (Pty) Ltd', 'R4 884.00', '2026-09-21']) {
-    if (!html.includes(must)) bad(`the quote email is missing "${must}"`)
-  }
-  if (!subject.includes('Q-2026-1001')) bad('the quote subject must carry the quote number')
-  if (/invoice/i.test(subject)) bad('a quote must not call itself an invoice in the subject')
-  // The button is the point: a PDF can be read but not accepted.
-  if (!html.includes(`href="${quoteBase.acceptUrl}"`)) bad('the accept link must be the button href')
-  if (!/accept/i.test(html)) bad('the quote email must ask the client to accept')
-
-  // The token IS the security. Printed as visible text it becomes a URL people
-  // read out, screenshot and forward.
-  const visible = html.replace(/<[^>]+>/g, ' ')
-  if (visible.includes('9f3c1ab27d5e4610b8c2fe0947a3d156')) {
-    bad('the accept token is printed as visible text, not just as a link target')
-  }
-}
-{
-  // Same escaping rule as the invoice: a client name is not a string Cardtly
-  // chooses.
-  const { html } = M.renderQuoteEmail({
-    ...quoteBase,
-    clientName: 'Acme <script>alert(1)</script> & Sons',
-    message: 'Hi <script>alert(2)</script>',
-  })
-  if (html.includes('<script>')) bad('a raw <script> tag survived into the quote email')
-  if (!html.includes('&lt;script&gt;')) bad('hostile input in the quote email was not escaped')
-  if (!html.includes('&amp; Sons')) bad('an ampersand in a client name was not escaped in the quote email')
+// Quotes are not emailed from the system at all, so there is no template to
+// check. The guard against one coming back lives in check-quote-access.
+if (typeof M.renderQuoteEmail === 'function') {
+  bad('a quote email template exists again. Quotes go out with the proposal, not from the system.')
 }
 
 rmSync(out, { recursive: true, force: true })
@@ -200,7 +166,7 @@ if (fail) {
   process.exit(1)
 }
 console.log(
-  'check-billing-email: the invoice email carries its number, total, due date and banking details ' +
-  'and says when it is a reminder; the quote email carries its accept link without printing the token; ' +
-  'both escape every string Cardtly does not control.',
+  'check-billing-email: the invoice email carries its number, total, due date and banking details, ' +
+  'says when it is a reminder and escalates with the ladder, escapes every string Cardtly does not ' +
+  'control, and there is no quote template because quotes are not emailed from here.',
 )

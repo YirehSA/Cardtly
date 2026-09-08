@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin, adminDb, migrationMissing } from '@/lib/admin-api'
+import { requireQuoteAccess } from '@/lib/rep-check'
 
 // Who Cardtly bills.
 //
@@ -24,10 +25,21 @@ function clean(body: any) {
 }
 
 export async function GET(request: Request) {
-  const gate = await requireAdmin()
+  // Reps are allowed here because a quote has to be addressed to somebody, and
+  // they get a NAME LIST only - no balances, no contact details, no notes.
+  // Who owes what is not a rep's business.
+  const gate = await requireQuoteAccess()
   if ('error' in gate) return gate.error
+  const actor = gate.actor
 
   const db = adminDb()
+
+  if (!actor.isAdmin) {
+    const { data, error } = await db
+      .from('billing_clients').select('id, name').order('name')
+    if (error) return migrationMissing('Clients')
+    return NextResponse.json({ clients: data || [] })
+  }
   const q = new URL(request.url).searchParams.get('q')?.trim()
 
   let query = db.from('billing_clients').select('*').order('name')
@@ -54,7 +66,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const gate = await requireAdmin()
+  // A rep quoting a new prospect has to be able to add them, or the first
+  // quote of every relationship needs somebody else's help.
+  const gate = await requireQuoteAccess()
   if ('error' in gate) return gate.error
 
   const body = await request.json().catch(() => ({}))

@@ -17,6 +17,19 @@ import type { ChaseRow } from './overdue-chasing'
 // findOverdue counts to decide which rung of the ladder an invoice is on, so a
 // send that does not record itself would chase the same client forever.
 
+/**
+ * Copied in on every invoice and every reminder that leaves the system.
+ *
+ * Not optional and not a setting: the point is a complete record of what was
+ * billed and chased, sitting in a mailbox somebody reads, without depending on
+ * whoever pressed send remembering to add it. It is the same address the
+ * documents are sent from, so a reply from the client lands beside its own
+ * outgoing copy.
+ *
+ * Quotes are absent from this file entirely - they are not emailed from here.
+ */
+export const BILLING_CC = 'hello@cardtly.com'
+
 export interface SendResult { ok: true; to: string; messageId: string | null }
 export interface SendFailure { ok: false; error: string }
 
@@ -86,11 +99,21 @@ export async function sendInvoiceEmail(
     return { ok: false, error: `Could not render the PDF: ${e?.message || 'unknown error'}` }
   }
 
+  // Deduplicated against the recipient and against anything typed by hand, so
+  // a client whose address IS the CC address does not get two copies and a
+  // person who typed it in themselves does not either.
+  const cc = [
+    ...String(opts.cc || '').split(',').map(s => s.trim()).filter(Boolean),
+    BILLING_CC,
+  ].filter((addr, i, all) =>
+    addr.toLowerCase() !== to.toLowerCase()
+    && all.findIndex(a => a.toLowerCase() === addr.toLowerCase()) === i)
+
   const resend = new Resend(key)
   const { data: sent, error } = await resend.emails.send({
     from: FROM_EMAIL,
     to,
-    ...(opts.cc ? { cc: String(opts.cc).split(',').map(s => s.trim()).filter(Boolean) } : {}),
+    ...(cc.length ? { cc } : {}),
     subject,
     html,
     attachments: [{ filename: pdfFilename(docViewFromInvoice(invoice, lines || [])), content: pdf.toString('base64') }],
@@ -102,7 +125,7 @@ export async function sendInvoiceEmail(
     event: opts.reminder ? 'reminder_sent' : 'sent',
     actor: opts.actor || null,
     meta: {
-      to, cc: opts.cc || null, message_id: sent?.id || null, subject,
+      to, cc, message_id: sent?.id || null, subject,
       ...(opts.reminderStage ? { stage: opts.reminderStage.stage, days_overdue: opts.reminderStage.daysOverdue } : {}),
     },
   })

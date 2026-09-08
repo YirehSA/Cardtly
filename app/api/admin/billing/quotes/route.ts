@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { randomBytes } from 'node:crypto'
-import { requireAdmin, adminDb, migrationMissing } from '@/lib/admin-api'
+import { adminDb, migrationMissing } from '@/lib/admin-api'
+import { requireQuoteAccess, type Actor } from '@/lib/rep-check'
 import {
   documentTotals, effectiveVatRateBp, quoteValidUntil, lineTotalCents,
   fromSnapshot, toSnapshot, bankSnapshot, type DocLine,
@@ -8,6 +9,11 @@ import {
 import { quoteDisplayStatus, isQuoteExpired } from '@/lib/billing-view'
 
 // Quotes: draft, issue, accept, convert.
+//
+// Reachable by admins AND by sales reps, and reps see ONLY their own. Every
+// query below is scoped with mine(), so a rep asking for a quote by id gets
+// nothing back unless they raised it - there is no route in here that returns
+// somebody else's pricing.
 //
 // Same one-way door as invoices - a draft has no number and is editable, an
 // issued quote is frozen and snapshotted - with one addition that matters more
@@ -34,9 +40,19 @@ function normaliseLines(raw: unknown): DocLine[] {
  *  and a client's pricing, so not Math.random and not the row id. */
 const mintToken = () => randomBytes(16).toString('hex')
 
+/** Narrow a quotes query to what this actor may see.
+ *
+ *  An admin sees everything. A rep sees the quotes they created and nothing
+ *  else, which is enforced here rather than in the UI, because a UI filter is
+ *  a suggestion and a query filter is a rule. */
+function mine(q: any, actor: Actor) {
+  return actor.isAdmin ? q : q.eq('created_by', actor.userId)
+}
+
 export async function GET(request: Request) {
-  const gate = await requireAdmin()
+  const gate = await requireQuoteAccess()
   if ('error' in gate) return gate.error
+  const actor = gate.actor
 
   const url = new URL(request.url)
   const id = url.searchParams.get('id')
@@ -44,7 +60,7 @@ export async function GET(request: Request) {
   const db = adminDb()
 
   if (id) {
-    const { data: quote, error } = await db.from('quotes').select('*').eq('id', id).maybeSingle()
+    const { data: quote, error } = await mine(db.from('quotes').select('*').eq('id', id), actor).maybeSingle()
     if (error || !quote) return NextResponse.json({ error: 'No such quote' }, { status: 404 })
     const { data: lines } = await db
       .from('quote_lines').select('*').eq('quote_id', id).order('position')
@@ -54,7 +70,8 @@ export async function GET(request: Request) {
     })
   }
 
-  let q = db.from('quotes').select('*').order('created_at', { ascending: false }).limit(300)
+  let q = mine(db.from('quotes').select('*'), actor)
+    .order('created_at', { ascending: false }).limit(300)
   if (status && status !== 'all') {
     q = status === 'open' ? q.in('status', ['draft', 'issued', 'sent']) : q.eq('status', status)
   }
@@ -74,8 +91,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const gate = await requireAdmin()
+  const gate = await requireQuoteAccess()
   if ('error' in gate) return gate.error
+  const actor = gate.actor
 
   const body = await request.json().catch(() => ({}))
   if (!body?.client_id) return NextResponse.json({ error: 'A quote needs a client.' }, { status: 400 })
@@ -97,7 +115,7 @@ export async function POST(request: Request) {
     vat_cents: totals.vatCents,
     total_cents: totals.totalCents,
     notes: typeof body.notes === 'string' ? body.notes.trim() || null : null,
-    created_by: gate.user.id,
+    created_by: actor.userId,
   }).select('*').maybeSingle()
   if (error) return NextResponse.json({ error: error.message || 'Could not create the draft' }, { status: 500 })
 
@@ -109,28 +127,38 @@ export async function POST(request: Request) {
     })))
   }
   await db.from('document_events').insert({
-    doc_type: 'quote', doc_id: quote.id, event: 'created', actor: gate.user.id,
+    doc_type: 'quote', doc_id: quote.id, event: 'created', actor: actor.userId,
   })
 
   return NextResponse.json({ quote })
 }
 
 export async function PATCH(request: Request) {
-  const gate = await requireAdmin()
+  const gate = await requireQuoteAccess()
   if ('error' in gate) return gate.error
+  const actor = gate.actor
 
   const body = await request.json().catch(() => ({}))
   if (!body?.id) return NextResponse.json({ error: 'Which quote?' }, { status: 400 })
 
   const db = adminDb()
-  const { data: quote, error: qErr } = await db.from('quotes').select('*').eq('id', body.id).maybeSingle()
+  const { data: quote, error: qErr } = await mine(db.from('quotes').select('*').eq('id', body.id), actor).maybeSingle()
   if (qErr || !quote) return NextResponse.json({ error: 'No such quote' }, { status: 404 })
 
-  if (body.action === 'issue') return issue(db, quote, gate.user.id)
-  if (body.action === 'convert') return convert(db, quote, gate.user.id)
+  if (body.action === 'issue') return issue(db, quote, actor.userId)
+  if (body.action === 'convert') {
+    // Turning a quote into an invoice is billing, not selling. A rep raises
+    // the quote and somebody in accounts raises the bill.
+    if (!actor.isAdmin) {
+      return NextResponse.json({
+        error: 'Only Cardtly staff can turn a quote into an invoice. Let them know it has been accepted.',
+      }, { status: 403 })
+    }
+    return convert(db, quote, actor.userId)
+  }
   if (body.action === 'cancel') {
     await db.from('quotes').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', quote.id)
-    await db.from('document_events').insert({ doc_type: 'quote', doc_id: quote.id, event: 'cancelled', actor: gate.user.id })
+    await db.from('document_events').insert({ doc_type: 'quote', doc_id: quote.id, event: 'cancelled', actor: actor.userId })
     return NextResponse.json({ ok: true })
   }
 

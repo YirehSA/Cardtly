@@ -6,7 +6,7 @@ import { useTheme } from './ThemeProvider'
 import {
   CreditCard, BarChart2, Mail, Monitor, Users,
   Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi, Building2, Shield, ScanLine, ClipboardList,
-  Layers, Network, CalendarClock,
+  Layers, Network, CalendarClock, FileSignature,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -35,6 +35,8 @@ const TEAM_TAB = { href: '/dashboard/team', label: 'Team Cards', icon: Building2
 
 // Only a sales rep sees this: their own meetings and notes.
 const MEETINGS_TAB = { href: '/dashboard/meetings', label: 'My Calendar', icon: CalendarClock }
+// Reps quote, and that is the whole of their access to the books.
+const QUOTES_TAB = { href: '/dashboard/quotes', label: 'Quotes', icon: FileSignature }
 
 interface SidebarProps {
   isPro: boolean
@@ -68,7 +70,7 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
     // Only a department manager sees this. Their whole scoped surface lives
     // behind it.
     ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers }] : []),
-    ...(isRep ? [MEETINGS_TAB] : []),
+    ...(isRep ? [MEETINGS_TAB, QUOTES_TAB] : []),
   ]
   const router = useRouter()
   const supabase = createClient()

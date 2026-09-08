@@ -9,8 +9,7 @@ import {
   Home, CreditCard, QrCode, BarChart2,
   Users, Mail, Monitor, Wifi, Building2, Settings as SettingsIcon,
   Sun, Moon, LogOut, Shield, ScanLine, ClipboardList,
-  ChevronUp, X, Network, Layers, CalendarClock,
-} from 'lucide-react'
+  ChevronUp, X, Network, Layers, CalendarClock, FileSignature } from 'lucide-react'
 
 // Mobile-only bottom tab bar. Replaces the hamburger + slide-out
 // sidebar pattern on small screens. 4 most-used destinations sit in
@@ -74,6 +73,10 @@ const TEAM_TAB: Tab = { href: '/dashboard/team', label: 'Team Cards', icon: Buil
 // Only a sales rep sees this. Same guard as the sidebar - check-nav compares
 // the conditions, not just the destinations.
 const MEETINGS_TAB: Tab = { href: '/dashboard/meetings', label: 'My Calendar', icon: CalendarClock }
+// Reps quote, and that is the whole of their access to the books. Same guard as
+// the sidebar, because check-nav compares the conditions and not just the
+// destinations.
+const QUOTES_TAB: Tab = { href: '/dashboard/quotes', label: 'Quotes', icon: FileSignature }
 
 interface Props {
   isAdmin?: boolean
@@ -102,7 +105,7 @@ export default function MobileBottomNav({ isAdmin = false, isPro = false, manage
     // Departments was in the sidebar's conditional list but never here, so a
     // department head on a phone had no way to reach the page at all.
     ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers }] : []),
-    ...(isRep ? [MEETINGS_TAB] : []),
+    ...(isRep ? [MEETINGS_TAB, QUOTES_TAB] : []),
     ...(isAdmin ? [
       { href: '/admin', label: 'Admin', icon: Shield },
       // Same shortcut as the sidebar, deep-linked to the tab. Kept in step by

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { requireAdmin, adminDb } from '@/lib/admin-api'
+import { adminDb } from '@/lib/admin-api'
+import { requireQuoteAccess } from '@/lib/rep-check'
 import { renderDocumentPdf, pdfFilename } from '@/lib/pdf/render'
 import { docViewFromQuote } from '@/lib/billing-view'
 
@@ -11,14 +12,19 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
-  const gate = await requireAdmin()
+  const gate = await requireQuoteAccess()
   if ('error' in gate) return gate.error
+  const actor = gate.actor
 
   const id = new URL(request.url).searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'Which quote?' }, { status: 400 })
 
   const db = adminDb()
-  const { data: quote } = await db.from('quotes').select('*').eq('id', id).maybeSingle()
+  // Scoped, not just gated: a rep with somebody else's quote id must get a 404
+  // rather than a PDF of their pricing.
+  let query = db.from('quotes').select('*').eq('id', id)
+  if (!actor.isAdmin) query = query.eq('created_by', actor.userId)
+  const { data: quote } = await query.maybeSingle()
   if (!quote) return NextResponse.json({ error: 'No such quote' }, { status: 404 })
 
   const { data: lines } = await db

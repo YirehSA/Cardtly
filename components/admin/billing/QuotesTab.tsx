@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Plus, Save, X, FileText, Send, Trash2, Lock, Mail, Link2, ArrowRight, Check } from 'lucide-react'
+import { Loader2, Plus, Save, X, FileText, Send, Trash2, Lock, Link2, ArrowRight } from 'lucide-react'
 import { Section, inputClass, inputStyle, grad } from '../shared'
 import { money, toCents, toRands, Empty, fmtDate } from './shared'
 
@@ -52,7 +52,6 @@ export default function QuotesTab({ onAddClient }: { onAddClient?: () => void } 
   const [clients, setClients] = useState<any[]>([])
   const [filter, setFilter] = useState('open')
   const [editing, setEditing] = useState<any | null>(null)
-  const [sending, setSending] = useState<any | null>(null)
   const [busy, setBusy] = useState(false)
 
   async function load() {
@@ -165,29 +164,6 @@ export default function QuotesTab({ onAddClient }: { onAddClient?: () => void } 
     const data = await res.json().catch(() => ({}))
     if (!res.ok || data?.error) { toast.error(data?.error || 'Could not cancel'); return }
     toast.success('Cancelled'); load()
-  }
-
-  async function openSend(q: Quote) {
-    const res = await fetch(`/api/admin/billing/quotes/send?id=${q.id}`)
-    const data = await res.json().catch(() => ({}))
-    const sends = (data.events || []).filter((e: any) => e.event === 'sent')
-    setSending({ quote: q, to: '', cc: '', message: '', previous: sends, events: data.events || [] })
-  }
-
-  async function send() {
-    setBusy(true)
-    const res = await fetch('/api/admin/billing/quotes/send', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: sending.quote.id, to: sending.to.trim() || undefined,
-        cc: sending.cc.trim() || undefined, message: sending.message,
-      }),
-    })
-    const data = await res.json().catch(() => ({}))
-    setBusy(false)
-    if (!res.ok || data?.error) { toast.error(data?.error || 'Could not send it'); return }
-    toast.success(`Sent to ${data.to}`)
-    setSending(null); load()
   }
 
   function copyLink(q: Quote) {
@@ -320,48 +296,6 @@ export default function QuotesTab({ onAddClient }: { onAddClient?: () => void } 
         </Section>
       )}
 
-      {sending && (
-        <Section title={`Send ${sending.quote.number}`}
-          sub={sending.previous.length
-            ? `Already sent ${sending.previous.length} time${sending.previous.length === 1 ? '' : 's'}, last on ${fmtDate(sending.previous[0].created_at)} to ${sending.previous[0].meta?.to || 'unknown'}`
-            : 'The PDF goes out attached, with a link to the page where it can be accepted.'}
-          right={<button onClick={() => setSending(null)}><X className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} /></button>}>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>To</span>
-              <input className={`${inputClass} mt-1.5`} style={inputStyle}
-                placeholder={`${sending.quote.client_name}'s address on the quote`}
-                value={sending.to} onChange={e => setSending({ ...sending, to: e.target.value })} />
-            </label>
-            <label className="block">
-              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>CC</span>
-              <input className={`${inputClass} mt-1.5`} style={inputStyle} placeholder="Optional, comma separated"
-                value={sending.cc} onChange={e => setSending({ ...sending, cc: e.target.value })} />
-            </label>
-          </div>
-          <label className="block mt-3">
-            <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>Note</span>
-            <textarea className={`${inputClass} mt-1.5`} style={{ ...inputStyle, minHeight: 70 }}
-              placeholder="Optional. Appears above the quote details."
-              value={sending.message} onChange={e => setSending({ ...sending, message: e.target.value })} />
-          </label>
-          {sending.events.length > 0 && (
-            <div className="mt-3 text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              {sending.events.slice(0, 6).map((e: any) => (
-                <div key={e.id}>{fmtDate(e.created_at)} · {e.event.replace(/_/g, ' ')}{e.meta?.name ? ` by ${e.meta.name}` : ''}</div>
-              ))}
-            </div>
-          )}
-          <div className="flex justify-end mt-4">
-            <button onClick={send} disabled={busy}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
-              style={{ background: grad, color: '#fff' }}>
-              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}Send quote
-            </button>
-          </div>
-        </Section>
-      )}
-
       {clients.length === 0 && (
         <div className="rounded-lg p-4 flex items-start gap-3 flex-wrap"
           style={{ background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.35)' }}>
@@ -416,12 +350,6 @@ export default function QuotesTab({ onAddClient }: { onAddClient?: () => void } 
                       title="PDF" className="p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
                       <FileText className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.6)' }} />
                     </a>
-                  )}
-                  {live && (
-                    <button onClick={() => openSend(q)} title="Email this quote"
-                      className="p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                      <Mail className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.6)' }} />
-                    </button>
                   )}
                   {q.display_status === 'accepted' && (
                     <button onClick={() => convert(q)}

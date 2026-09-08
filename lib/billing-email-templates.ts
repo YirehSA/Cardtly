@@ -167,56 +167,14 @@ export function renderInvoiceEmail({
   }
 }
 
-export interface QuoteEmailInput {
-  number: string
-  clientName: string
-  totalFormatted: string
-  validUntil: string | null
-  acceptUrl: string
-  message?: string | null
-  from: { legalName?: string; regNumber?: string | null; email?: string | null }
-}
-
-/**
- * The email a quote goes out on.
- *
- * The button is the point. A PDF attachment can be read but not accepted, so
- * the thing the client is being asked to do gets the prominent control and the
- * attachment is the copy for their records.
- *
- * The link is not repeated as visible text: it carries the token that is the
- * whole of the document's security, and a URL people can see is a URL people
- * forward.
- */
-export function renderQuoteEmail({
-  number, clientName, totalFormatted, validUntil, acceptUrl, message, from,
-}: QuoteEmailInput): { subject: string; html: string } {
-  const n = escapeHtml(number)
-  return {
-    subject: `Quotation ${number} from Cardtly`,
-    html: wrapDocument(`
-      <h1 style="font-size:21px;margin:0 0 4px">Quotation ${n}</h1>
-      <p style="color:#666;font-size:14px;margin:0 0 20px">
-        Hello ${escapeHtml(clientName)}, here is the quotation you asked for. A PDF is attached,
-        and you can read and accept it online.
-      </p>
-      ${message ? `<p style="color:#444;font-size:14px;margin:0 0 20px;white-space:pre-wrap">${escapeHtml(message)}</p>` : ''}
-      <table style="border-collapse:collapse;margin:0 0 22px">
-        <tr><td style="color:#888;font-size:13px;padding:2px 12px 2px 0">Quotation</td>
-            <td style="font-size:13px;font-weight:600">${n}</td></tr>
-        <tr><td style="color:#888;font-size:13px;padding:2px 12px 2px 0">Total</td>
-            <td style="font-size:13px;font-weight:600">${escapeHtml(totalFormatted)}</td></tr>
-        ${validUntil ? `<tr><td style="color:#888;font-size:13px;padding:2px 12px 2px 0">Valid until</td>
-            <td style="font-size:13px;font-weight:600">${escapeHtml(validUntil)}</td></tr>` : ''}
-      </table>
-      <p style="margin:0 0 20px"><a href="${escapeHtml(acceptUrl)}" style="${BTN}">Read and accept the quotation</a></p>
-      <p style="color:#999;font-size:13px;margin:0">
-        The terms and conditions are on that page in full, above where you sign.
-        ${validUntil ? `This quotation stands until ${escapeHtml(validUntil)}.` : ''}
-      </p>
-    `, from),
-  }
-}
+// Quotes are deliberately NOT emailed from here.
+//
+// Cardtly sends them out by hand, with the business proposal around them, so
+// there is no quote template and no quote send route. The accept link on the
+// Quotes screen is what a client follows to sign; it is copied into whatever
+// email the proposal goes out in.
+//
+// scripts/check-quote-access fails if a send route reappears.
 
 export interface ReminderToneInput {
   stage: number
