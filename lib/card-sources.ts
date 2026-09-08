@@ -21,6 +21,8 @@ export const CARD_SOURCES = [
   { id: 'email',    eventType: 'email_click',   label: 'Email signature link' },
   { id: 'email-qr', eventType: 'email_qr_scan', label: 'Email signature QR' },
   { id: 'vbg',      eventType: 'vbg_scan',      label: 'Virtual background' },
+  { id: 'wa',       eventType: 'whatsapp_send', label: 'Card sent on WhatsApp' },
+  { id: 'sms',      eventType: 'sms_send',      label: 'Card sent by SMS' },
 ] as const
 
 // Derived from the list, not written out beside it. An earlier version
@@ -39,6 +41,8 @@ export const SOURCE_NFC = 'nfc'
 export const SOURCE_EMAIL_LINK = 'email'
 export const SOURCE_EMAIL_QR = 'email-qr'
 export const SOURCE_VIRTUAL_BG = 'vbg'
+export const SOURCE_WHATSAPP = 'wa'
+export const SOURCE_SMS = 'sms'
 
 const BY_ID = new Map<string, CardSource>(CARD_SOURCES.map(s => [s.id, s]))
 

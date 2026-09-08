@@ -12,6 +12,7 @@ interface CardSummary {
   id: string
   slug: string | null
   name: string | null
+  company?: string | null
   profile_image_url: string | null
   company_logo_url: string | null
   color_theme: string | null
@@ -25,7 +26,7 @@ export default async function QRCodePage() {
   if (!user) redirect('/login')
 
   const [personalCard, plan] = await Promise.all([
-    getPrimaryCard<CardSummary>(user.id, 'id, slug, name, title, profile_image_url, company_logo_url, color_theme'),
+    getPrimaryCard<CardSummary>(user.id, 'id, slug, name, title, company, profile_image_url, company_logo_url, color_theme'),
     getUserPlan(user.id),
   ])
 

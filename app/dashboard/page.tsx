@@ -15,6 +15,7 @@ import OnboardingTour from '@/components/dashboard/OnboardingTour'
 import { PROMOS_ENABLED } from '@/lib/promos'
 import ReferralCard from '@/components/dashboard/ReferralCard'
 import TapToShareButton from '@/components/nfc/TapToShareButton'
+import SendCardButton from '@/components/card/SendCardToPhone'
 import WidgetSync from '@/components/dashboard/WidgetSync'
 import TeammatesCard from '@/components/dashboard/TeammatesCard'
 import AddToGoogleWalletButton from '@/components/wallet/AddToGoogleWalletButton'
@@ -383,6 +384,17 @@ export default async function DashboardPage() {
                   style={{ backgroundColor: 'hsl(var(--accent))', color: 'var(--on-accent)' }}>
                   <Eye className="w-4 h-4" /> Open card
                 </a>
+
+                {/* The two ways to hand the card over when the other person
+                    is standing in front of you: their phone against yours, or
+                    their number typed in. Tap needs the Android app and NFC on
+                    both handsets; a number always works. */}
+                <SendCardButton
+                  cardUrl={`https://cardtly.com/card/${card.slug}`}
+                  cardName={card.name || firstName}
+                  company={card.company}
+                  accentHex={accentHex}
+                />
 
                 <TapToShareButton
                   cardUrl={`https://cardtly.com/card/${card.slug}`}

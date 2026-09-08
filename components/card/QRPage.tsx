@@ -7,9 +7,10 @@ import { parseDesign, getAccentHex } from '@/types/design'
 import { CARDTLY_MARK } from '@/lib/og-cardtly-mark'
 import {
   Download, Share2, Copy, Check, Printer, ShieldCheck, AlertTriangle,
-  Palette, Ban, QrCode, Sparkles, Search, X,
+  Palette, Ban, QrCode, Sparkles, Search, X, Send,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { SendCardModal } from './SendCardToPhone'
 
 interface CardOption {
   id: string
@@ -21,6 +22,8 @@ interface CardOption {
   /** Shown under the name in the searchable list, so two people called Sarah
    *  can be told apart. */
   title?: string | null
+  /** Only used to open the "send to a number" message with. */
+  company?: string | null
   _label?: string
 }
 
@@ -170,6 +173,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
   const hiddenCount = matchingCards.length - visibleCards.length
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [copied, setCopied] = useState(false)
+  const [sendOpen, setSendOpen] = useState(false)
   const [qrReady, setQrReady] = useState(false)
   const [logoChoice, setLogoChoice] = useState<LogoChoice>(initial.logoChoice || 'cardtly')
   const [logoShape, setLogoShape] = useState<LogoShape>(initial.logoShape || 'square')
@@ -616,6 +620,23 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
               Share
             </button>
           </div>
+
+          {/* A QR code needs the other person's camera pointed at your screen.
+              When they are not in front of you - a phone call, a number off a
+              an enquiry form - a code is no use and a number is. */}
+          <button onClick={() => setSendOpen(true)}
+            className="w-full flex items-center justify-center gap-2 border border-border px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-muted transition">
+            <Send className="w-4 h-4" />
+            Send to a cellphone number
+          </button>
+
+          <SendCardModal
+            open={sendOpen}
+            onClose={() => setSendOpen(false)}
+            cardUrl={cardUrl}
+            cardName={card.name}
+            company={card.company}
+          />
         </div>
 
         {/* Controls */}
