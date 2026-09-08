@@ -72,7 +72,7 @@ const TEAM_TAB: Tab = { href: '/dashboard/team', label: 'Team Cards', icon: Buil
 
 // Only a sales rep sees this. Same guard as the sidebar - check-nav compares
 // the conditions, not just the destinations.
-const MEETINGS_TAB: Tab = { href: '/dashboard/meetings', label: 'My Calendar', icon: CalendarClock }
+const MEETINGS_TAB: Tab = { href: '/dashboard/meetings', label: 'Activity Log', icon: CalendarClock }
 // Reps quote, and that is the whole of their access to the books. Same guard as
 // the sidebar, because check-nav compares the conditions and not just the
 // destinations.

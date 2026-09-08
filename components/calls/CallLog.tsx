@@ -11,7 +11,7 @@ import {
   withinCallRange, callRange, dayKey,
   type LoggedCall, type CallOutcome,
 } from '@/lib/rep-calls'
-import { Pill, useMounted, useNow, inputClass, inputStyle } from '@/components/calendar/shared'
+import { Pill, useMounted, useNow, inputClass, inputStyle, useInk, INK } from '@/components/calendar/shared'
 import CallForm, { blankCall, callFormFrom, callToBody, type CallFormState } from './CallForm'
 
 // The call log, shared by the rep's own page and the admin panel.
@@ -46,6 +46,11 @@ export default function CallLog({
 }) {
   const mounted = useMounted()
   const now = useNow()
+  // Measured on the light theme: the period buttons were 2.31:1 and the
+  // call-back dates 2.59:1. See useInk.
+  const ink = useInk()
+  const skyInk = ink(INK.sky.bright, INK.sky.deep)
+  const amberInk = ink(INK.amber.bright, INK.amber.deep)
 
   const [calls, setCalls] = useState<LoggedCall[]>(initial)
   const [search, setSearch] = useState('')
@@ -134,8 +139,8 @@ export default function CallLog({
             <button key={p.id} onClick={() => setPeriod(p.id)}
               className="px-3 min-h-[44px] text-sm font-semibold transition"
               style={{
-                background: period === p.id ? '#0ea5e91f' : 'transparent',
-                color: period === p.id ? '#0ea5e9' : 'var(--cal-muted)',
+                background: period === p.id ? `${INK.sky.bright}1f` : 'transparent',
+                color: period === p.id ? skyInk : 'var(--cal-muted)',
               }}>
               {p.label}
             </button>
@@ -163,7 +168,12 @@ export default function CallLog({
         {canWrite && (
           <button onClick={() => setForm(blankCall(repId || ''))}
             className="px-4 min-h-[44px] rounded-xl text-sm font-bold text-white inline-flex items-center gap-2 flex-shrink-0 ml-auto"
-            style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+            // A deeper cut of the same brand ramp. The original ran from
+            // #00d4ff, and white on that cyan is 1.07:1 - the label on the one
+            // button that adds anything to this page was, measurably, not
+            // there. This carries white at 5.9:1 or better across the whole
+            // sweep and still reads as the Cardtly gradient.
+            style={{ background: 'linear-gradient(135deg, #0369a1, #6d28d9, #be185d)' }}>
             <Plus className="w-4 h-4" />Log a call
           </button>
         )}
@@ -253,7 +263,7 @@ export default function CallLog({
                       <Td muted>{when(c.called_at)}</Td>
                       <Td>
                         {c.follow_up_on
-                          ? <span style={{ color: overdue ? '#f59e0b' : '#0ea5e9', fontWeight: 600 }}>
+                          ? <span style={{ color: overdue ? amberInk : skyInk, fontWeight: 600 }}>
                               {overdue ? 'Due' : c.follow_up_on}
                             </span>
                           : <span style={{ color: 'var(--cal-muted)' }}>-</span>}
@@ -297,7 +307,7 @@ export default function CallLog({
                     {c.follow_up_on && (
                       <Row label="Call back"
                         value={overdue ? 'Due now' : c.follow_up_on}
-                        tone={overdue ? '#f59e0b' : '#0ea5e9'} />
+                        tone={overdue ? amberInk : skyInk} />
                     )}
                   </button>
                 </li>

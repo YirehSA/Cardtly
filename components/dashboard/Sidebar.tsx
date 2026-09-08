@@ -33,8 +33,11 @@ const NAV = [
 // Team Cards, which not everybody should be offered. See showTeamCards below.
 const TEAM_TAB = { href: '/dashboard/team', label: 'Team Cards', icon: Building2 }
 
-// Only a sales rep sees this: their own meetings and notes.
-const MEETINGS_TAB = { href: '/dashboard/meetings', label: 'My Calendar', icon: CalendarClock }
+// Only a sales rep sees this: their calendar, calls, emails and networking.
+// The route is still /meetings, which is what it held when it was only a
+// calendar - renaming it would break every bookmark and every link already sent
+// to a rep, to change a word nobody sees.
+const MEETINGS_TAB = { href: '/dashboard/meetings', label: 'Activity Log', icon: CalendarClock }
 // Reps quote, and that is the whole of their access to the books.
 const QUOTES_TAB = { href: '/dashboard/quotes', label: 'Quotes', icon: FileSignature }
 

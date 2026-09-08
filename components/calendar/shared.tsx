@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { statusMeta, type CalendarMeeting } from '@/lib/rep-meetings'
 import { repColour } from '@/lib/calendar'
+import { useTheme } from '@/components/dashboard/ThemeProvider'
 
 // The calendar is used in two places that look nothing alike: the dashboard,
 // which follows the user's light or dark theme, and /admin, which paints itself
@@ -44,6 +45,37 @@ export const ADMIN_SKIN = {
 } as unknown as CSSProperties
 
 export const GRAD = 'hsl(var(--accent))'
+
+/**
+ * A hue that is still readable as TEXT on whichever theme is on.
+ *
+ * The colours that identify things here - sky for the calendar, green for
+ * calls, amber for overdue - were picked to glow on a near-black panel, and
+ * they do. On the light theme the same values are 2.0 to 3.2 against white,
+ * which is a label people squint at. There is no single value that works on
+ * both, so each one is a pair and the theme decides.
+ *
+ * Only for text. Backgrounds, borders, icons and tints keep the bright hue in
+ * both themes - none of them has a contrast ratio to meet, and swapping them
+ * would drain the colour out of the page for no gain.
+ *
+ * Outside the dashboard's ThemeProvider - the admin page - this returns the
+ * bright value, which is right: that page is always dark.
+ */
+export function useInk(): (bright: string, deep: string) => string {
+  const { theme } = useTheme()
+  return (bright, deep) => (theme === 'dark' ? bright : deep)
+}
+
+/** The paired values, so a hue is never half-corrected in one place and not
+ *  another. Every deep value clears 5:1 on white. */
+export const INK = {
+  sky:    { bright: '#0ea5e9', deep: '#0369a1' },
+  blue:   { bright: '#3b82f6', deep: '#1d4ed8' },
+  green:  { bright: '#22c55e', deep: '#15803d' },
+  amber:  { bright: '#f59e0b', deep: '#b45309' },
+  purple: { bright: '#a855f7', deep: '#7e22ce' },
+} as const
 
 export const inputClass =
   'w-full px-3 py-2 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 transition'
@@ -91,12 +123,27 @@ export function meetingColour(m: CalendarMeeting, colourBy: ColourBy): string {
 // overdue means, and two copies of that rule would not stay in step.
 export { isOverdue } from '@/lib/meeting-filters'
 
+/**
+ * A status chip.
+ *
+ * THE LABEL IS NOT THE HUE. It used to be, and measuring the four skins this
+ * renders in put "Meeting booked" at 2.80:1 and "Email sent" at 4.06:1 - a
+ * 10px uppercase label below AA on the status column of three different
+ * screens. It cannot be fixed by picking better hues: the same component sits
+ * on a near-white dashboard and a near-black admin page, and a mid-tone that
+ * clears 4.5:1 against both does not exist.
+ *
+ * So the text takes the surface's own foreground, which is readable by
+ * construction in every skin, and the colour moves to the fill and the border
+ * where it has no contrast requirement to meet. The chip still reads as green
+ * or purple at a glance; it just no longer depends on that to be legible.
+ */
 export function Pill({ label, colour, title }: { label: string; colour: string; title?: string }) {
   return (
     <span
       title={title}
       className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md whitespace-nowrap"
-      style={{ background: colour + '22', color: colour, border: `1px solid ${colour}55` }}
+      style={{ background: colour + '2e', color: 'var(--cal-text)', border: `1px solid ${colour}88` }}
     >
       {label}
     </span>
