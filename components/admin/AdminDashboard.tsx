@@ -21,6 +21,7 @@ import ClientsTab from './billing/ClientsTab'
 import InvoicesTab from './billing/InvoicesTab'
 import QuotesTab from './billing/QuotesTab'
 import RecurringTab from './billing/RecurringTab'
+import AccountingHub from './billing/AccountingHub'
 import PaymentsTab from './billing/PaymentsTab'
 import { Stat, Section, StatusPill, STATUS_META, grad, inputClass, inputStyle, fmtDate, fmtWhen, randFmt } from './shared'
 import { NFC_STATUSES, NFC_STATUS_COLORS, NFC_STATUS_LABELS, type NfcStatus } from '@/lib/nfc'
@@ -67,7 +68,7 @@ interface Props {
 
 // as const so ?tab= can be checked against it rather than trusted: an unknown
 // value opens Overview instead of rendering nothing at all.
-const TABS = ['overview', 'users', 'teams', 'trials', 'reps', 'meetings', 'calls', 'nfc', 'quotes', 'invoices', 'recurring', 'payments', 'clients', 'billing', 'reports', 'activity'] as const
+const TABS = ['overview', 'users', 'teams', 'trials', 'reps', 'meetings', 'calls', 'nfc', 'accounting', 'quotes', 'invoices', 'recurring', 'payments', 'clients', 'billing', 'reports', 'activity'] as const
 type Tab = typeof TABS[number]
 
 // Eleven tabs in one row was eleven things to read before doing anything, and
@@ -83,7 +84,7 @@ const GROUPS: { id: string; label: string; icon: any; tabs: Tab[] }[] = [
   { id: 'overview',   label: 'Overview',   icon: LayoutGrid,     tabs: ['overview'] },
   { id: 'customers',  label: 'Customers',  icon: UsersIcon,      tabs: ['users', 'teams', 'trials'] },
   { id: 'sales',      label: 'Sales',      icon: UserCog,        tabs: ['reps', 'meetings', 'calls'] },
-  { id: 'accounting', label: 'Accounting', icon: Banknote,       tabs: ['quotes', 'invoices', 'recurring', 'payments', 'clients', 'billing'] },
+  { id: 'accounting', label: 'Accounting', icon: Banknote,       tabs: ['accounting', 'quotes', 'invoices', 'recurring', 'payments', 'clients', 'billing'] },
   { id: 'operations', label: 'Operations', icon: Wifi,           tabs: ['nfc', 'reports', 'activity'] },
 ]
 
@@ -96,6 +97,7 @@ const TAB_META: Record<Tab, { label: string; icon: any }> = {
   meetings: { label: 'Calendar',   icon: CalendarClock },
   calls:    { label: 'Call log',   icon: PhoneCall },
   nfc:      { label: 'NFC orders', icon: Wifi },
+  accounting:{ label: 'Overview',  icon: LayoutGrid },
   quotes:   { label: 'Quotes',     icon: FileSignature },
   invoices: { label: 'Invoices',   icon: Receipt },
   recurring:{ label: 'Recurring',  icon: RefreshCw },
@@ -104,6 +106,18 @@ const TAB_META: Record<Tab, { label: string; icon: any }> = {
   billing:  { label: 'Settings',   icon: SlidersHorizontal },
   reports:  { label: 'Reports',    icon: Flag },
   activity: { label: 'Activity',   icon: ScrollText },
+}
+
+// The same hues AccountingHub uses for its blocks, so a screen looks the same
+// on the way in as it did on the card that led there.
+const ACCOUNTING_HUE: Partial<Record<Tab, string>> = {
+  accounting: '#ffffff',
+  quotes: '#a855f7',
+  invoices: '#3b82f6',
+  recurring: '#06b6d4',
+  payments: '#22c55e',
+  clients: '#f59e0b',
+  billing: '#94a3b8',
 }
 
 const groupOf = (t: Tab) => GROUPS.find(g => g.tabs.includes(t)) || GROUPS[0]
@@ -350,6 +364,22 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
               {openGroup.tabs.map(id => {
                 const { label, icon: Icon } = TAB_META[id]
                 const active = tab === id
+                // Inside Accounting the active pill takes the colour of the
+                // screen it opens, so the six money screens stay recognisable
+                // as a set rather than reading like six settings pages.
+                const hue = ACCOUNTING_HUE[id]
+                if (hue) {
+                  return (
+                    <button key={id} onClick={() => setTab(id)}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition"
+                      style={active
+                        ? { background: `${hue}22`, color: hue, border: `1px solid ${hue}66` }
+                        : { background: 'transparent', color: 'rgba(255,255,255,0.55)', border: '1px solid transparent' }}>
+                      <Icon className="w-3.5 h-3.5" />
+                      {label}
+                    </button>
+                  )
+                }
                 return (
                   <button key={id} onClick={() => setTab(id)}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition"
@@ -626,6 +656,7 @@ ${r.email} will be able to sign in and log their meetings. If that address has n
         )}
 
         {tab === 'nfc' && <NfcTab orders={nfcOrders} run={run} loading={loading} />}
+        {tab === 'accounting' && <AccountingHub onOpen={setTab} />}
         {tab === 'quotes' && <QuotesTab />}
         {tab === 'invoices' && <InvoicesTab onAddClient={() => setTab('clients')} />}
         {tab === 'recurring' && <RecurringTab />}
