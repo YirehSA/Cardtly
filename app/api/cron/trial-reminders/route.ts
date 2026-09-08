@@ -292,6 +292,33 @@ export async function GET(request: Request) {
     recurring = { error: e?.message || 'recurring pass failed' }
   }
 
+  // Overdue invoices. Marking them is unconditional - an invoice a day late IS
+  // overdue and should read that way long before anybody emails about it.
+  // SENDING is off unless somebody has turned it on, because a chaser is still
+  // an email arriving in a client's inbox with our name on it, and the house
+  // rule here is that a person approves a send.
+  let overdue: any = null
+  try {
+    const { findOverdue, markOverdue } = await import('@/lib/overdue-chasing')
+    const marked = await markOverdue(admin)
+    const { rows, autoSend } = await findOverdue(admin)
+    if (!autoSend) {
+      overdue = { ...marked, waiting: rows.length, autoSend: false }
+    } else {
+      const { sendInvoiceReminder } = await import('@/lib/send-invoice')
+      let sent = 0
+      const failed: string[] = []
+      for (const row of rows) {
+        const r = await sendInvoiceReminder(admin, row, null)
+        if (r.ok) sent++
+        else failed.push(`${row.number}: ${r.error}`)
+      }
+      overdue = { ...marked, sent, failed, autoSend: true }
+    }
+  } catch (e: any) {
+    overdue = { error: e?.message || 'overdue pass failed' }
+  }
+
   return NextResponse.json({
     ok: blocked.length === 0,
     delivered,
@@ -299,6 +326,7 @@ export async function GET(request: Request) {
     considered: queue.length,
     webhooks,
     recurring,
+    overdue,
     ...(blocked.length ? { blocked } : {}),
     ops,
     payments,

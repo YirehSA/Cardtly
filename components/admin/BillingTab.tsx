@@ -247,6 +247,28 @@ export default function BillingTab() {
         </div>
       </Section>
 
+      <Section title="Chasing overdue invoices"
+        sub="Reminders escalate: a nudge, a firmer one, then a final notice."
+        right={<Receipt className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />}>
+        <Field label="Chase at (days past due)"
+          hint="Comma separated, up to five. Each one sends at most one reminder ever, and a missed day catches up one step rather than firing them all at once.">
+          <input className={inputClass} style={inputStyle} placeholder="3, 14, 30"
+            value={Array.isArray(form.reminder_days) ? form.reminder_days.join(', ') : (form.reminder_days ?? '3, 14, 30')}
+            onChange={e => set('reminder_days', e.target.value)} />
+        </Field>
+        <label className="flex items-start gap-2 mt-4 text-xs cursor-pointer" style={{ color: 'rgba(255,255,255,0.7)' }}>
+          <input type="checkbox" className="mt-0.5" checked={!!form.auto_send_reminders}
+            onChange={e => set('auto_send_reminders', e.target.checked)} />
+          <span>
+            Send them automatically each morning.
+            <span className="block mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              Off by default on purpose. Left off, overdue invoices collect in a queue on the Invoices
+              screen and you send with one click. Turned on, the daily job emails clients without asking.
+            </span>
+          </span>
+        </label>
+      </Section>
+
       <Section
         title="Terms and conditions"
         sub={activeTerms ? `Version ${activeTerms.version} is active` : 'No terms saved yet'}

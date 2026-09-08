@@ -121,6 +121,39 @@ const base = {
   if (/payment reference/.test(html)) bad('a payment reference printed with nowhere to pay')
 }
 
+// ── Reminders escalate ────────────────────────────────────────────────────
+// The same sentence sent three times reads as an autoresponder nobody is
+// behind, and a first nudge written like a final demand loses a client over an
+// invoice that went to a spam folder.
+{
+  const at = (stage, isFinal, daysOverdue) =>
+    M.renderInvoiceEmail({ ...base, isReminder: true, reminderStage: { stage, isFinal, daysOverdue } })
+
+  const first = at(1, false, 3)
+  const second = at(2, false, 14)
+  const final = at(3, true, 30)
+
+  if (first.html === second.html) bad('a second reminder is word for word the first')
+  if (second.html === final.html) bad('a final notice is word for word the second reminder')
+  if (!/final notice/i.test(final.subject)) bad('a final notice must say so in the subject')
+  if (/final/i.test(first.subject)) bad('a first nudge must not read as a final notice')
+
+  // The tone has to actually differ, not just the heading.
+  if (!/spam|wrong folder|already been paid/i.test(first.html)) {
+    bad('the first nudge should assume it is an oversight')
+  }
+  if (!/escalate|remains unpaid/i.test(final.html)) bad('a final notice should say what is at stake')
+
+  // Days overdue is a fact the client can check, so it must be in the body.
+  if (!first.html.includes('3 days')) bad('the first reminder does not say how overdue it is')
+  if (!final.html.includes('30 days')) bad('the final notice does not say how overdue it is')
+
+  // A plain send with no stage must still work and must not escalate.
+  const plain = M.renderInvoiceEmail({ ...base, isReminder: true })
+  if (/final notice/i.test(plain.subject)) bad('a reminder with no stage escalated on its own')
+  if (!/reminder/i.test(plain.subject)) bad('a reminder with no stage stopped saying it is a reminder')
+}
+
 // ── The quote email ───────────────────────────────────────────────────────
 const quoteBase = {
   number: 'Q-2026-1001',

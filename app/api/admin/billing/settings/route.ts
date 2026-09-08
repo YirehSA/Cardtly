@@ -92,6 +92,24 @@ export async function PATCH(request: Request) {
     patch.invoice_due_rule = body.invoice_due_rule
   }
 
+  if ('auto_send_reminders' in body) patch.auto_send_reminders = !!body.auto_send_reminders
+
+  if ('reminder_days' in body) {
+    const days = String(body.reminder_days).split(',')
+      .map((n: string) => Math.round(Number(n.trim())))
+      .filter((n: number) => Number.isFinite(n) && n >= 0 && n <= 365)
+      // Sorted and de-duplicated: two rungs on the same day would send two
+      // emails, and an out-of-order ladder escalates backwards.
+      .filter((n: number, i: number, a: number[]) => a.indexOf(n) === i)
+      .sort((a: number, b: number) => a - b)
+    if (!days.length || days.length > 5) {
+      return NextResponse.json({
+        error: 'Give between one and five reminder days, each from 0 to 365. A ladder with twenty rungs is not a policy.',
+      }, { status: 400 })
+    }
+    patch.reminder_days = days
+  }
+
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ error: 'Nothing to save' }, { status: 400 })
   }

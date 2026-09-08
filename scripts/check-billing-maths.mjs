@@ -233,6 +233,56 @@ if (M.defaultDueDate('end_of_month', ISSUE, 14) === M.defaultDueDate('days', ISS
 eq('quote validity', M.quoteValidUntil(new Date('2026-09-04T00:00:00Z')), '2026-09-18')
 eq('quote validity, overridden', M.quoteValidUntil(new Date('2026-09-04T00:00:00Z'), 30), '2026-10-04')
 
+// ── Chasing an overdue invoice ────────────────────────────────────────────
+{
+  const at = (d) => new Date(`${d}T00:00:00Z`)
+  const chase = (o) => M.reminderDue({ ladder: [3, 14, 30], outstandingCents: 50000, ...o })
+
+  // Nothing before the first rung.
+  eq('not due on the due date', chase({ dueOn: '2026-09-30', remindersSent: 0, today: at('2026-09-30') }).due, false)
+  eq('not due 2 days late', chase({ dueOn: '2026-09-30', remindersSent: 0, today: at('2026-10-02') }).due, false)
+  eq('due on the third day', chase({ dueOn: '2026-09-30', remindersSent: 0, today: at('2026-10-03') }).due, true)
+  eq('and it is stage 1', chase({ dueOn: '2026-09-30', remindersSent: 0, today: at('2026-10-03') }).stage, 1)
+  eq('stage 1 is not final', chase({ dueOn: '2026-09-30', remindersSent: 0, today: at('2026-10-03') }).isFinal, false)
+
+  // Sending is what advances it. This is the whole idempotency story: a second
+  // cron, a refresh or an impatient click must not send the same rung twice.
+  eq('after sending stage 1, nothing more', chase({ dueOn: '2026-09-30', remindersSent: 1, today: at('2026-10-03') }).due, false)
+  eq('still nothing on day 13', chase({ dueOn: '2026-09-30', remindersSent: 1, today: at('2026-10-13') }).due, false)
+  eq('stage 2 on day 14', chase({ dueOn: '2026-09-30', remindersSent: 1, today: at('2026-10-14') }).stage, 2)
+  eq('stage 3 on day 30', chase({ dueOn: '2026-09-30', remindersSent: 2, today: at('2026-10-30') }).stage, 3)
+  eq('the last rung is final', chase({ dueOn: '2026-09-30', remindersSent: 2, today: at('2026-10-30') }).isFinal, true)
+  eq('nothing past the last rung', chase({ dueOn: '2026-09-30', remindersSent: 3, today: at('2026-12-25') }).due, false)
+
+  // An invoice found 60 days late catches up ONE rung, not three emails in a
+  // morning. This is the property that makes a missed cron harmless.
+  const late = chase({ dueOn: '2026-09-30', remindersSent: 0, today: at('2026-11-29') })
+  eq('a long-overdue invoice starts at stage 1', late.stage, 1)
+  eq('and it is not treated as final', late.isFinal, false)
+  eq('days overdue is reported', late.daysOverdue, 60)
+
+  // Paid or credited to zero: nothing to chase, however late it is.
+  eq('nothing owing, no chase',
+    chase({ dueOn: '2026-01-01', remindersSent: 0, today: at('2026-12-25'), outstandingCents: 0 }).due, false)
+  eq('no due date, no chase',
+    chase({ dueOn: null, remindersSent: 0, today: at('2026-12-25') }).due, false)
+
+  // A ladder given out of order still behaves.
+  eq('an unsorted ladder is sorted',
+    M.reminderDue({ dueOn: '2026-09-30', outstandingCents: 1, remindersSent: 0, ladder: [30, 3, 14], today: at('2026-10-03') }).stage, 1)
+
+  // Walking a full year: exactly one reminder per rung, never more.
+  {
+    let sent = 0
+    for (let d = 0; d <= 365; d++) {
+      const day = new Date(Date.UTC(2026, 8, 30) + d * 86400000)
+      const r = M.reminderDue({ dueOn: '2026-09-30', outstandingCents: 50000, remindersSent: sent, ladder: [3, 14, 30], today: day })
+      if (r.due) sent++
+    }
+    eq('a year of daily runs sends one per rung', sent, 3)
+  }
+}
+
 // ── Credit notes change what is owed ──────────────────────────────────────
 {
   eq('nothing paid, nothing credited', M.invoiceOutstanding(100000, 0, 0), 100000)

@@ -90,6 +90,9 @@ export interface InvoiceEmailInput {
    *  full amount again. */
   outstandingFormatted?: string | null
   isReminder?: boolean
+  /** Which rung of the chasing ladder, so the wording can escalate. Absent for
+   *  a first send and for a reminder sent by hand without a stage. */
+  reminderStage?: { stage: number; isFinal: boolean; daysOverdue: number } | null
   /** A note typed by whoever is sending it. Plain text; escaped here. */
   message?: string | null
   from: { legalName?: string; regNumber?: string | null; email?: string | null }
@@ -109,8 +112,9 @@ export interface InvoiceEmailInput {
  */
 export function renderInvoiceEmail({
   number, clientName, totalFormatted, dueDate, outstandingFormatted,
-  isReminder, message, from, bank,
+  isReminder, reminderStage, message, from, bank,
 }: InvoiceEmailInput): { subject: string; html: string } {
+  const tone = isReminder && reminderStage ? reminderTone(reminderStage) : null
   const n = escapeHtml(number)
   const owing = outstandingFormatted && outstandingFormatted !== totalFormatted
   const rows: string[] = []
@@ -127,13 +131,19 @@ export function renderInvoiceEmail({
   }
 
   return {
-    subject: isReminder
-      ? `Reminder: invoice ${number} from Cardtly`
-      : `Invoice ${number} from Cardtly`,
+    subject: tone?.heading === 'Final notice'
+      ? `Final notice: invoice ${number} is overdue`
+      : isReminder
+        ? `Reminder: invoice ${number} from Cardtly`
+        : `Invoice ${number} from Cardtly`,
     html: wrapDocument(`
-      <h1 style="font-size:21px;margin:0 0 4px">${isReminder ? 'A reminder about invoice' : 'Invoice'} ${n}</h1>
+      <h1 style="font-size:21px;margin:0 0 4px">${
+        tone ? escapeHtml(tone.heading) : isReminder ? 'A reminder about invoice' : 'Invoice'
+      } ${n}</h1>
       <p style="color:#666;font-size:14px;margin:0 0 20px">
-        Hello ${escapeHtml(clientName)}, the invoice is attached as a PDF.
+        Hello ${escapeHtml(clientName)}, ${
+          tone ? escapeHtml(tone.opening) : 'the invoice is attached as a PDF.'
+        }
       </p>
       ${message ? `<p style="color:#444;font-size:14px;margin:0 0 20px;white-space:pre-wrap">${escapeHtml(message)}</p>` : ''}
       <table style="border-collapse:collapse;margin:0 0 20px">
@@ -152,6 +162,7 @@ export function renderInvoiceEmail({
         <p style="color:#444;font-size:13px;margin:0 0 20px">
           Please use <strong>${n}</strong> as your payment reference.
         </p>` : ''}
+      ${tone ? `<p style="color:#666;font-size:13.5px;margin:0">${escapeHtml(tone.closing)}</p>` : ''}
     `, from),
   }
 }
@@ -204,5 +215,56 @@ export function renderQuoteEmail({
         ${validUntil ? `This quotation stands until ${escapeHtml(validUntil)}.` : ''}
       </p>
     `, from),
+  }
+}
+
+export interface ReminderToneInput {
+  stage: number
+  isFinal: boolean
+  daysOverdue: number
+}
+
+/**
+ * How firm to be, and the words for it.
+ *
+ * Escalation matters. The same sentence sent three times reads as an
+ * autoresponder nobody is behind, and a first nudge written like a final
+ * demand loses a client over an invoice that went to somebody's spam folder.
+ *
+ * Kept here, next to the templates, because the wording IS the decision.
+ */
+export function reminderTone({ stage, isFinal, daysOverdue }: ReminderToneInput): {
+  heading: string
+  opening: string
+  closing: string
+} {
+  if (isFinal) {
+    return {
+      heading: 'Final notice',
+      opening:
+        `This invoice is now ${daysOverdue} days past its due date and remains unpaid. ` +
+        `We would rather sort this out with you than escalate it.`,
+      closing:
+        'If there is a problem with the invoice, or you need more time, please reply and tell us. ' +
+        'We can usually work something out. If it has already been paid, please send the proof of payment and we will clear it.',
+    }
+  }
+  if (stage === 1) {
+    return {
+      heading: 'A gentle reminder',
+      opening:
+        `This invoice fell due ${daysOverdue} days ago and we have not seen the payment yet. ` +
+        `It is very often just an email that went to the wrong folder.`,
+      closing: 'If it has already been paid, thank you, and please ignore this.',
+    }
+  }
+  return {
+    heading: 'Still outstanding',
+    opening:
+      `This invoice is ${daysOverdue} days past its due date. ` +
+      `We sent a reminder already and have not heard back.`,
+    closing:
+      'If there is something holding it up, please reply and let us know. ' +
+      'If it has already been paid, please send the proof of payment.',
   }
 }

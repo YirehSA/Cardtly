@@ -429,6 +429,55 @@ export function unallocatedCents(
   return receiptCents - allocations.reduce((n, a) => n + a.amountCents, 0)
 }
 
+/** The default chasing ladder, in days past the due date. */
+export const REMINDER_LADDER = [3, 14, 30]
+
+/**
+ * Is this invoice due a chase, and which one?
+ *
+ * Counts how many rungs of the ladder the invoice has passed and compares that
+ * with how many reminders have actually gone out. That shape does three things
+ * a "days since last reminder" rule does not:
+ *
+ *   - a missed run catches up ONE rung rather than firing every overdue
+ *     reminder at once the day somebody notices
+ *   - sending is what advances it, so a page refresh, a second cron or an
+ *     impatient click cannot send the same rung twice
+ *   - an invoice found 60 days late does not get three emails in a morning
+ *
+ * Stage is 1-based and is what the client sees the tone of, so it is worth
+ * being exact about: stage 1 is a nudge, the last rung is the final notice.
+ */
+export function reminderDue(opts: {
+  dueOn: string | null
+  outstandingCents: number
+  remindersSent: number
+  ladder?: number[]
+  today?: Date
+}): { due: boolean; stage: number; daysOverdue: number; isFinal: boolean } {
+  const ladder = (opts.ladder?.length ? opts.ladder : REMINDER_LADDER)
+    .map(n => Math.max(0, Math.round(n)))
+    .sort((a, b) => a - b)
+  const none = { due: false, stage: 0, daysOverdue: 0, isFinal: false }
+
+  if (!opts.dueOn || opts.outstandingCents <= 0) return none
+
+  const today = opts.today || new Date()
+  const due = Date.parse(String(opts.dueOn).slice(0, 10) + 'T00:00:00Z')
+  if (!Number.isFinite(due)) return none
+
+  const todayUtc = Date.parse(today.toISOString().slice(0, 10) + 'T00:00:00Z')
+  const daysOverdue = Math.floor((todayUtc - due) / 86400000)
+  if (daysOverdue < ladder[0]) return { ...none, daysOverdue }
+
+  const rungsPassed = ladder.filter(d => daysOverdue >= d).length
+  const sent = Math.max(0, Math.round(opts.remindersSent))
+  if (sent >= rungsPassed) return { ...none, daysOverdue }
+
+  const stage = sent + 1
+  return { due: true, stage, daysOverdue, isFinal: stage >= ladder.length }
+}
+
 export interface StatementRow {
   date: string
   kind: 'invoice' | 'payment' | 'credit_note'

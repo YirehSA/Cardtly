@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Loader2, Plus, Save, X, FileText, Send, Trash2, Lock, Mail, Undo2 } from 'lucide-react'
 import { Section, inputClass, inputStyle, grad } from '../shared'
 import { money, toCents, toRands, StatusPill, Empty, fmtDate } from './shared'
+import OverdueQueue from './OverdueQueue'
 
 // Invoices: draft, edit, issue.
 //
@@ -454,6 +455,8 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
           </div>
         </Section>
       )}
+
+      <OverdueQueue onSent={load} />
 
       {clients.length === 0 && (
         <div className="rounded-lg p-4 flex items-start gap-3 flex-wrap"
