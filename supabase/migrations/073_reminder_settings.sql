@@ -25,9 +25,21 @@ begin
       add constraint billing_settings_reminder_days_check
       -- At most five rungs, none negative, none beyond a year. A ladder with
       -- twenty rungs is not a policy, it is harassment.
+      --
+      -- Written with `<= ALL(array)` rather than a containment test against a
+      -- generated series: Postgres forbids a subquery inside a check
+      -- constraint, so `reminder_days <@ (select ...)` is rejected outright at
+      -- CREATE time with "cannot use subquery in check constraint". The scalar
+      -- form is an array expression rather than a subquery, and is allowed.
+      --
+      -- The array_position test rejects a NULL element. Without it a ladder of
+      -- {3, NULL} passes, because `0 <= ALL` on an array containing NULL is
+      -- NULL, and a check constraint treats unknown as satisfied.
       check (
         array_length(reminder_days, 1) between 1 and 5
-        and reminder_days <@ (select array_agg(g) from generate_series(0, 365) g)
+        and array_position(reminder_days, null) is null
+        and 0 <= all (reminder_days)
+        and 365 >= all (reminder_days)
       );
   end if;
 end $$;
