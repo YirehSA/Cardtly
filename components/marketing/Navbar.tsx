@@ -42,8 +42,19 @@ export default function Navbar() {
   // dashboard, which is what tapping the logo in an app should do anyway.
   const logoHref = iosApp ? '/dashboard' : '/'
 
+  // TRANSPARENT, on trial. The bar carried a 60% black plate, a 20px backdrop
+  // blur and a hairline under it; all three are gone, because a blur is still a
+  // visible treatment and leaving it in would not have shown what transparent
+  // actually looks like.
+  //
+  // This header is on every marketing page, not only the home page, so what
+  // sits behind it changes from route to route. It reads well over the hero's
+  // dark scene; anywhere a pale section runs under the top of the frame the
+  // links have nothing to sit against. If that bites, the usual answer is
+  // transparent at the top of the page and the old plate once scrolled.
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50" style={{ backdropFilter: 'blur(20px)', background: 'rgba(0,0,0,0.6)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+    <header className="fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         {/* Logo only - the badge carries the wordmark inside it, so no
             text next to it. 72px = double the old 36px mark; the bar

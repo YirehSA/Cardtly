@@ -375,7 +375,16 @@ const CSS = `/* Scoped to the section rather than :root. Every one of these is r
        5.85em column wraps all three with margin, and the longest single word
        is 5.30em, so it still holds. At a bare 6em the shortest line cleared
        it by 1.3% and stopped wrapping above 600px, giving five lines. */
-    .hero-copy h1{font-size:min(calc((100vw - 2 * var(--hpad)) / 5.52),7.6vh);
+    /* Taken down 12% on request: 7.6vh to 6.7vh, and the width divisor from
+       5.52 to 6.27 to match. BOTH terms move, by the same factor. They are a
+       min() against each other, so changing only the height term would leave
+       the width guard binding at its old size on a narrow frame and the
+       headline would go back to full size on exactly the phones it was
+       loudest on.
+       Everything downstream is in em - the 5.85em column that guarantees six
+       wrapped lines, the letter-spacing - so it all comes with it and the
+       wrap is unchanged. */
+    .hero-copy h1{font-size:min(calc((100vw - 2 * var(--hpad)) / 6.27),6.7vh);
                   max-width:5.85em;letter-spacing:-.045em}
     .hero-copy h1 .ln{white-space:normal;width:auto;max-width:none}
     .hero-copy h2,.hero-copy--right h2{
