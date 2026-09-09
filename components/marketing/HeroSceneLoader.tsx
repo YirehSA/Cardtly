@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { isNativeApp } from '@/lib/capacitor'
 
 // Brings the hero to life. Renders nothing.
 //
@@ -23,6 +24,23 @@ declare global {
 
 export default function HeroSceneLoader() {
   useEffect(() => {
+    // NOT IN THE NATIVE APP, and this is about the app's launch rather than
+    // about the hero.
+    //
+    // Capacitor's server.url is cardtly.com, so the iOS and Android apps cold
+    // start on THIS page and NativeAppRedirect immediately sends them to
+    // /login or /dashboard, behind a black overlay so none of it is seen.
+    // Without this guard the app spends its first moment downloading 1.4MB of
+    // scene and textures, decoding them, and building a WebGL world for a page
+    // it is in the middle of leaving - competing for the network with the auth
+    // check that decides where it is going.
+    //
+    // Nobody would ever see the frame it rendered. What they would see is a
+    // slower launch, which on iOS is the first thing an App Review reviewer
+    // sees. The markup and the poster still render; only the megabyte is
+    // skipped.
+    if (isNativeApp()) return
+
     let cancelled = false
     let script: HTMLScriptElement | null = null
 
