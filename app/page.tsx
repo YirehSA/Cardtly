@@ -4,7 +4,7 @@ import Footer from '@/components/marketing/Footer'
 import Reveal from '@/components/marketing/Reveal'
 import NativeAppRedirect from '@/components/NativeAppRedirect'
 import { PROMOS_ENABLED } from '@/lib/promos'
-import HeroSection from '@/components/marketing/HeroSection'
+import HeroScene from '@/components/marketing/HeroScene'
 import ThreeWaysToShare from '@/components/marketing/ThreeWaysToShare'
 import TemplatesShowcase from '@/components/marketing/TemplatesShowcase'
 import FeaturedCards from '@/components/marketing/FeaturedCards'
@@ -152,9 +152,21 @@ export const metadata = {
   },
 }
 
+// clip, NOT hidden on the wrapper below, and the hero does not work without it.
+//
+// `overflow-x: hidden` makes the OTHER axis compute to `auto`, which turns that
+// div into a scroll container. The hero's stage is position:sticky, and sticky
+// pins against its nearest SCROLLING ancestor - which became this box rather
+// than the page. The box never scrolls, so the stage never pinned: it scrolled
+// away with its section and left five viewports of black behind it.
+//
+// `overflow-x: clip` clips the same overflow without creating a scroll
+// container - clip and visible are the one pair the spec leaves alone - so
+// overflow-y stays visible and the viewport goes back to being what sticky
+// measures against.
 export default function HomePage() {
   return (
-    <div className="overflow-x-hidden" style={{ background: '#000', color: '#fff' }}>
+    <div className="overflow-x-clip" style={{ background: '#000', color: '#fff' }}>
       {/* Synchronous head-script: hides body in Android WebViews until
           we know whether we're in the Cardtly app (-> stay hidden,
           redirect via React) or some other in-app browser (-> show
@@ -167,8 +179,9 @@ export default function HomePage() {
       <NativeAppRedirect />
       <Navbar />
 
-      {/* Cinematic hero with parallax card */}
-      <HeroSection />
+      {/* The scroll-driven hero. It is 6.4 viewports tall on a desktop and 4
+          on a phone, so everything below it now begins that far down the page. */}
+      <HeroScene />
 
       {/* ── Social proof bar — bigger, bolder ─────────────────────────────────── */}
       <section className="py-16 border-y" style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
