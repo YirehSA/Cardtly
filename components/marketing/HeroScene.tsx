@@ -351,7 +351,18 @@ const CSS = `/* Scoped to the section rather than :root. Every one of these is r
        column's measured height at runtime, so the two can never collide and
        there can never be a band of nothing between them (see setCopyReserve
        in animation.js). */
-    .hero-scroll{--hpad:clamp(1rem,4.2vw,2.5rem)}
+    .hero-scroll{--hpad:clamp(1rem,4.2vw,2.5rem);
+      /* ONE headline size for all three blocks, declared once.
+         They are frames of a single animation seen one after another, so the
+         eye compares them directly, and they were sized independently: the
+         opening block by its longest line, the closing block by ITS longest
+         line, the beat by its own. That is defensible on paper and it is what
+         put the closing headline 23% larger than the opening one after the h1
+         came down twice. Sized apart, they drift apart.
+         8.67 is the longest line in the whole hero, "More meetings." at 8.33em
+         with four percent of margin, so a size that fits it fits the shorter
+         lines of the other two by construction. */
+      --h-size:min(calc((100vw - 2 * var(--hpad)) / 8.67),5.8vh)}
     .hero-copy{position:absolute;top:0;left:0;right:0;width:auto;
                transform:translateY(var(--shift,0px));
                padding:calc(1.05rem + var(--ct-header,0px)) var(--hpad) 0;text-align:left}
@@ -398,10 +409,13 @@ const CSS = `/* Scoped to the section rather than :root. Every one of these is r
        39.6px and the height term 47.1px, so width binds, which is what one
        line per sentence requires. On a short wide phone the height term binds
        first and the lines simply come in under the frame. */
-    .hero-copy h1{font-size:min(calc((100vw - 2 * var(--hpad)) / 8.67),5.8vh);
+    .hero-copy h1{font-size:var(--h-size);
                   max-width:none;letter-spacing:-.045em}
-    .hero-copy h2,.hero-copy--right h2{
-      font-size:min(calc((100vw - 2 * var(--hpad)) / 7.05),8.2vh)}
+    /* Was its own 7.05 divisor and an 8.2vh ceiling, which set it at 48.7px
+       against the h1's 39.6 on a 375px phone. Its longest line is shorter, so
+       matching by line length made it larger in points, and that was the
+       intent while the two were a size apart rather than a quarter apart. */
+    .hero-copy h2,.hero-copy--right h2{font-size:var(--h-size)}
     /* The wide layout pushes each closing line to the right of a right-set
        column with margin-left:auto, because a box sized to its own text
        cannot be moved by text-align. Here the column is full width and set
@@ -412,7 +426,11 @@ const CSS = `/* Scoped to the section rather than :root. Every one of these is r
        stack reading as six separate things. With one line per sentence the
        same value cramps three, so it opens up. */
     .hero-copy h1{line-height:1.08;margin-bottom:.75rem}
-    .hero-copy h2{line-height:.94;margin-bottom:.7rem}
+    /* Leading follows the size across. At .94 against the h1's 1.08 the two
+       blocks were the same size and still set differently, which is the same
+       inconsistency in a second place: the eye compares consecutive frames of
+       one animation on both. */
+    .hero-copy h2{line-height:1.08;margin-bottom:.7rem}
     /* The paragraph comes BACK. It was cut to buy the model room, which was
        treating a layout problem as a content problem: the model now takes its
        size from what the copy leaves, so the copy no longer has to be starved
@@ -448,8 +466,14 @@ const CSS = `/* Scoped to the section rather than :root. Every one of these is r
        other would make the piece jump vertically as it cuts between them. */
     .hero-beats{position:absolute;top:0;left:0;right:0;width:auto;
                 transform:none;padding:calc(1.05rem + var(--ct-header,0px)) var(--hpad) 0}
-    .hero-beat{font-size:min(calc((100vw - 2 * var(--hpad)) / 7.15),9vh);
-               line-height:.92}
+    /* The beat comes with them, and its own note upstream is the reason: it is
+       "sized and weighted to match the blocks either side of it". Those blocks
+       are 39.6px now, so leaving this one on its 7.15 divisor at 48px would
+       have broken that intent rather than kept it, and the middle of the piece
+       would have been the largest thing in it.
+       Leading matches the other two as well: .92 was for a block that stood a
+       size above its neighbours. */
+    .hero-beat{font-size:var(--h-size);line-height:1.08}
     /* The JS drives copy opacity from scroll; the transform is set here so a
        block never lands under the phone on a narrow frame. */
     .ct-js .hero-copy{will-change:opacity}
