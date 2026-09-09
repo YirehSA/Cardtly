@@ -53,17 +53,18 @@ export default function Navbar() {
   // links have nothing to sit against. If that bites, the usual answer is
   // transparent at the top of the page and the old plate once scrolled.
   //
-  // lg:pt-4 below gives the bar a little air above it on desktop, where it sat
-  // hard against the top of the frame. Phones keep the tight bar, because there
-  // the browser's own chrome is already the space.
+  // pt-4 gives the bar air above it, at every width. It was lg:pt-4 for one
+  // commit, desktop only, and that was worse than it looked: the header was
+  // then 5rem on phones and 6rem from lg up, and the hero reserves room for
+  // this header BY HAND, so a breakpoint here needed a matching breakpoint in
+  // HeroScene.tsx and the two could drift apart silently. Padding at every size
+  // makes the header one number again.
   //
-  // THAT CHANGES THE HEADER'S HEIGHT, 5rem to 6rem at lg and up, and the hero
-  // reserves room for the header by hand: see --ct-header in HeroScene.tsx,
-  // which carries the matching min-width:1024px rule. The two have to move
-  // together or the headline goes back under the bar on a short laptop window.
+  // It is still one number in two files. If this padding ever changes, so must
+  // --ct-header in HeroScene.tsx, or the headline goes back under the bar.
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 lg:pt-4">
+    <header className="fixed top-0 left-0 right-0 z-50 pt-4">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         {/* Logo only - the badge carries the wordmark inside it, so no
             text next to it. 72px = double the old 36px mark; the bar

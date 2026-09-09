@@ -38,14 +38,14 @@ const CSS = `/* Scoped to the section rather than :root. Every one of these is r
        where the copy is anchored to the top of the stage rather than centred
        in it - the header sat over the first line of the headline by 64px.
        Landscape centres the copy and needs no allowance.
-       Matches h-20 on the header in components/marketing/Navbar.tsx. */
-    --ct-header:5rem;
+       Matches h-20 plus pt-4 on the header in Navbar.tsx: 5rem of bar and a
+       rem of padding above it, at every width. It was briefly 5rem on phones
+       and 6 from lg up, when the padding was desktop-only, and that needed a
+       breakpoint here to match one over there. Padding the bar at every size
+       removed the pair, which is worth more than the 4px it costs a phone. */
+    --ct-header:6rem;
   }
-  /* And 6rem from lg up, because the header takes lg:pt-4 there. Same
-     breakpoint as Tailwind's lg, written as a plain query because this
-     stylesheet is not run through Tailwind. If one of these two moves without
-     the other, the headline goes back under the bar on a short laptop. */
-  @media (min-width:1024px){ .hero-scroll{--ct-header:6rem} }
+
   .hero-scroll *{box-sizing:border-box}
   /* html,body reset dropped: it belongs to the standalone file, not to a page
      that already has a background and a body font of its own. */
@@ -380,19 +380,26 @@ const CSS = `/* Scoped to the section rather than :root. Every one of these is r
        5.85em column wraps all three with margin, and the longest single word
        is 5.30em, so it still holds. At a bare 6em the shortest line cleared
        it by 1.3% and stopped wrapping above 600px, giving five lines. */
-    /* Taken down twice on request. 7.6vh as delivered, then 6.7, now 5.8, with
-       the width divisor moving with it each time: 5.52, 6.27, 7.24. That is
-       about 24% off the delivered size, and 47px on a 375px phone.
-       BOTH terms move, by the same factor, every time. They are a min()
-       against each other, so changing only the height term would leave the
-       width guard binding at its old size on a narrow frame and the headline
-       would go back to full size on exactly the phones it was loudest on.
-       Everything downstream is in em - the 5.85em column that guarantees six
-       wrapped lines, the letter-spacing - so it all comes with it and the
-       wrap is unchanged. */
-    .hero-copy h1{font-size:min(calc((100vw - 2 * var(--hpad)) / 7.24),5.8vh);
-                  max-width:5.85em;letter-spacing:-.045em}
-    .hero-copy h1 .ln{white-space:normal;width:auto;max-width:none}
+    /* ONE LINE PER SENTENCE, which is a different headline from the one above
+       this comment describes, and the comment is left standing because the
+       reasoning it records is what makes this safe.
+       That treatment set six visual lines by holding the column to 5.85em and
+       letting each sentence wrap inside it. Wrapping is what made the headline
+       big, and it is also what broke "More meetings." across two lines.
+
+       So the column goes and the lines stop wrapping: .ln returns to the
+       nowrap, width:max-content it has everywhere else, and the size is driven
+       by the WIDTH term instead of the height one. 8.67 is the measured width
+       of the longest line, 8.33em, with four percent of margin on it, which
+       makes "dividing the frame by 8.67 always fits" arithmetic rather than a
+       guess - and it holds at any width instead of stopping at a breakpoint.
+
+       The height term stays as a ceiling. On a 375px phone the width term is
+       39.6px and the height term 47.1px, so width binds, which is what one
+       line per sentence requires. On a short wide phone the height term binds
+       first and the lines simply come in under the frame. */
+    .hero-copy h1{font-size:min(calc((100vw - 2 * var(--hpad)) / 8.67),5.8vh);
+                  max-width:none;letter-spacing:-.045em}
     .hero-copy h2,.hero-copy--right h2{
       font-size:min(calc((100vw - 2 * var(--hpad)) / 7.05),8.2vh)}
     /* The wide layout pushes each closing line to the right of a right-set
@@ -401,7 +408,10 @@ const CSS = `/* Scoped to the section rather than :root. Every one of these is r
        left, so that rule stranded the closing heading against the right edge
        with its paragraph and button still on the left. */
     .hero-copy--right h2 .ln{margin-left:0}
-    .hero-copy h1{line-height:.88;margin-bottom:.75rem}
+    /* .88 was leading for six wrapped lines, where tight is what stops the
+       stack reading as six separate things. With one line per sentence the
+       same value cramps three, so it opens up. */
+    .hero-copy h1{line-height:1.08;margin-bottom:.75rem}
     .hero-copy h2{line-height:.94;margin-bottom:.7rem}
     /* The paragraph comes BACK. It was cut to buy the model room, which was
        treating a layout problem as a content problem: the model now takes its
