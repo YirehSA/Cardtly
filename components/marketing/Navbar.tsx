@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Menu, X } from 'lucide-react'
 import { getNativePlatform } from '@/lib/capacitor'
 import { isIosBlockedPath } from '@/lib/app-platform'
@@ -42,16 +42,22 @@ export default function Navbar() {
   // dashboard, which is what tapping the logo in an app should do anyway.
   const logoHref = iosApp ? '/dashboard' : '/'
 
-  // TRANSPARENT, on trial. The bar carried a 60% black plate, a 20px backdrop
-  // blur and a hairline under it; all three are gone, because a blur is still a
-  // visible treatment and leaving it in would not have shown what transparent
-  // actually looks like.
+  // TWO STATES: over the hero, and everywhere else.
   //
-  // This header is on every marketing page, not only the home page, so what
-  // sits behind it changes from route to route. It reads well over the hero's
-  // dark scene; anywhere a pale section runs under the top of the frame the
-  // links have nothing to sit against. If that bites, the usual answer is
-  // transparent at the top of the page and the old plate once scrolled.
+  // Transparent works while there is a dark scene behind the bar, and it stops
+  // working the moment ordinary page content scrolls under it - the links and
+  // the copy underneath occupy the same pixels and both become hard to read.
+  // So the bar is transparent and tall while the hero is behind it, and solid
+  // and compact once it is not.
+  //
+  // WHAT COUNTS AS "PAST THE HERO" is measured, not guessed. The hero is a
+  // 6.4-viewport section with a sticky stage, so a fixed scroll threshold would
+  // either fire immediately, while the scene is still the backdrop, or wait for
+  // a number that is wrong on every other page. Instead the bar looks for
+  // #hero-scroll and asks where its bottom edge is: while that edge is below
+  // the bar, the hero is what is behind the bar. On a page with no hero there
+  // is nothing to be transparent over, so it goes solid on the first pixel of
+  // scroll.
   //
   // pt-4 gives the bar air above it, at every width. It was lg:pt-4 for one
   // commit, desktop only, and that was worse than it looked: the header was
@@ -60,18 +66,60 @@ export default function Navbar() {
   // HeroScene.tsx and the two could drift apart silently. Padding at every size
   // makes the header one number again.
   //
-  // It is still one number in two files. If this padding ever changes, so must
-  // --ct-header in HeroScene.tsx, or the headline goes back under the bar.
+  // It is still one number in two files. --ct-header in HeroScene.tsx has to
+  // match the AT-REST height, 6rem, or the headline goes back under the bar.
+  // The compact height is free: by the time it applies, the hero is behind you.
+  // A ref rather than an id, deliberately. The hero's bundled script looks for
+  // an element called #site-head and toggles its own is-stuck class on it - that
+  // is the demo page's header, not this one. Giving this bar that id would hand
+  // a third party a class on our nav and a second scroll listener to drive it,
+  // for a rule that does not exist in our stylesheet.
+  const barRef = useRef<HTMLElement>(null)
+  const [stuck, setStuck] = useState(false)
+  useEffect(() => {
+    // Read straight off the event, with no rAF wrapper around it.
+    //
+    // The wrapper is the reflex, and here it buys nothing: scroll events are
+    // dispatched during the rendering steps, so the browser already delivers at
+    // most one per frame. Coalescing something that is coalesced adds a frame of
+    // lag to the one transition anybody will notice, and it hides the work from
+    // anything that drives the page without painting it.
+    const read = () => {
+      const hero = document.getElementById('hero-scroll')
+      const barBottom = barRef.current?.getBoundingClientRect().height ?? 96
+      setStuck(hero
+        ? hero.getBoundingClientRect().bottom <= barBottom
+        : window.scrollY > 4)
+    }
+    read()
+    addEventListener('scroll', read, { passive: true })
+    addEventListener('resize', read, { passive: true })
+    return () => {
+      removeEventListener('scroll', read)
+      removeEventListener('resize', read)
+    }
+  }, [pathname])
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 pt-4">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+    <header
+      ref={barRef}
+      className={`fixed top-0 left-0 right-0 z-50 transition-[padding,background-color,backdrop-filter] duration-300 ${stuck ? 'pt-0' : 'pt-4'}`}
+      style={stuck ? {
+        background: 'rgba(0,0,0,0.72)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+      } : undefined}>
+      <div className={`max-w-7xl mx-auto px-6 flex items-center justify-between transition-[height] duration-300 ${stuck ? 'h-16' : 'h-20'}`}>
         {/* Logo only - the badge carries the wordmark inside it, so no
             text next to it. 72px = double the old 36px mark; the bar
             grew h-16 -> h-20 to give it room. */}
         <Link href={logoHref} className="flex items-center group" aria-label="Cardtly home">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/cardtly-icon.png" alt="Cardtly logo" className="w-[72px] h-[72px] rounded-full transition group-hover:scale-105" />
+          {/* 72px does not fit a 4rem bar, so the mark comes down with it.
+              Sized rather than scaled: transform:scale would leave the original
+              footprint in the layout and the row would not actually compact. */}
+          <img src="/cardtly-icon.png" alt="Cardtly logo"
+            className={`rounded-full transition-all duration-300 group-hover:scale-105 ${stuck ? 'w-11 h-11' : 'w-[72px] h-[72px]'}`} />
         </Link>
 
         {/* Desktop nav.
