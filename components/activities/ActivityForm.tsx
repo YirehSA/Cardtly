@@ -115,19 +115,44 @@ export function activityError(f: ActivityFormState, needsRep = false): string | 
 
 /** What the free-text fields are called, per kind. The same column holds an
  *  email subject and the name of a networking evening, and asking for "Subject"
- *  at a property breakfast reads like a bug. */
-const WORDING: Record<ActivityKind, { subject: string; subjectHint: string; contact: string; verb: string }> = {
+ *  at a property breakfast reads like a bug.
+ *
+ *  `presets` are the lines a rep types over and over. They are SUGGESTIONS on a
+ *  text field, not a fixed list on a dropdown: a select would save the typing
+ *  and take away the one-off subject, and the one-off is most of them. Picking
+ *  one fills the field and it stays editable afterwards.
+ *
+ *  Networking has none on purpose. An event is called whatever the event is
+ *  called, so a list of five would never contain the right answer. */
+const WORDING: Record<ActivityKind, {
+  subject: string; subjectHint: string; contact: string; verb: string; presets: string[]
+}> = {
   email: {
     subject: 'Subject line', subjectHint: 'Intro to Cardtly - Digital Business Cards',
     contact: 'Who you wrote to', verb: 'Log email',
+    presets: [
+      'Intro to Cardtly - Digital Business Cards',
+      'Cardtly Demo Request',
+      'Cardtly Follow-Up',
+      'Cardtly Proposal & Pricing',
+      'Cardtly Partnership / Team Rollout',
+    ],
   },
   linkedin: {
     subject: 'What you sent', subjectHint: 'Connection request with a note',
     contact: 'Who you connected with', verb: 'Log LinkedIn',
+    presets: [
+      'Connection request with a note',
+      'Connection request without a note',
+      'Intro message about Cardtly',
+      'Follow-up message',
+      'Demo / meeting request',
+    ],
   },
   networking: {
     subject: 'Event', subjectHint: 'SA Property Networking (Online)',
     contact: 'Who you met', verb: 'Log networking',
+    presets: [],
   },
 }
 
@@ -241,8 +266,19 @@ export default function ActivityForm({
           </div>
 
           <Field label={words.subject}>
+            {/* A datalist, so the field is still a text field. The list is keyed
+                by kind: switching from Email to LinkedIn has to swap the
+                suggestions with the label, or a rep gets email subjects offered
+                against a connection request. */}
             <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-              placeholder={words.subjectHint} className={inputClass} style={inputStyle} />
+              placeholder={words.subjectHint} className={inputClass} style={inputStyle}
+              list={words.presets.length ? `activity-presets-${form.kind}` : undefined}
+              autoComplete="off" />
+            {words.presets.length > 0 && (
+              <datalist id={`activity-presets-${form.kind}`}>
+                {words.presets.map(o => <option key={o} value={o} />)}
+              </datalist>
+            )}
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
