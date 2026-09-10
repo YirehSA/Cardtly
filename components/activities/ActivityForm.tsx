@@ -122,8 +122,12 @@ export function activityError(f: ActivityFormState, needsRep = false): string | 
  *  and take away the one-off subject, and the one-off is most of them. Picking
  *  one fills the field and it stays editable afterwards.
  *
- *  Networking has none on purpose. An event is called whatever the event is
- *  called, so a list of five would never contain the right answer. */
+ *  Networking's are a different shape from the other two. An email subject is
+ *  the exact string a rep types again and again, so those presets are the
+ *  finished line. An event's NAME is specific and its KIND repeats, so these
+ *  are categories meant to be picked and then edited - "Chamber breakfast"
+ *  becomes "Sandton Chamber breakfast" in the two seconds after choosing it.
+ *  That only works because the field stayed free text. */
 const WORDING: Record<ActivityKind, {
   subject: string; subjectHint: string; contact: string; verb: string; presets: string[]
 }> = {
@@ -152,7 +156,13 @@ const WORDING: Record<ActivityKind, {
   networking: {
     subject: 'Event', subjectHint: 'SA Property Networking (Online)',
     contact: 'Who you met', verb: 'Log networking',
-    presets: [],
+    presets: [
+      'Chamber of Commerce breakfast',
+      'Business networking breakfast',
+      'Industry conference',
+      'Trade show / expo',
+      'Client or partner event',
+    ],
   },
 }
 
