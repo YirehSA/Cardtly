@@ -760,6 +760,30 @@ function UserRow({ u, expanded, onToggle, run, loading, reps }: {
                 <CalendarClock className="w-3.5 h-3.5 inline mr-1.5" style={{ color: '#a855f7' }} />
                 {u.status === 'member' ? (
                   <>Covered by <strong className="text-white">{u.memberOfOrg}</strong>. Their personal trial does not gate their card.</>
+                ) : (u.status === 'paying' || u.status === 'comped') ? (
+                  // A PAYING CUSTOMER HAS NO TRIAL, and this row said they did.
+                  //
+                  // Every account keeps the trial_ends_at it was given at
+                  // signup, and subscribing does not clear it, so a customer
+                  // who has been paying since November still carries a date in
+                  // September. This panel printed it as "Trial ends 15 Sept
+                  // (5 days)" beside an Extend button, which reads as a
+                  // deadline somebody has to act on. It is not one:
+                  // getUserPlan checks the subscription FIRST and returns
+                  // before it ever looks at the trial, so that date gates
+                  // nothing while the subscription is active.
+                  //
+                  // The date is still shown, because it is what an admin needs
+                  // if the subscription is later cancelled and the account
+                  // falls back to it. It is just no longer phrased as a
+                  // countdown.
+                  <>
+                    <strong className="text-white">{u.status === 'paying' ? 'Paying' : 'Comped'}</strong>
+                    {', so nothing is expiring. '}
+                    {u.trialEndsAt
+                      ? <>The signup trial date ({fmtDate(u.trialEndsAt)}) is left over and does not gate the card.</>
+                      : <>No trial date is set.</>}
+                  </>
                 ) : u.trialEndsAt ? (
                   <>Trial {u.trialDaysLeft != null && u.trialDaysLeft <= 0 ? 'ended' : 'ends'} <strong className="text-white">{fmtDate(u.trialEndsAt)}</strong>
                     {u.trialDaysLeft != null && u.trialDaysLeft > 0 && <> ({u.trialDaysLeft} days)</>}</>
