@@ -186,19 +186,30 @@ the good half is not a security summary.
 
 ---
 
-## The one open question
+## Cross-border transfer, answered
 
-**Where does the database physically sit, and does personal information leave
-South Africa?**
+**The database runs in Supabase's West Europe region. Personal information is
+processed in the European Union, not in South Africa.** Confirmed in the
+dashboard on 2026-09-14.
 
-POPIA section 72 restricts cross-border transfer of personal information, and
-this is the question a procurement or compliance person asks first. Cardtly runs
-on Supabase, which hosts on AWS, and the region is set per project.
+POPIA section 72 permits this where the recipient is subject to a law providing
+an adequate level of protection substantially similar to POPIA's own conditions.
+The EU is the jurisdiction that standard is usually measured against, and GDPR
+is at least as strict as POPIA rather than weaker. Section 72 also permits
+transfer where it is necessary to perform the contract with the data subject,
+which independently covers running the service they signed up for.
 
-Confirm it before Wednesday: Supabase dashboard, Project Settings, General, the
-Region field. If it reads an EU or US region, the honest answer is that data is
-processed outside South Africa under the section 72 conditions (the recipient is
-subject to comparable protection), which is lawful and extremely common, but it
-is an answer to have ready rather than to improvise.
+The published privacy policy already discloses this, in section 5,
+"International transfers". It names the United States and the European Union,
+states that information may be processed outside South Africa, and says
+standard contractual clauses are relied on. That disclosure is what POPIA
+section 18 requires, so the obligation is met rather than outstanding.
 
-Do not guess this one in the room.
+**Say it plainly and without apology.** "In the EU, under GDPR" is a stronger
+answer than most local hosting arrangements. Hesitating over it is what makes it
+sound like a problem.
+
+The only version of this that needs care is a hard data-residency requirement,
+which occasionally appears in public-sector tender conditions. That is a
+separate conversation and a database migration, not a setting, so it should be
+taken away and answered rather than committed to in the room.

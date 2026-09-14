@@ -138,9 +138,30 @@
 
 <div class="qa">
   <p class="q">Where is our data stored?</p>
-  <p class="a">Postgres on Supabase, hosted on Vercel, both enterprise cloud infrastructure.
+  <p class="a">Postgres on Supabase, in their West Europe region, hosted on Vercel.
   Payments run through Paystack, a South African provider.</p>
-  <span class="note">Confirm the region before you answer this. See "Do not guess" below.</span>
+</div>
+
+<div class="qa">
+  <p class="q">So our data leaves South Africa?</p>
+  <p class="a">Yes, it is processed in the European Union, and that is disclosed in our
+  privacy policy rather than buried. POPIA section 72 permits this where the receiving
+  jurisdiction gives adequate protection, and the EU is the benchmark that adequacy is
+  usually measured against. GDPR is at least as strict as POPIA, not a weaker regime.</p>
+  <p class="a">We rely on standard contractual clauses with our providers, which the
+  policy also states.</p>
+  <span class="note">Answer this plainly and without apology. "In the EU under GDPR" is a
+  stronger answer than most local hosting, and hesitating makes it sound like a problem
+  when it is not.</span>
+</div>
+
+<div class="qa">
+  <p class="q">We need data to stay in South Africa.</p>
+  <p class="a">If that is a hard requirement, say it is a separate conversation and that
+  you will come back with an answer rather than committing on the spot. It would mean
+  moving the database region, which is a migration, not a setting.</p>
+  <span class="note">Only say this if they raise it. Most private-sector buyers do not;
+  it usually comes from public-sector tender conditions.</span>
 </div>
 
 <div class="qa">
@@ -267,16 +288,7 @@
   believed and is worth nothing if it later turns out otherwise.</span>
 </div>
 
-<h2>Do not guess these</h2>
-
-<div class="card stop">
-  <p><span class="lbl">Check before the meeting</span>
-  <strong>Which region the database runs in.</strong> POPIA section 72 governs personal
-  information leaving South Africa, and this is the first thing a compliance reviewer asks.
-  Supabase dashboard, Project Settings, General, the Region field.</p>
-  <p>If it is an EU or US region, that is lawful and very common under the section 72
-  conditions. It is simply an answer to have ready rather than improvise.</p>
-</div>
+<h2>What not to overclaim</h2>
 
 <div class="card warn">
   <p><span class="lbl">Say plainly if asked</span>

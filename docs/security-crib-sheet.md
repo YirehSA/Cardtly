@@ -6,9 +6,21 @@ security-posture.md if someone pushes.
 ---
 
 **"Where is our data stored?"**
-Postgres on Supabase, hosting on Vercel, both enterprise cloud infrastructure.
-Payments through Paystack, a South African provider.
-*(Confirm the region first: Supabase dashboard, Project Settings, General.)*
+Postgres on Supabase in their West Europe region, hosting on Vercel. Payments
+through Paystack, a South African provider.
+
+**"So our data leaves South Africa?"**
+Yes, it is processed in the EU, and our privacy policy says so rather than
+burying it. POPIA s72 permits this where the receiving jurisdiction gives
+adequate protection, and the EU is the benchmark adequacy is measured against.
+GDPR is at least as strict as POPIA. We rely on standard contractual clauses.
+*(Say this plainly. Hesitating makes it sound like a problem when it is not.)*
+
+**"We need data to stay in South Africa."**
+Separate conversation, and come back with an answer rather than committing in
+the room. It means moving the database region, which is a migration and not a
+setting. Most private-sector buyers never raise this; it comes from
+public-sector tender conditions.
 
 **"Who can see the leads our staff capture?"**
 Only your account. The database itself refuses the row to anyone else, so even
@@ -83,13 +95,13 @@ logged with who, when, and the before and after.
 
 ---
 
-## Do not guess these
+## What not to overclaim
 
-- **The Supabase region.** POPIA s72 governs personal information leaving South
-  Africa. Check it before the meeting.
 - **Any certification.** No ISO 27001, no SOC 2. Say so plainly if asked. Small
   SA company, not a certified multinational, and the controls above are real
   regardless.
 - **Penetration testing.** Not independently tested. Do not imply otherwise.
+- **Rate limiting.** Sign-in attempts are limited by the authentication
+  platform. Our own API endpoints are not.
 
 Being straight about these is what makes the rest believable.
