@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { logSubscriptionChange } from '@/lib/subscription-audit'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -34,6 +35,9 @@ export async function GET(request: Request) {
     // the fresh one. Avoids the .upsert({...}, { onConflict: 'user_id' })
     // path because whop_subscriptions has no unique constraint on
     // user_id, which caused upserts to fail silently on existing rows.
+    const { data: prior } = await supabase
+      .from('whop_subscriptions').select('*').eq('user_id', userId).maybeSingle()
+
     await supabase.from('whop_subscriptions').delete().eq('user_id', userId)
     await supabase.from('whop_subscriptions').insert({
       user_id: userId,
@@ -52,6 +56,14 @@ export async function GET(request: Request) {
         currency: data.data.currency,
         paid_at: data.data.paid_at,
       },
+    })
+
+    await logSubscriptionChange(supabase, {
+      change: 'activated', userId, email: data.data.customer.email,
+      source: 'paystack_verify', reason: 'payment reference verified',
+      before: prior,
+      after: { plan_id: `paystack_${plan}`, status: 'active',
+               subscription_tier: 'pro', billing_cycle: plan, seats: 1 },
     })
 
     return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/upgrade/success?plan=${plan}`)

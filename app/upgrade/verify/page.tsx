@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { logSubscriptionChange } from '@/lib/subscription-audit'
 
 export default async function VerifyPage({
   searchParams,
@@ -53,6 +54,9 @@ export default async function VerifyPage({
     // unique constraint on user_id, so .upsert({...}, { onConflict:
     // 'user_id' }) throws "no unique constraint matching the ON
     // CONFLICT specification" and silently leaves the user on Free.
+    const { data: prior } = await admin
+      .from('whop_subscriptions').select('*').eq('user_id', user_id).maybeSingle()
+
     await admin.from('whop_subscriptions').delete().eq('user_id', user_id)
     await admin.from('whop_subscriptions').insert({
       user_id,
@@ -72,6 +76,14 @@ export default async function VerifyPage({
         period_end: periodEnd.toISOString(),
         paid_at: transaction.paid_at,
       },
+    })
+
+    await logSubscriptionChange(admin, {
+      change: 'activated', userId: user_id, email: transaction.customer.email,
+      source: 'paystack_verify', reason: 'returned from Paystack checkout',
+      before: prior,
+      after: { plan_id: `paystack_${billingPlan}`, status: 'active',
+               subscription_tier: 'pro', billing_cycle: billingPlan, seats: 1 },
     })
 
     verified = true

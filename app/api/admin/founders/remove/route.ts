@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { logSubscriptionChange } from '@/lib/subscription-audit'
 import { isAdminUser } from '@/lib/admin-check'
 
 // POST /api/admin/founders/remove
@@ -61,6 +62,15 @@ export async function POST(request: Request) {
 
   // Cancel the founder 3-month grant if it's still the active sub.
   // Users who later upgraded to a real paid plan keep that sub.
+  // Read first, so the log records what was removed. A deletion with nothing
+  // written down is exactly the hole that cost an afternoon on 2026-09-14.
+  const { data: doomed } = await admin
+    .from('whop_subscriptions')
+    .select('*')
+    .eq('user_id', user_id)
+    .eq('plan_id', 'founder_3m')
+    .maybeSingle()
+
   const { error: subErr } = await admin
     .from('whop_subscriptions')
     .delete()
@@ -70,6 +80,13 @@ export async function POST(request: Request) {
   if (subErr) {
     console.error('founder remove: sub delete error', subErr)
     // Non-fatal: profile is updated. Log and continue.
+  } else if (doomed) {
+    await logSubscriptionChange(admin, {
+      change: 'deleted', userId: user_id, email: doomed.email,
+      actorUserId: user?.id, actorEmail: user?.email,
+      source: 'founder_remove', reason: 'founder status removed, the 3-month grant went with it',
+      before: doomed,
+    })
   }
 
   return NextResponse.json({ success: true })

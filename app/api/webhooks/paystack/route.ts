@@ -2,6 +2,7 @@ import { PROMOS_ENABLED } from '@/lib/promos'
 import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
+import { logSubscriptionChange } from '@/lib/subscription-audit'
 
 export async function POST(request: Request) {
   try {
@@ -36,6 +37,11 @@ export async function POST(request: Request) {
       const userId = metadata?.user_id
 
       if (userId) {
+        // Read before the delete, so the log can say what was replaced rather
+        // than only what it became.
+        const { data: prior } = await admin
+          .from('whop_subscriptions').select('*').eq('user_id', userId).maybeSingle()
+
         await admin.from('whop_subscriptions').delete().eq('user_id', userId)
         await admin.from('whop_subscriptions').insert({
           user_id: userId,
@@ -52,6 +58,17 @@ export async function POST(request: Request) {
             amount,
             paid_at,
           },
+        })
+
+        // No actor: Paystack did this, not a person. That is exactly what the
+        // source field is for - without it a webhook activation and an admin
+        // comping somebody read identically in the log.
+        await logSubscriptionChange(admin, {
+          change: 'activated', userId, email: customer.email,
+          source: 'paystack_webhook', reason: 'charge.success',
+          before: prior,
+          after: { plan_id: `paystack_${metadata?.plan || 'monthly'}`, status: 'active',
+                   subscription_tier: 'pro', billing_cycle: metadata?.plan || 'monthly', seats: 1 },
         })
 
         // Promotions: grant a 'paid' draw entry. Idempotent via the
@@ -143,6 +160,12 @@ export async function POST(request: Request) {
             past_due_email_sent_at: null,
             updated_at: new Date().toISOString(),
           }).eq('user_id', existing.user_id)
+
+          await logSubscriptionChange(admin, {
+            change: 'updated', userId: existing.user_id, email: customer.email,
+            source: 'paystack_webhook', reason: 'charge.success recovered a past_due row by email',
+            after: { status: 'active' },
+          })
         } else {
           console.error('Paystack charge.success with no user_id and no row for', customer.email)
         }
@@ -164,6 +187,12 @@ export async function POST(request: Request) {
           status: 'cancelled',
           updated_at: new Date().toISOString(),
         }).eq('user_id', sub.user_id)
+
+        await logSubscriptionChange(admin, {
+          change: 'cancelled', userId: sub.user_id, email: customer.email,
+          source: 'paystack_webhook', reason: 'subscription.disabled',
+          after: { status: 'cancelled' },
+        })
       }
     }
 
@@ -185,6 +214,12 @@ export async function POST(request: Request) {
           past_due_since: sub.past_due_since ?? new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }).eq('user_id', sub.user_id)
+
+        await logSubscriptionChange(admin, {
+          change: 'updated', userId: sub.user_id, email: customer.email,
+          source: 'paystack_webhook', reason: 'invoice.payment_failed, grace window running',
+          after: { status: 'past_due' },
+        })
       }
     }
 

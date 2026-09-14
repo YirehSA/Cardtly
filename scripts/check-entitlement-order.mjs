@@ -147,6 +147,45 @@ function body(src, decl) {
   }
 }
 
+// ── every subscription write is written down ──────────────────────────────
+//
+// On 2026-09-14 a subscription row was deleted by accident and NOTHING
+// recorded it. Working out whose it was took a Paystack comparison, trial-date
+// arithmetic across every remaining account, and in the end simply asking.
+// Trial extensions were logged; the row that decides whether a card serves was
+// not.
+//
+// So: any file that writes this table must also log. The exception is
+// bookkeeping entitlement never reads - payment-reminders stamping
+// past_due_email_sent_at writes twice per run and would bury the real entries.
+{
+  const WRITES = /\.from\('whop_subscriptions'\)[\s\S]{0,400}?\.(insert|update|delete|upsert)\(/
+  const EXEMPT = new Set(['lib/payment-reminders.ts'])
+
+  const files = []
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name)
+      if (e.isDirectory()) { if (e.name !== 'node_modules' && e.name !== '.next') walk(p) }
+      else if (/\.tsx?$/.test(e.name)) files.push(p)
+    }
+  }
+  for (const root of ['app', 'lib']) { try { walk(root) } catch { /* absent */ } }
+
+  let writers = 0
+  for (const f of files) {
+    const rel = f.replace(/\\/g, '/')
+    if (EXEMPT.has(rel)) continue
+    const src = code(readFileSync(f, 'utf8'))
+    if (!WRITES.test(src)) continue
+    writers++
+    if (!/logSubscriptionChange\(|auditLog\(/.test(src)) {
+      bad(`${rel} writes whop_subscriptions and logs nothing - a change to who is entitled must leave a record`)
+    }
+  }
+  if (writers === 0) bad('no file appears to write whop_subscriptions; this check has stopped looking at anything')
+}
+
 // ── subscriptionState: what actually counts as serving ────────────────────
 {
   const src = code(read(PLAN))
