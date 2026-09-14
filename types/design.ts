@@ -443,17 +443,42 @@ export function getBgColors(mode: BgMode, templateId: TemplateId, customBgColor?
     }
   }
   if (mode === 'light') {
-    return applyCustomBg({ page: '#f8fafc', card: '#ffffff', surface: '#f1f5f9', text: '#0f172a', subtext: '#64748b', border: '#e2e8f0' })
+    return applyCustomBg({ page: '#f8fafc', card: '#ffffff', surface: '#f1f5f9', text: '#0f172a', subtext: '#5e6d83', border: '#e2e8f0' })
   }
+  // SUBTEXT IS MEASURED, NOT PICKED. It colours 35 separate things on a public
+  // card - section headings, link sublabels, form labels, the POPIA capture
+  // notice - and those sit on all three grounds below, so a value has to clear
+  // AA against page, card AND surface, with the translucent ones composited.
+  //
+  // Six palettes did not, and the capture notice is what surfaced it:
+  //
+  //   neon       3.26    #6060a0 -> #7e7eb2   now 4.86
+  //   executive  3.67    #71717a -> #85858e   now 4.86
+  //   modern     4.04    #94a3b8 -> #a6b3c4   now 4.85
+  //   split      4.04    #94a3b8 -> #a6b3c4   now 4.85
+  //   editorial  4.40    #78716c -> #716a65   now 4.87
+  //   light      4.34    #64748b -> #5e6d83   now 4.81   (the shared palette above)
+  //
+  // Each new value holds the original hue and saturation and moves only
+  // lightness, by the smallest step that clears 4.8. The target is 4.8 rather
+  // than 4.5 so a later nudge to a background does not silently drop a palette
+  // back under the line.
+  //
+  // STUDIO IS THE EXCEPTION AND CANNOT BE FIXED THIS WAY. Its page is pure
+  // black and its card is near-white, so one colour has to sit on both ends of
+  // the range at once. The best grey that exists for that is #727272 at 4.37,
+  // which is where it now sits, up from 2.69. Reaching AA would mean lifting
+  // the page off pure black, which changes what the template is for, and no
+  // live card uses studio. If one ever does, that is the fix.
   const dark: Record<TemplateId, ReturnType<typeof getBgColors>> = {
     classic:   { page: '#030712', card: '#111827', surface: '#1f2937', text: '#f9fafb', subtext: '#9ca3af', border: '#374151' },
-    modern:    { page: '#0f172a', card: '#1e293b', surface: '#334155', text: '#f1f5f9', subtext: '#94a3b8', border: '#475569' },
+    modern:    { page: '#0f172a', card: '#1e293b', surface: '#334155', text: '#f1f5f9', subtext: '#a6b3c4', border: '#475569' },
     bold:      { page: '#09090b', card: '#18181b', surface: '#27272a', text: '#fafafa', subtext: '#a1a1aa', border: '#3f3f46' },
     minimal:   { page: '#000000', card: '#0a0a0a', surface: '#141414', text: '#ffffff', subtext: 'rgba(255,255,255,0.55)', border: 'rgba(255,255,255,0.08)' },
-    executive: { page: '#09090b', card: '#0c0c0e', surface: '#18181b', text: '#fafafa', subtext: '#71717a', border: '#27272a' },
+    executive: { page: '#09090b', card: '#0c0c0e', surface: '#18181b', text: '#fafafa', subtext: '#85858e', border: '#27272a' },
     creative:  { page: '#0d0d1a', card: '#13132b', surface: '#1e1e3f', text: '#f0f0ff', subtext: '#a0a0c0', border: '#2d2d5e' },
     wave:      { page: '#030712', card: '#111827', surface: '#1f2937', text: '#f9fafb', subtext: '#9ca3af', border: '#374151' },
-    split:     { page: '#0f172a', card: '#1e293b', surface: '#334155', text: '#f1f5f9', subtext: '#94a3b8', border: '#475569' },
+    split:     { page: '#0f172a', card: '#1e293b', surface: '#334155', text: '#f1f5f9', subtext: '#a6b3c4', border: '#475569' },
     // Split Pro shares Split's palette but sits a shade darker: the rail runs
     // the whole page there, so the ground it runs down needs to stay behind it.
     splitpro:  { page: '#0b1220', card: '#161f33', surface: '#1e293b', text: '#f1f5f9', subtext: '#94a3b8', border: '#334155' },
@@ -465,15 +490,15 @@ export function getBgColors(mode: BgMode, templateId: TemplateId, customBgColor?
     // full-bleed photograph and the ground has to sit under any skin tone,
     // wall colour and jacket without casting on it.
     meridian:  { page: '#0e1113', card: '#171b1f', surface: '#20262b', text: '#f2f4f5', subtext: '#9aa5ad', border: '#2b3238' },
-    neon:      { page: '#050510', card: '#0a0a1a', surface: '#10102a', text: '#e0e0ff', subtext: '#6060a0', border: '#1a1a3a' },
-    studio:    { page: '#000000', card: '#f5f5f5', surface: '#ffffff', text: '#0a0a0a', subtext: '#525252', border: '#e5e5e5' },
+    neon:      { page: '#050510', card: '#0a0a1a', surface: '#10102a', text: '#e0e0ff', subtext: '#7e7eb2', border: '#1a1a3a' },
+    studio:    { page: '#000000', card: '#f5f5f5', surface: '#ffffff', text: '#0a0a0a', subtext: '#727272', border: '#e5e5e5' },
     // Frost's dark entry used to be a light palette - page #f8fafc, text
     // #0f172a - which was harmless while the template hardcoded its own
     // colours and ignored the palette. Now that it reads bg.text, a card set
     // to dark mode was drawing near-black text on a dark ground. This is a
     // real dark palette: night ice rather than day ice.
     frost:     { page: '#070d16', card: 'rgba(255,255,255,0.07)', surface: 'rgba(255,255,255,0.05)', text: '#eaf2fb', subtext: '#93a7bd', border: 'rgba(255,255,255,0.16)' },
-    editorial: { page: '#fafaf9', card: '#ffffff', surface: '#f5f5f4', text: '#1c1917', subtext: '#78716c', border: '#e7e5e4' },
+    editorial: { page: '#fafaf9', card: '#ffffff', surface: '#f5f5f4', text: '#1c1917', subtext: '#716a65', border: '#e7e5e4' },
   }
   return applyCustomBg(dark[templateId] || dark.classic)
 }
