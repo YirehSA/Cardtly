@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -22,7 +22,13 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/upgrade/cancel?reason=payment_failed`)
     }
 
-    const supabase = await createClient() as any
+    // SERVICE ROLE. This writes the subscription that turns a payment into
+    // access, and it was doing it through a user-scoped client - which only
+    // worked because whop_subscriptions had no row-level security at all.
+    // Migration 076 adds it, and under that this delete and insert would both
+    // be refused silently: Paystack would take the money, the redirect would
+    // look successful, and the customer would still be on a trial.
+    const supabase = createServiceClient() as any
 
     // Delete any existing subscription row for this user, then insert
     // the fresh one. Avoids the .upsert({...}, { onConflict: 'user_id' })

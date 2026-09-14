@@ -1,4 +1,4 @@
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { UserPlan } from '@/types/database'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -75,12 +75,26 @@ async function orgEntitles(admin: any, orgId: string): Promise<boolean> {
 }
 
 export async function getUserPlan(userId: string): Promise<UserPlan> {
-  const supabase = await createClient()
+  // SERVICE ROLE, for every read in this function.
+  //
+  // It used to open a user-scoped client for the subscription and the profile,
+  // which worked only because whop_subscriptions had no row-level security on
+  // it at all: the anon key could read, insert, update and delete every row in
+  // that table, which is a customer list with email addresses and a way to hand
+  // yourself a Pro subscription. Migration 076 closes it, and closing it would
+  // have returned nothing to a user-scoped read - dropping every paying
+  // customer to expired the moment it ran.
+  //
+  // Safe here because this is a server module, userId is a parameter rather
+  // than anything a request can choose, and every query below is pinned to it.
+  // The rest of the function was already using the service client for the team
+  // and department lookups, so this is now one client instead of two.
+  const admin = createServiceClient() as any
 
   // Deliberately not filtered to status = 'active'. A past_due row has to be
   // read to know whether it is still inside its grace window; filtering it out
   // here made a failed payment look identical to having no subscription.
-  const { data: sub } = await supabase
+  const { data: sub } = await admin
     .from('whop_subscriptions')
     .select('subscription_tier, status, billing_cycle, past_due_since')
     .eq('user_id', userId)
@@ -121,7 +135,6 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
   // public card page, which serves team cards unless the org is suspended -
   // and the dashboard disagreeing with the public page about who is entitled
   // is precisely the drift subscriptionState exists to prevent.
-  const admin = createServiceClient() as any
   const { data: teamCard } = await admin
     .from('team_cards')
     .select('organization_id')
@@ -158,7 +171,7 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
     }
   }
 
-  const { data: profile } = await supabase
+  const { data: profile } = await admin
     .from('profiles')
     .select('trial_ends_at')
     .eq('user_id', userId)

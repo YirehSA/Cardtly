@@ -32,7 +32,16 @@ export default async function SettingsPage() {
   // query errored and sub came back null for everybody - including paying
   // subscribers, who could never see when their subscription started.
   // billing_cycle is what separates a real payer from a comped account.
-  const { data: sub } = await supabase
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  ) as any
+
+  // Service role, because migration 076 puts row-level security on
+  // whop_subscriptions and a user-scoped read would come back empty - showing
+  // a paying subscriber that they have no subscription. Pinned to their own
+  // user_id, which is the session's, so this shows them nothing but their own.
+  const { data: sub } = await admin
     .from('whop_subscriptions')
     .select('subscription_tier, status, created_at, billing_cycle, seats')
     .eq('user_id', user.id)
@@ -45,10 +54,6 @@ export default async function SettingsPage() {
   // applied by hand after the deploy, and naming a column that does not exist
   // yet returns an EMPTY result rather than an error - which would silently
   // hide every card and make the picker vanish instead of failing loudly.
-  const admin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  ) as any
   const [{ data: allPersonal }, { data: allTeam }] = await Promise.all([
     admin.from('cards').select('*').eq('user_id', user.id),
     admin.from('team_cards').select('*').eq('user_id', user.id).eq('is_active', true),

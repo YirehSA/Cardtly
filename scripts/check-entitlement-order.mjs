@@ -20,7 +20,8 @@
 //
 // Run: node scripts/check-entitlement-order.mjs
 
-import { readFileSync } from 'fs'
+import { readFileSync, readdirSync } from 'fs'
+import { join } from 'path'
 
 const PLAN = 'lib/plan-server.ts'
 const CRON = 'app/api/cron/trial-reminders/route.ts'
@@ -88,6 +89,60 @@ function body(src, decl) {
       if (iSub >= 0 && iSub > ret) {
         bad('getUserPlan returns for a subscription it has not read yet')
       }
+    }
+  }
+}
+
+// ── getUserPlan reads with the service role ───────────────────────────────
+//
+// whop_subscriptions has RLS on and no policies as of migration 076, so a
+// user-scoped client reads NOTHING from it. This function used to use one, and
+// switching it back would not fail a type check or throw: it would quietly
+// return no subscription for everybody, and every paying customer would resolve
+// as expired. That is the loudest possible outcome from the quietest possible
+// edit, so it is checked here.
+{
+  const raw = read(PLAN)
+  const src = code(raw)
+  const fn = body(src, 'export async function getUserPlan')
+
+  if (fn) {
+    if (!/createServiceClient\(\)/.test(fn)) {
+      bad('getUserPlan does not create a service client - whop_subscriptions has RLS with no policies, so a user-scoped read returns nothing and every payer resolves as expired')
+    }
+    if (/await createClient\(\)/.test(fn)) {
+      bad('getUserPlan is back on the user-scoped client, which cannot read whop_subscriptions through RLS')
+    }
+  }
+  // The import itself, so the user-scoped client cannot creep back in later.
+  if (/import\s*\{[^}]*\bcreateClient\b[^}]*\}\s*from\s*'@\/lib\/supabase\/server'/.test(code(raw))) {
+    bad("lib/plan-server.ts imports the user-scoped createClient again; entitlement must resolve through the service role")
+  }
+}
+
+// ── nothing in the browser may touch whop_subscriptions ───────────────────
+//
+// The table holds the customer list with email addresses. Before 076 the anon
+// key could read, insert, update and delete every row of it. A 'use client'
+// file querying it would both fail under RLS and mean the browser was being
+// handed that data again.
+{
+  const files = []
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name)
+      if (e.isDirectory()) { if (e.name !== 'node_modules' && e.name !== '.next') walk(p) }
+      else if (/\.tsx?$/.test(e.name)) files.push(p)
+    }
+  }
+  for (const root of ['app', 'components', 'lib']) {
+    try { walk(root) } catch { /* directory absent */ }
+  }
+  for (const f of files) {
+    const src = readFileSync(f, 'utf8')
+    if (!src.includes('whop_subscriptions')) continue
+    if (/^\s*['"]use client['"]/m.test(src.slice(0, 200))) {
+      bad(`${f.replace(/\\/g, '/')} is a client component and reads whop_subscriptions - that table is server-only`)
     }
   }
 }
