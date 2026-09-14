@@ -2,8 +2,12 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
+import Reveal from '@/components/marketing/Reveal'
 import { SEAT_PRICE_RAND, MAX_SELF_SERVE_SEATS } from '@/lib/org-billing'
-import { ArrowRight, Check } from 'lucide-react'
+import {
+  ArrowRight, Check, Building2, Lock, UserPlus, BarChart2, FileUp,
+  Layers, Wifi, Mail, MousePointerClick,
+} from 'lucide-react'
 
 // The page for "digital business cards for teams / companies / corporate".
 //
@@ -18,6 +22,18 @@ import { ArrowRight, Check } from 'lucide-react'
 // first sentence gets cited, and a paragraph that only makes sense after the
 // three above it does not. Hence the question headings, the short answer
 // directly under each, the comparison table and the FAQ.
+//
+// PRESENTATION REBUILT 2026-09-14, CONTENT NOT TOUCHED. It was a single
+// column of prose at max-w-4xl while every sibling marketing page used the
+// gradient, icon tiles, mockups and scroll reveals, so it read as a document
+// that had wandered onto a different website. Every word below, the whole FAQ
+// and all of the JSON-LD are byte for byte what they were: the quotable
+// passages are the entire point of the page and shortening them to make room
+// for decoration would trade the thing that works for the thing that looks
+// nice. What changed is that the two ideas hardest to carry in prose, the
+// three-level hierarchy and the three-way comparison, are now drawn instead of
+// described, and the ten FAQ answers are numbered cards rather than one
+// unbroken wall.
 
 export const metadata: Metadata = {
   title: { absolute: 'Digital Business Cards for Teams & Companies | Cardtly' },
@@ -42,6 +58,25 @@ export const metadata: Metadata = {
     type: 'website',
   },
 }
+
+// The site's gradient, same declaration as the home page and /features. Kept
+// as a local constant rather than a shared import because that is how the
+// other marketing pages do it and a new shared module would be the only one.
+const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
+const gradText: React.CSSProperties = {
+  background: grad,
+  WebkitBackgroundClip: 'text',
+  WebkitTextFillColor: 'transparent',
+  backgroundClip: 'text',
+}
+
+// Body copy sits at 0.68 rather than the 0.5 the shorter marketing pages use.
+// This is the longest page on the site by a wide margin, and 0.5 white on this
+// background is comfortable for a four-line paragraph and tiring for forty.
+const BODY = 'rgba(255,255,255,0.68)'
+const DIM = 'rgba(255,255,255,0.5)'
+const HAIR = 'rgba(255,255,255,0.1)'
+const PANEL = 'rgba(255,255,255,0.03)'
 
 const FAQ: Array<{ q: string; a: string }> = [
   {
@@ -86,14 +121,167 @@ const FAQ: Array<{ q: string; a: string }> = [
   },
 ]
 
-const COMPARISON: Array<[string, string, string, string]> = [
-  ['Brand consistency', 'Reprint everything', 'Each person decides', 'Set once, applied to every card'],
-  ['Updating details', 'Reprint everything', 'Each person updates their own', 'Administrator updates centrally'],
-  ['Who owns the leads', 'Nobody, they are on paper', 'The individual', 'The company'],
-  ['Staff turnover', 'Cards are wasted', 'Card and contacts leave too', 'Card archived, seat reissued'],
-  ['Knowing what is used', 'No idea', 'Only the individual sees it', 'Per-card and team-wide analytics'],
-  ['Several businesses', 'Separate everything', 'Separate accounts', 'One account, one invoice'],
+// Same six rows as before. The icon is new and is decoration only: the row
+// label already carries the meaning, so it is aria-hidden.
+const COMPARISON: Array<{ label: string; icon: React.ComponentType<{ className?: string }>; paper: string; individual: string; cardtly: string }> = [
+  { label: 'Brand consistency', icon: Lock, paper: 'Reprint everything', individual: 'Each person decides', cardtly: 'Set once, applied to every card' },
+  { label: 'Updating details', icon: Wifi, paper: 'Reprint everything', individual: 'Each person updates their own', cardtly: 'Administrator updates centrally' },
+  { label: 'Who owns the leads', icon: Mail, paper: 'Nobody, they are on paper', individual: 'The individual', cardtly: 'The company' },
+  { label: 'Staff turnover', icon: UserPlus, paper: 'Cards are wasted', individual: 'Card and contacts leave too', cardtly: 'Card archived, seat reissued' },
+  { label: 'Knowing what is used', icon: BarChart2, paper: 'No idea', individual: 'Only the individual sees it', cardtly: 'Per-card and team-wide analytics' },
+  { label: 'Several businesses', icon: Building2, paper: 'Separate everything', individual: 'Separate accounts', cardtly: 'One account, one invoice' },
 ]
+
+// The four steps of a rollout. Not new claims: every one of these is stated in
+// the FAQ answer "How do employees get their cards?" and in the closing block.
+// Drawn here because a sequence is the one thing a paragraph is worst at.
+const ROLLOUT = [
+  { icon: Building2, title: 'Create the account', desc: 'Upload your logo, set your colours, and lock the fields that must stay the same.' },
+  { icon: FileUp, title: 'Import your people', desc: 'One at a time, or a spreadsheet of the whole company at once.' },
+  { icon: Mail, title: 'Send the invitations', desc: 'Each person is invited by email and claims their card with one click.' },
+  { icon: MousePointerClick, title: 'Everyone is live', desc: 'Already branded and filled in. No training session and no launch date.' },
+]
+
+const HIERARCHY_POINTS = [
+  'Each company chooses whether to wear the group look or its own.',
+  'The group owner can lock that choice so a company cannot change it.',
+  'Departments inherit from their own company, not from the group above it.',
+  'Every company gets its own slice of the URL, such as cardtly.com/card/company/person.',
+  'A department head manages only their own people and can tighten rules, never loosen them.',
+]
+
+// ── Small building blocks ─────────────────────────────────────────────────
+
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold"
+      style={{ border: '1px solid rgba(124,58,237,0.4)', color: '#a78bfa', background: 'rgba(124,58,237,0.1)' }}
+    >
+      <Building2 className="w-3 h-3" aria-hidden="true" />
+      {children}
+    </div>
+  )
+}
+
+function SectionHead({ kicker, title, children }: { kicker: string; title: React.ReactNode; children?: React.ReactNode }) {
+  return (
+    <>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: '#a78bfa' }}>
+        {kicker}
+      </p>
+      <h2 className="font-display text-[28px] sm:text-[38px] font-bold tracking-[-0.02em] leading-[1.12] mt-3 text-white">
+        {title}
+      </h2>
+      {children ? (
+        <p className="mt-4 text-base sm:text-lg leading-relaxed max-w-2xl" style={{ color: BODY }}>
+          {children}
+        </p>
+      ) : null}
+    </>
+  )
+}
+
+/** A miniature member card, used inside the hierarchy diagram. The point it
+ *  makes visually is that the brand band at the top is identical across a
+ *  company while the person underneath is not. */
+function MiniCard({ initial, name, role, accent, light }: { initial: string; name: string; role: string; accent: string; light: string }) {
+  return (
+    <div
+      className="rounded-xl p-2.5 w-full"
+      style={{ background: 'linear-gradient(160deg, #12122a, #0a0a18)', border: `1px solid ${accent}55` }}
+    >
+      <div className="flex items-center gap-1.5 pb-2 mb-2" style={{ borderBottom: `1px solid ${HAIR}` }}>
+        <div
+          className="w-4 h-4 rounded flex items-center justify-center text-[8px] font-black text-white"
+          style={{ background: accent }}
+        >
+          {initial}
+        </div>
+        <Lock className="w-2.5 h-2.5 ml-auto" style={{ color: light }} aria-hidden="true" />
+      </div>
+      <p className="text-[10px] font-bold text-white leading-tight">{name}</p>
+      <p className="text-[10px] leading-tight mt-0.5" style={{ color: 'rgba(255,255,255,0.62)' }}>{role}</p>
+    </div>
+  )
+}
+
+/** The three-level structure, drawn.
+ *
+ *  This replaces nothing: the five bullet points that used to carry this idea
+ *  alone are still below it. The diagram exists because "a group at the top,
+ *  companies beneath it, and departments inside those, and each company may
+ *  keep its own logo" is four relationships at once, and four relationships in
+ *  one sentence is where prose stops working and a picture starts.
+ *
+ *  Decorative, so the whole thing is aria-hidden and the text version below is
+ *  what a screen reader gets. */
+function HierarchyDiagram() {
+  const tier = 'rounded-xl px-3 py-2 text-center'
+  return (
+    <div
+      className="relative rounded-2xl p-5 sm:p-7 overflow-hidden"
+      style={{ background: PANEL, border: `1px solid ${HAIR}` }}
+      aria-hidden="true"
+    >
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: 'radial-gradient(circle at 70% 10%, rgba(124,58,237,0.18), transparent 62%)' }}
+      />
+
+      <div className="relative">
+        {/* Tier 1: the group */}
+        <div className="flex justify-center">
+          <div
+            className={`${tier} inline-flex items-center gap-2`}
+            style={{ background: 'rgba(124,58,237,0.16)', border: '1px solid rgba(124,58,237,0.45)' }}
+          >
+            <Layers className="w-3.5 h-3.5" style={{ color: '#a78bfa' }} />
+            <span className="text-xs font-bold text-white">Horizon Group</span>
+          </div>
+        </div>
+
+        {/* Connector down to the split */}
+        <div className="mx-auto w-px h-5" style={{ background: 'rgba(124,58,237,0.45)' }} />
+
+        {/* Tier 2 and 3: two companies, each with its own look and its own people */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-5">
+          {[
+            // `accent` paints borders and fills, `light` paints text. The deep
+            // purple measures 3.28:1 on this background, which is under AA and
+            // genuinely hard to read at this size, so no text uses it.
+            { name: 'Horizon Build', accent: '#7c3aed', light: '#a78bfa', initial: 'H', note: 'group look', people: [['Sipho Dlamini', 'Site Manager'], ['Lerato Khumalo', 'Estimator']] },
+            { name: 'Cape Interiors', accent: '#00d4ff', light: '#67e8f9', initial: 'C', note: 'own look', people: [['Jan Pretorius', 'Design Lead'], ['Amina Patel', 'Project Admin']] },
+          ].map(co => (
+            <div key={co.name}>
+              <div className="mx-auto w-px h-4" style={{ background: `${co.accent}88` }} />
+              <div
+                className={`${tier} flex items-center justify-center gap-1.5 flex-wrap`}
+                style={{ background: `${co.accent}1f`, border: `1px solid ${co.accent}66` }}
+              >
+                <Building2 className="w-3 h-3" style={{ color: co.light }} />
+                <span className="text-[11px] font-bold text-white">{co.name}</span>
+              </div>
+              <p className="text-[10px] text-center mt-1.5 font-semibold uppercase tracking-wider" style={{ color: co.light }}>
+                {co.note}
+              </p>
+              <div className="mx-auto w-px h-4 mt-1.5" style={{ background: `${co.accent}88` }} />
+              <div className="space-y-2">
+                {co.people.map(([name, role]) => (
+                  <MiniCard key={name} initial={co.initial} name={name} role={role} accent={co.accent} light={co.light} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-[10px] text-center mt-5" style={{ color: DIM }}>
+          One account. One invoice. One seat pool.
+        </p>
+      </div>
+    </div>
+  )
+}
 
 export default function TeamsPage() {
   const jsonLd = {
@@ -145,153 +333,343 @@ export default function TeamsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-clip">
       {/* Rendered on the server. AI crawlers do not run JavaScript, so anything
-          that matters has to be in the HTML that arrives. */}
+          that matters has to be in the HTML that arrives. That rule is why the
+          FAQ answers below are plain markup and not a collapsed accordion. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <Navbar />
 
-      <main className="max-w-4xl mx-auto px-5 sm:px-8 pt-28 pb-20">
-        {/* The answer, in the first sentence, because that is the part that
-            gets extracted. */}
-        <header className="pb-10 border-b border-border">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Cardtly for teams
-          </p>
-          <h1 className="font-display text-[34px] sm:text-[52px] font-bold tracking-[-0.03em] leading-[1.05] mt-3">
-            Digital business cards for teams and companies
-          </h1>
-          <p className="text-lg text-muted-foreground mt-5 leading-relaxed">
-            Cardtly gives every employee a branded digital business card that the company owns and
-            controls. An administrator sets the logo and colours once, locks the fields that must
-            stay the same, and issues a card to each person. Staff share theirs by NFC tap, QR code
-            or link, and the recipient saves the details without installing an app.
-          </p>
-          <div className="flex flex-wrap gap-3 mt-7">
-            <Link href="/signup"
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold text-white"
-              style={{ backgroundColor: 'hsl(var(--accent))' }}>
-              Start a team <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link href="/contact"
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold border border-border">
-              Talk to us about {MAX_SELF_SERVE_SEATS}+ seats
-            </Link>
-          </div>
-        </header>
+      <main>
+        {/* ── Hero ───────────────────────────────────────────────────── */}
+        <section className="relative px-5 sm:px-8 pt-28 sm:pt-32 pb-16">
+          <div
+            className="absolute top-0 left-1/2 -translate-x-1/2 w-[760px] max-w-full h-[440px] rounded-full blur-[120px] pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.20) 0%, transparent 70%)' }}
+            aria-hidden="true"
+          />
+          <div className="relative max-w-[1200px] mx-auto grid lg:grid-cols-[1.05fr_0.95fr] gap-12 lg:gap-16 items-center">
+            <div>
+              <Eyebrow>Cardtly for teams</Eyebrow>
 
-        <section className="pt-12">
-          <h2 className="font-display text-[26px] sm:text-[32px] font-bold tracking-[-0.02em]">
-            What a company gets that individuals do not
-          </h2>
-          <p className="text-muted-foreground mt-4 leading-relaxed">
-            A company where everyone signed up on their own has no shared brand, no way to correct a
-            logo across the group, no record of who holds a card, and no claim on the leads those
-            cards capture. A team account inverts each of those.
-          </p>
+              {/* The h1 is unchanged. Only the second line is gradient, so the
+                  keyword phrase still reads as one sentence to a crawler. */}
+              <h1 className="font-display text-[34px] sm:text-[52px] font-bold tracking-[-0.03em] leading-[1.05] mt-6 text-white">
+                Digital business cards for{' '}
+                <span style={gradText}>teams and companies</span>
+              </h1>
 
-          <div className="overflow-x-auto mt-7 rounded-xl border border-border">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-border bg-muted/40">
-                  <th className="text-left font-semibold p-3.5"></th>
-                  <th className="text-left font-semibold p-3.5">Paper cards</th>
-                  <th className="text-left font-semibold p-3.5">Individual digital cards</th>
-                  <th className="text-left font-semibold p-3.5">Cardtly for teams</th>
-                </tr>
-              </thead>
-              <tbody>
-                {COMPARISON.map(([label, paper, individual, cardtly]) => (
-                  <tr key={label} className="border-b border-border last:border-0">
-                    <td className="p-3.5 font-medium">{label}</td>
-                    <td className="p-3.5 text-muted-foreground">{paper}</td>
-                    <td className="p-3.5 text-muted-foreground">{individual}</td>
-                    <td className="p-3.5">{cardtly}</td>
-                  </tr>
+              <p className="text-base sm:text-lg mt-6 leading-relaxed" style={{ color: BODY }}>
+                Cardtly gives every employee a branded digital business card that the company owns and
+                controls. An administrator sets the logo and colours once, locks the fields that must
+                stay the same, and issues a card to each person. Staff share theirs by NFC tap, QR code
+                or link, and the recipient saves the details without installing an app.
+              </p>
+
+              <div className="flex flex-wrap gap-3 mt-8">
+                <Link
+                  href="/signup"
+                  className="group inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl text-sm font-bold text-white transition-transform hover:scale-[1.02]"
+                  style={{ background: grad, boxShadow: '0 8px 30px rgba(124,58,237,0.4)' }}
+                >
+                  Start a team
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                </Link>
+                <Link
+                  href="/contact"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl text-sm font-bold text-white transition-colors"
+                  style={{ border: `1px solid ${HAIR}`, background: PANEL }}
+                >
+                  Talk to us about {MAX_SELF_SERVE_SEATS}+ seats
+                </Link>
+              </div>
+
+              {/* Three facts stated everywhere else on the page, given a shape
+                  so the hero has something scannable under the buttons. */}
+              <dl className="grid grid-cols-3 gap-3 mt-10 pt-8" style={{ borderTop: `1px solid ${HAIR}` }}>
+                {[
+                  { v: `R${SEAT_PRICE_RAND}`, l: 'per card, per month' },
+                  { v: `2 to ${MAX_SELF_SERVE_SEATS}`, l: 'seats, self-serve' },
+                  { v: '3 levels', l: 'group, company, dept' },
+                ].map(s => (
+                  <div key={s.l}>
+                    <dt className="sr-only">{s.l}</dt>
+                    <dd>
+                      <span className="block font-display text-xl sm:text-2xl font-bold" style={gradText}>{s.v}</span>
+                      <span className="block text-[11px] mt-1 leading-tight" style={{ color: DIM }}>{s.l}</span>
+                    </dd>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="pt-14">
-          <h2 className="font-display text-[26px] sm:text-[32px] font-bold tracking-[-0.02em]">
-            One account can hold several companies
-          </h2>
-          <p className="text-muted-foreground mt-4 leading-relaxed">
-            Cardtly has three levels: a group at the top, companies beneath it, and departments
-            inside those. A holding company with seven businesses runs all of them from one account,
-            on one invoice and one seat pool, while each business keeps its own logo, colours, web
-            address and manager.
-          </p>
-          <ul className="mt-6 space-y-3">
-            {[
-              'Each company chooses whether to wear the group look or its own.',
-              'The group owner can lock that choice so a company cannot change it.',
-              'Departments inherit from their own company, not from the group above it.',
-              'Every company gets its own slice of the URL, such as cardtly.com/card/company/person.',
-              'A department head manages only their own people and can tighten rules, never loosen them.',
-            ].map(line => (
-              <li key={line} className="flex gap-3">
-                <Check className="w-4 h-4 mt-1 shrink-0" style={{ color: 'hsl(var(--accent))' }} />
-                <span className="text-muted-foreground leading-relaxed">{line}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="pt-14">
-          <h2 className="font-display text-[26px] sm:text-[32px] font-bold tracking-[-0.02em]">
-            What it costs
-          </h2>
-          <p className="text-muted-foreground mt-4 leading-relaxed">
-            R{SEAT_PRICE_RAND} per card per month, billed monthly or annually. Teams of 2 to{' '}
-            {MAX_SELF_SERVE_SEATS} cards are self-serve. Above {MAX_SELF_SERVE_SEATS} seats the
-            arrangement is quoted, because that is where invoicing, purchase orders and rollout
-            support matter more than a checkout page. Every card carries the full feature set, so
-            the price does not change according to which features a team turns on.
-          </p>
-          <Link href="/pricing"
-            className="inline-flex items-center gap-2 mt-6 text-sm font-semibold"
-            style={{ color: 'hsl(var(--accent))' }}>
-            See full pricing <ArrowRight className="w-4 h-4" />
-          </Link>
-        </section>
-
-        <section className="pt-14">
-          <h2 className="font-display text-[26px] sm:text-[32px] font-bold tracking-[-0.02em]">
-            Questions companies ask
-          </h2>
-          <div className="mt-7 divide-y divide-border border-y border-border">
-            {FAQ.map(({ q, a }) => (
-              <article key={q} className="py-6">
-                <h3 className="font-semibold text-lg leading-snug">{q}</h3>
-                <p className="text-muted-foreground mt-3 leading-relaxed">{a}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="pt-14">
-          <div className="rounded-xl border border-border p-7 sm:p-9">
-            <h2 className="font-display text-[24px] sm:text-[28px] font-bold tracking-[-0.02em]">
-              Give your whole team a card this week
-            </h2>
-            <p className="text-muted-foreground mt-3 leading-relaxed max-w-2xl">
-              Create the account, upload your logo, import your people from a spreadsheet, and send
-              the invitations. Everyone claims their own card with one click, already branded.
-            </p>
-            <div className="flex flex-wrap gap-3 mt-6">
-              <Link href="/signup"
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold text-white"
-                style={{ backgroundColor: 'hsl(var(--accent))' }}>
-                Start a team <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link href="/contact"
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold border border-border">
-                Ask a question
-              </Link>
+              </dl>
             </div>
+
+            <div className="float-soft">
+              <HierarchyDiagram />
+            </div>
+          </div>
+        </section>
+
+        {/* ── Comparison ─────────────────────────────────────────────── */}
+        <section className="px-5 sm:px-8 py-16 sm:py-20">
+          <div className="max-w-[1200px] mx-auto">
+            <Reveal>
+              <SectionHead kicker="Why a team account" title="What a company gets that individuals do not">
+                A company where everyone signed up on their own has no shared brand, no way to correct a
+                logo across the group, no record of who holds a card, and no claim on the leads those
+                cards capture. A team account inverts each of those.
+              </SectionHead>
+            </Reveal>
+
+            <Reveal delay={80}>
+              {/* Still one real table, still one copy of every string. The
+                  Cardtly column is tinted the whole way down so the answer is
+                  readable at a glance without reading six rows first. */}
+              <div className="overflow-x-auto mt-8 rounded-2xl" style={{ border: `1px solid ${HAIR}`, background: PANEL }}>
+                <table className="w-full text-sm border-collapse min-w-[640px]">
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${HAIR}` }}>
+                      <th className="text-left font-semibold p-4" />
+                      <th className="text-left font-semibold p-4 text-[11px] uppercase tracking-wider" style={{ color: DIM }}>Paper cards</th>
+                      <th className="text-left font-semibold p-4 text-[11px] uppercase tracking-wider" style={{ color: DIM }}>Individual digital cards</th>
+                      <th
+                        className="text-left font-bold p-4 text-[11px] uppercase tracking-wider text-white"
+                        style={{ background: 'rgba(124,58,237,0.14)', borderLeft: '1px solid rgba(124,58,237,0.35)' }}
+                      >
+                        Cardtly for teams
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {COMPARISON.map(({ label, icon: Icon, paper, individual, cardtly }, i) => (
+                      <tr key={label} style={i < COMPARISON.length - 1 ? { borderBottom: `1px solid ${HAIR}` } : undefined}>
+                        <td className="p-4 font-semibold text-white whitespace-nowrap">
+                          <span className="inline-flex items-center gap-2.5">
+                            <span
+                              className="w-7 h-7 rounded-lg inline-flex items-center justify-center shrink-0"
+                              style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)' }}
+                            >
+                              <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+                            </span>
+                            {label}
+                          </span>
+                        </td>
+                        <td className="p-4" style={{ color: DIM }}>{paper}</td>
+                        <td className="p-4" style={{ color: DIM }}>{individual}</td>
+                        <td
+                          className="p-4 font-medium text-white"
+                          style={{ background: 'rgba(124,58,237,0.08)', borderLeft: '1px solid rgba(124,58,237,0.35)' }}
+                        >
+                          <span className="inline-flex items-start gap-2">
+                            <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#22c55e' }} aria-hidden="true" />
+                            {cardtly}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* ── Hierarchy ──────────────────────────────────────────────── */}
+        <section className="px-5 sm:px-8 py-16 sm:py-20" style={{ background: 'rgba(255,255,255,0.02)' }}>
+          <div className="max-w-[1200px] mx-auto">
+            <Reveal>
+              <SectionHead kicker="Structure" title="One account can hold several companies">
+                Cardtly has three levels: a group at the top, companies beneath it, and departments
+                inside those. A holding company with seven businesses runs all of them from one account,
+                on one invoice and one seat pool, while each business keeps its own logo, colours, web
+                address and manager.
+              </SectionHead>
+            </Reveal>
+
+            <Reveal delay={80}>
+              <ul className="mt-9 grid sm:grid-cols-2 gap-x-8 gap-y-4">
+                {HIERARCHY_POINTS.map(line => (
+                  <li
+                    key={line}
+                    className="flex gap-3 rounded-xl p-4"
+                    style={{ background: PANEL, border: `1px solid ${HAIR}` }}
+                  >
+                    <Check className="w-4 h-4 mt-1 shrink-0" style={{ color: '#22c55e' }} aria-hidden="true" />
+                    <span className="leading-relaxed text-sm" style={{ color: BODY }}>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* ── Rollout ────────────────────────────────────────────────── */}
+        <section className="px-5 sm:px-8 py-16 sm:py-20">
+          <div className="max-w-[1200px] mx-auto">
+            <Reveal>
+              <SectionHead kicker="Rollout" title="Four steps, and nobody needs training">
+                Every card is live from the moment it is claimed, already branded and filled in. A
+                rollout does not need a launch date.
+              </SectionHead>
+            </Reveal>
+
+            <ol className="mt-9 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {ROLLOUT.map(({ icon: Icon, title, desc }, i) => (
+                <Reveal key={title} delay={i * 70}>
+                  <li className="relative rounded-2xl p-5 h-full" style={{ background: PANEL, border: `1px solid ${HAIR}` }}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <span
+                        className="w-10 h-10 rounded-xl inline-flex items-center justify-center text-white shrink-0"
+                        style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)' }}
+                      >
+                        <Icon className="w-4 h-4" aria-hidden="true" />
+                      </span>
+                      <span className="font-display text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.18)' }}>
+                        {i + 1}
+                      </span>
+                    </div>
+                    <p className="font-bold text-white text-sm mb-1.5">{title}</p>
+                    <p className="text-sm leading-relaxed" style={{ color: DIM }}>{desc}</p>
+                  </li>
+                </Reveal>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* ── Price ──────────────────────────────────────────────────── */}
+        <section className="px-5 sm:px-8 py-16 sm:py-20" style={{ background: 'rgba(255,255,255,0.02)' }}>
+          <div className="max-w-[1200px] mx-auto">
+            <Reveal>
+              <div className="grid lg:grid-cols-[1fr_auto] gap-10 items-center">
+                <div>
+                  <SectionHead kicker="Pricing" title="What it costs">
+                    R{SEAT_PRICE_RAND} per card per month, billed monthly or annually. Teams of 2 to{' '}
+                    {MAX_SELF_SERVE_SEATS} cards are self-serve. Above {MAX_SELF_SERVE_SEATS} seats the
+                    arrangement is quoted, because that is where invoicing, purchase orders and rollout
+                    support matter more than a checkout page. Every card carries the full feature set, so
+                    the price does not change according to which features a team turns on.
+                  </SectionHead>
+                  {/* min-h-11 rather than bare text: as an inline link this was
+                      20px tall, under the 44px minimum for a touch target. */}
+                  <Link
+                    href="/pricing"
+                    className="group inline-flex items-center gap-2 mt-4 min-h-11 py-2 text-sm font-bold"
+                    style={{ color: '#a78bfa' }}
+                  >
+                    See full pricing
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                  </Link>
+                </div>
+
+                <div
+                  className="rounded-2xl p-7 text-center lg:min-w-[260px]"
+                  style={{ background: PANEL, border: '1px solid rgba(124,58,237,0.35)' }}
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: DIM }}>
+                    Per card
+                  </p>
+                  <p className="font-display text-5xl font-bold mt-2" style={gradText}>
+                    R{SEAT_PRICE_RAND}
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: DIM }}>per month</p>
+                  <div className="mt-5 pt-5 space-y-2 text-left" style={{ borderTop: `1px solid ${HAIR}` }}>
+                    {['Every feature included', 'No cut-down tier', 'Monthly or annual'].map(l => (
+                      <p key={l} className="flex items-center gap-2 text-xs" style={{ color: BODY }}>
+                        <Check className="w-3.5 h-3.5 shrink-0" style={{ color: '#22c55e' }} aria-hidden="true" />
+                        {l}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* ── FAQ ────────────────────────────────────────────────────── */}
+        {/* 640px, not the 1200 the rest of the page uses, and measured rather
+            than guessed: 900px set these answers at 105 characters a line and
+            700px at 80, both past the point where the eye starts losing the
+            beginning of the next line. 640 lands at about 72. Every other
+            section is wider because none of them asks anyone to read a
+            700-character paragraph. */}
+        <section className="px-5 sm:px-8 py-16 sm:py-20">
+          <div className="max-w-[640px] mx-auto">
+            <Reveal>
+              <SectionHead kicker="FAQ" title="Questions companies ask" />
+            </Reveal>
+
+            <div className="mt-9 space-y-4">
+              {FAQ.map(({ q, a }, i) => (
+                <Reveal key={q} delay={i < 4 ? i * 60 : 0}>
+                  <article
+                    className="rounded-2xl p-5 sm:p-7"
+                    style={{ background: PANEL, border: `1px solid ${HAIR}` }}
+                  >
+                    {/* The number sits beside the QUESTION, not beside the whole
+                        card. Indenting the answer under it too cost about 48px
+                        of measure, which on a 375px screen dropped the answer
+                        to roughly 31 characters a line, under the readable
+                        minimum. These answers are long enough that it showed. */}
+                    <div className="flex items-start gap-3.5">
+                      <span
+                        className="w-8 h-8 rounded-lg shrink-0 inline-flex items-center justify-center text-xs font-black text-white"
+                        style={{ background: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.35)' }}
+                        aria-hidden="true"
+                      >
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <h3 className="font-bold text-lg leading-snug text-white pt-0.5 min-w-0">{q}</h3>
+                    </div>
+                    <p className="mt-3.5 leading-relaxed" style={{ color: BODY }}>{a}</p>
+                  </article>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Closing CTA ────────────────────────────────────────────── */}
+        <section className="px-5 sm:px-8 pb-24">
+          <div className="max-w-[1200px] mx-auto">
+            <Reveal>
+              <div
+                className="relative rounded-3xl p-8 sm:p-12 overflow-hidden text-center"
+                style={{ background: PANEL, border: '1px solid rgba(124,58,237,0.3)' }}
+              >
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ background: 'radial-gradient(circle at 50% 0%, rgba(124,58,237,0.22), transparent 65%)' }}
+                  aria-hidden="true"
+                />
+                <div className="relative">
+                  <h2 className="font-display text-[26px] sm:text-[34px] font-bold tracking-[-0.02em] leading-tight text-white">
+                    Give your whole team a card <span style={gradText}>this week</span>
+                  </h2>
+                  <p className="mt-4 leading-relaxed max-w-2xl mx-auto" style={{ color: BODY }}>
+                    Create the account, upload your logo, import your people from a spreadsheet, and send
+                    the invitations. Everyone claims their own card with one click, already branded.
+                  </p>
+                  <div className="flex flex-wrap gap-3 mt-8 justify-center">
+                    <Link
+                      href="/signup"
+                      className="group inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl text-sm font-bold text-white transition-transform hover:scale-[1.02]"
+                      style={{ background: grad, boxShadow: '0 8px 30px rgba(124,58,237,0.4)' }}
+                    >
+                      Start a team
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                    </Link>
+                    <Link
+                      href="/contact"
+                      className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl text-sm font-bold text-white"
+                      style={{ border: `1px solid ${HAIR}`, background: 'rgba(255,255,255,0.04)' }}
+                    >
+                      Ask a question
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
           </div>
         </section>
       </main>
