@@ -207,6 +207,105 @@ export function getReadableTextOn(hex: string): string {
   return L > 0.55 ? '#0a0a0a' : '#ffffff'
 }
 
+/**
+ * The accent, adjusted until it is READABLE AS TEXT on the grounds given.
+ *
+ * THE PROBLEM THIS SOLVES. The accent is whatever hex a customer typed into a
+ * colour picker, and the card uses it for a job title, a speciality chip and a
+ * button label as well as for fills and icons. As a fill it only has to be
+ * visible, 3:1, which lib/brand-theme already guarantees. As TEXT it has to
+ * clear 4.5:1, and on real cards it does not: David Botha's olive #57602e sits
+ * at 2.9:1 on his card and Damien's blue #2a6bca at 3.57:1 on his.
+ *
+ * WHY NOT JUST CHANGE THE ACCENT. Because it is their brand, and it is correct
+ * everywhere else. A chip filled with their olive, an icon drawn in it and a
+ * button painted with it are all fine and all recognisably theirs. Only the
+ * small text is wrong, so only the small text changes.
+ *
+ * WHAT IT DOES. Holds hue and saturation, walks lightness away from the
+ * original in the smallest steps that clear the target against EVERY ground
+ * passed in, and returns the first that does. Nearest-first, so a colour that
+ * already passes is returned untouched and one that nearly passes barely
+ * moves. A greyscale or unparseable accent is returned as-is: there is no hue
+ * to preserve and inventing one would be worse than leaving it.
+ *
+ * Grounds are composited onto the first one, so a translucent chip tint over a
+ * card reads as the colour the eye actually sees rather than as its own alpha.
+ */
+export function readableAccentOn(accent: string, grounds: string[], target = 4.5): string {
+  const rgb = (c: string): { r: number; g: number; b: number; a: number } | null => {
+    const s = c.trim()
+    if (s.startsWith('#')) {
+      let h = s.slice(1)
+      if (h.length === 3) h = h.split('').map(x => x + x).join('')
+      if (h.length !== 6) return null
+      const n = parseInt(h, 16)
+      if (Number.isNaN(n)) return null
+      return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255, a: 1 }
+    }
+    const m = s.match(/[\d.]+/g)
+    if (!m || m.length < 3) return null
+    return { r: +m[0], g: +m[1], b: +m[2], a: m.length > 3 ? +m[3] : 1 }
+  }
+  const lin = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }
+  const lum = (c: { r: number; g: number; b: number }) => 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b)
+  const over = (f: { r: number; g: number; b: number; a: number }, b: { r: number; g: number; b: number }) =>
+    ({ r: f.r * f.a + b.r * (1 - f.a), g: f.g * f.a + b.g * (1 - f.a), b: f.b * f.a + b.b * (1 - f.a) })
+  const ratio = (a: { r: number; g: number; b: number }, b: { r: number; g: number; b: number }) => {
+    const x = lum(a), y = lum(b); const hi = Math.max(x, y), lo = Math.min(x, y)
+    return (hi + 0.05) / (lo + 0.05)
+  }
+
+  const src = rgb(accent)
+  if (!src) return accent
+
+  // Composite each ground onto the first solid one it can find.
+  const parsed = grounds.map(rgb).filter(Boolean) as { r: number; g: number; b: number; a: number }[]
+  if (!parsed.length) return accent
+  const base = parsed.find(g => g.a === 1) || parsed[0]
+  const solids = parsed.map(g => (g.a === 1 ? g : over(g, base)))
+
+  const passes = (c: { r: number; g: number; b: number }) => solids.every(g => ratio(c, g) >= target)
+  if (passes(src)) return accent
+
+  // HSL, so hue and saturation survive.
+  const r = src.r / 255, g = src.g / 255, b = src.b / 255
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l0 = (mx + mn) / 2
+  let h = 0, s = 0
+  if (mx !== mn) {
+    const d = mx - mn
+    s = l0 > 0.5 ? d / (2 - mx - mn) : d / (mx + mn)
+    h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4
+    h /= 6
+  }
+  if (s === 0) return accent // greyscale: no hue to keep, leave it alone
+
+  const toRgb = (L: number) => {
+    const q = L < 0.5 ? L * (1 + s) : L + s - L * s, p = 2 * L - q
+    const f = (t: number) => {
+      if (t < 0) t += 1; if (t > 1) t -= 1
+      if (t < 1 / 6) return p + (q - p) * 6 * t
+      if (t < 1 / 2) return q
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6
+      return p
+    }
+    return { r: f(h + 1 / 3) * 255, g: f(h) * 255, b: f(h - 1 / 3) * 255 }
+  }
+  const hex = (c: { r: number; g: number; b: number }) =>
+    '#' + [c.r, c.g, c.b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('')
+
+  // Nearest-first in both directions, so the result stays as close to their
+  // colour as the contrast allows.
+  for (let step = 1; step <= 200; step++) {
+    for (const L of [l0 + step * 0.005, l0 - step * 0.005]) {
+      if (L < 0 || L > 1) continue
+      const cand = toRgb(L)
+      if (passes(cand)) return hex(cand)
+    }
+  }
+  return accent // no lightness works; leave their colour rather than invent one
+}
+
 // Circuit draws in two tones: the accent, and a companion rotated round the
 // wheel from it. Gold and cyan on the reference card; whatever the user picked
 // and its opposite number in practice, so the pairing follows their brand

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Card, extractLinks } from '@/types/database'
-import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, scrimAlphaForWhite, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS } from '@/types/design'
+import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, scrimAlphaForWhite, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, readableAccentOn, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS } from '@/types/design'
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
@@ -428,6 +428,9 @@ interface BottomProps {
   certifications: string[]
   galleryImages: { url: string; link?: string }[]
   accentHex: string
+  /** The accent adjusted to clear AA as small text. See where it is
+   *  derived in PublicCardView: fills keep accentHex, text takes this. */
+  accentText: string
   buttonBg: string
   buttonText: string
   buttonBorder: string | null
@@ -457,7 +460,7 @@ interface BottomProps {
 
 // Helper that renders the Book a Meeting button. Encapsulates the modal
 // state so the BottomSection JSX stays clean.
-function BookingTrigger({ card, accentHex, buttonBg, buttonText, buttonBorder }: { card: Card; accentHex: string; buttonBg: string; buttonText: string; buttonBorder: string | null }) {
+function BookingTrigger({ card, accentHex, accentText, buttonBg, buttonText, buttonBorder }: { card: Card; accentHex: string; accentText: string; buttonBg: string; buttonText: string; buttonBorder: string | null }) {
   const [open, setOpen] = useState(false)
   return (
     <>
@@ -465,7 +468,7 @@ function BookingTrigger({ card, accentHex, buttonBg, buttonText, buttonBorder }:
         className="mt-6 w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm hover:opacity-90 transition"
         style={{
           backgroundColor: 'transparent',
-          color: accentHex,
+          color: accentText,
           border: `1.5px solid ${accentHex}`,
         }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
@@ -482,7 +485,7 @@ function BookingTrigger({ card, accentHex, buttonBg, buttonText, buttonBorder }:
   )
 }
 
-function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false, omitCertifications = false }: BottomProps) {
+function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false, omitCertifications = false }: BottomProps) {
   const [showContactForm, setShowContactForm] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -560,7 +563,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Certifications</p>
           <div className="flex flex-wrap gap-2">
             {certifications.map(c => (
-              <span key={c} className="text-xs px-3 py-1.5 rounded-full" style={{ backgroundColor: accentHex + '22', color: accentHex, border: `1px solid ${accentHex}44` }}>#{c}</span>
+              <span key={c} className="text-xs px-3 py-1.5 rounded-full" style={{ backgroundColor: accentHex + '22', color: accentText, border: `1px solid ${accentHex}44` }}>#{c}</span>
             ))}
           </div>
         </div>
@@ -684,7 +687,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
       )}
 
       {isPro && !omitBooking && (
-        <BookingTrigger card={card} accentHex={accentHex} buttonBg={buttonBg} buttonText={buttonText} buttonBorder={buttonBorder} />
+        <BookingTrigger card={card} accentHex={accentHex} accentText={accentText} buttonBg={buttonBg} buttonText={buttonText} buttonBorder={buttonBorder} />
       )}
       <div className="mt-8 flex gap-3">
         <button onClick={async (e) => {
@@ -795,7 +798,13 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
             window.open(waShareLink(text), '_blank', 'noopener')
           }}
           className="mt-3 w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold transition hover:opacity-90"
-          style={{ background: '#25D366', color: '#fff', fontSize: buttonFontSize }}
+          // Near-black on the green, not white. WhatsApp green is a LIGHT
+          // colour: white on #25D366 measures 2.02:1 and fails AA badly, which
+          // is why WhatsApp itself puts dark text on its light green bubbles
+          // and saves white for the much darker #075E54. Keeping the iconic
+          // green and darkening the text holds the brand recognition and takes
+          // this from 2.02 to 10.4.
+          style={{ background: '#25D366', color: '#0a0a0a', fontSize: buttonFontSize }}
         >
           <MessageCircle className="w-4 h-4" />
           Send this card to my WhatsApp
@@ -1040,6 +1049,17 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
   const font = FONTS[design.fontId]
   const bg = getBgColors(design.bgMode, design.templateId, design.customBgColor)
   const accentHex = getAccentHex(design)
+  // THE ACCENT AGAIN, BUT READABLE AS TEXT. accentHex stays exactly as the
+  // customer chose it for every fill, border, icon and button, because those
+  // only have to be visible and they are what makes the card look like theirs.
+  // Small TEXT in the accent has to clear 4.5:1 and on real cards it does not:
+  // David Botha's olive measured 2.9:1 on his own card, Damien's blue 3.57:1
+  // on his. This is the same hue and saturation with the lightness moved the
+  // smallest distance that clears the card's grounds, so an accent that
+  // already passes comes back untouched and one that nearly passes barely
+  // shifts. Used for the job title, speciality chips, section labels and the
+  // booking button's text.
+  const accentText = readableAccentOn(accentHex, [bg.page, bg.card, bg.surface, accentHex + '22'])
   const buttonBg = getButtonBg(design)
   const buttonText = getButtonText(design)
   const buttonBorder = getButtonBorder(design)
@@ -1091,7 +1111,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
 
   // Shared prop bundles
   const shared: Shared = { card, isPro, accentHex, bg, font, cardEffect, design }
-  const bottomProps: BottomProps = { card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, buttonBg, buttonText, buttonBorder, buttonFontSize: getButtonFontSize(design), bg, cardEffect, handleShare, founderNumber }
+  const bottomProps: BottomProps = { card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, buttonBg, buttonText, buttonBorder, buttonFontSize: getButtonFontSize(design), bg, cardEffect, handleShare, founderNumber }
 
   const pageStyle: React.CSSProperties = { minHeight: '100vh', backgroundColor: bg.page, color: bg.text, fontFamily: font.body }
 
@@ -1168,7 +1188,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
 
               <h1 className="font-bold mt-5 leading-tight" style={{ fontFamily: font.heading, letterSpacing: '-0.02em', fontSize: calcNameSize(28, design), color: getNameColor(design, bg.text) }}>{card.name}</h1>
               {isPro && card.title && (
-                <p className="mt-2" style={{ color: getTitleColor(design, accentHex), fontSize: calcTitleSize(12, design), fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' }}>{card.title}</p>
+                <p className="mt-2" style={{ color: getTitleColor(design, accentText), fontSize: calcTitleSize(12, design), fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' }}>{card.title}</p>
               )}
               {/* Set in small caps whether or not there is a title above it.
                   On a free card there is no title, and a plain grey company
@@ -1254,7 +1274,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
     // container, not the viewport (previously fixed positioning made
     // them invisible inside the editor's live-preview frame).
     const nameFontSize = calcNameSize(26, design)
-    const titleColor = getTitleColor(design, accentHex)
+    const titleColor = getTitleColor(design, accentText)
     const bioColor = getBioColor(design, bg.subtext)
     return (
       <div style={{ ...pageStyle, position: 'relative', overflow: 'hidden', minHeight: '100vh' }} className="animate-fade-up">
@@ -1479,7 +1499,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
         style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 16, backgroundColor: tileBg, border: `1px solid ${glassBorder}`, borderRadius: 16, textDecoration: 'none', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', gridColumn: span ? '1 / -1' : undefined }}
         className="transition hover:scale-[1.02] active:scale-[0.98]">
         <div style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 2 }}>{icon}</div>
-        <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: accentHex, textTransform: 'uppercase', letterSpacing: '0.18em' }}>{label}</p>
+        <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: accentText, textTransform: 'uppercase', letterSpacing: '0.18em' }}>{label}</p>
         <p style={{ margin: 0, fontSize: 13, color: ink, fontWeight: 600, wordBreak: 'break-word', lineHeight: 1.35 }}>{value}</p>
       </a>
     )
@@ -1776,7 +1796,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
         : `linear-gradient(135deg, ${accentHex}44 0%, ${bg.page} 100%)`
     const waveHeroBg = design.solidBackground ? accentHex : waveGradient
     const nameFontSize = calcNameSize(22, design)
-    const titleColor = getTitleColor(design, accentHex)
+    const titleColor = getTitleColor(design, accentText)
     const bioColor = getBioColor(design, bg.subtext)
     return (
       <div style={pageStyle} className="animate-fade-up">
@@ -1940,7 +1960,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
             this column wrap rather than push the band wider than the screen. */}
         <div style={{ flex: 1, minWidth: 0, padding: '28px 24px' }}>
           <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(26, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text) }}>{card.name}</h1>
-          {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentHex), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
+          {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentText), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
           {card.company && <p style={{ margin: '0 0 16px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
           <div style={{ width: 32, height: 3, backgroundColor: accentHex, marginBottom: 12, borderRadius: 2 }} />
           <LogoZone {...shared} />
@@ -2084,7 +2104,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                 straight up against its edge. */}
             <div style={{ flex: 1, minWidth: 0, textAlign: 'center', paddingLeft: 20 }}>
               <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(26, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text) }}>{card.name}</h1>
-              {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentHex), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
+              {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentText), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
               {card.company && <p style={{ margin: '0 0 14px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
               <LogoZone {...shared} />
               {card.bio && <p className="leading-relaxed" style={{ margin: 0, fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
@@ -2119,7 +2139,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                 <div className="flex flex-wrap gap-2 justify-center" style={{ marginTop: 16 }}>
                   {certifications.map(c => (
                     <span key={c} className="text-xs px-3 py-1.5 rounded-full"
-                      style={{ backgroundColor: accentHex + '22', color: accentHex, border: `1px solid ${accentHex}44` }}>#{c}</span>
+                      style={{ backgroundColor: accentHex + '22', color: accentText, border: `1px solid ${accentHex}44` }}>#{c}</span>
                   ))}
                 </div>
               )}
@@ -2238,7 +2258,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
               <p style={{
                 margin: '0 0 6px', fontSize: calcTitleSize(15, design), fontWeight: 700,
                 textTransform: 'uppercase', letterSpacing: '0.1em',
-                color: getTitleColor(design, accentHex), opacity: 0.85,
+                color: getTitleColor(design, accentText), opacity: 0.85,
               }}>{card.title}</p>
             )}
             {card.company && (
@@ -2287,7 +2307,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                   <div style={{ flex: '1 1 180px', minWidth: 160 }}>
                     <p style={{
                       margin: '0 0 10px', fontSize: 15, fontWeight: 800, letterSpacing: '0.06em',
-                      textTransform: 'uppercase', color: accentHex,
+                      textTransform: 'uppercase', color: accentText,
                     }}>Schedule a chat</p>
                     <CircuitBookButton card={card} accentHex={accentHex} companion={companion} />
                   </div>
@@ -2441,7 +2461,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                   <span aria-hidden style={{ width: 26, height: 2, backgroundColor: accentHex, flexShrink: 0 }} />
                   <span style={{
                     fontSize: calcTitleSize(11, design), fontWeight: 700, letterSpacing: '0.16em',
-                    textTransform: 'uppercase', color: getTitleColor(design, accentHex),
+                    textTransform: 'uppercase', color: getTitleColor(design, accentText),
                   }}>{card.title}</span>
                 </div>
               )}
@@ -2580,7 +2600,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
                 fontFamily: font.heading, color: getNameColor(design, '#e8e8ff'),
                 textShadow: design.nameColor ? undefined : `0 0 6px ${accentHex}88, 0 0 22px ${accentHex}55`,
               }}>{card.name}</h1>
-              {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), color: getTitleColor(design, accentHex), fontWeight: 600, textShadow: `0 0 8px ${accentHex}`, textTransform: 'uppercase', letterSpacing: '0.14em' }}>{card.title}</p>}
+              {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), color: getTitleColor(design, accentText), fontWeight: 600, textShadow: `0 0 8px ${accentHex}`, textTransform: 'uppercase', letterSpacing: '0.14em' }}>{card.title}</p>}
               {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), color: getCompanyColor(design, '#6a6aa8') }}>{card.company}</p>}
             </div>
           </div>
@@ -3012,7 +3032,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
               letterSpacing: '0.02em', color: getNameColor(design, ink),
             }}>{card.name}</h1>
             {isPro && card.title && (
-              <p style={{ margin: '10px 0 0', textAlign: 'center', fontSize: calcTitleSize(11, design), fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: getTitleColor(design, accentHex) }}>{card.title}</p>
+              <p style={{ margin: '10px 0 0', textAlign: 'center', fontSize: calcTitleSize(11, design), fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: getTitleColor(design, accentText) }}>{card.title}</p>
             )}
             {card.company && (
               <p style={{ margin: '6px 0 0', textAlign: 'center', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, inkSoft) }}>{card.company}</p>

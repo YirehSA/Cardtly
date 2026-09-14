@@ -30,7 +30,12 @@ export default function ReportCardLink({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 text-xs text-black/40 dark:text-white/40 hover:text-black/70 dark:hover:text-white/70 transition"
+          // /60 rather than /40: at 40% this measured 3.78:1 on a card, under
+          // AA. It is deliberately quiet, being the one control on the page
+          // that is not for the card's owner, but quiet is not the same as
+          // unreadable and this is the link somebody needs when a card is
+          // being abused.
+          className="inline-flex items-center gap-1.5 text-xs text-black/60 dark:text-white/60 hover:text-black/80 dark:hover:text-white/80 transition"
         >
           <Flag className="w-3 h-3" />
           Report this card
