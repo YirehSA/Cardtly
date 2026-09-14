@@ -206,7 +206,21 @@ const priceIsPlausible = n => n % seatPrice === 0 || n === annualMonthly
 // The cost is that a bare "R65 per card" with no month would slip through.
 // That is the ambiguous case by definition, and rule 3 above still pins the
 // NFC figures.
-const PRICE_RE = /R(\d+)(?=[^.!?\n]{0,24}?(?:month|seat)\b)/gi
+//
+// THE DIGITS MAY CARRY A SPACE, because South African copy writes thousands
+// that way and this rule used to read the first group only. "R1 940 a month",
+// which is exactly twenty seats at R97, parsed as R1, failed the multiple-of-97
+// test and reported the copy as wrong when the copy was right. The narrower
+// reading would have pushed a correct figure out of the blog to satisfy the
+// checker, which is the wrong way round.
+//
+// Only a space between groups of three is accepted, so "R97 a month" and
+// "R1 940 a month" both parse and a sentence like "R97 30 days" cannot glue
+// itself into one number.
+const PRICE_RE = /R(\d{1,3}(?:[  ]\d{3})*|\d+)(?=[^.!?\n]{0,24}?(?:month|seat)\b)/gi
+
+/** "1 940" -> 1940. Spaces only; nothing else is treated as a separator. */
+const priceNumber = s => Number(String(s).replace(/[  ]/g, ''))
 
 // ── 7. The free tier that no longer exists ──────────────────────────────────
 // An expired personal card 404s. Every phrasing below promises something the
@@ -246,7 +260,7 @@ for (const file of MARKETING) {
   PRICE_RE.lastIndex = 0
   let m
   while ((m = PRICE_RE.exec(text))) {
-    const n = Number(m[1])
+    const n = priceNumber(m[1])
     if (!priceIsPlausible(n)) {
       note(`${file} quotes R${n} as a recurring price; SEAT_PRICE_RAND is ${seatPrice} (R${seatPrice * 10} a year, about R${annualMonthly} a month on the annual plan).`)
     }

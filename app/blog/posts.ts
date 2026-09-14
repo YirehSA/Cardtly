@@ -710,6 +710,260 @@ export const POSTS: BlogPost[] = [
       },
     ],
   },
+  // Construction is the largest single industry on Cardtly's team accounts:
+  // 14 of 37 team cards, against 7 for IT and 2 for motor. Nothing on the blog
+  // spoke to it. Written from that data rather than from a guess about who
+  // might be interested.
+  {
+    slug: 'digital-business-cards-for-construction',
+    title: 'Digital Business Cards for Construction Companies',
+    description:
+      'Site teams, subcontractors and high turnover break paper business cards. How South African construction firms issue branded digital cards, reassign them when people leave, and capture leads from site visits.',
+    excerpt:
+      'A construction company is not one office. It is a head office, six sites and a rotating cast of subcontractors, and the paper card was designed for none of that.',
+    date: '2026-09-08',
+    readMins: 8,
+    body: `<p>A construction company is not one office with everyone in it. It is a head office, a yard, half a dozen live sites, and a rotating cast of subcontractors who are with you for one project. The paper business card was designed for a person who sits at a desk and meets people in a boardroom, and that describes almost nobody in this industry.</p>
+
+<p>This is how South African construction firms are actually using <strong>digital business cards for teams</strong>, and the specific problems they solve.</p>
+
+<h2>The card does not survive the site</h2>
+
+<p>Start with the physical reality. A printed card lives in a back pocket, in a bakkie, on a site where it is dusty in summer and wet in winter. By the time the site agent needs to hand one to a client on a walkabout, the box in the vehicle is bent, faded, or finished.</p>
+
+<p>The people who most need to hand over details are the ones furthest from the stationery cupboard. Head office reprints for the whole company at once, so a site that runs out in month three waits until the next print run. In practice, the people on site stop handing out cards and start saying "I'll WhatsApp you", which works, except that nothing about the company goes with it.</p>
+
+<p>A digital card removes the object entirely. The site agent shares from the phone already in their hand, by tap, QR code or a WhatsApp link, and the company's logo and branding go with it every time.</p>
+
+<h2>Turnover is the real argument</h2>
+
+<p>Construction has movement that most industries do not. Project teams are assembled and disbanded, people move between sites, and subcontract staff come and go with the contract.</p>
+
+<p>With printed cards, every one of those events wastes money. You print 250 cards for a site agent who is on a different project in eight months, and the remaining 200 go in a drawer. Multiply that across a company of forty and the waste is not small, but it is also not the worst part.</p>
+
+<p>The worst part is what happens to the contacts. When somebody leaves, the relationships they built leave with them - their phone, their WhatsApp history, their pile of cards from suppliers and clients. The company paid for the site, the vehicle and the salary, and kept none of the network that came out of it.</p>
+
+<p>A team account inverts this. The cards belong to the company, not the person. When somebody leaves, their card is archived, which takes it offline immediately, and the seat is reissued to whoever replaces them. Every lead that card ever captured stays in the company's shared contact list.</p>
+
+<h2>One group, several companies</h2>
+
+<p>Construction groups are rarely one legal entity. A typical structure is a holding company over a building arm, a civils arm, maybe a plant hire business and an interiors division, each with its own name, its own branding, and often its own directors.</p>
+
+<p>That structure breaks most software, which assumes one company with one logo. Cardtly has three levels: a group at the top, companies beneath it, and departments inside those. A group runs everything from one account, on one invoice and one seat pool, while each company keeps its own logo, colours and web address.</p>
+
+<p>Each company chooses whether to wear the group look or its own, and the group owner can lock that choice. Departments inherit from their own company rather than from the group, so the civils arm stays consistent down its own structure even if it looks nothing like the interiors arm. Read more about <a href="/teams">how the group, company and department structure works</a>.</p>
+
+<h2>Branding that survives a rebrand</h2>
+
+<p>Every construction company has a story about the rebrand that cost a fortune in reprinting, or worse, the rebrand where half the company carried on using the old cards for two years because throwing away good stock felt wasteful.</p>
+
+<p>Because a digital card is a live page, an administrator changes the logo, the head office address or the switchboard number once, and every card in the company updates at the same moment. Nothing is reprinted and nothing is left in circulation showing the old brand.</p>
+
+<p>The same applies to what people are allowed to change. The company sets its brand at organisation level and locks the fields that must stay the same - logo, company name, website, head office address - while leaving the person's own details for them to keep current. A site agent updating their mobile number does not need to ask marketing, and cannot accidentally replace the company logo with a photo of a bakkie.</p>
+
+<h2>Capturing the site visit</h2>
+
+<p>A lot of construction business happens at a site, in a conversation with somebody who came to look at the work. A prospective client walking a completed unit, a specifier visiting to see a product in place, a homeowner who stopped because they saw the board.</p>
+
+<p>These are among the warmest leads the business gets, and they are almost never recorded. The conversation ends with "send me a quote" and a number typed into a phone, and whether anything happens next depends on whether that person remembers.</p>
+
+<p>The exchange that works is two-way. They open your card by tap or QR, save your details in one tap, and are then prompted to leave their own. That lead lands in the company's dashboard and inbox before they have left the site. Add two or three of your own questions - what the project is, roughly what size, when it starts - and the estimator picking it up on Monday has something to work from rather than a name.</p>
+
+<h2>Where the QR code goes</h2>
+
+<p>Construction has more good places to put a QR code than most industries, and almost all of them are already there:</p>
+
+<ul>
+<li><strong>The site board.</strong> Every site has one and everybody walking past reads it. A QR code on it turns a passing look into a saved contact.</li>
+<li><strong>Vehicle branding.</strong> Bakkies and trucks are already carrying the logo and a phone number that nobody writes down at a traffic light.</li>
+<li><strong>Hoarding and safety signage.</strong> Where the public spends the longest looking at your company name.</li>
+<li><strong>Tender and prequalification documents.</strong> A card link next to each named team member, so the client can see who they will actually be dealing with.</li>
+<li><strong>Email signatures.</strong> Generated from the card, so the whole company's signatures match and update with it.</li>
+</ul>
+
+<p>Each card keeps a permanent address of its own, so a QR code printed on a site board two years ago still opens a current card today. If a card's link is deliberately changed, the old one keeps redirecting.</p>
+
+<h2>What it costs against what you print now</h2>
+
+<p>The comparison most construction companies have not done is against their actual print spend, which is usually spread across a year and never added up.</p>
+
+<p>Cardtly is R97 per card per month. For a team of twenty that is R1 940 a month, and every card carries the full feature set - analytics, lead capture, the contacts list, the paper card scanner - with no cut-down tier. Teams of 2 to 20 seats are self-serve; above that it is quoted and billed by debit order, which is usually what a finance department wants anyway.</p>
+
+<p>Physical <a href="/nfc">NFC cards</a> are optional and separate: R150 each with your logo on our layout, or R200 designed around your brand, once off, plus R100 shipping per order rather than per card. A set for the directors and the site agents who meet clients is the common pattern, with everyone else sharing by QR and link.</p>
+
+<h2>A rollout that fits a construction company</h2>
+
+<ol>
+<li>Set up the group, then each company under it with its own logo and colours.</li>
+<li>Lock the brand fields. Leave mobile numbers and titles unlocked.</li>
+<li>Import the staff list from a spreadsheet, which payroll already has.</li>
+<li>Send the invitations. Each person claims their card with one click, already branded.</li>
+<li>Order NFC cards for the directors, estimators and site agents who meet clients face to face.</li>
+<li>Put the QR code on the site boards and the vehicles at the next reprint, not before.</li>
+<li>Check the dashboard after a month to see which cards are being shared and which have never been opened.</li>
+</ol>
+
+<p>That last step is the one companies skip and then regret. Issuing cards is not the same as people using them, and the difference is visible without having to ask anyone.</p>
+
+<p>See <a href="/teams">Cardtly for teams</a>, or <a href="/pricing">what it costs</a>.</p>`,
+    faq: [
+      {
+        q: 'Why do construction companies move away from printed business cards?',
+        a: 'Three reasons, in order of cost. Cards do not survive a site, so the people who most need them run out first. Turnover wastes most of every print run, because a site agent who moves to another project in eight months leaves 200 cards in a drawer. And when somebody leaves, the contacts they built leave with them, because the cards and the WhatsApp history are on their phone. A team account keeps the cards and the captured leads with the company.',
+      },
+      {
+        q: 'Can one account cover a holding company with several construction businesses?',
+        a: 'Yes. Cardtly has three levels: a group, companies beneath it, and departments inside those. A group with a building arm, a civils arm and a plant hire business runs all of them from one account, on one invoice and one seat pool, while each keeps its own logo, colours and web address. Each company chooses whether to wear the group look or its own, and the group owner can lock that choice.',
+      },
+      {
+        q: 'What happens to a card when a site agent leaves?',
+        a: 'The administrator archives it, which takes it offline immediately, and the seat is reissued to their replacement. Every lead that card captured stays in the company\'s shared contacts list and can still be exported. Nothing has to be reprinted for the person taking over, because their card is created branded and ready.',
+      },
+      {
+        q: 'Where should a construction company put its QR code?',
+        a: 'The places that already exist and already get looked at: the site board, vehicle branding, hoarding and safety signage, tender and prequalification documents, and email signatures. Each card keeps a permanent address, so a QR code printed on a site board two years ago still opens a current card today.',
+      },
+      {
+        q: 'What does it cost for a construction team of twenty?',
+        a: 'R97 per card per month, so R1 940 a month for twenty, with every feature included and no cut-down tier. Teams of 2 to 20 seats are self-serve; above that it is quoted and billed by debit order. Physical NFC cards are optional at R150 each, or R200 designed around your brand, once off, plus R100 shipping per order.',
+      },
+    ],
+  },
+  // POPIA comes up in every tender and in most enterprise conversations, and
+  // no South African digital card competitor has written it up properly.
+  // Written after auditing Cardtly's own position, so the claims here about
+  // hosting, data subject rights and sub-processors are measured rather than
+  // aspirational. Deliberately does NOT claim the lead capture form carries a
+  // privacy notice, because it does not yet.
+  {
+    slug: 'digital-business-cards-and-popia',
+    title: 'Digital Business Cards and POPIA: What You Actually Have to Do',
+    description:
+      'Capturing a lead makes you the responsible party under POPIA. What the Act requires when you collect contact details on a digital business card, and what to ask any vendor before you sign.',
+    excerpt:
+      'The moment someone fills in their details on your card, POPIA applies to you, not to your card provider. Here is what that actually requires.',
+    date: '2026-09-14',
+    readMins: 9,
+    body: `<p>The Protection of Personal Information Act applies to any South African business that processes personal information, and a business card is personal information by definition: a name, a phone number, an email address, an employer.</p>
+
+<p>Most people assume this is their software vendor's problem. It is not. The moment somebody fills in their details on your card, <strong>you</strong> are the responsible party for that record. The vendor is your operator, which makes them accountable to you, and you accountable to the person whose details you now hold.</p>
+
+<p>This is a practical guide to what that means day to day, and what to ask a vendor before you commit. It is not legal advice, and a compliance officer at a large organisation will want more detail than this.</p>
+
+<h2>What counts as processing</h2>
+
+<p>POPIA defines processing very broadly: collecting, storing, using, sharing and deleting all count. So does simply holding a list.</p>
+
+<p>Practically, a digital business card involves processing at three points, and they have different obligations:</p>
+
+<ul>
+<li><strong>Your own staff details</strong> on the cards you issue. You are processing your employees' information, which you already do for payroll.</li>
+<li><strong>The leads you capture.</strong> Someone gives you their name and number through your card. This is the part most businesses handle worst.</li>
+<li><strong>The analytics.</strong> Card views and clicks, which are generally not personal information unless tied to an identified person.</li>
+</ul>
+
+<h2>Tell people what you are collecting and why</h2>
+
+<p>Section 18 is the one that gets skipped. When you collect personal information directly from someone, you have to tell them who is collecting it, why, and whether giving it is voluntary or required.</p>
+
+<p>This does not mean a page of legal text on a form somebody is filling in while standing up at an expo. It means a short, honest line near the field: who you are, what you will use it for, and a link to your privacy policy. "We will use this to follow up on your enquiry" is a legitimate purpose, plainly stated.</p>
+
+<p>What it rules out is collecting an email address to follow up on an enquiry and then adding it to a monthly newsletter. That is a different purpose, and it needs its own consent. Section 69 governs direct marketing specifically, and it is stricter than most South African businesses behave as though it is.</p>
+
+<h2>Keep it only as long as you need it</h2>
+
+<p>Section 14 says you may not keep personal information for longer than is necessary for the purpose you collected it for. A lead from an expo three years ago that never went anywhere is not something you have a reason to still hold.</p>
+
+<p>The practical version is a retention habit rather than a policy document: review the captured list periodically and delete what is dead. If your card platform lets you delete contacts and export what remains, this takes an afternoon a year.</p>
+
+<h2>Secure it, and be able to prove you did</h2>
+
+<p>Section 19 requires appropriate, reasonable technical and organisational measures to protect personal information. The Act does not prescribe a specific technology, which is why "appropriate" is doing a lot of work in that sentence.</p>
+
+<p>For a hosted card platform, the questions worth asking are concrete:</p>
+
+<ul>
+<li>Is the data encrypted in transit and at rest?</li>
+<li>Can anyone read another customer's records? Ask how it is enforced, not whether it is.</li>
+<li>Who inside the vendor can see your data, and is that access logged?</li>
+<li>Are leads captured by your staff visible to other customers of the same platform?</li>
+</ul>
+
+<p>The best answer to the second question is that the database itself refuses the record, rather than the application remembering to filter it. That is the difference between a rule that holds when a page has a bug and one that does not.</p>
+
+<h2>Know where the data physically sits</h2>
+
+<p>Section 72 restricts sending personal information outside South Africa. This is the question a procurement or compliance reviewer asks first, and most vendors cannot answer it on the spot.</p>
+
+<p>It is not a prohibition. Transfer is permitted where the receiving country's law provides adequate protection substantially similar to POPIA, and separately where the transfer is necessary to perform the contract with the person concerned. The European Union is the jurisdiction that "adequate" is usually measured against, and GDPR is at least as strict as POPIA rather than weaker.</p>
+
+<p>So "our database is in the EU" is a good answer, not an embarrassing one. What matters is that the vendor knows, says so in their privacy policy rather than burying it, and can tell you which sub-processors are involved. Cardtly's database runs in the EU, and the privacy policy names every sub-processor along with the retention periods.</p>
+
+<p>The only version that needs care is a hard data residency requirement, which turns up in public sector tenders. If your tender says the data must stay in South Africa, ask early, because moving a database region is a migration and not a setting.</p>
+
+<h2>People can ask for their data, and ask you to delete it</h2>
+
+<p>Sections 23 to 25 give a data subject the right to ask what you hold about them and to have it corrected or deleted. Somebody who left their details at your stand can ask you to remove them, and you have to be able to do it.</p>
+
+<p>This is worth testing rather than assuming. Can you find every record for one person, and can you remove it? If the answer involves a spreadsheet somebody downloaded and emailed around, you have a problem that is not about software.</p>
+
+<p>The same right applies to you as a customer of your card platform. Ask whether you can export everything the platform holds about your account, and whether you can delete the account and have the data actually go. Cardtly does both without a support ticket: a single file containing everything held about the account, and a deletion that cascades through leads, cards, teams, organisations and billing.</p>
+
+<h2>Have a plan for the day it goes wrong</h2>
+
+<p>Section 22 requires notification to the Information Regulator and to the affected people as soon as reasonably possible after a breach. Nobody enjoys this conversation, which is why most businesses have never had it in advance.</p>
+
+<p>Two questions decide whether you can comply at all. Would you know? And could you say what was affected?</p>
+
+<p>The second is the one that turns a bad day into a much worse one. Without a log of who changed what and when, a breach investigation becomes guesswork, and "we cannot determine the scope" is not an answer the Regulator finds reassuring.</p>
+
+<h2>What to ask before you sign</h2>
+
+<p>A short list you can send a vendor, and which any serious one can answer in a paragraph each:</p>
+
+<ol>
+<li>Where is the data hosted, and does personal information leave South Africa?</li>
+<li>Who are your sub-processors, and are they named publicly?</li>
+<li>How is one customer's data kept separate from another's, technically?</li>
+<li>Can I export everything you hold about my account, myself?</li>
+<li>Can I delete my account and have the data actually removed, and what is the backup window?</li>
+<li>What are your retention periods?</li>
+<li>Is administrative access to customer data logged?</li>
+<li>What is your breach notification process, and what would you be able to tell me?</li>
+</ol>
+
+<p>The answers matter less than whether they arrive quickly and specifically. A vendor who needs two weeks to find out where their own database is has told you something.</p>
+
+<h2>The short version</h2>
+
+<p>POPIA is not the obstacle to digital business cards that people assume. A digital card is generally easier to comply with than a paper one, because the records are in one place that can be searched, exported and deleted, rather than in a drawer of cards, a spreadsheet on a laptop and a WhatsApp history.</p>
+
+<p>What you have to do is tell people what you are collecting and why, keep it no longer than you need, secure it, know where it lives, and be able to find and delete it when somebody asks. None of that is exotic. Most of it is a habit rather than a project.</p>
+
+<p>See <a href="/privacy">Cardtly's privacy policy</a> for sub-processors and retention periods, or <a href="/contact">ask us a specific question</a> if you are working through a tender.</p>`,
+    faq: [
+      {
+        q: 'Does POPIA apply to digital business cards?',
+        a: 'Yes, because a name, phone number and email address are personal information. The important point is who it applies to: when someone fills in their details on your card, you are the responsible party for that record, and your card platform is your operator. The obligation to tell people what you are collecting and why sits with you, not with the vendor.',
+      },
+      {
+        q: 'Do I need consent to capture a lead on my digital business card?',
+        a: 'Consent is one lawful basis but not the only one, and for a genuine enquiry the purpose is usually obvious enough to satisfy the Act. What section 18 does require is that you tell the person who is collecting the information and why, in plain language, near the field. Where consent clearly matters is direct marketing under section 69: using an address you collected to answer an enquiry for a newsletter instead is a different purpose and needs its own permission.',
+      },
+      {
+        q: 'Is it a POPIA problem if the data is hosted outside South Africa?',
+        a: 'Not in itself. Section 72 permits cross-border transfer where the receiving jurisdiction provides adequate protection substantially similar to POPIA, and separately where the transfer is necessary to perform the contract. The EU is the benchmark adequacy is usually measured against, and GDPR is at least as strict as POPIA. What matters is that the vendor knows where the data sits, discloses it in their privacy policy, and names their sub-processors. A hard data residency requirement in a public sector tender is a different conversation and worth raising early.',
+      },
+      {
+        q: 'How long can I keep leads I captured at an expo?',
+        a: 'Section 14 says no longer than is necessary for the purpose you collected them for, which for a dead enquiry from three years ago is difficult to argue. The practical approach is a retention habit rather than a policy document: review the captured list periodically and delete what has gone nowhere. If the platform lets you export and delete contacts, this is an afternoon a year.',
+      },
+      {
+        q: 'What should I ask a digital business card vendor about POPIA?',
+        a: 'Eight questions, and how fast they answer tells you as much as the answers. Where is the data hosted and does it leave South Africa; who are your sub-processors and are they named publicly; how is one customer\'s data separated from another\'s technically; can I export everything myself; can I delete my account and have the data removed, and what is the backup window; what are your retention periods; is administrative access logged; and what is your breach notification process. A vendor who needs two weeks to find out where their own database is has told you something.',
+      },
+    ],
+  },
 ]
 
 export function getPost(slug: string): BlogPost | undefined {
