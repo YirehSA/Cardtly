@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cardtly security answers</title>
+<style>
+  :root {
+    --ink: #0d1117;
+    --ink-soft: #3d4754;
+    --ink-faint: #6b7684;
+    --line: #e3e7ec;
+    --bg: #ffffff;
+    --panel: #f6f8fa;
+    --accent: #0b5cff;
+    --good: #0f7b46;
+    --good-bg: #e9f7f0;
+    --warn: #8a5a00;
+    --warn-bg: #fdf4e3;
+    --stop: #a02020;
+    --stop-bg: #fdeded;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #e9edf2; --ink-soft: #b4bdc8; --ink-faint: #8a94a1;
+      --line: #2a313a; --bg: #12161b; --panel: #1a1f26;
+      --accent: #6fa0ff;
+      --good: #6ddba4; --good-bg: #14261e;
+      --warn: #e8b964; --warn-bg: #2a2113;
+      --stop: #ff9b9b; --stop-bg: #2b1616;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 16px; margin-bottom: 8px; }
+  h1 { font-size: 26px; line-height: 1.25; margin: 0 0 6px; letter-spacing: -0.02em; }
+  .sub { color: var(--ink-faint); font-size: 14px; margin: 0; }
+
+  .lede {
+    background: var(--panel); border-radius: 10px;
+    padding: 16px 18px; margin: 22px 0 30px;
+    font-size: 15.5px;
+  }
+  .lede strong { display: block; font-size: 12px; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--ink-faint); margin-bottom: 8px; font-weight: 700; }
+  .lede p { margin: 0 0 10px; }
+  .lede p:last-child { margin-bottom: 0; }
+
+  h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--ink-faint); font-weight: 700;
+    margin: 38px 0 4px; padding-bottom: 8px; border-bottom: 1px solid var(--line);
+  }
+
+  .qa { padding: 18px 0; border-bottom: 1px solid var(--line); }
+  .qa:last-child { border-bottom: 0; }
+  .q {
+    font-size: 17px; font-weight: 650; margin: 0 0 7px;
+    color: var(--ink); letter-spacing: -0.01em;
+  }
+  .q::before { content: "\201C"; }
+  .q::after  { content: "\201D"; }
+  .a { margin: 0; color: var(--ink-soft); }
+  .a + .a { margin-top: 8px; }
+  .note {
+    display: block; margin-top: 8px; font-size: 14px; color: var(--ink-faint);
+    border-left: 3px solid var(--line); padding-left: 12px;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 4px; font-size: 15px; }
+  caption { text-align: left; color: var(--ink-faint); font-size: 14px; padding-bottom: 10px; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); }
+  td:nth-child(2), td:nth-child(3), th:nth-child(2), th:nth-child(3) {
+    text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .zero { color: var(--good); font-weight: 700; }
+  .pub  { color: var(--ink-faint); }
+
+  .card { border-radius: 10px; padding: 14px 16px; margin: 12px 0; font-size: 15px; }
+  .card p { margin: 0; }
+  .card p + p { margin-top: 8px; }
+  .card .lbl { font-weight: 700; font-size: 12px; text-transform: uppercase;
+    letter-spacing: 0.07em; display: block; margin-bottom: 6px; }
+  .stop { background: var(--stop-bg); color: var(--stop); }
+  .stop .lbl { color: var(--stop); }
+  .warn { background: var(--warn-bg); color: var(--warn); }
+  .warn .lbl { color: var(--warn); }
+  .stop .a, .warn .a { color: inherit; }
+
+  ul { margin: 8px 0 0; padding-left: 20px; }
+  li { margin-bottom: 7px; }
+
+  footer { margin-top: 46px; padding-top: 16px; border-top: 1px solid var(--line);
+    color: var(--ink-faint); font-size: 13px; }
+
+  @media print {
+    :root { --ink:#000; --ink-soft:#222; --ink-faint:#555; --line:#ccc;
+            --bg:#fff; --panel:#f2f2f2; --good:#000;
+            --stop-bg:#f2f2f2; --warn-bg:#f2f2f2; --stop:#000; --warn:#000; }
+    body { font-size: 11pt; }
+    .wrap { max-width: none; padding: 0; }
+    .qa { padding: 10px 0; break-inside: avoid; }
+    h2 { margin-top: 20px; break-after: avoid; }
+    .card, table { break-inside: avoid; }
+    footer { break-before: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Cardtly: security answers</h1>
+  <p class="sub">Meeting crib sheet &middot; prepared 14 September 2026 &middot; internal</p>
+</header>
+
+<div class="lede">
+  <strong>If you only get one minute</strong>
+  <p>Customer data sits in Postgres behind row-level security, which means the database
+  itself refuses to hand out a record to anyone not entitled to it, rather than trusting
+  the website to remember to ask.</p>
+  <p>The business card is public, because that is the product. Everything behind it, the
+  leads it captures, the account, the billing, is not.</p>
+  <p>We never see card numbers. Paystack does. And a customer can export or delete
+  everything we hold without asking us.</p>
+</div>
+
+<h2>The questions you will actually get</h2>
+
+<div class="qa">
+  <p class="q">Where is our data stored?</p>
+  <p class="a">Postgres on Supabase, hosted on Vercel, both enterprise cloud infrastructure.
+  Payments run through Paystack, a South African provider.</p>
+  <span class="note">Confirm the region before you answer this. See "Do not guess" below.</span>
+</div>
+
+<div class="qa">
+  <p class="q">Who can see the leads our staff capture?</p>
+  <p class="a">Only your account. The rule lives in the database, not in the website, so
+  even a bug in a page could not leak them. There are 48 lead records in the system today
+  and someone outside can read zero of them.</p>
+</div>
+
+<div class="qa">
+  <p class="q">Is our card public?</p>
+  <p class="a">Yes, deliberately. A business card that needs a login is not a business card.
+  Anyone with the link sees the name, title, company, contact details and links, exactly as
+  if they had been handed a printed one.</p>
+  <p class="a">What is <em>not</em> public: who scanned it, who saved it, and what happened
+  next. That is your data.</p>
+</div>
+
+<div class="qa">
+  <p class="q">So what should we not put on a card?</p>
+  <p class="a">Anything you would not print on a physical one.</p>
+</div>
+
+<div class="qa">
+  <p class="q">What happens when an employee leaves?</p>
+  <p class="a">The card belongs to the organisation, not the person. An admin reassigns or
+  removes it, and the leads that card captured stay with you.</p>
+</div>
+
+<div class="qa">
+  <p class="q">Do you store our credit card details?</p>
+  <p class="a">No, and we could not produce them if you asked. The card is entered on
+  Paystack's infrastructure. We hold a token that can charge the agreed subscription and
+  nothing else.</p>
+</div>
+
+<div class="qa">
+  <p class="q">Is it encrypted?</p>
+  <p class="a">In transit, yes, HTTPS only and enforced, so a browser will not even attempt
+  an insecure connection after the first visit. At rest, the database and its backups are
+  encrypted by the platform.</p>
+</div>
+
+<div class="qa">
+  <p class="q">Can we get our data out?</p>
+  <p class="a">Yes, and you do it yourself. One file containing everything we hold on the
+  account, downloaded on demand. No email, no ticket, no waiting period.</p>
+</div>
+
+<div class="qa">
+  <p class="q">Can we delete everything?</p>
+  <p class="a">Yes, self-service. It cascades through leads, cards, teams, organisations,
+  orders and billing, then removes the login itself.</p>
+</div>
+
+<div class="qa">
+  <p class="q">What about POPIA?</p>
+  <p class="a">The access and deletion rights under sections 23 to 25 are built in and
+  self-service rather than a promise to respond within 30 days. The published privacy policy
+  names every sub-processor, states retention periods, and points to the Information
+  Regulator. Breach notification under section 22 is a documented process.</p>
+</div>
+
+<div class="qa">
+  <p class="q">Who are your sub-processors?</p>
+  <p class="a">Supabase for database and authentication, Vercel for hosting, Paystack for
+  payments, Resend for email, Google for sign-in. All named in the published privacy policy,
+  which we will send you.</p>
+</div>
+
+<div class="qa">
+  <p class="q">Who at Cardtly can see our data?</p>
+  <p class="a">A small named team, through an admin interface, and admin actions are logged.
+  Worth saying plainly: fewer people have access here than at a large vendor with an
+  offshore support floor.</p>
+</div>
+
+<div class="qa">
+  <p class="q">What happens if you are breached?</p>
+  <p class="a">Notification to the Information Regulator and to you as soon as reasonably
+  possible, as section 22 requires. Administrative actions and every billing change are
+  logged, so we can tell you specifically what was touched and when.</p>
+</div>
+
+<h2>If someone technical is in the room</h2>
+
+<div class="qa">
+  <p class="q">Prove it.</p>
+  <p class="a">Measured against the live system using the same public key that any
+  visitor's browser already has, which is exactly where an attacker starts.</p>
+
+  <table>
+    <caption>Records that exist, against records a stranger can read.</caption>
+    <thead>
+      <tr><th>Data</th><th>Exists</th><th>Readable</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>User profiles</td><td>76</td><td class="zero">0</td></tr>
+      <tr><td>Captured leads</td><td>48</td><td class="zero">0</td></tr>
+      <tr><td>Organisations</td><td>8</td><td class="zero">0</td></tr>
+      <tr><td>Billing records</td><td>20</td><td class="zero">0</td></tr>
+      <tr><td>Admin audit log</td><td>42</td><td class="zero">0</td></tr>
+      <tr><td>Sales activity</td><td>94</td><td class="zero">0</td></tr>
+      <tr><td>Business cards</td><td>46</td><td class="pub">44, public by design</td></tr>
+    </tbody>
+  </table>
+  <span class="note">The left column is the point. Zero readable out of zero records
+  proves nothing. Zero out of 76 is the claim.</span>
+</div>
+
+<div class="qa">
+  <p class="q">Do you have multi-factor authentication?</p>
+  <p class="a">Not our own yet. If you are on Microsoft 365, your staff sign in with
+  Microsoft and your own tenant enforces your MFA policy, your conditional access and your
+  offboarding. That is a better answer than anything we would build.</p>
+</div>
+
+<div class="qa">
+  <p class="q">Have you ever had an incident?</p>
+  <p class="a">One, and it was ours rather than an attacker's. A billing record was deleted
+  during maintenance and restored the same day. It is the reason every billing change is now
+  logged with who did it, when, and the before and after state.</p>
+  <span class="note">Say this if asked. Answering "no, never" to this question is rarely
+  believed and is worth nothing if it later turns out otherwise.</span>
+</div>
+
+<h2>Do not guess these</h2>
+
+<div class="card stop">
+  <p><span class="lbl">Check before the meeting</span>
+  <strong>Which region the database runs in.</strong> POPIA section 72 governs personal
+  information leaving South Africa, and this is the first thing a compliance reviewer asks.
+  Supabase dashboard, Project Settings, General, the Region field.</p>
+  <p>If it is an EU or US region, that is lawful and very common under the section 72
+  conditions. It is simply an answer to have ready rather than improvise.</p>
+</div>
+
+<div class="card warn">
+  <p><span class="lbl">Say plainly if asked</span>
+  <strong>No ISO 27001 and no SOC 2.</strong> Small South African company, not a certified
+  multinational. The controls above are real regardless, and claiming a certification you do
+  not hold is the fastest way to lose a technical buyer.</p>
+  <p><strong>No independent penetration test.</strong> Do not imply otherwise.</p>
+  <p><strong>No application-level rate limiting</strong> on our own endpoints. Sign-in
+  attempts are rate limited by the authentication platform.</p>
+</div>
+
+<footer>
+  Internal preparation document. Every figure measured against production on
+  14 September 2026, read only. Not for circulation outside Cardtly.
+</footer>
+
+</div>
+</body>
+</html>
