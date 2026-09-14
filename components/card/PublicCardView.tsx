@@ -22,6 +22,7 @@ import InAppBackButton from '@/components/InAppBackButton'
 import BookingModal from './BookingModal'
 import AddToGoogleWalletButton from '@/components/wallet/AddToGoogleWalletButton'
 import { describeContactError, CONTACT_NETWORK_ERROR } from '@/lib/contact-errors'
+import CaptureNotice from './CaptureNotice'
 
 interface Props {
   card: Card & { _team_card_id?: string }
@@ -806,6 +807,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           open={exchangeOpen}
           onClose={() => setExchangeOpen(false)}
           ownerName={card.name || ''}
+          ownerCompany={card.company}
           cardId={isTeamCard ? null : card.id}
           teamCardId={isTeamCard ? ((card as any)._team_card_id || null) : null}
           accentHex={accentHex}
@@ -853,18 +855,49 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           ) : (
             <form onSubmit={submitContact} className="rounded-2xl p-5 space-y-3" style={{ backgroundColor: bg.surface, border: `1px solid ${bg.border}` }}>
               <h3 className="font-semibold text-sm mb-4" style={{ color: bg.text }}>Share your info with {card.name.split(' ')[0]}</h3>
-              <input required placeholder="Your name" value={name} onChange={e => setName(e.target.value)}
-                className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none"
-                style={{ backgroundColor: bg.card, border: `1px solid ${bg.border}`, color: bg.text }} />
-              <input required type="email" placeholder="Your email" value={email} onChange={e => setEmail(e.target.value)}
-                className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none"
-                style={{ backgroundColor: bg.card, border: `1px solid ${bg.border}`, color: bg.text }} />
-              <input type="tel" placeholder="Your phone (optional)" value={phone} onChange={e => setPhone(e.target.value)}
-                className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none"
-                style={{ backgroundColor: bg.card, border: `1px solid ${bg.border}`, color: bg.text }} />
-              <textarea placeholder="Message (optional)" value={message} rows={3} onChange={e => setMessage(e.target.value)}
-                className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none resize-none"
-                style={{ backgroundColor: bg.card, border: `1px solid ${bg.border}`, color: bg.text }} />
+              {/* Visible labels, not placeholders. A placeholder vanishes the
+                  moment somebody types, so a visitor interrupted halfway
+                  through is left with four filled boxes and no way to tell
+                  which one was the phone, and a screen reader had nothing to
+                  announce at all. autoComplete lets the phone fill the lot in
+                  one tap, which is the difference between a lead captured and
+                  a form abandoned at an expo. */}
+              <div>
+                <label htmlFor="cc-name" className="block text-xs font-medium mb-1.5" style={{ color: bg.subtext }}>Your name</label>
+                <input id="cc-name" required value={name} onChange={e => setName(e.target.value)} autoComplete="name"
+                  className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none"
+                  style={{ backgroundColor: bg.card, border: `1px solid ${bg.border}`, color: bg.text }} />
+              </div>
+              <div>
+                <label htmlFor="cc-email" className="block text-xs font-medium mb-1.5" style={{ color: bg.subtext }}>Your email</label>
+                <input id="cc-email" required type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email"
+                  className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none"
+                  style={{ backgroundColor: bg.card, border: `1px solid ${bg.border}`, color: bg.text }} />
+              </div>
+              <div>
+                <label htmlFor="cc-phone" className="block text-xs font-medium mb-1.5" style={{ color: bg.subtext }}>Your phone (optional)</label>
+                <input id="cc-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} autoComplete="tel"
+                  className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none"
+                  style={{ backgroundColor: bg.card, border: `1px solid ${bg.border}`, color: bg.text }} />
+              </div>
+              <div>
+                <label htmlFor="cc-message" className="block text-xs font-medium mb-1.5" style={{ color: bg.subtext }}>Message (optional)</label>
+                <textarea id="cc-message" value={message} rows={3} onChange={e => setMessage(e.target.value)}
+                  className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none resize-none"
+                  style={{ backgroundColor: bg.card, border: `1px solid ${bg.border}`, color: bg.text }} />
+              </div>
+
+              {/* bg.text, not bg.subtext and not accentHex. Measured across
+                  all sixteen palettes: subtext fails AA on six of them and the
+                  owner-chosen accent measured 3.99 on this very card. The
+                  component mutes it to 70% itself, which still clears AA on
+                  the worst palette. */}
+              <CaptureNotice
+                owner={card.name}
+                company={card.company}
+                colour={bg.text}
+              />
+
               <button type="submit" disabled={submitting}
                 className="w-full py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: accentHex }}>

@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { UserPlus, X, Loader2, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { describeContactError, CONTACT_NETWORK_ERROR } from '@/lib/contact-errors'
+import CaptureNotice from './CaptureNotice'
 
 // Shown right after a visitor saves the card owner's contact, when the
 // "contact exchange" add-on is enabled. Asks the visitor to share their
@@ -16,12 +17,15 @@ interface Props {
   open: boolean
   onClose: () => void
   ownerName: string
+  /** Named in the POPIA notice alongside the owner, when the card has one.
+   *  Optional so every existing call site keeps working without it. */
+  ownerCompany?: string | null
   cardId: string | null
   teamCardId: string | null
   accentHex: string
 }
 
-export default function ContactExchangeModal({ open, onClose, ownerName, cardId, teamCardId, accentHex }: Props) {
+export default function ContactExchangeModal({ open, onClose, ownerName, ownerCompany, cardId, teamCardId, accentHex }: Props) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -101,16 +105,44 @@ export default function ContactExchangeModal({ open, onClose, ownerName, cardId,
                   <X className="w-4 h-4" />
                 </button>
               </div>
+              {/* Labels are visible, not placeholders. A placeholder is not a
+                  label: it disappears the moment somebody types, so anyone
+                  interrupted halfway through is left with three filled boxes
+                  and no way to tell which was the phone. Screen readers had
+                  nothing to announce either. autoComplete lets the phone fill
+                  all three in one tap, which matters when this is being done
+                  standing up. */}
               <form onSubmit={submit} className="p-5 space-y-3">
-                <input required value={name} onChange={e => setName(e.target.value)} placeholder="Your name"
-                  className="w-full px-3 py-2.5 rounded-xl border text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition"
-                  style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.1)' }} />
-                <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Your email"
-                  className="w-full px-3 py-2.5 rounded-xl border text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition"
-                  style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.1)' }} />
-                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Your phone (optional)"
-                  className="w-full px-3 py-2.5 rounded-xl border text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition"
-                  style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.1)' }} />
+                <div>
+                  <label htmlFor="cx-name" className="block text-xs font-medium text-white/70 mb-1.5">Your name</label>
+                  <input id="cx-name" required value={name} onChange={e => setName(e.target.value)} autoComplete="name"
+                    className="w-full px-3 py-2.5 rounded-xl border text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition"
+                    style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.1)' }} />
+                </div>
+                <div>
+                  <label htmlFor="cx-email" className="block text-xs font-medium text-white/70 mb-1.5">Your email</label>
+                  <input id="cx-email" required type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email"
+                    className="w-full px-3 py-2.5 rounded-xl border text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition"
+                    style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.1)' }} />
+                </div>
+                <div>
+                  <label htmlFor="cx-phone" className="block text-xs font-medium text-white/70 mb-1.5">
+                    Your phone <span className="text-white/40">(optional)</span>
+                  </label>
+                  <input id="cx-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} autoComplete="tel"
+                    className="w-full px-3 py-2.5 rounded-xl border text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition"
+                    style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.1)' }} />
+                </div>
+
+                {/* The modal's ground is a fixed #0a0a0a, so white is the
+                    theme text colour here. The component mutes the sentence
+                    and leaves the link whole. */}
+                <CaptureNotice
+                  owner={ownerName}
+                  company={ownerCompany}
+                  colour="#ffffff"
+                />
+
                 <button type="submit" disabled={submitting}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50 mt-1"
                   style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
