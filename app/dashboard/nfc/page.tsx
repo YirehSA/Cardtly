@@ -24,7 +24,12 @@ export default async function NFCPage() {
   const [plan, card, { data: orders }] = await Promise.all([
     getUserPlan(user.id),
     getPrimaryCard(user.id, 'id, name, title, company, slug, profile_image_url, company_logo_url, color_theme'),
-    supabase
+    // admin, not supabase: nfc_orders has RLS with no policies (migration 079)
+    // so the user-scoped client returns an empty list and no error, and this
+    // page would show a customer none of their own orders. Scoped by the
+    // user_id from the verified session immediately below, which is what
+    // makes the service role safe here.
+    admin
       .from('nfc_orders')
       .select('*')
       .eq('user_id', user.id)

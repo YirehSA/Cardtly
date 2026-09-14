@@ -160,6 +160,49 @@ function body(src, decl) {
       }
     }
   }
+
+  // ── and on the server, they must be reached with the SERVICE ROLE ───────
+  //
+  // THIS IS THE BUG THAT KEEPS COMING BACK, three times now. RLS on with no
+  // policies means a user-scoped client reads nothing and writes nothing from
+  // these tables. It does not throw. It does not fail a type check. A select
+  // returns an empty array and an update reports no error, so the call site
+  // looks like it worked and quietly did nothing.
+  //
+  //   076  three call sites had to move to the service role IN THE SAME
+  //        COMMIT or every paying customer would have resolved as expired
+  //   079  app/api/nfc/verify/route.ts was still on a user-scoped client.
+  //        It happened to be dead already, writing to columns that no longer
+  //        existed, and it swallowed the error and redirected to
+  //        ?status=success regardless. Deleted rather than fixed.
+  //
+  // So: find the variables in this file that hold a USER-SCOPED client, then
+  // fail if one of them is used to query a server-only table. Checking for the
+  // mere presence of a service client elsewhere in the file is not enough -
+  // every route above creates BOTH, one to identify the caller and one to do
+  // the work, and the whole mistake is reaching for the wrong one.
+  //
+  // Files that take the client as a parameter (lib/admin-data.ts) are not
+  // flagged: they never construct a user-scoped client, so there is nothing
+  // here to get wrong, and the caller is checked instead.
+  for (const f of files) {
+    const rel = f.replace(/\\/g, '/')
+    const src = code(readFileSync(f, 'utf8'))
+    if (!SERVER_ONLY.some(t => src.includes(t))) continue
+
+    const scoped = [...src.matchAll(/(?:const|let|var)\s+(\w+)\s*(?::[^=]+)?=\s*await\s+createClient\(\)/g)]
+      .map(m => m[1])
+
+    for (const v of scoped) {
+      for (const t of SERVER_ONLY) {
+        // `\s*` spans newlines, which matters: the real case was written as
+        // `await supabase` then `.from('nfc_orders')` on the next line.
+        if (new RegExp(`\\b${v}\\s*\\.from\\(\\s*['"]${t}['"]`).test(src)) {
+          bad(`${rel} queries ${t} with '${v}', a user-scoped client - that table has RLS with no policies, so the call returns nothing and reports no error. Use the service role.`)
+        }
+      }
+    }
+  }
 }
 
 // ── every subscription write is written down ──────────────────────────────
