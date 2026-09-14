@@ -30,10 +30,14 @@ export default function FooterLinkList({ items }: { items: Item[] }) {
 
   return (
     <div className="space-y-2.5">
+      {/* 0.62 over the footer's pure black is 7.9:1. It was 0.45, which is
+          4.4:1 and misses AA by a hair - and these are the links somebody is
+          actually hunting for when they scroll this far: privacy, terms,
+          contact. */}
       {visible.map(({ href, label }) => (
         <Link key={href} href={href}
           className="block text-sm transition hover:text-white"
-          style={{ color: 'rgba(255,255,255,0.45)' }}>
+          style={{ color: 'rgba(255,255,255,0.62)' }}>
           {label}
         </Link>
       ))}

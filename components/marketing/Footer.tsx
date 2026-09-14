@@ -18,6 +18,21 @@ const SOCIALS = [
   { label: 'Cardtly on Facebook',  href: 'https://www.facebook.com/cardtly',          icon: Facebook,  hoverClass: 'hover:text-[#1877F2]' },
 ]
 
+// MEASURED ON PURE BLACK, which is the whole problem with the old values.
+// This footer renders on every marketing page, so eighteen failures here were
+// eighteen on each of them. White at alpha a over #000 gives:
+//
+//   0.20 -> 1.7:1     0.40 -> 3.7:1     0.55 -> 6.3:1
+//   0.25 -> 2.0:1     0.45 -> 4.4:1     0.62 -> 7.9:1
+//
+// AA wants 4.5:1 for normal text, so everything from 0.45 down was failing and
+// 0.45 itself missed by a hair. The old scale was chosen to look recessive,
+// and it does, but "Privacy policy" and the copyright line are exactly the
+// text somebody is hunting for when they bother to look at a footer.
+const HEADING = 'rgba(255,255,255,0.6)'   // 7.4:1, the small-caps column titles
+const BODY = 'rgba(255,255,255,0.6)'      // 7.4:1, the brand paragraph
+const MUTED = 'rgba(255,255,255,0.55)'    // 6.3:1, copyright and the made-in line
+
 export default function Footer() {
   return (
     <footer style={{ background: '#000', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
@@ -33,7 +48,7 @@ export default function Footer() {
                 Cardtly
               </span>
             </Link>
-            <p className="text-sm leading-relaxed max-w-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <p className="text-sm leading-relaxed max-w-xs" style={{ color: BODY }}>
               The digital business card built for South Africa. Share who you are with a tap, a scan, or a link. For everyone.
             </p>
           </div>
@@ -42,7 +57,7 @@ export default function Footer() {
               what each page is about (internal anchor text is a real,
               if modest, ranking signal). */}
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Product</p>
+            <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: HEADING }}>Product</p>
             <FooterLinkList items={[
               { href: '/features',      label: 'Features' },
               { href: '/network', label: 'Business networking' },
@@ -59,7 +74,7 @@ export default function Footer() {
 
           {/* Company */}
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Company</p>
+            <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: HEADING }}>Company</p>
             <FooterLinkList items={[
               { href: '/about',             label: 'About us' },
               { href: '/contact',           label: 'Contact' },
@@ -72,7 +87,7 @@ export default function Footer() {
 
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-8"
           style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <p className="text-xs order-2 md:order-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
+          <p className="text-xs order-2 md:order-1" style={{ color: MUTED }}>
             © {new Date().getFullYear()} Cardtly. All rights reserved.
           </p>
 
@@ -84,13 +99,13 @@ export default function Footer() {
             {SOCIALS.map(({ label, href, icon: Icon, hoverClass }) => (
               <a key={href} href={href} target="_blank" rel="me noopener noreferrer"
                 aria-label={label} title={label}
-                className={`w-11 h-11 grid place-items-center rounded-full text-white/45 transition-colors ${hoverClass}`}>
+                className={`w-11 h-11 grid place-items-center rounded-full text-white/60 transition-colors ${hoverClass}`}>
                 <Icon className="w-5 h-5" aria-hidden="true" />
               </a>
             ))}
           </div>
 
-          <p className="text-xs order-3" style={{ color: 'rgba(255,255,255,0.2)' }}>
+          <p className="text-xs order-3" style={{ color: MUTED }}>
             Made in South Africa 🇿🇦
           </p>
         </div>

@@ -156,10 +156,14 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* Mobile toggle */}
+        {/* Mobile toggle. The icon stays 20px; the BUTTON is 44 square, which
+            is the touch minimum. It was the icon's own 20x20 and nothing more,
+            so opening the navigation on a phone needed a precise press on the
+            single smallest target on the site. -mr-2.5 pulls the new padding
+            back out so the icon sits where it always did. */}
         <button onClick={() => setOpen(p => !p)} aria-label={open ? 'Close menu' : 'Open menu'}
-          aria-expanded={open} className="lg:hidden text-white">
-          {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          aria-expanded={open} className="lg:hidden text-white w-11 h-11 shrink-0 -mr-2.5 grid place-items-center rounded-lg">
+          {open ? <X className="w-5 h-5" aria-hidden="true" /> : <Menu className="w-5 h-5" aria-hidden="true" />}
         </button>
       </div>
 
