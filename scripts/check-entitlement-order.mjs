@@ -120,13 +120,26 @@ function body(src, decl) {
   }
 }
 
-// ── nothing in the browser may touch whop_subscriptions ───────────────────
+// ── nothing in the browser may touch the server-only tables ───────────────
 //
-// The table holds the customer list with email addresses. Before 076 the anon
-// key could read, insert, update and delete every row of it. A 'use client'
-// file querying it would both fail under RLS and mean the browser was being
-// handed that data again.
+// These tables have RLS on with NO policies, so a browser query returns
+// nothing no matter who is signed in. Every read and write goes through the
+// service role in a server route.
+//
+// A 'use client' file naming one would be two failures at once: the feature
+// would silently return empty, and somebody would then "fix" it by adding a
+// policy - which is exactly how both of these came to be open in the first
+// place. The policy that exposed whop_subscriptions was never in a migration;
+// it was clicked into the dashboard once and forgotten.
+//
+// WHAT WAS ACTUALLY EXPOSED, measured with the anon key on 2026-09-14:
+//   whop_subscriptions  the paying customer list, with email addresses (076/077)
+//   nfc_orders          shipping addresses for physical cards (078)
+//
+// Add a table here the moment it goes RLS-on-no-policies, not later.
 {
+  const SERVER_ONLY = ['whop_subscriptions', 'nfc_orders']
+
   const files = []
   const walk = (dir) => {
     for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -140,9 +153,11 @@ function body(src, decl) {
   }
   for (const f of files) {
     const src = readFileSync(f, 'utf8')
-    if (!src.includes('whop_subscriptions')) continue
-    if (/^\s*['"]use client['"]/m.test(src.slice(0, 200))) {
-      bad(`${f.replace(/\\/g, '/')} is a client component and reads whop_subscriptions - that table is server-only`)
+    if (!/^\s*['"]use client['"]/m.test(src.slice(0, 200))) continue
+    for (const t of SERVER_ONLY) {
+      if (src.includes(t)) {
+        bad(`${f.replace(/\\/g, '/')} is a client component and names ${t} - that table is server-only, RLS returns nothing to the browser`)
+      }
     }
   }
 }
