@@ -255,7 +255,12 @@ function parse(label, input) {
     }
     const exec = c.audiences.find(a => a.id === 'executive')
     if (exec?.cta?.kind !== 'booking') bad('executive lost its booking CTA')
-    if (exec && exec.order.includes('gallery')) bad('executive ordered a section it also hides')
+    // This fixture never ordered the section it hides, so there is no position
+    // to keep here. What must hold is that hiding wins at render. The
+    // keeps-its-position case is covered where a section is in BOTH lists.
+    if (exec && on.orderSections(on.STANDARD_SECTION_ORDER, { audience: exec, source: 'default' }).includes('gallery')) {
+      bad('a hidden section was rendered even though hiding is supposed to win')
+    }
   }
 }
 
@@ -351,10 +356,15 @@ function parse(label, input) {
   const mixed = one({ order: ['links', 'name', 'gallery', 'nonsense'] })
   if (mixed.order.join(',') !== 'links,gallery') bad(`unknown sections not dropped from order: ${JSON.stringify(mixed.order)}`)
 
-  // Overlap: hiding wins over ordering.
+  // Overlap: the position is KEPT and hiding wins where it matters, at render.
+  // Storing one without the other is what used to move a section the owner had
+  // only asked to hide.
   const overlap = one({ order: ['links', 'gallery'], hide: ['gallery'] })
-  if (overlap.order.includes('gallery')) bad('a hidden section survived in order')
+  if (!overlap.order.includes('gallery')) bad('a hidden section lost its stored position')
   if (!overlap.hide.includes('gallery')) bad('a hidden section was lost')
+  const rendered = on.orderSections(on.STANDARD_SECTION_ORDER, { audience: overlap, source: 'default' })
+  if (rendered.includes('gallery')) bad('hiding stopped winning at render, so a hidden section would show')
+  if (rendered.join(',') !== 'links,certifications') bad(`hiding changed the rest of the arrangement: ${rendered.join(',')}`)
 
   // A huge section list must not be processed wholesale.
   const flood = one({ order: Array(10000).fill('links') })
@@ -1390,6 +1400,22 @@ function parse(label, input) {
       what: 'saving Context leaves other add-ons alone',
       mutate: [['  const base = isPlainObject(existing) ? existing : {}', '  const base = {}']],
       broken: m => m.mergeContextAddon({ contactExchange: true }, { enabled: true, audiences: [], defaultAudience: null }).contactExchange === undefined,
+    },
+    {
+      // The parser no longer strips a hidden section out of `order`, so the
+      // ONLY thing stopping a hidden section from rendering is this filter.
+      // It carried a belt and braces before; now it is the belt.
+      what: 'hiding still wins at render',
+      mutate: [['    const kept = list.filter(s => !hide.includes(s))', '    const kept = list']],
+      broken: m => {
+        const a = m.parseContextConfig({ audiences: [{ id: 'it', order: ['links', 'gallery'], hide: ['gallery'] }] }).audiences[0]
+        return m.orderSections(m.STANDARD_SECTION_ORDER, { audience: a, source: 'default' }).includes('gallery')
+      },
+    },
+    {
+      what: 'a hidden section keeps its position in the stored order',
+      mutate: [['  const order = sectionList(v.order)', '  const order = sectionList(v.order).filter(s => !hide.includes(s))']],
+      broken: m => !m.parseContextConfig({ audiences: [{ id: 'it', order: ['links', 'gallery'], hide: ['gallery'] }] }).audiences[0].order.includes('gallery'),
     },
     {
       what: 'the platform switch does not block configuration',

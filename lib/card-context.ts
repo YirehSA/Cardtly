@@ -315,7 +315,11 @@ const AUDIENCE_ID_RE = /^[a-z][a-z0-9-]{1,23}$/
  */
 export const MAX_AUDIENCES = 20
 
-const MAX_LABEL = 60
+/** Longest display label for an audience or a CTA button. Exported so the
+ *  owner's editor can stop them at the same point the parser would, rather
+ *  than accepting something the save silently shortens. */
+export const MAX_CONTEXT_LABEL = 60
+const MAX_LABEL = MAX_CONTEXT_LABEL
 
 function str(v: unknown): string | null {
   if (typeof v !== 'string') return null
@@ -408,10 +412,21 @@ function parseAudience(v: unknown): ContextAudience | null {
   const label = rawLabel && rawLabel.length <= MAX_LABEL ? rawLabel : id
 
   const hide = sectionList(v.hide)
-  // A section cannot be both ordered and hidden. Hiding wins: it is the more
-  // specific instruction, and the alternative is showing a section the owner
-  // explicitly asked to leave out.
-  const order = sectionList(v.order).filter(s => !hide.includes(s))
+  // A SECTION MAY BE BOTH ORDERED AND HIDDEN, and hiding still wins.
+  //
+  // This used to strip hidden sections out of `order`, which was tidier and
+  // quietly lost something the owner cares about: where the section sits. Hide
+  // the gallery, come back next week, switch it visible again, and it had
+  // moved to the bottom, because its position had been normalised away at save
+  // time. The owner never asked for it to move. They asked for it to be
+  // hidden.
+  //
+  // Nothing about the public card changes. orderSections removes hidden
+  // sections from the available list BEFORE it applies this order, so a hidden
+  // section named here matches nothing and is never rendered. Hiding wins
+  // where hiding has always won, at render, rather than by editing the
+  // owner's stored arrangement behind their back.
+  const order = sectionList(v.order)
 
   return { id, enabled: parseEnabled(v), label, order, hide, cta: parseCta(v.cta) }
 }
