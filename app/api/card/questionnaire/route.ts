@@ -73,6 +73,12 @@ export async function POST(request: Request) {
   }
 
   const { error } = await admin.from(target.table).update({ addons: nextAddons }).eq('id', target.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    // The database message can carry table names, column names, constraint
+    // names and row contents, none of which is the caller's business. Logged
+    // where we can read it, answered with something the owner can act on.
+    console.error('questionnaire save failed:', error)
+    return NextResponse.json({ error: 'Could not save that. Please try again.' }, { status: 500 })
+  }
   return NextResponse.json({ success: true, questionnaires, activeId: active.id })
 }
