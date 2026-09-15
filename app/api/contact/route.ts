@@ -1,6 +1,6 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { sanitiseContactMetadata } from '@/lib/card-context'
+import { sanitiseContactMetadata, canonicaliseContactMetadata, readCardContext } from '@/lib/card-context'
 import { enqueueLeadCreated } from '@/lib/webhook-dispatch'
 import { resolveCardOwner } from '@/lib/card-owner'
 import { notifyLeadRecipients } from '@/lib/lead-notify'
@@ -22,10 +22,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing card reference' }, { status: 400 })
     }
 
-    // Allow-listed, and null for anything unrecognised. Null never rejects the
-    // contact: a lead is worth more than its attribution.
-    const contextMeta = sanitiseContactMetadata(body.metadata)
-
     const admin = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -36,6 +32,26 @@ export async function POST(request: Request) {
     const owner = await resolveCardOwner(admin, card_id || team_card_id)
     if (!owner.found) {
       return NextResponse.json({ error: 'Card not found' }, { status: 404 })
+    }
+
+    // CONTEXT ATTRIBUTION, CHECKED TWICE. The shape is allow-listed first,
+    // then re-checked against what this card actually offers, with the label
+    // taken from the configuration rather than from the browser. The public
+    // card reads its Context out of this same row's `addons`, so the two
+    // cannot disagree about what an audience is called.
+    //
+    // Every failure here degrades to "no attribution" and never to "no
+    // contact". A lead is worth more than the label on it.
+    let contextMeta = sanitiseContactMetadata(body.metadata)
+    if (contextMeta) {
+      try {
+        const table = owner.isTeam ? 'team_cards' : 'cards'
+        const idCol = owner.isTeam ? owner.teamCardId : owner.personalCardId
+        const { data: row } = await admin.from(table).select('addons').eq('id', idCol).maybeSingle()
+        contextMeta = canonicaliseContactMetadata(contextMeta, readCardContext(row?.addons).config)
+      } catch {
+        contextMeta = null
+      }
     }
 
     const { data: saved, error } = await admin

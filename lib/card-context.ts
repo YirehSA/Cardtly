@@ -839,6 +839,75 @@ export function sanitiseContactMetadata(input: unknown): ContactContextMetadata 
   }
 }
 
+/**
+ * Re-check client-submitted contact metadata against what this card is
+ * ACTUALLY configured to offer, and take the label from the configuration
+ * rather than from the browser.
+ *
+ * WHY THE SYNTACTIC CHECK WAS NOT ENOUGH. sanitiseContactMetadata proves a
+ * value LOOKS like an audience id. It cannot know whether this card has such
+ * an audience, and it has no idea what that audience is called. The browser is
+ * public and anonymous: anybody can POST to this endpoint. Without this step a
+ * caller could submit selectedAudience "it" with selectedLabel
+ * "CEO - VIP CUSTOMER", or an audience of "astronaut", and Cardtly would store
+ * arbitrary attacker-authored text as though it were qualification the visitor
+ * declared and the owner configured.
+ *
+ * So there are two levels and both are required before anything is persisted:
+ *
+ *   syntactic  does it look like an id            (sanitiseContactMetadata)
+ *   semantic   does THIS card actually offer it   (here)
+ *
+ * THE LABEL IS ALWAYS DERIVED, NEVER ACCEPTED. Whatever the client sent is
+ * discarded and replaced with the configured label. There is therefore no path
+ * from arbitrary public API text into the owner's Contacts screen at all,
+ * which is a stronger guarantee than relying on React to escape it.
+ *
+ * DROPPING IS PREFERRED TO REJECTING. An unknown audience loses its
+ * attribution; it never costs the lead. Returning null here means "save the
+ * contact with no Context", never "refuse the contact".
+ */
+export function canonicaliseContactMetadata(
+  meta: ContactContextMetadata | null,
+  config: ContextConfig | null,
+): ContactContextMetadata | null {
+  try {
+    const ctx = meta?.context
+    if (!ctx) return null
+    const audiences = Array.isArray(config?.audiences) ? config.audiences : []
+    if (!audiences.length) return null
+
+    // The active audience must exist on this card, or there is nothing
+    // truthful to record about what was shown.
+    const active = audiences.find(a => a && a.id === ctx.activeAudience)
+    if (!active) return null
+
+    const out: ContactContextMetadata['context'] = {
+      activeAudience: active.id,
+      activeSource: ctx.activeSource,
+      version: CONTEXT_METADATA_VERSION,
+    }
+
+    // Self-declaration only for a visitor, only for an audience that exists,
+    // and only when it agrees with what was active - a client claiming to have
+    // selected one audience while a different one was applied is describing
+    // something that cannot have happened.
+    if (ctx.activeSource === 'visitor' && ctx.selectedAudience) {
+      const selected = audiences.find(a => a && a.id === ctx.selectedAudience)
+      if (selected && selected.id === active.id) {
+        out.selectedAudience = selected.id
+        // FROM THE CONFIG, never from the request.
+        const label = (selected.label || '').trim()
+        if (label) out.selectedLabel = label
+      }
+    }
+
+    return { context: out }
+  } catch {
+    return null
+  }
+}
+
 // ══ TASK 5: the presentation transform ════════════════════════════════════
 //
 // THE STANDARD CARD IS THE SOURCE OF TRUTH. These functions take what the card

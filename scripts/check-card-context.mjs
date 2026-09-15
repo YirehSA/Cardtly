@@ -1010,6 +1010,67 @@ function parse(label, input) {
   }
 }
 
+// ── canonicalisation: the label NEVER comes from the browser ─────────────
+//
+// /api/contact is anonymous and public. sanitiseContactMetadata only proves a
+// value LOOKS like an id; it cannot know whether this card offers it or what
+// it is called. Without this step a caller could post selectedLabel
+// "CEO - VIP CUSTOMER" and have it stored as though the owner had configured
+// it and the visitor had declared it.
+{
+  const C = on.canonicaliseContactMetadata
+  const config = on.parseContextConfig({
+    audiences: [{ id: 'it', label: 'IT' }, { id: 'procurement', label: 'Procurement' }],
+  })
+  const meta = (c) => ({ context: { version: 1, ...c } })
+
+  // THE MALICIOUS LABEL. Stored label must be the configured one.
+  const forged = C(meta({ selectedAudience: 'it', selectedLabel: 'CEO - VIP CUSTOMER', activeAudience: 'it', activeSource: 'visitor' }), config)
+  if (forged?.context?.selectedLabel !== 'IT') {
+    bad(`a client-supplied label survived canonicalisation: ${JSON.stringify(forged?.context?.selectedLabel)}`)
+  }
+  // Markup must not reach the Contacts screen at all, escaped or otherwise.
+  const scripty = C(meta({ selectedAudience: 'it', selectedLabel: '<img src=x onerror=alert(1)>', activeAudience: 'it', activeSource: 'visitor' }), config)
+  if (JSON.stringify(scripty).includes('onerror')) bad('markup from the request reached stored contact metadata')
+
+  // AUDIENCE MUST EXIST ON THIS CARD, not merely look like an id.
+  if (C(meta({ activeAudience: 'astronaut', activeSource: 'sender' }), config) !== null) {
+    bad('an audience this card does not offer was stored')
+  }
+  if (C(meta({ selectedAudience: 'astronaut', activeAudience: 'astronaut', activeSource: 'visitor' }), config) !== null) {
+    bad('an invented selected audience was stored')
+  }
+  // A selection that disagrees with what was active cannot have happened.
+  const mismatch = C(meta({ selectedAudience: 'procurement', activeAudience: 'it', activeSource: 'visitor' }), config)
+  if (mismatch?.context && 'selectedAudience' in mismatch.context) {
+    bad('a selection that disagreed with the active audience was stored as self-declared')
+  }
+
+  // Sender and default keep attribution only, with the real audience.
+  for (const src of ['sender', 'default']) {
+    const r = C(meta({ selectedAudience: 'it', selectedLabel: 'Fake', activeAudience: 'it', activeSource: src }), config)
+    if (!r) { bad(`${src}: valid attribution was dropped`); continue }
+    if ('selectedAudience' in r.context || 'selectedLabel' in r.context) {
+      bad(`${src}: canonicalisation kept a self-declaration it should have dropped`)
+    }
+  }
+
+  // The genuine case survives intact.
+  const good = C(meta({ selectedAudience: 'procurement', selectedLabel: 'Procurement', activeAudience: 'procurement', activeSource: 'visitor' }), config)
+  if (good?.context?.selectedAudience !== 'procurement' || good?.context?.selectedLabel !== 'Procurement') {
+    bad('a genuine visitor selection did not survive canonicalisation')
+  }
+
+  // No config at all - e.g. the master switch is off, so nothing was shown.
+  if (C(meta({ activeAudience: 'it', activeSource: 'sender' }), on.parseContextConfig({ audiences: [] })) !== null) {
+    bad('attribution was stored for a card with no configured audiences')
+  }
+  for (const junk of [null, undefined, {}, 'x', 42, []]) {
+    try { C(junk, config); C(meta({ activeAudience: 'it', activeSource: 'visitor' }), junk) }
+    catch (e) { bad(`canonicaliseContactMetadata threw on ${String(junk)}: ${e.message}`) }
+  }
+}
+
 for (const d of [onDir, offDir]) { try { rmSync(d, { recursive: true, force: true }) } catch {} }
 
 if (fail) {
