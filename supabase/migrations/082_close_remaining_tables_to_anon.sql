@@ -10,28 +10,45 @@
 -- question and got an incomplete answer. The sweep is now a script rather than
 -- a careful read, and the script is what found the other three.
 --
--- MEASURED AGAINST PRODUCTION on 2026-09-15 with NEXT_PUBLIC_SUPABASE_ANON_KEY,
--- the key that ships inside the site's JavaScript on every page. Read only,
--- counts only, no contents pulled:
+-- WHAT WAS ACTUALLY MEASURED, AND THE MISTAKE IN THE FIRST VERSION OF THIS
+-- HEADER. Before the migration these four were probed with
+-- NEXT_PUBLIC_SUPABASE_ANON_KEY, the key that ships in the site's JavaScript.
+-- All four answered 200 OK with zero rows, and that was written down here as
+-- "the table is empty". It does not mean that. An anon SELECT against a table
+-- whose RLS filters everything returns exactly the same thing as an anon
+-- SELECT against an empty table: 200 and no rows. Telling the two apart needs
+-- a second key, and the second key was not run.
 --
---   table            GET /rest/v1/<table>   rows today
---   trial_codes      200 OK                 0
---   card_reports     200 OK                 0
---   network_blocks   200 OK                 0
---   ops_alerts       200 OK                 0
+-- After the migration, both keys were run:
 --
--- 200 OK, not 401. The door is open on all four. They are empty today, which
--- is luck and timing rather than protection, and 078 already said why that is
--- not a reason to wait: a hole is not less of a hole for being early. Each of
--- these fills the first time somebody uses the feature behind it.
+--   table            anon        service role
+--   trial_codes      200  0      206  3 rows
+--   card_reports     200  0      200  0
+--   network_blocks   200  0      200  0
+--   ops_alerts       200  0      200  0
+--
+-- trial_codes was never empty. It holds 3 rows and the anon key could not see
+-- them before this migration either, which means RLS was already enabled on it
+-- by hand, outside the migrations. So the worst claim in the first draft of
+-- this file, that every promo code was readable from the browser, was not
+-- true and was never evidenced.
+--
+-- WHAT IS STILL TRUE. ops_alerts was genuinely open: the Supabase advisor
+-- reported it as RLS Disabled in Public, which is a direct reading of the
+-- database and owes nothing to the probe above. card_reports and
+-- network_blocks are confirmed empty by the service role, so whether they were
+-- open before this ran is simply not something the probe can answer. The
+-- advisor's own list is the record for that.
+--
+-- The migration is unchanged by any of this. Enabling RLS on a table that
+-- already has it is a no-op, and the three that needed it get it.
 --
 -- WHAT EACH ONE LEAKS ONCE IT HAS ROWS
 --
 --   trial_codes     Every promo code, its length in days, whether it is
---                   active, its cap and its use count. Reading this table is
---                   reading the list of ways to get Pro without paying. This
---                   is the one that matters, and it is not the one the advisor
---                   called CRITICAL.
+--                   active, its cap and its use count: the list of ways to get
+--                   Pro without paying. Worth closing on its own merits, and
+--                   per the note above it appears to have been closed already.
 --
 --   card_reports    Abuse reports: who reported which card, the reason and the
 --                   free text detail, plus reporter_user_id when the reporter
