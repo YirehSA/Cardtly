@@ -8,7 +8,7 @@ import {
   Crown, Cpu, TrendingUp, Megaphone, Users, ShoppingCart, Link2, Check, Copy,
 } from 'lucide-react'
 import {
-  CONTEXT_AUDIENCE_IDS, STANDARD_SECTION_ORDER, MAX_CONTEXT_LABEL,
+  CONTEXT_AUDIENCE_IDS, STANDARD_SECTION_ORDER, MAX_CONTEXT_LABEL, MAX_LINK_INDEX,
   type ContextAudience, type ContextSection, type ContextCta,
 } from '@/lib/card-context'
 import { setUnsavedContext } from './unsaved'
@@ -355,6 +355,7 @@ export default function ContextEditor({
             onMove={(i, dir) => move(row.id, i, dir)}
             onHide={s => toggleHide(row.id, s)}
             onCta={c => patch(row.id, d => ({ ...d, cta: c }))}
+            onLinks={v => patch(row.id, d => ({ ...d, links: v }))}
             links={links}
             bookingAvailable={bookingAvailable}
             populated={populated}
@@ -503,7 +504,7 @@ function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: 
 }
 
 function AudienceRow({
-  row, expanded, onToggleExpand, onEnabled, onLabel, onMove, onHide, onCta,
+  row, expanded, onToggleExpand, onEnabled, onLabel, onMove, onHide, onCta, onLinks,
   links, bookingAvailable, populated, isOrg, cardSlug,
 }: {
   row: DraftAudience
@@ -514,6 +515,7 @@ function AudienceRow({
   onMove: (index: number, dir: -1 | 1) => void
   onHide: (s: ContextSection) => void
   onCta: (c: ContextCta | null) => void
+  onLinks: (v: number[] | null) => void
   links: LinkOption[]
   bookingAvailable: boolean
   populated: Record<ContextSection, boolean>
@@ -524,6 +526,16 @@ function AudienceRow({
   const visible = row.sections.filter(s => !row.hide.includes(s))
   const ctaSummary = describeCta(row.cta, links, isOrg)
   const face = AUDIENCE_FACE[row.id] || { Icon: Sparkles, hue: '#7c3aed' }
+
+  // A link selection is part of "what does this audience actually do", so it
+  // belongs in the collapsed line rather than only behind the accordion. Shown
+  // only when a choice was made: null is "all of them", which is exactly what
+  // the plain section name already says.
+  const totalLinks = isOrg ? MAX_LINK_INDEX : links.length
+  const sectionSummary = (s: ContextSection) =>
+    s === 'links' && row.links
+      ? (row.links.length === 0 ? 'Links (none)' : `Links (${row.links.length} of ${totalLinks})`)
+      : SECTION_LABEL[s]
 
   return (
     // A LIVE AUDIENCE LOOKS LIVE. An off one is quiet but never disabled: its
@@ -550,7 +562,7 @@ function AudienceRow({
             {/* The arrangement in words, so the collapsed row answers "what
                 does this audience actually do" without opening it. */}
             <span className="block text-xs text-muted-foreground mt-1 leading-relaxed">
-              {visible.length ? visible.map(s => SECTION_LABEL[s]).join(' → ') : 'Everything hidden'}
+              {visible.length ? visible.map(sectionSummary).join(' → ') : 'Everything hidden'}
             </span>
             <span className="block text-xs text-muted-foreground">{ctaSummary.short}</span>
           </span>
@@ -631,12 +643,149 @@ function AudienceRow({
             </ul>
           </fieldset>
 
+          <LinkPicker row={row} links={links} isOrg={isOrg} onLinks={onLinks} />
+
           <CtaPicker
             row={row} links={links} bookingAvailable={bookingAvailable} isOrg={isOrg} onCta={onCta}
           />
         </div>
       )}
     </div>
+  )
+}
+
+/** WHICH LINKS THIS AUDIENCE SHOWS.
+ *
+ * THE WHOLE ROW IS THE CONTROL. "Maybe you can click the ones you want to
+ * display" was the ask, and a 16px checkbox is not a click target on a phone.
+ *
+ * EVERY BOX TICKED IS STORED AS "no choice made", not as a list naming every
+ * slot. The difference is invisible today and is the entire behaviour
+ * tomorrow: null means a link added next month appears here by itself, while
+ * [1,2,3] quietly excludes link 4 the day it exists. Ticking every box says
+ * "all of them", not "these three forever", so it is stored as the former.
+ *
+ * SLOTS, NOT POSITIONS. A tick selects link_3, the column, so it keeps meaning
+ * the same thing when a different link is cleared or renamed. Same rule the
+ * CTA picker follows, and the reason neither of them ever renumbers anything.
+ */
+function LinkPicker({ row, links, isOrg, onLinks }: {
+  row: DraftAudience
+  links: LinkOption[]
+  isOrg: boolean
+  onLinks: (v: number[] | null) => void
+}) {
+  // An organisation runs one configuration across many cards, each with its
+  // own slot 3, so there is no title to show and the slots are offered by
+  // number. Same compromise the CTA picker makes, for the same reason.
+  const slots: LinkOption[] = isOrg
+    ? Array.from({ length: MAX_LINK_INDEX }, (_, i) => ({ index: i + 1, title: `Link ${i + 1}` }))
+    : links
+  const offerable = slots.map(s => s.index)
+
+  // A slot that was chosen and is now empty keeps its row. Dropping it on
+  // sight would mean opening this panel silently edited the configuration,
+  // which is the thing the CTA picker refuses to do with an empty slot.
+  const orphans = (row.links ?? []).filter(i => !offerable.includes(i))
+
+  const showAll = row.links === null
+  const isOn = (i: number) => showAll || row.links!.includes(i)
+  const chosen = showAll ? offerable.length : row.links!.length
+  const sectionHidden = row.hide.includes('links')
+
+  function toggle(i: number) {
+    const current = row.links ?? offerable
+    const next = current.includes(i) ? current.filter(x => x !== i) : [...current, i]
+    // Kept in the card's own order. visibleLinks can render a custom one and
+    // 10a proves it does, but nothing on this screen asks for an order, and
+    // inventing one would make the preview disagree with the card the owner
+    // already knows by heart.
+    const ordered = [...offerable, ...orphans].filter(x => next.includes(x))
+    const isEverything =
+      ordered.length === offerable.length && offerable.every(x => ordered.includes(x))
+    onLinks(isEverything ? null : ordered)
+  }
+
+  if (!isOrg && links.length === 0) {
+    return (
+      <fieldset>
+        <legend className="text-xs font-semibold mb-1">Which links to show</legend>
+        <p className="text-[11px] text-muted-foreground">
+          This card has no links yet. Add some to your card and you can choose which of them each
+          audience sees.
+        </p>
+      </fieldset>
+    )
+  }
+
+  const rows = [...slots, ...orphans.map(i => ({ index: i, title: '' }))]
+
+  return (
+    <fieldset>
+      <legend className="text-xs font-semibold mb-1">Which links to show</legend>
+      <p className="text-[11px] text-muted-foreground mb-2">
+        Tick the links this audience should see. Unticking one hides it from this personalised view
+        only. It stays on your card.
+      </p>
+
+      <ul className="space-y-1.5">
+        {rows.map(l => {
+          const on = isOn(l.index)
+          const empty = !offerable.includes(l.index)
+          return (
+            <li key={l.index}>
+              <label className="flex items-center gap-2.5 rounded-xl border px-3 py-2 min-h-11 cursor-pointer transition"
+                style={{
+                  borderColor: on ? 'hsl(var(--accent) / 0.5)' : 'hsl(var(--border))',
+                  background: on ? 'hsl(var(--accent) / 0.07)' : 'hsl(var(--background))',
+                }}>
+                <input type="checkbox" checked={on} onChange={() => toggle(l.index)}
+                  className="w-4 h-4 flex-shrink-0" style={{ accentColor: 'hsl(var(--accent))' }} />
+                <span className="text-sm min-w-0 flex-1">
+                  <span className={on ? '' : 'text-muted-foreground'}>
+                    {empty
+                      ? `Link ${l.index}`
+                      : isOrg
+                        ? `Link ${l.index} on each team member's card`
+                        : l.title}
+                  </span>
+                  {empty ? (
+                    <span className="block text-[11px]" style={{ color: '#d97706' }}>
+                      Currently empty, so nothing shows for it until you fill link {l.index} on your card.
+                    </span>
+                  ) : !isOrg ? (
+                    <span className="block text-[11px] text-muted-foreground">Link {l.index}</span>
+                  ) : null}
+                </span>
+              </label>
+            </li>
+          )
+        })}
+      </ul>
+
+      <p className="text-[11px] text-muted-foreground mt-2">
+        {showAll
+          ? 'Every link shows. Any link you add to this card later will show here too.'
+          : chosen === 0
+            ? 'No links will show for this audience.'
+            : `Showing ${chosen} of ${offerable.length}.`}
+      </p>
+
+      {sectionHidden && (
+        <p className="text-[11px] flex items-start gap-1.5 mt-1" style={{ color: '#d97706' }}>
+          <AlertTriangle className="w-3.5 h-3.5 mt-px flex-shrink-0" aria-hidden="true" />
+          The Links section is hidden for this audience, so none of these will show. Your choice is
+          kept for when you unhide it.
+        </p>
+      )}
+
+      {isOrg && (
+        <p className="text-[11px] text-muted-foreground mt-1">
+          Uses that slot from each team member&apos;s own Cardtly, so it is a different link for each
+          of them.
+        </p>
+      )}
+    </fieldset>
   )
 }
 

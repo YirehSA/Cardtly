@@ -1647,6 +1647,81 @@ function parse(label, input) {
 }
 
 
+// == TASK 10c: the owner's choice survives the trip to the card ============
+//
+// FOUR HANDOFFS, and a value that is correct at every one of them until it is
+// not. The picker writes `links` onto the draft, the draft becomes a
+// ContextAudience for the preview, the same draft becomes the body of the save
+// request, and the parser reads it back. Any one of those four dropping the
+// field gives an editor that ticks, saves, reloads clean and changes nothing,
+// which is the 9f failure again: the resolver was right, the renderer was
+// right, and nobody passed the value on.
+//
+// Checked at the source because this harness has no React renderer. Narrow on
+// purpose: it looks for the field surviving each conversion, not for any
+// particular way of writing it.
+{
+  const EDITOR = 'components/context/ContextEditor.tsx'
+  const PREVIEW = 'components/context/ContextPreview.tsx'
+  const LF = String.fromCharCode(10)
+  const strip = (t) => t
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split(LF).map(l => l.replace(/\/\/.*$/, '')).join(LF)
+
+  let editor = '', preview = ''
+  try { editor = strip(readFileSync(EDITOR, 'utf8')) } catch { bad(EDITOR + ' is missing') }
+  try { preview = strip(readFileSync(PREVIEW, 'utf8')) } catch { bad(PREVIEW + ' is missing') }
+
+  // Sliced to the next top-level function rather than to the first column-zero
+  // closing brace, because a destructured props type ends with "}) {" on its
+  // own line and the naive version stopped at the signature, reporting the
+  // whole body missing. Same extraction the 10b guard above uses.
+  const fn = (src, name) => {
+    const at = src.indexOf('function ' + name)
+    if (at < 0) return null
+    const rest = src.slice(at + ('function ' + name).length)
+    const end = rest.indexOf(LF + 'function ')
+    return end < 0 ? rest : rest.slice(0, end)
+  }
+
+  // 1. Stored audience -> draft. Absent must become null, not undefined and
+  //    not [], or an untouched audience would stop showing every link.
+  const toDraft = fn(editor, 'toDraft')
+  if (!toDraft) bad(EDITOR + ': toDraft is gone')
+  else if (!/links:\s*a\?\.links \?\? null/.test(toDraft)) {
+    bad(EDITOR + ': toDraft no longer maps a missing links key to null, so an audience that never chose would stop showing every link')
+  }
+
+  // 2. Draft -> audience, in BOTH places. The editor builds one for saving and
+  //    the preview builds one for rendering, and they drift independently.
+  for (const [file, src] of [[EDITOR, editor], [PREVIEW, preview]]) {
+    if (!/links:\s*d\.links/.test(src)) {
+      bad(file + ': a draft is turned into a ContextAudience without carrying links, so the owner ticks boxes that reach nothing')
+    }
+  }
+
+  // 3. The picker exists and is wired to the draft rather than to itself.
+  // The delimiter matters. `/<LinkPicker/` alone also matches <LinkPickerX,
+  // so renaming the element to something that does not exist passed the check.
+  // Found by mutating exactly that, which is the point of mutating.
+  if (!/<LinkPicker[\s/>]/.test(editor)) {
+    bad(EDITOR + ': the link picker is not rendered, so nothing can set a selection')
+  }
+  if (!/onLinks=\{[^}]*links: v/.test(editor)) {
+    bad(EDITOR + ': onLinks does not patch links onto the draft, so the picker changes nothing that gets saved')
+  }
+
+  // 4. THE COLLAPSE RULE, which is the one piece of judgement in the picker.
+  //    Every box ticked stores null, not a list of every slot. Without it,
+  //    ticking everything freezes the audience against links added later.
+  const picker = fn(editor, 'LinkPicker')
+  if (!picker) bad(EDITOR + ': LinkPicker is gone')
+  else if (!/onLinks\(\s*isEverything \? null : ordered\s*\)/.test(picker)) {
+    bad(EDITOR + ': LinkPicker no longer collapses a fully ticked selection back to null, so ticking every box would silently exclude any link added later')
+  }
+}
+
+
 // == TASK 10b: the filter reaches the links section, and ONLY the links =====
 //
 // 10a built visibleLinks and deliberately did not call it, so the block above
