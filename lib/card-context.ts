@@ -17,6 +17,40 @@
 // lib/addon-target.ts already resolves which of those three rows applies to a
 // user, org first, so central corporate control comes free. No new table, no
 // new column, no migration.
+//
+// ════════════════════════════════════════════════════════════════════════════
+// ARCHITECTURE RULE: `addons.context` IS PUBLIC. TREAT IT AS PUBLISHED.
+// ════════════════════════════════════════════════════════════════════════════
+//
+// The card row is handed to a client component, so everything on it - addons
+// included - is serialised into the HTML of the public card page. Anybody who
+// views a card can read its Context configuration by viewing source. That is
+// not a leak to be fixed; it is what has to be true for Context to run in the
+// browser at all.
+//
+// So `addons.context` may hold PRESENTATION CONFIGURATION ONLY:
+//
+//   allowed      audience ids and labels, section ordering, hide rules, CTA
+//                references to the card's own links, display settings
+//
+//   NEVER        API keys, tokens or credentials of any kind
+//                private internal notes
+//                prospect or customer information
+//                confidential or customer-specific commercial terms
+//                hidden pricing formulas or discount logic
+//                private sales intelligence
+//                unpublished security information
+//                AI prompts containing any of the above
+//
+// THIS MATTERS MOST FOR WHAT COMES NEXT. Cardtly Knowledge and the AI phases
+// are about company information, and some of that will be permissioned or
+// commercially sensitive. None of it may travel this way. Sensitive or
+// permissioned knowledge stays server-side and is reached through a route that
+// can check who is asking - it does not get embedded in a public card payload
+// because that was the convenient place to put it.
+//
+// A useful test before adding any field here: would you be comfortable if a
+// competitor read it? If not, it does not belong in addons.
 
 import { MAX_CUSTOM_LINKS } from '@/types/design'
 

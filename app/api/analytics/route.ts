@@ -27,6 +27,33 @@ function detectOS(ua: string): string {
   return 'Other'
 }
 
+/**
+ * An insert failed. Say so, without saying anything the visitor should not
+ * hear.
+ *
+ * WHY THIS EXISTS. This route used to discard the insert result and return
+ * success unconditionally, so a failing write was invisible: the schema
+ * mismatch found while building migration 080 returned {"success":true} while
+ * storing nothing. Analytics that can lose events silently cannot be used to
+ * decide whether a feature works, which is exactly what these Context events
+ * are for.
+ *
+ * THE CLIENT GETS NOTHING DIAGNOSTIC. A public card visitor is anonymous and
+ * untrusted; Postgres error text names tables, columns, constraints and
+ * policies. That belongs in the server log, which is ours, and not in a
+ * response anybody can read. Same shape as the other failures in this route.
+ */
+function failed(table: string, error: unknown, eventType: unknown) {
+  const detail = error && typeof error === 'object' ? error as Record<string, unknown> : {}
+  console.error('analytics insert failed', {
+    table,
+    event_type: typeof eventType === 'string' ? eventType.slice(0, 40) : null,
+    code: detail.code ?? null,
+    message: detail.message ?? null,
+  })
+  return NextResponse.json({ success: false }, { status: 500 })
+}
+
 export async function POST(request: Request) {
   try {
     // REFUSE AN ABSURD BODY BEFORE PARSING IT. An analytics event is a couple
@@ -71,7 +98,7 @@ export async function POST(request: Request) {
       // Personal card: insert card_events row. A DB trigger
       // (migration 019) bumps cards.view_count from this row -
       // server-side so RLS can't block it.
-      await (supabase.from('card_events') as any).insert({
+      const { error } = await (supabase.from('card_events') as any).insert({
         card_id,
         event_type,
         link_title: link_title || null,
@@ -81,6 +108,7 @@ export async function POST(request: Request) {
         referrer: referrer || null,
         ...withMetadata,
       })
+      if (error) return failed('card_events', error, event_type)
     }
 
     if (team_card_id) {
@@ -94,7 +122,7 @@ export async function POST(request: Request) {
       // with the anonymous visitor's session, which RLS blocks on
       // team_cards, so it silently undercounted. The trigger runs
       // server-side and can't be blocked.
-      await (supabase.from('team_card_events') as any).insert({
+      const { error } = await (supabase.from('team_card_events') as any).insert({
         team_card_id,
         event_type,
         link_title: link_title || null,
@@ -104,6 +132,7 @@ export async function POST(request: Request) {
         referrer: referrer || null,
         ...withMetadata,
       })
+      if (error) return failed('team_card_events', error, event_type)
     }
 
     return NextResponse.json({ success: true })
