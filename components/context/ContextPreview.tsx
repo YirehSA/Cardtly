@@ -100,13 +100,16 @@ export default function ContextPreview({
     ...rows.map(r => ({ id: r.id, label: r.label || r.id, off: !r.enabled }))]
 
   return (
-    <div className="rounded-lg border border-border bg-card">
+    <div className="panel overflow-hidden">
       <div className="p-4 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2.5 min-w-0">
-          <Eye className="w-4 h-4 flex-shrink-0" style={{ color: 'hsl(var(--accent))' }} aria-hidden="true" />
+          <span aria-hidden="true" className="w-9 h-9 rounded-xl grid place-items-center flex-shrink-0"
+            style={{ background: 'rgba(168,85,247,0.14)', border: '1px solid rgba(168,85,247,0.35)' }}>
+            <Eye className="w-4 h-4" style={{ color: 'hsl(var(--accent))' }} />
+          </span>
           <div className="min-w-0">
-            <p className="font-semibold text-sm">Preview your Cardtly</p>
-            <p className="text-xs text-muted-foreground truncate">Previewing: {sourceLabel}</p>
+            <p className="section-title text-sm">Live preview</p>
+            <p className="text-xs text-muted-foreground truncate">{sourceLabel}</p>
           </div>
         </div>
         {collapsible && (
@@ -179,10 +182,16 @@ export default function ContextPreview({
           {/* The card itself. PreviewFrame declares the surface (no analytics,
               no writes) and swallows link navigation, so nothing in here can
               take the owner out of their own settings. */}
-          <div className="rounded-2xl overflow-hidden border" style={{ borderColor: 'hsl(var(--border))' }}>
+          {/* Framed like a handset, because that is where the card is read.
+              The bezel is what makes this pane stop looking like another
+              settings box with a screenshot in it. */}
+          <div className="rounded-[26px] p-2"
+            style={{ background: 'hsl(var(--muted) / 0.6)', border: '1px solid hsl(var(--border))' }}>
+            <div className="rounded-[20px] overflow-hidden border shadow-lg" style={{ borderColor: 'hsl(var(--border))' }}>
             <PreviewFrame className="cardtly-card-preview">
               <PublicCardView key={sourceId} card={card as any} isPro={isPro} previewContext={previewContext} />
             </PreviewFrame>
+            </div>
           </div>
         </div>
       )}

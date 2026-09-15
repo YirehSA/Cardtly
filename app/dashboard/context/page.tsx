@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Sparkles, ClipboardList, ArrowLeft } from 'lucide-react'
+import { Sparkles, ClipboardList, ArrowRight, Check, Users, User } from 'lucide-react'
+import PageHeader from '@/components/dashboard/PageHeader'
 import { resolveAddonTargets, mergeTeamAddons } from '@/lib/addon-target'
 import { getUserPlan } from '@/lib/plan-server'
 import { isIosApp } from '@/lib/app-platform'
@@ -54,9 +55,13 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
 
   if (!isPro) {
     return (
-      <div className="space-y-6">
-        <Header />
-        <div className="max-w-xl mx-auto rounded-lg border border-border bg-card p-8 text-center">
+      <div className="max-w-4xl mx-auto space-y-5 stagger pb-16">
+        <PageHeader
+          eyebrow="Cardtly Context"
+          title="One card, the right first impression"
+          subtitle="Arrange what a visitor sees based on who they are."
+        />
+        <div className="panel max-w-xl mx-auto p-8 text-center">
           <div className="w-14 h-14 rounded-lg mx-auto mb-4 flex items-center justify-center"
             style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.3)' }}>
             <Sparkles className="w-7 h-7" style={{ color: 'hsl(var(--accent))' }} />
@@ -79,9 +84,13 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
 
   if (!selected) {
     return (
-      <div className="space-y-6">
-        <Header />
-        <div className="max-w-xl mx-auto rounded-lg border border-border bg-card p-8 text-center">
+      <div className="max-w-4xl mx-auto space-y-5 stagger pb-16">
+        <PageHeader
+          eyebrow="Cardtly Context"
+          title="One card, the right first impression"
+          subtitle="Arrange what a visitor sees based on who they are."
+        />
+        <div className="panel max-w-xl mx-auto p-8 text-center">
           <h2 className="font-bold text-lg mb-2">No card yet</h2>
           <p className="text-sm text-muted-foreground">Create your card first and this page will configure it.</p>
         </div>
@@ -170,29 +179,61 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
     ? `${selected.label || 'your team'} (every card in the team)`
     : (selected.label || 'your personal card')
 
-  return (
-    <div className="space-y-6">
-      <Header />
+  const enabledCount = stored.config.audiences.filter(a => a.enabled).length
 
-      {/* CONTEXT IS NOT LIVE YET. Informational, not an error, and it does not
-          stop anything: the owner can configure and save today and it starts
-          working the day Cardtly turns the feature on. Reads the constant so
-          this notice removes itself at launch rather than being remembered. */}
+  return (
+    <div className="max-w-6xl mx-auto space-y-5 stagger pb-16">
+      {/* The house header, not a hand-rolled one. Every other dashboard page
+          gets its size, spacing, accent wash and rule from here; this page was
+          writing its own h1 and reading as the one screen nobody designed. */}
+      <PageHeader
+        eyebrow="Cardtly Context"
+        title="One card, the right first impression"
+        subtitle="Arrange what a visitor sees based on who they are. An IT manager and a finance director open the same link and each lands on what matters to them."
+        meta={
+          <>
+            <StatusChip on={stored.enabled} />
+            {stored.enabled && (
+              <span className="stat-chip">
+                <Sparkles className="w-3 h-3" aria-hidden="true" />
+                {enabledCount} audience{enabledCount === 1 ? '' : 's'} live
+              </span>
+            )}
+            <span className="stat-chip">
+              {isTeamWide ? <Users className="w-3 h-3" aria-hidden="true" /> : <User className="w-3 h-3" aria-hidden="true" />}
+              {isTeamWide ? 'Whole team' : 'Personal card'}
+            </span>
+          </>
+        }
+        actions={
+          <Link href="/dashboard/questionnaire"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-background text-sm font-semibold transition hover:bg-muted/50 min-h-11">
+            <ClipboardList className="w-4 h-4" aria-hidden="true" />
+            Lead capture
+          </Link>
+        }
+      />
+
+      {/* NOT LIVE YET. Informational, never an error, and it does not stop
+          anything: configure and save today, it starts working the day Cardtly
+          turns the feature on. Reads the constant so it removes itself at
+          launch rather than being remembered. */}
       {!CONTEXT_ENABLED && (
-        <div className="rounded-lg border p-4 flex items-start gap-3"
-          style={{ background: 'rgba(59,130,246,0.08)', borderColor: 'rgba(59,130,246,0.3)' }}>
-          <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#3b82f6' }} aria-hidden="true" />
-          <p className="text-xs leading-relaxed" style={{ color: 'hsl(var(--foreground))' }}>
+        <div className="panel p-4 flex items-start gap-3 overflow-hidden relative">
+          <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1"
+            style={{ background: 'linear-gradient(180deg,#00d4ff,#7c3aed)' }} />
+          <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0 ml-1.5" style={{ color: 'hsl(var(--accent))' }} aria-hidden="true" />
+          <p className="text-xs leading-relaxed">
             <span className="font-semibold">Context is in beta.</span>{' '}
-            You can set everything up and save it now. Personalised Context is not live on public cards yet,
+            Set everything up and save it now. Personalised Context is not live on public cards yet,
             so visitors currently see your normal card.
           </p>
         </div>
       )}
 
       {allTargets.length > 1 && (
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs font-semibold text-muted-foreground mb-2.5">Which card are you setting up?</p>
+        <div className="panel p-4">
+          <p className="section-label mb-2.5">Which card are you setting up?</p>
           <div className="flex flex-wrap gap-2">
             {allTargets.map(t => (
               <TargetLink
@@ -212,10 +253,10 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
         </div>
       )}
 
-      {/* Said again even with a single target, because the scope of a setting
-          should not depend on how many cards you happen to own. */}
+      {/* Said even with a single target: the scope of a setting should not
+          depend on how many cards you happen to own. */}
       {allTargets.length === 1 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground px-1">
           {isTeamWide
             ? 'These Context settings apply to every Cardtly in your team.'
             : 'These Context settings apply to your personal Cardtly only.'}
@@ -236,34 +277,22 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
         teamWide={isTeamWide}
         beta={!CONTEXT_ENABLED}
         previewCards={previewCards}
+        cardSlug={selected.table === 'organizations' ? null : (sourceRow?.slug ?? null)}
       />
-
-      <div className="rounded-lg border border-border bg-card p-4 flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <ClipboardList className="w-4 h-4 flex-shrink-0" style={{ color: 'hsl(var(--accent))' }} aria-hidden="true" />
-          <p className="text-sm font-semibold">Lead capture</p>
-        </div>
-        <Link href="/dashboard/questionnaire"
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border text-sm font-semibold transition min-h-11"
-          style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--background))' }}>
-          <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-          Back to Lead capture
-        </Link>
-      </div>
     </div>
   )
 }
 
-function Header() {
-  return (
-    <div>
-      <h1 className="font-display text-2xl font-bold flex items-center gap-2">
-        <Sparkles className="w-6 h-6" style={{ color: 'hsl(var(--accent))' }} aria-hidden="true" />
-        Cardtly Context
-      </h1>
-      <p className="text-muted-foreground text-sm mt-0.5">
-        Personalise your digital business card for different types of visitors.
-      </p>
-    </div>
+/** On or off, said in words and shape rather than colour alone. */
+function StatusChip({ on }: { on: boolean }) {
+  return on ? (
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-md border"
+      style={{ background: 'rgba(34,197,94,0.12)', borderColor: 'rgba(34,197,94,0.35)', color: '#16a34a' }}>
+      <Check className="w-3 h-3" aria-hidden="true" />
+      Context is on
+    </span>
+  ) : (
+    <span className="stat-chip">Context is off</span>
   )
 }
+

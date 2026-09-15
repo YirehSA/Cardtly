@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   Loader2, Sparkles, ChevronDown, ChevronUp, Eye, EyeOff, AlertTriangle, Save,
+  Crown, Cpu, TrendingUp, Megaphone, Users, ShoppingCart, Link2, Check, Copy,
 } from 'lucide-react'
 import {
   CONTEXT_AUDIENCE_IDS, STANDARD_SECTION_ORDER, MAX_CONTEXT_LABEL,
@@ -55,6 +56,9 @@ interface Props {
   isOrg: boolean
   teamWide: boolean
   beta: boolean
+  /** The card's public slug, for the personalised share link. Null for an
+   *  organisation, where every member has their own. */
+  cardSlug?: string | null
   /** The card the preview renders. For an organisation this is a real team
    *  member's card, because the same Context runs on many different ones. */
   previewCards: { id: string; label: string; card: Record<string, any> }[]
@@ -73,6 +77,25 @@ const AUDIENCE_NAME: Record<string, string> = {
   marketing: 'Marketing',
   hr: 'HR',
   procurement: 'Procurement',
+}
+
+/**
+ * A FACE PER AUDIENCE, so six rows stop looking like one row repeated.
+ *
+ * The list was six identical cards distinguished only by the word at the top,
+ * which meant finding IT was reading rather than glancing. An icon and a hue
+ * each make the list scannable in a way no amount of spacing was going to.
+ *
+ * Colour is never the only signal: every row still carries its name, its
+ * arrangement in words, and an On/Off switch with a visible label.
+ */
+const AUDIENCE_FACE: Record<string, { Icon: typeof Crown; hue: string }> = {
+  executive:   { Icon: Crown,        hue: '#f59e0b' },
+  it:          { Icon: Cpu,          hue: '#0ea5e9' },
+  sales:       { Icon: TrendingUp,   hue: '#22c55e' },
+  marketing:   { Icon: Megaphone,    hue: '#ec4899' },
+  hr:          { Icon: Users,        hue: '#a855f7' },
+  procurement: { Icon: ShoppingCart, hue: '#14b8a6' },
 }
 
 /**
@@ -104,7 +127,7 @@ function fromDraft(d: DraftAudience) {
 
 export default function ContextEditor({
   target, targetLabel, enabled, audiences, defaultAudience,
-  links, bookingAvailable, populated, isOrg, teamWide, beta, previewCards = [],
+  links, bookingAvailable, populated, isOrg, teamWide, beta, previewCards = [], cardSlug = null,
 }: Props) {
   const router = useRouter()
   // WHICH CARD THE PREVIEW RENDERS. Preview state, not configuration, so it is
@@ -229,43 +252,68 @@ export default function ContextEditor({
   return (
     <div className="space-y-4">
       {/* ── The add-on switch ─────────────────────────────────────────── */}
-      <div className="rounded-lg border border-border bg-card p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.3)' }}>
-              <Sparkles className="w-5 h-5" style={{ color: 'hsl(var(--accent))' }} aria-hidden="true" />
+      {/* THE ONE DECISION THAT GOVERNS THE PAGE, so it gets the weight of one
+          rather than sitting in a row that looks like every other row. The
+          gradient edge is the only piece of brand colour on the screen; the
+          audiences below carry their own hues and would fight it anywhere
+          else. */}
+      <div className="panel panel-hover overflow-hidden relative">
+        <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1"
+          style={{ background: on ? 'linear-gradient(180deg,#00d4ff,#7c3aed,#ec4899)' : 'hsl(var(--border))' }} />
+        <div className="p-4 sm:p-5 pl-5 sm:pl-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3.5 min-w-0">
+              <div className="w-11 h-11 rounded-xl grid place-items-center flex-shrink-0 transition-colors"
+                style={on
+                  ? { background: 'rgba(168,85,247,0.14)', border: '1px solid rgba(168,85,247,0.35)' }
+                  : { background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))' }}>
+                <Sparkles className="w-5 h-5" aria-hidden="true"
+                  style={{ color: on ? 'hsl(var(--accent))' : 'hsl(var(--muted-foreground))' }} />
+              </div>
+              <div className="min-w-0">
+                <p className="section-title text-base">Cardtly Context</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-md">
+                  {teamWide
+                    ? 'Arranges every card in your team around whoever is looking at it.'
+                    : 'Arranges your card around whoever is looking at it.'}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="font-bold text-sm">Cardtly Context</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {teamWide
-                  ? 'Arranges every card in your team around whoever is looking at it.'
-                  : 'Arranges your card around whoever is looking at it.'}
-              </p>
-            </div>
+            <Switch checked={on} onChange={setOn} label="Cardtly Context" />
           </div>
-          <Switch checked={on} onChange={setOn} label="Cardtly Context" />
-        </div>
 
-        {/* OFF IS NOT AN EDITING LOCK. Preparing a campaign before switching it
-            on is a completely reasonable thing to want to do. */}
-        {!on && (
-          <p className="text-xs text-muted-foreground mt-3">
-            Context is currently off. You can still prepare your audience settings and save them.
-          </p>
-        )}
-        {on && (
-          <p className="text-xs text-muted-foreground mt-3">
-            {enabledRows.length
-              ? `${enabledRows.length} audience${enabledRows.length === 1 ? '' : 's'} switched on.`
-              : 'No audiences are switched on yet, so this card behaves normally.'}
-          </p>
-        )}
+          {/* OFF IS NOT AN EDITING LOCK. Preparing before switching on is a
+              completely reasonable thing to want to do. */}
+          <div className="mt-3.5 pt-3.5 border-t" style={{ borderColor: 'hsl(var(--border))' }}>
+            {!on ? (
+              <p className="text-xs text-muted-foreground">
+                Switched off. You can still set your audiences up and save them, ready for when you turn it on.
+              </p>
+            ) : enabledRows.length ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-muted-foreground">Live for</span>
+                {enabledRows.map(r => {
+                  const face = AUDIENCE_FACE[r.id]
+                  return (
+                    <span key={r.id} className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-md border"
+                      style={{ background: `${face.hue}1f`, borderColor: `${face.hue}59`, color: 'hsl(var(--foreground))' }}>
+                      <face.Icon className="w-3 h-3" style={{ color: face.hue }} aria-hidden="true" />
+                      {r.label || r.id}
+                    </span>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                No audiences are switched on yet, so this card behaves exactly as it does now.
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* ── Default audience ──────────────────────────────────────────── */}
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="panel p-4 sm:p-5">
         <label htmlFor="ctx-default" className="block text-sm font-semibold mb-1">Default audience</label>
         <p className="text-xs text-muted-foreground mb-2.5">
           Used when no specific audience has been selected. If Cardtly receives an audience you have
@@ -305,6 +353,7 @@ export default function ContextEditor({
             bookingAvailable={bookingAvailable}
             populated={populated}
             isOrg={isOrg}
+            cardSlug={cardSlug}
           />
         ))}
       </div>
@@ -342,19 +391,25 @@ export default function ContextEditor({
           mis-tap, and exactly the "sticky save covering controls" failure to
           watch for. Cleared on small screens and flush again from lg, where
           the nav is not rendered at all. */}
-      <div className="sticky bottom-16 lg:bottom-0 -mx-4 px-4 pt-3 pb-3 border-t z-20"
+      <div className="sticky bottom-16 lg:bottom-0 -mx-4 sm:-mx-8 px-4 sm:px-8 pt-3 pb-3 border-t z-20"
         style={{ background: 'hsl(var(--background))', borderColor: 'hsl(var(--border))' }}>
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-xs text-muted-foreground">
-            {dirty ? 'You have unsaved changes.' : 'Everything is saved.'}
-            {beta && ' Context is not live on public cards yet.'}
+          <p className="text-xs flex items-center gap-2 min-w-0">
+            {/* Shape as well as colour: a dot alone would put the whole state
+                on a hue, and the sentence beside it carries it anyway. */}
+            <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+              style={{ background: dirty ? '#f59e0b' : '#22c55e' }} />
+            <span className={dirty ? 'font-semibold' : 'text-muted-foreground'}>
+              {dirty ? 'Unsaved changes' : 'Everything is saved'}
+            </span>
+            {beta && <span className="text-muted-foreground hidden sm:inline">Not live on public cards yet.</span>}
           </p>
           <button
             type="button"
             onClick={save}
             disabled={!dirty || saving}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed min-h-11"
-            style={{ background: 'hsl(var(--accent))' }}
+            className="btn-sheen inline-flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none min-h-11"
+            style={{ background: dirty ? 'linear-gradient(135deg,#00d4ff,#7c3aed,#ec4899)' : 'hsl(var(--muted-foreground))' }}
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Save className="w-4 h-4" aria-hidden="true" />}
             {saving ? 'Saving...' : 'Save changes'}
@@ -364,6 +419,61 @@ export default function ContextEditor({
         <p className="text-[11px] text-muted-foreground mt-1.5">
           These settings apply to {targetLabel}.
         </p>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The personalised link for one audience, ready to send.
+ *
+ * THE MACHINE ID APPEARS HERE AND NOWHERE ELSE. It is deliberately kept out of
+ * the rest of the interface - an owner is choosing "Technology / IT", not
+ * typing `it` - but the moment they want to send the link it stops being
+ * jargon and becomes the thing they need. So it shows up exactly once, in the
+ * place where it is useful, as part of a URL rather than as a field.
+ *
+ * Copy rather than a mailto or a share sheet: this gets pasted into WhatsApp,
+ * an email signature, a printed QR, and we cannot know which.
+ */
+function ShareLink({ slug, audienceId, hue }: { slug: string; audienceId: string; hue: string }) {
+  const [copied, setCopied] = useState(false)
+  // The canonical public host, written out rather than derived. This string
+  // is going into a WhatsApp message, an email signature and printed QR codes,
+  // so it has to be the address that answers directly: the apex 307s to www,
+  // and a redirect in a printed link is a redirect forever.
+  const url = `https://www.cardtly.com/card/${slug}?a=${audienceId}`
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      toast.success('Link copied')
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard can be refused (insecure context, permissions). Saying so
+      // beats a button that silently does nothing.
+      toast.error('Could not copy. Select the link and copy it manually.')
+    }
+  }
+
+  return (
+    <div className="px-4 pb-4 -mt-1">
+      <div className="flex items-center gap-2 rounded-xl border px-3 py-2"
+        style={{ background: 'hsl(var(--muted) / 0.4)', borderColor: 'hsl(var(--border))' }}>
+        <Link2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: hue }} aria-hidden="true" />
+        {/* Selectable, wrapping, and monospaced so a glanced-at URL is legible.
+            Not an input: it is not editable and should not look editable. */}
+        <code className="text-[11px] leading-relaxed min-w-0 flex-1 break-all select-all text-muted-foreground">
+          {url}
+        </code>
+        <button type="button" onClick={copy}
+          aria-label={`Copy the personalised link for ${audienceId}`}
+          className="w-11 h-11 -my-2 -mr-2 rounded-lg grid place-items-center flex-shrink-0 transition hover:bg-white/5">
+          {copied
+            ? <Check className="w-4 h-4" style={{ color: '#22c55e' }} aria-hidden="true" />
+            : <Copy className="w-4 h-4 text-muted-foreground" aria-hidden="true" />}
+        </button>
       </div>
     </div>
   )
@@ -388,7 +498,7 @@ function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: 
 
 function AudienceRow({
   row, expanded, onToggleExpand, onEnabled, onLabel, onMove, onHide, onCta,
-  links, bookingAvailable, populated, isOrg,
+  links, bookingAvailable, populated, isOrg, cardSlug,
 }: {
   row: DraftAudience
   expanded: boolean
@@ -402,29 +512,56 @@ function AudienceRow({
   bookingAvailable: boolean
   populated: Record<ContextSection, boolean>
   isOrg: boolean
+  cardSlug: string | null
 }) {
   const name = AUDIENCE_NAME[row.id] || row.id
   const visible = row.sections.filter(s => !row.hide.includes(s))
   const ctaSummary = describeCta(row.cta, links, isOrg)
+  const face = AUDIENCE_FACE[row.id] || { Icon: Sparkles, hue: '#7c3aed' }
 
   return (
-    <div className="rounded-lg border border-border bg-card">
-      <div className="p-4 flex items-start justify-between gap-3">
+    // A LIVE AUDIENCE LOOKS LIVE. An off one is quiet but never disabled: its
+    // settings are intact and still editable, which is the whole promise of the
+    // persisted-disabled model, so greying it out would be a lie.
+    <div className="panel panel-hover overflow-hidden transition-colors"
+      style={row.enabled ? { borderColor: `${face.hue}4d` } : undefined}>
+      <div className="flex items-start gap-3 p-4">
         <button type="button" onClick={onToggleExpand} aria-expanded={expanded}
-          className="flex items-start gap-2.5 text-left min-w-0 flex-1 min-h-11">
-          {expanded
-            ? <ChevronUp className="w-4 h-4 mt-1 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
-            : <ChevronDown className="w-4 h-4 mt-1 flex-shrink-0 text-muted-foreground" aria-hidden="true" />}
-          <span className="min-w-0">
-            <span className="block font-semibold text-sm">{row.label || name}</span>
-            <span className="block text-xs text-muted-foreground mt-0.5">
+          className="flex items-start gap-3 text-left min-w-0 flex-1 min-h-11 rounded-lg">
+          <span aria-hidden="true"
+            className="w-9 h-9 rounded-xl grid place-items-center flex-shrink-0 mt-0.5 transition-colors"
+            style={row.enabled
+              ? { background: `${face.hue}1f`, border: `1px solid ${face.hue}59` }
+              : { background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))' }}>
+            <face.Icon className="w-4 h-4"
+              style={{ color: row.enabled ? face.hue : 'hsl(var(--muted-foreground))' }} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-sm">{row.label || name}</span>
+              {!row.enabled && <span className="stat-chip">Off</span>}
+            </span>
+            {/* The arrangement in words, so the collapsed row answers "what
+                does this audience actually do" without opening it. */}
+            <span className="block text-xs text-muted-foreground mt-1 leading-relaxed">
               {visible.length ? visible.map(s => SECTION_LABEL[s]).join(' → ') : 'Everything hidden'}
             </span>
             <span className="block text-xs text-muted-foreground">{ctaSummary.short}</span>
           </span>
+          <span aria-hidden="true" className="flex-shrink-0 mt-1.5 text-muted-foreground">
+            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </span>
         </button>
         <Switch checked={row.enabled} onChange={onEnabled} label={`${name} audience`} />
       </div>
+
+      {/* THE LINK THAT MAKES THIS USEFUL. An audience you cannot send anybody
+          to is a setting, not a feature: the id is permanent, it belongs in a
+          WhatsApp message, and the owner should never have to construct it by
+          hand from a machine name they were deliberately never shown. */}
+      {row.enabled && cardSlug && (
+        <ShareLink slug={cardSlug} audienceId={row.id} hue={face.hue} />
+      )}
 
       {expanded && (
         <div className="px-4 pb-4 space-y-4 border-t pt-4" style={{ borderColor: 'hsl(var(--border))' }}>
