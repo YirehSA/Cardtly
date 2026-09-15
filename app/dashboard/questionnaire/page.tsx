@@ -194,6 +194,24 @@ export default async function LeadCapturePage({ searchParams }: { searchParams: 
           importable={importable}
         />
       </div>
+
+      {/* Context lives on its own page. It is a different job to lead capture
+          (what the card SHOWS versus what it ASKS) and it needs a preview, so
+          folding it in here would have made one screen do two things. */}
+      <div className="rounded-lg border border-border bg-card p-4 flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-start gap-2.5 min-w-0">
+          <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'hsl(var(--accent))' }} aria-hidden="true" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">Cardtly Context</p>
+            <p className="text-xs text-muted-foreground">Personalise your Cardtly experience for different audiences.</p>
+          </div>
+        </div>
+        <Link href="/dashboard/context"
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border text-sm font-semibold transition min-h-11"
+          style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--background))' }}>
+          Configure Context
+        </Link>
+      </div>
     </div>
   )
 }
