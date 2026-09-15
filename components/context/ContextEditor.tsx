@@ -39,6 +39,11 @@ export interface DraftAudience {
   /** ALL THREE, always, in visitor order. Hidden ones included. */
   sections: ContextSection[]
   hide: ContextSection[]
+  /** Which link slots this audience shows. null means every link, which is
+   *  what an audience nobody has configured that way must keep doing. Carried
+   *  through the draft before the picker exists, so saving from this editor
+   *  cannot strip a selection made anywhere else. */
+  links: number[] | null
   cta: ContextCta | null
 }
 
@@ -116,13 +121,14 @@ function toDraft(a: ContextAudience | null, id: string): DraftAudience {
     label: a?.label ?? AUDIENCE_NAME[id] ?? id,
     sections: [...placed, ...rest],
     hide: a?.hide ?? [],
+    links: a?.links ?? null,
     cta: a?.cta ?? null,
   }
 }
 
 /** The draft turned back into what the API stores. */
 function fromDraft(d: DraftAudience) {
-  return { id: d.id, enabled: d.enabled, label: d.label, order: d.sections, hide: d.hide, cta: d.cta }
+  return { id: d.id, enabled: d.enabled, label: d.label, order: d.sections, hide: d.hide, links: d.links, cta: d.cta }
 }
 
 export default function ContextEditor({

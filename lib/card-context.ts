@@ -275,6 +275,26 @@ export interface ContextAudience {
   order: ContextSection[]
   /** Sections to leave out entirely for this audience. */
   hide: ContextSection[]
+  /**
+   * WHICH LINKS THIS AUDIENCE SEES, as an ordered list of slot numbers.
+   *
+   * THREE STATES, NOT TWO, and the distinction is the whole design:
+   *
+   *   null   nobody has chosen  -> every link, in the card's own order
+   *   [3, 1] these two, in this order
+   *   []     chosen emptiness   -> no links at all
+   *
+   * null rather than an empty array for "unconfigured" because every config
+   * written before this field existed has no such key, and a schema change is
+   * not allowed to silently empty somebody's links section. Same reasoning as
+   * `enabled`, and the same absent-versus-explicit rule the resolver runs on.
+   *
+   * SLOT NUMBERS ARE SAFE TO STORE. link_3_url is a column identity, not a
+   * position in a list: there is no reorder, no drag handle and no
+   * delete-and-compact anywhere in the editor, so clearing slot 2 leaves slot 3
+   * exactly where it was. The CTA has referenced slots this way since Task 2.
+   */
+  links: number[] | null
   cta: ContextCta | null
 }
 
@@ -343,6 +363,37 @@ function sectionList(v: unknown): ContextSection[] {
   for (const item of v.slice(0, CONTEXT_SECTIONS.length * 4)) {
     const s = section(item)
     if (s && !out.includes(s)) out.push(s)
+  }
+  return out
+}
+
+/**
+ * An ordered list of link slots, or null for "nobody has chosen".
+ *
+ * FAILS OPEN, DELIBERATELY. A malformed value returns null, which shows every
+ * link, rather than an empty array, which would hide them all. Neutralising a
+ * bad field is the parser's standing rule; hiding an owner's content because
+ * we could not read something is not neutral, it is destructive. Emptiness has
+ * to be something somebody actually said.
+ */
+function slotList(raw: Record<string, unknown>, key: string): number[] | null {
+  // ABSENT AND MALFORMED DELIBERATELY SHARE THIS LINE. An explicit `key in raw`
+  // test used to sit above it and was pure decoration: undefined is not an
+  // array either, so both already land on null, which is "show everything".
+  // They are only worth telling apart if they should behave differently, and
+  // here they must not - a value we cannot read has to be as harmless as no
+  // value at all. A mutation test caught the redundancy.
+  const v = raw[key]
+  if (!Array.isArray(v)) return null
+
+  const out: number[] = []
+  // Capped the same way sectionList is, so a flooded array cannot be used to
+  // make the parser do work on a public card.
+  for (const item of v.slice(0, MAX_LINK_INDEX * 4)) {
+    if (typeof item !== 'number' || !Number.isInteger(item)) continue
+    if (item < 1 || item > MAX_LINK_INDEX) continue
+    if (out.includes(item)) continue
+    out.push(item)
   }
   return out
 }
@@ -428,7 +479,7 @@ function parseAudience(v: unknown): ContextAudience | null {
   // owner's stored arrangement behind their back.
   const order = sectionList(v.order)
 
-  return { id, enabled: parseEnabled(v), label, order, hide, cta: parseCta(v.cta) }
+  return { id, enabled: parseEnabled(v), label, order, hide, links: slotList(v, 'links'), cta: parseCta(v.cta) }
 }
 
 /**
@@ -1214,6 +1265,49 @@ export function orderSections(
   } catch {
     // Never let an arrangement decision cost somebody their card.
     return Array.isArray(available) ? [...available] : []
+  }
+}
+
+/**
+ * The links this audience should see, in the order it asked for.
+ *
+ * TOTAL AND NON-DESTRUCTIVE. Anything it cannot make sense of returns the
+ * card's own links untouched, because the failure mode of a link filter must
+ * be "shows too much", never "shows nothing".
+ *
+ *   no context / no selection  -> every link, card order
+ *   [3, 1]                     -> slot 3 then slot 1, skipping any that are empty
+ *   []                         -> nothing, and the links section renders nothing
+ *
+ * A SELECTED SLOT THAT IS NOW EMPTY SIMPLY DISAPPEARS. Same rule the CTA has
+ * always had: the owner cleared link 3 on their card, so there is no link 3 to
+ * show, and that is not a reason to break the audience or to substitute a
+ * different link they never chose.
+ *
+ * THIS IS NOT WHAT THE CTA USES. A Context CTA is additive - it recommends a
+ * next step and is deliberately not a member of the links list - so an audience
+ * may show two links while its CTA points at a third it does not list.
+ * resolveContextCta must keep receiving the card's FULL link list, or hiding a
+ * link would silently kill a CTA pointing at it.
+ */
+export function visibleLinks<T extends { index: number }>(
+  links: readonly T[],
+  context: ResolvedContext | null,
+): T[] {
+  try {
+    const all = Array.isArray(links) ? [...links] : []
+    const wanted = context?.audience?.links
+    if (!Array.isArray(wanted)) return all
+    const byIndex = new Map(all.map(l => [l.index, l]))
+    const out: T[] = []
+    for (const i of wanted) {
+      const hit = byIndex.get(i)
+      if (hit && !out.includes(hit)) out.push(hit)
+    }
+    return out
+  } catch {
+    // Same backstop as everything else on the public render path.
+    return Array.isArray(links) ? [...links] : []
   }
 }
 

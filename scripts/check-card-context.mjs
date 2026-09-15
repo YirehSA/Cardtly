@@ -1556,6 +1556,97 @@ function parse(label, input) {
 }
 
 
+// == TASK 10a: which links an audience shows ===============================
+//
+// THE RULE THAT CARRIES THE WEIGHT. Absent, empty and malformed are three
+// different things, and only one of them hides anything:
+//
+//   key absent     every link      nobody chose, and a schema change must not
+//                                  empty a links section that works today
+//   [3, 1]         those two
+//   []             none            chosen emptiness, said out loud
+//   junk           every link      fails OPEN: neutralising a bad field is the
+//                                  standing rule, and hiding somebody's
+//                                  content because we could not read a value
+//                                  is not neutral
+{
+  const P = on.parseContextConfig
+  const V = on.visibleLinks
+  const LINKS = [
+    { index: 1, title: 'Features', url: 'https://e.com/f' },
+    { index: 2, title: 'Network', url: 'https://e.com/n' },
+    { index: 3, title: 'How it Works', url: 'https://e.com/h' },
+  ]
+  const aud = (extra) => P({ audiences: [{ id: 'it', ...extra }] }).audiences[0]
+  const ctx = (a) => ({ audience: a, source: 'sender' })
+  const idx = (r) => r.map(l => l.index).join(',')
+
+  // ── 1. The four stored states ──────────────────────────────────────────
+  if (aud({}).links !== null) bad('an audience with no links key did not parse as null, so every existing config would change what it shows')
+  if (idx(V(LINKS, ctx(aud({})))) !== '1,2,3') bad('an unconfigured audience did not show every link')
+
+  const two = aud({ links: [3, 1] })
+  if (!Array.isArray(two.links) || two.links.join(',') !== '3,1') bad(`a slot list did not survive parsing: ${JSON.stringify(two.links)}`)
+  if (idx(V(LINKS, ctx(two))) !== '3,1') bad('a slot list did not control the order the links render in')
+
+  const none = aud({ links: [] })
+  if (!Array.isArray(none.links) || none.links.length !== 0) bad('an explicitly empty selection did not survive as empty')
+  if (V(LINKS, ctx(none)).length !== 0) bad('an explicitly empty selection still rendered links')
+
+  for (const junk of ['abc', 42, {}, null, true]) {
+    const a = aud({ links: junk })
+    if (a.links !== null) bad(`a malformed links value ${JSON.stringify(junk)} did not fail open to null`)
+    if (idx(V(LINKS, ctx(a))) !== '1,2,3') bad(`a malformed links value ${JSON.stringify(junk)} hid links instead of failing open`)
+  }
+
+  // ── 2. Slot hygiene, the same treatment parseCta gives an index ────────
+  const messy = aud({ links: [3, 3, 0, 99, 2.5, '1', -4, NaN, 2] })
+  if (messy.links.join(',') !== '3,2') bad(`slot hygiene failed: ${JSON.stringify(messy.links)}`)
+  const flooded = aud({ links: Array(9000).fill(1) })
+  if (flooded.links.length !== 1) bad('a flooded slot list was not reduced')
+
+  // ── 3. A selected slot that is now empty simply disappears ─────────────
+  const cleared = aud({ links: [3, 2] })
+  if (idx(V([LINKS[1]], ctx(cleared))) !== '2') bad('clearing a selected link broke the rest of the selection')
+  if (V([], ctx(cleared)).length !== 0) bad('a card with no links still rendered some')
+
+  // ── 4. THE TRAP. The CTA is additive and must not be filtered ──────────
+  //
+  // BottomSection uses the card's links twice: to build the links section and
+  // to resolve the CTA. Filter once and pass the result to both, and hiding a
+  // link silently kills a CTA pointing at it. An audience may legitimately
+  // show two links while recommending a third it does not list.
+  {
+    const a = P({ audiences: [{ id: 'it', links: [1], cta: { kind: 'link', index: 3, label: 'Deep dive' } }] }).audiences[0]
+    const shown = V(LINKS, ctx(a))
+    if (idx(shown) !== '1') bad('the links selection was not applied')
+    const cta = on.resolveContextCta(ctx(a), LINKS, false)
+    if (!cta || cta.kind !== 'link' || !/Deep dive/.test(cta.label)) {
+      bad('a CTA pointing at a link the audience does not list stopped resolving. resolveContextCta must keep receiving the card FULL link list, never the filtered one.')
+    }
+    // And the reverse: resolving the CTA against the filtered list is exactly
+    // the mistake, so prove it would be visible.
+    if (on.resolveContextCta(ctx(a), shown, false) !== null) {
+      bad('this check cannot detect the filtered-list mistake any more')
+    }
+  }
+
+  // ── 5. Hiding the section still wins over any selection ────────────────
+  {
+    const a = aud({ links: [1, 2], hide: ['links'] })
+    if (on.orderSections(on.STANDARD_SECTION_ORDER, ctx(a)).includes('links')) {
+      bad('a hidden links section was rendered because the audience had a link selection')
+    }
+  }
+
+  // ── 6. Total, like everything else on the render path ──────────────────
+  for (const junk of [null, undefined, 'x', 42, {}, []]) {
+    try { V(junk, null); V(LINKS, junk) } catch (e) { bad(`visibleLinks threw on ${String(junk)}: ${e.message}`) }
+  }
+  if (idx(V(LINKS, null)) !== '1,2,3') bad('no context did not mean every link')
+}
+
+
 // ══ TASK 9b MUTATIONS: prove each rule is load bearing ════════════════════
 //
 // A guard nobody has broken on purpose is a guard nobody knows works. Each
@@ -1605,6 +1696,31 @@ function parse(label, input) {
       what: 'a hidden section keeps its position in the stored order',
       mutate: [['  const order = sectionList(v.order)', '  const order = sectionList(v.order).filter(s => !hide.includes(s))']],
       broken: m => !m.parseContextConfig({ audiences: [{ id: 'it', order: ['links', 'gallery'], hide: ['gallery'] }] }).audiences[0].order.includes('gallery'),
+    },
+    {
+      what: 'a malformed links value fails open rather than hiding links',
+      mutate: [['  if (!Array.isArray(v)) return null', '  if (!Array.isArray(v)) return []']],
+      broken: m => {
+        const a = m.parseContextConfig({ audiences: [{ id: 'it', links: 'abc' }] }).audiences[0]
+        return m.visibleLinks([{ index: 1 }], { audience: a, source: 'sender' }).length === 0
+      },
+    },
+    {
+      what: 'an explicitly empty selection shows nothing',
+      mutate: [['    if (!Array.isArray(wanted)) return all', '    if (!Array.isArray(wanted) || wanted.length === 0) return all']],
+      broken: m => {
+        const a = m.parseContextConfig({ audiences: [{ id: 'it', links: [] }] }).audiences[0]
+        return m.visibleLinks([{ index: 1 }], { audience: a, source: 'sender' }).length > 0
+      },
+    },
+    {
+      what: 'the selection controls the order links render in',
+      mutate: [['    for (const i of wanted) {', '    for (const i of [...wanted].sort()) {']],
+      broken: m => {
+        const a = m.parseContextConfig({ audiences: [{ id: 'it', links: [3, 1] }] }).audiences[0]
+        return m.visibleLinks([{ index: 1 }, { index: 3 }], { audience: a, source: 'sender' })
+          .map(l => l.index).join(',') !== '3,1'
+      },
     },
     {
       what: 'the platform switch does not block configuration',
