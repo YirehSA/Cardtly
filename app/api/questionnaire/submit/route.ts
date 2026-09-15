@@ -63,7 +63,14 @@ export async function POST(request: Request) {
     source: 'questionnaire',
   })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    // ANONYMOUS ENDPOINT. Anyone on the internet can reach this, so a Postgres
+    // message going back in the response hands a stranger table names, column
+    // names, constraint names and sometimes row contents. The detail is logged
+    // where we can read it; the visitor gets something they can act on.
+    console.error('questionnaire submit failed:', error)
+    return NextResponse.json({ error: 'Could not send that. Please try again.' }, { status: 500 })
+  }
 
   // Non-fatal: the lead is saved either way.
   await notifyLeadRecipients(
