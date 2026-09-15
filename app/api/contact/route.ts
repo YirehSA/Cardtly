@@ -1,5 +1,6 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { sanitiseContactMetadata } from '@/lib/card-context'
 import { enqueueLeadCreated } from '@/lib/webhook-dispatch'
 import { resolveCardOwner } from '@/lib/card-owner'
 import { notifyLeadRecipients } from '@/lib/lead-notify'
@@ -20,6 +21,10 @@ export async function POST(request: Request) {
     if (!card_id && !team_card_id) {
       return NextResponse.json({ error: 'Missing card reference' }, { status: 400 })
     }
+
+    // Allow-listed, and null for anything unrecognised. Null never rejects the
+    // contact: a lead is worth more than its attribution.
+    const contextMeta = sanitiseContactMetadata(body.metadata)
 
     const admin = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,12 +48,20 @@ export async function POST(request: Request) {
         phone:   phone || null,
         message: message || null,
         source:  'card_form',
+        // Validated against an allow-list. Only named when present, so an
+        // ordinary exchange never references the column and this is safe to
+        // deploy before migration 081 runs.
+        ...(contextMeta ? { metadata: contextMeta } : {}),
       })
       .select('id')
       .single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      // The raw Postgres message names tables, columns and constraints. This
+      // endpoint is anonymous and public, so that goes to the server log and
+      // the visitor gets a generic failure. Same rule as /api/analytics.
+      console.error('contact insert failed', { code: (error as any)?.code ?? null, message: (error as any)?.message ?? null })
+      return NextResponse.json({ error: 'Could not save your details' }, { status: 500 })
     }
 
     // Queue the lead for any CRM the team has connected. Never awaited for

@@ -447,6 +447,10 @@ interface BottomProps {
    *  which is what removes the control from the card. */
   contextControls?: {
     audiences: readonly import('@/lib/card-context').ContextAudience[]
+    /** The resolved SELECTION, regardless of whether its transform is
+     *  currently displayed. Contact Exchange uses this so that opening the
+     *  full profile does not quietly withdraw the visitor's choice. */
+    selected: ResolvedContext | null
     activeId: string | null
     showingFull: boolean
     onSelect: (id: string) => void
@@ -919,6 +923,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           onClose={() => setExchangeOpen(false)}
           ownerName={card.name || ''}
           ownerCompany={card.company}
+          context={contextControls?.selected ?? null}
           cardId={isTeamCard ? null : card.id}
           teamCardId={isTeamCard ? ((card as any)._team_card_id || null) : null}
           accentHex={accentHex}
@@ -1316,6 +1321,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
   const bottomProps: BottomProps = { card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context: showFullProfile ? null : activeContext,
     contextControls: contextAudiences.length ? {
       audiences: contextAudiences,
+      selected: activeContext,
       activeId: activeContext?.audience.id ?? null,
       showingFull: showFullProfile,
       onSelect: chooseAudience,

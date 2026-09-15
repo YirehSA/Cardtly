@@ -937,6 +937,79 @@ function parse(label, input) {
   }
 }
 
+// ══ TASK 8: what travels with a contact ═══════════════════════════════════
+//
+// THE RULE UNDER TEST. A sender's ?a=it is Andre's guess about Chris. It is
+// not Chris saying "I am IT". Only a visitor's own choice may be recorded as
+// qualification ABOUT a person; everything else records what was active and
+// stops there. Storing an assumption as a stated fact is how a CRM fills up
+// with things nobody said.
+{
+  const B = on.contactContextMetadata
+  const V = on.sanitiseContactMetadata
+  const aud = (id, label) => on.parseContextConfig({ audiences: [{ id, label }] }).audiences[0]
+
+  // ── visitor: self-declared, so id AND the label they saw ────────────────
+  const visitor = B({ audience: aud('procurement', 'Procurement'), source: 'visitor' })
+  const vc = visitor?.context
+  if (vc?.selectedAudience !== 'procurement') bad('a visitor choice did not record selectedAudience')
+  if (vc?.selectedLabel !== 'Procurement') bad('a visitor choice did not snapshot the label they saw')
+  if (vc?.activeAudience !== 'procurement' || vc?.activeSource !== 'visitor') bad('visitor active attribution wrong')
+
+  // ── sender and default: attribution ONLY, never self-declaration ────────
+  for (const src of ['sender', 'default']) {
+    const m = B({ audience: aud('it', 'IT'), source: src })?.context
+    if (!m) { bad(`${src}: produced nothing`); continue }
+    if ('selectedAudience' in m) bad(`${src} recorded selectedAudience; that would turn an assumption into a stated fact`)
+    if ('selectedLabel' in m) bad(`${src} recorded selectedLabel`)
+    if (m.activeAudience !== 'it' || m.activeSource !== src) bad(`${src}: active attribution wrong`)
+  }
+
+  if (B(null) !== null) bad('no context produced metadata')
+
+  // ── the validator honours the same rule against a hostile client ────────
+  // A browser claiming a selectedAudience alongside source 'sender' is
+  // claiming the visitor said something they did not.
+  const forged = V({ context: { selectedAudience: 'it', selectedLabel: 'IT', activeAudience: 'it', activeSource: 'sender', version: 1 } })
+  if (!forged) bad('a valid sender payload was rejected')
+  else if ('selectedAudience' in forged.context) bad('a client forged a self-declaration onto a sender context and it was stored')
+
+  const ok = V({ context: { selectedAudience: 'it', selectedLabel: 'IT', activeAudience: 'it', activeSource: 'visitor', version: 1 } })
+  if (ok?.context?.selectedAudience !== 'it' || ok?.context?.selectedLabel !== 'IT') bad('a genuine visitor payload lost its self-declaration')
+
+  // ── refusals, and never throwing ────────────────────────────────────────
+  const REJECT = [
+    ['null', null], ['a string', 'x'], ['an array', []], ['empty', {}],
+    ['no context', { other: {} }],
+    ['no activeAudience', { context: { activeSource: 'visitor', version: 1 } }],
+    ['bad audience format', { context: { activeAudience: 'IT Manager', activeSource: 'visitor', version: 1 } }],
+    ['invented source', { context: { activeAudience: 'it', activeSource: 'admin', version: 1 } }],
+    ['wrong version', { context: { activeAudience: 'it', activeSource: 'visitor', version: 2 } }],
+    ['oversized', { context: { activeAudience: 'it', activeSource: 'visitor', version: 1, pad: 'x'.repeat(4000) } }],
+  ]
+  for (const [label, input] of REJECT) {
+    let r; try { r = V(input) } catch (e) { bad(`sanitiseContactMetadata threw on ${label}: ${e.message}`); continue }
+    if (r !== null) bad(`${label} was accepted, expected null`)
+  }
+
+  // ── NOTHING PERSONAL, same rule as the analytics metadata ───────────────
+  const personal = V({ context: {
+    activeAudience: 'it', activeSource: 'visitor', version: 1,
+    name: 'Chris', email: 'chris@example.com', phone: '+27821234567', company: 'TBC',
+  } })
+  if (personal && Object.keys(personal.context).sort().join(',') !== 'activeAudience,activeSource,version') {
+    bad(`personal data survived into contact metadata: ${Object.keys(personal.context).join(',')}`)
+  }
+
+  // ── builder and validator must agree, or contacts silently lose it ──────
+  for (const src of ['visitor', 'sender', 'default']) {
+    const built = B({ audience: aud('executive', 'Executive / Owner / CEO'), source: src })
+    if (JSON.stringify(V(built)) !== JSON.stringify(built)) {
+      bad(`${src}: contactContextMetadata produced something its own validator alters: ${JSON.stringify(built)} -> ${JSON.stringify(V(built))}`)
+    }
+  }
+}
+
 for (const d of [onDir, offDir]) { try { rmSync(d, { recursive: true, force: true }) } catch {} }
 
 if (fail) {

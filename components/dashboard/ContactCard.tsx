@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   Mail, Phone, MessageSquare, Calendar, ScanLine, Globe, MapPin,
-  Pencil, Trash2, Check, X, Loader2, MessageCircle,
+  Pencil, Trash2, Check, X, Loader2, MessageCircle, Sparkles,
 } from 'lucide-react'
 import AddToPhoneButton from './AddToPhoneButton'
 import ShareContactButton from './ShareContactButton'
@@ -220,6 +220,26 @@ export default function ContactCard({ contact, viaLabel }: { contact: ContactRow
           </div>
         </div>
       )}
+
+      {/* Shown ONLY when the visitor chose this themselves. A sender's ?a=it
+          or an owner's default is an assumption about the person, and
+          presenting it here would turn that assumption into what looks like
+          stated fact on their contact record. Those cases carry attribution in
+          metadata for analytics, and deliberately show nothing here. */}
+      {(() => {
+        const ctx = (contact as any)?.metadata?.context
+        const selected = ctx && typeof ctx.selectedAudience === 'string' ? ctx.selectedAudience : null
+        if (!selected) return null
+        const label = typeof ctx.selectedLabel === 'string' && ctx.selectedLabel ? ctx.selectedLabel : selected
+        return (
+          <div className="mt-3">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground border border-border">
+              <Sparkles className="w-3 h-3" aria-hidden="true" />
+              Context: <span className="text-foreground font-semibold">{label}</span>
+            </span>
+          </div>
+        )
+      })()}
 
       {Array.isArray(contact.answers) && contact.answers.length > 0 && (
         <div className="mt-4 pt-4 border-t border-border space-y-2">

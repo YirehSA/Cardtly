@@ -6,6 +6,7 @@ import { UserPlus, X, Loader2, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { describeContactError, CONTACT_NETWORK_ERROR } from '@/lib/contact-errors'
 import CaptureNotice from './CaptureNotice'
+import { contactContextMetadata, type ResolvedContext } from '@/lib/card-context'
 
 // Shown right after a visitor saves the card owner's contact, when the
 // "contact exchange" add-on is enabled. Asks the visitor to share their
@@ -23,9 +24,12 @@ interface Props {
   cardId: string | null
   teamCardId: string | null
   accentHex: string
+  /** The visitor's ACTIVE context, if any. Passed even while Full Profile is
+   *  showing: hiding the transform is not the same as withdrawing a choice. */
+  context?: ResolvedContext | null
 }
 
-export default function ContactExchangeModal({ open, onClose, ownerName, ownerCompany, cardId, teamCardId, accentHex }: Props) {
+export default function ContactExchangeModal({ open, onClose, ownerName, ownerCompany, cardId, teamCardId, accentHex, context = null }: Props) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -54,6 +58,9 @@ export default function ContactExchangeModal({ open, onClose, ownerName, ownerCo
         body: JSON.stringify({
           name: name.trim(), email: email.trim(), phone: phone.trim() || null,
           card_id: cardId, team_card_id: teamCardId,
+          // Null unless a Context is active. The API validates it and will
+          // never let a failure here cost the lead.
+          metadata: contactContextMetadata(context),
         }),
       })
       if (res.ok) {
@@ -137,6 +144,18 @@ export default function ContactExchangeModal({ open, onClose, ownerName, ownerCo
                 {/* The modal's ground is a fixed #0a0a0a, so white is the
                     theme text colour here. The component mutes the sentence
                     and leaves the link whole. */}
+                {/* ONLY shown for a visitor's own choice. A sender's ?a=it is
+                    Andre's guess about Chris, not something Chris said, so
+                    telling Chris "your selected role: IT" would be putting
+                    words in his mouth. Sender and default attribution is kept
+                    internally and never presented as self-declared. */}
+                {context?.source === 'visitor' && (
+                  <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                    Personalisation: <span className="font-semibold text-white">{context.audience.label || context.audience.id}</span>
+                    <span className="text-white/45"> - included with your details.</span>
+                  </p>
+                )}
+
                 <CaptureNotice
                   owner={ownerName}
                   company={ownerCompany}

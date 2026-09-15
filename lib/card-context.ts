@@ -728,6 +728,117 @@ export function sanitiseEventMetadata(input: unknown): ContextMetadata | null {
   }
 }
 
+// ══ TASK 8: what travels with a contact ═══════════════════════════════════
+//
+// THE DISTINCTION THIS WHOLE SECTION EXISTS FOR. A sender writing ?a=it means
+// "Andre thinks this person is relevant to IT". It does NOT mean the visitor
+// said "I am IT". Neither does a configured default. Only a visitor choosing
+// from the selector is self-declared, and only that may be recorded as
+// qualification about the person.
+//
+// So `selectedAudience` appears ONLY for source 'visitor'. A sender or default
+// Context records what was active and nothing more. Storing an assumption as
+// though it were a stated fact is how a CRM quietly fills up with things
+// nobody ever said.
+//
+// The LABEL is snapshotted alongside the id because it is what the visitor
+// actually saw at the moment they submitted. If the owner later renames "IT"
+// to "Technology / IT", the historical record should not silently change its
+// wording - and the Contacts dashboard has no access to the card's Context
+// config, so without the label it could only show a raw machine id.
+
+export interface ContactContextMetadata {
+  context: {
+    /** Self-declared. Present ONLY when the visitor chose it themselves. */
+    selectedAudience?: string
+    /** The wording the visitor saw when they submitted. */
+    selectedLabel?: string
+    /** What was actually applied at the moment of exchange. */
+    activeAudience: string
+    activeSource: ContextSource
+    version: number
+  }
+}
+
+/**
+ * Build the metadata that accompanies a Contact Exchange, or null when there
+ * is nothing truthful to record.
+ *
+ * `resolved` is the visitor's ACTIVE context - their own selection where they
+ * made one, otherwise the sender's or the default. Full Profile mode does not
+ * change this: hiding the transform is "show me everything for a moment", not
+ * "forget what I told you", so a visitor who chose Procurement and then opened
+ * the full profile still exchanges as Procurement.
+ */
+export function contactContextMetadata(resolved: ResolvedContext | null): ContactContextMetadata | null {
+  try {
+    if (!resolved?.audience?.id) return null
+    const ctx: ContactContextMetadata['context'] = {
+      activeAudience: resolved.audience.id,
+      activeSource: resolved.source,
+      version: CONTEXT_METADATA_VERSION,
+    }
+    if (resolved.source === 'visitor') {
+      ctx.selectedAudience = resolved.audience.id
+      const label = (resolved.audience.label || '').trim()
+      if (label && label.length <= 60) ctx.selectedLabel = label
+    }
+    return { context: ctx }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Validate contact metadata at the API boundary, same discipline as the
+ * analytics validator: allow-list only, null for anything unrecognised, and
+ * null never rejects the contact itself. A lead is worth more than its
+ * attribution.
+ */
+export function sanitiseContactMetadata(input: unknown): ContactContextMetadata | null {
+  try {
+    if (!isPlainObject(input)) return null
+    let serialised: string
+    try { serialised = JSON.stringify(input) } catch { return null }
+    if (!serialised || serialised.length > MAX_METADATA_BYTES) return null
+
+    const c = input.context
+    if (!isPlainObject(c)) return null
+
+    const activeAudience = typeof c.activeAudience === 'string' ? c.activeAudience.trim() : ''
+    if (!activeAudience || !AUDIENCE_ID_RE.test(activeAudience)) return null
+
+    const activeSource = typeof c.activeSource === 'string' ? c.activeSource.trim() : ''
+    if (!(CONTEXT_SOURCES as readonly string[]).includes(activeSource)) return null
+
+    if (c.version !== CONTEXT_METADATA_VERSION) return null
+
+    const out: ContactContextMetadata['context'] = {
+      activeAudience,
+      activeSource: activeSource as ContextSource,
+      version: CONTEXT_METADATA_VERSION,
+    }
+
+    // SELF-DECLARATION IS ONLY HONOURED FOR A VISITOR. A client claiming a
+    // selectedAudience alongside source 'sender' is claiming the visitor said
+    // something they did not, so it is dropped rather than trusted.
+    if (activeSource === 'visitor' && typeof c.selectedAudience === 'string') {
+      const sel = c.selectedAudience.trim()
+      if (sel && AUDIENCE_ID_RE.test(sel)) {
+        out.selectedAudience = sel
+        if (typeof c.selectedLabel === 'string') {
+          const lbl = c.selectedLabel.trim()
+          if (lbl && lbl.length <= 60) out.selectedLabel = lbl
+        }
+      }
+    }
+
+    return { context: out }
+  } catch {
+    return null
+  }
+}
+
 // ══ TASK 5: the presentation transform ════════════════════════════════════
 //
 // THE STANDARD CARD IS THE SOURCE OF TRUTH. These functions take what the card
