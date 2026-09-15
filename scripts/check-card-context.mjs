@@ -1508,6 +1508,54 @@ function parse(label, input) {
 }
 
 
+// == The editor and the card must agree on where booking can render ========
+//
+// THE BUG THIS EXISTS BECAUSE OF. The dashboard hardcoded "booking is always
+// available", so on Circuit - the one template that draws its own booking
+// control and therefore omits the shared one - an owner could pick a booking
+// CTA, type wording for it, see it summarised as though it were live, and get
+// no button on their card. The card behaved correctly the whole time. The
+// editor was describing a card that did not exist.
+//
+// Two lists have to stay equal: TEMPLATES_WITHOUT_BOOKING in types/design,
+// which the dashboard reads, and the templates that actually pass omitBooking
+// in PublicCardView. Nothing else connects them, so nothing else would notice
+// them drifting apart.
+{
+  const DESIGN = 'types/design.ts'
+  const VIEW = 'components/card/PublicCardView.tsx'
+  const LF = String.fromCharCode(10)
+  const strip = (t) => t
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split(LF).map(l => l.replace(/\/\/.*$/, '')).join(LF)
+
+  let design = '', view = ''
+  try { design = strip(readFileSync(DESIGN, 'utf8')) } catch { bad(DESIGN + ' is missing') }
+  try { view = strip(readFileSync(VIEW, 'utf8')) } catch { bad(VIEW + ' is missing') }
+
+  const m = design.match(/TEMPLATES_WITHOUT_BOOKING[^=]*=\s*\[([^\]]*)\]/)
+  if (!m) {
+    bad(DESIGN + ': TEMPLATES_WITHOUT_BOOKING is gone, so the dashboard cannot know which designs have no booking button')
+  } else {
+    const declared = (m[1].match(/'([a-z]+)'/g) || []).map(x => x.replace(/'/g, '')).sort()
+    const marks = [...view.matchAll(/design\.templateId === '([a-z]+)'/g)].map(x => ({ id: x[1], at: x.index }))
+    const actual = []
+    for (const om of [...view.matchAll(/<BottomSection[^>]*omitBooking/g)]) {
+      let owner = null
+      for (const mk of marks) if (mk.at < om.index) owner = mk.id
+      if (owner && !actual.includes(owner)) actual.push(owner)
+    }
+    actual.sort()
+    if (actual.length === 0) {
+      bad(VIEW + ': no template passes omitBooking any more, so this check cannot see what it compares against')
+    }
+    if (declared.join(',') !== actual.join(',')) {
+      bad('booking availability drifted: types/design says [' + declared.join(',') + '] but PublicCardView omits booking on [' + actual.join(',') + ']. The editor would offer a booking CTA that cannot render, or refuse one that can.')
+    }
+  }
+}
+
+
 // ══ TASK 9b MUTATIONS: prove each rule is load bearing ════════════════════
 //
 // A guard nobody has broken on purpose is a guard nobody knows works. Each

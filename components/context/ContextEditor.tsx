@@ -561,7 +561,18 @@ function CtaPicker({ row, links, bookingAvailable, isOrg, onCta }: {
 
         <Radio name={n} id={`${n}-booking`} checked={kind === 'booking'} disabled={!bookingAvailable}
           onChange={() => onCta({ kind: 'booking', index: null, label: row.cta?.label ?? null })}
-          label={bookingAvailable ? 'Book a meeting' : 'Book a meeting (not available on this card)'} />
+          label={bookingAvailable
+            ? 'Book a meeting'
+            : 'Book a meeting (your card design does not show this button)'} />
+
+        {/* An organisation's members can be on different card designs, and a
+            few of those draw their own booking control instead of the shared
+            one. Saying so is better than implying it works everywhere. */}
+        {kind === 'booking' && isOrg && (
+          <p className="text-[11px] text-muted-foreground pl-7">
+            Shows for team members whose card design uses the standard booking button.
+          </p>
+        )}
       </div>
 
       {kind !== 'none' && (

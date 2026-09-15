@@ -7,6 +7,7 @@ import { resolveAddonTargets, mergeTeamAddons } from '@/lib/addon-target'
 import { getUserPlan } from '@/lib/plan-server'
 import { isIosApp } from '@/lib/app-platform'
 import { extractLinks } from '@/types/database'
+import { parseDesign, templateOffersBooking } from '@/types/design'
 import ContextEditor from '@/components/context/ContextEditor'
 import TargetLink from '@/components/context/TargetLink'
 import { CONTEXT_ENABLED, readStoredContext, type ContextSection } from '@/lib/card-context'
@@ -118,9 +119,21 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
     }
   }
 
-  // Booking is offered on any Pro card; a template can omit it, which the
-  // public card handles by rendering nothing rather than by disabling it here.
-  const bookingAvailable = true
+  // WHETHER A BOOKING CTA CAN ACTUALLY RENDER ON THIS CARD.
+  //
+  // This was hardcoded to true, with a comment reasoning that the public card
+  // "handles it by rendering nothing". The card does. The editor did not: on
+  // Circuit, which draws its own booking control and so omits the shared one,
+  // an owner could choose a booking CTA, type wording for it, read it back in
+  // the summary as though it were live, and get no button at all. Exactly the
+  // failure the empty-link-slot warning exists to prevent, missed for booking.
+  //
+  // An organisation runs the same Context across members who may be on
+  // different templates, so there is no single answer there and the picker says
+  // so rather than guessing.
+  const bookingAvailable = selected.table === 'organizations'
+    ? true
+    : templateOffersBooking(parseDesign(sourceRow?.color_theme).templateId)
 
   // WHICH CARD THE PREVIEW RENDERS.
   //

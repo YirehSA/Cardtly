@@ -392,6 +392,32 @@ export interface TemplateConfig {
   previewGradient: string
 }
 
+/**
+ * Templates that do NOT render the shared booking button.
+ *
+ * Circuit draws its own booking control instead of the shared one, so
+ * BottomSection is given omitBooking and everything downstream of it - the
+ * card's own booking button AND a Context CTA of kind "booking" - correctly
+ * renders nothing.
+ *
+ * Named here because the DASHBOARD needs to know it too. The Context editor was
+ * hardcoding "booking is always available", so an owner on Circuit could pick a
+ * booking CTA, type wording for it, see it summarised as though it were live,
+ * and get no button on their card. The card was right; the editor was lying
+ * about what the card would do.
+ *
+ * scripts/check-admin-auth.mjs is not the guard for this - see
+ * check-card-context.mjs, which asserts this list matches the templates that
+ * actually pass omitBooking in PublicCardView, so the two cannot drift.
+ */
+export const TEMPLATES_WITHOUT_BOOKING: readonly TemplateId[] = ['circuit']
+
+/** Whether a Context CTA of kind "booking" can render on this template. */
+export function templateOffersBooking(templateId: TemplateId | string | null | undefined): boolean {
+  if (!templateId) return true
+  return !(TEMPLATES_WITHOUT_BOOKING as readonly string[]).includes(templateId)
+}
+
 export const TEMPLATES: TemplateConfig[] = [
   { id: 'classic',   name: 'Classic',   description: 'Centred, clean and professional',    proOnly: false, defaultBgMode: 'dark',  previewGradient: 'from-gray-900 to-gray-800' },
   { id: 'modern',    name: 'Modern',    description: 'Left-aligned, bold typography',       proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-slate-900 to-slate-800' },
