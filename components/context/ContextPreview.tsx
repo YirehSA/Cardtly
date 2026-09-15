@@ -185,9 +185,9 @@ export default function ContextPreview({
           {/* Framed like a handset, because that is where the card is read.
               The bezel is what makes this pane stop looking like another
               settings box with a screenshot in it. */}
-          <div className="rounded-[26px] p-2"
+          <div className="ctx-stage relative rounded-[26px] p-2"
             style={{ background: 'hsl(var(--muted) / 0.6)', border: '1px solid hsl(var(--border))' }}>
-            <div className="rounded-[20px] overflow-hidden border shadow-lg" style={{ borderColor: 'hsl(var(--border))' }}>
+            <div className="relative z-[1] rounded-[20px] overflow-hidden border shadow-2xl" style={{ borderColor: 'hsl(var(--border))' }}>
             <PreviewFrame className="cardtly-card-preview">
               <PublicCardView key={sourceId} card={card as any} isPro={isPro} previewContext={previewContext} />
             </PreviewFrame>

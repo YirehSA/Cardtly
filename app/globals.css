@@ -653,6 +653,144 @@
     .lift-card:hover { transform: none; }
   }
 
+  /* ── Cardtly Context ──────────────────────────────────────────────────
+     This page is about six different people and it was rendering them as six
+     identical grey rectangles. The hues already existed in AUDIENCE_FACE and
+     almost none of them reached the screen, so the page describing
+     personalisation was the least personal surface in the product.
+
+     Colour is carried on a custom property per row rather than by six
+     hardcoded classes, so adding a seventh audience is a data change and not
+     a stylesheet change. */
+
+  /* The one thing on the page that moves by itself, at the top, made of all
+     six audience hues at once. One ambient source beats eight panels each
+     doing their own little animation and competing for the eye. */
+  @keyframes ctx-aurora-drift {
+    0%, 100% { transform: translate3d(-3%, 0, 0) scale(1); }
+    33%      { transform: translate3d(2%, -10px, 0) scale(1.07); }
+    66%      { transform: translate3d(-1%, 6px, 0) scale(0.97); }
+  }
+  .ctx-aurora { position: relative; }
+  .ctx-aurora::before {
+    content: '';
+    position: absolute;
+    inset: -120px 0 auto 0;
+    height: 340px;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(30% 55% at 8%  55%, rgba(245,158,11,0.28), transparent 70%),
+      radial-gradient(30% 55% at 30% 35%, rgba(14,165,233,0.30), transparent 70%),
+      radial-gradient(30% 55% at 50% 55%, rgba(34,197,94,0.24),  transparent 70%),
+      radial-gradient(30% 55% at 70% 35%, rgba(236,72,153,0.26), transparent 70%),
+      radial-gradient(30% 55% at 90% 55%, rgba(168,85,247,0.28), transparent 70%);
+    filter: blur(54px);
+    opacity: 0.95;
+    animation: ctx-aurora-drift 20s ease-in-out infinite;
+  }
+  .ctx-aurora > * { position: relative; z-index: 1; }
+
+  /* An audience wears its own colour. --aud is set per row from the same
+     AUDIENCE_FACE hue the icon uses, so the card and its badge can never
+     disagree about who this is. */
+  .ctx-aud {
+    position: relative;
+    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 260ms cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  /* The spine. A live audience is marked down its edge, which reads at a
+     glance down a column of six in a way a small chip never does. */
+  .ctx-aud::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    border-radius: 3px 0 0 3px;
+    background: linear-gradient(180deg, var(--aud, transparent), transparent 85%);
+    opacity: 0;
+    transition: opacity 260ms ease;
+    pointer-events: none;
+  }
+  /* The glow. Sits behind the header of the card and lifts on hover, so the
+     pointer gets an answer that is about THIS audience rather than a generic
+     grey highlight. */
+  .ctx-aud::after {
+    content: '';
+    position: absolute;
+    inset: -90px auto auto -40px;
+    width: 260px;
+    height: 200px;
+    background: radial-gradient(55% 55% at 40% 60%, var(--aud, transparent), transparent 72%);
+    filter: blur(44px);
+    opacity: 0;
+    transition: opacity 320ms ease;
+    pointer-events: none;
+  }
+  .ctx-aud[data-live='true']::before { opacity: 1; }
+  .ctx-aud[data-live='true']::after  { opacity: 0.20; }
+  .ctx-aud:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--panel-shadow-lift);
+  }
+  .ctx-aud[data-live='true']:hover::after { opacity: 0.34; }
+  /* Off is quiet, not dead. A switched-off audience keeps its configuration,
+     so it should not look like a disabled control: it gets a trace of its own
+     colour on hover, which is the visual form of "this is still yours". */
+  .ctx-aud[data-live='false']:hover::after { opacity: 0.10; }
+
+  /* The badge for a live audience is lit rather than merely tinted. */
+  .ctx-face {
+    transition: box-shadow 300ms ease, background-color 300ms ease, border-color 300ms ease;
+  }
+  .ctx-aud[data-live='true'] .ctx-face {
+    box-shadow: 0 6px 20px -8px var(--aud), inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  }
+
+  /* A tick should feel like it landed. Overshoot on the way in, because a
+     linear checkbox is the difference between a control and a button. */
+  .ctx-tick {
+    transition: transform 170ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                border-color 200ms ease, background-color 200ms ease;
+  }
+  .ctx-tick:hover { transform: translateX(2px); }
+  .ctx-tick:active { transform: scale(0.99); }
+
+  /* The preview is the payoff, so it gets to look like a lit screen rather
+     than a screenshot pasted into a settings page. */
+  .ctx-stage::before {
+    content: '';
+    position: absolute;
+    inset: auto 0 -10% 0;
+    height: 180px;
+    background: radial-gradient(50% 60% at 50% 100%, rgba(124,58,237,0.30), transparent 72%);
+    filter: blur(40px);
+    opacity: 0.8;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* The master switch, lit from within when the feature is live. */
+  .ctx-master::after {
+    content: '';
+    position: absolute;
+    inset: -80px -20% auto -10%;
+    height: 200px;
+    background: radial-gradient(45% 60% at 20% 70%, rgba(168,85,247,0.45), transparent 70%);
+    filter: blur(46px);
+    opacity: 0;
+    transition: opacity 500ms ease;
+    pointer-events: none;
+  }
+  .ctx-master[data-on='true']::after { opacity: 0.30; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ctx-aurora::before { animation: none; }
+    .ctx-aud, .ctx-face, .ctx-tick { transition: none; }
+    .ctx-aud:hover, .ctx-tick:hover, .ctx-tick:active { transform: none; }
+  }
+
   /* ── Blog article typography (dark theme) ──────────────────────────── */
   /* Long-form article HTML is rendered inside .article-prose, so we style
      bare semantic tags once instead of per element. */

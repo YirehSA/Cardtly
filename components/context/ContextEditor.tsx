@@ -263,15 +263,27 @@ export default function ContextEditor({
           gradient edge is the only piece of brand colour on the screen; the
           audiences below carry their own hues and would fight it anywhere
           else. */}
-      <div className="panel panel-hover overflow-hidden relative">
-        <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1"
-          style={{ background: on ? 'linear-gradient(180deg,#00d4ff,#7c3aed,#ec4899)' : 'hsl(var(--border))' }} />
+      {/* SWITCHED OFF IS ASLEEP, NOT ABSENT. The off state used to flatten
+          this edge to plain border grey, which made the one panel that turns
+          the whole feature on read as the most inert thing on the page. It
+          keeps its colours now and simply dims them, so off looks like
+          something waiting to be switched on. */}
+      <div className="panel ctx-master panel-hover overflow-hidden relative" data-on={on ? 'true' : 'false'}>
+        <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 transition-opacity duration-500"
+          style={{
+            background: 'linear-gradient(180deg,#00d4ff,#7c3aed,#ec4899)',
+            opacity: on ? 1 : 0.34,
+          }} />
         <div className="p-4 sm:p-5 pl-5 sm:pl-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3.5 min-w-0">
-              <div className="w-11 h-11 rounded-xl grid place-items-center flex-shrink-0 transition-colors"
+              <div className="ctx-face w-11 h-11 rounded-xl grid place-items-center flex-shrink-0"
                 style={on
-                  ? { background: 'rgba(168,85,247,0.14)', border: '1px solid rgba(168,85,247,0.35)' }
+                  ? {
+                      background: 'linear-gradient(145deg, rgba(168,85,247,0.30), rgba(0,212,255,0.12))',
+                      border: '1px solid rgba(168,85,247,0.45)',
+                      boxShadow: '0 8px 24px -10px rgba(168,85,247,0.9)',
+                    }
                   : { background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))' }}>
                 <Sparkles className="w-5 h-5" aria-hidden="true"
                   style={{ color: on ? 'hsl(var(--accent))' : 'hsl(var(--muted-foreground))' }} />
@@ -343,7 +355,7 @@ export default function ContextEditor({
           Below that it stacks and collapses, because six audience editors plus
           a full card is already a long page on a phone. */}
       <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_380px] xl:gap-5 xl:items-start space-y-3 xl:space-y-0">
-      <div className="space-y-3">
+      <div className="space-y-3 stagger">
         {rows.map(row => (
           <AudienceRow
             key={row.id}
@@ -541,17 +553,24 @@ function AudienceRow({
     // A LIVE AUDIENCE LOOKS LIVE. An off one is quiet but never disabled: its
     // settings are intact and still editable, which is the whole promise of the
     // persisted-disabled model, so greying it out would be a lie.
-    <div className="panel panel-hover overflow-hidden transition-colors"
-      style={row.enabled ? { borderColor: `${face.hue}4d` } : undefined}>
+    <div className="panel ctx-aud overflow-hidden"
+      data-live={row.enabled ? 'true' : 'false'}
+      style={{
+        ['--aud' as string]: face.hue,
+        ...(row.enabled ? { borderColor: `${face.hue}4d` } : {}),
+      } as React.CSSProperties}>
       <div className="flex items-start gap-3 p-4">
         <button type="button" onClick={onToggleExpand} aria-expanded={expanded}
           className="flex items-start gap-3 text-left min-w-0 flex-1 min-h-11 rounded-lg">
           <span aria-hidden="true"
-            className="w-9 h-9 rounded-xl grid place-items-center flex-shrink-0 mt-0.5 transition-colors"
+            className="ctx-face w-10 h-10 rounded-xl grid place-items-center flex-shrink-0 mt-0.5"
             style={row.enabled
-              ? { background: `${face.hue}1f`, border: `1px solid ${face.hue}59` }
+              ? {
+                  background: `linear-gradient(145deg, ${face.hue}33, ${face.hue}0f)`,
+                  border: `1px solid ${face.hue}66`,
+                }
               : { background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))' }}>
-            <face.Icon className="w-4 h-4"
+            <face.Icon className="w-[18px] h-[18px]"
               style={{ color: row.enabled ? face.hue : 'hsl(var(--muted-foreground))' }} />
           </span>
           <span className="min-w-0 flex-1">
@@ -734,7 +753,7 @@ function LinkPicker({ row, links, isOrg, onLinks }: {
           const empty = !offerable.includes(l.index)
           return (
             <li key={l.index}>
-              <label className="flex items-center gap-2.5 rounded-xl border px-3 py-2 min-h-11 cursor-pointer transition"
+              <label className="ctx-tick flex items-center gap-2.5 rounded-xl border px-3 py-2 min-h-11 cursor-pointer"
                 style={{
                   borderColor: on ? 'hsl(var(--accent) / 0.5)' : 'hsl(var(--border))',
                   background: on ? 'hsl(var(--accent) / 0.07)' : 'hsl(var(--background))',

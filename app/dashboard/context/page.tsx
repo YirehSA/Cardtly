@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Sparkles, ClipboardList, ArrowRight, Check, Users, User } from 'lucide-react'
+import { Sparkles, ClipboardList, ArrowRight, Users, User } from 'lucide-react'
 import PageHeader from '@/components/dashboard/PageHeader'
 import { resolveAddonTargets, mergeTeamAddons } from '@/lib/addon-target'
 import { getUserPlan } from '@/lib/plan-server'
@@ -182,7 +182,7 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
   const enabledCount = stored.config.audiences.filter(a => a.enabled).length
 
   return (
-    <div className="max-w-6xl mx-auto space-y-5 stagger pb-16">
+    <div className="max-w-6xl mx-auto space-y-5 stagger pb-16 ctx-aurora">
       {/* The house header, not a hand-rolled one. Every other dashboard page
           gets its size, spacing, accent wash and rule from here; this page was
           writing its own h1 and reading as the one screen nobody designed. */}
@@ -288,7 +288,8 @@ function StatusChip({ on }: { on: boolean }) {
   return on ? (
     <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-md border"
       style={{ background: 'rgba(34,197,94,0.12)', borderColor: 'rgba(34,197,94,0.35)', color: '#16a34a' }}>
-      <Check className="w-3 h-3" aria-hidden="true" />
+      <span aria-hidden="true" className="status-online w-1.5 h-1.5 rounded-full flex-shrink-0"
+        style={{ background: '#22c55e' }} />
       Context is on
     </span>
   ) : (
