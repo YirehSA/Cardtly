@@ -578,6 +578,122 @@ export function readSenderAudience(
   }
 }
 
+// ══ TASK 6: event metadata ════════════════════════════════════════════════
+//
+// The two Context events, and the validator that stands between a public
+// visitor's browser and a jsonb column.
+//
+// NOTHING PERSONAL GOES IN HERE. Metadata describes the interaction, not the
+// person: which audience was active and where it came from. A name, an email,
+// a phone number or a free-text message belongs in contacts, which has consent
+// and a privacy notice attached to it. The allow-list below is what enforces
+// that - an unrecognised key is dropped rather than stored, so a future call
+// site cannot quietly start posting personal data into analytics.
+
+/** Fired once when a resolved Context is actually applied for a visitor. */
+export const CONTEXT_EVENT_VIEWED = 'context_viewed'
+/** Fired when the Context's recommended action is clicked. */
+export const CONTEXT_EVENT_CTA_CLICKED = 'context_cta_clicked'
+export const CONTEXT_EVENT_TYPES = [CONTEXT_EVENT_VIEWED, CONTEXT_EVENT_CTA_CLICKED] as const
+
+/** The shape version inside the context payload. Bumped when the MEANING of
+ *  these fields changes, so a query written today can tell its own rows from a
+ *  later phase's without guessing. */
+export const CONTEXT_METADATA_VERSION = 1
+
+/** Serialised metadata longer than this is refused. Context metadata is a few
+ *  dozen bytes; a kilobyte leaves generous room for a future namespace while
+ *  making it impossible to push documents through an analytics event. */
+export const MAX_METADATA_BYTES = 1024
+
+const MAX_INTEREST = 40
+
+/** What Cardtly will store for a Context event. */
+export interface ContextMetadata {
+  context: {
+    audience: string
+    source: ContextSource
+    version: number
+    interest?: string
+  }
+}
+
+/** Build the payload for an event. `interest` is omitted entirely when absent
+ *  rather than stored as null, so a row only carries fields that mean
+ *  something. */
+export function contextMetadata(resolved: ResolvedContext, interest?: string | null): ContextMetadata {
+  const payload: ContextMetadata['context'] = {
+    audience: resolved.audience.id,
+    source: resolved.source,
+    version: CONTEXT_METADATA_VERSION,
+  }
+  const t = typeof interest === 'string' ? interest.trim() : ''
+  if (t) payload.interest = t.slice(0, MAX_INTEREST)
+  return { context: payload }
+}
+
+/**
+ * Validate metadata arriving from a public browser, at the API boundary.
+ *
+ * Returns the cleaned object, or NULL for anything it does not positively
+ * recognise. Null means "store no metadata"; it never means "reject the
+ * event". A malformed payload must not cost the owner an ordinary card view,
+ * which is the whole reason this returns rather than throws.
+ *
+ * AN ALLOW-LIST AT EVERY LEVEL. Only the `context` namespace is accepted, and
+ * inside it only audience, source, version and interest. Every other key is
+ * dropped, including any that look like personal data. A future namespace such
+ * as `connection` is a deliberate addition here, never something a client can
+ * introduce by posting it.
+ */
+export function sanitiseEventMetadata(input: unknown): ContextMetadata | null {
+  try {
+    if (!isPlainObject(input)) return null
+
+    // Size first, before looking at the contents, so a huge payload is refused
+    // rather than walked.
+    let serialised: string
+    try {
+      serialised = JSON.stringify(input)
+    } catch {
+      return null // circular, or otherwise not real JSON
+    }
+    if (!serialised || serialised.length > MAX_METADATA_BYTES) return null
+
+    const ctx = input.context
+    if (!isPlainObject(ctx)) return null
+
+    // Audience: the same format the parser enforces, because this is the same
+    // identifier and a value that could never resolve should never be stored.
+    const audience = typeof ctx.audience === 'string' ? ctx.audience.trim() : ''
+    if (!audience || !AUDIENCE_ID_RE.test(audience)) return null
+
+    // Source: one of the three, spelled once in CONTEXT_SOURCES.
+    const source = typeof ctx.source === 'string' ? ctx.source.trim() : ''
+    if (!(CONTEXT_SOURCES as readonly string[]).includes(source)) return null
+
+    // Version: the literal number this build writes. A client claiming to be a
+    // future version is refused rather than trusted.
+    if (ctx.version !== CONTEXT_METADATA_VERSION) return null
+
+    const out: ContextMetadata['context'] = {
+      audience,
+      source: source as ContextSource,
+      version: CONTEXT_METADATA_VERSION,
+    }
+
+    // Optional, and dropped rather than rejected if unusable.
+    if (typeof ctx.interest === 'string') {
+      const t = ctx.interest.trim()
+      if (t && t.length <= MAX_INTEREST) out.interest = t
+    }
+
+    return { context: out }
+  } catch {
+    return null
+  }
+}
+
 // ══ TASK 5: the presentation transform ════════════════════════════════════
 //
 // THE STANDARD CARD IS THE SOURCE OF TRUTH. These functions take what the card

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
+import { sanitiseEventMetadata, MAX_METADATA_BYTES } from '@/lib/card-context'
 
 function detectDevice(ua: string): string {
   if (/tablet|ipad|playbook|silk/i.test(ua)) return 'tablet'
@@ -28,6 +29,16 @@ function detectOS(ua: string): string {
 
 export async function POST(request: Request) {
   try {
+    // REFUSE AN ABSURD BODY BEFORE PARSING IT. An analytics event is a couple
+    // of hundred bytes; 8KB is enormously generous and still makes it
+    // impossible to push a document through this endpoint. Only enforced when
+    // the header is actually present, so a client that omits it is not
+    // punished - the metadata cap below is the real limit either way.
+    const declared = Number(request.headers.get('content-length') || 0)
+    if (declared > 8192) {
+      return NextResponse.json({ error: 'Payload too large' }, { status: 413 })
+    }
+
     const body = await request.json()
     const { card_id, team_card_id, event_type, link_title } = body
 
@@ -35,6 +46,16 @@ export async function POST(request: Request) {
     if ((!card_id && !team_card_id) || !event_type) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
+
+    // Validated against an allow-list, never trusted. Null means store no
+    // metadata; it never means reject the event, because a malformed payload
+    // must not cost an owner an ordinary card view. See lib/card-context.
+    const metadata = sanitiseEventMetadata(body.metadata)
+
+    // Only mentioned in the insert when there is something to store. An
+    // ordinary event therefore never references the column at all, which is
+    // what makes this code safe to deploy before migration 080 has run.
+    const withMetadata = metadata ? { metadata } : {}
 
     const headersList = await headers()
     const ua = headersList.get('user-agent') || ''
@@ -58,6 +79,7 @@ export async function POST(request: Request) {
         browser,
         os,
         referrer: referrer || null,
+        ...withMetadata,
       })
     }
 
@@ -80,6 +102,7 @@ export async function POST(request: Request) {
         browser,
         os,
         referrer: referrer || null,
+        ...withMetadata,
       })
     }
 

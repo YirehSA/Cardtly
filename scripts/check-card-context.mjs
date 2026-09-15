@@ -804,6 +804,139 @@ function parse(label, input) {
   }
 }
 
+// ══ TASK 6: event metadata ════════════════════════════════════════════════
+//
+// This validator stands between a public visitor's browser and a jsonb column
+// that anybody can post to - the analytics endpoint accepts anonymous requests
+// by design, because that is how a card view gets counted. So the rules here
+// are the only thing stopping an event row becoming a place to store whatever
+// somebody likes, including personal data.
+{
+  const M = on.sanitiseEventMetadata
+  const good = { context: { audience: 'it', source: 'sender', version: 1 } }
+
+  // ── the happy path, and the exact stored shape ──────────────────────────
+  const clean = M(good)
+  if (JSON.stringify(clean) !== JSON.stringify(good)) {
+    bad(`a valid payload was altered: ${JSON.stringify(clean)}`)
+  }
+  for (const src of ['sender', 'visitor', 'default']) {
+    const r = M({ context: { audience: 'executive', source: src, version: 1 } })
+    if (r?.context?.source !== src) bad(`source "${src}" was rejected; all three must be supported from the start`)
+  }
+
+  // interest is optional, and OMITTED rather than stored as null when absent
+  if ('interest' in (M(good)?.context || {})) bad('interest was stored even though it was not supplied')
+  const withInterest = M({ context: { audience: 'it', source: 'visitor', version: 1, interest: 'enterprise' } })
+  if (withInterest?.context?.interest !== 'enterprise') bad('a valid interest was dropped')
+
+  // ── everything that must be refused ─────────────────────────────────────
+  const REJECT = [
+    ['null', null],
+    ['undefined', undefined],
+    ['a string', 'context'],
+    ['a number', 7],
+    ['an array', [good]],
+    ['empty object', {}],
+    ['context missing', { other: {} }],
+    ['context a string', { context: 'it' }],
+    ['context an array', { context: [] }],
+
+    ['audience missing', { context: { source: 'sender', version: 1 } }],
+    ['audience empty', { context: { audience: '', source: 'sender', version: 1 } }],
+    ['audience uppercase', { context: { audience: 'IT', source: 'sender', version: 1 } }],
+    ['audience with a space', { context: { audience: 'it admin', source: 'sender', version: 1 } }],
+    ['audience oversized', { context: { audience: 'a'.repeat(25), source: 'sender', version: 1 } }],
+    ['audience a number', { context: { audience: 3, source: 'sender', version: 1 } }],
+
+    ['source missing', { context: { audience: 'it', version: 1 } }],
+    ['source invented', { context: { audience: 'it', source: 'admin', version: 1 } }],
+    ['source uppercase', { context: { audience: 'it', source: 'SENDER', version: 1 } }],
+    ['source a number', { context: { audience: 'it', source: 1, version: 1 } }],
+
+    ['version missing', { context: { audience: 'it', source: 'sender' } }],
+    ['version 2 from a future client', { context: { audience: 'it', source: 'sender', version: 2 } }],
+    ['version the string "1"', { context: { audience: 'it', source: 'sender', version: '1' } }],
+  ]
+  for (const [label, input] of REJECT) {
+    let r
+    try { r = M(input) } catch (e) { bad(`sanitiseEventMetadata threw on ${label}: ${e.message}`); continue }
+    if (r !== null) bad(`${label} was accepted, expected null: ${JSON.stringify(r)}`)
+  }
+
+  // ── PERSONAL DATA IS DROPPED, not stored ────────────────────────────────
+  //
+  // The rule is that metadata describes the interaction, never the person.
+  // These extra keys ride alongside an otherwise valid payload, which is the
+  // realistic way they would arrive.
+  const personal = M({
+    context: {
+      audience: 'it', source: 'sender', version: 1,
+      name: 'Chris Bowers', email: 'chris@example.com', phone: '+27821234567',
+      company: 'The Building Company', message: 'please call me', ip: '1.2.3.4',
+    },
+  })
+  if (!personal) bad('a valid payload was rejected because it carried extra keys; the extras should be dropped instead')
+  else {
+    const keys = Object.keys(personal.context).sort().join(',')
+    if (keys !== 'audience,source,version') {
+      bad(`personal data survived into metadata: keys are ${keys}`)
+    }
+    const blob = JSON.stringify(personal)
+    for (const leak of ['Chris', 'example.com', '27821234567', 'Building', 'call me', '1.2.3.4']) {
+      if (blob.includes(leak)) bad(`"${leak}" reached the stored metadata`)
+    }
+  }
+
+  // ── future namespaces are NOT accepted yet ──────────────────────────────
+  const future = M({ connection: { id: 'x' }, campaign: { id: 'y' } })
+  if (future !== null) bad('an unsupported namespace was accepted; those are a deliberate addition, not a client choice')
+  // A supported namespace alongside an unsupported one keeps only the supported one.
+  const mixed = M({ ...good, connection: { id: 'x' }, campaign: { utm: 'z' } })
+  if (mixed && Object.keys(mixed).join(',') !== 'context') {
+    bad(`an unsupported namespace survived: ${Object.keys(mixed).join(',')}`)
+  }
+
+  // ── size ────────────────────────────────────────────────────────────────
+  const cap = on.MAX_METADATA_BYTES
+  if (typeof cap !== 'number' || cap > 4096) bad(`MAX_METADATA_BYTES is ${cap}; analytics metadata should be tiny`)
+  const huge = { context: { audience: 'it', source: 'sender', version: 1 }, filler: 'x'.repeat(cap * 2) }
+  if (M(huge) !== null) bad('an oversized payload was accepted')
+  // A 500KB document must be refused rather than trimmed.
+  if (M({ context: { audience: 'it', source: 'sender', version: 1, interest: 'x'.repeat(500000) } }) !== null) {
+    bad('a 500KB payload was accepted')
+  }
+  // Deeply nested junk must not be walked into.
+  let deep = { v: 1 }; for (let i = 0; i < 2000; i++) deep = { v: deep }
+  try { M({ context: deep }) } catch (e) { bad(`deeply nested input threw: ${e.message}`) }
+
+  // ── contextMetadata builds what the validator accepts ───────────────────
+  //
+  // If these two ever disagree, Cardtly would be posting metadata that its own
+  // endpoint refuses, and the events would silently arrive with none.
+  const cfg = on.parseContextConfig({
+    audiences: [{ id: 'it' }, { id: 'executive' }], defaultAudience: 'executive',
+  })
+  for (const [label, search] of [['sender', '?a=it'], ['default', '?s=wa']]) {
+    const resolved = on.resolveContext({ config: cfg, senderAudience: on.readSenderAudience(search) })
+    if (!resolved) { bad(`${label}: nothing resolved, cannot check its metadata`); continue }
+    const built = on.contextMetadata(resolved)
+    if (built.context.source !== label) bad(`${label}: built source is ${built.context.source}`)
+    if (built.context.version !== on.CONTEXT_METADATA_VERSION) bad(`${label}: wrong version`)
+    if (JSON.stringify(M(built)) !== JSON.stringify(built)) {
+      bad(`${label}: contextMetadata produced something its own validator alters or rejects: ${JSON.stringify(built)} -> ${JSON.stringify(M(built))}`)
+    }
+    if ('interest' in built.context) bad(`${label}: interest was invented when none exists`)
+  }
+
+  // ── event names are spelled once ────────────────────────────────────────
+  if (on.CONTEXT_EVENT_VIEWED !== 'context_viewed') bad(`context view event renamed to ${on.CONTEXT_EVENT_VIEWED}`)
+  if (on.CONTEXT_EVENT_CTA_CLICKED !== 'context_cta_clicked') bad(`cta event renamed to ${on.CONTEXT_EVENT_CTA_CLICKED}`)
+  if ([...on.CONTEXT_EVENT_TYPES].join(',') !== 'context_viewed,context_cta_clicked') {
+    bad('CONTEXT_EVENT_TYPES does not match the two Phase 1 events')
+  }
+}
+
 for (const d of [onDir, offDir]) { try { rmSync(d, { recursive: true, force: true }) } catch {} }
 
 if (fail) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Card, extractLinks } from '@/types/database'
 import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, scrimAlphaForWhite, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, readableAccentOn, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS } from '@/types/design'
@@ -25,7 +25,9 @@ import { describeContactError, CONTACT_NETWORK_ERROR } from '@/lib/contact-error
 import CaptureNotice from './CaptureNotice'
 import {
   readCardContext, readSenderAudience, resolveContext, orderSections, resolveContextCta,
-  STANDARD_SECTION_ORDER, type ResolvedContext, type ContextSection,
+  STANDARD_SECTION_ORDER, contextMetadata,
+  CONTEXT_EVENT_VIEWED, CONTEXT_EVENT_CTA_CLICKED,
+  type ResolvedContext, type ContextSection,
 } from '@/lib/card-context'
 
 interface Props {
@@ -652,6 +654,23 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
             <a
               href={contextCta.url.startsWith('http') ? contextCta.url : `https://${contextCta.url}`}
               target="_blank" rel="noopener noreferrer"
+              // NO data-no-track HERE, ON PURPOSE. useTrackLinkClicks in
+              // lib/track.ts is a delegated listener that already records a
+              // link_click for any external anchor, and this anchor should
+              // keep producing one: that answers "which of the owner's links
+              // was tapped", which the owner's existing analytics depend on.
+              // context_cta_clicked answers a different question - "did the
+              // recommendation work" - so both are correct and neither is a
+              // duplicate of the other.
+              onClick={() => {
+                if (!context) return
+                track({
+                  cardId: isTeamCard ? undefined : card.id,
+                  teamCardId: isTeamCard ? ((card as any)._team_card_id || undefined) : undefined,
+                  eventType: CONTEXT_EVENT_CTA_CLICKED,
+                  metadata: contextMetadata(context),
+                })
+              }}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm hover:opacity-90 transition"
               style={{ backgroundColor: 'transparent', color: accentText, border: `1.5px solid ${accentHex}` }}
             >
@@ -1127,6 +1146,35 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
       // the server rendered it.
     }
   }, [card])
+
+  // ONE context_viewed PER ACTIVATION, not one per render.
+  //
+  // The ref guard is the pattern CardTracker already uses for the view event,
+  // and it is needed for the same reasons: effects re-run when their
+  // dependencies change, and React's development StrictMode deliberately
+  // mounts twice. Keyed on the audience id and source rather than a bare
+  // boolean, so that when Task 7 lets a visitor switch audience, the new
+  // Context legitimately logs its own view while a re-render of the same one
+  // still logs nothing.
+  //
+  // Only a Context that is ACTUALLY APPLIED is logged. ?a=finance on a card
+  // with no Finance audience resolves to null, the visitor sees the standard
+  // card, and nothing is written - the analytics have to describe what was
+  // shown, not what the sender attempted. The master switch being off gets the
+  // same treatment for the same reason, since the resolution never runs.
+  const loggedContext = useRef<string | null>(null)
+  useEffect(() => {
+    if (!activeContext) return
+    const key = `${activeContext.audience.id}:${activeContext.source}`
+    if (loggedContext.current === key) return
+    loggedContext.current = key
+    track({
+      cardId: isTeamCard ? undefined : card.id,
+      teamCardId: isTeamCard ? ((card as any)._team_card_id || undefined) : undefined,
+      eventType: CONTEXT_EVENT_VIEWED,
+      metadata: contextMetadata(activeContext),
+    })
+  }, [activeContext, card, isTeamCard])
 
   const accentHex = getAccentHex(design)
   // THE ACCENT AGAIN, BUT READABLE AS TEXT. accentHex stays exactly as the

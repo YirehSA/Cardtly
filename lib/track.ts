@@ -1,6 +1,9 @@
 'use client'
 
 import type { CardSourceEventType } from './card-sources'
+import type { CONTEXT_EVENT_TYPES } from './card-context'
+
+type ContextEventType = (typeof CONTEXT_EVENT_TYPES)[number]
 import { useEffect, useRef } from 'react'
 
 interface TrackOptions {
@@ -11,8 +14,15 @@ interface TrackOptions {
   // Arrival events (qr_scan, nfc_tap, email_click, email_qr_scan, vbg_scan)
   // are defined in lib/card-sources.ts and typed from it, so adding a source
   // there cannot leave this union behind.
-  eventType: 'view' | 'link_click' | 'contact_save' | 'share' | CardSourceEventType
+  eventType: 'view' | 'link_click' | 'contact_save' | 'share' | ContextEventType | CardSourceEventType
   linkTitle?: string
+  /** Optional namespaced attribution, validated at /api/analytics against an
+   *  allow-list before it reaches the database. Existing call sites pass
+   *  nothing and are completely unaffected: JSON.stringify drops an undefined
+   *  value, so the request body does not even mention the column. That matters
+   *  for deploy ordering - this code is safe to ship BEFORE migration 080 has
+   *  run, because an ordinary event never references metadata at all. */
+  metadata?: unknown
 }
 
 async function track(opts: TrackOptions) {
@@ -21,6 +31,7 @@ async function track(opts: TrackOptions) {
     team_card_id: opts.teamCardId,
     event_type: opts.eventType,
     link_title: opts.linkTitle,
+    metadata: opts.metadata,
   })
   try {
     // A link click navigates away immediately, which cancels an in-flight
