@@ -67,7 +67,7 @@ import { MAX_CUSTOM_LINKS } from '@/types/design'
  * This is a backstop, not the safety mechanism. The safety mechanism is that
  * every function below fails closed on its own.
  */
-export const CONTEXT_ENABLED = false
+export const CONTEXT_ENABLED = true
 
 /** Where a Context came from, in precedence order: a visitor's own choice
  *  beats a sender's guess, which beats a configured default.
