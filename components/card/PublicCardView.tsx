@@ -21,7 +21,7 @@ import SuspendedBanner from '@/components/card/SuspendedBanner'
 // lib/card-surface.ts. Importing `track` back into this file would silently
 // reopen the hole, so the missing import is the guard.
 import { useTrack, useTrackLinkClicks } from '@/lib/track'
-import { useIsPreview, PREVIEW_SUBMIT_NOTICE } from '@/lib/card-surface'
+import { useIsPreview, PREVIEW_SUBMIT_NOTICE, PREVIEW_NAV_NOTICE } from '@/lib/card-surface'
 import ContactExchangeModal from './ContactExchangeModal'
 import QuestionnaireForm from './QuestionnaireForm'
 import InAppBackButton from '@/components/InAppBackButton'
@@ -33,7 +33,7 @@ import {
   readCardContext, readSenderAudience, resolveContext, orderSections, resolveContextCta,
   STANDARD_SECTION_ORDER, contextMetadata, contactContextMetadata,
   CONTEXT_EVENT_VIEWED, CONTEXT_EVENT_CTA_CLICKED,
-  type ResolvedContext, type ContextSection, type ContextConfig,
+  type ResolvedContext, type ContextSection, type ContextConfig, type CardPreviewContext,
 } from '@/lib/card-context'
 import ContextSelector from './ContextSelector'
 
@@ -49,6 +49,11 @@ interface Props {
   // Set when the card's organization is suspended. An empty string means
   // suspended with the default wording; null means not suspended.
   suspendedMessage?: string | null
+  /** ADMIN PREVIEW ONLY, and never reachable from public input. When present
+   *  it REPLACES the normal resolution entirely: the owner has said which
+   *  experience they want to look at, so nothing is resolved from the URL or
+   *  from the card's default. See CardPreviewContext. */
+  previewContext?: CardPreviewContext
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -854,6 +859,17 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           // the download starts.
           trackContactSave()
 
+          // NOT AN ANCHOR, so PreviewFrame cannot see it: every route out of
+          // here is window.location or a synthesised <a>.click(). The owner
+          // still gets the exchange modal, because that is part of what they
+          // are trying to look at; they just do not get a vCard download and a
+          // trip out of their own settings screen.
+          if (isPreview) {
+            toast.message(PREVIEW_NAV_NOTICE)
+            if (contactExchangeOn) setExchangeOpen(true)
+            return
+          }
+
           // A card opened from WhatsApp runs in WhatsApp's own WebView, which
           // has no download manager - the navigation below does nothing at all
           // and the visitor is left thinking they saved the contact. Since
@@ -912,6 +928,8 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
       {card.slug && (
         <button
           onClick={() => {
+            // window.open below, so PreviewFrame cannot see this one either.
+            if (isPreview) { toast.message(PREVIEW_NAV_NOTICE); return }
             // Built on click, not at render: window does not exist during SSR,
             // and the card's URL is simply the page we are already on.
             const url = window.location.origin + `/card/${card.slug}`
@@ -1178,10 +1196,11 @@ export default function PublicCardView(props: Props) {
   )
 }
 
-function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Props) {
+function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previewContext }: Props) {
   // Same shadowing as BottomSection: the context_viewed event below goes
   // through the hook so a preview never logs one.
   const track = useTrack()
+  const isPreviewSurface = useIsPreview()
   // Counts taps on the cardholder's own links, across every template, from a
   // single delegated listener. Attaching to the document rather than wrapping
   // the card means no template's markup or layout changes to get this.
@@ -1227,8 +1246,37 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
   const [contextAudiences, setContextAudiences] = useState<ContextConfig['audiences']>([])
   const contextConfigRef = useRef<ContextConfig | null>(null)
 
+  // ADMIN PREVIEW TAKES OVER COMPLETELY, or it does not participate at all.
+  //
+  // Reset only when the previewed EXPERIENCE changes, not on every draft edit.
+  // The owner is expected to tweak IT while looking at it, and snapping them
+  // out of Full Profile every time they nudge a section would make the pane
+  // unusable for the one job it has.
+  const previewKey = previewContext
+    ? (previewContext.mode === 'audience' ? `a:${previewContext.audience.id}` : 'standard')
+    : null
+  const lastPreviewKey = useRef<string | null>(null)
+
   useEffect(() => {
     try {
+      if (previewContext) {
+        // NOT readCardContext, and that is the whole point. The public reader
+        // honours the platform switch and the card's saved state, neither of
+        // which describes what the owner is currently looking at. The draft
+        // has already been through the same parser, so what renders here is
+        // what the card will do, without the kill switch being weakened by a
+        // single line to make a dashboard work.
+        contextConfigRef.current = { audiences: [...previewContext.audiences], defaultAudience: null }
+        setContextAudiences([...previewContext.audiences])
+        setActiveContext(previewContext.mode === 'audience'
+          ? { audience: previewContext.audience, source: 'visitor' }
+          : null)
+        if (lastPreviewKey.current !== previewKey) {
+          setShowFullProfile(false)
+          lastPreviewKey.current = previewKey
+        }
+        return
+      }
       const { enabled, config } = readCardContext((card as any).addons)
       if (!enabled) return
       contextConfigRef.current = config
@@ -1241,7 +1289,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
       // Any failure anywhere in Context leaves the standard card exactly as
       // the server rendered it.
     }
-  }, [card])
+  }, [card, previewContext, previewKey])
 
   // The visitor's own choice. It BEATS the sender's guess and the owner's
   // default, resolved through the same function so the precedence lives in one
@@ -1344,6 +1392,9 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
   ].filter(Boolean) as { platform: string; url: string; icon: React.ReactNode; color: string }[] : []
 
   async function handleShare() {
+    // In a preview window.location.href is the dashboard, so this would offer
+    // to share the settings page. Native share also hands off to another app.
+    if (isPreviewSurface) { toast.message(PREVIEW_NAV_NOTICE); return }
     const url = window.location.href
     const title = `${card.name} - Digital Business Card`
     try {

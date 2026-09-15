@@ -11,6 +11,7 @@ import {
   type ContextAudience, type ContextSection, type ContextCta,
 } from '@/lib/card-context'
 import { setUnsavedContext } from './unsaved'
+import ContextPreview from './ContextPreview'
 
 // THE OWNER'S CONTEXT EDITOR.
 //
@@ -54,6 +55,9 @@ interface Props {
   isOrg: boolean
   teamWide: boolean
   beta: boolean
+  /** The card the preview renders. For an organisation this is a real team
+   *  member's card, because the same Context runs on many different ones. */
+  previewCards: { id: string; label: string; card: Record<string, any> }[]
 }
 
 const SECTION_LABEL: Record<ContextSection, string> = {
@@ -100,9 +104,14 @@ function fromDraft(d: DraftAudience) {
 
 export default function ContextEditor({
   target, targetLabel, enabled, audiences, defaultAudience,
-  links, bookingAvailable, populated, isOrg, teamWide, beta,
+  links, bookingAvailable, populated, isOrg, teamWide, beta, previewCards = [],
 }: Props) {
   const router = useRouter()
+  // WHICH CARD THE PREVIEW RENDERS. Preview state, not configuration, so it is
+  // deliberately outside the draft: choosing a different team member to look
+  // at is not an edit and must not turn Save changes on.
+  const [previewId, setPreviewId] = useState(previewCards[0]?.id ?? '')
+  const previewCard = previewCards.find(c => c.id === previewId) || previewCards[0] || null
 
   const initial = useMemo(() => {
     const byId = new Map(audiences.map(a => [a.id, a]))
@@ -274,7 +283,12 @@ export default function ContextEditor({
         </select>
       </div>
 
-      {/* ── The six ───────────────────────────────────────────────────── */}
+      {/* ── The six, with the preview beside them on a wide screen ────── */}
+      {/* TWO COLUMNS FROM xl, ONE BELOW. The preview is a phone-width card, so
+          anything narrower than xl would squeeze both halves rather than help.
+          Below that it stacks and collapses, because six audience editors plus
+          a full card is already a long page on a phone. */}
+      <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_380px] xl:gap-5 xl:items-start space-y-3 xl:space-y-0">
       <div className="space-y-3">
         {rows.map(row => (
           <AudienceRow
@@ -293,6 +307,26 @@ export default function ContextEditor({
             isOrg={isOrg}
           />
         ))}
+      </div>
+
+        {previewCard && (
+          // Sticky within the grid column only. The height budget subtracts
+          // BOTH the top offset and the sticky save bar below: at 100vh-3rem
+          // the card ran underneath the Save button, which is the same class
+          // of overlap the save bar itself had on mobile. Measured, not
+          // guessed: 852px of preview against a bar starting at 809.
+          <div className="xl:sticky xl:top-6 xl:max-h-[calc(100vh-9rem)] xl:overflow-y-auto mt-3 xl:mt-0">
+            <ContextPreview
+              sourceCard={previewCard.card}
+              sourceLabel={previewCard.label}
+              sourceOptions={previewCards.map(c => ({ id: c.id, label: c.label }))}
+              sourceId={previewId}
+              onSourceChange={setPreviewId}
+              isPro={true}
+              rows={rows}
+            />
+          </div>
+        )}
       </div>
 
       {/* ── Save ──────────────────────────────────────────────────────── */}

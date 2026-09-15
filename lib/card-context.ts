@@ -758,6 +758,31 @@ export function resolveContext(input: {
   }
 }
 
+/**
+ * WHAT AN ADMIN PREVIEW IS SHOWING. Task 9e.
+ *
+ * EXPLICIT MODE, NEVER AN ABSENT VALUE. It would have been less code to say
+ * "no forced audience means standard", and that is a trap with a fuse on it:
+ * absent already means "resolve normally" everywhere else in this file, so the
+ * day CONTEXT_ENABLED goes true a preview asking for Standard would quietly
+ * start running the resolver and showing the owner's default audience instead
+ * of their unpersonalised card. Standard has to be a thing somebody SAID, not
+ * a thing nobody said.
+ *
+ * `audiences` is what the visitor's own selector would offer, which is the
+ * ENABLED ones. The previewed audience itself may be disabled: an owner has to
+ * be able to look at Procurement before switching it on. That is an admin
+ * simulation and changes nothing about what is publicly resolvable, because
+ * this value only ever arrives as a React prop.
+ *
+ * THERE IS NO PATH FROM PUBLIC INPUT TO HERE. No query parameter, no request
+ * body and no API maps to this type. A visitor still gets visitor choice, then
+ * sender, then default, then standard, decided by resolveContext.
+ */
+export type CardPreviewContext =
+  | { mode: 'standard'; audiences: readonly ContextAudience[] }
+  | { mode: 'audience'; audience: ContextAudience; audiences: readonly ContextAudience[] }
+
 // ══ TASK 4: reading the sender's audience out of the URL ══════════════════
 //
 // EXTRACTION PRESERVES, RESOLUTION JUDGES. This function's entire job is to

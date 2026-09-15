@@ -60,3 +60,8 @@ export function useIsPreview(): boolean {
  *  so the four forms cannot drift into four different explanations of the
  *  same thing. */
 export const PREVIEW_SUBMIT_NOTICE = 'This is a preview of your own card. Nothing is sent.'
+
+/** What a preview says when a card action would have left the page. Shared so
+ *  the vCard, the share buttons and the anchor interception cannot invent
+ *  three different explanations of the same thing. */
+export const PREVIEW_NAV_NOTICE = 'Preview only. Links are not opened here.'

@@ -3,7 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Sparkles, ClipboardList, ArrowLeft } from 'lucide-react'
-import { resolveAddonTargets } from '@/lib/addon-target'
+import { resolveAddonTargets, mergeTeamAddons } from '@/lib/addon-target'
 import { getUserPlan } from '@/lib/plan-server'
 import { isIosApp } from '@/lib/app-platform'
 import { extractLinks } from '@/types/database'
@@ -12,8 +12,6 @@ import TargetLink from '@/components/context/TargetLink'
 import { CONTEXT_ENABLED, readStoredContext, type ContextSection } from '@/lib/card-context'
 
 export const metadata = { title: 'Cardtly Context' }
-
-const grad = 'hsl(var(--accent))'
 
 // THE OWNER'S CONFIGURATION SCREEN FOR CARDTLY CONTEXT.
 //
@@ -69,7 +67,7 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
           {!iosApp && (
             <Link href="/dashboard/upgrade"
               className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
-              style={{ background: grad }}>
+              style={{ background: 'hsl(var(--accent))' }}>
               Subscribe for R97/month
             </Link>
           )}
@@ -105,10 +103,12 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
   // will show until they do.
   let links: { index: number; title: string }[] = []
   let populated: Record<ContextSection, boolean> = { certifications: true, links: true, gallery: true }
+  let sourceRow: any = null
   if (selected.table === 'cards' || selected.table === 'team_cards') {
     const { data: row } = await admin.from(selected.table).select('*').eq('id', selected.id).maybeSingle()
     if (row) {
       const r = row as any
+      sourceRow = r
       links = extractLinks(r).map(l => ({ index: l.index, title: l.title }))
       populated = {
         links: links.length > 0,
@@ -121,6 +121,37 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
   // Booking is offered on any Pro card; a template can omit it, which the
   // public card handles by rendering nothing rather than by disabling it here.
   const bookingAvailable = true
+
+  // WHICH CARD THE PREVIEW RENDERS.
+  //
+  // For a personal target it is obvious: that card. For an ORGANISATION it is
+  // not, and getting it wrong would mislead the one person most likely to act
+  // on it. The same Context runs on every member's card, and link 3 is
+  // Corporate Pricing on one and Website on another, so a generic organisation
+  // card would show a CTA going somewhere that belongs to nobody. Preview
+  // against real team cards and name whose is on screen.
+  let previewCards: { id: string; label: string; card: Record<string, any> }[] = []
+  if (selected.table === 'organizations') {
+    const { data: teamRows } = await admin
+      .from('team_cards').select('*').eq('organization_id', selected.id)
+      .order('created_at', { ascending: true }).limit(12)
+    previewCards = (teamRows || []).map((r: any) => ({
+      id: r.id,
+      label: `${r.name || 'Team member'}'s Cardtly`,
+      // REAL add-ons, with the organisation's laid over the card's exactly as
+      // the public runtime does, so contact exchange and the questionnaire
+      // appear in the preview if they would appear on the card. The `context`
+      // inside is never read here: previewContext short-circuits the public
+      // reader entirely, which is what keeps the kill switch untouched.
+      card: { ...r, addons: mergeTeamAddons(r.addons, selected.addons), _team_card_id: r.id },
+    }))
+  } else if (sourceRow) {
+    previewCards = [{
+      id: sourceRow.id,
+      label: isTeamWide ? `${sourceRow.name || 'This'} Cardtly` : 'Your Cardtly',
+      card: { ...sourceRow, addons: sourceRow.addons || {} },
+    }]
+  }
 
   const targetLabel = isTeamWide
     ? `${selected.label || 'your team'} (every card in the team)`
@@ -191,6 +222,7 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
         isOrg={isTeamWide}
         teamWide={isTeamWide}
         beta={!CONTEXT_ENABLED}
+        previewCards={previewCards}
       />
 
       <div className="rounded-lg border border-border bg-card p-4 flex items-center justify-between gap-3 flex-wrap">

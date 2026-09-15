@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { CardDesign } from '@/types/design'
 import PublicCardView from './PublicCardView'
-import { CardSurfaceProvider } from '@/lib/card-surface'
+import PreviewFrame from './PreviewFrame'
 
 // Renders the REAL card, scaled down.
 //
@@ -90,16 +90,16 @@ export default function CardPreview({ form, isPro, design, frameHeight }: Props)
   // whole preview when the measurement was late.
   if (!frameHeight) {
     return (
-      <CardSurfaceProvider surface="preview">
+      <PreviewFrame>
         <div aria-hidden className="cardtly-card-preview" style={{ pointerEvents: 'none' }}>
           <PublicCardView card={card} isPro={isPro} />
         </div>
-      </CardSurfaceProvider>
+      </PreviewFrame>
     )
   }
 
   return (
-    <CardSurfaceProvider surface="preview">
+    <PreviewFrame>
     <div
       ref={box}
       aria-hidden
@@ -139,6 +139,6 @@ export default function CardPreview({ form, isPro, design, frameHeight }: Props)
         </div>
       )}
     </div>
-    </CardSurfaceProvider>
+    </PreviewFrame>
   )
 }
