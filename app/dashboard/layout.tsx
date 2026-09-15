@@ -189,7 +189,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </div>
           </div>
         </main>
-        <CommandPalette />
+        <CommandPalette isAdmin={isAdmin} />
         <HeartbeatPing />
         <AnnouncementModal />
         <MobileBottomNav isAdmin={isAdmin} isPro={isPro} managesDepartments={managesDepartments} showTeamCards={showTeamCards} isRep={isRep} teamTabLabel={teamTabLabel} />

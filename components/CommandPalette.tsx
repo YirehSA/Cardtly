@@ -27,24 +27,29 @@ interface Command {
 // without navigating menus. Used by both regular users and the admin
 // (admin-only items are hidden from non-admin sessions).
 
-export default function CommandPalette() {
+/**
+ * ADMIN STATUS IS PASSED IN, NEVER WORKED OUT HERE.
+ *
+ * This used to compare the signed-in user against a hardcoded founder id, with
+ * a comment claiming it was "the admin user ID from the existing admin gate".
+ * That stopped being true the day profiles.is_admin arrived: the real gate in
+ * lib/admin-check.ts grants admin to the founder id OR any profile flagged
+ * is_admin, so three genuine admins could open /admin and call every admin API
+ * while this palette quietly hid the admin command from them.
+ *
+ * The dashboard layout already resolves this through isAdminUser and hands the
+ * same boolean to Sidebar and MobileBottomNav. Taking it as a prop means there
+ * is one rule rather than two, and no second round trip: a copy of an
+ * authorisation rule is a copy that drifts, and this one had.
+ */
+export default function CommandPalette({ isAdmin = false }: { isAdmin?: boolean }) {
   const iosApp = useIosApp()
   const router = useRouter()
   const { theme, toggle } = useTheme()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [isAdmin, setIsAdmin] = useState(false)
   const [highlight, setHighlight] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  // Detect admin so we can show admin-only commands
-  useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      // Admin user ID from the existing admin gate
-      setIsAdmin(user?.id === '6216ca40-72e5-47f2-af6a-a37d35f9d169')
-    })
-  }, [])
 
   // Global keyboard listener for Cmd+K / Ctrl+K
   useEffect(() => {
