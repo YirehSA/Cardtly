@@ -51,8 +51,17 @@ const MAX_CUSTOM_LINKS = (() => {
   return Number(m[1])
 })()
 
-/** Compile the module, optionally forcing the master switch on first. */
-function load(forceOn) {
+/**
+ * Compile the module, optionally forcing the master switch on first.
+ *
+ * `mutations` is a list of [find, replace] pairs applied to the source before
+ * compiling. It exists so the guards below can be tested rather than trusted:
+ * a rule is only worth having if removing it makes something fail, and the
+ * only way to know that is to remove it. Every mutation is verified to have
+ * actually applied, because a mutation that silently matched nothing would
+ * make a broken guard look proven.
+ */
+function load(forceOn, mutations = []) {
   const out = mkdtempSync(join(tmpdir(), 'card-context-'))
   const src = readFileSync(SRC, 'utf8')
   let patched = forceOn
@@ -60,6 +69,13 @@ function load(forceOn) {
     : src
   if (forceOn && patched === src) {
     bad('could not force CONTEXT_ENABLED on - the declaration was reworded, so the switch is no longer being tested')
+  }
+  for (const [find, replace] of mutations) {
+    const before = patched
+    patched = patched.replace(find, replace)
+    if (patched === before) {
+      bad(`mutation did not apply, so the guard it targets is untested: ${String(find).slice(0, 70)}`)
+    }
   }
 
   // Stand in for the aliased import, which cannot resolve outside the project.
@@ -1071,6 +1087,344 @@ function parse(label, input) {
   }
 }
 
+// ══ TASK 9b: audiences that are switched off, not thrown away ═════════════
+//
+// THE PRODUCT RULE THIS PROTECTS. Switching an audience off must not lose the
+// work that went into it. An owner who spent ten minutes arranging IT, turned
+// it off for a quarter and came back to a blank form would rightly call that
+// data loss, and would be right. So a disabled audience keeps its label, its
+// order, its hidden sections and its CTA, and simply does not run.
+//
+// The second half of the rule is that "does not run" has to mean completely.
+// A disabled audience that could still be reached by ?a=it, or could still be
+// the default, would be worse than no switch at all: the owner would believe
+// it was off.
+{
+  const P = on.parseContextConfig
+  const E = on.effectiveContextConfig
+  const R = on.resolveContext
+
+  const FULL = {
+    id: 'it',
+    label: 'IT / Technology',
+    order: ['links', 'certifications'],
+    hide: ['gallery'],
+    cta: { kind: 'link', index: 3, label: 'Book Technical Demo' },
+  }
+  const find = (c, id) => c.audiences.find(a => a.id === id) || null
+
+  // ── 1. The three readings of `enabled`, plus every malformed one ────────
+  //
+  // Absent must mean ENABLED. Every config written before this field existed
+  // said "in the list" for "switched on", and a schema change is not allowed
+  // to switch off cards that are working today.
+  {
+    const legacy = find(P({ audiences: [{ id: 'it', label: 'IT' }] }), 'it')
+    if (legacy?.enabled !== true) bad('an audience with no `enabled` key did not read as enabled, which silently switches off every config written before the field existed')
+
+    if (find(P({ audiences: [{ id: 'it', enabled: true }] }), 'it')?.enabled !== true) bad('enabled: true did not read as enabled')
+    if (find(P({ audiences: [{ id: 'it', enabled: false }] }), 'it')?.enabled !== false) bad('enabled: false did not read as disabled')
+
+    // No truthy coercion. 1 is not true, "false" is not false, and an
+    // explicit null is a value somebody wrote rather than a field nobody
+    // wrote. All of them fail closed, and all of them KEEP the config.
+    for (const junk of ['true', 'false', 1, 0, '', [], {}, null, NaN]) {
+      const a = find(P({ audiences: [{ ...FULL, enabled: junk }] }), 'it')
+      if (!a) { bad(`a malformed enabled value ${JSON.stringify(junk)} dropped the whole audience, destroying the configuration it was meant to protect`); continue }
+      if (a.enabled !== false) bad(`a malformed enabled value ${JSON.stringify(junk)} did not fail closed`)
+      if (a.label !== FULL.label || a.cta?.index !== 3 || a.hide[0] !== 'gallery') {
+        bad(`a malformed enabled value ${JSON.stringify(junk)} lost the rest of the audience's configuration`)
+      }
+    }
+  }
+
+  // ── 2. Disabling preserves everything, re-enabling restores it ──────────
+  {
+    const offCfg = P({ audiences: [{ ...FULL, enabled: false }], defaultAudience: 'it' })
+    const a = find(offCfg, 'it')
+    if (!a) bad('a disabled audience was dropped from the stored config, so the dashboard could never read it back')
+    if (a && (a.label !== 'IT / Technology' || a.order.join() !== 'links,certifications' || a.hide.join() !== 'gallery' || a.cta?.kind !== 'link' || a.cta?.index !== 3 || a.cta?.label !== 'Book Technical Demo')) {
+      bad('disabling an audience lost its label, order, hidden sections or CTA')
+    }
+
+    // Re-enabling the same stored object returns the same behaviour, with no
+    // repair step and nothing rebuilt.
+    const onCfg = P({ audiences: [{ ...FULL, enabled: true }], defaultAudience: 'it' })
+    const b = find(onCfg, 'it')
+    if (!b?.enabled || b.cta?.label !== 'Book Technical Demo' || b.order.join() !== 'links,certifications') {
+      bad('re-enabling an audience did not restore exactly what was configured')
+    }
+    if (onCfg.defaultAudience !== 'it') bad('re-enabling the audience did not make it usable as the default again')
+  }
+
+  // ── 3. A disabled audience cannot be the default ────────────────────────
+  //
+  // Cleared in the STORED config, not merely ignored at runtime, so the
+  // dashboard shows the truth rather than a setting that can never fire.
+  {
+    const cfg = P({ audiences: [{ id: 'it', enabled: false }, { id: 'executive' }], defaultAudience: 'it' })
+    if (cfg.defaultAudience !== null) bad('a disabled audience survived as defaultAudience, which is a setting that can never execute')
+    if (!find(cfg, 'it')) bad('clearing the default also dropped the disabled audience')
+  }
+
+  // ── 4. The effective config is what the public card may run ─────────────
+  {
+    const stored = P({ audiences: [{ ...FULL, enabled: false }, { id: 'executive', label: 'Executive' }], defaultAudience: 'executive' })
+    const eff = E(stored)
+    if (stored.audiences.length !== 2) bad('the stored config lost an audience')
+    if (eff.audiences.length !== 1 || eff.audiences[0].id !== 'executive') bad('the effective config still carried a disabled audience')
+    if (eff.defaultAudience !== 'executive') bad('the effective config dropped a perfectly good default')
+
+    const onlyDisabled = E(P({ audiences: [{ id: 'it', enabled: false }], defaultAudience: 'it' }))
+    if (onlyDisabled.audiences.length !== 0 || onlyDisabled.defaultAudience !== null) {
+      bad('a config whose only audience is disabled did not reduce to nothing')
+    }
+    for (const junk of [null, undefined, {}, 'x', 42, [], { audiences: 'no' }]) {
+      try { E(junk) } catch (e) { bad(`effectiveContextConfig threw on ${String(junk)}: ${e.message}`) }
+    }
+  }
+
+  // ── 5. A disabled audience cannot resolve, from anywhere ────────────────
+  //
+  // AND THE FALLBACK IS THE STANDARD CARD, NOT THE DEFAULT. ?a=it on a card
+  // where IT is switched off is an explicit request that cannot be honoured,
+  // which is the existing invalid-explicit rule: answering it with Executive
+  // would be showing somebody a different audience than the sender addressed.
+  {
+    const eff = E(P({
+      audiences: [{ id: 'it', enabled: false }, { id: 'executive' }],
+      defaultAudience: 'executive',
+    }))
+    if (eff.defaultAudience !== 'executive') bad('the working default did not survive alongside a disabled audience')
+
+    const CASES = [
+      ['sender ?a=it with IT disabled', { config: eff, senderAudience: 'it' }],
+      ['visitor selecting IT with IT disabled', { config: eff, visitorAudience: 'it' }],
+      ['visitor IT, sender IT, both disabled', { config: eff, visitorAudience: 'it', senderAudience: 'it' }],
+    ]
+    for (const [label, input] of CASES) {
+      const r = R(input)
+      if (r !== null) bad(`${label}: resolved to ${r.audience.id} via ${r.source} instead of the standard card`)
+    }
+
+    // The control: with nothing explicit supplied the default still applies,
+    // so the cases above are failing for the right reason.
+    if (R({ config: eff })?.audience.id !== 'executive') bad('the default stopped applying when nothing was supplied')
+    // And the enabled audience still resolves, so the filter is not simply
+    // breaking everything.
+    if (R({ config: eff, senderAudience: 'executive' })?.source !== 'sender') bad('an enabled audience stopped resolving')
+  }
+
+  // ── 6. The platform switch and the customer's switch are different ──────
+  //
+  // This is the release plan, expressed as a test. We must be able to build
+  // and save configuration on Cardtly-owned cards while every public card in
+  // the country still renders standard.
+  {
+    const ADDONS = {
+      contactExchange: true,
+      questionnaireEnabled: true,
+      questionnaire: { questions: [{ label: 'Q', value: '' }] },
+      cardtlyBadge: true,
+      context: { enabled: true, audiences: [{ id: 'it', label: 'IT', enabled: true }], defaultAudience: 'it' },
+    }
+
+    // Platform OFF: the public card sees nothing at all...
+    const pub = off.readCardContext(ADDONS)
+    if (pub.enabled !== false || pub.config.audiences.length !== 0) {
+      bad('the platform switch stopped overriding a configured card, so Context would go live before we turned it on')
+    }
+    // ...while the owner's dashboard still reads the whole configuration.
+    const stored = off.readStoredContext(ADDONS)
+    if (stored.enabled !== true) bad('readStoredContext reported the customer switch as off while the platform switch was off, so the dashboard could not be used before launch')
+    if (stored.config.audiences.length !== 1 || stored.config.defaultAudience !== 'it') {
+      bad('readStoredContext lost the configuration while the platform switch was off')
+    }
+
+    // Context switched off by the OWNER still keeps everything.
+    const offAddons = { ...ADDONS, context: { ...ADDONS.context, enabled: false } }
+    const kept = on.readStoredContext(offAddons)
+    if (kept.enabled !== false) bad('the customer switch did not read as off')
+    if (kept.config.audiences.length !== 1 || kept.config.audiences[0].label !== 'IT' || kept.config.defaultAudience !== 'it') {
+      bad('switching the Context add-on off discarded the audiences, so turning it back on would not restore anything')
+    }
+    // And with the add-on off, the public card shows standard even when the
+    // platform switch is on.
+    if (on.readCardContext(offAddons).enabled !== false) bad('a card with Context switched off still executed Context')
+
+    for (const junk of [null, undefined, 'x', 42, [], { context: 'no' }, { context: null }]) {
+      try {
+        const r = on.readStoredContext(junk)
+        if (r.enabled !== false || r.config.audiences.length !== 0) bad(`readStoredContext accepted junk: ${JSON.stringify(junk)}`)
+      } catch (e) { bad(`readStoredContext threw on ${JSON.stringify(junk)}: ${e.message}`) }
+    }
+  }
+
+  // ── 7. What the owner's save route will accept ──────────────────────────
+  {
+    const S = on.canonicaliseContextForSave
+
+    // The six, and only the six, during the beta. A well-formed id we do not
+    // offer is refused by name rather than quietly dropped: silently saving
+    // less than somebody asked for is how a settings screen starts lying.
+    const unsupported = S({ enabled: true, audiences: [{ id: 'executive' }, { id: 'quantity-surveyors' }] })
+    if (unsupported.ok !== false) bad('the save route accepted an audience id outside the supported six, which would mint a permanent public id nobody designed')
+    if (unsupported.ok === false && !unsupported.error.includes('quantity-surveyors')) bad('the refusal did not name the offending audience')
+
+    for (const id of on.CONTEXT_AUDIENCE_IDS) {
+      const r = S({ enabled: true, audiences: [{ id }] })
+      if (!r.ok) bad(`the save route refused a supported audience: ${id}`)
+    }
+
+    // Structurally broken input is the parser's ordinary business: dropped,
+    // not refused. Only a well-formed unsupported id is an instruction.
+    const messy = S({
+      enabled: true,
+      audiences: [
+        { id: 'IT Manager' },                    // not a usable id at all
+        { id: 'it', order: ['links', 'wallet'], hide: ['nope'], cta: { kind: 'link', index: 99 } },
+        'not an object',
+      ],
+      defaultAudience: 'finance',
+    })
+    if (!messy.ok) bad('the save route refused a config it should simply have canonicalised')
+    if (messy.ok) {
+      if (messy.stored.audiences.length !== 1 || messy.stored.audiences[0].id !== 'it') bad('canonicalisation did not drop the unusable entries')
+      if (messy.stored.audiences[0].cta !== null) bad('a CTA pointing past the last link slot was stored')
+      if (messy.stored.audiences[0].order.join() !== 'links') bad('an unknown section survived canonicalisation')
+      if (messy.stored.defaultAudience !== null) bad('a default naming no configured audience was stored')
+    }
+
+    // The customer switch is strict true, like every other switch here.
+    for (const junk of ['true', 1, 'yes', {}, null, undefined]) {
+      const r = S({ enabled: junk, audiences: [{ id: 'it' }] })
+      if (r.ok && r.stored.enabled !== false) bad(`a non-boolean enabled (${JSON.stringify(junk)}) switched Context on`)
+    }
+    if (!S({ enabled: true, audiences: [{ id: 'it' }] }).stored.enabled) bad('enabled: true did not switch Context on')
+
+    // Disabled audiences survive the save, which is the entire point.
+    const savedOff = S({ enabled: false, audiences: [{ ...FULL, enabled: false }], defaultAudience: 'it' })
+    if (!savedOff.ok) bad('the save route refused a config whose only audience is disabled')
+    if (savedOff.ok) {
+      const a = savedOff.stored.audiences[0]
+      if (!a || a.enabled !== false || a.cta?.label !== 'Book Technical Demo' || a.hide.join() !== 'gallery') {
+        bad('saving did not preserve a disabled audience exactly')
+      }
+      if (savedOff.stored.defaultAudience !== null) bad('saving kept a default that names a disabled audience')
+    }
+
+    for (const junk of [null, undefined, 'x', 42, [], true]) {
+      const r = S(junk)
+      if (r.ok !== false) bad(`the save route accepted junk: ${JSON.stringify(junk)}`)
+    }
+  }
+
+  // ── 8. Saving Context cannot disturb any other add-on ───────────────────
+  //
+  // Release blocking. Contact exchange, the questionnaire and the badge are
+  // things customers are already using; a Context save that touched them
+  // would break paid features to configure an unreleased one.
+  {
+    const M = on.mergeContextAddon
+    const existing = {
+      contactExchange: true,
+      questionnaireEnabled: true,
+      questionnaire: { title: 'Form', questions: [{ label: 'Q', value: '' }] },
+      questionnaires: [{ id: 'form_1' }],
+      activeQuestionnaireId: 'form_1',
+      cardtlyBadge: true,
+    }
+    const snapshot = JSON.stringify(existing)
+    const stored = { enabled: true, audiences: [{ id: 'it', enabled: true, label: 'IT', order: [], hide: [], cta: null }], defaultAudience: null }
+    const next = M(existing, stored)
+
+    if (JSON.stringify(existing) !== snapshot) bad('the merge mutated the addons object it was given')
+    for (const k of Object.keys(existing)) {
+      if (JSON.stringify(next[k]) !== JSON.stringify(existing[k])) bad(`saving Context changed an unrelated add-on: ${k}`)
+    }
+    if (JSON.stringify(next.context) !== JSON.stringify(stored)) bad('the merge did not store the Context it was given')
+    if (Object.keys(next).length !== Object.keys(existing).length + 1) bad('the merge added or removed keys beyond context')
+
+    // Replacing an existing context replaces only that key.
+    const again = M(next, { enabled: false, audiences: [], defaultAudience: null })
+    if (again.contactExchange !== true || again.questionnaireEnabled !== true || again.cardtlyBadge !== true) {
+      bad('saving Context a second time disturbed the other add-ons')
+    }
+    for (const junk of [null, undefined, 'x', 42, []]) {
+      const r = M(junk, stored)
+      if (!r || typeof r !== 'object' || JSON.stringify(r.context) !== JSON.stringify(stored)) bad(`the merge mishandled addons of ${JSON.stringify(junk)}`)
+    }
+  }
+}
+
+// ══ TASK 9b MUTATIONS: prove each rule is load bearing ════════════════════
+//
+// A guard nobody has broken on purpose is a guard nobody knows works. Each
+// entry below removes exactly one rule, recompiles, and asserts that the
+// behaviour the rule protects genuinely changes. If a mutation compiles and
+// the behaviour stays correct, the rule was decorative and this says so.
+{
+  const MUTANTS = [
+    {
+      what: 'a missing `enabled` key defaults to enabled',
+      mutate: [["  if (!('enabled' in raw)) return true", '  if (false) return true']],
+      // A legacy config, written before the field existed, must still run.
+      broken: m => m.parseContextConfig({ audiences: [{ id: 'it', label: 'IT' }] }).audiences[0].enabled === false,
+    },
+    {
+      what: 'disabled audiences are removed from the effective config',
+      mutate: [['.filter(a => a && a.enabled)', '.filter(a => a)']],
+      // A switched-off audience becomes reachable by ?a=it again.
+      broken: m => {
+        const eff = m.effectiveContextConfig(m.parseContextConfig({ audiences: [{ id: 'it', enabled: false }, { id: 'executive' }] }))
+        return m.resolveContext({ config: eff, senderAudience: 'it' })?.audience.id === 'it'
+      },
+    },
+    {
+      what: 'a disabled audience is cleared as the default',
+      mutate: [['const defaultAudience = wanted && usable.has(wanted) ? wanted : null',
+                'const defaultAudience = wanted && seen.has(wanted) ? wanted : null']],
+      broken: m => m.parseContextConfig({ audiences: [{ id: 'it', enabled: false }], defaultAudience: 'it' }).defaultAudience === 'it',
+    },
+    {
+      what: 'saving Context leaves other add-ons alone',
+      mutate: [['  const base = isPlainObject(existing) ? existing : {}', '  const base = {}']],
+      broken: m => m.mergeContextAddon({ contactExchange: true }, { enabled: true, audiences: [], defaultAudience: null }).contactExchange === undefined,
+    },
+    {
+      what: 'the platform switch does not block configuration',
+      mutate: [['export function readStoredContext(addons: unknown): { enabled: boolean; config: ContextConfig } {\n  try {',
+                'export function readStoredContext(addons: unknown): { enabled: boolean; config: ContextConfig } {\n  try {\n    if (!CONTEXT_ENABLED) return { enabled: false, config: EMPTY_CONFIG }']],
+      // Compiled with the switch OFF, which is how it ships today.
+      forceOn: false,
+      broken: m => m.readStoredContext({ context: { enabled: true, audiences: [{ id: 'it' }] } }).config.audiences.length === 0,
+    },
+  ]
+
+  for (const t of MUTANTS) {
+    const forceOn = t.forceOn === undefined ? true : t.forceOn
+    const baseline = forceOn ? on : off
+
+    // TWO SIDED, because a one-sided mutation test proves nothing. If the
+    // predicate already reports "broken" against the real module then it is
+    // not detecting the mutation, it is simply always true, and every mutation
+    // it guards would pass whether or not the rule exists.
+    let baselineBroken = true
+    try { baselineBroken = t.broken(baseline) === true } catch { baselineBroken = true }
+    if (baselineBroken) {
+      bad(`MUTATION TEST IS VACUOUS: the check for "${t.what}" already reports broken against the unmutated module, so it cannot detect anything`)
+      continue
+    }
+
+    const { mod, out } = load(forceOn, t.mutate)
+    const m = await mod
+    let caught = false
+    try { caught = t.broken(m) === true } catch { caught = true }
+    if (!caught) bad(`MUTATION SURVIVED: removing "${t.what}" changed nothing, so that rule is not actually doing the work`)
+    try { rmSync(out, { recursive: true, force: true }) } catch {}
+  }
+}
+
 for (const d of [onDir, offDir]) { try { rmSync(d, { recursive: true, force: true }) } catch {} }
 
 if (fail) {
@@ -1081,5 +1435,10 @@ console.log(
   `check-card-context: the entitlement failed closed on all ${HOSTILE.length} malformed inputs without throwing, ` +
   'the master switch overrides a configured card, the parser drops bad audiences, ids, sections and CTAs ' +
   'without losing the good ones, protected card areas are unreachable, a CTA cannot carry a URL, and the ' +
-  'resolver treats an absent audience as the configured default while an unresolvable one falls to the standard card.',
+  'resolver treats an absent audience as the configured default while an unresolvable one falls to the standard card. ' +
+  'A switched-off audience keeps its label, order, hidden sections and CTA, cannot resolve from a visitor or a sender, ' +
+  'cannot be the default, and leaves the standard card rather than the default when one is explicitly asked for. ' +
+  'An audience written before `enabled` existed still runs, a malformed `enabled` fails closed without losing the ' +
+  'configuration, the owner can save and read back Context while the platform switch is off, and saving Context ' +
+  'cannot touch another add-on. All five of those rules were then deliberately removed and every one was caught.',
 )

@@ -256,6 +256,17 @@ export type ContextCta =
 export interface ContextAudience {
   /** URL-safe and permanent. See CONTEXT_AUDIENCE_IDS. */
   id: string
+  /**
+   * Whether this audience may actually execute. ALWAYS PRESENT after parsing,
+   * even though it is optional in stored data. See parseEnabled.
+   *
+   * A disabled audience KEEPS EVERY OTHER SETTING. Switching IT off and back
+   * on next week must return the same label, the same order, the same hidden
+   * sections and the same CTA, because to the owner that is one switch rather
+   * than a delete and a rebuild. Storing the configuration and refusing to run
+   * it is the only way to promise that.
+   */
+  enabled: boolean
   /** Free to change. Falls back to the id when absent or unusable. */
   label: string
   /** Sections in the order they should appear. Deduplicated, unknown keys
@@ -352,6 +363,41 @@ function parseCta(v: unknown): ContextCta | null {
   return null
 }
 
+/**
+ * ABSENT AND MALFORMED ARE DIFFERENT THINGS, which is the same principle the
+ * resolver is built on and it applies here for the same reason.
+ *
+ *   key absent  -> ENABLED   authored before this field existed
+ *   true        -> ENABLED
+ *   false       -> DISABLED
+ *   anything    -> DISABLED  fail closed, configuration kept
+ *
+ * ABSENT IS THE KEY BEING MISSING, nothing else. An explicit null is a value
+ * somebody wrote, not a field nobody wrote, so it reads as malformed and
+ * disables. Only a genuinely untouched config gets the legacy reading.
+ *
+ * ABSENT MEANS ENABLED, and it has to. Every Context config authored before
+ * this field existed was written under a model where an audience being in the
+ * list WAS it being on. Reading those as disabled would switch off working
+ * cards to suit a schema change, which is not a thing a schema change is
+ * allowed to do.
+ *
+ * MALFORMED MEANS DISABLED, NOT DROPPED. "true", 1 and "false" are all a
+ * configuration we cannot interpret, and the parser's standing rule is to
+ * neutralise a bad FIELD rather than throw away the whole audience - the same
+ * treatment an invalid CTA already gets. Disabling is the fail-closed reading
+ * because the audience then cannot execute, and dropping the audience would
+ * destroy the label, order, hide and CTA that this entire change exists to
+ * preserve. The owner sees it switched off in the dashboard and can switch it
+ * back on, which is a recoverable state rather than a silent deletion.
+ *
+ * No truthy coercion anywhere. 1 is not true and "false" is not false.
+ */
+function parseEnabled(raw: Record<string, unknown>): boolean {
+  if (!('enabled' in raw)) return true
+  return raw.enabled === true
+}
+
 function parseAudience(v: unknown): ContextAudience | null {
   if (!isPlainObject(v)) return null
 
@@ -367,7 +413,7 @@ function parseAudience(v: unknown): ContextAudience | null {
   // explicitly asked to leave out.
   const order = sectionList(v.order).filter(s => !hide.includes(s))
 
-  return { id, label, order, hide, cta: parseCta(v.cta) }
+  return { id, enabled: parseEnabled(v), label, order, hide, cta: parseCta(v.cta) }
 }
 
 /**
@@ -414,20 +460,54 @@ function parseContextConfigUnsafe(raw: unknown): ContextConfig {
   if (!Array.isArray(list)) return EMPTY_CONFIG
 
   const audiences: ContextAudience[] = []
+  const usable = new Set<string>()
   const seen = new Set<string>()
   for (const entry of list.slice(0, MAX_AUDIENCES * 4)) {
     if (audiences.length >= MAX_AUDIENCES) break
     const a = parseAudience(entry)
     if (!a || seen.has(a.id)) continue
     seen.add(a.id)
+    if (a.enabled) usable.add(a.id)
     audiences.push(a)
   }
 
-  // Only ever an id that actually survived. Never invented, never repaired.
+  // Only ever an id that actually survived AND can actually run. Never
+  // invented, never repaired.
+  //
+  // A DISABLED DEFAULT IS CLEARED RATHER THAN KEPT. "Use Executive when nobody
+  // has said who they are" and "Executive is switched off" cannot both be
+  // true, and of the two the switch is the more recent instruction. Keeping a
+  // default that can never fire would mean the dashboard showing a setting
+  // that does nothing, which is the kind of thing an owner only discovers by
+  // wondering why their card never personalises.
   const wanted = str(raw.defaultAudience)
-  const defaultAudience = wanted && seen.has(wanted) ? wanted : null
+  const defaultAudience = wanted && usable.has(wanted) ? wanted : null
 
   return { audiences, defaultAudience }
+}
+
+/**
+ * THE CONFIGURATION AS IT MAY ACTUALLY RUN. Disabled audiences are removed
+ * entirely rather than marked, so nothing downstream has to remember to check.
+ *
+ * This is the whole of the disabled-audience runtime behaviour, and it is
+ * deliberately all of it. The resolver is untouched: an audience that is not
+ * in the list cannot be selected by a visitor, cannot be resolved from ?a=,
+ * and cannot be a default, and an explicit ?a=it that finds nothing already
+ * falls to the standard card rather than the default through the existing
+ * absent-versus-invalid rule. Disabling an audience is exactly as if it had
+ * never been configured, for one page view, while the configuration itself
+ * sits untouched in the database.
+ */
+export function effectiveContextConfig(config: ContextConfig): ContextConfig {
+  try {
+    const audiences = (Array.isArray(config?.audiences) ? config.audiences : []).filter(a => a && a.enabled)
+    const ids = new Set(audiences.map(a => a.id))
+    const defaultAudience = config?.defaultAudience && ids.has(config.defaultAudience) ? config.defaultAudience : null
+    return { audiences, defaultAudience }
+  } catch {
+    return EMPTY_CONFIG
+  }
 }
 
 /** Entitlement and configuration together, which is what the resolver wants.
@@ -436,7 +516,140 @@ function parseContextConfigUnsafe(raw: unknown): ContextConfig {
 export function readCardContext(addons: unknown): { enabled: boolean; config: ContextConfig } {
   const ent = readContextEntitlement(addons)
   if (!ent.enabled) return { enabled: false, config: EMPTY_CONFIG }
-  return { enabled: true, config: parseContextConfig(ent.raw) }
+  // EFFECTIVE, not stored. A disabled audience physically cannot reach the
+  // public card through this function, so no renderer, selector or resolver
+  // has to remember to filter one out.
+  return { enabled: true, config: effectiveContextConfig(parseContextConfig(ent.raw)) }
+}
+
+/**
+ * THE OWNER'S STORED CONFIGURATION. For the dashboard and the save API only.
+ * NEVER for rendering a public card.
+ *
+ * Two things make this different from readCardContext, and both are the point:
+ *
+ * 1. IT IGNORES THE PLATFORM SWITCH. CONTEXT_ENABLED governs whether Context
+ *    EXECUTES in public, not whether a customer may configure it. We need to
+ *    build, save and preview configuration on Cardtly-owned beta cards while
+ *    every public card in the country still renders standard, and a
+ *    configuration screen that goes blank because of a platform flag makes
+ *    that impossible.
+ *
+ * 2. IT KEEPS DISABLED AUDIENCES, and it parses the config even when the
+ *    add-on itself is switched off. Turning Context off is not deleting it.
+ *    The returned `enabled` is the CUSTOMER's switch, addons.context.enabled,
+ *    which is a different question from whether the platform is serving the
+ *    feature yet.
+ */
+export function readStoredContext(addons: unknown): { enabled: boolean; config: ContextConfig } {
+  try {
+    if (!isPlainObject(addons)) return { enabled: false, config: EMPTY_CONFIG }
+    const ctx = addons.context
+    if (!isPlainObject(ctx)) return { enabled: false, config: EMPTY_CONFIG }
+    return { enabled: ctx.enabled === true, config: parseContextConfig(ctx) }
+  } catch {
+    return { enabled: false, config: EMPTY_CONFIG }
+  }
+}
+
+// ══ TASK 9: what the owner is allowed to save ═════════════════════════════
+//
+// THE PARSER STAYS GENERIC, THE SAVE ROUTE STAYS NARROW, and the two are
+// deliberately not the same rule.
+//
+// parseContextConfig accepts any id matching AUDIENCE_ID_RE because a stored
+// card may one day carry `quantity-surveyors`, and a public card must keep
+// rendering configuration that a later version of Cardtly wrote. Loosening a
+// reader later is easy; discovering that the reader you shipped refuses
+// tomorrow's data is not.
+//
+// The owner-facing save route is the opposite job. During the beta the UI
+// offers exactly six audiences, so anything else arriving at the API is either
+// a bug or somebody posting past the interface, and letting that through would
+// mint public ids nobody has designed, supported or agreed to keep forever.
+// Audience ids are permanent once they are in a shared link, so the cheapest
+// moment to say no is before the first one is stored.
+
+/** The ids the Phase 1 owner interface offers. Not a parser limit. */
+export function isSupportedAudienceId(id: unknown): boolean {
+  return typeof id === 'string' && (CONTEXT_AUDIENCE_IDS as readonly string[]).includes(id)
+}
+
+/** What gets written to addons.context. */
+export interface StoredContext {
+  enabled: boolean
+  audiences: ContextAudience[]
+  defaultAudience: string | null
+}
+
+export type ContextSaveResult =
+  | { ok: true; stored: StoredContext }
+  | { ok: false; error: string }
+
+/**
+ * Turn what the owner's editor posted into exactly what may be stored.
+ *
+ * MALFORMED IS CANONICALISED, UNSUPPORTED IS REFUSED, and the difference
+ * matters. A broken section name or a CTA pointing at link 99 is the parser's
+ * ordinary business: it drops the bad part, keeps the rest, and the owner sees
+ * the canonical result come back. A well-formed audience id that Cardtly does
+ * not offer is not something to quietly tidy away, because quietly dropping
+ * half of what somebody asked to save is how a settings screen starts lying.
+ * It is answered with an error naming the id.
+ *
+ * The result is validated through the SAME parser the public card reads with,
+ * so "saved" and "what the card will do" cannot drift apart.
+ */
+export function canonicaliseContextForSave(input: unknown): ContextSaveResult {
+  try {
+    if (!isPlainObject(input)) return { ok: false, error: 'Context configuration must be an object' }
+
+    // Checked against the RAW list, before parsing, because the parser would
+    // happily keep an unsupported id and we want to refuse it rather than
+    // store it.
+    const list = Array.isArray(input.audiences) ? input.audiences : []
+    for (const entry of list) {
+      if (!isPlainObject(entry)) continue
+      const id = typeof entry.id === 'string' ? entry.id.trim() : ''
+      // Not a usable id at all: the parser drops it, which is the right
+      // treatment for corruption. Only a well-formed but unoffered id is an
+      // instruction we have to refuse.
+      if (!id || !AUDIENCE_ID_RE.test(id)) continue
+      if (!isSupportedAudienceId(id)) {
+        return { ok: false, error: `Audience "${id}" is not available yet` }
+      }
+    }
+
+    const config = parseContextConfig(input)
+    return {
+      ok: true,
+      stored: {
+        // The CUSTOMER's switch. Strict true, same as everywhere else.
+        enabled: input.enabled === true,
+        audiences: config.audiences,
+        defaultAudience: config.defaultAudience,
+      },
+    }
+  } catch {
+    return { ok: false, error: 'Context configuration could not be read' }
+  }
+}
+
+/**
+ * Put a saved Context into an existing addons object WITHOUT touching
+ * anything else in it.
+ *
+ * A pure function rather than a spread inside the route, so that "saving
+ * Context cannot disturb contact exchange, the questionnaire or the badge" is
+ * something a guard can assert and a mutation can break, instead of a habit
+ * that holds until somebody refactors the route.
+ *
+ * A non-object `existing` yields an addons object containing only context,
+ * which is the correct reading of a card that had no add-ons at all.
+ */
+export function mergeContextAddon(existing: unknown, stored: StoredContext): Record<string, unknown> {
+  const base = isPlainObject(existing) ? existing : {}
+  return { ...base, context: stored }
 }
 
 // ══ TASK 3: the resolver ══════════════════════════════════════════════════
