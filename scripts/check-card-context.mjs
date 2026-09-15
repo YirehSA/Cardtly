@@ -1647,6 +1647,61 @@ function parse(label, input) {
 }
 
 
+// == TASK 10b: the filter reaches the links section, and ONLY the links =====
+//
+// 10a built visibleLinks and deliberately did not call it, so the block above
+// proves the rules and proves nothing about the card. This is the other half,
+// and it is the half that has bitten us before: in 9f resolveContextCta was
+// correct at every step until the renderer dropped its result on the floor.
+//
+// TWO FAILURES, OPPOSITE DIRECTIONS. Render the full list and a saved
+// selection does nothing, which is visible and annoying. Hand the FILTERED
+// list to resolveContextCta and an audience that shows two links while
+// recommending a third loses its CTA entirely, with nothing on screen to
+// suggest a CTA was ever configured. The second is the quiet one, so it gets
+// its own check at the call site rather than only at module level.
+//
+// Checked at the source because this harness has no React renderer, and kept
+// narrow enough to fail on the substitution rather than on reformatting.
+{
+  const VIEW = 'components/card/PublicCardView.tsx'
+  const LF = String.fromCharCode(10)
+  const strip = (t) => t
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split(LF).map(l => l.replace(/\/\/.*$/, '')).join(LF)
+
+  let view = ''
+  try { view = strip(readFileSync(VIEW, 'utf8')) } catch { bad(VIEW + ' is missing') }
+
+  const at = view.indexOf('function BottomSection')
+  if (at < 0) bad(VIEW + ': BottomSection is gone, so this guard checks nothing')
+  else {
+    const rest = view.slice(at + 'function BottomSection'.length)
+    const end = rest.indexOf(LF + 'function ')
+    const body = end < 0 ? rest : rest.slice(0, end)
+
+    if (!/const audienceLinks = visibleLinks\(links, context\)/.test(body)) {
+      bad(VIEW + ': BottomSection no longer derives audienceLinks from visibleLinks(links, context), so a saved link selection would be stored and never rendered')
+    }
+    if (!/\{audienceLinks\.map\(/.test(body)) {
+      bad(VIEW + ': the links section does not map audienceLinks, so it renders every link whatever the audience chose')
+    }
+    if (/\{links\.map\(/.test(body)) {
+      bad(VIEW + ': something in BottomSection still maps the card full link list')
+    }
+    if (!/audienceLinks\.length > 0/.test(body)) {
+      bad(VIEW + ': the links section is still gated on the full list length, so an audience showing no links would render an empty Links heading')
+    }
+
+    const cta = body.match(/resolveContextCta\(([^)]*)\)/)
+    if (!cta) bad(VIEW + ': resolveContextCta is no longer called from BottomSection')
+    else if (/audienceLinks/.test(cta[1])) {
+      bad(VIEW + ': resolveContextCta is being handed the FILTERED list. A Context CTA is additive and may point at a link the audience does not list, so it must keep receiving `links`.')
+    }
+  }
+}
+
+
 // ══ TASK 9b MUTATIONS: prove each rule is load bearing ════════════════════
 //
 // A guard nobody has broken on purpose is a guard nobody knows works. Each

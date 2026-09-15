@@ -30,7 +30,7 @@ import AddToGoogleWalletButton from '@/components/wallet/AddToGoogleWalletButton
 import { describeContactError, CONTACT_NETWORK_ERROR } from '@/lib/contact-errors'
 import CaptureNotice from './CaptureNotice'
 import {
-  readCardContext, readSenderAudience, resolveContext, orderSections, resolveContextCta,
+  readCardContext, readSenderAudience, resolveContext, orderSections, resolveContextCta, visibleLinks,
   STANDARD_SECTION_ORDER, contextMetadata, contactContextMetadata,
   CONTEXT_EVENT_VIEWED, CONTEXT_EVENT_CTA_CLICKED,
   type ResolvedContext, type ContextSection, type ContextConfig, type CardPreviewContext,
@@ -617,6 +617,20 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
   // Nothing here mutates card data. Hiding the gallery removes a KEY from a
   // list of keys; galleryImages is still sitting right there, which is what
   // will make returning to the full profile instant rather than a refetch.
+  // THE LINKS THIS AUDIENCE ASKED FOR, and ONLY for the links section.
+  //
+  // resolveContextCta below deliberately keeps receiving `links`, the card's
+  // full list. A Context CTA is additive - it recommends a next step and is
+  // not a member of the list - so an audience may show two links while
+  // recommending a third it does not list. Pass the filtered list to both and
+  // hiding a link silently kills a CTA pointing at it, which is the one
+  // mistake this change makes easy to commit.
+  //
+  // `context` is already null while the visitor is reading the full profile,
+  // so Full Profile shows every link without needing to know about any of
+  // this. Which is right: it is the unedited card, by definition.
+  const audienceLinks = visibleLinks(links, context)
+
   const sectionNodes: Record<ContextSection, React.ReactNode> = {
     certifications: (!omitAboveGallery && !omitCertifications && certifications.length > 0) ? (
       <div className="mt-8" key="ctx-certifications">
@@ -629,11 +643,11 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
       </div>
     ) : null,
 
-    links: (!omitAboveGallery && links.length > 0) ? (
+    links: (!omitAboveGallery && audienceLinks.length > 0) ? (
       <div className="mt-8" key="ctx-links">
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Links</p>
         <div className="space-y-2.5">
-          {links.map(l => (
+          {audienceLinks.map(l => (
             <a key={l.index} href={l.url.startsWith('http') ? l.url : `https://${l.url}`}
               target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-4 rounded-2xl px-4 py-3.5 transition hover:opacity-80"
