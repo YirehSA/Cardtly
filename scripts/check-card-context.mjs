@@ -29,15 +29,47 @@ const SRC = 'lib/card-context.ts'
 let fail = 0
 const bad = (msg) => { console.error(`  FAIL ${msg}`); fail++ }
 
+/**
+ * MAX_CUSTOM_LINKS, read from the module that owns it.
+ *
+ * lib/card-context.ts imports this through the `@/` alias, which is the right
+ * thing for production: the CTA's upper bound must follow the number of link
+ * slots the editor actually exposes, and two hand-kept copies would drift.
+ *
+ * But this guard compiles card-context.ts ALONE in a temp directory, where no
+ * tsconfig and therefore no path alias exists. So the harness substitutes the
+ * value, and reads it from types/design.ts rather than hardcoding it - if
+ * somebody changes the number of link slots, this picks it up and the CTA
+ * bounds tests below move with it.
+ */
+const MAX_CUSTOM_LINKS = (() => {
+  const m = readFileSync('types/design.ts', 'utf8').match(/export const MAX_CUSTOM_LINKS\s*=\s*(\d+)/)
+  if (!m) {
+    console.error('check-card-context: could not read MAX_CUSTOM_LINKS from types/design.ts')
+    process.exit(1)
+  }
+  return Number(m[1])
+})()
+
 /** Compile the module, optionally forcing the master switch on first. */
 function load(forceOn) {
   const out = mkdtempSync(join(tmpdir(), 'card-context-'))
   const src = readFileSync(SRC, 'utf8')
-  const patched = forceOn
+  let patched = forceOn
     ? src.replace('export const CONTEXT_ENABLED = false', 'export const CONTEXT_ENABLED = true')
     : src
   if (forceOn && patched === src) {
     bad('could not force CONTEXT_ENABLED on - the declaration was reworded, so the switch is no longer being tested')
+  }
+
+  // Stand in for the aliased import, which cannot resolve outside the project.
+  const before = patched
+  patched = patched
+    .replace(/^import \{ MAX_CUSTOM_LINKS \} from '@\/types\/design'\n/m, '')
+    .replace('export const MAX_LINK_INDEX = MAX_CUSTOM_LINKS',
+             `export const MAX_LINK_INDEX = ${MAX_CUSTOM_LINKS}`)
+  if (patched === before) {
+    bad('could not substitute MAX_CUSTOM_LINKS - card-context.ts no longer imports it, so the CTA bound may have been hardcoded and can now drift from the editor')
   }
   const tmpTs = join(out, 'card-context.ts')
   writeFileSync(tmpTs, patched)
@@ -319,7 +351,10 @@ function parse(label, input) {
 
   if (cta({ kind: 'booking' })?.kind !== 'booking') bad('a booking CTA was rejected')
   if (cta({ kind: 'link', index: 1 })?.index !== 1) bad('a link CTA at index 1 was rejected')
-  if (cta({ kind: 'link', index: 14 })?.index !== 14) bad('a link CTA at the max index was rejected')
+  const MAX = on.MAX_LINK_INDEX
+  if (MAX !== MAX_CUSTOM_LINKS) bad(`MAX_LINK_INDEX is ${MAX} but the editor exposes ${MAX_CUSTOM_LINKS} link slots; a CTA could point at a slot nobody can fill`)
+  if (cta({ kind: 'link', index: MAX })?.index !== MAX) bad('a link CTA at the max index was rejected')
+  if (cta({ kind: 'link', index: MAX + 1 }) !== null) bad('a link CTA past the last editable slot was accepted')
 
   const invalid = [
     ['null', null], ['a string', 'book'], ['an array', []], ['empty', {}],
@@ -327,7 +362,6 @@ function parse(label, input) {
     ['kind missing', { index: 1 }],
     ['link with no index', { kind: 'link' }],
     ['index 0', { kind: 'link', index: 0 }],
-    ['index 15', { kind: 'link', index: 15 }],
     ['index negative', { kind: 'link', index: -1 }],
     ['index a string', { kind: 'link', index: '3' }],
     ['index a float', { kind: 'link', index: 3.5 }],
@@ -400,6 +434,105 @@ function parse(label, input) {
   if (off.readCardContext(good).config.audiences.length !== 0) bad('the master switch did not empty the config')
 }
 
+// ══ TASK 3: the resolver ══════════════════════════════════════════════════
+//
+// These are PRODUCT RULES, not implementation detail. The one that carries the
+// weight is that ABSENT and INVALID behave differently: a default is the
+// owner's preference when nobody said anything, never a repair for an explicit
+// request that did not resolve. Sending ?a=finance to a card with no Finance
+// audience must show the standard card, not Executive.
+{
+  const R = on.resolveContext
+  const CONFIG = on.parseContextConfig({
+    audiences: [
+      { id: 'executive', label: 'Executive' },
+      { id: 'it', label: 'IT' },
+      { id: 'procurement', label: 'Procurement' },
+    ],
+    defaultAudience: 'executive',
+  })
+  const NO_DEFAULT = on.parseContextConfig({ audiences: [{ id: 'it' }] })
+  const BAD_DEFAULT = on.parseContextConfig({ audiences: [{ id: 'it' }], defaultAudience: 'finance' })
+  const EMPTY = on.parseContextConfig({ audiences: [] })
+
+  // [label, config, visitor, sender, expected id or null, expected source]
+  const CASES = [
+    // precedence
+    ['valid visitor beats sender and default', CONFIG, 'procurement', 'it', 'procurement', 'visitor'],
+    ['valid visitor beats default', CONFIG, 'it', null, 'it', 'visitor'],
+    ['valid sender beats default', CONFIG, null, 'it', 'it', 'sender'],
+    ['default only when nothing explicit', CONFIG, null, null, 'executive', 'default'],
+
+    // the invalid-vs-absent distinction
+    ['invalid visitor falls through to valid sender', CONFIG, 'finance', 'it', 'it', 'sender'],
+    ['invalid sender does NOT fall through to default', CONFIG, null, 'finance', null, null],
+    ['invalid visitor, no sender, does NOT invoke default', CONFIG, 'finance', null, null, null],
+    ['invalid visitor AND invalid sender', CONFIG, 'finance', 'ops', null, null],
+
+    // the brief's five worked examples, verbatim
+    ['example 1', CONFIG, 'procurement', 'it', 'procurement', 'visitor'],
+    ['example 2', CONFIG, 'nope', 'it', 'it', 'sender'],
+    ['example 3', CONFIG, null, 'finance', null, null],
+    ['example 4', CONFIG, null, null, 'executive', 'default'],
+    ['example 5', BAD_DEFAULT, null, null, null, null],
+
+    // defaults
+    ['no default configured', NO_DEFAULT, null, null, null, null],
+    ['invalid default returns null', BAD_DEFAULT, null, null, null, null],
+    ['no audiences returns null', EMPTY, 'it', 'it', null, null],
+
+    // empty and whitespace count as ABSENT, so the default still applies
+    ['empty visitor is absent, not invalid', CONFIG, '', null, 'executive', 'default'],
+    ['whitespace sender is absent, not invalid', CONFIG, null, '   ', 'executive', 'default'],
+    ['both empty falls to default', CONFIG, '', '', 'executive', 'default'],
+    ['surrounding whitespace on a real id still resolves', CONFIG, ' it ', null, 'it', 'visitor'],
+
+    // malformed values must not resolve and must not throw
+    ['visitor a number', CONFIG, 42, null, 'executive', 'default'],
+    ['visitor an object', CONFIG, { id: 'it' }, null, 'executive', 'default'],
+    ['visitor an array', CONFIG, ['it'], null, 'executive', 'default'],
+    ['sender a boolean', CONFIG, null, true, 'executive', 'default'],
+    ['case does not match', CONFIG, 'IT', null, null, null],
+  ]
+
+  for (const [label, config, visitor, sender, wantId, wantSource] of CASES) {
+    let r
+    try {
+      r = R({ config, visitorAudience: visitor, senderAudience: sender })
+    } catch (e) {
+      bad(`resolveContext threw on ${label}: ${e.message}`)
+      continue
+    }
+    const gotId = r ? r.audience?.id : null
+    const gotSource = r ? r.source : null
+    if (gotId !== wantId) bad(`${label}: got audience ${JSON.stringify(gotId)}, expected ${JSON.stringify(wantId)}`)
+    if (gotSource !== wantSource) bad(`${label}: got source ${JSON.stringify(gotSource)}, expected ${JSON.stringify(wantSource)}`)
+    if (r && !(on.CONTEXT_SOURCES).includes(r.source)) bad(`${label}: source is not one of CONTEXT_SOURCES`)
+    if (r && (!r.audience || typeof r.audience.id !== 'string')) bad(`${label}: returned a malformed audience`)
+  }
+
+  // Never throws, whatever it is handed.
+  const JUNK = [undefined, null, 'x', 42, [], {}, { config: null }, { config: 'x' },
+    { config: { audiences: 'x' } }, { config: { audiences: [null, undefined] } },
+    { config: { audiences: [{}] }, visitorAudience: 'it' },
+    { get config() { throw new Error('boom') } }]
+  for (const j of JUNK) {
+    try {
+      const r = R(j)
+      if (r !== null && (!r.audience || !r.source)) bad(`resolveContext returned a malformed result for ${JSON.stringify(j)}`)
+    } catch (e) {
+      bad(`resolveContext threw on junk input ${String(j)}: ${e.message}`)
+    }
+  }
+
+  // The resolved audience must be the real object from the config, so the
+  // caller gets its order/hide/cta rather than a copy that has lost them.
+  const got = R({ config: CONFIG, visitorAudience: 'it' })
+  if (got && got.audience !== CONFIG.audiences.find(a => a.id === 'it')) {
+    bad('the resolver returned a different object than the one in the config')
+  }
+}
+
 for (const d of [onDir, offDir]) { try { rmSync(d, { recursive: true, force: true }) } catch {} }
 
 if (fail) {
@@ -408,6 +541,7 @@ if (fail) {
 }
 console.log(
   `check-card-context: the entitlement failed closed on all ${HOSTILE.length} malformed inputs without throwing, ` +
-  'the master switch overrides a configured card, and the parser drops bad audiences, ids, sections and CTAs ' +
-  'without losing the good ones. Protected card areas are unreachable and a CTA cannot carry a URL.',
+  'the master switch overrides a configured card, the parser drops bad audiences, ids, sections and CTAs ' +
+  'without losing the good ones, protected card areas are unreachable, a CTA cannot carry a URL, and the ' +
+  'resolver treats an absent audience as the configured default while an unresolvable one falls to the standard card.',
 )

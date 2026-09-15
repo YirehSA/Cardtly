@@ -18,6 +18,8 @@
 // user, org first, so central corporate control comes free. No new table, no
 // new column, no migration.
 
+import { MAX_CUSTOM_LINKS } from '@/types/design'
+
 /**
  * MASTER SWITCH. Off for every card, everywhere, regardless of per-card
  * configuration, while Phase 1 is being built.
@@ -194,8 +196,24 @@ export type ContextSection = (typeof CONTEXT_SECTIONS)[number]
 export const CONTEXT_CTA_KINDS = ['link', 'booking'] as const
 export type ContextCtaKind = (typeof CONTEXT_CTA_KINDS)[number]
 
-/** Matches extractLinks in types/database.ts, which walks link_1 to link_14. */
-export const MAX_LINK_INDEX = 14
+/**
+ * The highest link slot a CTA may point at.
+ *
+ * MAX_CUSTOM_LINKS, not the 14 this originally said. extractLinks in
+ * types/database.ts walks link_1 to link_14, but the editor only ever exposes
+ * LINK_SLOTS, which is 1 to 10, so slots 11 to 14 cannot be populated by
+ * anybody and a CTA pointing at one would be a CTA pointing at nothing.
+ * Imported rather than typed out so the two cannot drift.
+ *
+ * WHY THE SLOT IS SAFE TO REFERENCE AT ALL. It is a stored column identity,
+ * link_3_title and link_3_url, not a position in a rendered list. The editor
+ * binds each slot directly and there is no reordering UI, no drag handle and
+ * no delete-and-compact anywhere in CardEditor: clearing slot 2 leaves slot 3
+ * exactly where it was. So a CTA aimed at slot 3 keeps pointing at the same
+ * configured link unless the owner deliberately edits slot 3 itself, which is
+ * the owner changing their own card rather than the CTA drifting under them.
+ */
+export const MAX_LINK_INDEX = MAX_CUSTOM_LINKS
 
 export type ContextCta =
   | { kind: 'link'; index: number; label: string | null }
@@ -378,11 +396,102 @@ function parseContextConfigUnsafe(raw: unknown): ContextConfig {
   return { audiences, defaultAudience }
 }
 
-/** Entitlement and configuration together, which is what Task 3's resolver
- *  will want. Disabled cards get an empty config, so a caller that forgets to
- *  check `enabled` still renders the standard card. */
+/** Entitlement and configuration together, which is what the resolver wants.
+ *  Disabled cards get an empty config, so a caller that forgets to check
+ *  `enabled` still renders the standard card. */
 export function readCardContext(addons: unknown): { enabled: boolean; config: ContextConfig } {
   const ent = readContextEntitlement(addons)
   if (!ent.enabled) return { enabled: false, config: EMPTY_CONFIG }
   return { enabled: true, config: parseContextConfig(ent.raw) }
+}
+
+// ══ TASK 3: the resolver ══════════════════════════════════════════════════
+//
+// One deterministic decision, taken from values somebody else has already
+// extracted. No database, no I/O, no URL parsing, no rendering, no analytics.
+// Pure in and pure out, so it can be reasoned about and tested exhaustively.
+
+export interface ResolvedContext {
+  audience: ContextAudience
+  source: ContextSource
+}
+
+/**
+ * Which audience, if any, applies to this visitor.
+ *
+ * THE RULE THAT MATTERS, and it is product behaviour rather than
+ * implementation detail: ABSENT context and INVALID context are different
+ * things and must not behave the same.
+ *
+ *   absent   nobody said anything, so the owner's preferred default applies
+ *   invalid  somebody DID say something and it does not resolve
+ *
+ * `defaultAudience` means "there was no audience information, use the owner's
+ * preferred experience". It is emphatically NOT a recovery mechanism for a
+ * stale or unknown explicit request. If a link was sent saying ?a=finance and
+ * Finance no longer exists on that card, showing Executive would be answering
+ * a question nobody asked, and answering it wrongly to somebody the sender
+ * specifically meant to address as Finance.
+ *
+ * So: once ANY explicit audience is supplied, the default is out of play. The
+ * fallback becomes the standard card, which is always truthful.
+ *
+ *   valid visitor                        -> visitor
+ *   invalid visitor, valid sender        -> sender   (the sender's intent survives)
+ *   invalid visitor, no/invalid sender   -> null     (standard card, NOT default)
+ *   no visitor, valid sender             -> sender
+ *   no visitor, invalid sender           -> null     (standard card, NOT default)
+ *   nothing supplied, valid default      -> default
+ *   nothing supplied, no/invalid default -> null
+ *
+ * Relevant when we know. Standard when we do not. Never a guess.
+ *
+ * An empty or whitespace-only value counts as ABSENT rather than invalid: a
+ * bare `?a=` carries no intent to honour or to refuse, so it should not lock
+ * the owner out of their own default.
+ */
+export function resolveContext(input: {
+  config: ContextConfig
+  /** The visitor's own choice, already extracted. */
+  visitorAudience?: string | null
+  /** The audience the sender put in the link, already extracted. */
+  senderAudience?: string | null
+}): ResolvedContext | null {
+  try {
+    const config = input?.config
+    const audiences = Array.isArray(config?.audiences) ? config.audiences : []
+    if (audiences.length === 0) return null
+
+    const find = (id: unknown): ContextAudience | null => {
+      if (typeof id !== 'string') return null
+      const wanted = id.trim()
+      if (!wanted) return null
+      return audiences.find(a => a && a.id === wanted) || null
+    }
+
+    // Supplied means "a non-empty string was given", whether or not it
+    // resolves. This is the flag that takes the default out of play.
+    const supplied = (v: unknown) => typeof v === 'string' && v.trim().length > 0
+
+    const visitor = find(input.visitorAudience)
+    if (visitor) return { audience: visitor, source: 'visitor' }
+
+    const sender = find(input.senderAudience)
+    if (sender) return { audience: sender, source: 'sender' }
+
+    // THE LINE THAT MAKES INVALID DIFFERENT FROM ABSENT. Something explicit
+    // was asked for and could not be honoured, so the honest answer is the
+    // standard card rather than a different audience.
+    if (supplied(input.visitorAudience) || supplied(input.senderAudience)) return null
+
+    const fallback = find(config?.defaultAudience)
+    if (fallback) return { audience: fallback, source: 'default' }
+
+    return null
+  } catch {
+    // Same backstop as the parser, for the same reason: this decision sits on
+    // the path that renders a public card, and no input should be able to
+    // make that card unavailable.
+    return null
+  }
 }
