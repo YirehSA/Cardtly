@@ -647,6 +647,163 @@ function parse(label, input) {
   if (on.CONTEXT_PARAM !== 'a') bad(`CONTEXT_PARAM is ${JSON.stringify(on.CONTEXT_PARAM)}, expected "a"; it appears in shared links and is permanent`)
 }
 
+// ══ TASK 5: the presentation transform ════════════════════════════════════
+//
+// The property that matters most is the first one: with no context, the
+// arrangement must be byte-identical to the standard order. That is what makes
+// every card that never enables Context provably unchanged.
+{
+  const O = on.orderSections
+  const STD = [...on.STANDARD_SECTION_ORDER]
+  if (STD.join(',') !== 'certifications,links,gallery') {
+    bad(`STANDARD_SECTION_ORDER is ${JSON.stringify(STD)}; it must match the order BottomSection has always rendered`)
+  }
+
+  const ctxOf = (audience) => ({ audience, source: 'sender' })
+  const aud = (v) => on.parseContextConfig({ audiences: [{ id: 'it', ...v }] }).audiences[0]
+
+  // ── no context is the standard order, for every subset of content ───────
+  const SUBSETS = [
+    ['all three', ['certifications', 'links', 'gallery']],
+    ['links only', ['links']],
+    ['gallery only', ['gallery']],
+    ['certifications only', ['certifications']],
+    ['links and gallery', ['links', 'gallery']],
+    ['nothing populated', []],
+  ]
+  for (const [label, available] of SUBSETS) {
+    const got = O(available, null)
+    if (got.join(',') !== available.join(',')) {
+      bad(`no context, ${label}: got ${JSON.stringify(got)}, expected the standard ${JSON.stringify(available)}`)
+    }
+    // And the same when a context exists but says nothing about arrangement.
+    const silent = O(available, ctxOf(aud({})))
+    if (silent.join(',') !== available.join(',')) {
+      bad(`empty context, ${label}: got ${JSON.stringify(silent)}, expected ${JSON.stringify(available)}`)
+    }
+  }
+
+  // ── reorder ─────────────────────────────────────────────────────────────
+  const all = ['certifications', 'links', 'gallery']
+  const reordered = O(all, ctxOf(aud({ order: ['links', 'certifications', 'gallery'] })))
+  if (reordered.join(',') !== 'links,certifications,gallery') {
+    bad(`reorder produced ${JSON.stringify(reordered)}`)
+  }
+  // A partial order promotes what it names and leaves the rest in place.
+  const partial = O(all, ctxOf(aud({ order: ['gallery'] })))
+  if (partial.join(',') !== 'gallery,certifications,links') {
+    bad(`a partial order produced ${JSON.stringify(partial)}, expected the named one promoted and the rest in standard order`)
+  }
+
+  // ── hide ────────────────────────────────────────────────────────────────
+  const hidden = O(all, ctxOf(aud({ hide: ['gallery'] })))
+  if (hidden.includes('gallery')) bad('a hidden section was still arranged for rendering')
+  if (hidden.join(',') !== 'certifications,links') bad(`hide produced ${JSON.stringify(hidden)}`)
+
+  // Hiding everything is allowed and simply renders no content blocks. It
+  // cannot touch the name, contact actions or Save Contact, which are not
+  // expressible here at all.
+  if (O(all, ctxOf(aud({ hide: all }))).length !== 0) bad('hiding every section did not empty the arrangement')
+
+  // ── context can never ADD a section the card does not have ──────────────
+  const conjured = O(['links'], ctxOf(aud({ order: ['gallery', 'certifications', 'links'] })))
+  if (conjured.join(',') !== 'links') {
+    bad(`a context conjured sections the card does not have: ${JSON.stringify(conjured)}`)
+  }
+
+  // ── never throws ────────────────────────────────────────────────────────
+  for (const [a, c] of [[null, null], [undefined, null], ['x', null], [{}, null],
+                        [all, {}], [all, { audience: null }], [all, { audience: { order: 'x', hide: 5 } }],
+                        [[null, 'links', undefined], ctxOf(aud({}))]]) {
+    try {
+      const r = O(a, c)
+      if (!Array.isArray(r)) bad(`orderSections returned a non-array for ${JSON.stringify(a)}`)
+    } catch (e) { bad(`orderSections threw: ${e.message}`) }
+  }
+
+  // ── CTA ─────────────────────────────────────────────────────────────────
+  const C = on.resolveContextCta
+  const LINKS = [{ index: 1, title: 'Our prices', url: 'https://example.com/prices' },
+                 { index: 3, title: 'API docs', url: 'https://example.com/api' }]
+
+  if (C(null, LINKS, true) !== null) bad('no context produced a CTA')
+  if (C(ctxOf(aud({})), LINKS, true) !== null) bad('an audience with no CTA produced one')
+
+  const linkCta = C(ctxOf(aud({ cta: { kind: 'link', index: 3, label: 'Book Technical Demo' } })), LINKS, true)
+  if (linkCta?.kind !== 'link') bad('a valid link CTA was not resolved')
+  if (linkCta?.url !== 'https://example.com/api') bad('the link CTA resolved to the wrong url')
+  if (linkCta?.label !== 'Book Technical Demo') bad('the link CTA lost its label override')
+
+  // No label override falls back to the link's own title, never to nothing.
+  const noLabel = C(ctxOf(aud({ cta: { kind: 'link', index: 1 } })), LINKS, true)
+  if (noLabel?.label !== 'Our prices') bad(`a CTA without a label did not fall back to the link title: ${JSON.stringify(noLabel)}`)
+
+  // THE CLEARED-SLOT CASE. The CTA disappears; the audience keeps working.
+  const dead = C(ctxOf(aud({ cta: { kind: 'link', index: 3 }, hide: ['gallery'] })), [LINKS[0]], true)
+  if (dead !== null) bad('a CTA pointing at a cleared link slot still rendered')
+  const stillWorks = O(all, ctxOf(aud({ cta: { kind: 'link', index: 3 }, hide: ['gallery'] })))
+  if (stillWorks.join(',') !== 'certifications,links') {
+    bad('a dead CTA broke the rest of its audience; ordering and hiding must still apply')
+  }
+
+  // Booking CTA follows the card's own booking availability.
+  const booking = C(ctxOf(aud({ cta: { kind: 'booking', label: 'Book Executive Demo' } })), LINKS, true)
+  if (booking?.kind !== 'booking' || booking.label !== 'Book Executive Demo') bad('a booking CTA was not resolved')
+  if (C(ctxOf(aud({ cta: { kind: 'booking' } })), LINKS, false) !== null) {
+    bad('a booking CTA rendered on a card that does not offer booking')
+  }
+  if (C(ctxOf(aud({ cta: { kind: 'booking' } })), LINKS, true)?.label !== 'Book a meeting') {
+    bad('a booking CTA without a label lost its default wording')
+  }
+
+  // A link with no url is as dead as a missing one.
+  if (C(ctxOf(aud({ cta: { kind: 'link', index: 1 } })), [{ index: 1, title: 'x', url: '' }], true) !== null) {
+    bad('a CTA pointing at an empty url still rendered')
+  }
+
+  for (const junk of [null, undefined, 'x', 42, [], {}]) {
+    try { C(ctxOf(aud({ cta: { kind: 'link', index: 1 } })), junk, true) }
+    catch (e) { bad(`resolveContextCta threw on links=${JSON.stringify(junk)}: ${e.message}`) }
+  }
+
+  // ── end to end, through every stage ─────────────────────────────────────
+  const ADDONS = {
+    context: {
+      enabled: true,
+      defaultAudience: 'executive',
+      audiences: [
+        { id: 'executive', order: ['links'], hide: ['gallery'], cta: { kind: 'booking' } },
+        { id: 'it', order: ['links', 'certifications'], hide: ['gallery'], cta: { kind: 'link', index: 3, label: 'Book Technical Demo' } },
+      ],
+    },
+  }
+  const pipeline = (mod, search) => {
+    const { enabled, config } = mod.readCardContext(ADDONS)
+    if (!enabled) return null
+    return mod.resolveContext({ config, senderAudience: mod.readSenderAudience(search) })
+  }
+
+  // ?a=it applies IT.
+  const itCtx = pipeline(on, '?a=it')
+  if (itCtx?.audience?.id !== 'it' || itCtx.source !== 'sender') bad('?a=it did not resolve to the IT audience from the sender')
+  if (O(all, itCtx).join(',') !== 'links,certifications') bad(`?a=it arranged as ${JSON.stringify(O(all, itCtx))}`)
+
+  // ?a=finance is explicit and unknown: standard card, NOT the default.
+  const finance = pipeline(on, '?a=finance')
+  if (finance !== null) bad('?a=finance did not fall to the standard card')
+  if (O(all, finance).join(',') !== all.join(',')) bad('?a=finance did not render the standard arrangement')
+
+  // No ?a= uses the configured default.
+  const def = pipeline(on, '?s=wa')
+  if (def?.audience?.id !== 'executive' || def.source !== 'default') bad('an absent audience did not use the configured default')
+
+  // MASTER SWITCH OFF: even a configured card with ?a=it renders normally.
+  if (pipeline(off, '?a=it') !== null) bad('the master switch is off but ?a=it still resolved a context')
+  if (O(all, pipeline(off, '?a=it')).join(',') !== all.join(',')) {
+    bad('with the master switch off the arrangement was not the standard order')
+  }
+}
+
 for (const d of [onDir, offDir]) { try { rmSync(d, { recursive: true, force: true }) } catch {} }
 
 if (fail) {

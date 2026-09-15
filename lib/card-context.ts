@@ -577,3 +577,104 @@ export function readSenderAudience(
     return null
   }
 }
+
+// ══ TASK 5: the presentation transform ════════════════════════════════════
+//
+// THE STANDARD CARD IS THE SOURCE OF TRUTH. These functions take what the card
+// would normally render and return a different VIEW of it. They never build
+// content, never fetch, and never touch the card's data. With no context they
+// return the standard arrangement unchanged, which is what makes the
+// no-context path provably identical to what shipped before Context existed -
+// and what will make "View Full Profile" instant later, since it is just
+// dropping the transform rather than re-fetching anything.
+
+/** The order BottomSection has always rendered these in. Exported so the
+ *  component and the guard cannot disagree about what "standard" means. */
+export const STANDARD_SECTION_ORDER: readonly ContextSection[] = ['certifications', 'links', 'gallery']
+
+/**
+ * Which sections to render, in which order.
+ *
+ * `available` is the list the card would normally show: sections with content,
+ * already filtered by the component's own guards. Context can reorder and
+ * remove from that list. It can never ADD one, so a context cannot conjure a
+ * gallery onto a card that has no images.
+ *
+ * With no context, the input is returned unchanged.
+ *
+ * Sections named in `order` come first, in that order. Anything not named
+ * keeps its standard relative position after them, so a config that mentions
+ * only `links` promotes links and leaves the rest alone rather than silently
+ * dropping them.
+ *
+ * HIDING IS PRESENTATION ONLY. This returns a list of keys. The caller still
+ * holds all of the card's data, untouched, which is the point: the gallery a
+ * context hides is still in memory and comes straight back when the transform
+ * stops being applied.
+ */
+export function orderSections(
+  available: readonly ContextSection[],
+  context: ResolvedContext | null,
+): ContextSection[] {
+  try {
+    const list = Array.isArray(available) ? available.filter(s => !!s) : []
+    const audience = context?.audience
+    if (!audience) return [...list]
+
+    const hide = Array.isArray(audience.hide) ? audience.hide : []
+    const kept = list.filter(s => !hide.includes(s))
+
+    const wanted = Array.isArray(audience.order) ? audience.order : []
+    const promoted = wanted.filter(s => kept.includes(s))
+    const rest = kept.filter(s => !promoted.includes(s))
+    return [...promoted, ...rest]
+  } catch {
+    // Never let an arrangement decision cost somebody their card.
+    return Array.isArray(available) ? [...available] : []
+  }
+}
+
+/** What the CTA should actually render as, once checked against the card. */
+export type ResolvedCta =
+  | { kind: 'link'; label: string; url: string }
+  | { kind: 'booking'; label: string }
+
+/**
+ * Turn an audience's CTA into something renderable, or null.
+ *
+ * A DEAD CTA IS NOT SHOWN, AND DOES NOT BREAK THE AUDIENCE. If the CTA points
+ * at link slot 3 and the owner has since cleared slot 3, this returns null:
+ * the ordering and hiding for that audience still apply, there is simply no
+ * recommended action. A context is not worth failing over a missing button.
+ *
+ * The CTA is ADDITIVE. It recommends a next step and never stands in for the
+ * card's own actions - call, WhatsApp, email, Save Contact and the rest are
+ * rendered by other parts of the card entirely and are not reachable from
+ * here.
+ */
+export function resolveContextCta(
+  context: ResolvedContext | null,
+  links: readonly { index: number; title: string; url: string }[],
+  bookingAvailable: boolean,
+): ResolvedCta | null {
+  try {
+    const cta = context?.audience?.cta
+    if (!cta) return null
+
+    if (cta.kind === 'booking') {
+      if (!bookingAvailable) return null
+      return { kind: 'booking', label: cta.label || 'Book a meeting' }
+    }
+
+    if (cta.kind === 'link') {
+      const target = (Array.isArray(links) ? links : []).find(l => l && l.index === cta.index)
+      // The slot was cleared, or never filled. No CTA, audience unaffected.
+      if (!target || !target.url) return null
+      return { kind: 'link', label: cta.label || target.title || 'Find out more', url: target.url }
+    }
+
+    return null
+  } catch {
+    return null
+  }
+}

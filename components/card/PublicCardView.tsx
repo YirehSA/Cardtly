@@ -23,6 +23,10 @@ import BookingModal from './BookingModal'
 import AddToGoogleWalletButton from '@/components/wallet/AddToGoogleWalletButton'
 import { describeContactError, CONTACT_NETWORK_ERROR } from '@/lib/contact-errors'
 import CaptureNotice from './CaptureNotice'
+import {
+  readCardContext, readSenderAudience, resolveContext, orderSections, resolveContextCta,
+  STANDARD_SECTION_ORDER, type ResolvedContext, type ContextSection,
+} from '@/lib/card-context'
 
 interface Props {
   card: Card & { _team_card_id?: string }
@@ -431,6 +435,10 @@ interface BottomProps {
   /** The accent adjusted to clear AA as small text. See where it is
    *  derived in PublicCardView: fills keep accentHex, text takes this. */
   accentText: string
+  /** The Context to display, already resolved. This layer deliberately does
+   *  NOT know whether it came from the sender, the visitor or a default - it
+   *  only knows what to show. Null means render the standard card. */
+  context?: ResolvedContext | null
   buttonBg: string
   buttonText: string
   buttonBorder: string | null
@@ -485,7 +493,7 @@ function BookingTrigger({ card, accentHex, accentText, buttonBg, buttonText, but
   )
 }
 
-function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false, omitCertifications = false }: BottomProps) {
+function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context = null, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false, omitCertifications = false }: BottomProps) {
   const [showContactForm, setShowContactForm] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -556,64 +564,108 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
     setSubmitting(false)
   }
 
+  // ── Cardtly Context: a different VIEW of the same content ───────────────
+  //
+  // The three blocks below are built exactly as they always were, with their
+  // original visibility guards untouched, and then arranged. With no context
+  // the arrangement is the standard order, so this path renders precisely what
+  // it rendered before Context existed.
+  //
+  // Nothing here mutates card data. Hiding the gallery removes a KEY from a
+  // list of keys; galleryImages is still sitting right there, which is what
+  // will make returning to the full profile instant rather than a refetch.
+  const sectionNodes: Record<ContextSection, React.ReactNode> = {
+    certifications: (!omitAboveGallery && !omitCertifications && certifications.length > 0) ? (
+      <div className="mt-8" key="ctx-certifications">
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Certifications</p>
+        <div className="flex flex-wrap gap-2">
+          {certifications.map(c => (
+            <span key={c} className="text-xs px-3 py-1.5 rounded-full" style={{ backgroundColor: accentHex + '22', color: accentText, border: `1px solid ${accentHex}44` }}>#{c}</span>
+          ))}
+        </div>
+      </div>
+    ) : null,
+
+    links: (!omitAboveGallery && links.length > 0) ? (
+      <div className="mt-8" key="ctx-links">
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Links</p>
+        <div className="space-y-2.5">
+          {links.map(l => (
+            <a key={l.index} href={l.url.startsWith('http') ? l.url : `https://${l.url}`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-4 rounded-2xl px-4 py-3.5 transition hover:opacity-80"
+              style={{ background: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow, border: cardEffect.borderStyle }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: accentHex + '22', color: accentHex }}>
+                <ExternalLink className="w-4 h-4" />
+              </div>
+              <p className="flex-1 text-sm font-medium truncate" style={{ color: bg.text }}>{l.title}</p>
+              <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: bg.subtext }} />
+            </a>
+          ))}
+        </div>
+      </div>
+    ) : null,
+
+    gallery: (galleryImages.length > 0) ? (
+      <div className="mt-8" key="ctx-gallery">
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Gallery</p>
+        <div className="grid grid-cols-2 gap-2">
+          {galleryImages.map((item, i) => {
+            // The per-image link field is "open a page when tapped". If it
+            // holds an image URL (a common thing to paste there), tapping
+            // opens THAT image in the fitted lightbox instead of dumping the
+            // raw file in a new tab where it overflows the screen. A real
+            // webpage link still navigates. No link -> enlarge the shown image.
+            const linkIsImage = !!item.link && /\.(jpe?g|png|webp|gif|avif)(\?|#|$)/i.test(item.link)
+            const thumb = <img src={item.url} alt={`Gallery ${i + 1}`} className="w-full aspect-video object-cover rounded-xl hover:opacity-80 transition cursor-pointer" />
+            if (item.link && !linkIsImage) {
+              return <a key={i} href={item.link} target="_blank" rel="noopener noreferrer">{thumb}</a>
+            }
+            const full = linkIsImage ? item.link! : item.url
+            return (
+              <button key={i} type="button" onClick={() => setLightbox(full)} className="block w-full" aria-label={`Open gallery image ${i + 1}`}>
+                {thumb}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    ) : null,
+  }
+
+  // Only sections that actually have something to show can be arranged, so a
+  // context can reorder and remove but never conjure an empty block.
+  const availableSections = STANDARD_SECTION_ORDER.filter(k => sectionNodes[k] !== null)
+  const arrangedSections = orderSections(availableSections, context)
+
+  // The recommended action. Additive: the card's own contact buttons, Save
+  // Contact, exchange and share are rendered elsewhere and are untouched. Null
+  // when the audience has no CTA, or when its target link slot has since been
+  // cleared, in which case the rest of the context still applies.
+  const contextCta = resolveContextCta(context, links, isPro && !omitBooking)
+
   return (
     <>
-      {!omitAboveGallery && !omitCertifications && certifications.length > 0 && (
-        <div className="mt-8">
-          <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Certifications</p>
-          <div className="flex flex-wrap gap-2">
-            {certifications.map(c => (
-              <span key={c} className="text-xs px-3 py-1.5 rounded-full" style={{ backgroundColor: accentHex + '22', color: accentText, border: `1px solid ${accentHex}44` }}>#{c}</span>
-            ))}
-          </div>
+      {contextCta && (
+        <div className="mt-8" key="ctx-cta">
+          {contextCta.kind === 'link' ? (
+            <a
+              href={contextCta.url.startsWith('http') ? contextCta.url : `https://${contextCta.url}`}
+              target="_blank" rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm hover:opacity-90 transition"
+              style={{ backgroundColor: 'transparent', color: accentText, border: `1.5px solid ${accentHex}` }}
+            >
+              {contextCta.label}
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
+            </a>
+          ) : (
+            <BookingTrigger card={card} accentHex={accentHex} accentText={accentText} buttonBg={buttonBg} buttonText={buttonText} buttonBorder={buttonBorder} />
+          )}
         </div>
       )}
 
-      {!omitAboveGallery && links.length > 0 && (
-        <div className="mt-8">
-          <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Links</p>
-          <div className="space-y-2.5">
-            {links.map(l => (
-              <a key={l.index} href={l.url.startsWith('http') ? l.url : `https://${l.url}`}
-                target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-4 rounded-2xl px-4 py-3.5 transition hover:opacity-80"
-                style={{ background: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow, border: cardEffect.borderStyle }}>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: accentHex + '22', color: accentHex }}>
-                  <ExternalLink className="w-4 h-4" />
-                </div>
-                <p className="flex-1 text-sm font-medium truncate" style={{ color: bg.text }}>{l.title}</p>
-                <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: bg.subtext }} />
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
+      {arrangedSections.map(k => sectionNodes[k])}
 
-      {galleryImages.length > 0 && (
-        <div className="mt-8">
-          <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Gallery</p>
-          <div className="grid grid-cols-2 gap-2">
-            {galleryImages.map((item, i) => {
-              // The per-image link field is "open a page when tapped". If it
-              // holds an image URL (a common thing to paste there), tapping
-              // opens THAT image in the fitted lightbox instead of dumping the
-              // raw file in a new tab where it overflows the screen. A real
-              // webpage link still navigates. No link -> enlarge the shown image.
-              const linkIsImage = !!item.link && /\.(jpe?g|png|webp|gif|avif)(\?|#|$)/i.test(item.link)
-              const thumb = <img src={item.url} alt={`Gallery ${i + 1}`} className="w-full aspect-video object-cover rounded-xl hover:opacity-80 transition cursor-pointer" />
-              if (item.link && !linkIsImage) {
-                return <a key={i} href={item.link} target="_blank" rel="noopener noreferrer">{thumb}</a>
-              }
-              const full = linkIsImage ? item.link! : item.url
-              return (
-                <button key={i} type="button" onClick={() => setLightbox(full)} className="block w-full" aria-label={`Open gallery image ${i + 1}`}>
-                  {thumb}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
       {/* The way out of an in-app browser. Portalled for the same reason as the
           lightbox: an ancestor of the card is transformed, which would trap a
@@ -1048,6 +1100,34 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
   const design = parseDesign(card.color_theme)
   const font = FONTS[design.fontId]
   const bg = getBgColors(design.bgMode, design.templateId, design.customBgColor)
+  // ── Cardtly Context ──────────────────────────────────────────────────
+  //
+  // Resolved AFTER MOUNT, on the client, deliberately. The server renders the
+  // standard card and keeps rendering it: the page never becomes dependent on
+  // a search param, its caching is untouched, a crawler gets the full profile,
+  // and if JavaScript fails the visitor still has a complete business card.
+  // Context is layered on afterwards or not at all.
+  //
+  // ONE PIECE OF STATE HOLDING THE WHOLE RESOLVED RESULT, not just an audience
+  // id. It keeps `source` - sender, visitor or default - which Task 6 needs for
+  // analytics, and it is the same state Task 7 will set from a visitor's own
+  // choice. Switching audience later is setActiveContext with a different
+  // resolution; nothing below needs to know where the decision came from.
+  const [activeContext, setActiveContext] = useState<ResolvedContext | null>(null)
+  useEffect(() => {
+    try {
+      const { enabled, config } = readCardContext((card as any).addons)
+      if (!enabled) return
+      // Read from location rather than useSearchParams, for the same reason
+      // CardTracker does: it avoids forcing a Suspense boundary on this page.
+      const sender = readSenderAudience(window.location.search)
+      setActiveContext(resolveContext({ config, senderAudience: sender }))
+    } catch {
+      // Any failure anywhere in Context leaves the standard card exactly as
+      // the server rendered it.
+    }
+  }, [card])
+
   const accentHex = getAccentHex(design)
   // THE ACCENT AGAIN, BUT READABLE AS TEXT. accentHex stays exactly as the
   // customer chose it for every fill, border, icon and button, because those
@@ -1111,7 +1191,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
 
   // Shared prop bundles
   const shared: Shared = { card, isPro, accentHex, bg, font, cardEffect, design }
-  const bottomProps: BottomProps = { card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, buttonBg, buttonText, buttonBorder, buttonFontSize: getButtonFontSize(design), bg, cardEffect, handleShare, founderNumber }
+  const bottomProps: BottomProps = { card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context: activeContext, buttonBg, buttonText, buttonBorder, buttonFontSize: getButtonFontSize(design), bg, cardEffect, handleShare, founderNumber }
 
   const pageStyle: React.CSSProperties = { minHeight: '100vh', backgroundColor: bg.page, color: bg.text, fontFamily: font.body }
 
