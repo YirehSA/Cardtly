@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Eye, ChevronDown, ChevronUp } from 'lucide-react'
 import PublicCardView from '@/components/card/PublicCardView'
 import PreviewFrame from '@/components/card/PreviewFrame'
-import { parseDesign } from '@/types/design'
 import type { CardPreviewContext, ContextAudience } from '@/lib/card-context'
 import type { DraftAudience } from './ContextEditor'
 
@@ -76,7 +75,6 @@ export default function ContextPreview({
     view_count: 0,
   }), [sourceCard])
 
-  const design = useMemo(() => parseDesign(sourceCard.color_theme), [sourceCard.color_theme])
 
   // Rebuilt from the draft on every change, which is what makes the preview
   // live. Memoised on the draft's CONTENT so PublicCardView's effect does not
@@ -93,7 +91,12 @@ export default function ContextPreview({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature])
 
-  const chips = [{ id: 'standard', label: 'Standard', off: false },
+  // "Standard card", not "Standard". STANDARD DOES NOT MEAN CONTEXT IS
+  // SWITCHED OFF: an unidentified visitor sees the normal card AND the offer
+  // to personalise it, so the preview shows both. Naming it "Standard" alone
+  // read like a mode where Context does not exist, which is not what a visitor
+  // gets and not what the owner should be checking against.
+  const chips = [{ id: 'standard', label: 'Standard card', off: false },
     ...rows.map(r => ({ id: r.id, label: r.label || r.id, off: !r.enabled }))]
 
   return (
@@ -160,6 +163,12 @@ export default function ContextPreview({
                 )
               })}
             </div>
+            {mode === 'standard' && (
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Your normal card, before an audience is selected. Visitors still see the option to
+                personalise it themselves.
+              </p>
+            )}
             {mode !== 'standard' && rows.find(r => r.id === mode && !r.enabled) && (
               <p className="text-[11px] text-muted-foreground mt-2">
                 Preview only. This audience is switched off, so visitors see your normal card.

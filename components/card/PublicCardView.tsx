@@ -497,7 +497,7 @@ interface BottomProps {
 
 // Helper that renders the Book a Meeting button. Encapsulates the modal
 // state so the BottomSection JSX stays clean.
-function BookingTrigger({ card, accentHex, accentText, buttonBg, buttonText, buttonBorder }: { card: Card; accentHex: string; accentText: string; buttonBg: string; buttonText: string; buttonBorder: string | null }) {
+function BookingTrigger({ card, accentHex, accentText, buttonBg, buttonText, buttonBorder, label }: { card: Card; accentHex: string; accentText: string; buttonBg: string; buttonText: string; buttonBorder: string | null; label?: string }) {
   const [open, setOpen] = useState(false)
   return (
     <>
@@ -509,7 +509,7 @@ function BookingTrigger({ card, accentHex, accentText, buttonBg, buttonText, but
           border: `1.5px solid ${accentHex}`,
         }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-        Book a meeting
+        {label || 'Book a meeting'}
       </button>
       <BookingModal
         open={open}
@@ -738,7 +738,13 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
               <ChevronRight className="w-4 h-4" aria-hidden="true" />
             </a>
           ) : (
-            <BookingTrigger card={card} accentHex={accentHex} accentText={accentText} buttonBg={buttonBg} buttonText={buttonText} buttonBorder={buttonBorder} />
+            // THE OWNER'S WORDING, NOT THE DEFAULT. resolveContextCta works out
+            // what this button should say and the label was being dropped on
+            // the floor here, so an audience configured with "Book an exec
+            // call" rendered a second button reading "Book a meeting",
+            // identical to the one the card already shows and with nothing to
+            // say it was the recommended next step.
+            <BookingTrigger card={card} accentHex={accentHex} accentText={accentText} buttonBg={buttonBg} buttonText={buttonText} buttonBorder={buttonBorder} label={contextCta.label} />
           )}
         </div>
       )}

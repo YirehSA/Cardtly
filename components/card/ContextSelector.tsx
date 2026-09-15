@@ -168,7 +168,9 @@ export default function ContextSelector({
                   type="button"
                   onClick={() => setOpen(false)}
                   aria-label="Close"
-                  className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/10 text-white/60 transition flex-shrink-0"
+                  // 44px, measured. w-9 renders 36 and this is the control a
+                  // thumb reaches for first when the sheet opens by accident.
+                  className="w-11 h-11 rounded-lg flex items-center justify-center hover:bg-white/10 text-white/60 transition flex-shrink-0"
                 >
                   <X className="w-4 h-4" aria-hidden="true" />
                 </button>

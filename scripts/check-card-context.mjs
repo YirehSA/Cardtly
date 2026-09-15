@@ -1367,6 +1367,104 @@ function parse(label, input) {
   }
 }
 
+// ══ TASK 9f: the save route's gates, checked by POSITION ══════════════════
+//
+// WHAT THIS PROTECTS AND WHY IT IS POSITIONAL. /api/card/context writes to a
+// jsonb column with the SERVICE ROLE key, which bypasses RLS entirely. The
+// only things standing between that write and any caller are four checks and
+// the order they appear in: authenticate, resolve a target the caller owns,
+// confirm an active Pro plan, canonicalise. Move the update above any of them
+// and nothing fails to compile, no page looks different, and no type is
+// violated. Exactly the situation check-entitlement-order.mjs exists for.
+//
+// This is NOT a substitute for exercising the gate as a real non-Pro user. It
+// is the half we can hold at build time: the gate cannot be quietly deleted or
+// reordered without this failing.
+{
+  const SRC = 'app/api/card/context/route.ts'
+  let src = ''
+  try { src = readFileSync(SRC, 'utf8') } catch { bad(`${SRC} is missing`) }
+
+  // Comments stripped, so prose describing a rule can never satisfy a check
+  // looking for the code that implements it.
+  const code = src
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split(String.fromCharCode(10)).map(l => l.replace(/\/\/.*$/, '')).join(String.fromCharCode(10))
+
+  const at = (needle) => code.indexOf(needle)
+  const needs = [
+    ['authentication', 'auth.getUser()'],
+    ['the unauthorized answer', "status: 401"],
+    ['ownership resolution', 'await loadOwnedTarget('],
+    ['the Pro gate', 'await getUserPlan('],
+    ['the active-Pro condition', "plan.tier === 'pro' && plan.isActive"],
+    ['the 403 answer', 'status: 403'],
+    ['canonicalisation', 'canonicaliseContextForSave(body'],
+    ['the merge helper', 'mergeContextAddon(target'],
+  ]
+  for (const [label, needle] of needs) {
+    if (at(needle) < 0) bad(`the Context save route no longer contains ${label} (${needle})`)
+  }
+
+  const write = at('.update(')
+  if (write < 0) bad('the Context save route no longer writes, so this guard is checking nothing')
+  else {
+    for (const [label, needle] of needs) {
+      const i = at(needle)
+      if (i >= 0 && i > write) bad(`${label} now happens AFTER the database write in ${SRC}`)
+    }
+  }
+
+  // The platform switch must NOT gate configuration. Reintroducing it here is
+  // how we would lose the ability to set Context up before launching it.
+  if (/CONTEXT_ENABLED/.test(code)) {
+    bad(`${SRC} references CONTEXT_ENABLED. The platform switch governs public execution, not whether an owner may configure Context.`)
+  }
+
+  // And the route must not hand a database message back to the caller.
+  if (/error:\s*error\.message/.test(code)) bad(`${SRC} returns a raw database message to the caller`)
+}
+
+// == TASK 9f: the CTA the owner configured is the CTA that renders ==========
+//
+// THE BUG THIS EXISTS BECAUSE OF, and the reason the existing tests did not
+// catch it. resolveContextCta has always returned the right label, and there
+// is an assertion above proving exactly that. The renderer then dropped it: a
+// booking CTA was handed to BookingTrigger with no label, so an audience
+// configured with "Book an exec call" rendered a second button reading "Book a
+// meeting", identical to the one the card already shows.
+//
+// A resolver test cannot see that. The value was correct every step of the way
+// until the moment nobody passed it on, which is the class of defect only a
+// render check or a person looking at the screen finds. Checked at the source
+// because this harness has no React renderer, and checked narrowly so it fails
+// on the one thing that went wrong rather than on any reformatting.
+{
+  const VIEW = 'components/card/PublicCardView.tsx'
+  let src = ''
+  try { src = readFileSync(VIEW, 'utf8') } catch { bad(VIEW + ' is missing') }
+
+  const ctaAt = src.indexOf('{contextCta && (')
+  if (ctaAt < 0) bad(VIEW + ': the Context CTA block is gone, so this guard checks nothing')
+  else {
+    const branch = src.slice(ctaAt, ctaAt + 2600)
+    if (!/<BookingTrigger[^>]*label=\{contextCta\.label\}/.test(branch)) {
+      bad(VIEW + ": the Context booking CTA does not pass label={contextCta.label}, so an owner's wording is replaced by the default")
+    }
+  }
+
+  const trigAt = src.indexOf('function BookingTrigger')
+  if (trigAt < 0) bad(VIEW + ': BookingTrigger is gone')
+  else {
+    const body = src.slice(trigAt, trigAt + 1800)
+    if (!/label\?: string/.test(body)) bad(VIEW + ': BookingTrigger no longer accepts a label')
+    if (!/\{label \|\| 'Book a meeting'\}/.test(body)) {
+      bad(VIEW + ": BookingTrigger no longer renders {label || 'Book a meeting'}, so a Context booking label cannot reach the screen")
+    }
+  }
+}
+
+
 // ══ TASK 9b MUTATIONS: prove each rule is load bearing ════════════════════
 //
 // A guard nobody has broken on purpose is a guard nobody knows works. Each
