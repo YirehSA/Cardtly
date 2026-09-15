@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { ClipboardList, X, Loader2, CheckCircle, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { safeHex, type QuestionnaireConfig } from '@/lib/questionnaire'
+import { useIsPreview, PREVIEW_SUBMIT_NOTICE } from '@/lib/card-surface'
 
 // Custom questionnaire on a public card (add-on). A trigger button
 // that opens a modal: fixed fields (name, email, contact, company),
@@ -26,6 +27,9 @@ interface Props {
 }
 
 export default function QuestionnaireForm({ config, cardId, teamCardId, ownerName, accentHex, bg, cardButtonBg, cardButtonText, cardButtonBorder }: Props) {
+  // True when the owner is looking at their own card in the dashboard. See
+  // lib/card-surface.ts: a preview must never create a real lead.
+  const isPreview = useIsPreview()
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -50,6 +54,7 @@ export default function QuestionnaireForm({ config, cardId, teamCardId, ownerNam
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (isPreview) { toast.message(PREVIEW_SUBMIT_NOTICE); return }
     if (!name.trim() || !email.trim()) { toast.error('Please add your name and email'); return }
     for (const q of config.questions) {
       if (q.required && !(answers[q.id] || '').trim()) {

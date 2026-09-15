@@ -15,7 +15,13 @@ import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
 import { isInAppBrowser, detectInAppBrowser, isAndroid, chromeIntentUrl } from '@/lib/in-app-browser'
 import { waShareLink } from '@/lib/whatsapp'
 import SuspendedBanner from '@/components/card/SuspendedBanner'
-import { track, useTrackLinkClicks } from '@/lib/track'
+// useTrack RATHER THAN track, ON PURPOSE. The raw tracker is deliberately not
+// imported into this file: every event here must go through the hook, which
+// returns a no-op when the card is being rendered as a dashboard preview. See
+// lib/card-surface.ts. Importing `track` back into this file would silently
+// reopen the hole, so the missing import is the guard.
+import { useTrack, useTrackLinkClicks } from '@/lib/track'
+import { useIsPreview, PREVIEW_SUBMIT_NOTICE } from '@/lib/card-surface'
 import ContactExchangeModal from './ContactExchangeModal'
 import QuestionnaireForm from './QuestionnaireForm'
 import InAppBackButton from '@/components/InAppBackButton'
@@ -512,6 +518,11 @@ function BookingTrigger({ card, accentHex, accentText, buttonBg, buttonText, but
 }
 
 function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context = null, contextControls = null, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false, omitCertifications = false }: BottomProps) {
+  // Shadows the module import on purpose, so the three track() calls below
+  // (contact_save, context_cta_clicked, share) are preview-aware without three
+  // separate reminders to check a flag.
+  const track = useTrack()
+  const isPreview = useIsPreview()
   const [showContactForm, setShowContactForm] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -555,6 +566,11 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
 
   async function submitContact(e: React.FormEvent) {
     e.preventDefault()
+    // A preview is the owner looking at their own card. Submitting would write
+    // a real lead against themselves and email themselves about it, so the
+    // request is never made. Refused before setSubmitting, so the button does
+    // not sit in a spinner it can never leave.
+    if (isPreview) { toast.message(PREVIEW_SUBMIT_NOTICE); return }
     setSubmitting(true)
     try {
       const res = await fetch('/api/contact', {
@@ -1163,9 +1179,13 @@ export default function PublicCardView(props: Props) {
 }
 
 function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Props) {
+  // Same shadowing as BottomSection: the context_viewed event below goes
+  // through the hook so a preview never logs one.
+  const track = useTrack()
   // Counts taps on the cardholder's own links, across every template, from a
   // single delegated listener. Attaching to the document rather than wrapping
   // the card means no template's markup or layout changes to get this.
+  // Disarmed inside a preview by the hook itself.
   useTrackLinkClicks(
     isTeamCard ? undefined : card.id,
     isTeamCard ? (card as any)._team_card_id : undefined
@@ -1272,7 +1292,9 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
       eventType: CONTEXT_EVENT_VIEWED,
       metadata: contextMetadata(activeContext),
     })
-  }, [activeContext, card, isTeamCard])
+    // `track` is one of two module-level functions, so the reference is stable
+    // and this does not re-run on render.
+  }, [activeContext, card, isTeamCard, track])
 
   const accentHex = getAccentHex(design)
   // THE ACCENT AGAIN, BUT READABLE AS TEXT. accentHex stays exactly as the

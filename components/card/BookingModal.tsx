@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Calendar, X, Loader2, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import { useIsPreview, PREVIEW_SUBMIT_NOTICE } from '@/lib/card-surface'
 
 interface Props {
   open: boolean
@@ -18,6 +19,10 @@ interface Props {
 // and also drops the requester into the owner's contacts list.
 
 export default function BookingModal({ open, onClose, cardId, cardName, accentHex }: Props) {
+  // A booking request writes a row AND emails the card owner. Sending one from
+  // the owner's own dashboard preview would be a meeting request from
+  // themselves. See lib/card-surface.ts.
+  const isPreview = useIsPreview()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -44,6 +49,7 @@ export default function BookingModal({ open, onClose, cardId, cardName, accentHe
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (isPreview) { toast.message(PREVIEW_SUBMIT_NOTICE); return }
     setSubmitting(true)
     try {
       const res = await fetch('/api/bookings/request', {

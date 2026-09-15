@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { describeContactError, CONTACT_NETWORK_ERROR } from '@/lib/contact-errors'
 import CaptureNotice from './CaptureNotice'
 import { contactContextMetadata, type ResolvedContext } from '@/lib/card-context'
+import { useIsPreview, PREVIEW_SUBMIT_NOTICE } from '@/lib/card-surface'
 
 // Shown right after a visitor saves the card owner's contact, when the
 // "contact exchange" add-on is enabled. Asks the visitor to share their
@@ -30,6 +31,9 @@ interface Props {
 }
 
 export default function ContactExchangeModal({ open, onClose, ownerName, ownerCompany, cardId, teamCardId, accentHex, context = null }: Props) {
+  // See lib/card-surface.ts. Declared with the other hooks, above the
+  // `if (!open || !mounted) return null` below, so hook order stays stable.
+  const isPreview = useIsPreview()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -49,6 +53,7 @@ export default function ContactExchangeModal({ open, onClose, ownerName, ownerCo
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (isPreview) { toast.message(PREVIEW_SUBMIT_NOTICE); return }
     if (!name.trim() || !email.trim()) { toast.error('Add your name and email'); return }
     setSubmitting(true)
     try {

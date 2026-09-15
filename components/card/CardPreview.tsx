@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { CardDesign } from '@/types/design'
 import PublicCardView from './PublicCardView'
+import { CardSurfaceProvider } from '@/lib/card-surface'
 
 // Renders the REAL card, scaled down.
 //
@@ -17,9 +18,21 @@ import PublicCardView from './PublicCardView'
 // editor and the marketing grid are all exact by construction, and a new
 // template needs writing once.
 //
-// PublicCardView has one effect on mount - the Circuit QR generator - and no
-// analytics or view counting, so there is nothing here that fires side effects
-// fifteen times over when the picker opens.
+// EVERY PREVIEW IS DECLARED AS ONE, and that declaration is what keeps a
+// preview from writing data.
+//
+// The claim that used to sit here - "no analytics or view counting" - was only
+// half true and was quietly getting less true. CardTracker, which fires the
+// view event, is mounted by the card PAGE and so is genuinely absent here. But
+// PublicCardView itself carries a delegated link-click listener attached to
+// the DOCUMENT, which meant the editor was recording any external link clicked
+// anywhere on the page as a tap on the owner's own card, fifteen times over in
+// the template picker. Contact exchange, the questionnaire, booking and the
+// Context events were all reachable on the same basis.
+//
+// Wrapping in CardSurfaceProvider turns all of that off at once, for the whole
+// subtree including the modals that portal to document.body. See
+// lib/card-surface.ts for why it is a context rather than a prop.
 
 /** The card is written for a phone, so it is laid out at one and scaled. */
 const FRAME_WIDTH = 390
@@ -77,13 +90,16 @@ export default function CardPreview({ form, isPro, design, frameHeight }: Props)
   // whole preview when the measurement was late.
   if (!frameHeight) {
     return (
-      <div aria-hidden className="cardtly-card-preview" style={{ pointerEvents: 'none' }}>
-        <PublicCardView card={card} isPro={isPro} />
-      </div>
+      <CardSurfaceProvider surface="preview">
+        <div aria-hidden className="cardtly-card-preview" style={{ pointerEvents: 'none' }}>
+          <PublicCardView card={card} isPro={isPro} />
+        </div>
+      </CardSurfaceProvider>
     )
   }
 
   return (
+    <CardSurfaceProvider surface="preview">
     <div
       ref={box}
       aria-hidden
@@ -123,5 +139,6 @@ export default function CardPreview({ form, isPro, design, frameHeight }: Props)
         </div>
       )}
     </div>
+    </CardSurfaceProvider>
   )
 }

@@ -5,6 +5,7 @@ import type { CONTEXT_EVENT_TYPES } from './card-context'
 
 type ContextEventType = (typeof CONTEXT_EVENT_TYPES)[number]
 import { useEffect, useRef } from 'react'
+import { useIsPreview } from './card-surface'
 
 interface TrackOptions {
   // Exactly one of these should be set. cardId for a personal
@@ -53,16 +54,37 @@ async function track(opts: TrackOptions) {
   }
 }
 
+/** Does nothing, and returns the same promise shape so a caller cannot tell. */
+async function noTrack(_opts: TrackOptions) { /* preview surface: see lib/card-surface.ts */ }
+
+/**
+ * THE ONLY WAY A COMPONENT INSIDE THE CARD SHOULD TRACK ANYTHING.
+ *
+ * Returns the real tracker on a public card and a no-op inside a dashboard
+ * preview, so the decision is taken once per component rather than remembered
+ * at every call site. PublicCardView deliberately does not import `track`
+ * directly any more: a future `track(...)` added to that file without this
+ * hook is a TypeScript error rather than a silent analytics leak.
+ *
+ * Nothing is queued, buffered or deferred in preview mode. The event is not
+ * sent later, it is never created.
+ */
+export function useTrack(): typeof track {
+  return useIsPreview() ? noTrack : track
+}
+
 // Hook to track page view once on mount. Pass either cardId or
 // teamCardId depending on which kind of card the page is rendering.
 export function useTrackView(cardId?: string, teamCardId?: string) {
   const tracked = useRef(false)
+  const preview = useIsPreview()
   useEffect(() => {
+    if (preview) return
     if (tracked.current) return
     if (!cardId && !teamCardId) return
     tracked.current = true
     track({ cardId, teamCardId, eventType: 'view' })
-  }, [cardId, teamCardId])
+  }, [cardId, teamCardId, preview])
 }
 
 // How a tapped link should read in the owner's analytics. Prefers an explicit
@@ -93,8 +115,18 @@ function labelForLink(a: HTMLAnchorElement): string {
 // templates, each with its own markup, so hooking them one by one would both
 // miss links and go stale the moment a template changes. Capture phase, so it
 // still fires if something downstream calls stopPropagation.
+//
+// NOT ARMED IN A PREVIEW, and the reason is sharper than it first looks. The
+// listener is attached to the DOCUMENT, not to the card, so inside the
+// dashboard it was never limited to the preview panel: any external link
+// anywhere on the editor page was being recorded as a tap on the owner's own
+// card. The template picker mounts fifteen previews at once, which meant
+// fifteen listeners and fifteen identical events for one click. Disarming it
+// here fixes the whole class rather than the one panel.
 export function useTrackLinkClicks(cardId?: string, teamCardId?: string) {
+  const preview = useIsPreview()
   useEffect(() => {
+    if (preview) return
     if (!cardId && !teamCardId) return
 
     function onClick(e: MouseEvent) {
@@ -119,7 +151,7 @@ export function useTrackLinkClicks(cardId?: string, teamCardId?: string) {
 
     document.addEventListener('click', onClick, true)
     return () => document.removeEventListener('click', onClick, true)
-  }, [cardId, teamCardId])
+  }, [cardId, teamCardId, preview])
 }
 
 // Standalone tracker for other events
