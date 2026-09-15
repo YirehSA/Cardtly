@@ -27,8 +27,9 @@ import {
   readCardContext, readSenderAudience, resolveContext, orderSections, resolveContextCta,
   STANDARD_SECTION_ORDER, contextMetadata,
   CONTEXT_EVENT_VIEWED, CONTEXT_EVENT_CTA_CLICKED,
-  type ResolvedContext, type ContextSection,
+  type ResolvedContext, type ContextSection, type ContextConfig,
 } from '@/lib/card-context'
+import ContextSelector from './ContextSelector'
 
 interface Props {
   card: Card & { _team_card_id?: string }
@@ -441,6 +442,17 @@ interface BottomProps {
    *  NOT know whether it came from the sender, the visitor or a default - it
    *  only knows what to show. Null means render the standard card. */
   context?: ResolvedContext | null
+  /** Everything the visitor's selector needs, as one object so the shared
+   *  bottomProps does not grow six more fields. Absent when Context is off,
+   *  which is what removes the control from the card. */
+  contextControls?: {
+    audiences: readonly import('@/lib/card-context').ContextAudience[]
+    activeId: string | null
+    showingFull: boolean
+    onSelect: (id: string) => void
+    onShowFull: () => void
+    onReturnToContext: () => void
+  } | null
   buttonBg: string
   buttonText: string
   buttonBorder: string | null
@@ -495,7 +507,7 @@ function BookingTrigger({ card, accentHex, accentText, buttonBg, buttonText, but
   )
 }
 
-function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context = null, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false, omitCertifications = false }: BottomProps) {
+function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context = null, contextControls = null, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false, omitCertifications = false }: BottomProps) {
   const [showContactForm, setShowContactForm] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -648,6 +660,25 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
 
   return (
     <>
+      {/* The visitor's control sits here on purpose: below the name, the photo
+          and the contact actions, and immediately above the content Context
+          actually rearranges. It is never near the top of the card - the
+          person's identity stays the first thing anybody sees. One placement
+          in the shared BottomSection reaches all fifteen templates. */}
+      {contextControls && (
+        <ContextSelector
+          audiences={contextControls.audiences}
+          activeId={contextControls.activeId}
+          showingFull={contextControls.showingFull}
+          onSelect={contextControls.onSelect}
+          onShowFull={contextControls.onShowFull}
+          onReturnToContext={contextControls.onReturnToContext}
+          accentHex={accentHex}
+          accentText={accentText}
+          bg={bg}
+        />
+      )}
+
       {contextCta && (
         <div className="mt-8" key="ctx-cta">
           {contextCta.kind === 'link' ? (
@@ -1132,11 +1163,32 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
   // analytics, and it is the same state Task 7 will set from a visitor's own
   // choice. Switching audience later is setActiveContext with a different
   // resolution; nothing below needs to know where the decision came from.
+  // TWO PIECES OF STATE, AND THE SEPARATION IS DELIBERATE.
+  //
+  //   activeContext   what audience is SELECTED, and what chose it
+  //   showFullProfile whether the transform is currently being DISPLAYED
+  //
+  // Collapsing these into one would mean "View full profile" had to throw the
+  // selection away, and then returning to it would be impossible - we would
+  // have forgotten that this visitor said they were in IT. Keeping them apart
+  // is what makes "Back to IT" a single tap, and it is also honest: the
+  // visitor did choose IT, they are simply looking at everything for a moment.
+  //
+  // The analytics follow the SELECTION, not the display. Toggling to the full
+  // profile and back logs nothing, because no new Context was experienced.
   const [activeContext, setActiveContext] = useState<ResolvedContext | null>(null)
+  const [showFullProfile, setShowFullProfile] = useState(false)
+  // The card's configured audiences, for the visitor's selector. Empty when
+  // Context is off, which is what hides the control entirely.
+  const [contextAudiences, setContextAudiences] = useState<ContextConfig['audiences']>([])
+  const contextConfigRef = useRef<ContextConfig | null>(null)
+
   useEffect(() => {
     try {
       const { enabled, config } = readCardContext((card as any).addons)
       if (!enabled) return
+      contextConfigRef.current = config
+      setContextAudiences(config.audiences)
       // Read from location rather than useSearchParams, for the same reason
       // CardTracker does: it avoids forcing a Suspense boundary on this page.
       const sender = readSenderAudience(window.location.search)
@@ -1146,6 +1198,28 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
       // the server rendered it.
     }
   }, [card])
+
+  // The visitor's own choice. It BEATS the sender's guess and the owner's
+  // default, resolved through the same function so the precedence lives in one
+  // place rather than being re-implemented here. No page load, no refetch: the
+  // standard card data is already in memory and only the arrangement changes.
+  //
+  // The URL is deliberately NOT rewritten to ?a=. That parameter means "a
+  // sender addressed this to you", and a visitor copying their own
+  // personalised URL would silently turn their own choice into the next
+  // person's sender intent.
+  const chooseAudience = (audienceId: string) => {
+    try {
+      const config = contextConfigRef.current
+      if (!config) return
+      const next = resolveContext({ config, visitorAudience: audienceId })
+      if (!next) return
+      setActiveContext(next)
+      setShowFullProfile(false)
+    } catch {
+      // A failed selection leaves whatever was showing before.
+    }
+  }
 
   // ONE context_viewed PER ACTIVATION, not one per render.
   //
@@ -1239,7 +1313,15 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber }: Prop
 
   // Shared prop bundles
   const shared: Shared = { card, isPro, accentHex, bg, font, cardEffect, design }
-  const bottomProps: BottomProps = { card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context: activeContext, buttonBg, buttonText, buttonBorder, buttonFontSize: getButtonFontSize(design), bg, cardEffect, handleShare, founderNumber }
+  const bottomProps: BottomProps = { card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context: showFullProfile ? null : activeContext,
+    contextControls: contextAudiences.length ? {
+      audiences: contextAudiences,
+      activeId: activeContext?.audience.id ?? null,
+      showingFull: showFullProfile,
+      onSelect: chooseAudience,
+      onShowFull: () => setShowFullProfile(true),
+      onReturnToContext: () => setShowFullProfile(false),
+    } : null, buttonBg, buttonText, buttonBorder, buttonFontSize: getButtonFontSize(design), bg, cardEffect, handleShare, founderNumber }
 
   const pageStyle: React.CSSProperties = { minHeight: '100vh', backgroundColor: bg.page, color: bg.text, fontFamily: font.body }
 
