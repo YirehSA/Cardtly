@@ -1,6 +1,7 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { sanitiseContactMetadata, canonicaliseContactMetadata, readCardContext } from '@/lib/card-context'
+import { mergeTeamAddons } from '@/lib/addon-target'
 import { enqueueLeadCreated } from '@/lib/webhook-dispatch'
 import { resolveCardOwner } from '@/lib/card-owner'
 import { notifyLeadRecipients } from '@/lib/lead-notify'
@@ -45,10 +46,31 @@ export async function POST(request: Request) {
     let contextMeta = sanitiseContactMetadata(body.metadata)
     if (contextMeta) {
       try {
-        const table = owner.isTeam ? 'team_cards' : 'cards'
-        const idCol = owner.isTeam ? owner.teamCardId : owner.personalCardId
-        const { data: row } = await admin.from(table).select('addons').eq('id', idCol).maybeSingle()
-        contextMeta = canonicaliseContactMetadata(contextMeta, readCardContext(row?.addons).config)
+        // EFFECTIVE configuration, not merely the card row's. A team card runs
+        // with its organisation's add-ons laid over its own, which is how
+        // central corporate Context works - so reading the team_cards row
+        // alone would resolve a different config here than the public card
+        // shows, and the two would disagree about what an audience is called.
+        // mergeTeamAddons is the same helper TeamCardPublic uses.
+        let addons: any = null
+        if (owner.isTeam) {
+          const { data: tc } = await admin
+            .from('team_cards').select('addons, organization_id').eq('id', owner.teamCardId).maybeSingle()
+          let orgAddons: any = {}
+          if (tc?.organization_id) {
+            const { data: org } = await admin
+              .from('organizations').select('addons').eq('id', tc.organization_id).maybeSingle()
+            orgAddons = org?.addons || {}
+          }
+          addons = mergeTeamAddons(tc?.addons, orgAddons)
+        } else {
+          const { data: c } = await admin.from('cards').select('addons').eq('id', owner.personalCardId).maybeSingle()
+          addons = c?.addons
+        }
+        // readCardContext also honours the global master switch, so a globally
+        // disabled Context stores no attribution however valid the payload
+        // looks. The contact itself is never affected.
+        contextMeta = canonicaliseContactMetadata(contextMeta, readCardContext(addons).config)
       } catch {
         contextMeta = null
       }

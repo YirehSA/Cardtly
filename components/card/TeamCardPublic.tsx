@@ -1,4 +1,5 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { mergeTeamAddons } from '@/lib/addon-target'
 import PublicCardView from '@/components/card/PublicCardView'
 import ReportCardLink from '@/components/card/ReportCardLink'
 import CardTracker from '@/components/card/CardTracker'
@@ -110,7 +111,9 @@ export default async function TeamCardPublic({ teamCard }: { teamCard: any }) {
   // Cards that predate per-card allocation have no assignedFormId, so they
   // resolve to the org default exactly as before.
   const cardAddons = teamCard.addons || {}
-  const mergedAddons: Record<string, any> = { ...cardAddons, ...orgAddons }
+  // Shared with /api/contact so the card and the API cannot disagree about
+  // which configuration is in force. See lib/addon-target.
+  const mergedAddons: Record<string, any> = mergeTeamAddons(cardAddons, orgAddons)
   if (teamCard.use_team_questionnaire === false) {
     mergedAddons.questionnaireEnabled = false
     delete mergedAddons.questionnaire

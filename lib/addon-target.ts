@@ -94,3 +94,24 @@ export async function loadOwnedTarget(admin: any, userId: string, table: string,
   }
   return null
 }
+
+/**
+ * The add-ons a TEAM CARD actually runs with: its own, with the
+ * organisation's laid over the top. The organisation wins, which is what makes
+ * central corporate configuration mean anything.
+ *
+ * Extracted because it was implemented inside TeamCardPublic and needed again
+ * by /api/contact. Two copies of a precedence rule is how a public card ends
+ * up calling an audience "Technology / IT" while an API believes it is "IT" -
+ * the exact divergence this exists to prevent.
+ *
+ * A shallow merge, deliberately: a key set on the organisation replaces the
+ * card's version of that key outright rather than being deep-merged into it,
+ * which is the behaviour the public card has always had.
+ */
+export function mergeTeamAddons(
+  cardAddons: Record<string, any> | null | undefined,
+  orgAddons: Record<string, any> | null | undefined,
+): Record<string, any> {
+  return { ...(cardAddons || {}), ...(orgAddons || {}) }
+}

@@ -25,7 +25,7 @@ import { describeContactError, CONTACT_NETWORK_ERROR } from '@/lib/contact-error
 import CaptureNotice from './CaptureNotice'
 import {
   readCardContext, readSenderAudience, resolveContext, orderSections, resolveContextCta,
-  STANDARD_SECTION_ORDER, contextMetadata,
+  STANDARD_SECTION_ORDER, contextMetadata, contactContextMetadata,
   CONTEXT_EVENT_VIEWED, CONTEXT_EVENT_CTA_CLICKED,
   type ResolvedContext, type ContextSection, type ContextConfig,
 } from '@/lib/card-context'
@@ -564,6 +564,10 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           name, email, phone, message,
           card_id: isTeamCard ? null : card.id,
           team_card_id: isTeamCard ? (card as any)._team_card_id : null,
+          // The SELECTION, not the display-gated context: opening the full
+          // profile does not withdraw a choice. The server re-checks this
+          // against the card's own configuration regardless.
+          metadata: contactContextMetadata(contextControls?.selected ?? null),
         }),
       })
       if (res.ok) { setSubmitted(true); toast.success('Message sent!') }
@@ -1008,6 +1012,21 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
                   owner-chosen accent measured 3.99 on this very card. The
                   component mutes it to 70% itself, which still clears AA on
                   the worst palette. */}
+              {/* Shown ONLY for a choice the visitor made themselves. A
+                  sender's ?a=it is somebody else's guess about them, so
+                  calling it "your personalisation" would put words in their
+                  mouth. Sender and default attribution is kept internally and
+                  never shown back as self-declared. */}
+              {contextControls?.selected?.source === 'visitor' && (
+                <p className="text-[11px] leading-relaxed" style={{ color: bg.subtext }}>
+                  Personalisation:{' '}
+                  <span className="font-semibold" style={{ color: bg.text }}>
+                    {contextControls.selected.audience.label || contextControls.selected.audience.id}
+                  </span>
+                  <span> - included with your details.</span>
+                </p>
+              )}
+
               <CaptureNotice
                 owner={card.name}
                 company={card.company}
