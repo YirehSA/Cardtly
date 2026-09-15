@@ -52,7 +52,30 @@ const MAX_CUSTOM_LINKS = (() => {
 })()
 
 /**
- * Compile the module, optionally forcing the master switch on first.
+ * THE SWITCH DECLARATION, matched at either committed position.
+ *
+ * This used to be a literal search for `= false`, which quietly assumed the
+ * switch would ship off forever. The day it ships ON that assumption fails in
+ * the worst possible way: the "on" variant cannot be built, and the "off"
+ * variant is silently ON, so every test claiming the switch overrides a
+ * configured card passes while testing nothing at all. The harness has to be
+ * able to construct BOTH states from EITHER committed value.
+ *
+ * Anchored and exact. `true` and `false` only, never truthy parsing, and a
+ * reworded declaration fails loudly rather than being skipped.
+ */
+const SWITCH_RE = /^export const CONTEXT_ENABLED = (true|false)$/m
+
+/** Which position is committed right now. Reported, not judged: activation is
+ *  a deliberate authorised act, and a guard that cannot go green once it
+ *  happens is worse than no guard. */
+function committedSwitch(src) {
+  const m = src.match(SWITCH_RE)
+  return m ? m[1] === 'true' : null
+}
+
+/**
+ * Compile the module with the master switch forced to `forceOn`.
  *
  * `mutations` is a list of [find, replace] pairs applied to the source before
  * compiling. It exists so the guards below can be tested rather than trusted:
@@ -63,12 +86,25 @@ const MAX_CUSTOM_LINKS = (() => {
  */
 function load(forceOn, mutations = []) {
   const out = mkdtempSync(join(tmpdir(), 'card-context-'))
-  const src = readFileSync(SRC, 'utf8')
-  let patched = forceOn
-    ? src.replace('export const CONTEXT_ENABLED = false', 'export const CONTEXT_ENABLED = true')
-    : src
-  if (forceOn && patched === src) {
-    bad('could not force CONTEXT_ENABLED on - the declaration was reworded, so the switch is no longer being tested')
+  // NORMALISED TO LF FOR THE HARNESS ONLY, never written back to the repo.
+  //
+  // Every transformation below - the switch substitution, the aliased-import
+  // strip, and every multi-line mutation find-string - assumes LF. On
+  // a Windows checkout git hands these files back as CRLF, so those searches
+  // silently match nothing: the guard either dies compiling an import it
+  // failed to strip, or worse, reports a mutation as surviving when it was
+  // never applied. One normalisation here fixes the whole class, and the file
+  // on disk is untouched.
+  const src = readFileSync(SRC, 'utf8').replace(new RegExp(String.fromCharCode(13,10), 'g'), String.fromCharCode(10))
+  const want = forceOn === true
+  if (committedSwitch(src) === null) {
+    bad('the CONTEXT_ENABLED declaration could not be found in its expected shape, so NEITHER switch position is being tested')
+  }
+  // Written explicitly rather than conditionally, so the requested position is
+  // what compiles no matter which one is committed.
+  let patched = src.replace(SWITCH_RE, `export const CONTEXT_ENABLED = ${want}`)
+  if (patched === src && committedSwitch(src) !== want) {
+    bad(`could not force CONTEXT_ENABLED to ${want} - the declaration was reworded, so the switch is no longer being tested`)
   }
   for (const [find, replace] of mutations) {
     const before = patched
@@ -81,7 +117,10 @@ function load(forceOn, mutations = []) {
   // Stand in for the aliased import, which cannot resolve outside the project.
   const before = patched
   patched = patched
-    .replace(/^import \{ MAX_CUSTOM_LINKS \} from '@\/types\/design'\n/m, '')
+    // Tolerates a Windows checkout (CRLF) exactly like a Linux one (LF).
+    // Without it the import survives, tsc cannot resolve the @/ alias
+    // outside the project, and the whole guard dies on a line ending.
+    .replace(/^import \{ MAX_CUSTOM_LINKS \} from '@\/types\/design'\r?\n/m, '')
     .replace('export const MAX_LINK_INDEX = MAX_CUSTOM_LINKS',
              `export const MAX_LINK_INDEX = ${MAX_CUSTOM_LINKS}`)
   if (patched === before) {
@@ -183,9 +222,13 @@ const off = await offMod
 
 // ── 2. The master switch overrides everything ─────────────────────────────
 {
-  if (off.CONTEXT_ENABLED !== false) {
-    bad('CONTEXT_ENABLED is committed as true - Phase 1 is not finished and this switch is the backstop')
-  }
+  // The "committed true is always illegal" assertion that used to live here
+  // was right while Phase 1 was unfinished and is now retired: activation is a
+  // deliberate, reviewed, one-line commit. What it protected is NOT retired -
+  // everything below still proves the switch overrides a configured card, and
+  // the committed position is reported in the summary instead.
+  if (off.CONTEXT_ENABLED !== false) bad('load(false) did not produce a module with the switch OFF')
+  if (on.CONTEXT_ENABLED !== true) bad('load(true) did not produce a module with the switch ON')
   const wouldBeOn = { context: { enabled: true, audiences: [{ id: 'it' }] } }
   if (off.readContextEntitlement(wouldBeOn).enabled) {
     bad('the master switch is off but a configured card still enabled Context')
@@ -1555,6 +1598,12 @@ if (fail) {
   console.error(`\ncheck-card-context: ${fail} failure(s).`)
   process.exit(1)
 }
+// DEPLOYMENT EVIDENCE, printed whichever way the switch is set. A build log
+// should say out loud which platform state shipped, because "Context went live
+// and nobody noticed which build did it" is a question we would otherwise be
+// answering from memory.
+console.log(`
+Cardtly Context platform switch: ${committedSwitch(readFileSync(SRC, 'utf8')) ? 'ON' : 'OFF'}`)
 console.log(
   `check-card-context: the entitlement failed closed on all ${HOSTILE.length} malformed inputs without throwing, ` +
   'the master switch overrides a configured card, the parser drops bad audiences, ids, sections and CTAs ' +
