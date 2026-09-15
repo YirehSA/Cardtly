@@ -495,3 +495,85 @@ export function resolveContext(input: {
     return null
   }
 }
+
+// ══ TASK 4: reading the sender's audience out of the URL ══════════════════
+//
+// EXTRACTION PRESERVES, RESOLUTION JUDGES. This function's entire job is to
+// answer "did the URL explicitly carry an audience, and what did it say". It
+// deliberately knows nothing about the six ids, nothing about this card's
+// configured audiences, and nothing about defaultAudience. resolveContext
+// decides whether the value means anything.
+//
+// That separation is what makes the absent-versus-invalid rule work. If this
+// dropped values it did not recognise, ?a=finance would arrive looking exactly
+// like no parameter at all, the default would apply, and a link deliberately
+// addressed to Finance would quietly show Executive. The whole point is that
+// it must not.
+//
+// It does NOT lowercase. ?a=IT arrives as "IT" and the resolver rejects it,
+// for the same reason the parser refuses to repair a malformed id: silently
+// rewriting an explicit identifier somebody put in a link is how you end up
+// honouring a request nobody made.
+
+/** Beyond this, the value cannot be a real audience and is only a transport
+ *  problem. See readSenderAudience for why truncating here is safe. */
+const MAX_AUDIENCE_PARAM = 64
+
+/** The query parameter name. Deliberately short and sitting beside the
+ *  existing ?s= source marker, which lib/card-sources.ts documents as
+ *  permanent once printed. ?a= carries the same commitment. */
+export const CONTEXT_PARAM = 'a'
+
+/**
+ * The audience a sender put in a link, or null if they did not put one there.
+ *
+ * Accepts the shapes this actually arrives in. Today the card is rendered by a
+ * client component and the source marker is read from window.location.search,
+ * so a raw search string is the real path. A URLSearchParams and a Next
+ * searchParams record are accepted too, so a future server-side read needs no
+ * rewrite and no second implementation to keep in step.
+ *
+ * DUPLICATES TAKE THE FIRST. ?a=it&a=sales is "it". If a link went out saying
+ * ?a=it, appending another parameter to it should not silently replace the
+ * sender's intent. This is also what URLSearchParams.get does, but it is done
+ * explicitly and tested rather than inherited, because a record-shaped
+ * searchParams gives an array instead and would otherwise behave differently.
+ *
+ * EMPTY AND WHITESPACE ARE ABSENT, not invalid. A bare ?a= carries no intent
+ * to honour or refuse, so it must not lock an owner out of their own default.
+ *
+ * ABSURD LENGTH IS TRUNCATED RATHER THAN DROPPED, and truncating is provably
+ * safe: a valid id is at most 24 characters, and anything truncated here is
+ * exactly MAX_AUDIENCE_PARAM characters, so truncation can never manufacture a
+ * value that resolves. Dropping it to null would have been worse - a 50,000
+ * character value is explicit, and turning it into "absent" would hand the
+ * visitor the default audience.
+ */
+export function readSenderAudience(
+  search: string | URLSearchParams | Record<string, unknown> | null | undefined,
+): string | null {
+  try {
+    if (search == null) return null
+
+    let raw: unknown = null
+
+    if (typeof search === 'string') {
+      raw = new URLSearchParams(search).get(CONTEXT_PARAM)
+    } else if (typeof URLSearchParams !== 'undefined' && search instanceof URLSearchParams) {
+      raw = search.get(CONTEXT_PARAM)
+    } else if (typeof search === 'object') {
+      // Next's searchParams record: string | string[] | undefined.
+      const v = (search as Record<string, unknown>)[CONTEXT_PARAM]
+      raw = Array.isArray(v) ? v[0] : v
+    }
+
+    if (typeof raw !== 'string') return null
+    if (raw.trim().length === 0) return null
+
+    return raw.length > MAX_AUDIENCE_PARAM ? raw.slice(0, MAX_AUDIENCE_PARAM) : raw
+  } catch {
+    // A malformed query string is never a reason to fail a card view. Same
+    // rule, and the same wording, as CardTracker's own try/catch.
+    return null
+  }
+}

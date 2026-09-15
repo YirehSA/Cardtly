@@ -533,6 +533,120 @@ function parse(label, input) {
   }
 }
 
+// ══ TASK 4: reading the sender's audience out of the URL ══════════════════
+//
+// The rule under test is that EXTRACTION PRESERVES and RESOLUTION JUDGES. If
+// this function quietly dropped values it did not recognise, ?a=finance would
+// arrive looking identical to no parameter at all, the configured default
+// would apply, and a link deliberately addressed to Finance would show
+// Executive. Several cases below exist only to prove that does not happen.
+{
+  const S = on.readSenderAudience
+
+  // [label, input, expected]
+  const CASES = [
+    ['?a=it', '?a=it', 'it'],
+    ['?a=procurement', '?a=procurement', 'procurement'],
+    ['no leading question mark', 'a=it', 'it'],
+
+    // EXPLICIT BUT UNCONFIGURED must survive extraction intact.
+    ['?a=finance survives even though it is not configured', '?a=finance', 'finance'],
+    ['?a=THIS_IS_INVALID survives', '?a=THIS_IS_INVALID', 'THIS_IS_INVALID'],
+    ['case is NOT rewritten', '?a=IT', 'IT'],
+    ['mixed case is NOT rewritten', '?a=Procurement', 'Procurement'],
+
+    // ABSENT
+    ['no a parameter', '?s=wa', null],
+    ['empty search', '', null],
+    ['just a question mark', '?', null],
+    ['?a= is absent, not invalid', '?a=', null],
+    ['whitespace only is absent', '?a=%20%20', null],
+    ['tab only is absent', '?a=%09', null],
+
+    // DUPLICATES take the first
+    ['?a=it&a=sales takes the first', '?a=it&a=sales', 'it'],
+    ['?a=sales&a=it takes the first', '?a=sales&a=it', 'sales'],
+    ['empty first, real second, still takes the first', '?a=&a=it', null],
+
+    // EXISTING ?s= MUST BE UNAFFECTED, in either order
+    ['?s=wa&a=it', '?s=wa&a=it', 'it'],
+    ['?a=it&s=wa', '?a=it&s=wa', 'it'],
+    ['?s=nfc&a=procurement&utm_source=x', '?s=nfc&a=procurement&utm_source=x', 'procurement'],
+
+    // Encoded and awkward values
+    ['url-encoded value', '?a=it%2Dadmin', 'it-admin'],
+    ['plus sign decodes to a space', '?a=it+admin', 'it admin'],
+    ['value with surrounding space is preserved, not trimmed', '?a=%20it%20', ' it '],
+
+    // Malformed query strings must not throw
+    ['a stray ampersand', '?&&a=it&&', 'it'],
+    ['a key with no value', '?a', null],
+    ['an equals with no key', '?=it', null],
+  ]
+
+  for (const [label, input, want] of CASES) {
+    let got
+    try {
+      got = S(input)
+    } catch (e) {
+      bad(`readSenderAudience threw on ${label}: ${e.message}`)
+      continue
+    }
+    if (got !== want) bad(`${label}: got ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`)
+  }
+
+  // ?s= keeps working alongside ?a=, which is the compatibility requirement.
+  for (const q of ['?s=wa&a=it', '?a=it&s=wa']) {
+    const s = new URLSearchParams(q).get('s')
+    if (s !== 'wa') bad(`${q}: the existing source marker read as ${JSON.stringify(s)}, expected "wa"`)
+    if (S(q) !== 'it') bad(`${q}: the audience did not survive alongside the source marker`)
+  }
+
+  // Other shapes the boundary may hand us.
+  if (S(new URLSearchParams('a=it')) !== 'it') bad('a URLSearchParams input was not read')
+  if (S({ a: 'it' }) !== 'it') bad("a Next searchParams record was not read")
+  if (S({ a: ['it', 'sales'] }) !== 'it') bad('a repeated record value did not take the first')
+  if (S({ a: [] }) !== null) bad('an empty array value did not become null')
+  if (S({ a: undefined }) !== null) bad('an undefined record value did not become null')
+  if (S({ a: 42 }) !== null) bad('a non-string record value did not become null')
+  if (S({ a: { id: 'it' } }) !== null) bad('an object record value did not become null')
+  if (S({ s: 'wa' }) !== null) bad('a record without an audience did not become null')
+
+  // Junk must never throw.
+  for (const j of [null, undefined, 42, true, [], Symbol.iterator && {},
+                   { get a() { throw new Error('boom') } }]) {
+    try { S(j) } catch (e) { bad(`readSenderAudience threw on junk ${String(j)}: ${e.message}`) }
+  }
+
+  // ── Absurd length: truncated, NOT dropped ───────────────────────────────
+  //
+  // Dropping it would make a 50,000-character explicit value look absent, and
+  // the visitor would get the default audience. Truncating keeps it explicit
+  // and provably unresolvable.
+  const huge = 'x'.repeat(50000)
+  const out = S(`?a=${huge}`)
+  if (out === null) bad('an absurdly long audience was dropped to null; it would then look absent and invoke the default')
+  if (out === null || out.length > 64) bad(`an absurdly long audience was not capped: length ${out && out.length}`)
+
+  // The safety proof: a truncated value can never resolve, because a valid id
+  // is at most 24 characters and anything truncated here is longer than that.
+  const cfg = on.parseContextConfig({ audiences: [{ id: 'it' }], defaultAudience: 'it' })
+  if (on.resolveContext({ config: cfg, senderAudience: out }) !== null) {
+    bad('a truncated audience resolved to something; truncation must never manufacture a valid id')
+  }
+  // And end to end: an explicit unconfigured audience must NOT fall to default.
+  if (on.resolveContext({ config: cfg, senderAudience: S('?a=finance') }) !== null) {
+    bad('?a=finance resolved to the default; explicit-but-unknown must fall to the standard card')
+  }
+  // While a genuinely absent one still may.
+  const viaDefault = on.resolveContext({ config: cfg, senderAudience: S('?s=wa') })
+  if (viaDefault?.source !== 'default') {
+    bad('an absent audience did not fall through to the configured default')
+  }
+
+  if (on.CONTEXT_PARAM !== 'a') bad(`CONTEXT_PARAM is ${JSON.stringify(on.CONTEXT_PARAM)}, expected "a"; it appears in shared links and is permanent`)
+}
+
 for (const d of [onDir, offDir]) { try { rmSync(d, { recursive: true, force: true }) } catch {} }
 
 if (fail) {
