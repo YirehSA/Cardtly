@@ -8,9 +8,10 @@ import {
   Crown, Cpu, TrendingUp, Megaphone, Users, ShoppingCart, Link2, Check, Copy,
 } from 'lucide-react'
 import {
-  CONTEXT_AUDIENCE_IDS, STANDARD_SECTION_ORDER, MAX_CONTEXT_LABEL, MAX_LINK_INDEX,
-  type ContextAudience, type ContextSection, type ContextCta,
+  CONTEXT_AUDIENCE_IDS, STANDARD_SECTION_ORDER, MAX_CONTEXT_LABEL, MAX_LINK_INDEX, CONTEXT_COLLECTIONS,
+  type ContextAudience, type ContextSection, type ContextCta, type ContextCollection,
 } from '@/lib/card-context'
+import { SOCIAL_SLOTS } from '@/types/design'
 import { setUnsavedContext } from './unsaved'
 import ContextPreview from './ContextPreview'
 
@@ -56,6 +57,10 @@ interface Props {
   audiences: ContextAudience[]
   defaultAudience: string | null
   links: LinkOption[]
+  /** The photos and social accounts this card actually has, so the pickers
+   *  can name them. Empty for an organisation, where they differ per member. */
+  galleryItems: PickItem[]
+  socialItems: PickItem[]
   bookingAvailable: boolean
   /** Which sections this card actually has content for, so the editor can say
    *  so without pretending an empty one will appear. */
@@ -137,7 +142,7 @@ function fromDraft(d: DraftAudience) {
 
 export default function ContextEditor({
   target, targetLabel, enabled, audiences, defaultAudience,
-  links, bookingAvailable, populated, isOrg, teamWide, beta, previewCards = [], cardSlug = null,
+  links, galleryItems, socialItems, bookingAvailable, populated, isOrg, teamWide, beta, previewCards = [], cardSlug = null,
 }: Props) {
   const router = useRouter()
   // WHICH CARD THE PREVIEW RENDERS. Preview state, not configuration, so it is
@@ -186,6 +191,16 @@ export default function ContextEditor({
 
   const patch = (id: string, fn: (d: DraftAudience) => DraftAudience) =>
     setRows(rs => rs.map(r => (r.id === id ? fn(r) : r)))
+
+  // Written as a switch rather than a computed key, so the three collections
+  // keep their real types on the draft instead of becoming
+  // (number | string)[] the moment one picker is generalised.
+  const setPicks = (id: string, collection: ContextCollection, v: (number | string)[] | null) =>
+    patch(id, d => {
+      if (collection === 'socials') return { ...d, socials: v as string[] | null }
+      if (collection === 'gallery') return { ...d, gallery: v as number[] | null }
+      return { ...d, links: v as number[] | null }
+    })
 
   function setEnabled(id: string, next: boolean) {
     patch(id, d => ({ ...d, enabled: next }))
@@ -371,7 +386,9 @@ export default function ContextEditor({
             onMove={(i, dir) => move(row.id, i, dir)}
             onHide={s => toggleHide(row.id, s)}
             onCta={c => patch(row.id, d => ({ ...d, cta: c }))}
-            onLinks={v => patch(row.id, d => ({ ...d, links: v }))}
+            onPicks={(c, v) => setPicks(row.id, c, v)}
+            galleryItems={galleryItems}
+            socialItems={socialItems}
             links={links}
             bookingAvailable={bookingAvailable}
             populated={populated}
@@ -521,7 +538,8 @@ function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: 
 }
 
 function AudienceRow({
-  row, expanded, onToggleExpand, onEnabled, onLabel, onMove, onHide, onCta, onLinks,
+  row, expanded, onToggleExpand, onEnabled, onLabel, onMove, onHide, onCta, onPicks,
+  galleryItems, socialItems,
   links, bookingAvailable, populated, isOrg, cardSlug,
 }: {
   row: DraftAudience
@@ -532,7 +550,9 @@ function AudienceRow({
   onMove: (index: number, dir: -1 | 1) => void
   onHide: (s: ContextSection) => void
   onCta: (c: ContextCta | null) => void
-  onLinks: (v: number[] | null) => void
+  onPicks: (collection: ContextCollection, v: (number | string)[] | null) => void
+  galleryItems: PickItem[]
+  socialItems: PickItem[]
   links: LinkOption[]
   bookingAvailable: boolean
   populated: Record<ContextSection, boolean>
@@ -667,7 +687,14 @@ function AudienceRow({
             </ul>
           </fieldset>
 
-          <LinkPicker row={row} links={links} isOrg={isOrg} onLinks={onLinks} />
+          <CollectionPicker row={row} collection="links" isOrg={isOrg} onPicks={onPicks}
+            items={links.map(l => ({ id: l.index, label: l.title, sub: `Link ${l.index}` }))} />
+
+          <CollectionPicker row={row} collection="gallery" isOrg={isOrg} onPicks={onPicks}
+            items={galleryItems} />
+
+          <CollectionPicker row={row} collection="socials" isOrg={isOrg} onPicks={onPicks}
+            items={socialItems} />
 
           <CtaPicker
             row={row} links={links} bookingAvailable={bookingAvailable} isOrg={isOrg} onCta={onCta}
@@ -678,127 +705,175 @@ function AudienceRow({
   )
 }
 
-/** WHICH LINKS THIS AUDIENCE SHOWS.
+/** One offerable member of a collection. `id` is what the audience actually
+ *  stores: a slot number for links and gallery, a platform key for socials. */
+interface PickItem { id: number | string; label: string; sub?: string }
+
+/** The words for each collection, in one place, so three pickers cannot
+ *  describe the same idea three slightly different ways. */
+const COLLECTION_COPY: Record<ContextCollection, {
+  legend: string
+  blurb: string
+  all: string
+  none: string
+  empty: string
+  /** The section this collection lives in, when it lives in one. Socials are
+   *  not a section: they sit in the card's identity block and there is no
+   *  ordering or hiding control for them. */
+  section: ContextSection | null
+  orphan: (id: number | string) => string
+}> = {
+  links: {
+    legend: 'Which links to show',
+    blurb: 'Tick the links this audience should see. Unticking one hides it from this personalised view only. It stays on your card.',
+    all: 'Every link shows. Any link you add to this card later will show here too.',
+    none: 'No links will show for this audience.',
+    empty: 'This card has no links yet. Add some to your card and you can choose which of them each audience sees.',
+    section: 'links',
+    orphan: id => `Link ${id}`,
+  },
+  gallery: {
+    legend: 'Which photos to show',
+    blurb: 'Tick the photos this audience should see. Unticking one hides it from this personalised view only. It stays on your card.',
+    all: 'Every photo shows. Any photo you add to this card later will show here too.',
+    none: 'No photos will show for this audience.',
+    empty: 'This card has no photos yet. Add some to your card and you can choose which of them each audience sees.',
+    section: 'gallery',
+    orphan: id => `Photo ${id}`,
+  },
+  socials: {
+    legend: 'Which social accounts to show',
+    blurb: 'Tick the accounts this audience should see. Unticking one hides it from this personalised view only. It stays on your card.',
+    all: 'Every social account shows. Any account you add to this card later will show here too.',
+    none: 'No social accounts will show for this audience.',
+    empty: 'This card has no social accounts yet. Add some to your card and you can choose which of them each audience sees.',
+    section: null,
+    orphan: id => String(id),
+  },
+}
+
+/** WHICH MEMBERS OF A COLLECTION THIS AUDIENCE SHOWS.
+ *
+ * ONE PICKER FOR THREE COLLECTIONS. This was LinkPicker, and socials and the
+ * gallery were each about to become a copy of it. Task 11 exists because three
+ * copies of one idea is how the social row ended up rendered three ways with
+ * two of them missing platforms, and a picker is no safer than a renderer: the
+ * copy nobody updates is the one that quietly stops matching.
  *
  * THE WHOLE ROW IS THE CONTROL. "Maybe you can click the ones you want to
  * display" was the ask, and a 16px checkbox is not a click target on a phone.
  *
  * EVERY BOX TICKED IS STORED AS "no choice made", not as a list naming every
- * slot. The difference is invisible today and is the entire behaviour
- * tomorrow: null means a link added next month appears here by itself, while
- * [1,2,3] quietly excludes link 4 the day it exists. Ticking every box says
- * "all of them", not "these three forever", so it is stored as the former.
+ * member. The difference is invisible today and is the entire behaviour
+ * tomorrow: null means a link, photo or account added next month appears here
+ * by itself, while a full list quietly excludes it the day it exists. Ticking
+ * every box says "all of them", not "these three forever".
  *
- * SLOTS, NOT POSITIONS. A tick selects link_3, the column, so it keeps meaning
- * the same thing when a different link is cleared or renamed. Same rule the
- * CTA picker follows, and the reason neither of them ever renumbers anything.
+ * IDENTITY, NOT POSITION. A tick selects link_3_url, image_2_url or `tiktok` -
+ * the column or the key - so it keeps meaning the same thing when a different
+ * one is cleared or renamed. The gallery only became eligible for this in 11c,
+ * when its slot number stopped being thrown away at the point the list was
+ * built.
  */
-function LinkPicker({ row, links, isOrg, onLinks }: {
+function CollectionPicker({ row, collection, items, isOrg, onPicks }: {
   row: DraftAudience
-  links: LinkOption[]
+  collection: ContextCollection
+  items: PickItem[]
   isOrg: boolean
-  onLinks: (v: number[] | null) => void
+  onPicks: (collection: ContextCollection, v: (number | string)[] | null) => void
 }) {
-  // An organisation runs one configuration across many cards, each with its
-  // own slot 3, so there is no title to show and the slots are offered by
-  // number. Same compromise the CTA picker makes, for the same reason.
-  const slots: LinkOption[] = isOrg
-    ? Array.from({ length: MAX_LINK_INDEX }, (_, i) => ({ index: i + 1, title: `Link ${i + 1}` }))
-    : links
-  const offerable = slots.map(s => s.index)
+  const copy = COLLECTION_COPY[collection]
+  const selected = row[collection] as (number | string)[] | null
 
-  // A slot that was chosen and is now empty keeps its row. Dropping it on
+  // AN ORGANISATION RUNS ONE CONFIGURATION ACROSS MANY CARDS, each with its
+  // own link 3, own photo 2 and own TikTok, so there is nothing to name and
+  // the members are offered by number or by platform. Taken from the registry
+  // rather than written out here, so the day a social is added it appears in
+  // this picker without anybody remembering to come back. Same compromise the
+  // CTA picker makes, for the same reason.
+  const spec = CONTEXT_COLLECTIONS[collection]
+  const offered: PickItem[] = (isOrg && items.length === 0)
+    ? (spec.kind === 'slot'
+        ? Array.from({ length: spec.max }, (_, i) => ({ id: i + 1, label: copy.orphan(i + 1) }))
+        : spec.keys.map(k => ({ id: k, label: SOCIAL_SLOTS.find(s => s.key === k)?.label ?? k })))
+    : items
+  const offerable = offered.map(i => i.id)
+
+  // A member that was chosen and is now gone keeps its row. Dropping it on
   // sight would mean opening this panel silently edited the configuration,
   // which is the thing the CTA picker refuses to do with an empty slot.
-  const orphans = (row.links ?? []).filter(i => !offerable.includes(i))
+  const orphans = (selected ?? []).filter(id => !offerable.includes(id))
 
-  const showAll = row.links === null
-  const isOn = (i: number) => showAll || row.links!.includes(i)
-  const chosen = showAll ? offerable.length : row.links!.length
-  const sectionHidden = row.hide.includes('links')
+  const showAll = selected === null
+  const isOn = (id: number | string) => showAll || selected!.includes(id)
+  const chosen = showAll ? offerable.length : selected!.length
+  const sectionHidden = copy.section !== null && row.hide.includes(copy.section)
 
-  function toggle(i: number) {
-    const current = row.links ?? offerable
-    const next = current.includes(i) ? current.filter(x => x !== i) : [...current, i]
-    // Kept in the card's own order. visibleLinks can render a custom one and
+  function toggle(id: number | string) {
+    const current = selected ?? offerable
+    const next = current.includes(id) ? current.filter(x => x !== id) : [...current, id]
+    // Kept in the card's own order. visiblePicks can render a custom one and
     // 10a proves it does, but nothing on this screen asks for an order, and
     // inventing one would make the preview disagree with the card the owner
     // already knows by heart.
     const ordered = [...offerable, ...orphans].filter(x => next.includes(x))
     const isEverything =
       ordered.length === offerable.length && offerable.every(x => ordered.includes(x))
-    onLinks(isEverything ? null : ordered)
+    onPicks(collection, isEverything ? null : ordered)
   }
 
-  if (!isOrg && links.length === 0) {
+  if (offered.length === 0) {
     return (
       <fieldset>
-        <legend className="text-xs font-semibold mb-1">Which links to show</legend>
-        <p className="text-[11px] text-muted-foreground">
-          This card has no links yet. Add some to your card and you can choose which of them each
-          audience sees.
-        </p>
+        <legend className="text-xs font-semibold mb-1">{copy.legend}</legend>
+        <p className="text-[11px] text-muted-foreground">{copy.empty}</p>
       </fieldset>
     )
   }
 
-  const rows = [...slots, ...orphans.map(i => ({ index: i, title: '' }))]
+  const rows: PickItem[] = [
+    ...offered,
+    ...orphans.map(id => ({ id, label: copy.orphan(id) })),
+  ]
 
   return (
     <fieldset>
-      <legend className="text-xs font-semibold mb-1">Which links to show</legend>
-      <p className="text-[11px] text-muted-foreground mb-2">
-        Tick the links this audience should see. Unticking one hides it from this personalised view
-        only. It stays on your card.
-      </p>
+      <legend className="text-xs font-semibold mb-1">{copy.legend}</legend>
+      <p className="text-[11px] text-muted-foreground mb-2">{copy.blurb}</p>
 
       <ul className="space-y-1.5">
-        {rows.map(l => {
-          const on = isOn(l.index)
-          const empty = !offerable.includes(l.index)
+        {rows.map(item => {
+          const on = isOn(item.id)
+          const empty = !offerable.includes(item.id)
+          const domId = `pick-${collection}-${row.id}-${item.id}`
           return (
-            <li key={l.index}>
-              <label htmlFor={`lnk-${row.id}-${l.index}`}
+            <li key={String(item.id)}>
+              <label htmlFor={domId}
                 className="ctx-tick flex items-center gap-2.5 rounded-xl border px-3 py-2 min-h-11 cursor-pointer"
                 style={{
                   borderColor: on ? 'hsl(var(--accent) / 0.5)' : 'hsl(var(--border))',
                   background: on ? 'hsl(var(--accent) / 0.07)' : 'hsl(var(--background))',
                 }}>
-                {/* NAMED OUT LOUD, rather than left to the wrapping label.
-                    Read through the accessibility tree these ticks came back
-                    named "on" - the default value of an HTML checkbox, which
-                    is what a control with no accessible name falls back to -
-                    while the radios directly below them, built with this
-                    file's Radio helper, read correctly. Radio uses id and
-                    htmlFor; this used a wrapping label alone. Both are valid
-                    HTML and only one of them was legible to the tooling, so
-                    this now does what already worked here: an explicit
-                    association, plus a name that says the slot number the row
-                    only shows visually. The visible title stays the first
-                    words of the name, so the spoken name still matches what a
-                    speech-input user would say. */}
-                <input type="checkbox" id={`lnk-${row.id}-${l.index}`}
-                  checked={on} onChange={() => toggle(l.index)}
+                {/* NAMED OUT LOUD, rather than left to the wrapping label. Read
+                    through the accessibility tree these came back named "on" -
+                    the default value attribute of an HTML checkbox, and what a
+                    control with no accessible name falls back to. The visible
+                    label stays the first words of the spoken name, so a
+                    speech-input user still says what they see. */}
+                <input type="checkbox" id={domId}
+                  checked={on} onChange={() => toggle(item.id)}
                   aria-label={empty
-                    ? `Link ${l.index}, currently empty`
-                    : isOrg
-                      ? `Link ${l.index} on each team member's card`
-                      : `${l.title}, link ${l.index}`}
+                    ? `${item.label}, currently empty`
+                    : item.sub ? `${item.label}, ${item.sub}` : item.label}
                   className="w-4 h-4 flex-shrink-0" style={{ accentColor: 'hsl(var(--accent))' }} />
                 <span className="text-sm min-w-0 flex-1">
-                  <span className={on ? '' : 'text-muted-foreground'}>
-                    {empty
-                      ? `Link ${l.index}`
-                      : isOrg
-                        ? `Link ${l.index} on each team member's card`
-                        : l.title}
-                  </span>
+                  <span className={on ? '' : 'text-muted-foreground'}>{item.label}</span>
                   {empty ? (
                     <span className="block text-[11px]" style={{ color: '#d97706' }}>
-                      Currently empty, so nothing shows for it until you fill link {l.index} on your card.
+                      Currently empty, so nothing shows for it until you fill it in on your card.
                     </span>
-                  ) : !isOrg ? (
-                    <span className="block text-[11px] text-muted-foreground">Link {l.index}</span>
+                  ) : item.sub ? (
+                    <span className="block text-[11px] text-muted-foreground">{item.sub}</span>
                   ) : null}
                 </span>
               </label>
@@ -808,25 +883,20 @@ function LinkPicker({ row, links, isOrg, onLinks }: {
       </ul>
 
       <p className="text-[11px] text-muted-foreground mt-2">
-        {showAll
-          ? 'Every link shows. Any link you add to this card later will show here too.'
-          : chosen === 0
-            ? 'No links will show for this audience.'
-            : `Showing ${chosen} of ${offerable.length}.`}
+        {showAll ? copy.all : chosen === 0 ? copy.none : `Showing ${chosen} of ${offerable.length}.`}
       </p>
 
       {sectionHidden && (
         <p className="text-[11px] flex items-start gap-1.5 mt-1" style={{ color: '#d97706' }}>
           <AlertTriangle className="w-3.5 h-3.5 mt-px flex-shrink-0" aria-hidden="true" />
-          The Links section is hidden for this audience, so none of these will show. Your choice is
-          kept for when you unhide it.
+          The {SECTION_LABEL[copy.section!]} section is hidden for this audience, so none of these
+          will show. Your choice is kept for when you unhide it.
         </p>
       )}
 
       {isOrg && (
         <p className="text-[11px] text-muted-foreground mt-1">
-          Uses that slot from each team member&apos;s own Cardtly, so it is a different link for each
-          of them.
+          Applies to each team member&apos;s own card, so it is different content for each of them.
         </p>
       )}
     </fieldset>

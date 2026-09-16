@@ -8,7 +8,7 @@ import { resolveAddonTargets, mergeTeamAddons } from '@/lib/addon-target'
 import { getUserPlan } from '@/lib/plan-server'
 import { isIosApp } from '@/lib/app-platform'
 import { extractLinks } from '@/types/database'
-import { parseDesign, templateOffersBooking } from '@/types/design'
+import { parseDesign, templateOffersBooking, IMAGE_SLOTS, SOCIAL_SLOTS } from '@/types/design'
 import ContextEditor from '@/components/context/ContextEditor'
 import TargetLink from '@/components/context/TargetLink'
 import { CONTEXT_ENABLED, readStoredContext, type ContextSection } from '@/lib/card-context'
@@ -112,6 +112,12 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
   // arrange a gallery they have not built yet, while being honest that nothing
   // will show until they do.
   let links: { index: number; title: string }[] = []
+  // The photos and social accounts this card actually has, named so the
+  // pickers can offer them. Left empty for an organisation, where photo 2 and
+  // the TikTok account are different on every member's card and the picker
+  // offers them by number and platform instead.
+  let galleryItems: { id: number; label: string }[] = []
+  let socialItems: { id: string; label: string }[] = []
   let populated: Record<ContextSection, boolean> = { certifications: true, links: true, gallery: true }
   let sourceRow: any = null
   if (selected.table === 'cards' || selected.table === 'team_cards') {
@@ -120,10 +126,20 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
       const r = row as any
       sourceRow = r
       links = extractLinks(r).map(l => ({ index: l.index, title: l.title }))
+      galleryItems = IMAGE_SLOTS
+        .filter(i => !!r[`image_${i}_url`])
+        .map(i => ({ id: i, label: `Photo ${i}` }))
+      socialItems = SOCIAL_SLOTS
+        .filter(sl => !!r[sl.column])
+        .map(sl => ({ id: sl.key as string, label: sl.label }))
       populated = {
         links: links.length > 0,
         certifications: !!(typeof r.certifications === 'string' && r.certifications.trim()),
-        gallery: [1, 2, 3, 4, 5, 6].some(i => !!r[`image_${i}_url`]),
+        // Counted off IMAGE_SLOTS. This said [1,2,3,4,5,6] while the card has
+        // ten, so an owner whose only photos were in slots 7 to 10 was told
+        // their gallery was empty - the exact failure the comment above
+        // IMAGE_SLOTS describes, in the editor this time rather than the card.
+        gallery: IMAGE_SLOTS.some(i => !!r[`image_${i}_url`]),
       }
     }
   }
@@ -271,6 +287,8 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
         audiences={stored.config.audiences}
         defaultAudience={stored.config.defaultAudience}
         links={links}
+        galleryItems={galleryItems}
+        socialItems={socialItems}
         bookingAvailable={bookingAvailable}
         populated={populated}
         isOrg={isTeamWide}

@@ -1727,14 +1727,31 @@ function parse(label, input) {
   }
 
   // 3. The picker exists and is wired to the draft rather than to itself.
-  // The delimiter matters. `/<LinkPicker/` alone also matches <LinkPickerX,
-  // so renaming the element to something that does not exist passed the check.
-  // Found by mutating exactly that, which is the point of mutating.
-  if (!/<LinkPicker[\s/>]/.test(editor)) {
-    bad(EDITOR + ': the link picker is not rendered, so nothing can set a selection')
+  // The delimiter matters. `/<CollectionPicker/` alone also matches
+  // <CollectionPickerX, so renaming the element to something that does not
+  // exist would pass. Found by mutating exactly that, which is the point.
+  if (!/<CollectionPicker[\s/>]/.test(editor)) {
+    bad(EDITOR + ': the collection picker is not rendered, so nothing can set a selection')
   }
-  if (!/onLinks=\{[^}]*links: v/.test(editor)) {
-    bad(EDITOR + ': onLinks does not patch links onto the draft, so the picker changes nothing that gets saved')
+  // ONE PICKER, THREE COLLECTIONS, and all three have to be on the screen.
+  // Generalising the component made it possible to ship two of them.
+  for (const c of ['links', 'gallery', 'socials']) {
+    // Tied to the TAG, not loose in the file. Matching the attribute on its
+    // own let a renamed element keep the check happy: <CollectionPickerX
+    // collection="links"> still contained the attribute. The compiler would
+    // have caught that one, but a guard that depends on the compiler catching
+    // its misses is not doing its own job.
+    if (!new RegExp(`<CollectionPicker\\s[^>]*collection="${c}"`).test(editor)) {
+      bad(`${EDITOR}: no picker is rendered for the ${c} collection, so an owner cannot choose which ${c} an audience shows`)
+    }
+  }
+  if (!/setPicks\(row\.id, c, v\)/.test(editor)) {
+    bad(EDITOR + ': the pickers are not wired to setPicks, so they change nothing that gets saved')
+  }
+  for (const c of ['links', 'gallery', 'socials']) {
+    if (!new RegExp(`${c}: v as`).test(editor)) {
+      bad(`${EDITOR}: setPicks does not assign ${c} onto the draft, so that picker is inert`)
+    }
   }
 
   // 4. THE COLLAPSE RULE, which is the one piece of judgement in the picker.
@@ -1751,20 +1768,20 @@ function parse(label, input) {
   //    to the tooling, and the picker had picked the other one.
   //
   //    A person using a screen reader would have heard "on, on, on, on, on".
-  const picker0 = fn(editor, 'LinkPicker')
+  const picker0 = fn(editor, 'CollectionPicker')
   if (picker0) {
     if (!/aria-label=\{/.test(picker0)) {
       bad(EDITOR + ': the link picker checkboxes have no aria-label, so each one is announced as "on" rather than as the link it selects')
     }
-    if (!/htmlFor=\{`lnk-/.test(picker0) || !/id=\{`lnk-/.test(picker0)) {
+    if (!/htmlFor=\{domId\}/.test(picker0) || !/id=\{domId\}/.test(picker0)) {
       bad(EDITOR + ': the link picker no longer associates each label with its input by id, which is the half of this that survives a tooling change')
     }
   }
 
-  const picker = fn(editor, 'LinkPicker')
-  if (!picker) bad(EDITOR + ': LinkPicker is gone')
-  else if (!/onLinks\(\s*isEverything \? null : ordered\s*\)/.test(picker)) {
-    bad(EDITOR + ': LinkPicker no longer collapses a fully ticked selection back to null, so ticking every box would silently exclude any link added later')
+  const picker = fn(editor, 'CollectionPicker')
+  if (!picker) bad(EDITOR + ': CollectionPicker is gone')
+  else if (!/onPicks\(collection, isEverything \? null : ordered\)/.test(picker)) {
+    bad(EDITOR + ': CollectionPicker no longer collapses a fully ticked selection back to null, so ticking every box would silently exclude anything added later')
   }
 }
 
