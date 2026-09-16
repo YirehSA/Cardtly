@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Card, extractLinks } from '@/types/database'
-import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, scrimAlphaForWhite, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, readableAccentOn, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS } from '@/types/design'
+import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, scrimAlphaForWhite, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, readableAccentOn, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS, SOCIAL_SLOTS, type SocialKey } from '@/types/design'
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
@@ -370,6 +370,38 @@ function Avatar({ card, bg, accentHex, font, design, size = 112, rounded = 'full
 
 // Brand colours for the social pills. White icon on coloured circle
 // gives instant recognition vs accent-tinted everything-the-same look.
+/**
+ * The icon for a social account, in one place.
+ *
+ * WHY THIS AND SOCIAL_SLOTS EXIST. Three separate places in this file used to
+ * list the social accounts by hand - the shared row, Minimal and Studio - and
+ * two of them stopped short of the full set. YouTube and TikTok rendered on
+ * neither Minimal nor Studio, Instagram on neither Minimal, and nothing said
+ * so: the customer filled the field in, watched it save, and got nothing.
+ *
+ * The cause is worth naming because it is not carelessness. Each template
+ * declared a COLOUR MAP with six or seven entries and then wrote a list to
+ * match it, so the palette silently defined which accounts existed. Adding an
+ * eighth social to the product would have needed three edits in three styles,
+ * and the two that were missed were missed exactly that way.
+ *
+ * Now the accounts are counted off SOCIAL_SLOTS and a template's palette is an
+ * OVERRIDE over the brand colours rather than the list itself. A social a
+ * template has no opinion about falls back to its brand colour and still
+ * renders, which is the structural half of this fix.
+ */
+function socialIconFor(key: SocialKey, cls: string): React.ReactNode {
+  switch (key) {
+    case 'linkedin':  return <Linkedin className={cls} />
+    case 'twitter':   return <Twitter className={cls} />
+    case 'instagram': return <Instagram className={cls} />
+    case 'facebook':  return <Facebook className={cls} />
+    case 'youtube':   return <Youtube className={cls} />
+    case 'tiktok':    return <TikTokGlyph className={cls} />
+    case 'whatsapp':  return <MessageCircle className={cls} />
+  }
+}
+
 const SOCIAL_BRAND_COLORS = {
   linkedin: '#0a66c2',
   twitter:  '#000000',  // X uses pure black now
@@ -1401,15 +1433,27 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
       link: (card as any)[`image_${i}_link`],
     })),
   ].filter(item => item.url) as { url: string; link?: string }[] : []
-  const socialLinks = isPro ? [
-    card.linkedin_url && { platform: 'LinkedIn', url: card.linkedin_url, icon: <Linkedin className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.linkedin },
-    card.twitter_url && { platform: 'Twitter / X', url: card.twitter_url, icon: <Twitter className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.twitter },
-    card.instagram_url && { platform: 'Instagram', url: card.instagram_url, icon: <Instagram className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.instagram },
-    (card as any).facebook_url && { platform: 'Facebook', url: (card as any).facebook_url, icon: <Facebook className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.facebook },
-    (card as any).youtube && { platform: 'YouTube', url: (card as any).youtube, icon: <Youtube className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.youtube },
-    (card as any).tiktok && { platform: 'TikTok', url: (card as any).tiktok, icon: <TikTokGlyph className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.tiktok },
-    card.whatsapp && { platform: 'WhatsApp', url: `https://wa.me/${card.whatsapp.replace(/\D/g, '')}`, icon: <MessageCircle className="w-4 h-4" />, color: SOCIAL_BRAND_COLORS.whatsapp },
-  ].filter(Boolean) as { platform: string; url: string; icon: React.ReactNode; color: string }[] : []
+  // WHICH SOCIAL ACCOUNTS THIS CARD ACTUALLY HAS, counted off SOCIAL_SLOTS so
+  // that adding an eighth is a one-line change in types/design and not three
+  // edits in three templates, two of which would be forgotten. Every template
+  // renders THIS list in its own style; none of them decides what is in it.
+  const socialAccounts = isPro ? SOCIAL_SLOTS.map(slot => {
+    const raw = (card as any)[slot.column]
+    if (!raw) return null
+    // WhatsApp stores a number and renders a link, which is the one place the
+    // stored value and the href differ.
+    const url = slot.key === 'whatsapp'
+      ? `https://wa.me/${String(raw).replace(/\D/g, '')}`
+      : String(raw)
+    return { key: slot.key, label: slot.label, url }
+  }).filter(Boolean) as { key: SocialKey; label: string; url: string }[] : []
+
+  const socialLinks = socialAccounts.map(a => ({
+    platform: a.label,
+    url: a.url,
+    icon: socialIconFor(a.key, 'w-4 h-4'),
+    color: SOCIAL_BRAND_COLORS[a.key],
+  }))
 
   async function handleShare() {
     // In a preview window.location.href is the dashboard, so this would offer
@@ -1791,15 +1835,22 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 14, margin: '28px 0 32px' }}>
             {card.phone && <Circle href={`tel:${card.phone}`} color={ICON_COLORS.phone} label="Call" icon={<Phone className="w-6 h-6" />} />}
             {card.email && <Circle href={`mailto:${card.email}`} color={ICON_COLORS.email} label="Email" icon={<Mail className="w-6 h-6" />} />}
-            {isPro && (card as any).linkedin_url && <Circle href={(card as any).linkedin_url} color={ICON_COLORS.linkedin} label="LinkedIn" icon={<Linkedin className="w-6 h-6" />} />}
             {card.website && <Circle href={card.website.startsWith('http') ? card.website : `https://${card.website}`} color={ICON_COLORS.website} label="Website" icon={<Globe className="w-6 h-6" />} />}
-            {isPro && (card as any).twitter_url && <Circle href={(card as any).twitter_url} color={ICON_COLORS.twitter} label="X / Twitter" icon={<Twitter className="w-6 h-6" />} />}
-            {isPro && (card as any).facebook_url && <Circle href={(card as any).facebook_url} color={ICON_COLORS.facebook} label="Facebook" icon={<Facebook className="w-6 h-6" />} />}
+            {/* EVERY social this card has, not the four this template used to
+                name. ICON_COLORS is now an override: anything it has no
+                opinion about takes its brand colour and still renders, so the
+                palette can never again decide the list. */}
+            {socialAccounts.map(a => (
+              <Circle key={a.key} href={a.url} label={a.label}
+                color={(ICON_COLORS as Record<string, string>)[a.key] ?? SOCIAL_BRAND_COLORS[a.key]}
+                icon={socialIconFor(a.key, 'w-6 h-6')} />
+            ))}
           </div>
           {/* Pro extras that don't fit in the circle row */}
           <div className="space-y-2.5">
             {isPro && card.work_phone && <ContactBtn icon={<Phone className="w-4 h-4" />} label={card.work_phone} sublabel="Work" href={`tel:${card.work_phone}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={getBodyFontSize(design)} />}
-            {isPro && card.whatsapp && <ContactBtn icon={<MessageCircle className="w-4 h-4" />} label={card.whatsapp} sublabel="WhatsApp" href={`https://wa.me/${card.whatsapp.replace(/\D/g, '')}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={getBodyFontSize(design)} />}
+            {/* WhatsApp is in the circle row above now, with the other
+                socials. Listing it here as well would show it twice. */}
             {isPro && card.address && <ContactBtn icon={<MapPin className="w-4 h-4" />} label={card.address} href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={getBodyFontSize(design)} />}
           </div>
           <BottomSection {...bottomProps} />
@@ -3138,11 +3189,17 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             const actions: { color: string; href: string; icon: React.ReactNode; label: string; iconColor?: string }[] = [
               card.website ? { color: STUDIO_COLORS.website, href: card.website.startsWith('http') ? card.website : `https://${card.website}`, icon: <Globe className="w-6 h-6" />, label: 'Website', iconColor: darkInk } : null,
               card.email ? { color: STUDIO_COLORS.email, href: `mailto:${card.email}`, icon: <Mail className="w-6 h-6" />, label: 'Email' } : null,
-              isPro && (card as any).facebook_url ? { color: STUDIO_COLORS.facebook, href: (card as any).facebook_url, icon: <Facebook className="w-6 h-6" />, label: 'Facebook' } : null,
-              isPro && (card as any).linkedin_url ? { color: STUDIO_COLORS.linkedin, href: (card as any).linkedin_url, icon: <Linkedin className="w-6 h-6" />, label: 'LinkedIn' } : null,
-              isPro && (card as any).instagram_url ? { color: STUDIO_COLORS.instagram, href: (card as any).instagram_url, icon: <Instagram className="w-6 h-6" />, label: 'Instagram' } : null,
-              isPro && (card as any).twitter_url ? { color: STUDIO_COLORS.twitter, href: (card as any).twitter_url, icon: <Twitter className="w-6 h-6" />, label: 'Twitter / X' } : null,
-              isPro && card.whatsapp ? { color: STUDIO_COLORS.whatsapp, href: `https://wa.me/${card.whatsapp.replace(/\D/g, '')}`, icon: <MessageCircle className="w-6 h-6" />, label: 'WhatsApp' } : null,
+              // Every social, in SOCIAL_SLOTS order, which still ends on
+              // WhatsApp - the yellow standout this arc was built around.
+              // STUDIO_COLORS is an override over the brand colours, so
+              // YouTube and TikTok arrive with a colour instead of silently
+              // not arriving at all.
+              ...socialAccounts.map(a => ({
+                color: (STUDIO_COLORS as Record<string, string>)[a.key] ?? SOCIAL_BRAND_COLORS[a.key],
+                href: a.url,
+                icon: socialIconFor(a.key, 'w-6 h-6'),
+                label: a.label,
+              })),
             ].filter(Boolean) as { color: string; href: string; icon: React.ReactNode; label: string; iconColor?: string }[]
             const n = actions.length
             // Wedge SVG path uses 0-100 viewBox coordinates. The curve
