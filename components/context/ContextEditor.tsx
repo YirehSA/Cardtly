@@ -44,6 +44,8 @@ export interface DraftAudience {
    *  through the draft before the picker exists, so saving from this editor
    *  cannot strip a selection made anywhere else. */
   links: number[] | null
+  gallery: number[] | null
+  socials: string[] | null
   cta: ContextCta | null
 }
 
@@ -122,13 +124,15 @@ function toDraft(a: ContextAudience | null, id: string): DraftAudience {
     sections: [...placed, ...rest],
     hide: a?.hide ?? [],
     links: a?.links ?? null,
+    gallery: a?.gallery ?? null,
+    socials: a?.socials ?? null,
     cta: a?.cta ?? null,
   }
 }
 
 /** The draft turned back into what the API stores. */
 function fromDraft(d: DraftAudience) {
-  return { id: d.id, enabled: d.enabled, label: d.label, order: d.sections, hide: d.hide, links: d.links, cta: d.cta }
+  return { id: d.id, enabled: d.enabled, label: d.label, order: d.sections, hide: d.hide, links: d.links, gallery: d.gallery, socials: d.socials, cta: d.cta }
 }
 
 export default function ContextEditor({

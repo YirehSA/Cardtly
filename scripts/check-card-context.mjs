@@ -1855,14 +1855,20 @@ function parse(label, input) {
     catch (e) { bad(`visiblePicks threw on ${String(junk)}: ${e.message}`) }
   }
 
-  // 6. AND NOTHING NEW IS STORED YET, deliberately. 11a declares gallery and
-  //    socials and wires neither onto an audience, so this release cannot save
-  //    a selection that no renderer honours. DELETE THIS CHECK IN 11c, when
-  //    the renderers exist - it is here to make that a decision rather than an
-  //    accident.
-  const a = P({ audiences: [{ id: 'it', socials: ['linkedin'], gallery: [1] }] }).audiences[0]
-  if ('socials' in a || 'gallery' in a) {
-    bad('an audience now carries a collection that has no renderer yet; if that is intentional this check is the thing to remove, in the same commit')
+  // 6. AND NOW THEY ARE STORED. 11a asserted the opposite here - that no
+  //    audience carried a collection without a renderer - and 11c removed that
+  //    assertion in the same commit that added the renderers, which is exactly
+  //    what it was written to force.
+  const a = P({ audiences: [{ id: 'it', socials: ['linkedin', 'nope'], gallery: [2, 99] }] }).audiences[0]
+  if (!Array.isArray(a.socials) || a.socials.join(',') !== 'linkedin') {
+    bad(`an audience did not round-trip a socials selection: ${JSON.stringify(a.socials)}`)
+  }
+  if (!Array.isArray(a.gallery) || a.gallery.join(',') !== '2') {
+    bad(`an audience did not round-trip a gallery selection: ${JSON.stringify(a.gallery)}`)
+  }
+  const bare = P({ audiences: [{ id: 'it' }] }).audiences[0]
+  if (bare.socials !== null || bare.gallery !== null) {
+    bad('an audience that chose nothing did not parse as null for the new collections, so every existing config would change what it shows')
   }
 }
 
@@ -1918,6 +1924,75 @@ function parse(label, input) {
     else if (/audienceLinks/.test(cta[1])) {
       bad(VIEW + ': resolveContextCta is being handed the FILTERED list. A Context CTA is additive and may point at a link the audience does not list, so it must keep receiving `links`.')
     }
+  }
+}
+
+
+// == TASK 11c: the new collections reach the card =========================
+//
+// 10b's lesson, applied twice more. A resolver that returns the right list is
+// worth nothing until a renderer uses it, and the only thing that ever caught
+// that here was a check reading the call site.
+//
+// GALLERY AND SOCIALS FILTER IN DIFFERENT PLACES, on purpose. The gallery is
+// one node inside BottomSection, like links. The socials are rendered by
+// fifteen templates in fifteen styles, so filtering per template would mean
+// fifteen chances to forget - they are filtered once where the list is built,
+// which is the whole reason 11b consolidated it first.
+{
+  const VIEW = 'components/card/PublicCardView.tsx'
+  const LF2 = String.fromCharCode(10)
+  const strip = (t) => t
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split(LF2).map(l => l.replace(/\/\/.*$/, '')).join(LF2)
+
+  let view = ''
+  try { view = strip(readFileSync(VIEW, 'utf8').replace(new RegExp(String.fromCharCode(13), 'g'), '')) }
+  catch { bad(VIEW + ' is missing') }
+
+  // 1. A gallery image has to keep its SLOT. Identify it by position and a
+  //    selection silently repoints the day an earlier image is cleared.
+  if (!/index: i,/.test(view)) {
+    bad(VIEW + ': gallery images no longer carry their slot number, so a gallery selection would mean positions rather than columns and would move when an earlier image is cleared')
+  }
+  if (!/galleryImages: \{ index: number/.test(view)) {
+    bad(VIEW + ': BottomProps no longer declares the gallery slot, so the renderer cannot identify an image')
+  }
+
+  // 2. The gallery renders the filtered list, not the card's whole gallery.
+  const at = view.indexOf('function BottomSection')
+  const body = at < 0 ? '' : view.slice(at, view.indexOf(LF2 + 'function ', at + 10))
+  if (at < 0) bad(VIEW + ': BottomSection is gone')
+  else {
+    if (!/const audienceGallery = visiblePicks\(galleryImages, context, 'gallery'/.test(body)) {
+      bad(VIEW + ': BottomSection no longer derives audienceGallery, so a saved gallery selection would be stored and never rendered')
+    }
+    if (!/\{audienceGallery\.map\(/.test(body)) {
+      bad(VIEW + ': the gallery section does not map audienceGallery, so it renders every image whatever the audience chose')
+    }
+    if (/\{galleryImages\.map\(/.test(body)) {
+      bad(VIEW + ': something in BottomSection still maps the card full gallery')
+    }
+    if (!/audienceGallery\.length > 0/.test(body)) {
+      bad(VIEW + ': the gallery section is still gated on the full list length, so an audience showing no images would render an empty Gallery heading')
+    }
+  }
+
+  // 3. Socials are filtered once, where the list is built, and Full Profile
+  //    resolves with no context - the unedited card, by definition.
+  if (!/const socialAccounts = visiblePicks\(/.test(view)) {
+    bad(VIEW + ': socialAccounts is no longer filtered, so a socials selection would be stored and ignored by all fifteen templates')
+  }
+  // SCOPED TO THE CALL, not to the file. The first version of this check
+  // also accepted the phrase appearing anywhere in PublicCardView, and it
+  // appears in bottomProps as well - so the check could never fail and a
+  // mutation removing the fallback sailed through it. Found by running that
+  // mutation, which is the only reason it is written this way.
+  const socialCall = view.match(/const socialAccounts = visiblePicks\(([\s\S]{0,240}?)\)/)
+  if (!socialCall) {
+    bad(VIEW + ': could not read the socialAccounts filter call, so its Full Profile behaviour is unchecked')
+  } else if (!/showFullProfile \? null : activeContext/.test(socialCall[1])) {
+    bad(VIEW + ': the socials filter does not fall back to no context on Full Profile, so a visitor asking for the unedited card would still get an edited one')
   }
 }
 

@@ -30,7 +30,7 @@ import AddToGoogleWalletButton from '@/components/wallet/AddToGoogleWalletButton
 import { describeContactError, CONTACT_NETWORK_ERROR } from '@/lib/contact-errors'
 import CaptureNotice from './CaptureNotice'
 import {
-  readCardContext, readSenderAudience, resolveContext, orderSections, resolveContextCta, visibleLinks,
+  readCardContext, readSenderAudience, resolveContext, orderSections, resolveContextCta, visibleLinks, visiblePicks,
   STANDARD_SECTION_ORDER, contextMetadata, contactContextMetadata,
   CONTEXT_EVENT_VIEWED, CONTEXT_EVENT_CTA_CLICKED,
   type ResolvedContext, type ContextSection, type ContextConfig, type CardPreviewContext,
@@ -476,7 +476,7 @@ interface BottomProps {
   isTeamCard?: boolean
   links: { index: number; title: string; url: string }[]
   certifications: string[]
-  galleryImages: { url: string; link?: string }[]
+  galleryImages: { index: number; url: string; link?: string }[]
   accentHex: string
   /** The accent adjusted to clear AA as small text. See where it is
    *  derived in PublicCardView: fills keep accentHex, text takes this. */
@@ -662,6 +662,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
   // so Full Profile shows every link without needing to know about any of
   // this. Which is right: it is the unedited card, by definition.
   const audienceLinks = visibleLinks(links, context)
+  const audienceGallery = visiblePicks(galleryImages, context, 'gallery', g => g.index)
 
   const sectionNodes: Record<ContextSection, React.ReactNode> = {
     certifications: (!omitAboveGallery && !omitCertifications && certifications.length > 0) ? (
@@ -695,11 +696,11 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
       </div>
     ) : null,
 
-    gallery: (galleryImages.length > 0) ? (
+    gallery: (audienceGallery.length > 0) ? (
       <div className="mt-8" key="ctx-gallery">
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Gallery</p>
         <div className="grid grid-cols-2 gap-2">
-          {galleryImages.map((item, i) => {
+          {audienceGallery.map((item, i) => {
             // The per-image link field is "open a page when tapped". If it
             // holds an image URL (a common thing to paste there), tapping
             // opens THAT image in the fitted lightbox instead of dumping the
@@ -1429,15 +1430,21 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     // rewritten - which is how slots 7 to 10 could exist in the editor and
     // never appear on the card.
     ...IMAGE_SLOTS.map(i => ({
+      // The SLOT, carried through. It used to be dropped here the moment the
+      // list was built, which made a gallery image identifiable only by its
+      // position after filtering - and a position moves the day an earlier
+      // image is cleared. An audience choosing "images 2 and 5" has to mean
+      // the columns, exactly as a link selection means link_3_url.
+      index: i,
       url: (card as any)[`image_${i}_url`],
       link: (card as any)[`image_${i}_link`],
     })),
-  ].filter(item => item.url) as { url: string; link?: string }[] : []
+  ].filter(item => item.url) as { index: number; url: string; link?: string }[] : []
   // WHICH SOCIAL ACCOUNTS THIS CARD ACTUALLY HAS, counted off SOCIAL_SLOTS so
   // that adding an eighth is a one-line change in types/design and not three
   // edits in three templates, two of which would be forgotten. Every template
   // renders THIS list in its own style; none of them decides what is in it.
-  const socialAccounts = isPro ? SOCIAL_SLOTS.map(slot => {
+  const allSocialAccounts = isPro ? SOCIAL_SLOTS.map(slot => {
     const raw = (card as any)[slot.column]
     if (!raw) return null
     // WhatsApp stores a number and renders a link, which is the one place the
@@ -1447,6 +1454,18 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
       : String(raw)
     return { key: slot.key, label: slot.label, url }
   }).filter(Boolean) as { key: SocialKey; label: string; url: string }[] : []
+
+  // THE SOCIALS THIS VISITOR SEES. Filtered once, here, rather than in each
+  // template: every template renders socialAccounts, so this is the single
+  // place the audience's choice has to be applied for all fifteen to respect
+  // it. The same rule the BottomSection uses - Full Profile means the
+  // unedited card, so it resolves with no context at all.
+  const socialAccounts = visiblePicks(
+    allSocialAccounts,
+    showFullProfile ? null : activeContext,
+    'socials',
+    a => a.key,
+  )
 
   const socialLinks = socialAccounts.map(a => ({
     platform: a.label,

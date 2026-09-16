@@ -47,7 +47,7 @@ interface Props {
 }
 
 function toAudience(d: DraftAudience): ContextAudience {
-  return { id: d.id, enabled: d.enabled, label: d.label, order: d.sections, hide: d.hide, links: d.links, cta: d.cta }
+  return { id: d.id, enabled: d.enabled, label: d.label, order: d.sections, hide: d.hide, links: d.links, gallery: d.gallery, socials: d.socials, cta: d.cta }
 }
 
 export default function ContextPreview({

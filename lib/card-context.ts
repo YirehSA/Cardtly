@@ -330,6 +330,16 @@ export interface ContextAudience {
    * exactly where it was. The CTA has referenced slots this way since Task 2.
    */
   links: number[] | null
+  /**
+   * WHICH GALLERY IMAGES AND SOCIAL ACCOUNTS THIS AUDIENCE SEES.
+   *
+   * Exactly the rules described for `links` above, because they ARE the same
+   * rules: see CONTEXT_COLLECTIONS, which is the single place they are stated
+   * and the reason these two did not need them written out a second and third
+   * time. Gallery is identified by image slot, socials by platform key.
+   */
+  gallery: number[] | null
+  socials: string[] | null
   cta: ContextCta | null
 }
 
@@ -457,6 +467,11 @@ function pickSlots(raw: Record<string, unknown>, collection: ContextCollection):
   return parsePicks(raw, collection) as number[] | null
 }
 
+/** Key-identified collections, typed. */
+function pickKeys(raw: Record<string, unknown>, collection: ContextCollection): string[] | null {
+  return parsePicks(raw, collection) as string[] | null
+}
+
 function parseCta(v: unknown): ContextCta | null {
   if (!isPlainObject(v)) return null
   const kind = str(v.kind)
@@ -538,7 +553,7 @@ function parseAudience(v: unknown): ContextAudience | null {
   // owner's stored arrangement behind their back.
   const order = sectionList(v.order)
 
-  return { id, enabled: parseEnabled(v), label, order, hide, links: pickSlots(v, 'links'), cta: parseCta(v.cta) }
+  return { id, enabled: parseEnabled(v), label, order, hide, links: pickSlots(v, 'links'), gallery: pickSlots(v, 'gallery'), socials: pickKeys(v, 'socials'), cta: parseCta(v.cta) }
 }
 
 /**
