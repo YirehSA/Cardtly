@@ -42,13 +42,36 @@ const bad = (msg) => { console.error(`  FAIL ${msg}`); fail++ }
  * somebody changes the number of link slots, this picks it up and the CTA
  * bounds tests below move with it.
  */
-const MAX_CUSTOM_LINKS = (() => {
-  const m = readFileSync('types/design.ts', 'utf8').match(/export const MAX_CUSTOM_LINKS\s*=\s*(\d+)/)
+const DESIGN = readFileSync('types/design.ts', 'utf8')
+
+const readNumber = (name) => {
+  const m = DESIGN.match(new RegExp('export const ' + name + "\\s*=\\s*(\\d+)"))
   if (!m) {
-    console.error('check-card-context: could not read MAX_CUSTOM_LINKS from types/design.ts')
+    console.error(`check-card-context: could not read ${name} from types/design.ts`)
     process.exit(1)
   }
   return Number(m[1])
+}
+
+const MAX_CUSTOM_LINKS = readNumber('MAX_CUSTOM_LINKS')
+const MAX_GALLERY_IMAGES = readNumber('MAX_GALLERY_IMAGES')
+
+/** The social keys, read off SOCIAL_SLOTS rather than retyped, for the same
+ *  reason the numbers above are read rather than hardcoded: a list typed out
+ *  twice disagrees with itself eventually, which is the exact defect
+ *  SOCIAL_SLOTS was written to end. */
+const SOCIAL_KEYS = (() => {
+  const block = DESIGN.match(/export const SOCIAL_SLOTS = \[([\s\S]*?)\] as const/)
+  if (!block) {
+    console.error('check-card-context: could not read SOCIAL_SLOTS from types/design.ts')
+    process.exit(1)
+  }
+  const keys = [...block[1].matchAll(/key:\s*'([a-z0-9_]+)'/g)].map(m => m[1])
+  if (keys.length === 0) {
+    console.error('check-card-context: SOCIAL_SLOTS parsed as empty')
+    process.exit(1)
+  }
+  return keys
 })()
 
 /**
@@ -120,7 +143,10 @@ function load(forceOn, mutations = []) {
     // Tolerates a Windows checkout (CRLF) exactly like a Linux one (LF).
     // Without it the import survives, tsc cannot resolve the @/ alias
     // outside the project, and the whole guard dies on a line ending.
-    .replace(/^import \{ MAX_CUSTOM_LINKS \} from '@\/types\/design'\r?\n/m, '')
+    .replace(/^import \{[^}]*\} from '@\/types\/design'\r?\n/m,
+             `const MAX_CUSTOM_LINKS = ${MAX_CUSTOM_LINKS}\n`
+             + `const MAX_GALLERY_IMAGES = ${MAX_GALLERY_IMAGES}\n`
+             + `const SOCIAL_KEYS: readonly string[] = ${JSON.stringify(SOCIAL_KEYS)}\n`)
     .replace('export const MAX_LINK_INDEX = MAX_CUSTOM_LINKS',
              `export const MAX_LINK_INDEX = ${MAX_CUSTOM_LINKS}`)
   if (patched === before) {
@@ -1743,6 +1769,104 @@ function parse(label, input) {
 }
 
 
+// == TASK 11a: one mechanism, two ways of naming a thing ===================
+//
+// Task 10 gave links their own parser, their own resolver and their own
+// picker. Socials were about to be a second copy and the gallery a third, and
+// three copies of one idea is precisely how the social row ended up rendered
+// three different ways with two of them missing platforms.
+//
+// So the collections are declared and the machinery is shared. The block above
+// is now also the proof that sharing it changed nothing: every Task 10
+// assertion runs against the generalised code unaltered. What is left to check
+// is the half links never exercised - a collection identified by KEY rather
+// than by slot number.
+{
+  const P = on.parseContextConfig
+  const picks = on.parsePicks
+  const V = on.visiblePicks
+  const C = on.CONTEXT_COLLECTIONS
+
+  // 1. THE REGISTRY HAS TO DESCRIBE THE CARD THE EDITOR ACTUALLY OFFERS.
+  //    Same drift this file already guards between types/design and the
+  //    booking templates: two lists, no type connecting them.
+  if (!C) bad('CONTEXT_COLLECTIONS is gone, so nothing declares what an audience can choose from')
+  else {
+    if (C.links && C.links.max !== MAX_CUSTOM_LINKS) {
+      bad(`the registry offers ${C.links.max} link slots but the card has ${MAX_CUSTOM_LINKS}`)
+    }
+    if (C.gallery && C.gallery.max !== MAX_GALLERY_IMAGES) {
+      bad(`the registry offers ${C.gallery.max} gallery slots but the card has ${MAX_GALLERY_IMAGES}`)
+    }
+    const declared = C.socials ? [...C.socials.keys].join(',') : ''
+    if (declared !== SOCIAL_KEYS.join(',')) {
+      bad(`the registry's socials (${declared}) have drifted from SOCIAL_SLOTS (${SOCIAL_KEYS.join(',')})`)
+    }
+  }
+
+  // 2. THE FOUR STATES, for a key-identified collection.
+  if (picks({}, 'socials') !== null) bad('an absent key collection did not parse as null, so every existing config would change what it shows')
+  const two = picks({ socials: ['linkedin', 'tiktok'] }, 'socials')
+  if (!two || two.join(',') !== 'linkedin,tiktok') bad(`a key selection did not survive parsing: ${JSON.stringify(two)}`)
+  const none = picks({ socials: [] }, 'socials')
+  if (!Array.isArray(none) || none.length !== 0) bad('an explicitly empty key selection did not survive as empty')
+  for (const junk of ['abc', 42, {}, null, true]) {
+    if (picks({ socials: junk }, 'socials') !== null) bad(`a malformed key collection ${JSON.stringify(junk)} did not fail open to null`)
+  }
+
+  // 3. KEY HYGIENE, the same treatment a slot list gets. An unknown platform
+  //    is dropped rather than carried, so a renamed key cannot resurrect as a
+  //    selection nothing can render.
+  const messy = picks({ socials: ['linkedin', 'linkedin', 'myspace', 7, null, 'tiktok'] }, 'socials')
+  if (!messy || messy.join(',') !== 'linkedin,tiktok') bad(`key hygiene failed: ${JSON.stringify(messy)}`)
+  const flooded = picks({ socials: Array(9000).fill('linkedin') }, 'socials')
+  if (!flooded || flooded.length !== 1) bad('a flooded key list was not reduced')
+
+  // THE CAP BOUNDS WORK, NOT OUTPUT, so length alone cannot see it: dedupe
+  // already reduces a flood of one repeated value to one item, which is why
+  // the equivalent link assertion above passes whether the cap exists or not.
+  // Parking a VALID value past the cap is what makes it observable.
+  const beyondKeys = picks({ socials: [...Array(400).fill('nope'), 'linkedin'] }, 'socials')
+  if (!beyondKeys || beyondKeys.length !== 0) {
+    bad('the parser read past its flood cap on a key collection, so a public card can be made to do unbounded work')
+  }
+  const beyondSlots = picks({ links: [...Array(400).fill(0), 3] }, 'links')
+  if (!beyondSlots || beyondSlots.length !== 0) {
+    bad('the parser read past its flood cap on a slot collection, so a public card can be made to do unbounded work')
+  }
+
+  // 4. THE RESOLVER, on keys.
+  const ITEMS = [{ key: 'linkedin' }, { key: 'tiktok' }, { key: 'youtube' }]
+  const by = (x) => x.key
+  const ctx = (socials) => ({
+    audience: { id: 'it', enabled: true, label: 'IT', order: [], hide: [], links: null, socials, cta: null },
+    source: 'sender',
+  })
+  if (V(ITEMS, ctx(null), 'socials', by).length !== 3) bad('a null key selection did not mean every item')
+  if (V(ITEMS, ctx(['tiktok', 'linkedin']), 'socials', by).map(by).join(',') !== 'tiktok,linkedin') {
+    bad('a key selection did not control the order items render in')
+  }
+  if (V(ITEMS, ctx([]), 'socials', by).length !== 0) bad('an explicitly empty key selection still rendered items')
+  if (V(ITEMS, ctx(['myspace']), 'socials', by).length !== 0) bad('an unknown key resolved to something')
+
+  // 5. Total, like everything else on the render path.
+  for (const junk of [null, undefined, 'x', 42, {}, []]) {
+    try { V(junk, null, 'socials', by); V(ITEMS, junk, 'socials', by) }
+    catch (e) { bad(`visiblePicks threw on ${String(junk)}: ${e.message}`) }
+  }
+
+  // 6. AND NOTHING NEW IS STORED YET, deliberately. 11a declares gallery and
+  //    socials and wires neither onto an audience, so this release cannot save
+  //    a selection that no renderer honours. DELETE THIS CHECK IN 11c, when
+  //    the renderers exist - it is here to make that a decision rather than an
+  //    accident.
+  const a = P({ audiences: [{ id: 'it', socials: ['linkedin'], gallery: [1] }] }).audiences[0]
+  if ('socials' in a || 'gallery' in a) {
+    bad('an audience now carries a collection that has no renderer yet; if that is intentional this check is the thing to remove, in the same commit')
+  }
+}
+
+
 // == TASK 10b: the filter reaches the links section, and ONLY the links =====
 //
 // 10a built visibleLinks and deliberately did not call it, so the block above
@@ -1866,7 +1990,7 @@ function parse(label, input) {
     },
     {
       what: 'the selection controls the order links render in',
-      mutate: [['    for (const i of wanted) {', '    for (const i of [...wanted].sort()) {']],
+      mutate: [['    for (const id of wanted) {', '    for (const id of [...wanted].sort()) {']],
       broken: m => {
         const a = m.parseContextConfig({ audiences: [{ id: 'it', links: [3, 1] }] }).audiences[0]
         return m.visibleLinks([{ index: 1 }, { index: 3 }], { audience: a, source: 'sender' })

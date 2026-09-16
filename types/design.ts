@@ -25,6 +25,33 @@ export const IMAGE_SLOTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const
 export type LinkSlot = typeof LINK_SLOTS[number]
 export type ImageSlot = typeof IMAGE_SLOTS[number]
 
+// Every social account a card can carry, named once, with the column it lives
+// in. Written out `as const` for the same reason the slot tuples above are:
+// the literal keeps `youtube` a real field name rather than a hopeful string.
+//
+// WHY THIS LIST EXISTS AT ALL. Three places in PublicCardView built their own
+// version of it - the shared socialLinks row, Minimal, and Studio - and two of
+// them quietly stopped short. YouTube and TikTok render on neither Minimal nor
+// Studio, and Instagram renders on neither Minimal; a customer on those
+// designs fills the field in, watches it save, and it never appears. That is
+// the same failure the comment above IMAGE_SLOTS describes about link slots 7
+// to 10, one collection later, which is the argument for counting off a single
+// declaration instead of retyping the list per template.
+//
+// The order is the order they render in.
+export const SOCIAL_SLOTS = [
+  { key: 'linkedin',  column: 'linkedin_url',  label: 'LinkedIn' },
+  { key: 'twitter',   column: 'twitter_url',   label: 'Twitter / X' },
+  { key: 'instagram', column: 'instagram_url', label: 'Instagram' },
+  { key: 'facebook',  column: 'facebook_url',  label: 'Facebook' },
+  { key: 'youtube',   column: 'youtube',       label: 'YouTube' },
+  { key: 'tiktok',    column: 'tiktok',        label: 'TikTok' },
+  { key: 'whatsapp',  column: 'whatsapp',      label: 'WhatsApp' },
+] as const
+
+export type SocialKey = typeof SOCIAL_SLOTS[number]['key']
+export const SOCIAL_KEYS: readonly SocialKey[] = SOCIAL_SLOTS.map(s => s.key)
+
 if (LINK_SLOTS.length !== MAX_CUSTOM_LINKS || IMAGE_SLOTS.length !== MAX_GALLERY_IMAGES) {
   throw new Error('types/design: LINK_SLOTS / IMAGE_SLOTS do not match the MAX_ constants')
 }

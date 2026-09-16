@@ -52,7 +52,7 @@
 // A useful test before adding any field here: would you be comfortable if a
 // competitor read it? If not, it does not belong in addons.
 
-import { MAX_CUSTOM_LINKS } from '@/types/design'
+import { MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES, SOCIAL_KEYS } from '@/types/design'
 
 /**
  * MASTER SWITCH. Off for every card, everywhere, regardless of per-card
@@ -249,6 +249,41 @@ export type ContextCtaKind = (typeof CONTEXT_CTA_KINDS)[number]
  */
 export const MAX_LINK_INDEX = MAX_CUSTOM_LINKS
 
+/**
+ * THE COLLECTIONS AN AUDIENCE CAN CHOOSE FROM.
+ *
+ * Task 10 gave an audience control over which LINKS it shows, as one bespoke
+ * field with its own parser, its own resolver and its own picker. Socials were
+ * about to be a second copy of all three, and the gallery a third. Three
+ * copies of one idea is how the social row ended up rendered three different
+ * ways with two of them missing platforms, which is the defect SOCIAL_SLOTS
+ * was written to end.
+ *
+ * So the collections are declared instead. A collection is a set of things on
+ * a card that an audience may show some of, and it is identified in one of two
+ * ways: by SLOT, a stable column number like link_3_url, or by KEY, a fixed
+ * name like `tiktok`. Everything else about them is identical, including the
+ * rule that matters most:
+ *
+ *   absent     show everything   nobody chose, and a schema change must never
+ *                                empty a section that works today
+ *   [3, 1]     show those two    in that order
+ *   []         show none         chosen emptiness, said out loud
+ *   malformed  show everything   fails OPEN, because hiding somebody's content
+ *                                over a value we could not read is not neutral
+ *
+ * The storage key IS the collection name, so an audience stores `links` today
+ * and gains `gallery` and `socials` as flat siblings. Nothing already saved
+ * moves, and `links` keeps the exact meaning it shipped with.
+ */
+export const CONTEXT_COLLECTIONS = {
+  links:   { kind: 'slot', max: MAX_CUSTOM_LINKS },
+  gallery: { kind: 'slot', max: MAX_GALLERY_IMAGES },
+  socials: { kind: 'key',  keys: SOCIAL_KEYS },
+} as const
+
+export type ContextCollection = keyof typeof CONTEXT_COLLECTIONS
+
 export type ContextCta =
   | { kind: 'link'; index: number; label: string | null }
   | { kind: 'booking'; index: null; label: string | null }
@@ -376,26 +411,50 @@ function sectionList(v: unknown): ContextSection[] {
  * we could not read something is not neutral, it is destructive. Emptiness has
  * to be something somebody actually said.
  */
-function slotList(raw: Record<string, unknown>, key: string): number[] | null {
+/**
+ * One parser for every collection, slot-identified or key-identified.
+ *
+ * Exported so the harness can exercise BOTH kinds directly. Only `links` is
+ * wired into an audience today; declaring gallery and socials here without
+ * parsing them yet is deliberate, so that nothing can be stored in this
+ * release that no renderer honours.
+ */
+export function parsePicks(
+  raw: Record<string, unknown>,
+  collection: ContextCollection,
+): (number | string)[] | null {
+  const spec = CONTEXT_COLLECTIONS[collection]
+
   // ABSENT AND MALFORMED DELIBERATELY SHARE THIS LINE. An explicit `key in raw`
   // test used to sit above it and was pure decoration: undefined is not an
   // array either, so both already land on null, which is "show everything".
   // They are only worth telling apart if they should behave differently, and
   // here they must not - a value we cannot read has to be as harmless as no
   // value at all. A mutation test caught the redundancy.
-  const v = raw[key]
+  const v = raw[collection]
   if (!Array.isArray(v)) return null
 
-  const out: number[] = []
+  const domain = spec.kind === 'slot' ? spec.max : spec.keys.length
+  const out: (number | string)[] = []
   // Capped the same way sectionList is, so a flooded array cannot be used to
   // make the parser do work on a public card.
-  for (const item of v.slice(0, MAX_LINK_INDEX * 4)) {
-    if (typeof item !== 'number' || !Number.isInteger(item)) continue
-    if (item < 1 || item > MAX_LINK_INDEX) continue
+  for (const item of v.slice(0, domain * 4)) {
+    if (spec.kind === 'slot') {
+      if (typeof item !== 'number' || !Number.isInteger(item)) continue
+      if (item < 1 || item > spec.max) continue
+    } else {
+      if (typeof item !== 'string') continue
+      if (!(spec.keys as readonly string[]).includes(item)) continue
+    }
     if (out.includes(item)) continue
     out.push(item)
   }
   return out
+}
+
+/** Slot-identified collections, typed. */
+function pickSlots(raw: Record<string, unknown>, collection: ContextCollection): number[] | null {
+  return parsePicks(raw, collection) as number[] | null
 }
 
 function parseCta(v: unknown): ContextCta | null {
@@ -479,7 +538,7 @@ function parseAudience(v: unknown): ContextAudience | null {
   // owner's stored arrangement behind their back.
   const order = sectionList(v.order)
 
-  return { id, enabled: parseEnabled(v), label, order, hide, links: slotList(v, 'links'), cta: parseCta(v.cta) }
+  return { id, enabled: parseEnabled(v), label, order, hide, links: pickSlots(v, 'links'), cta: parseCta(v.cta) }
 }
 
 /**
@@ -1290,25 +1349,42 @@ export function orderSections(
  * resolveContextCta must keep receiving the card's FULL link list, or hiding a
  * link would silently kill a CTA pointing at it.
  */
-export function visibleLinks<T extends { index: number }>(
-  links: readonly T[],
+export function visiblePicks<T>(
+  items: readonly T[],
   context: ResolvedContext | null,
+  collection: ContextCollection,
+  identify: (item: T) => number | string,
 ): T[] {
   try {
-    const all = Array.isArray(links) ? [...links] : []
-    const wanted = context?.audience?.links
+    const all = Array.isArray(items) ? [...items] : []
+    const wanted = (context?.audience as unknown as Record<string, unknown> | undefined)?.[collection]
     if (!Array.isArray(wanted)) return all
-    const byIndex = new Map(all.map(l => [l.index, l]))
+    const byId = new Map<number | string, T>()
+    // Last one wins on a duplicate id, which is what building a Map straight
+    // from the array did before this was generalised. Preserved on purpose:
+    // the behaviour is arbitrary either way and changing it silently is how a
+    // refactor that "cannot change anything" changes something.
+    for (const item of all) byId.set(identify(item), item)
     const out: T[] = []
-    for (const i of wanted) {
-      const hit = byIndex.get(i)
+    for (const id of wanted) {
+      const hit = byId.get(id as number | string)
       if (hit && !out.includes(hit)) out.push(hit)
     }
     return out
   } catch {
     // Same backstop as everything else on the public render path.
-    return Array.isArray(links) ? [...links] : []
+    return Array.isArray(items) ? [...items] : []
   }
+}
+
+/** Links, by slot. The render call site keeps this name and its guard keeps
+ *  checking for it: the proven path should not churn because the machinery
+ *  underneath it got a second caller. */
+export function visibleLinks<T extends { index: number }>(
+  links: readonly T[],
+  context: ResolvedContext | null,
+): T[] {
+  return visiblePicks(links, context, 'links', l => l.index)
 }
 
 /** What the CTA should actually render as, once checked against the card. */
