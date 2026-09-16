@@ -568,11 +568,26 @@ function AudienceRow({
   // belongs in the collapsed line rather than only behind the accordion. Shown
   // only when a choice was made: null is "all of them", which is exactly what
   // the plain section name already says.
-  const totalLinks = isOrg ? MAX_LINK_INDEX : links.length
-  const sectionSummary = (s: ContextSection) =>
-    s === 'links' && row.links
-      ? (row.links.length === 0 ? 'Links (none)' : `Links (${row.links.length} of ${totalLinks})`)
-      : SECTION_LABEL[s]
+  // ALL THREE COLLECTIONS, not just links. 10c put "Links (3 of 5)" on this
+  // line so a non-default setting was visible without opening the accordion,
+  // and 11d added two more collections without extending it - so an audience
+  // showing one social account out of four looked, collapsed, exactly like one
+  // showing all of them. Found by the 11e pass rather than by the compiler,
+  // because a summary being incomplete is not a type error.
+  const totals: Record<ContextCollection, number> = {
+    links: isOrg ? MAX_LINK_INDEX : links.length,
+    gallery: isOrg ? CONTEXT_COLLECTIONS.gallery.max : galleryItems.length,
+    socials: isOrg ? CONTEXT_COLLECTIONS.socials.keys.length : socialItems.length,
+  }
+  const countOf = (c: ContextCollection) => {
+    const sel = row[c] as (number | string)[] | null
+    if (!sel) return null
+    return sel.length === 0 ? 'none' : `${sel.length} of ${totals[c]}`
+  }
+  const sectionSummary = (s: ContextSection) => {
+    const n = s === 'links' ? countOf('links') : s === 'gallery' ? countOf('gallery') : null
+    return n ? `${SECTION_LABEL[s]} (${n})` : SECTION_LABEL[s]
+  }
 
   return (
     // A LIVE AUDIENCE LOOKS LIVE. An off one is quiet but never disabled: its
@@ -609,6 +624,11 @@ function AudienceRow({
               {visible.length ? visible.map(sectionSummary).join(' → ') : 'Everything hidden'}
             </span>
             <span className="block text-xs text-muted-foreground">{ctaSummary.short}</span>
+            {countOf('socials') && (
+              <span className="block text-xs text-muted-foreground">
+                Socials ({countOf('socials')})
+              </span>
+            )}
           </span>
           <span aria-hidden="true" className="flex-shrink-0 mt-1.5 text-muted-foreground">
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
