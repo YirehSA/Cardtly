@@ -392,6 +392,7 @@ export default function ContextEditor({
               onSourceChange={setPreviewId}
               isPro={true}
               rows={rows}
+              focus={open}
             />
           </div>
         )}
@@ -890,11 +891,26 @@ function CtaPicker({ row, links, bookingAvailable, isOrg, onCta }: {
           </div>
         )}
 
+        {/* WHY THIS IS WORDED THE WAY IT IS. The first version said "your card
+            design does not show this button", which an owner on Circuit can
+            see is false: Circuit shows a Book a slot button up in the hero
+            beside the QR. What is actually true is narrower and less
+            alarming - the design already has a booking button of its own, so
+            Context has nowhere to add a second one without offering to book
+            the same person twice. The rule has not changed, only the
+            explanation, which was describing a card that does not exist. */}
         <Radio name={n} id={`${n}-booking`} checked={kind === 'booking'} disabled={!bookingAvailable}
           onChange={() => onCta({ kind: 'booking', index: null, label: row.cta?.label ?? null })}
           label={bookingAvailable
             ? 'Book a meeting'
-            : 'Book a meeting (your card design does not show this button)'} />
+            : 'Book a meeting (your design already has its own booking button)'} />
+
+        {!bookingAvailable && (
+          <p className="text-[11px] text-muted-foreground pl-7">
+            Your card design puts its own booking button near the top, so Context cannot add a
+            second one. Every other recommended action still works for this audience.
+          </p>
+        )}
 
         {/* An organisation's members can be on different card designs, and a
             few of those draw their own booking control instead of the shared

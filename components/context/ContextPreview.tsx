@@ -41,6 +41,9 @@ interface Props {
   sourceId?: string
   isPro: boolean
   rows: DraftAudience[]
+  /** The audience currently open in the editor, or null when none is. The
+   *  preview follows it. */
+  focus?: string | null
 }
 
 function toAudience(d: DraftAudience): ContextAudience {
@@ -48,9 +51,28 @@ function toAudience(d: DraftAudience): ContextAudience {
 }
 
 export default function ContextPreview({
-  sourceCard, sourceLabel, sourceOptions, onSourceChange, sourceId, isPro, rows,
+  sourceCard, sourceLabel, sourceOptions, onSourceChange, sourceId, isPro, rows, focus = null,
 }: Props) {
   const [mode, setMode] = useState<string>('standard')
+
+  // THE PREVIEW FOLLOWS THE AUDIENCE YOU ARE EDITING.
+  //
+  // WHAT WENT WRONG WITHOUT THIS. The pane opens on "Standard card", which is
+  // the card with no audience applied. Open Executive, untick a link, and the
+  // editor updates, the draft updates, the saved configuration updates - and
+  // the card on the right does not move, because it is faithfully rendering
+  // the mode it was asked for. Everything was working and the one surface
+  // built to show that looked broken. Reported as "the live card is not
+  // updating", which is exactly what it looks like.
+  //
+  // Only on a CHANGE of focus, so picking a chip by hand still wins: choose
+  // Standard while Executive is open and it stays on Standard until you open
+  // a different audience. Collapsing the editor leaves the pane where it is
+  // rather than snapping back, because being returned to the standard card
+  // the moment you finish is its own small annoyance.
+  useEffect(() => {
+    if (focus) setMode(focus)
+  }, [focus])
 
   // COLLAPSED ON A PHONE, OPEN ON A WIDE SCREEN. Six audience editors plus a
   // full card is already a long page; permanently appending one below the
