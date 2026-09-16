@@ -3011,6 +3011,12 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               card.email && { icon: <Mail className="w-4 h-4" />, label: card.email, href: `mailto:${card.email}` },
               card.website && { icon: <Globe className="w-4 h-4" />, label: card.website.replace(/^https?:\/\//, ''), href: card.website },
               ...links.map(l => ({ icon: <ExternalLink className="w-4 h-4" />, label: l.title, href: l.url.startsWith('http') ? l.url : `https://${l.url}` })),
+              // Neon rendered no social accounts at all until now: a customer
+              // who filled in LinkedIn on this design got silence. They join
+              // the same list of glowing pills the contacts and links use,
+              // rather than getting a row of their own, because this template
+              // has exactly one way of presenting a thing you can tap.
+              ...socialAccounts.map(a => ({ icon: socialIconFor(a.key, 'w-4 h-4'), label: a.label, href: a.url })),
             ].filter(Boolean).map((item: any, i) => (
               <a key={i} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: 14, backgroundColor: accentHex + '0d', borderRadius: 10, padding: '12px 16px', border: `1px solid ${accentHex}33`, textDecoration: 'none' }}>
                 <span style={{ color: accentHex }}>{item.icon}</span>
@@ -3548,7 +3554,6 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               {[
                 card.phone && { label: 'Telephone', value: card.phone, href: `tel:${card.phone}` },
                 card.email && { label: 'Electronic mail', value: card.email, href: `mailto:${card.email}` },
-                isPro && card.whatsapp && { label: 'WhatsApp', value: card.whatsapp, href: `https://wa.me/${card.whatsapp.replace(/\D/g, '')}` },
                 isPro && card.address && { label: 'Address', value: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}` },
                 card.website && { label: 'Web', value: card.website.replace(/^https?:\/\//, ''), href: card.website.startsWith('http') ? card.website : `https://${card.website}` },
               ].filter(Boolean).map((item: any, i) => (
@@ -3560,6 +3565,29 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               ))}
             </div>
           </div>
+          {/* ELSEWHERE. Editorial rendered no social accounts either - the
+              WhatsApp it used to show sat in Correspondence as a phone number,
+              which is a contact method rather than a profile. All seven live
+              here now, WhatsApp included, so the audience picker governs every
+              one of them on this design exactly as it does on the other
+              fourteen. Set as a second ruled list rather than a row of icons,
+              because this template does not have icons anywhere. */}
+          {socialAccounts.length > 0 && (
+            <div style={{ borderTop: `1px solid ${rule}`, paddingTop: 16, marginTop: 24 }}>
+              <p style={{ margin: '0 0 12px', fontSize: 10, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.3em' }}>Elsewhere</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {socialAccounts.map(a => (
+                  <a key={a.key} href={a.url} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 14, padding: '14px 0', borderBottom: `1px solid ${rule}`, textDecoration: 'none' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.15em', fontFamily: 'Georgia, serif', flexShrink: 0 }}>{a.label}</span>
+                    <span style={{ fontSize: 14, color: ink, fontFamily: 'Georgia, serif', textAlign: 'right', wordBreak: 'break-word' }}>
+                      {a.url.replace(/^https?:\/\//, '')}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
           <BottomSection {...bottomProps} />
           <div style={{ width: 60, borderTop: `2px solid ${accentHex}`, margin: '32px auto 8px' }} />
           <p style={{ textAlign: 'center', fontSize: 11, color: muted, fontFamily: 'Georgia, serif', letterSpacing: '0.15em', textTransform: 'uppercase' }}>cardtly.com/{card.slug}</p>

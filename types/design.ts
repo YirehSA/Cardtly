@@ -442,22 +442,20 @@ export const TEMPLATES_WITHOUT_BOOKING: readonly TemplateId[] = ['circuit']
 /**
  * Templates that show no social icons at all.
  *
- * THIS IS A RECORD, NOT AN APPROVAL. Neon renders no socials and Editorial
- * renders none either - it shows WhatsApp as a contact row with the number
- * visible, which is a contact method rather than a social icon. Both were
- * checked back through git history rather than assumed: neither has ever
- * rendered them.
+ * EMPTY, AND THAT IS THE POINT. It held 'neon' and 'editorial' for exactly as
+ * long as it took to ask the question. Both rendered no social accounts, so a
+ * customer on either design filled in LinkedIn and got silence - the same way
+ * Minimal lost its Instagram and Minimal and Studio lost YouTube and TikTok.
+ * Writing them down turned "we forgot" into a decision waiting to be made, and
+ * the decision was to fix them. All fifteen templates now render the shared
+ * list in their own style.
  *
- * What nobody has said is whether that is a design choice or the same
- * oversight that cost Minimal its Instagram and cost Minimal and Studio their
- * YouTube and TikTok. A customer on Neon who fills in LinkedIn gets the same
- * silence those customers got.
- *
- * So it is written down. check-socials.mjs holds every template to one of two
- * states - renders the shared list, or appears here - which turns "we forgot"
- * into "we decided", and stops a sixteenth template joining them quietly.
+ * The list stays, because the rule it serves is the part that matters:
+ * check-socials.mjs holds every template to one of two states - renders the
+ * shared list, or appears here with a reason. A sixteenth template that shows
+ * no socials fails the build until somebody says which of the two it is.
  */
-export const TEMPLATES_WITHOUT_SOCIALS: readonly TemplateId[] = ['neon', 'editorial']
+export const TEMPLATES_WITHOUT_SOCIALS: readonly TemplateId[] = []
 
 /** Whether a Context CTA of kind "booking" can render on this template. */
 export function templateOffersBooking(templateId: TemplateId | string | null | undefined): boolean {
