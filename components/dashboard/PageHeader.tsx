@@ -47,7 +47,15 @@ export default function PageHeader({ eyebrow, title, subtitle, meta, actions, ba
           {subtitle && <p className="page-subtitle mt-2 max-w-2xl">{subtitle}</p>}
           {meta && <div className="flex items-center gap-2.5 mt-3 flex-wrap">{meta}</div>}
         </div>
-        {actions && <div className="flex items-center gap-2 flex-wrap shrink-0">{actions}</div>}
+        {/* min-w-0, NOT shrink-0. The two say opposite things and shrink-0 was
+            winning: it refuses to let this block narrow below its content, so
+            the flex-wrap beside it could never fire and a page with several
+            header buttons pushed the whole document wider than the phone.
+            Analytics was the worst of them. The outer row already wraps, so
+            the actions still drop to their own line when space is tight - they
+            can just also wrap among themselves now, which is what was
+            intended. */}
+        {actions && <div className="flex items-center gap-2 flex-wrap min-w-0">{actions}</div>}
       </div>
     </header>
   )
