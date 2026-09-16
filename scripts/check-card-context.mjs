@@ -1714,6 +1714,27 @@ function parse(label, input) {
   // 4. THE COLLAPSE RULE, which is the one piece of judgement in the picker.
   //    Every box ticked stores null, not a list of every slot. Without it,
   //    ticking everything freezes the audience against links added later.
+  // 5. EVERY TICK HAS TO SAY WHAT IT IS.
+  //
+  //    Found in the 10d pass, by reading the accessibility tree instead of the
+  //    DOM text. The rows were built as a label WRAPPING the input, which is
+  //    valid HTML and came back named "on" - the default value attribute of a
+  //    checkbox, and what a control with no accessible name falls back to. The
+  //    radios ten lines below in the same file read correctly, because Radio
+  //    uses id and htmlFor. Two ways to do the same thing, one of them legible
+  //    to the tooling, and the picker had picked the other one.
+  //
+  //    A person using a screen reader would have heard "on, on, on, on, on".
+  const picker0 = fn(editor, 'LinkPicker')
+  if (picker0) {
+    if (!/aria-label=\{/.test(picker0)) {
+      bad(EDITOR + ': the link picker checkboxes have no aria-label, so each one is announced as "on" rather than as the link it selects')
+    }
+    if (!/htmlFor=\{`lnk-/.test(picker0) || !/id=\{`lnk-/.test(picker0)) {
+      bad(EDITOR + ': the link picker no longer associates each label with its input by id, which is the half of this that survives a tooling change')
+    }
+  }
+
   const picker = fn(editor, 'LinkPicker')
   if (!picker) bad(EDITOR + ': LinkPicker is gone')
   else if (!/onLinks\(\s*isEverything \? null : ordered\s*\)/.test(picker)) {

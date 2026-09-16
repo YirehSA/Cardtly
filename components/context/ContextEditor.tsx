@@ -753,12 +753,32 @@ function LinkPicker({ row, links, isOrg, onLinks }: {
           const empty = !offerable.includes(l.index)
           return (
             <li key={l.index}>
-              <label className="ctx-tick flex items-center gap-2.5 rounded-xl border px-3 py-2 min-h-11 cursor-pointer"
+              <label htmlFor={`lnk-${row.id}-${l.index}`}
+                className="ctx-tick flex items-center gap-2.5 rounded-xl border px-3 py-2 min-h-11 cursor-pointer"
                 style={{
                   borderColor: on ? 'hsl(var(--accent) / 0.5)' : 'hsl(var(--border))',
                   background: on ? 'hsl(var(--accent) / 0.07)' : 'hsl(var(--background))',
                 }}>
-                <input type="checkbox" checked={on} onChange={() => toggle(l.index)}
+                {/* NAMED OUT LOUD, rather than left to the wrapping label.
+                    Read through the accessibility tree these ticks came back
+                    named "on" - the default value of an HTML checkbox, which
+                    is what a control with no accessible name falls back to -
+                    while the radios directly below them, built with this
+                    file's Radio helper, read correctly. Radio uses id and
+                    htmlFor; this used a wrapping label alone. Both are valid
+                    HTML and only one of them was legible to the tooling, so
+                    this now does what already worked here: an explicit
+                    association, plus a name that says the slot number the row
+                    only shows visually. The visible title stays the first
+                    words of the name, so the spoken name still matches what a
+                    speech-input user would say. */}
+                <input type="checkbox" id={`lnk-${row.id}-${l.index}`}
+                  checked={on} onChange={() => toggle(l.index)}
+                  aria-label={empty
+                    ? `Link ${l.index}, currently empty`
+                    : isOrg
+                      ? `Link ${l.index} on each team member's card`
+                      : `${l.title}, link ${l.index}`}
                   className="w-4 h-4 flex-shrink-0" style={{ accentColor: 'hsl(var(--accent))' }} />
                 <span className="text-sm min-w-0 flex-1">
                   <span className={on ? '' : 'text-muted-foreground'}>
