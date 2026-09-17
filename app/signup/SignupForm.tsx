@@ -81,7 +81,7 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
   // account - the only difference is where the person lands afterwards, so
   // somebody who already wants to buy is not made to walk through a trial
   // first. Never 'pay' on iOS, where that button does not exist.
-  const [intent, setIntent] = useState<'trial' | 'pay'>('trial')
+  const [intent, setIntent] = useState<'trial' | 'pay' | 'team'>('trial')
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
@@ -222,7 +222,15 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
       // Straight to the price if that is what they asked for. The upgrade page
       // owns the checkout, so nothing about Paystack is duplicated here, and
       // it turns the iOS app away on its own as a second lock.
-      router.push(intent === 'pay' && !iosApp ? '/dashboard/upgrade' : '/dashboard')
+      // Where they asked to go. Both paid destinations are withheld on iOS:
+      // each quotes a price and ends in a checkout, which is the whole of the
+      // Guideline 3.1.1 problem, and the team page does it per seat.
+      const destination =
+        iosApp ? '/dashboard'
+        : intent === 'pay' ? '/dashboard/upgrade'
+        : intent === 'team' ? '/dashboard/team'
+        : '/dashboard'
+      router.push(destination)
       router.refresh()
     } else {
       setConfirmEmail(data.email)
@@ -505,6 +513,24 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
                     ? `Either way you get cardtly.com/card/${liveSlug.slice(0, 24)}${liveSlug.length > 24 ? '…' : ''}`
                     : 'Either way your card is live in minutes. Cancel any time.'}
                 </p>
+
+                {/* THE THIRD ROUTE, and the one that had no front door. Somebody
+                    setting up six cards signed up as an individual and then had
+                    to find the team section on their own. It is the same account
+                    either way - a team is created FROM a personal account - so
+                    this is a destination, not a different signup.
+
+                    Absent on iOS with the rest of it: the team page prices
+                    itself per seat and ends in a card form. */}
+                <button
+                  type="submit"
+                  onClick={() => setIntent('team')}
+                  disabled={loading}
+                  className="w-full text-center text-xs underline underline-offset-4 py-2 transition hover:text-white disabled:opacity-50"
+                  style={{ color: 'rgba(255,255,255,0.5)' }}
+                >
+                  Setting up cards for a team? Start here
+                </button>
               </>
             )}
           </form>
