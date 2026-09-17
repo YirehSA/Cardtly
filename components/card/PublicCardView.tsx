@@ -347,10 +347,27 @@ function LogoZone({ card, design, accentHex }: Pick<Shared, 'card' | 'design' | 
 }
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
-function Avatar({ card, bg, accentHex, font, design, size = 112, rounded = 'full', extraStyle = {} }: Pick<Shared, 'card' | 'bg' | 'accentHex' | 'font' | 'design'> & {
+function Avatar({ card, bg, accentHex, font, design, size = 112, rounded = 'full', extraStyle = {}, preScaled = false }: Pick<Shared, 'card' | 'bg' | 'accentHex' | 'font' | 'design'> & {
   size?: number; rounded?: string; extraStyle?: React.CSSProperties
+  /** The caller has already applied calcPhotoSize, so do not apply it twice.
+   *
+   *  ONE TEMPLATE NEEDS THIS. Circuit computes the size itself because it draws
+   *  an arc around the photo and needs the number (arcBox = avatarSize + 44),
+   *  then passed that scaled value in here, where it was scaled again. Split
+   *  and Split Pro also compute a size for their rail clamp, but they pass the
+   *  BASE in and only override width and height, so they were never affected.
+   *
+   *  THE RENDERED BOX WAS NEVER WRONG on any of them: all three set width and
+   *  height in extraStyle, which is spread after this and wins. Measured on
+   *  Circuit before touching it, the photo scales linearly - 100 gives 124,
+   *  160 gives 198, not the 317 a double scale would produce.
+   *
+   *  What was wrong is the initials placeholder below, which sizes its letter
+   *  off scaledSize. On Circuit, a card with NO profile photo got a letter
+   *  scaled twice inside a circle scaled once. */
+  preScaled?: boolean
 }) {
-  const scaledSize = calcPhotoSize(size, design)
+  const scaledSize = preScaled ? size : calcPhotoSize(size, design)
   const borderRadius = rounded === 'full' ? '50%' : rounded === 'xl' ? 18 : 12
   const baseStyle: React.CSSProperties = {
     width: scaledSize, height: scaledSize, objectFit: 'cover', flexShrink: 0,
@@ -2633,7 +2650,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                     background: `linear-gradient(135deg, ${companion} 0%, ${accentHex} 100%)`,
                     boxShadow: `0 0 26px ${companion}66`,
                   }}>
-                    <Avatar {...shared} size={avatarSize} rounded="full" extraStyle={{
+                    <Avatar {...shared} size={avatarSize} preScaled rounded="full" extraStyle={{
                       width: avatarSize, height: avatarSize, aspectRatio: '1 / 1',
                       border: `3px solid ${bg.page}`, backgroundColor: bg.page, display: 'block',
                     }} />
