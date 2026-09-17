@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { visitorHash, clientIp } from '@/lib/visitor-hash'
+import { isMissingColumn } from '@/lib/pg-errors'
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { sanitiseEventMetadata, MAX_METADATA_BYTES } from '@/lib/card-context'
@@ -124,20 +125,17 @@ export async function POST(request: Request) {
      * and drop a real card view. The retry is attempted once, and only for the
      * field this route added.
      *
-     * BOTH CODES, and the second one is the one that actually fires.
-     * PGRST204 is PostgREST refusing the payload against its own schema cache,
-     * which happens BEFORE any SQL is sent, so Postgres never sees the
-     * statement and never returns its own 42703 undefined_column. Tested
-     * against the real database with the column absent: the error was
-     * PGRST204, "Could not find the 'visitor_hash' column of 'card_events' in
-     * the schema cache". A fallback that only knew 42703 did nothing at all,
-     * which is worth remembering - app/api/account/primary-card checks for
-     * 42703 alone in the same situation and would have the same problem.
+     * isMissingColumn rather than a code test written here, because the right
+     * code is not the obvious one. An INSERT never raises Postgres's 42703:
+     * PostgREST refuses the payload against its own schema cache before any
+     * SQL is sent, so the code is PGRST204. Tested against the real database
+     * with the column absent. A first version of this checked 42703 alone,
+     * did nothing whatsoever, and would have returned 500 on every card view
+     * until migration 086 ran. See lib/pg-errors.ts.
      */
     const insertEvent = async (table: string, row: Record<string, unknown>) => {
       const { error } = await (supabase.from(table) as any).insert(row)
-      const code = (error as { code?: string } | null)?.code
-      if (error && (code === 'PGRST204' || code === '42703') && 'visitor_hash' in row) {
+      if (error && isMissingColumn(error) && 'visitor_hash' in row) {
         const { visitor_hash: _dropped, ...withoutHash } = row
         const retry = await (supabase.from(table) as any).insert(withoutHash)
         return retry.error

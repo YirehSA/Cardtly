@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { isMissingColumn } from '@/lib/pg-errors'
 
 // POST /api/account/primary-card
 // Body: { card_id: string, kind: 'personal' | 'team' }
@@ -64,8 +65,16 @@ export async function POST(request: Request) {
     .eq('id', winner.id)
 
   if (clear.error) {
-    // 42703 is undefined_column: migration 058 has not been applied yet.
-    if (clear.error.code === '42703') {
+    // Migration 058 has not been applied yet.
+    //
+    // THIS USED TO TEST FOR 42703 AND COULD NEVER FIRE. That is Postgres's
+    // undefined_column, and it is what a SELECT gets - but this is an UPDATE,
+    // and PostgREST refuses an unknown column against its own schema cache
+    // before any SQL is sent, so the code is PGRST204. Anybody hitting this
+    // on a database without 058 got a raw 500 rather than the sentence below.
+    // See lib/pg-errors.ts; the same mistake in /api/analytics would have
+    // taken down card view tracking.
+    if (isMissingColumn(clear.error)) {
       return NextResponse.json({
         error: 'This is not switched on yet. The database migration for it has not been applied.',
       }, { status: 503 })
