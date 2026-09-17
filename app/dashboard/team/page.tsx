@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import TeamDashboard from '@/components/team/TeamDashboard'
 import HeadTeamView from '@/components/team/HeadTeamView'
 import { companyOf, indexById, type DeptNode } from '@/lib/department-tree'
+import { isIosApp } from '@/lib/app-platform'
 
 export const metadata = { title: 'Team Cards' }
 
@@ -272,6 +273,7 @@ export default async function TeamPage() {
       importTargets={importTargets}
       companies={companies}
       companyByDept={companyByDept}
+      iosApp={await isIosApp()}
     />
   )
 }

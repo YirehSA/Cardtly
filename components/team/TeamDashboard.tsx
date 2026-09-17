@@ -68,6 +68,11 @@ interface Props {
   // parentName carries the company a department sits under, which is what
   // lets a spreadsheet pick between two businesses that each have a "Sales".
   importTargets: Array<{ id: string; name: string; kind?: 'company' | 'department'; parentName?: string | null }>
+  /** True inside the iOS app. Everything that quotes a seat price or opens a
+   *  checkout is left out when it is - see the guard below. Managing a team
+   *  that already exists is untouched, which is the whole point of doing this
+   *  here rather than blocking the route. */
+  iosApp?: boolean
   // The businesses in this group, and which one each department sits under.
   // Both empty for a flat organisation, and the filter hides itself.
   companies?: Array<{ id: string; name: string }>
@@ -84,7 +89,7 @@ const SEAT_PRICE = 97
 const MAX_SELF_SERVE_SEATS = 20
 const SEAT_TIERS = Array.from({ length: MAX_SELF_SERVE_SEATS - 1 }, (_, i) => i + 2) as readonly number[]
 
-export default function TeamDashboard({ user, org: initialOrg, teamCards: initialCards, leadCounts, importTargets, companies = [], companyByDept = {} }: Props) {
+export default function TeamDashboard({ user, org: initialOrg, teamCards: initialCards, leadCounts, importTargets, companies = [], companyByDept = {}, iosApp = false }: Props) {
   const searchParams = useSearchParams()
   const status = searchParams.get('status')
 
@@ -462,6 +467,33 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   // another one.
   const resuming = !!org && !org.business_plan_active
 
+  // NO PRICE AND NO CHECKOUT IN THE APP. What follows this is a per-seat
+  // price table and a button that opens a Paystack card form, which is both of
+  // the things App Review rejected under Guideline 3.1.1 - and /dashboard/team
+  // is not on IOS_BLOCKED_ROUTES, because a team admin still has to be able to
+  // manage an existing team from their phone. So the SETUP screen is withheld
+  // rather than the route, and everything below the org check is untouched.
+  //
+  // No link out either. Apple's rule covers the CTA as well as the checkout,
+  // so this says where teams are set up without offering to take them there.
+  if (iosApp && (!org || !org.business_plan_active)) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-4">
+        <h1 className="font-display text-2xl font-bold flex items-center gap-2">
+          <Users className="w-6 h-6" />Team Cards
+        </h1>
+        <div className="bg-card border border-border rounded-lg p-6">
+          <p className="text-sm">
+            Team cards are set up on a computer, at cardtly.com, by whoever manages the team.
+          </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            Once your team exists, you can manage everyone&apos;s cards from here.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   if (!org || !org.business_plan_active) {
     return (
       <div className="max-w-2xl mx-auto space-y-8">
@@ -610,7 +642,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                   <Plus className="w-4 h-4" />Add card
                 </button>
               )}
-              {tab === 'billing' && (
+              {tab === 'billing' && !iosApp && (
                 <button onClick={() => setShowAddSeats(p => !p)}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
                   style={{ background: 'hsl(var(--accent))' }}>
@@ -720,7 +752,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
       </div>
 
       {/* Add seats panel */}
-      {tab === 'billing' && showAddSeats && (
+      {tab === 'billing' && showAddSeats && !iosApp && (
         <div className="bg-card border border-border rounded-lg p-5 space-y-4">
           <p className="font-semibold text-sm">Upgrade seat plan</p>
           <div className="flex items-center gap-4 flex-wrap">
