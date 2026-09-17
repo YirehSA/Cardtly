@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { sanitiseEventMetadata, MAX_METADATA_BYTES } from '@/lib/card-context'
@@ -92,7 +92,18 @@ export async function POST(request: Request) {
     const browser = detectBrowser(ua)
     const os = detectOS(ua)
 
-    const supabase = await createClient()
+    // THE SERVICE ROLE, not the visitor's session. A card view is recorded on
+    // behalf of somebody anonymous, and until migration 085 that meant the anon
+    // key held INSERT on the two events tables - so anybody could post events
+    // straight to PostgREST and invent views, taps and leads on any card whose
+    // id they had, which is in the page. 085 revoked it and this insert went
+    // with it, which is how the gap was found.
+    //
+    // Writing them here instead is what the two view_count triggers already do
+    // one level down: the comment below says the app-side increment "ran with
+    // the anonymous visitor's session, which RLS blocks", and the fix then was
+    // a SECURITY DEFINER trigger. Same reasoning, one level up.
+    const supabase = createServiceClient()
 
     if (card_id) {
       // Personal card: insert card_events row. A DB trigger

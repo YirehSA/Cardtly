@@ -162,7 +162,10 @@ for (const f of clientFiles) {
 // ── 3. Client writes to cards touch no denied column ────────────────────────
 for (const f of clientFiles) {
   const src = code(read(f) || '')
-  const re = /from\(['"]cards['"]\)\s*(?:\r?\n\s*)?\.(insert|update|upsert)\s*\(/g
+  // A cast or a wrapping paren may sit between .from() and the verb. Requiring
+  // them adjacent is what let `(supabase.from('card_events') as any).insert()`
+  // through check-write-roles until 085 broke analytics in production.
+  const re = /from\(['"]cards['"]\)[\s\S]{0,40}?\.(insert|update|upsert)\s*\(/g
   let m
   while ((m = re.exec(src))) {
     const verb = m[1]

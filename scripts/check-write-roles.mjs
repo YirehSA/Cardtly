@@ -104,7 +104,14 @@ for (const f of files) {
     role[m[1]] ??= 'param'
   }
 
-  for (const m of src.matchAll(/(\w+)\s*\n?\s*\.from\(\s*([^)]+?)\s*\)\s*\n?\s*\.(insert|update|upsert|delete)\s*\(/g)) {
+  // ANYTHING may sit between .from() and the verb, not just whitespace. The
+  // first version of this required them to be adjacent and so missed
+  //     (supabase.from('card_events') as any).insert({...})
+  // in app/api/analytics/route.ts, which is written with the visitor's own
+  // client. The guard passed, migration 085 revoked the grant, and card view
+  // tracking broke in production. A TypeScript cast is the common case; a
+  // wrapping paren or a line break is the same problem.
+  for (const m of src.matchAll(/(\w+)\s*\n?\s*\.from\(\s*([^)]+?)\s*\)[\s\S]{0,40}?\.(insert|update|upsert|delete)\s*\(/g)) {
     const [, recv, tableExpr, verb] = m
     const kind = isClient ? 'user' : role[recv]
     if (kind !== 'user') continue
