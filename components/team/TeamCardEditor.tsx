@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { CardDesign, parseDesign, serializeDesign, LINK_SLOTS, IMAGE_SLOTS, MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES, linkFieldsFrom, imageFieldsFrom, type LinkSlot, type ImageSlot } from '@/types/design'
 import { mergeBrand } from '@/lib/team-brand'
 import { lockedColumns, LOCK_GROUPS } from '@/lib/team-locks'
@@ -154,7 +154,6 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
   const nextSlug = composeCardSlug(companyPart, slug)
   const slugChanges = !!slug && nextSlug !== savedSlug
   const [design, setDesign] = useState<CardDesign>(() => parseDesign(card.color_theme))
-
   // Homepage-feature opt-in. Saves instantly (like the personal
   // settings toggle) rather than waiting for "Save changes".
   const [allowFeature, setAllowFeature] = useState(!!card.allow_homepage_feature)
@@ -257,6 +256,30 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
   // no warning at all.
   const [savedSnapshot, setSavedSnapshot] = useState(() => snapshotOf(form, design))
   const dirty = snapshotOf(form, design) !== savedSnapshot
+
+  // WHAT THE PREVIEW SHOULD SHOW, decided the way the public card decides it.
+  //
+  // THE BUG THIS REPLACES. The preview took the brand's design whenever the
+  // organisation had one: `usesBrand && orgBrand.color_theme ? brand : design`.
+  // The public card does not do that. It runs mergeBrand, which gives the
+  // brand a field only when that field is LOCKED or the card has none of its
+  // own. So on a team card whose design is not locked, an admin could change
+  // the template, save it, see it live on the real card - and watch this panel
+  // sit there unchanged, because it was rendering the brand unconditionally.
+  // Reported as "the live preview is not updating when I change it", which is
+  // exactly what it looks like from the outside.
+  //
+  // Untouched, the card's ORIGINAL color_theme is passed, null included: a
+  // card that has never had a design of its own must let the brand win here
+  // for the same reason it does on the card itself. Once the admin touches the
+  // design, the live edit is what the card would carry, so that is what gets
+  // asked about.
+  const initialDesign = useRef(serializeDesign(parseDesign(card.color_theme)))
+  const designTouched = serializeDesign(design) !== initialDesign.current
+  const previewForm = useMemo(() => {
+    const withDesign = { ...form, color_theme: designTouched ? serializeDesign(design) : card.color_theme }
+    return usesBrand ? mergeBrand(withDesign, orgBrand, locked) : withDesign
+  }, [form, design, designTouched, usesBrand, orgBrand, locked, card.color_theme])
 
   // Covers closing the tab and reloading.
   useEffect(() => {
@@ -780,9 +803,9 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Live Preview</p>
           <div className="rounded-lg overflow-hidden shadow-2xl border border-gray-800" style={{ maxHeight: '82vh', overflowY: 'auto' }}>
             <CardPreview
-              form={usesBrand ? mergeBrand(form, orgBrand, locked) : form}
+              form={previewForm}
               isPro={true}
-              design={usesBrand && orgBrand.color_theme ? parseDesign(orgBrand.color_theme) : design}
+              design={parseDesign(previewForm.color_theme)}
             />
           </div>
           {/* Mounted beside the preview, as on a personal card. The endpoint
