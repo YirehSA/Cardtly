@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { isMissingColumn } from '@/lib/pg-errors'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { canManageDepartment, isOrgOwner } from '@/lib/department-perms'
@@ -122,7 +123,7 @@ export async function POST(request: Request) {
   //
   // Drop what the table cannot take, save the rest, and say which ones waited.
   const late: string[] = []
-  if (error && (error.code === '42703' || /column .* does not exist/i.test(String(error.message || '')))) {
+  if (error && isMissingColumn(error)) {
     for (const key of Object.keys(payload)) {
       const n = Number(key.match(/^link_(\d+)_/)?.[1] ?? key.match(/^image_(\d+)_/)?.[1] ?? 0)
       if (key === 'youtube' || key === 'tiktok' || (key.startsWith('link_') && n > 5) || (key.startsWith('image_') && n > 6)) {

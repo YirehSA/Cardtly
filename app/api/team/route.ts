@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { isMissingColumn } from '@/lib/pg-errors'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { BRAND_FIELDS, extractBrand, copyLook } from '@/lib/team-brand'
@@ -270,7 +271,7 @@ export async function POST(request: Request) {
       // Both columns arrive with migration 044. Until it runs, say so plainly
       // rather than returning a raw "column does not exist" to somebody
       // editing their company name.
-      if ((error as any).code === '42703') {
+      if (isMissingColumn(error)) {
         return NextResponse.json({ error: 'Not available yet: migration 044 has not been run on this database.' }, { status: 503 })
       }
       return NextResponse.json({ error: error.message }, { status: 500 })
@@ -389,7 +390,7 @@ export async function POST(request: Request) {
     // Migration 059 is applied by hand after the deploy. Until it is, the copy
     // still saves and the caller is told the link did not take.
     let linkFailed = false
-    if (error && (error.code === '42703' || /brand_source/.test(String(error.message || '')))) {
+    if (error && isMissingColumn(error)) {
       delete patch.brand_source
       linkFailed = linked !== false
       ;({ error } = await admin.from('organizations').update(patch).eq('id', org_id))

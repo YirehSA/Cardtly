@@ -71,18 +71,49 @@ ok(!isMissingColumn(null) && !isMissingColumn(undefined) && !isMissingColumn('no
 ok(isMissingTable(TABLE_ERR), 'a 42P01 is not recognised as a missing table')
 ok(!isMissingTable(WRITE_ERR), 'a missing column reads as a missing table')
 
-// The two routes that were actually wrong must ask the shared question, not
-// re-implement it. A code test written inline is how they drifted apart.
-for (const file of ['app/api/account/primary-card/route.ts', 'app/api/analytics/route.ts']) {
-  const src = readFileSync(file, 'utf8')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .split(LF).map(l => l.replace(/\/\/.*$/, '')).join(LF)
-  if (!/isMissingColumn\(/.test(src)) {
-    bad(`${file} no longer asks isMissingColumn, so it is testing error codes by hand again - which is how it came to check for a code that a write never returns`)
+// NO WRITE ANYWHERE MAY BE GUARDED BY 42703 ALONE. Named files would go stale
+// the moment somebody adds a route, and a route added later is exactly the one
+// that would copy the old pattern from its neighbours. Twelve sites had this
+// and every one was found by reading the operation rather than the file name,
+// so the rule is checked the same way.
+const { readdirSync, statSync } = await import('fs')
+const { join } = await import('path')
+
+function walk(dir, out = []) {
+  let entries
+  try { entries = readdirSync(dir) } catch { return out }
+  for (const e of entries) {
+    if (e === 'node_modules' || e === '.next' || e.startsWith('.')) continue
+    const p = join(dir, e)
+    if (statSync(p).isDirectory()) walk(p, out)
+    else if (/\.(ts|tsx)$/.test(p)) out.push(p.split('\\').join('/'))
   }
-  if (/code\s*===\s*'42703'/.test(src) && !/PGRST204/.test(src)) {
-    bad(`${file} tests for 42703 alone. A write never gets that code; it gets PGRST204, so the branch can never run.`)
-  }
+  return out
+}
+
+const WRITES = ['insert', 'update', 'upsert', 'delete']
+for (const file of ['app', 'components', 'lib'].flatMap(d => walk(d))) {
+  const raw = readFileSync(file, 'utf8')
+  if (/PGRST204/.test(raw)) continue          // knows about both already
+  const lines = raw.split(/\r?\n/)
+  lines.forEach((line, i) => {
+    if (!/42703/.test(line)) return
+    if (/^\s*(\/\/|\*|\/\*)/.test(line)) return   // prose, not a test
+    // The nearest preceding supabase call decides whether this guards a read
+    // or a write. A read may legitimately test 42703; a write cannot receive it.
+    let op = null
+    for (let j = i; j >= 0 && j > i - 40; j--) {
+      const m = lines[j].match(/\.(insert|update|upsert|delete|select)\s*\(/)
+      if (m) { op = m[1]; break }
+    }
+    if (op && WRITES.includes(op)) {
+      bad(
+        `${file}:${i + 1} guards a .${op}() with 42703 alone. A write never receives that code - PostgREST ` +
+        `refuses the payload against its schema cache and returns PGRST204 - so the branch can never run. ` +
+        `Use isMissingColumn from lib/pg-errors.`,
+      )
+    }
+  })
 }
 
 if (fail) {

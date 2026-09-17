@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { isMissingColumn } from '@/lib/pg-errors'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { isAdminUser, FOUNDER_ADMIN_USER_ID } from '@/lib/admin-check'
@@ -232,7 +233,7 @@ export async function POST(request: Request) {
       .eq('id', rep_id)
 
     if (error) {
-      if (error.code === '42703') {
+      if (isMissingColumn(error)) {
         return NextResponse.json({ error: 'Not available yet: migration 047 has not been run on this database.' }, { status: 503 })
       }
       if (error.code === '23505') {
@@ -828,7 +829,7 @@ export async function POST(request: Request) {
         ? admin.from('organizations').update({ ...f, updated_at: new Date().toISOString() }).eq('id', existing.id)
         : admin.from('organizations').insert({ ...f, admin_user_id: ownerId, used_seats: 0 })
       const { error } = await run(fields)
-      if (error?.code !== '42703') return { error, degraded: false }
+      if (!isMissingColumn(error)) return { error, degraded: false }
       // Drop every column that arrives with a hand-applied migration, not just
       // the one this route happened to add first. Retrying with only one of
       // them removed fails again on the next, which reads to the user as the

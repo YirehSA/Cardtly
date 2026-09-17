@@ -8,6 +8,7 @@
 // body here, because that is how one rep ends up editing another's log.
 
 import { isCallOutcome } from './rep-calls'
+import { isMissingColumn } from '@/lib/pg-errors'
 
 export const MIGRATION_061_MISSING =
   'The call log is not switched on yet: migration 061 has not been run.'
@@ -16,9 +17,11 @@ function isMissingTable(error: any): boolean {
   return error?.code === '42P01'
 }
 
-function isMissingColumn(error: any): boolean {
-  return error?.code === '42703' || /column .* does not exist/i.test(String(error?.message || ''))
-}
+// isMissingColumn comes from lib/pg-errors now. The copy that used to live
+// here tested 42703 and the Postgres wording, and the write below can return
+// neither: PostgREST refuses an unknown column against its schema cache before
+// any SQL is sent, so the code is PGRST204. The degrade-and-retry underneath
+// could never have run.
 
 /** Columns that arrive after the table does. email came with migration 062,
  *  applied by hand, so between the deploy and the migration the form offers a

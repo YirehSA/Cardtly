@@ -11,6 +11,7 @@ import {
   isMeetingStatus, isMeetingOutcome,
   DEFAULT_DURATION_MINUTES,
 } from './rep-meetings'
+import { isMissingColumn } from '@/lib/pg-errors'
 
 /** Columns that arrive with migration 048. Applied by hand after the deploy, so
  *  between the two there is a window where the code knows about columns the
@@ -23,9 +24,11 @@ function isMissingTable(error: any): boolean {
   return error?.code === '42P01'
 }
 
-function isMissingColumn(error: any): boolean {
-  return error?.code === '42703' || /column .* does not exist/i.test(String(error?.message || ''))
-}
+// isMissingColumn comes from lib/pg-errors now. The copy that used to live
+// here tested 42703 and the Postgres wording, and the write below can return
+// neither: PostgREST refuses an unknown column against its schema cache before
+// any SQL is sent, so the code is PGRST204. The degrade-and-retry underneath
+// could never have run.
 
 const text = (v: unknown, max: number): string | null => {
   const s = String(v ?? '').trim()

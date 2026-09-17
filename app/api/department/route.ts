@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { isMissingColumn } from '@/lib/pg-errors'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { BRAND_FIELDS } from '@/lib/team-brand'
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
       // 42703: migration 053 has not been run, so parent_id and kind do not
       // exist. Say so plainly rather than reporting a Postgres error to
       // somebody who cannot act on it.
-      if (error.code === '42703') {
+      if (isMissingColumn(error)) {
         return NextResponse.json({ error: 'Companies are not enabled on this database yet. Run migration 053.' }, { status: 503 })
       }
       return NextResponse.json({ error: `Could not create it: ${error.message}` }, { status: 500 })
@@ -316,7 +317,7 @@ export async function POST(request: Request) {
     // deploy. Between the two, saving a look must still work - it just cannot
     // be linked yet, and the caller is told so rather than left wondering.
     let linkFailed = false
-    if (error && (error.code === '42703' || /brand_source/.test(String(error.message || '')))) {
+    if (error && isMissingColumn(error)) {
       delete patch.brand_source
       linkFailed = !!linkTo
       ;({ error } = await admin.from('departments').update(patch).eq('id', department_id))

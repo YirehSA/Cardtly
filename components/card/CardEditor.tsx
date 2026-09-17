@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
+import { isMissingColumn } from '@/lib/pg-errors'
 import { createClient } from '@/lib/supabase/client'
 import { Card, UserPlan } from '@/types/database'
 import { isPro } from '@/lib/plan'
@@ -224,7 +225,7 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
     // could not be saved. Drop the columns the table has not got and save the
     // rest, rather than losing everything they just typed.
     let late = 0
-    if (error && ((error as any).code === '42703' || /column .* does not exist/i.test(error.message || ''))) {
+    if (error && isMissingColumn(error)) {
       for (const key of Object.keys(payload)) {
         const n = Number(key.match(/^image_(\d+)_/)?.[1] ?? 0)
         if (n > 6) { delete payload[key]; late++ }

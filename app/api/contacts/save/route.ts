@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { isMissingColumn } from '@/lib/pg-errors'
 import { enqueueLeadCreated } from '@/lib/webhook-dispatch'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
   // losing the whole contact over one new column. Keep the number in the
   // message instead, so it is not thrown away either.
   let degraded = false
-  if (error?.code === '42703') {
+  if (isMissingColumn(error)) {
     const { work_phone, ...rest } = fields
     if (work_phone) {
       rest.message = [rest.message, `Office: ${work_phone}`].filter(Boolean).join('\n')

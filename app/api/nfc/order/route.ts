@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { isMissingColumn } from '@/lib/pg-errors'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
       // 42703 is undefined_column: migration 057 has not been applied yet.
       // An order must not be lost over a column that only saves the admin
       // reading the tier off the email, so it retries without it.
-      if (error?.code === '42703') {
+      if (isMissingColumn(error)) {
         const { design_tier: _omit, ...legacy } = row
         await admin.from('nfc_orders').insert(legacy)
       } else if (error) {
