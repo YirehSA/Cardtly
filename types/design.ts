@@ -100,13 +100,13 @@ export const TEXT_POSITION_TEMPLATES: TemplateId[] = ['bold', 'wave', 'modern', 
 // and checked against it, so a template that stops reading a setting cannot
 // leave the panel promising it.
 export const TEMPLATE_CONTROLS: Record<TemplateId, string[]> = {
-  classic: ['profileBorder', 'logo', 'cardStyle', 'solidBackground', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
-  modern: ['logo', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition'],
+  classic: ['photoSize', 'profileBorder', 'logo', 'cardStyle', 'solidBackground', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
+  modern: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition'],
   bold: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition'],
-  minimal: ['profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
+  minimal: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
   executive: ['photoZoom', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
   creative: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
-  wave: ['logo', 'solidBackground', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition'],
+  wave: ['photoSize', 'logo', 'solidBackground', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition'],
   split: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
   splitpro: ['photoSize', 'profileBorder', 'logo', 'cardStyle', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
   circuit: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
@@ -114,7 +114,7 @@ export const TEMPLATE_CONTROLS: Record<TemplateId, string[]> = {
   neon: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition'],
   studio: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
   frost: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
-  editorial: ['profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
+  editorial: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
 }
 
 /** Does this template read this setting at all? */

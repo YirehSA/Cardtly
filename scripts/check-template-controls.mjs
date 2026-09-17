@@ -36,7 +36,12 @@ const branches = marks.map((mark, i) => ({
 // A control is supported when the branch calls something that reads it.
 // Several controls are read through more than one helper, so any hit counts.
 const PROBES = {
-  photoSize:      ['calcPhotoSize('],
+  // '<Avatar' counts because Avatar applies calcPhotoSize to its own size
+  // prop - see the component. Probing only for the direct call meant every
+  // template that renders its photo THROUGH Avatar was reported as not
+  // supporting the setting, so the panel greyed the control out on five
+  // designs that would have honoured it. Wave was the one somebody noticed.
+  photoSize:      ['calcPhotoSize(', '<Avatar'],
   photoZoom:      ['boldImageZoom'],
   profileBorder:  ['design.profileBorder'],
   logo:           ['<LogoZone', 'calcLogoHeight('],
