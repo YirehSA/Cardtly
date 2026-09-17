@@ -128,6 +128,52 @@ function todayMidnight(): number {
   return new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime()
 }
 
+/**
+ * DOES THIS ORGANISATION ENTITLE ITS PEOPLE TO PRO?
+ *
+ * ONE RULE, TWO CALLERS, ON PURPOSE. plan-server decides what the dashboard
+ * shows and TeamCardPublic decides what a visitor gets, and plan-server's own
+ * comment names the failure this avoids: "the dashboard disagreeing with the
+ * public page about who is entitled is precisely the drift subscriptionState
+ * exists to prevent." Two copies of this would drift the first time one of the
+ * four conditions changed.
+ *
+ * WHAT IT REPLACES. Both sides asked only "is the org suspended". That was
+ * chosen deliberately - enterprise orgs are comped, so business_plan_active is
+ * not a reliable signal of a real customer - and it left one case entitled
+ * that should not be. create_org inserts the organisation BEFORE payment, and
+ * add_card never checks payment, so somebody could pick twenty seats, abandon
+ * the Paystack checkout, add twenty cards and have the lot running for nothing
+ * until a human noticed and suspended them.
+ *
+ * The four states are now told apart:
+ *
+ *   suspended                 no, whatever else is true
+ *   business_plan_active      yes - they paid, or an admin marked them live
+ *   billing_period 'comp'     yes - comped on purpose, which is the case that
+ *                             stopped business_plan_active being usable alone
+ *   trial_ends_at in future   yes - and this is what makes a team trial
+ *                             expressible at all
+ *   none of the above         no. An abandoned checkout is not a customer.
+ *
+ * Checked against every organisation that exists at the time of writing:
+ * all of them are business_plan_active, so none changes state.
+ */
+export function orgEntitlesMembers(org: {
+  suspended_at?: string | null
+  business_plan_active?: boolean | null
+  billing_period?: string | null
+  trial_ends_at?: string | null
+} | null | undefined): boolean {
+  if (!org) return false
+  if (org.suspended_at) return false
+  if (org.business_plan_active) return true
+  if (org.billing_period === 'comp') return true
+  const ends = org.trial_ends_at ? Date.parse(org.trial_ends_at) : NaN
+  if (Number.isFinite(ends) && ends > Date.now()) return true
+  return false
+}
+
 export function isOrgBillingMode(s: unknown): s is OrgBillingMode {
   return typeof s === 'string' && (ORG_BILLING_MODES as readonly string[]).includes(s)
 }

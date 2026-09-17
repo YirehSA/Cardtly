@@ -1,4 +1,6 @@
+import { notFound } from 'next/navigation'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { orgEntitlesMembers } from '@/lib/org-billing'
 import { mergeTeamAddons } from '@/lib/addon-target'
 import PublicCardView from '@/components/card/PublicCardView'
 import ReportCardLink from '@/components/card/ReportCardLink'
@@ -57,6 +59,15 @@ export default async function TeamCardPublic({ teamCard }: { teamCard: any }) {
     orgBrand = org ? (await hydrateBrandSources(admin, [org]))[0].brand || {} : {}
     orgLocked = org?.locked_fields ?? null
     if (org?.suspended_at) suspendedMessage = org.suspension_message || ''
+
+    // THE SAME QUESTION THE DASHBOARD ASKS, through the same function. A
+    // suspended organisation keeps its card and shows the message its admin
+    // wrote, which is deliberate and unchanged. An organisation that simply
+    // never paid - created by create_org before the Paystack step and then
+    // abandoned - is not a customer, and its cards should not serve. That is
+    // the only case this adds, and it is the case that let somebody take
+    // twenty seats for nothing.
+    if (org && !org.suspended_at && !orgEntitlesMembers(org)) notFound()
 
     if (teamCard.department_id) {
       // Every department in the org, so the chain above this card can be

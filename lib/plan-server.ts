@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { UserPlan } from '@/types/database'
+import { orgEntitlesMembers } from '@/lib/org-billing'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -61,17 +62,18 @@ export function subscriptionState(sub: {
 //
 // A missing trial_ends_at is deliberately treated as "still trialing". This
 // gate can take a live card offline, so when in doubt it must fail open.
-// An organisation entitles its people while it is not suspended. Suspension is
-// the switch rather than business_plan_active, matching the public card page -
-// enterprise orgs are comped, so business_plan_active is not a reliable signal
-// of whether the company is a real, paying-or-agreed customer.
+// An organisation entitles its people per orgEntitlesMembers, which is shared
+// with TeamCardPublic so the dashboard and the public card cannot answer this
+// differently. This used to be "not suspended" alone: correct about comped
+// enterprise orgs, and wrong about an organisation that was created, never
+// paid for, and filled with cards anyway. See lib/org-billing.
 async function orgEntitles(admin: any, orgId: string): Promise<boolean> {
   const { data: org } = await admin
     .from('organizations')
-    .select('suspended_at')
+    .select('suspended_at, business_plan_active, billing_period, trial_ends_at')
     .eq('id', orgId)
     .maybeSingle()
-  return !!org && !org.suspended_at
+  return orgEntitlesMembers(org)
 }
 
 export async function getUserPlan(userId: string): Promise<UserPlan> {
