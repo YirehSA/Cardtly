@@ -534,6 +534,61 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           ))}
         </div>
 
+        {/* HOW IT WORKS, because the price was the only thing this screen
+            explained. Somebody deciding whether to put their team on Cardtly
+            is not only asking what it costs, they are asking what they are
+            signing up to do: whether they have to chase five colleagues into
+            creating accounts before anything works, and whether the cards are
+            any use before that happens. The answer is no and yes, and nothing
+            said so.
+
+            The numbers bear it out. 36 of the 52 team cards in the database
+            have never been claimed, so for most teams the invite step never
+            happens at all and the cards are live regardless. That is the
+            reassurance being sold here, so it is step 3 rather than a
+            footnote, and the invite is marked optional in the step itself. */}
+        <div className="bg-card border border-border rounded-lg p-6">
+          <h2 className="font-semibold text-lg">How setting up a team works</h2>
+          <ol className="mt-4 space-y-4">
+            {[
+              {
+                t: 'Name your company and choose how many cards',
+                d: 'You pay monthly for the cards you take. You can add more later without starting again.',
+              },
+              {
+                t: 'You build the cards, your team does not',
+                d: 'Create each person from this dashboard: name, title, email, phone. Copy one card’s look to the next so everybody matches.',
+              },
+              {
+                t: 'Each card is live the moment you save it',
+                d: 'It gets its own cardtly.com address and QR code straight away. Nobody has to accept an invite first, and most teams never send one.',
+              },
+              {
+                t: 'Hand cards over when you are ready (optional)',
+                d: 'Invite somebody by email and they choose a password to edit their own card. Lock your brand first and the look stays exactly as you set it.',
+              },
+            ].map(({ t, d }, i) => (
+              <li key={t} className="flex items-start gap-3">
+                <span
+                  className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                  style={{ background: 'hsl(var(--accent))' }}
+                  aria-hidden="true"
+                >
+                  {i + 1}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{t}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{d}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <p className="text-xs text-muted-foreground mt-5 pt-4 border-t border-border">
+            This is the same account you are signed in with now. A team is created from your personal
+            account, so your own card stays exactly as it is and you manage both from here.
+          </p>
+        </div>
+
         {/* Setup form */}
         <div className="bg-card border border-border rounded-lg p-6 space-y-5">
           <h2 className="font-semibold text-lg">{resuming ? 'Finish setting up your team' : 'Set up your team'}</h2>

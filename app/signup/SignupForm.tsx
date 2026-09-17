@@ -531,6 +531,13 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
                 >
                   Setting up cards for a team? Start here
                 </button>
+                {/* One line, because the link above asks somebody to leave the
+                    form they came here to fill in and gives them no idea what
+                    is on the other side. The full explanation is on the team
+                    page itself; this is only enough to make the click safe. */}
+                <p className="text-center text-xs -mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  You make the account, then build everybody&rsquo;s cards yourself. They go live straight away.
+                </p>
               </>
             )}
           </form>
