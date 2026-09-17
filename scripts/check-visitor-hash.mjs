@@ -97,6 +97,50 @@ ok(clientIp(headers({ 'x-forwarded-for': '102.65.14.9, 10.0.0.1, 10.0.0.2' })) =
 ok(clientIp(headers({ 'x-real-ip': '41.13.8.200' })) === '41.13.8.200', 'clientIp ignores x-real-ip when there is no forwarded header')
 ok(clientIp(headers({})) === null, 'clientIp invents an address when there is no header')
 
+// ── The referrer records where the visitor came FROM ────────────────────────
+//
+// It used to record where they went TO. /api/analytics filled the column from
+// the Referer header of the tracking POST, and a POST made by the card page
+// carries the card page - so across 5,325 stored events not one held a real
+// traffic source. Every value was cardtly.com/card/... or localhost.
+const { sourceOrigin } = await import('../lib/visitor-hash.ts')
+const { readFileSync } = await import('fs')
+
+// The path and query go, because the value is client-supplied and then stored,
+// and a referring URL can carry tokens or search terms.
+ok(sourceOrigin('https://www.linkedin.com/feed/update/123?token=secret') === 'https://www.linkedin.com',
+  'sourceOrigin keeps the path or query of a referring URL, so a token or a search term in somebody else\'s URL gets stored')
+ok(sourceOrigin('http://localhost:3000/') === 'http://localhost:3000', 'sourceOrigin does not handle a plain origin')
+
+// Nothing untrusted is stored raw.
+for (const [value, why] of [
+  ['javascript:alert(1)', 'a javascript: URL'],
+  ['data:text/html,<script>', 'a data: URL'],
+  ['ftp://files.example.com/x', 'a non-http scheme'],
+  ['not a url at all', 'an unparseable string'],
+  ['https://x.example/' + 'a'.repeat(3000), 'an oversized string'],
+  ['', 'an empty referrer'],
+]) {
+  ok(sourceOrigin(value) === null, `sourceOrigin returns something for ${why}, which then gets stored`)
+}
+ok(sourceOrigin(null) === null && sourceOrigin(undefined) === null && sourceOrigin(42) === null,
+  'sourceOrigin does not handle a missing or non-string referrer')
+
+// AND THE BUG ITSELF MUST NOT COME BACK. The header is the destination.
+const routeSrc = readFileSync('app/api/analytics/route.ts', 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .split(LF).map(l => l.replace(/\/\/.*$/, '')).join(LF)
+if (/referrer\s*=\s*.*headers?List\.get\(['"]referer['"]\)/i.test(routeSrc)) {
+  bad('app/api/analytics/route.ts fills the referrer from the Referer header again. On a POST made by the card page that IS the card page, so the column records the destination and calls it the origin.')
+}
+if (!/sourceOrigin\(/.test(routeSrc)) {
+  bad('app/api/analytics/route.ts no longer reduces the referrer through sourceOrigin, so a full untrusted URL is stored')
+}
+const trackSrc = readFileSync('lib/track.ts', 'utf8')
+if (!/referrer:\s*typeof document/.test(trackSrc)) {
+  bad('lib/track.ts no longer sends document.referrer, so the server has nothing to record and the column goes back to being empty or wrong')
+}
+
 if (fail) {
   console.error(`${LF}check-visitor-hash: ${fail} failure(s).`)
   process.exit(1)

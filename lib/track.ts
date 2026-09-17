@@ -33,6 +33,17 @@ async function track(opts: TrackOptions) {
     event_type: opts.eventType,
     link_title: opts.linkTitle,
     metadata: opts.metadata,
+    // WHERE THE VISITOR CAME FROM, and it has to be sent from here.
+    //
+    // The route used to read the Referer header off this request, which is the
+    // page that made the POST - the card itself, every single time. Across
+    // 5,325 stored events not one recorded a traffic source: every value was
+    // the card's own URL or localhost. The only thing that knows the real
+    // answer is the browser, and only document.referrer holds it.
+    //
+    // Empty for a direct visit, a QR scan, an NFC tap or a typed URL, which is
+    // most of them, and null is the honest answer there.
+    referrer: typeof document !== 'undefined' ? document.referrer || null : null,
   })
   try {
     // A link click navigates away immediately, which cancels an in-flight

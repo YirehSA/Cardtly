@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { visitorHash, clientIp } from '@/lib/visitor-hash'
+import { visitorHash, clientIp, sourceOrigin } from '@/lib/visitor-hash'
 import { isMissingColumn } from '@/lib/pg-errors'
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
@@ -88,7 +88,14 @@ export async function POST(request: Request) {
 
     const headersList = await headers()
     const ua = headersList.get('user-agent') || ''
-    const referrer = headersList.get('referer') || ''
+
+    // FROM THE BODY, NOT THE HEADER. This used to be
+    // headersList.get('referer'), which on a POST made BY the card page is the
+    // card page - so the column recorded the visitor's destination rather than
+    // their origin, every time. Across 5,325 rows not one held a real source:
+    // all of them were cardtly.com/card/... or localhost. lib/track now sends
+    // document.referrer, which is the only value that knows the answer.
+    const referrer = sourceOrigin((body as { referrer?: unknown }).referrer)
 
     const device = detectDevice(ua)
     const browser = detectBrowser(ua)

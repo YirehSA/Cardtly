@@ -51,6 +51,39 @@ function secret(): string {
   return process.env.ANALYTICS_VISITOR_SALT || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 }
 
+/**
+ * The origin a visit came from, or null. Lives beside clientIp because it
+ * answers the other half of the same question: what can be known about where
+ * this request came from, without keeping more than that.
+ *
+ * WHAT IT REPLACED. /api/analytics used to fill its referrer column from the
+ * Referer header of the tracking POST, which on a request made BY the card
+ * page is the card page. Across 5,325 stored events not one held a real
+ * traffic source: every value was cardtly.com/card/... or localhost. The
+ * column recorded the destination and called it the origin. Only the browser
+ * knows the answer, so lib/track sends document.referrer and this reduces it.
+ *
+ * ORIGIN RATHER THAN THE WHOLE URL. It is client-supplied and then stored, so
+ * the less kept the better: a same-origin referrer carries the full path, and
+ * a private one can carry tokens or search terms in its query string, none of
+ * which this needs. "https://www.linkedin.com" answers the question. Browsers
+ * mostly send origin-only cross-origin anyway under the default
+ * Referrer-Policy, so this is close to what already arrives.
+ *
+ * Anything unparseable, oversized or not http(s) becomes null rather than
+ * being stored raw. It comes from the page and is never trusted.
+ */
+export function sourceOrigin(raw: unknown): string | null {
+  if (typeof raw !== 'string' || !raw || raw.length > 2048) return null
+  try {
+    const url = new URL(raw)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
+    return url.origin
+  } catch {
+    return null
+  }
+}
+
 /** The client address, as far forward as the proxy chain can be trusted. */
 export function clientIp(headers: Headers): string | null {
   const forwarded = headers.get('x-forwarded-for')
