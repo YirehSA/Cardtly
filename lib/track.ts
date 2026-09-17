@@ -57,6 +57,89 @@ async function track(opts: TrackOptions) {
 /** Does nothing, and returns the same promise shape so a caller cannot tell. */
 async function noTrack(_opts: TrackOptions) { /* preview surface: see lib/card-surface.ts */ }
 
+// ── Counting a view once, for a page somebody actually looked at ────────────
+//
+// WHAT THIS EXISTS BECAUSE OF. Anthony's card had 33 pairs of view events on
+// the same device and browser within five seconds of each other, gaps of 7ms,
+// 10ms, 17ms. Nothing human reloads a page in 7ms. Each pair is two real
+// document loads: one at ?s=email and one at ?s=email-qr, the link and the QR
+// code out of the same email signature, opened milliseconds apart by the same
+// browser. That is an email security scanner or a link prefetcher opening
+// every URL in the message, and it was inflating his view count by about 8%.
+//
+// The per-mount ref in CardTracker cannot see any of this. It stops one
+// component instance firing twice; it knows nothing about a second page load.
+//
+// TWO GUARDS, because the two failures are different:
+//
+//   visibility  a prerendered or background load has not been seen by anybody,
+//               so it is not a view yet. If it is later activated the view is
+//               counted then, which is the whole point of deferring rather
+//               than dropping.
+//   dedupe      a second load of the same card from the same browser within
+//               ten seconds is the same arrival. Ten seconds and not thirty
+//               minutes on purpose: a person who refreshes still gets counted,
+//               so what a view MEANS does not change. Only the impossible
+//               gaps disappear.
+
+const VIEW_DEDUPE_MS = 10_000
+
+/** True when this browser already counted a view of this card a moment ago.
+ *  localStorage rather than sessionStorage so two tabs share the answer, which
+ *  is exactly the case being caught. */
+function viewAlreadyCounted(key: string): boolean {
+  try {
+    const k = `ct_view_${key}`
+    const prev = Number(window.localStorage.getItem(k) || 0)
+    const now = Date.now()
+    if (prev && now - prev < VIEW_DEDUPE_MS) return true
+    window.localStorage.setItem(k, String(now))
+    return false
+  } catch {
+    // Private mode, blocked storage, quota. FAIL OPEN: losing a real view is
+    // worse than keeping a duplicate, and this whole thing is a correction to
+    // a count, not a control on one.
+    return false
+  }
+}
+
+/** Runs fn once the page is actually on screen, now or later. */
+function whenVisible(fn: () => void): void {
+  if (typeof document === 'undefined') { fn(); return }
+  const doc = document as Document & { prerendering?: boolean }
+
+  if (doc.prerendering) {
+    doc.addEventListener('prerenderingchange', () => whenVisible(fn), { once: true })
+    return
+  }
+  if (document.visibilityState === 'visible') { fn(); return }
+
+  const onVisible = () => {
+    if (document.visibilityState !== 'visible') return
+    document.removeEventListener('visibilitychange', onVisible)
+    fn()
+  }
+  document.addEventListener('visibilitychange', onVisible)
+}
+
+/**
+ * THE ONLY WAY A VIEW SHOULD BE COUNTED. Both entry points call this rather
+ * than track() directly, so the guards cannot apply to one and not the other.
+ *
+ * Only the view is deduped. An arrival event (?s=email, ?s=email-qr) is a
+ * different marker each time and deduping those would throw away the
+ * attribution that tells the two apart.
+ */
+export function trackView(opts: { cardId?: string; teamCardId?: string; send?: typeof track }): void {
+  const send = opts.send ?? track
+  const key = opts.cardId || opts.teamCardId
+  if (!key) return
+  whenVisible(() => {
+    if (viewAlreadyCounted(key)) return
+    send({ cardId: opts.cardId, teamCardId: opts.teamCardId, eventType: 'view' })
+  })
+}
+
 /**
  * THE ONLY WAY A COMPONENT INSIDE THE CARD SHOULD TRACK ANYTHING.
  *
@@ -83,7 +166,9 @@ export function useTrackView(cardId?: string, teamCardId?: string) {
     if (tracked.current) return
     if (!cardId && !teamCardId) return
     tracked.current = true
-    track({ cardId, teamCardId, eventType: 'view' })
+    // The ref stops this instance firing twice. trackView stops the page being
+    // counted twice, which is a different thing and the one that was wrong.
+    trackView({ cardId, teamCardId })
   }, [cardId, teamCardId, preview])
 }
 

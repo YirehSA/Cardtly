@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { sourceById } from '@/lib/card-sources'
-import { track } from '@/lib/track'
+import { track, trackView } from '@/lib/track'
 
 interface Props {
   // Pass exactly one. Personal cards pass cardId; team cards
@@ -36,7 +36,11 @@ export default function CardTracker({ cardId, teamCardId, children }: Props) {
     if (tracked.current) return
     if (!cardId && !teamCardId) return
     tracked.current = true
-    track({ cardId, teamCardId, eventType: 'view' })
+    // Deferred until the page is visible and skipped if this browser counted
+    // this card seconds ago. The arrival event below is deliberately NOT
+    // deduped: ?s=email and ?s=email-qr are different markers and collapsing
+    // them would lose the attribution that tells a link from a QR scan.
+    trackView({ cardId, teamCardId })
 
     // Read from location rather than useSearchParams: this runs on mount in
     // the browser, and it avoids forcing a Suspense boundary on the card page.
