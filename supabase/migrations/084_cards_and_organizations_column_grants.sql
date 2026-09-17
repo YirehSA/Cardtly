@@ -14,7 +14,7 @@
 -- exactly like the browser is. Only createServiceClient() / SERVICE_ROLE_KEY
 -- escapes them. Sorted by which client does the writing:
 --
---   organizations   19 write sites, every one of them service role.
+--   organizations   14 write sites, every one of them service role.
 --                   The browser never writes this table at all.
 --
 --   cards           three as the user - signup's insert, CardEditor's update
