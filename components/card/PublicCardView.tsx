@@ -2221,7 +2221,14 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
         </button>
         <div className="max-w-md mx-auto">
           <div style={{ background: waveHeroBg, position: 'relative' }}>
-            <div style={{ display: 'flex', gap: 0, padding: '28px 24px 52px' }}>
+            {/* THE TOP PAD CLEARS THE CHROME, like every other hero here.
+                Wave used a flat 28px and was the only template that did, so
+                on a phone the photo sat under the status bar and almost
+                touched the back and share buttons floating at safe-top-3.
+                64 matches Split and Split Pro; the safe-area inset is what
+                makes it right on a notched device rather than merely taller
+                on a desktop. */}
+            <div style={{ display: 'flex', gap: 0, padding: 'calc(env(safe-area-inset-top, 0px) + 64px) 24px 52px' }}>
               <div style={{ flexShrink: 0, position: 'relative', zIndex: 2 }}>
                 {/* Round, for the same reason as Modern above. */}
                 <Avatar {...shared} size={100} rounded="full" extraStyle={{ border: `3px solid ${accentHex}44` }} />
