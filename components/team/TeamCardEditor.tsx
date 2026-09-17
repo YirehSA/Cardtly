@@ -68,6 +68,10 @@ interface Props {
    *  from the org's and the department's settings. Empty for admins and
    *  department heads, who set the locks rather than live under them. */
   lockedGroups?: string[]
+  /** What the BRAND governs, for everyone. The public card applies these
+   *  whoever saved the row, so the preview has to know them even for an admin
+   *  that none of them stop from editing. */
+  brandLockedGroups?: string[]
   /** The company half of this card's URL, from the organisation. Null before
    *  migration 044, in which case it is derived from the company name. */
   slugPrefix?: string | null
@@ -102,7 +106,7 @@ const TAB_FIELDS: Record<TabId, string[]> = {
   design:  [],
 }
 
-export default function TeamCardEditor({ card, org, userId, role = 'admin', orgBrand = {}, lockedGroups = [], slugPrefix = null }: Props) {
+export default function TeamCardEditor({ card, org, userId, role = 'admin', orgBrand = {}, lockedGroups = [], brandLockedGroups = [], slugPrefix = null }: Props) {
   // Brand only applies to this card if the admin opted it in AND a
   // team brand is set. Cards keeping their own branding stay fully
   // editable, with no brand merged into the preview.
@@ -116,8 +120,10 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
   // into a locked field, save, and be told afterwards that it was ignored.
   // Both now follow the same resolved locks the save endpoint enforces.
   const locked = useMemo(() => new Set(lockedColumns(lockedGroups)), [lockedGroups])
+  // The brand's reach, which is not the same as this user's restrictions.
+  const brandLocked = useMemo(() => new Set(lockedColumns(brandLockedGroups)), [brandLockedGroups])
   const isLocked = useCallback((field: string) => locked.has(field), [locked])
-  const designLocked = lockedGroups.includes('design')
+  const designLocked = brandLockedGroups.includes('design')
   const TABS = ALL_TABS.filter(t => t.id !== 'design' || isAdmin || !designLocked)
   const [saving, setSaving] = useState(false)
   const [aiBioOpen, setAiBioOpen] = useState(false)
@@ -278,8 +284,8 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
   const designTouched = serializeDesign(design) !== initialDesign.current
   const previewForm = useMemo(() => {
     const withDesign = { ...form, color_theme: designTouched ? serializeDesign(design) : card.color_theme }
-    return usesBrand ? mergeBrand(withDesign, orgBrand, locked) : withDesign
-  }, [form, design, designTouched, usesBrand, orgBrand, locked, card.color_theme])
+    return usesBrand ? mergeBrand(withDesign, orgBrand, brandLocked) : withDesign
+  }, [form, design, designTouched, usesBrand, orgBrand, brandLocked, card.color_theme])
 
   // Covers closing the tab and reloading.
   useEffect(() => {
@@ -708,8 +714,44 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
             </div>
           )}
 
+          {/* DESIGN CONTROLS ONLY WHEN THE DESIGN CAN ACTUALLY CHANGE.
+              Locked, they were still fully editable for an admin: you could
+              pick a new template, the Save button would light up, and the
+              change would be stored on the row and then never render, because
+              mergeBrand gives the brand a locked field on the public card
+              whatever the row says. A control that saves and shows nothing is
+              worse than no control - it reads as a broken preview.
+              Members never saw this tab when design was locked. Admins now see
+              the reason and where to change it instead, which is the one place
+              it does anything: the team brand. */}
           {activeTab === 'design' && (
-            <DesignPanel design={design} onChange={setDesign} isPro={true} />
+            designLocked ? (
+              <div className="rounded-xl border border-border p-5">
+                <div className="flex items-start gap-3">
+                  <span aria-hidden="true" className="w-9 h-9 rounded-xl grid place-items-center flex-shrink-0"
+                    style={{ background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))' }}>
+                    <Lock className="w-4 h-4 text-muted-foreground" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm">Design is set by your company brand</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-md">
+                      Template, colours and fonts come from the team brand so every card matches.
+                      Changing them here would not appear on the card, so they are not editable on
+                      an individual card.
+                    </p>
+                    {isAdmin && (
+                      <Link href="/dashboard/team/brand"
+                        className="inline-flex items-center gap-2 mt-3 px-3.5 py-2 rounded-lg border border-border text-sm font-semibold transition hover:bg-muted/50 min-h-11">
+                        <Palette className="w-4 h-4" aria-hidden="true" />
+                        Change the team brand
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <DesignPanel design={design} onChange={setDesign} isPro={true} />
+            )
           )}
         </div>
 

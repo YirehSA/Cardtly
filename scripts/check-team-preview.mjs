@@ -83,6 +83,32 @@ if (!/designTouched \? serializeDesign\(design\) : card\.color_theme/.test(edito
   )
 }
 
+// 5. THE BRAND'S REACH IS NOT THIS USER'S RESTRICTIONS, and the editor has to
+//    be told both. The page used to compute locks only for members, so an
+//    admin's editor could not tell that the design was brand-governed - which
+//    is why its preview had to guess. The public card applies the brand's
+//    locks whoever saved the row (lockedColumnsFor takes no role), so the
+//    preview must merge with THOSE, while the per-field disabling stays on the
+//    role-dependent set.
+const PAGE = 'app/dashboard/team/card/[id]/page.tsx'
+const page = code(read(PAGE))
+
+// The PROP, not the word. Testing for the identifier anywhere kept passing
+// after the prop was deleted, because the const that computes it is still
+// there - the editor just never receives it.
+if (!/brandLockedGroups=\{brandLockedGroups\}/.test(page)) {
+  bad(`${PAGE} no longer passes brandLockedGroups, so an admin's editor cannot tell which fields the brand governs and its preview is guessing again`)
+}
+if (/if \(role === 'member'\) \{[\s\S]{0,400}?resolveLocks/.test(page)) {
+  bad(`${PAGE} computes the locks only for members again. The brand's reach is the same for everyone; only the editing restrictions differ.`)
+}
+if (!/mergeBrand\(withDesign, orgBrand, brandLocked\)/.test(editor)) {
+  bad(`${EDITOR}: the preview merges with the user's editing locks rather than the brand's reach, so an admin on a locked organisation would be shown a design the public card will not render`)
+}
+if (!/designLocked = brandLockedGroups\.includes\('design'\)/.test(editor)) {
+  bad(`${EDITOR}: designLocked is not read from the brand's reach, so the design controls would stay editable for an admin whose changes can never render`)
+}
+
 if (fail) {
   console.error(`${LF}check-team-preview: ${fail} failure(s).`)
   process.exit(1)

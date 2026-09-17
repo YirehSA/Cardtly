@@ -93,20 +93,31 @@ export default async function TeamCardPage({ params }: { params: Promise<{ id: s
     }
   })()
 
-  let lockedGroups: string[] = []
-  if (role === 'member') {
-    const readLocks = async (table: string, rowId: string | null) => {
-      if (!rowId) return []
-      const { data, error } = await admin.from(table).select('locked_fields').eq('id', rowId).maybeSingle()
-      if (error) return []
-      return (data as any)?.locked_fields ?? []
-    }
-    const [orgLocks, deptLocks] = await Promise.all([
-      readLocks('organizations', card.organization_id),
-      readLocks('departments', card.department_id),
-    ])
-    lockedGroups = resolveLocks(orgLocks, deptLocks)
+  // TWO DIFFERENT QUESTIONS, and the editor used to get only one answer.
+  //
+  //   brandLockedGroups  what the BRAND governs. True for everybody, because
+  //                      the public card applies these locks regardless of who
+  //                      saved the row - see lockedColumnsFor in
+  //                      lib/resolve-card-brand.ts, which takes no role.
+  //   lockedGroups       what THIS USER may not edit. Members only: an admin
+  //                      manages the brand and is not stopped by it here.
+  //
+  // Only the second was computed, and only for members, so an admin's editor
+  // could not tell that the design was brand-governed at all. That is why its
+  // preview had to guess, and why both guesses it has made were wrong in one
+  // case each.
+  const readLocks = async (table: string, rowId: string | null) => {
+    if (!rowId) return []
+    const { data, error } = await admin.from(table).select('locked_fields').eq('id', rowId).maybeSingle()
+    if (error) return []
+    return (data as any)?.locked_fields ?? []
   }
+  const [orgLocks, deptLocks] = await Promise.all([
+    readLocks('organizations', card.organization_id),
+    readLocks('departments', card.department_id),
+  ])
+  const brandLockedGroups = resolveLocks(orgLocks, deptLocks)
+  const lockedGroups: string[] = role === 'member' ? brandLockedGroups : []
 
   return (
     <TeamCardEditor
@@ -116,6 +127,7 @@ export default async function TeamCardPage({ params }: { params: Promise<{ id: s
       role={role}
       orgBrand={resolvedBrand}
       lockedGroups={lockedGroups}
+      brandLockedGroups={brandLockedGroups}
       slugPrefix={slugPrefix}
     />
   )
