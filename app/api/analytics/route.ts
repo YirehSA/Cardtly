@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { visitorHash, clientIp } from '@/lib/visitor-hash'
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { sanitiseEventMetadata, MAX_METADATA_BYTES } from '@/lib/card-context'
@@ -105,11 +106,50 @@ export async function POST(request: Request) {
     // a SECURITY DEFINER trigger. Same reasoning, one level up.
     const supabase = createServiceClient()
 
+    // WHO, as far as anybody is allowed to know. Scoped to the card it belongs
+    // to and rotated daily, so it answers "has this visitor already viewed
+    // THIS card TODAY" and nothing wider. See lib/visitor-hash.ts.
+    const ip = clientIp(headersList)
+    const visitorFor = (scope: string) => {
+      const hash = visitorHash({ ip, userAgent: ua, scope })
+      return hash ? { visitor_hash: hash } : {}
+    }
+
+    /**
+     * Insert, and survive the column not existing yet.
+     *
+     * This code deployed somewhere migration 086 has not run. An event is
+     * worth more than the extra field on it, so the row is written without the
+     * hash rather than lost - the same call that would otherwise return 500
+     * and drop a real card view. The retry is attempted once, and only for the
+     * field this route added.
+     *
+     * BOTH CODES, and the second one is the one that actually fires.
+     * PGRST204 is PostgREST refusing the payload against its own schema cache,
+     * which happens BEFORE any SQL is sent, so Postgres never sees the
+     * statement and never returns its own 42703 undefined_column. Tested
+     * against the real database with the column absent: the error was
+     * PGRST204, "Could not find the 'visitor_hash' column of 'card_events' in
+     * the schema cache". A fallback that only knew 42703 did nothing at all,
+     * which is worth remembering - app/api/account/primary-card checks for
+     * 42703 alone in the same situation and would have the same problem.
+     */
+    const insertEvent = async (table: string, row: Record<string, unknown>) => {
+      const { error } = await (supabase.from(table) as any).insert(row)
+      const code = (error as { code?: string } | null)?.code
+      if (error && (code === 'PGRST204' || code === '42703') && 'visitor_hash' in row) {
+        const { visitor_hash: _dropped, ...withoutHash } = row
+        const retry = await (supabase.from(table) as any).insert(withoutHash)
+        return retry.error
+      }
+      return error
+    }
+
     if (card_id) {
       // Personal card: insert card_events row. A DB trigger
       // (migration 019) bumps cards.view_count from this row -
       // server-side so RLS can't block it.
-      const { error } = await (supabase.from('card_events') as any).insert({
+      const error = await insertEvent('card_events', {
         card_id,
         event_type,
         link_title: link_title || null,
@@ -118,6 +158,7 @@ export async function POST(request: Request) {
         os,
         referrer: referrer || null,
         ...withMetadata,
+        ...visitorFor(card_id),
       })
       if (error) return failed('card_events', error, event_type)
     }
@@ -133,7 +174,7 @@ export async function POST(request: Request) {
       // with the anonymous visitor's session, which RLS blocks on
       // team_cards, so it silently undercounted. The trigger runs
       // server-side and can't be blocked.
-      const { error } = await (supabase.from('team_card_events') as any).insert({
+      const error = await insertEvent('team_card_events', {
         team_card_id,
         event_type,
         link_title: link_title || null,
@@ -142,6 +183,7 @@ export async function POST(request: Request) {
         os,
         referrer: referrer || null,
         ...withMetadata,
+        ...visitorFor(team_card_id),
       })
       if (error) return failed('team_card_events', error, event_type)
     }
