@@ -119,6 +119,13 @@ at launch.
 The app does not request location, microphone, health data, or tracking
 permission, and does not read NFC tags on iOS.
 
+In the recording: the camera prompt is shown in full, with its purpose string,
+when the card scanner is opened. Contacts access is also demonstrated a moment
+later, where a scanned card is added to the phone and the app confirms "Added
+to your phone contacts", but iOS does not show that prompt again because it had
+already been granted on the test device. Both are requested on first use of
+those specific actions, and the purpose strings are declared in Info.plist.
+
 7. USER-GENERATED CONTENT AND MODERATION
 
 The app contains user-generated content: a card carries a name, photo, job
