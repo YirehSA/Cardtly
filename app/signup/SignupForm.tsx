@@ -332,8 +332,10 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
         </div>
       </div>
 
-      {/* Right — form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative">
+      {/* Right — form. overflow-hidden for the same reason as the login page:
+          the centred 400px glow is wider than a phone and pushes the page
+          sideways. */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full blur-[120px] pointer-events-none"
           style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%)' }} />
 

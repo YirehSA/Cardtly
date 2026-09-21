@@ -226,8 +226,16 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right — form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative">
+      {/* Right — form.
+          overflow-hidden because the glow below is a fixed 400px wide and is
+          centred on this container. On a phone the container is 375px, so the
+          glow runs from -12px to 388px and drags 13px of horizontal scroll onto
+          the page. That is the whole of the "bleeds to the right" on iOS: the
+          login screen is the first thing the app shows, since / is on
+          IOS_BLOCKED_ROUTES and redirects here. Clipping it is invisible - the
+          thing is a 8% opacity radial gradient under a 120px blur - and it
+          stops any future decoration in here doing the same. */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full blur-[120px] pointer-events-none"
           style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%)' }} />
 

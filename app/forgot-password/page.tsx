@@ -50,8 +50,16 @@ export default function ForgotPasswordPage() {
 
   const inputClass = "w-full px-4 py-3 rounded-xl border border-white/10 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-white/30 transition"
 
+  // `relative overflow-hidden` on the wrapper below. The glow inside it is
+  // 500px wide and centred, so on a 375px phone it runs from -62px to 437px and
+  // dragged 63px of horizontal scroll onto the page - the worst of the three
+  // screens that did this, and the reason the iOS app "bleeds to the right".
+  //
+  // `relative` matters as much as the clipping: an absolutely positioned child
+  // is only clipped by an ancestor that is also its containing block, and this
+  // div was static. overflow-hidden on its own would have clipped nothing.
   return (
-    <div className="min-h-screen flex items-center justify-center px-6" style={{ background: '#050510' }}>
+    <div className="min-h-screen flex items-center justify-center px-6 relative overflow-hidden" style={{ background: '#050510' }}>
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none"
         style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.10) 0%, transparent 70%)' }} />
 
