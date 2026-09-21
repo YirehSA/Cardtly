@@ -120,7 +120,7 @@
 
 <header>
   <h1>Cardtly: security answers</h1>
-  <p class="sub">Meeting crib sheet &middot; prepared 14 September 2026 &middot; internal</p>
+  <p class="sub">Meeting crib sheet &middot; prepared 21 September 2026 &middot; internal</p>
 </header>
 
 <div class="lede">
@@ -150,9 +150,13 @@
   usually measured against. GDPR is at least as strict as POPIA, not a weaker regime.</p>
   <p class="a">We rely on standard contractual clauses with our providers, which the
   policy also states.</p>
+  <p class="a">One exception to name yourself: the optional AI bio writer sends a name, job
+  title and company to OpenAI in the United States. Only that, only when a user asks for
+  it, and never any lead or contact data.</p>
   <span class="note">Answer this plainly and without apology. "In the EU under GDPR" is a
   stronger answer than most local hosting, and hesitating makes it sound like a problem
-  when it is not.</span>
+  when it is not. But do not say "the EU" full stop and leave the US transfer to be
+  discovered - that is the answer that unravels.</span>
 </div>
 
 <div class="qa">
@@ -167,7 +171,7 @@
 <div class="qa">
   <p class="q">Who can see the leads our staff capture?</p>
   <p class="a">Only your account. The rule lives in the database, not in the website, so
-  even a bug in a page could not leak them. There are 48 lead records in the system today
+  even a bug in a page could not leak them. There are 50 lead records in the system today
   and someone outside can read zero of them.</p>
 </div>
 
@@ -228,8 +232,16 @@
 <div class="qa">
   <p class="q">Who are your sub-processors?</p>
   <p class="a">Supabase for database and authentication, Vercel for hosting, Paystack for
-  payments, Resend for email, Google for sign-in. All named in the published privacy policy,
-  which we will send you.</p>
+  payments, Resend for email, Google and Microsoft for sign-in, and OpenAI for one optional
+  feature. All named in the published privacy policy, which we will send you.</p>
+  <p class="a">The OpenAI one is worth stating before they find it. If a user taps "let the
+  AI write it" on their own bio, their name, job title and company are sent to OpenAI to
+  draft a sentence. Nobody else's data is involved, no lead or contact data is ever sent,
+  and the feature is optional. It is the only place customer information leaves our own
+  providers.</p>
+  <span class="note">Volunteer this rather than waiting to be asked. An AI sub-processor
+  found by a reviewer who was told the list was complete costs more trust than the feature
+  is worth.</span>
 </div>
 
 <div class="qa">
@@ -259,17 +271,46 @@
       <tr><th>Data</th><th>Exists</th><th>Readable</th></tr>
     </thead>
     <tbody>
-      <tr><td>User profiles</td><td>76</td><td class="zero">0</td></tr>
-      <tr><td>Captured leads</td><td>48</td><td class="zero">0</td></tr>
+      <tr><td>User profiles</td><td>79</td><td class="zero">0</td></tr>
+      <tr><td>Captured leads</td><td>50</td><td class="zero">0</td></tr>
       <tr><td>Organisations</td><td>8</td><td class="zero">0</td></tr>
-      <tr><td>Billing records</td><td>20</td><td class="zero">0</td></tr>
-      <tr><td>Admin audit log</td><td>42</td><td class="zero">0</td></tr>
-      <tr><td>Sales activity</td><td>94</td><td class="zero">0</td></tr>
-      <tr><td>Business cards</td><td>46</td><td class="pub">44, public by design</td></tr>
+      <tr><td>Subscriptions</td><td>21</td><td class="zero">0</td></tr>
+      <tr><td>Admin audit log</td><td>46</td><td class="zero">0</td></tr>
+      <tr><td>Sales activity</td><td>103</td><td class="zero">0</td></tr>
+      <tr><td>Card view events</td><td>3&thinsp;144</td><td class="zero">0</td></tr>
+      <tr><td>Business cards</td><td>47</td><td class="pub">45, public by design</td></tr>
+      <tr><td>Team cards</td><td>56</td><td class="pub">56, public by design</td></tr>
     </tbody>
   </table>
   <span class="note">The left column is the point. Zero readable out of zero records
-  proves nothing. Zero out of 76 is the claim.</span>
+  proves nothing. Zero out of 79 is the claim. The card rows are public deliberately, and
+  saying so unprompted is what makes the zeros above them credible.</span>
+</div>
+
+<div class="qa">
+  <p class="q">Row-level security is one setting. What if it is misconfigured?</p>
+  <p class="a">Fair, and it was. Postgres row-level security is row level, not column level:
+  a policy that lets somebody edit their own record lets them edit every field of it, and
+  the platform grants that by default. So an account holder could write fields they should
+  never touch.</p>
+  <p class="a">That is now closed by column-level grants. A signed-in user may write the
+  content of their own card and their own name, and nothing else. Trial dates, admin flags,
+  subscription state, seat counts, organisation billing and analytics counters are writable
+  only by the server. The anonymous key that ships in every page can write nothing at all,
+  on any table.</p>
+  <span class="note">Measured, not asserted: every table in the database was probed with
+  the public key on 21 September 2026 and none accepted a write. A technical buyer can
+  repeat that test themselves with the key from our page source.</span>
+</div>
+
+<div class="qa">
+  <p class="q">What do your response headers look like?</p>
+  <p class="a">HSTS for two years, so a browser refuses plain HTTP after the first visit.
+  Frames blocked to same origin, MIME sniffing off, referrer trimmed to the origin
+  cross-site, and a permissions policy that denies microphone, geolocation, USB and
+  payment outright and allows the camera only to us, for the card scanner.</p>
+  <span class="note">No Content-Security-Policy header yet. If they ask specifically,
+  say so. It is the one item on this list we have not done.</span>
 </div>
 
 <div class="qa">
@@ -296,13 +337,17 @@
   multinational. The controls above are real regardless, and claiming a certification you do
   not hold is the fastest way to lose a technical buyer.</p>
   <p><strong>No independent penetration test.</strong> Do not imply otherwise.</p>
-  <p><strong>No application-level rate limiting</strong> on our own endpoints. Sign-in
-  attempts are rate limited by the authentication platform.</p>
+  <p><strong>No Content-Security-Policy header.</strong> The other security headers are
+  set; this one is not.</p>
+  <p><strong>Rate limiting is partial.</strong> The customer API enforces a per-key hourly
+  limit and returns 429 over it, and sign-in attempts are limited by the authentication
+  platform. The website's own internal endpoints are not separately rate limited. Say the
+  first two and do not round it up to "yes, we rate limit".</p>
 </div>
 
 <footer>
   Internal preparation document. Every figure measured against production on
-  14 September 2026, read only. Not for circulation outside Cardtly.
+  21 September 2026, read only. Not for circulation outside Cardtly.
 </footer>
 
 </div>
