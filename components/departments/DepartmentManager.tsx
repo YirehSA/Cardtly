@@ -966,8 +966,11 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
           state={`${lockedCount} of ${LOCK_GROUPS.length} locked`}
           stateTone={lockedCount > 0 ? accent : undefined} />
         <p className="text-sm text-muted-foreground mb-4">
+          {/* Job title used to be in this list of things people can always
+              edit. It is lockable now, so naming it here told a department head
+              the opposite of what the toggle above it does. */}
           Tap anything you want kept the same on every card in this team. Your people can always
-          edit the rest: their own name, photo, job title and phone number.
+          edit the rest: their own name, photo, phone number and email.
           {orgLocks.length > 0 && ' Items the company has already locked are shown here and cannot be unlocked from inside a team.'}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 divide-y sm:divide-y-0 divide-border">
