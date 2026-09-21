@@ -29,6 +29,17 @@ interface Offender {
   pos: string
 }
 
+/** An element whose own content is wider than itself and is therefore being
+ *  cut off or side-scrolled. This is the other reading of "bleeds to the
+ *  right": nothing widens the page, something inside it is simply clipped. */
+interface Clipped {
+  tag: string
+  cls: string
+  boxWidth: number
+  contentWidth: number
+  overflowX: string
+}
+
 interface Report {
   scrollWidth: number
   clientWidth: number
@@ -36,6 +47,13 @@ interface Report {
   visualViewport: number | null
   devicePixelRatio: number
   offenders: Offender[]
+  clipped: Clipped[]
+  /** The worst document overflow seen since the probe started, and where the
+   *  page was scrolled when it happened. A single measurement at load misses
+   *  anything that only appears further down the page. */
+  worstOverflow: number
+  worstAtScrollY: number
+  samples: number
 }
 
 /** True when something between el and the root already clips or scrolls
@@ -58,14 +76,40 @@ function depthOf(el: Element): number {
   return d
 }
 
+let worstOverflow = 0
+let worstAtScrollY = 0
+let samples = 0
+
 function measure(): Report {
   const root = document.documentElement
   const vw = root.clientWidth
   const offenders: Offender[] = []
+  const clipped: Clipped[] = []
 
   for (const el of Array.from(document.querySelectorAll<HTMLElement>('*'))) {
     if (el.hasAttribute('data-overflow-probe')) continue
     if (el.closest('[data-overflow-probe]')) continue
+
+    const cs = getComputedStyle(el)
+
+    // CUT OFF. The element clips or scrolls horizontally and its content does
+    // not fit, so something inside it is being hidden at the right edge. This
+    // never widens the page, which is why the overflow check below cannot see
+    // it, and it is what "bleeds to the right" looks like when the page itself
+    // measures clean.
+    if (cs.overflowX === 'hidden' || cs.overflowX === 'auto' || cs.overflowX === 'scroll') {
+      if (el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0) {
+        clipped.push({
+          tag: el.tagName.toLowerCase(),
+          cls: (el.className || '').toString().replace(/\s+/g, ' ').slice(0, 90),
+          boxWidth: el.clientWidth,
+          contentWidth: el.scrollWidth,
+          overflowX: cs.overflowX,
+        })
+        el.style.outline = '2px dashed #ffd60a'
+        el.style.outlineOffset = '-2px'
+      }
+    }
 
     const r = el.getBoundingClientRect()
     if (r.width === 0 && r.height === 0) continue
@@ -80,7 +124,7 @@ function measure(): Report {
       left: Math.round(r.left),
       right: Math.round(r.right),
       width: Math.round(r.width),
-      pos: getComputedStyle(el).position,
+      pos: cs.position,
     })
 
     el.style.outline = '2px solid #ff2d55'
@@ -90,6 +134,15 @@ function measure(): Report {
   // Shallowest first: a child usually sticks out because its parent does, so
   // the outermost offender is the one worth fixing.
   offenders.sort((a, b) => a.depth - b.depth)
+  // Widest first: the worst cut is the one to explain.
+  clipped.sort((a, b) => (b.contentWidth - b.boxWidth) - (a.contentWidth - a.boxWidth))
+
+  const over = root.scrollWidth - vw
+  samples++
+  if (over > worstOverflow) {
+    worstOverflow = over
+    worstAtScrollY = Math.round(window.scrollY)
+  }
 
   return {
     scrollWidth: root.scrollWidth,
@@ -98,6 +151,10 @@ function measure(): Report {
     visualViewport: window.visualViewport ? Math.round(window.visualViewport.width) : null,
     devicePixelRatio: window.devicePixelRatio,
     offenders,
+    clipped,
+    worstOverflow,
+    worstAtScrollY,
+    samples,
   }
 }
 
@@ -114,18 +171,41 @@ export default function OverflowProbe() {
     }
     if (!on) return
 
-    // Twice: once when the effect runs and once after images, fonts and any
-    // late layout have settled, because a bleed that only appears after an
-    // image loads is exactly the kind that is hard to catch by eye.
-    const run = () => setReport(measure())
+    // KEEP WATCHING. Measuring once at load misses everything that only
+    // appears further down a page you have to scroll, after an image loads, or
+    // after data arrives - and on the dashboard that is most of the page. The
+    // worst reading is kept, with the scroll position it happened at, so the
+    // banner can still report it after you have scrolled past.
+    let frame = 0
+    const run = () => {
+      if (frame) return
+      frame = window.requestAnimationFrame(() => {
+        frame = 0
+        setReport(measure())
+      })
+    }
+
     run()
-    const t = window.setTimeout(run, 1500)
+    const settle = window.setTimeout(run, 1500)
+    const ticker = window.setInterval(run, 2000)
+
     window.addEventListener('resize', run)
     window.addEventListener('orientationchange', run)
+    window.addEventListener('scroll', run, { passive: true })
+
+    // Late-rendered content counts too: a list that fills in after a fetch can
+    // widen the page long after load.
+    const observer = new MutationObserver(run)
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true })
+
     return () => {
-      window.clearTimeout(t)
+      if (frame) window.cancelAnimationFrame(frame)
+      window.clearTimeout(settle)
+      window.clearInterval(ticker)
       window.removeEventListener('resize', run)
       window.removeEventListener('orientationchange', run)
+      window.removeEventListener('scroll', run)
+      observer.disconnect()
     }
   }, [])
 
@@ -153,8 +233,12 @@ export default function OverflowProbe() {
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-        <strong style={{ color: over > 0 ? '#ff2d55' : '#22c55e' }}>
-          {over > 0 ? `BLEEDING by ${over}px` : 'No horizontal overflow'}
+        <strong style={{ color: over > 0 || report.worstOverflow > 0 ? '#ff2d55' : '#22c55e' }}>
+          {over > 0
+            ? `BLEEDING by ${over}px`
+            : report.worstOverflow > 0
+              ? `bled ${report.worstOverflow}px at scrollY ${report.worstAtScrollY} (clean here)`
+              : 'No horizontal overflow'}
         </strong>
         <button
           onClick={() => setHidden(true)}
@@ -167,7 +251,27 @@ export default function OverflowProbe() {
       <div style={{ opacity: 0.75, marginBottom: 6 }}>
         scrollWidth {report.scrollWidth} · clientWidth {report.clientWidth} · innerWidth {report.innerWidth}
         {report.visualViewport !== null ? ` · visual ${report.visualViewport}` : ''} · dpr {report.devicePixelRatio}
+        {' · '}scrollY {Math.round(typeof window !== 'undefined' ? window.scrollY : 0)} · {report.samples} samples
       </div>
+
+      {report.clipped.length > 0 && (
+        <div style={{ marginBottom: 6 }}>
+          <div style={{ color: '#ffd60a' }}>
+            CUT OFF ({report.clipped.length}) - content wider than its box, clipped rather than widening the page:
+          </div>
+          <ol style={{ margin: '3px 0 0', paddingLeft: 16 }}>
+            {report.clipped.slice(0, 5).map((c, i) => (
+              <li key={i} style={{ marginBottom: 4 }}>
+                <span style={{ color: '#ffe680' }}>
+                  &lt;{c.tag}&gt; [{c.overflowX}]
+                </span>{' '}
+                box {c.boxWidth} · content {c.contentWidth} (+{c.contentWidth - c.boxWidth})
+                <div style={{ opacity: 0.7, wordBreak: 'break-all' }}>{c.cls || '(no class)'}</div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
 
       {report.offenders.length === 0 ? (
         <div style={{ opacity: 0.75 }}>
