@@ -6,6 +6,7 @@ import CapacitorBackButton from '@/components/CapacitorBackButton'
 import CapacitorDeepLinks from '@/components/CapacitorDeepLinks'
 import CapacitorSessionRefresh from '@/components/CapacitorSessionRefresh'
 import ReferralCapture from '@/components/ReferralCapture'
+import OverflowProbe from '@/components/dev/OverflowProbe'
 import { graph, organization, webSite } from '@/lib/seo-schema'
 
 const jakarta = Plus_Jakarta_Sans({
@@ -114,6 +115,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ReferralCapture />
         <CapacitorDeepLinks />
         <CapacitorSessionRefresh />
+        {/* TEMPORARY. Renders null and measures nothing unless the URL carries
+            ?overflow=1. Here rather than in the dashboard layout so any page
+            can be probed on the device, including the ones behind a login that
+            cannot be reached from a development machine. Remove once the iOS
+            bleed is found. */}
+        <OverflowProbe />
       </body>
     </html>
   )
