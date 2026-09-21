@@ -552,8 +552,8 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
               <Field label="Full name" required>
                 <Input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Jane Smith" />
               </Field>
-              <Field label="Job title">
-                <Input value={form.title} onChange={e => update('title', e.target.value)} placeholder="Sales Manager" />
+              <Field label="Job title" locked={isLocked('title')} lockedBy={org.name}>
+                <Input value={form.title} onChange={e => update('title', e.target.value)} placeholder="Sales Manager" disabled={isLocked('title')} />
               </Field>
               <Field label="Company" locked={isLocked('company')} lockedBy={org.name}>
                 <Input value={form.company} onChange={e => update('company', e.target.value)} placeholder={org.name} disabled={isLocked('company')} />
@@ -561,17 +561,26 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
               {/* The AI writer, same as a personal card gets. A team card is
                   always Pro, since the organisation pays for it, so there is no
                   plan gate.
-                  No lock check either: bio belongs to no lock group in
-                  lib/team-locks, deliberately - the company fixes its logo,
-                  name, website and design, and the words a person writes about
-                  themselves stay theirs. Guarding on isLocked('bio') would be
-                  a condition that can never be true, implying a control the
-                  company does not actually have. */}
-              <Field label="Bio" hint="Stuck? Let the AI write it.">
+                  This used to say bio belongs to no lock group and that
+                  guarding on isLocked('bio') would be a condition that could
+                  never be true. That stopped being true when the bio group was
+                  added to lib/team-locks: on a team card the bio is often the
+                  paragraph about the business that legal signed off, and a
+                  company standardising everything else had no reason to leave
+                  it as the one field anybody could rewrite.
+                  The comment outlived the change, and the cost was real. An
+                  admin could lock Bio, the member's box stayed editable, they
+                  wrote one, pressed save, and stripLocked dropped it on the
+                  server without a word. scripts/check-lock-wiring now fails the
+                  build if any lockable field the editor writes by hand is left
+                  undisabled. */}
+              <Field label="Bio" hint="Stuck? Let the AI write it."
+                locked={isLocked('bio')} lockedBy={org.name}>
                 <div className="relative">
                   <textarea value={form.bio} onChange={e => update('bio', e.target.value)}
+                    disabled={isLocked('bio')}
                     placeholder="Tell people about this team member..." rows={4}
-                    className="w-full px-4 py-2.5 pr-32 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition resize-none" />
+                    className="w-full px-4 py-2.5 pr-32 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition resize-none disabled:opacity-60" />
                   <button type="button" onClick={() => setAiBioOpen(true)}
                     className="absolute top-2 right-2 flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-white transition hover:opacity-90"
                     style={{ background: 'hsl(var(--accent))' }}>
@@ -579,8 +588,9 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                   </button>
                 </div>
               </Field>
-              <Field label="Certifications / Tags" hint="Comma separated e.g. Sales, Certified, CPA">
-                <Input value={form.certifications} onChange={e => update('certifications', e.target.value)} placeholder="Sales, Certified, CPA" />
+              <Field label="Certifications / Tags" hint="Comma separated e.g. Sales, Certified, CPA"
+                locked={isLocked('certifications')} lockedBy={org.name}>
+                <Input value={form.certifications} onChange={e => update('certifications', e.target.value)} placeholder="Sales, Certified, CPA" disabled={isLocked('certifications')} />
               </Field>
             </>
           )}

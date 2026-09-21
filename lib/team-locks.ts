@@ -36,6 +36,23 @@ export const LOCK_GROUPS: LockGroup[] = [
     columns: ['company'],
   },
   {
+    // LOCKING A TITLE IS NOT THE SAME AS STANDARDISING ONE. Company, logo,
+    // website and address are a single value the organisation pushes to every
+    // card. A job title is different: it is per person, and the point of
+    // locking it is that the company decides what somebody's title is rather
+    // than the person deciding for themselves.
+    //
+    // That works without any further plumbing because `title` is not in
+    // BRAND_FIELDS, and mergeBrand only ever copies fields that are. So the
+    // lock removes the member's ability to write the column and leaves each
+    // card's own title exactly where the admin set it, instead of overwriting
+    // forty people with one. `bio` already works this way.
+    id: 'title',
+    label: 'Job title',
+    hint: 'Only an admin can set what someone’s title is',
+    columns: ['title'],
+  },
+  {
     id: 'office_phone',
     label: 'Office number',
     hint: 'The switchboard number stays as you set it',
