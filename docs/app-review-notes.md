@@ -31,9 +31,10 @@ CARDTLY - APP REVIEW INFORMATION
 Two accounts are provided because the app behaves differently at each
 subscription state, and a previous review asked to see the expired one.
 
-  Primary account - use this one for the walkthrough. Full access to every
-  feature.
-    Username: demo@cardtly.com
+  Primary account - this is the account shown in the walkthrough video, so
+  what you see signing in matches what you see in the recording. Full access
+  to every feature.
+    Username: demo1@cardtly.com
     Password: <<FILL IN>>
 
   Expired account - subscription has lapsed. Provided so you can confirm that
@@ -42,9 +43,10 @@ subscription state, and a previous review asked to see the expired one.
     Password: <<FILL IN>>
 
   No other credentials, codes or sample files are needed. The primary account
-  already contains a finished card, captured contacts and viewing history, so
-  no screen is empty. The second account is intentionally left in the lapsed
-  state and is there only for the check described in section 9.
+  is a live trial account with a finished card and a captured contact, and it
+  is the same account used throughout the video. The second account is
+  intentionally left in the lapsed state and is there only for the check
+  described in section 9.
 
 2. WHAT THE APP DOES AND WHO IT IS FOR
 
