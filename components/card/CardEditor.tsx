@@ -224,11 +224,17 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
     // that window somebody fixing a typo in their name would be told their card
     // could not be saved. Drop the columns the table has not got and save the
     // rest, rather than losing everything they just typed.
+    //
+    // hero_image_url (migration 088) is on the same list for the same reason.
+    // It is NOT covered by the image_N pattern above - the whole point of the
+    // column is that it is not a numbered gallery slot - so without naming it
+    // here, a deploy that lands before 088 runs would fail every save on this
+    // page and the fallback would sail straight past the one column causing it.
     let late = 0
     if (error && isMissingColumn(error)) {
       for (const key of Object.keys(payload)) {
         const n = Number(key.match(/^image_(\d+)_/)?.[1] ?? 0)
-        if (n > 6) { delete payload[key]; late++ }
+        if (n > 6 || key === 'hero_image_url') { delete payload[key]; late++ }
       }
       if (late > 0) ({ data: updated, error } = await write())
     }
@@ -537,6 +543,30 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                 <ImageUploader value={form.company_logo_url} onChange={url => update('company_logo_url', url)} bucket="company-logos" userId={userId} shape="square" />
               </Section>
 
+              {/* THE HERO IS ITS OWN SECTION, above the gallery, and only on
+                  the template that has one. It was gallery slot 1 for a day,
+                  which cost a dealership one of its ten listings and put the
+                  same vehicle on the card twice. Migration 088 split them.
+
+                  Shown only on Showroom because the other fifteen templates
+                  never read the column, and an upload box that does nothing is
+                  the exact failure the greyed-out design controls exist to
+                  avoid. */}
+              {design.templateId === 'showroom' && (
+                <Section title="Hero image" colour={TAB_COLOUR.media} icon={<Image className="w-4 h-4" />}
+                  hint="The big photo across the top of your card. Your forecourt, your building, or the car you want people to see first. This one does NOT use up a gallery slot.">
+                  <ImageUploader value={(form as any).hero_image_url} onChange={url => update('hero_image_url', url)} bucket="card-images" userId={userId} shape="square" />
+                  {/* Says out loud what heroImageFor does, so a dealer who
+                      built their card before 088 is not left wondering why
+                      there is already a photo up there. */}
+                  {!(form as any).hero_image_url && (form as any).image_1_url && (
+                    <p className="text-[11px] text-muted-foreground mt-2">
+                      Nothing here yet, so your card is using Photo 1 below. Upload a hero to free that slot up for another listing.
+                    </p>
+                  )}
+                </Section>
+              )}
+
               <Section title="Photos of your work" colour={TAB_COLOUR.media} icon={<Image className="w-4 h-4" />}
                 hint={`Up to ${MAX_GALLERY_IMAGES}. Finished jobs, your shop, your products - whatever proves you are good at it.`}>
                 {Array.from({ length: MAX_GALLERY_IMAGES }, (_, i) => i + 1).slice(0, photoSlots).map(i => (
@@ -544,23 +574,12 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                     <div className="flex items-center gap-2">
                       <span className="w-6 h-6 rounded-lg grid place-items-center text-[11px] font-bold shrink-0"
                         style={{ background: TAB_COLOUR.media + '1f', color: TAB_COLOUR.media }}>{i}</span>
-                      {/* SHOWROOM USES THE FIRST PHOTO AS ITS HERO, and nothing
-                          about a slot called "Photo 1" says so. The rule is
-                          fine once you know it and undiscoverable until then,
-                          so the label carries it on the template that behaves
-                          that way and stays out of the way on the fifteen that
-                          do not. Naming it here rather than adding a hero
-                          column keeps one gallery to fill in rather than two
-                          places to forget. */}
-                      <p className="text-xs font-semibold text-muted-foreground">
-                        {design.templateId === 'showroom' && i === 1 ? 'Hero image' : `Photo ${i}`}
-                      </p>
+                      {/* Plain "Photo N" on every template again. Slot 1 was
+                          labelled "Hero image" on Showroom for a day, back
+                          when the hero WAS this photo; the hero has its own
+                          section above now, so all ten of these are listings. */}
+                      <p className="text-xs font-semibold text-muted-foreground">Photo {i}</p>
                     </div>
-                    {design.templateId === 'showroom' && i === 1 && (
-                      <p className="text-[11px] text-muted-foreground -mt-1">
-                        Showroom puts this one big across the top of your card. It still appears in the gallery below.
-                      </p>
-                    )}
                     <ImageUploader value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" />
                     <div>
                       {/* Migration 087. Written for Showroom, where the gallery

@@ -95,7 +95,17 @@ export const LOCK_GROUPS: LockGroup[] = [
     // leaving every price under them editable by the salesperson - a lock that
     // looks closed and is not, which is the exact shape of the bio and
     // certifications defect found a day earlier.
-    columns: IMAGE_SLOTS.flatMap(i => [`image_${i}_url`, `image_${i}_link`, `image_${i}_title`]),
+    //
+    // hero_image_url joins them for the same reason. It is not a gallery slot
+    // (migration 088 split it out so the hero stops eating a listing), but it
+    // is the same DECISION to a human: a group that has taken control of the
+    // photographs on its cards has taken control of the big one at the top
+    // too. Leaving it out would lock ten photos and leave the largest one on
+    // the card free for anyone to replace.
+    columns: [
+      ...IMAGE_SLOTS.flatMap(i => [`image_${i}_url`, `image_${i}_link`, `image_${i}_title`]),
+      'hero_image_url',
+    ],
   },
   {
     // A bio is personal on a personal card. On a team card it is often the

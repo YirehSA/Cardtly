@@ -121,12 +121,16 @@ export async function POST(request: Request) {
   // Postgres fails the WHOLE update over one unknown column: somebody
   // correcting their phone number would be told their card could not be saved.
   //
+  // hero_image_url, from migration 088, is on the list for the same reason and
+  // has to be named rather than matched: it is deliberately not a numbered
+  // gallery slot, so the image_N pattern below does not see it.
+  //
   // Drop what the table cannot take, save the rest, and say which ones waited.
   const late: string[] = []
   if (error && isMissingColumn(error)) {
     for (const key of Object.keys(payload)) {
       const n = Number(key.match(/^link_(\d+)_/)?.[1] ?? key.match(/^image_(\d+)_/)?.[1] ?? 0)
-      if (key === 'youtube' || key === 'tiktok' || (key.startsWith('link_') && n > 5) || (key.startsWith('image_') && n > 6)) {
+      if (key === 'youtube' || key === 'tiktok' || key === 'hero_image_url' || (key.startsWith('link_') && n > 5) || (key.startsWith('image_') && n > 6)) {
         delete payload[key]
         late.push(key)
       }

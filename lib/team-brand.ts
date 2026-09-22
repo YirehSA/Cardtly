@@ -26,16 +26,28 @@ export const BRAND_FIELDS = [
   'link_9_title', 'link_9_url',
   'link_10_title', 'link_10_url',
   'certifications',
-  'image_1_url', 'image_1_link',
-  'image_2_url', 'image_2_link',
-  'image_3_url', 'image_3_link',
-  'image_4_url', 'image_4_link',
-  'image_5_url', 'image_5_link',
-  'image_6_url', 'image_6_link',
-  'image_7_url', 'image_7_link',
-  'image_8_url', 'image_8_link',
-  'image_9_url', 'image_9_link',
-  'image_10_url', 'image_10_link',
+  // THE CAPTION TRAVELS WITH THE PHOTO. image_N_title arrived with migration
+  // 087 and was not added here, which left it locked by the images group and
+  // supplied by nothing: an org that set its gallery on the brand pushed ten
+  // photos to forty cards and forty blank captions with them, with no member
+  // able to type one. On Showroom the caption is the price, so the fleet went
+  // out as stock photographs with no prices under them. Same shape as the
+  // Vistly certifications defect - a field a lock closes and a brand never
+  // fills is a field nobody can set.
+  'image_1_url', 'image_1_link', 'image_1_title',
+  'image_2_url', 'image_2_link', 'image_2_title',
+  'image_3_url', 'image_3_link', 'image_3_title',
+  'image_4_url', 'image_4_link', 'image_4_title',
+  'image_5_url', 'image_5_link', 'image_5_title',
+  'image_6_url', 'image_6_link', 'image_6_title',
+  'image_7_url', 'image_7_link', 'image_7_title',
+  'image_8_url', 'image_8_link', 'image_8_title',
+  'image_9_url', 'image_9_link', 'image_9_title',
+  'image_10_url', 'image_10_link', 'image_10_title',
+  // The Showroom hero (migration 088). A photograph like the gallery, so it is
+  // brand-managed and lockable with them, and excluded from the copyable look
+  // below for the same reason they are.
+  'hero_image_url',
 ] as const
 
 export type BrandField = typeof BRAND_FIELDS[number]
@@ -53,7 +65,14 @@ export type BrandField = typeof BRAND_FIELDS[number]
  * sixth the moment anyone copied it.
  */
 export const COPYABLE_LOOK_FIELDS: string[] =
-  BRAND_FIELDS.filter(f => f !== 'company' && !f.startsWith('image_'))
+  BRAND_FIELDS.filter(f =>
+    f !== 'company' &&
+    !f.startsWith('image_') &&
+    // The Showroom hero is a photograph, so it belongs with the gallery on the
+    // wrong side of this filter rather than with the colours and the logo. It
+    // does not start with image_, so it has to be named or it would be the one
+    // picture that follows a copied card around.
+    f !== 'hero_image_url')
 
 export function copyLook(source: Record<string, any> | null | undefined): Record<string, any> {
   const out: Record<string, any> = {}

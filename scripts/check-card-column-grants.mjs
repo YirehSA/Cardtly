@@ -217,11 +217,78 @@ if (!editor) {
   }
 }
 
+// ── 5. Every column added to cards after 084 is granted back ────────────────
+//
+// THE ONE THAT KEEPS BEING REMEMBERED BY HAND. 084 built its UPDATE grant as
+// an explicit column list, computed from the catalogue at the moment it ran.
+// Every column added afterwards therefore starts OUTSIDE that grant, and the
+// card editor writes straight from the browser with the user's own session, so
+// the first customer to touch the new field gets
+//
+//     permission denied for column <the new one>
+//
+// in production, on a database where every migration has been applied - which
+// is the worst possible place to find it. 084's own table comment warns about
+// this, 087 remembered, 088 remembered. This is so the ninetieth does not have
+// to, and so a guard rather than a comment is what catches it.
+//
+// Not a check on the database, which this repo cannot see: a check that the
+// repo's own migrations are internally consistent.
+const MIGRATIONS_DIR = 'supabase/migrations'
+let migrationFiles = []
+try {
+  migrationFiles = readdirSync(MIGRATIONS_DIR).filter(f => f.endsWith('.sql')).sort()
+} catch {
+  bad(`${MIGRATIONS_DIR} cannot be read, so the grants on later columns cannot be checked`)
+}
+
+// Everything granted anywhere after 084, as one set. A later migration may tidy
+// up after an earlier one, so which FILE grants a column does not matter.
+const granted = new Set()
+const addedAfter084 = new Map() // column -> file that added it
+
+for (const f of migrationFiles) {
+  const num = Number(f.slice(0, 3))
+  if (!Number.isFinite(num) || num < 84) continue
+  const sql = (read(join(MIGRATIONS_DIR, f)) || '')
+    .split(LF).map(l => l.replace(/^\s*--.*$/, '')).join(LF)
+
+  for (const m of sql.matchAll(/grant\s+update\s*\(([^)]*)\)\s*on\s+public\.cards/gi)) {
+    for (const col of m[1].split(',')) {
+      const name = col.trim()
+      if (name) granted.add(name)
+    }
+  }
+
+  if (num <= 84) continue
+  // `alter table public.cards ... add column [if not exists] <name> <type>`,
+  // including the multi-column form where one ALTER adds five at a time.
+  for (const m of sql.matchAll(/alter\s+table\s+(?:only\s+)?public\.cards\b([\s\S]*?);/gi)) {
+    for (const add of m[1].matchAll(/add\s+column\s+(?:if\s+not\s+exists\s+)?([A-Za-z_]\w*)/gi)) {
+      addedAfter084.set(add[1], f)
+    }
+  }
+}
+
+for (const [col, file] of addedAfter084) {
+  if (DENIED_UPDATE.includes(col)) continue // deliberately service role only
+  if (!granted.has(col)) {
+    bad(
+      `${MIGRATIONS_DIR}/${file} adds cards.${col} but no migration grants UPDATE on it to authenticated. ` +
+      `Migration 084's grant is a fixed column list, so a column added after it is not in it: the card editor ` +
+      `will fail with "permission denied for column ${col}" the first time a customer fills it in. ` +
+      `Add \`grant update (${col}) on public.cards to authenticated;\` to that migration, or add ${col} to ` +
+      `DENIED_UPDATE here and to 084's deny list if it is meant to be service role only.`,
+    )
+  }
+}
+
 if (fail) {
   console.error(`${LF}check-card-column-grants: ${fail} failure(s).`)
   process.exit(1)
 }
 console.log(
-  'check-card-column-grants: the browser writes cards content and nothing else, and never writes organizations - so the ' +
-  'column grants migration 084 made can hold without the card editor or signup breaking against them.',
+  'check-card-column-grants: the browser writes cards content and nothing else, never writes organizations, and every ' +
+  `column added after 084 (${addedAfter084.size}) is granted back - so the column grants migration 084 made can hold ` +
+  'without the card editor or signup breaking against them.',
 )

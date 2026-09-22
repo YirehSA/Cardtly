@@ -53,6 +53,12 @@ const PROBES = {
   bioType:        ['calcBioSize(', 'getBioColor('],
   bodySize:       ['getBodyFontSize('],
   textPosition:   ['textNudge', 'design.textX'],
+  // AllContacts reads design.socialIconStyle, so the probe is the call - the
+  // same reasoning as '<Avatar' above. But it has to be the call WITH REAL
+  // SOCIALS: Minimal and Split Pro render their own social row and pass
+  // socialLinks={[]} here, so probing for '<AllContacts' alone would have
+  // advertised a colour control on two templates that ignore it.
+  socialIcons:    ['socialLinks={socialLinks}'],
 }
 
 const map = {}

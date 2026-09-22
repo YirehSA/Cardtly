@@ -62,9 +62,15 @@ export type LinkFields = { [K in LinkSlot as `link_${K}_title` | `link_${K}_url`
 // but never a word, so it could show a picture of a car and not its price -
 // which is the whole of a dealership listing. Optional everywhere: a card with
 // no captions renders exactly as it did before.
+// hero_image_url arrived with migration 088 and is NOT a gallery slot. It is
+// the full-bleed photo across the top of a Showroom card, and it lives outside
+// IMAGE_SLOTS on purpose: the hero used to be image_1_url, which meant the big
+// photo ate one of the ten listings and the same car appeared twice. Carried
+// here rather than declared in each editor so a form built from a card has it
+// without anybody remembering to add a line.
 export type ImageFields = {
   [K in ImageSlot as `image_${K}_url` | `image_${K}_link` | `image_${K}_title`]: string
-}
+} & { hero_image_url: string }
 
 export function linkFieldsFrom(card: any): LinkFields {
   return Object.fromEntries(LINK_SLOTS.flatMap(i => [
@@ -74,11 +80,27 @@ export function linkFieldsFrom(card: any): LinkFields {
 }
 
 export function imageFieldsFrom(card: any): ImageFields {
-  return Object.fromEntries(IMAGE_SLOTS.flatMap(i => [
-    [`image_${i}_url`, card?.[`image_${i}_url`] || ''],
-    [`image_${i}_link`, card?.[`image_${i}_link`] || ''],
-    [`image_${i}_title`, card?.[`image_${i}_title`] || ''],
-  ])) as ImageFields
+  return {
+    ...Object.fromEntries(IMAGE_SLOTS.flatMap(i => [
+      [`image_${i}_url`, card?.[`image_${i}_url`] || ''],
+      [`image_${i}_link`, card?.[`image_${i}_link`] || ''],
+      [`image_${i}_title`, card?.[`image_${i}_title`] || ''],
+    ])),
+    hero_image_url: card?.hero_image_url || '',
+  } as ImageFields
+}
+
+/** The Showroom hero, with the fallback the card itself uses.
+ *
+ *  Cards built before migration 088 put their hero in gallery slot 1, because
+ *  that is what the template read. Rather than migrate the data - which would
+ *  have to guess whether slot 1 was chosen as a hero or just happened to be
+ *  first - the read falls back, so those cards look identical until somebody
+ *  fills the new field in. Shared by the public card and both editor previews
+ *  so the preview cannot disagree with the card about which photo is on top.
+ */
+export function heroImageFor(card: any): string {
+  return card?.hero_image_url || card?.image_1_url || ''
 }
 
 export type TemplateId = 'classic' | 'modern' | 'bold' | 'minimal' | 'executive' | 'creative' | 'wave' | 'split' | 'splitpro' | 'circuit' | 'meridian' | 'neon' | 'studio' | 'frost' | 'editorial' | 'showroom'
@@ -109,12 +131,12 @@ export const TEXT_POSITION_TEMPLATES: TemplateId[] = ['bold', 'wave', 'modern', 
 export const TEMPLATE_CONTROLS: Record<TemplateId, string[]> = {
   classic: ['photoSize', 'profileBorder', 'logo', 'cardStyle', 'solidBackground', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
   modern: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition'],
-  bold: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition'],
+  bold: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition', 'socialIcons'],
   minimal: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
   executive: ['photoZoom', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
   creative: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
   wave: ['photoSize', 'logo', 'solidBackground', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition'],
-  split: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
+  split: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'socialIcons'],
   splitpro: ['photoSize', 'profileBorder', 'logo', 'cardStyle', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
   circuit: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
   meridian: ['photoSize', 'photoZoom', 'logo', 'cardStyle', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
@@ -122,12 +144,7 @@ export const TEMPLATE_CONTROLS: Record<TemplateId, string[]> = {
   studio: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
   frost: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
   editorial: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
-  // Regenerated from the source by scripts/check-template-controls.mjs --print,
-  // not guessed. Short for a reason: the hero sits on a photograph and sets its
-  // own type and colours, so nameType, titleType and companyType are absent
-  // rather than half-working. photoSize IS here - the seller chip reads it, and
-  // a size is a promise a photographic hero can actually keep.
-  showroom: ['photoSize', 'logo', 'bioType'],
+  showroom: ['photoSize', 'logo', 'bioType', 'socialIcons'],
 }
 
 /** Does this template read this setting at all? */
@@ -180,6 +197,20 @@ export interface CardDesign {
   bodySize?: 'small' | 'medium' | 'large'  // contact row + custom link text size (separate)
   buttonTextSize?: 'small' | 'medium' | 'large'  // Save Contact button text size
   profileBorder?: boolean    // toggle the photo's border ring on/off (default: true)
+  /** What colour the social icons in the shared contact block are drawn in.
+   *
+   *  'accent'  the card's accent, so the block reads as one set of controls
+   *            in the cardholder's colour. The default, and what every card
+   *            made before this setting existed looks like.
+   *  'brand'   each platform's own colour - Facebook blue, WhatsApp green,
+   *            Instagram pink. Faster to pick out, because people recognise
+   *            those colours before they read the glyph, at the cost of the
+   *            card's palette.
+   *
+   *  X and TikTok are pure black, which disappears on a dark card, so the
+   *  brand colour is passed through readableAccentOn before it is used. See
+   *  AllContacts. */
+  socialIconStyle?: 'accent' | 'brand'
 }
 
 export const DEFAULT_DESIGN: CardDesign = {
@@ -212,6 +243,7 @@ export const DEFAULT_DESIGN: CardDesign = {
   bodySize: 'medium',
   buttonTextSize: 'medium',
   profileBorder: true,
+  socialIconStyle: 'accent',
 }
 
 export const ACCENT_COLORS: Record<Exclude<AccentColor, 'custom'>, { label: string; hex: string }> = {
@@ -344,6 +376,37 @@ export function readableAccentOn(accent: string, grounds: string[], target = 4.5
     }
   }
   return accent // no lightness works; leave their colour rather than invent one
+}
+
+/**
+ * A PLATFORM'S OWN COLOUR, made visible on this card.
+ *
+ * For the "use each platform's colours" social icon setting. Facebook blue and
+ * WhatsApp green need nothing done to them; X and TikTok are #000000 and would
+ * otherwise vanish into a dark card completely.
+ *
+ * WHY readableAccentOn ALONE IS NOT ENOUGH, and this is not a bug in it: it
+ * holds hue and saturation and walks lightness, and black has no hue to hold -
+ * so it returns a greyscale colour untouched, on purpose and as documented.
+ * Passing #000000 through it on the Showroom page (#0b0f14) hands #000000
+ * straight back, a contrast ratio of 1.09:1. Checked by running it, not
+ * assumed: the first version of the social colour setting shipped with exactly
+ * that call in it and would have drawn two invisible icons.
+ *
+ * A greyscale brand therefore takes the card's own text colour instead, which
+ * is what those two brands do anyway - the X mark is black on light and white
+ * on dark, and never a grey in between.
+ *
+ * 3:1 rather than 4.5:1 because an icon is a graphic, not text.
+ */
+export function readableBrandOn(brand: string, pageHex: string, target = 3): string {
+  const h = brand.trim().replace('#', '')
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h
+  const greyscale = full.length === 6 &&
+    full.slice(0, 2).toLowerCase() === full.slice(2, 4).toLowerCase() &&
+    full.slice(2, 4).toLowerCase() === full.slice(4, 6).toLowerCase()
+  if (greyscale) return getReadableTextOn(pageHex)
+  return readableAccentOn(brand, [pageHex], target)
 }
 
 // Circuit draws in two tones: the accent, and a companion rotated round the

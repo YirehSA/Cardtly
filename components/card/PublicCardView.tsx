@@ -3,12 +3,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Card, extractLinks } from '@/types/database'
-import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, scrimAlphaForWhite, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, readableAccentOn, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS, SOCIAL_SLOTS, type SocialKey } from '@/types/design'
+import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, scrimAlphaForWhite, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, readableAccentOn, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS, SOCIAL_SLOTS, heroImageFor, readableBrandOn, type SocialKey } from '@/types/design'
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
   Instagram, Linkedin, Twitter, Facebook, Youtube, UserPlus, X, Sparkles,
-  ArrowRight,
+  ArrowRight, Smartphone,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { TikTokGlyph } from '@/components/card/SocialIcons'
@@ -468,21 +468,136 @@ function ContactBtn({ icon, label, sublabel, href, accentHex, bg, cardEffect, bo
 }
 
 // ── AllContacts ───────────────────────────────────────────────────────────────
-function AllContacts({ card, isPro, accentHex, bg, cardEffect, design, socialLinks }: Pick<Shared, 'card' | 'isPro' | 'accentHex' | 'bg' | 'cardEffect' | 'design'> & {
+function AllContacts({ card, isPro, accentHex, bg, cardEffect, design, socialLinks, compact = false }: Pick<Shared, 'card' | 'isPro' | 'accentHex' | 'bg' | 'cardEffect' | 'design'> & {
   socialLinks: { platform: string; url: string; icon: React.ReactNode; color?: string }[]
+  /** Render the contacts as a single row of icon buttons instead of a stack of
+   *  full-width rows.
+   *
+   *  SHOWROOM ASKS FOR THIS AND NOTHING ELSE DOES. Six stacked rows is roughly
+   *  400px of card spent on "here is my phone number" - on a dealership card
+   *  that pushes the stock, which is the entire reason the card exists, below
+   *  two more scrolls. The rows earn their height on a consultant's card,
+   *  where the contact details ARE the content. They do not on a forecourt.
+   *
+   *  The cost is honest: an icon does not show the number or the address, so
+   *  the visitor taps to find out rather than reads. That is the trade being
+   *  made on this template only. */
+  compact?: boolean
 }) {
   // bodySize was wired into the design panel but never read here, so the
   // control moved the editor preview and left the real card alone.
   const bodyFontSize = getBodyFontSize(design)
+
+  // ONE LIST, TWO SHAPES. Built once and rendered either way, rather than a
+  // second copy of the same six conditions - which is how Minimal and Studio
+  // came to silently drop YouTube, TikTok and Instagram, the defect the
+  // SOCIAL_SLOTS comment in types/design was written about.
+  //
+  // `action` is what the icon-only button announces to a screen reader and
+  // shows on hover. It has to be the VALUE, not the category: "Call
+  // +27 82 331 1360" tells somebody what will happen, "Phone" does not.
+  // EACH PLATFORM IN ITS OWN COLOUR, when the card asks for it. People
+  // recognise Facebook blue and WhatsApp green before they have read the
+  // glyph, which is worth more on an icon-only row than palette discipline is.
+  // Off by default, so no card made before this setting existed changes.
+  //
+  // Only the SOCIALS have a brand colour. Phone, email, address and website
+  // belong to the cardholder, not to a platform, so they stay on the accent
+  // either way - a green telephone would be inventing a brand that does not
+  // exist.
+  const useBrandColours = design.socialIconStyle === 'brand'
+
+  const entries: {
+    key: string
+    icon: React.ReactNode
+    label: string
+    sublabel?: string
+    href: string
+    action: string
+    /** The platform's own colour, already made readable against this card.
+     *  Absent on everything that is not a social account. */
+    brandColor?: string
+  }[] = []
+
+  if (card.phone) entries.push({
+    key: 'phone', icon: <Smartphone className="w-4 h-4" />, label: card.phone,
+    href: `tel:${card.phone}`, action: `Call ${card.phone}`,
+  })
+  // A HANDSET FOR THE OFFICE, A SMARTPHONE FOR THE CELL - everywhere, not just
+  // here. Both numbers used the same <Phone/> across all sixteen templates, so
+  // a card with a cell and a switchboard showed two identical icons doing
+  // different things. Readable in the stacked list only because of the "Work"
+  // sublabel underneath, and not readable at all once the row became bare
+  // circles. The desk handset now means the office and the smartphone means
+  // the person, which is the distinction people already make.
+  if (isPro && card.work_phone) entries.push({
+    key: 'work_phone',
+    icon: <Phone className="w-4 h-4" />,
+    label: card.work_phone, sublabel: 'Work',
+    href: `tel:${card.work_phone}`, action: `Call the office on ${card.work_phone}`,
+  })
+  // WhatsApp lives in socialLinks (brand-coloured pill) so it doesn't double-up here
+  if (card.email) entries.push({
+    key: 'email', icon: <Mail className="w-4 h-4" />, label: card.email,
+    href: `mailto:${card.email}`, action: `Email ${card.email}`,
+  })
+  if (isPro && card.address) entries.push({
+    key: 'address', icon: <MapPin className="w-4 h-4" />, label: card.address,
+    href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}`,
+    action: `Directions to ${card.address}`,
+  })
+  if (card.website) entries.push({
+    key: 'website', icon: <Globe className="w-4 h-4" />,
+    label: card.website.replace(/^https?:\/\//, ''),
+    href: card.website.startsWith('http') ? card.website : `https://${card.website}`,
+    action: `Visit ${card.website.replace(/^https?:\/\//, '')}`,
+  })
+  for (const s of socialLinks) entries.push({
+    key: s.platform, icon: s.icon, label: `${s.platform} Profile`,
+    href: s.url, action: `${s.platform} profile`,
+    // X and TikTok are #000000 and would disappear into a dark card, so the
+    // colour goes through readableBrandOn rather than being used raw. See
+    // types/design: readableAccentOn on its own hands black straight back.
+    brandColor: s.color ? readableBrandOn(s.color, bg.page) : undefined,
+  })
+
+  if (compact) {
+    return (
+      // 44px and a 10px gap are the floors, not the design: Apple's minimum
+      // touch target and Material's minimum spacing between two of them. An
+      // icon-only control that is 36px is a control people miss.
+      <div className="flex flex-wrap justify-center gap-2.5">
+        {entries.map(e => {
+          const tint = useBrandColours && e.brandColor ? e.brandColor : accentHex
+          return (
+            <a key={e.key} href={e.href}
+              target={e.href.startsWith('http') ? '_blank' : undefined}
+              rel={e.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+              aria-label={e.action} title={e.action}
+              className="rounded-full flex items-center justify-center transition hover:opacity-80"
+              style={{
+                width: 44, height: 44,
+                backgroundColor: tint + '22', color: tint,
+                border: cardEffect.borderStyle,
+              }}>
+              {e.icon}
+            </a>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-2.5">
-      {card.phone && <ContactBtn icon={<Phone className="w-4 h-4" />} label={card.phone} href={`tel:${card.phone}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={bodyFontSize} />}
-      {isPro && card.work_phone && <ContactBtn icon={<Phone className="w-4 h-4" />} label={card.work_phone} sublabel="Work" href={`tel:${card.work_phone}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={bodyFontSize} />}
-      {/* WhatsApp moved to socialLinks (brand-coloured pill) so it doesn't double-up here */}
-      {card.email && <ContactBtn icon={<Mail className="w-4 h-4" />} label={card.email} href={`mailto:${card.email}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={bodyFontSize} />}
-      {isPro && card.address && <ContactBtn icon={<MapPin className="w-4 h-4" />} label={card.address} href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={bodyFontSize} />}
-      {card.website && <ContactBtn icon={<Globe className="w-4 h-4" />} label={card.website.replace(/^https?:\/\//, '')} href={card.website.startsWith('http') ? card.website : `https://${card.website}`} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={bodyFontSize} />}
-      {socialLinks.map(s => <ContactBtn key={s.platform} icon={s.icon} label={`${s.platform} Profile`} href={s.url} accentHex={accentHex} bg={bg} cardEffect={cardEffect} bodyFontSize={bodyFontSize} />)}
+      {entries.map(e => (
+        // accentHex is what tints the icon chip inside the row, so passing the
+        // brand colour here is the whole of "use each platform's colours" for
+        // the stacked shape too. The row's own surface is untouched.
+        <ContactBtn key={e.key} icon={e.icon} label={e.label} sublabel={e.sublabel} href={e.href}
+          accentHex={useBrandColours && e.brandColor ? e.brandColor : accentHex}
+          bg={bg} cardEffect={cardEffect} bodyFontSize={bodyFontSize} />
+      ))}
     </div>
   )
 }
@@ -1618,7 +1733,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     const onHero = design.solidBackground ? getReadableTextOn(accentHex) : bg.text
 
     const rows: { key: string; label: string; value: string; href: string; icon: React.ReactNode }[] = [
-      card.phone && { key: 'tel', label: 'Phone', value: card.phone, href: `tel:${card.phone}`, icon: <Phone className="w-4 h-4" /> },
+      card.phone && { key: 'tel', label: 'Phone', value: card.phone, href: `tel:${card.phone}`, icon: <Smartphone className="w-4 h-4" /> },
       isPro && card.work_phone && { key: 'dir', label: 'Direct', value: card.work_phone, href: `tel:${card.work_phone}`, icon: <Phone className="w-4 h-4" /> },
       card.email && { key: 'eml', label: 'Email', value: card.email, href: `mailto:${card.email}`, icon: <Mail className="w-4 h-4" /> },
       isPro && card.address && { key: 'off', label: 'Address', value: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}`, icon: <MapPin className="w-4 h-4" /> },
@@ -1946,7 +2061,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               website, twitter/X, facebook). Wraps to a second row on narrow
               phones when 5+ are filled in. */}
           <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 14, margin: '28px 0 32px' }}>
-            {card.phone && <Circle href={`tel:${card.phone}`} color={ICON_COLORS.phone} label="Call" icon={<Phone className="w-6 h-6" />} />}
+            {card.phone && <Circle href={`tel:${card.phone}`} color={ICON_COLORS.phone} label="Call" icon={<Smartphone className="w-6 h-6" />} />}
             {card.email && <Circle href={`mailto:${card.email}`} color={ICON_COLORS.email} label="Email" icon={<Mail className="w-6 h-6" />} />}
             {card.website && <Circle href={card.website.startsWith('http') ? card.website : `https://${card.website}`} color={ICON_COLORS.website} label="Website" icon={<Globe className="w-6 h-6" />} />}
             {/* EVERY social this card has, not the four this template used to
@@ -2065,7 +2180,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                   or paired with another short field, then Visit takes a
                   full-width row at the bottom because the address is
                   always too long for a 2-column tile. */}
-              {card.phone && <ContactTile icon={<Phone className="w-4 h-4" />} label="Call" value={card.phone} href={`tel:${card.phone}`} />}
+              {card.phone && <ContactTile icon={<Smartphone className="w-4 h-4" />} label="Call" value={card.phone} href={`tel:${card.phone}`} />}
               {card.email && <ContactTile icon={<Mail className="w-4 h-4" />} label="Email" value={card.email} href={`mailto:${card.email}`} />}
               {isPro && card.whatsapp && <ContactTile icon={<MessageCircle className="w-4 h-4" />} label="WhatsApp" value={card.whatsapp} href={`https://wa.me/${card.whatsapp.replace(/\D/g, '')}`} />}
               {card.website && <ContactTile icon={<Globe className="w-4 h-4" />} label="Website" value={card.website.replace(/^https?:\/\//, '')} href={card.website.startsWith('http') ? card.website : `https://${card.website}`} />}
@@ -2150,7 +2265,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     })
 
     const actions: { key: string; label: string; value: string; href: string; icon: React.ReactNode }[] = [
-      card.phone && { key: 'tel', label: 'Call', value: card.phone, href: `tel:${card.phone}`, icon: <Phone className="w-5 h-5" /> },
+      card.phone && { key: 'tel', label: 'Call', value: card.phone, href: `tel:${card.phone}`, icon: <Smartphone className="w-5 h-5" /> },
       isPro && card.work_phone && { key: 'dir', label: 'Direct line', value: card.work_phone, href: `tel:${card.work_phone}`, icon: <Phone className="w-5 h-5" /> },
       card.email && { key: 'eml', label: 'Email', value: card.email, href: `mailto:${card.email}`, icon: <Mail className="w-5 h-5" /> },
       card.website && { key: 'web', label: 'Website', value: card.website.replace(/^https?:\/\//, '').replace(/\/$/, ''), href: card.website.startsWith('http') ? card.website : `https://${card.website}`, icon: <Globe className="w-5 h-5" /> },
@@ -2379,7 +2494,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     // three things that looked pressable on a phone and did nothing.
     const RAIL_ICON = 20
     const railLinks = [
-      card.phone && { key: 'phone', href: `tel:${card.phone}`, label: 'Call', icon: <Phone style={{ width: RAIL_ICON, height: RAIL_ICON }} /> },
+      card.phone && { key: 'phone', href: `tel:${card.phone}`, label: 'Call', icon: <Smartphone style={{ width: RAIL_ICON, height: RAIL_ICON }} /> },
       card.email && { key: 'email', href: `mailto:${card.email}`, label: 'Email', icon: <Mail style={{ width: RAIL_ICON, height: RAIL_ICON }} /> },
       card.website && { key: 'web', href: card.website.startsWith('http') ? card.website : `https://${card.website}`, label: 'Website', icon: <Globe style={{ width: RAIL_ICON, height: RAIL_ICON }} /> },
     ].filter(Boolean) as { key: string; href: string; label: string; icon: React.ReactNode }[]
@@ -2522,7 +2637,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     // Titled as well as labelled: on a desktop, hovering says which number is
     // which, and a screen reader gets the same from aria-label.
     const railIcons: { key: string; icon: React.ReactNode; label: string; href: string }[] = [
-      card.phone && { key: 'phone', icon: <Phone className="w-4 h-4" />, label: `Call ${card.phone}`, href: `tel:${card.phone}` },
+      card.phone && { key: 'phone', icon: <Smartphone className="w-4 h-4" />, label: `Call ${card.phone}`, href: `tel:${card.phone}` },
       isPro && card.work_phone && { key: 'work', icon: <Phone className="w-4 h-4" />, label: `Call ${card.work_phone} (work)`, href: `tel:${card.work_phone}` },
       card.email && { key: 'email', icon: <Mail className="w-4 h-4" />, label: `Email ${card.email}`, href: `mailto:${card.email}` },
       isPro && card.address && { key: 'addr', icon: <MapPin className="w-4 h-4" />, label: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}` },
@@ -2682,7 +2797,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     const arcBox = avatarSize + 44
 
     const traceRows: { key: string; icon: React.ReactNode; label: string; href: string }[] = [
-      card.phone && { key: 'phone', icon: <Phone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
+      card.phone && { key: 'phone', icon: <Smartphone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
       isPro && card.work_phone && { key: 'work', icon: <Phone className="w-4 h-4" />, label: card.work_phone, href: `tel:${card.work_phone}` },
       card.email && { key: 'email', icon: <Mail className="w-4 h-4" />, label: card.email, href: `mailto:${card.email}` },
       isPro && card.address && { key: 'addr', icon: <MapPin className="w-4 h-4" />, label: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}` },
@@ -2846,7 +2961,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     // dossier or a company profile sets out particulars, and it lets the
     // values keep the whole width of their tile.
     const tiles: { key: string; label: string; value: string; href: string; icon: React.ReactNode }[] = [
-      card.phone && { key: 'tel', label: 'Telephone', value: card.phone, href: `tel:${card.phone}`, icon: <Phone className="w-3.5 h-3.5" /> },
+      card.phone && { key: 'tel', label: 'Telephone', value: card.phone, href: `tel:${card.phone}`, icon: <Smartphone className="w-3.5 h-3.5" /> },
       isPro && card.work_phone && { key: 'dir', label: 'Direct', value: card.work_phone, href: `tel:${card.work_phone}`, icon: <Phone className="w-3.5 h-3.5" /> },
       card.email && { key: 'eml', label: 'Email', value: card.email, href: `mailto:${card.email}`, icon: <Mail className="w-3.5 h-3.5" /> },
       isPro && card.address && { key: 'off', label: 'Office', value: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}`, icon: <MapPin className="w-3.5 h-3.5" /> },
@@ -3108,7 +3223,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           {card.bio && <p className="mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), color: getBioColor(design, '#6060a0') }}>{card.bio}</p>}
           <div className="space-y-3">
             {[
-              card.phone && { icon: <Phone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
+              card.phone && { icon: <Smartphone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
               card.email && { icon: <Mail className="w-4 h-4" />, label: card.email, href: `mailto:${card.email}` },
               card.website && { icon: <Globe className="w-4 h-4" />, label: card.website.replace(/^https?:\/\//, ''), href: card.website },
               ...links.map(l => ({ icon: <ExternalLink className="w-4 h-4" />, label: l.title, href: l.url.startsWith('http') ? l.url : `https://${l.url}` })),
@@ -3434,7 +3549,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     const facetInk = isLight ? '#ffffff' : accentHex
 
     const rows: { key: string; icon: React.ReactNode; label: string; href: string }[] = [
-      card.phone && { key: 'tel', icon: <Phone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
+      card.phone && { key: 'tel', icon: <Smartphone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
       isPro && card.work_phone && { key: 'dir', icon: <Phone className="w-4 h-4" />, label: card.work_phone, href: `tel:${card.work_phone}` },
       card.email && { key: 'eml', icon: <Mail className="w-4 h-4" />, label: card.email, href: `mailto:${card.email}` },
       isPro && card.address && { key: 'off', icon: <MapPin className="w-4 h-4" />, label: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}` },
@@ -3707,17 +3822,24 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     // the hero, the dealership's name carries the weight, and the seller is a
     // 44px chip you tap to ask about a car.
     //
-    // THE BACKDROP IS THE FIRST GALLERY PHOTO, and deliberately not a separate
-    // field. A new column would be one more thing to fill in and one more
-    // thing to leave empty; "your first photo is the big one" is a rule a
-    // salesperson can hold in their head. It reads as atmosphere rather than a
-    // duplicate listing, so the same car appearing again in the stock grid
-    // below is how every dealership site already works.
+    // THE BACKDROP IS ITS OWN FIELD, hero_image_url, added by migration 088.
+    //
+    // It was gallery slot 1 for exactly one day. The argument for that was one
+    // gallery to fill in rather than two places to forget - and the argument
+    // against it is arithmetic: the gallery is ten slots, so a hero taken from
+    // slot 1 leaves a dealership NINE cars in the stock grid, with the tenth
+    // sitting at the top of the card wearing a price tag. The two photos are
+    // not the same photo. The hero is the forecourt or the flagship, and a
+    // gallery entry is one specific vehicle you can ask about.
+    //
+    // heroImageFor falls back to image_1_url so the Showroom cards that exist
+    // today, which have their hero in slot 1 because that is what this read,
+    // look identical until somebody fills the new field in.
     //
     // No stock list, no link buttons and no certifications are rendered here.
     // BottomSection owns all three for all sixteen templates, and a second copy
     // in here would double every one of them on the page.
-    const heroPhoto = (card as any).image_1_url as string | undefined
+    const heroPhoto = heroImageFor(card)
     // The seller chip follows the photo-size control like every other
     // template's portrait does. 44 is the base rather than the ceiling: a
     // dealer who wants their people recognisable can push it up, and one
@@ -3808,7 +3930,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           <div className="px-6 pb-6" style={{ paddingTop: 20 }}>
             <LogoZone {...shared} />
             {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
-            <AllContacts {...shared} socialLinks={socialLinks} />
+            <AllContacts {...shared} socialLinks={socialLinks} compact />
             <BottomSection {...bottomProps} primaryLinkCount={3} />
           </div>
         </div>

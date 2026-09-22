@@ -692,6 +692,31 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                   </div>
                 </div>
               ) : null}
+              {/* The Showroom hero, its own field since migration 088 rather
+                  than gallery slot 1 - which on a forty-seller dealership was
+                  costing every card one of its ten listings. Locked with the
+                  gallery, because a group that fixes its photos is fixing its
+                  forecourt shot too. */}
+              {effectiveTemplateId === 'showroom' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Hero Image</label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {isLocked('hero_image_url')
+                      ? `The photo across the top of this card is set by ${org.name}.`
+                      : 'The big photo across the top of the card. It does not use up a gallery slot.'}
+                  </p>
+                  {isLocked('hero_image_url') ? (
+                    (form as any).hero_image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={(form as any).hero_image_url} alt="Hero image"
+                        className="h-20 w-32 rounded-lg border border-border object-cover opacity-70" />
+                    ) : <p className="text-xs text-muted-foreground">No hero image set.</p>
+                  ) : (
+                    <ImageUploader value={(form as any).hero_image_url} onChange={url => update('hero_image_url', url)} bucket="card-images" userId={userId} shape="square" />
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium mb-1">Gallery Images</label>
                 <p className="text-xs text-muted-foreground mb-3">
@@ -720,17 +745,10 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                   <div className="grid grid-cols-1 gap-4">
                     {IMAGE_SLOTS.map(i => (
                       <div key={i} className="rounded-xl border border-border p-3 space-y-2 bg-muted/20">
-                        {/* Showroom uses the first gallery image as the hero
-                            across the top of the card, and a slot called
-                            "Image 1" says nothing about that. */}
-                        <p className="text-xs font-semibold text-muted-foreground">
-                          {effectiveTemplateId === 'showroom' && i === 1 ? 'Hero image' : `Image ${i}`}
-                        </p>
-                        {effectiveTemplateId === 'showroom' && i === 1 && (
-                          <p className="text-[11px] text-muted-foreground">
-                            Showroom puts this one big across the top of the card. It still appears in the gallery below.
-                          </p>
-                        )}
+                        {/* Plain "Image N" on every template again: the
+                            Showroom hero has its own field above since
+                            migration 088, so all ten of these are listings. */}
+                        <p className="text-xs font-semibold text-muted-foreground">Image {i}</p>
                         <ImageUploader value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" />
                         <div>
                           {/* Migration 087, and the reason it had to cover
