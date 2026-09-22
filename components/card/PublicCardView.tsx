@@ -8,6 +8,7 @@ import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
   Instagram, Linkedin, Twitter, Facebook, Youtube, UserPlus, X, Sparkles,
+  ArrowRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { TikTokGlyph } from '@/components/card/SocialIcons'
@@ -542,6 +543,20 @@ interface BottomProps {
    *  would appear again down here, and a card offering to book you twice is
    *  worse than one that never offers. */
   omitBooking?: boolean
+  /** How many of the links lead, rendered as full-width accent buttons above
+   *  the rest.
+   *
+   *  Showroom asks for three. A dealership card exists to do three things -
+   *  book a test drive, value a trade-in, apply for finance - and a flat list
+   *  where those sit fourth, seventh and ninth between "Our Facebook" and
+   *  "Meet the team" buries the entire commercial point of the card.
+   *
+   *  The LABELS are the cardholder's, not ours. Ranking by position means a
+   *  dealership writes its own three and reorders them without us shipping a
+   *  guess at what a South African forecourt calls a trade-in.
+   *
+   *  Zero everywhere else, so every other template is untouched. */
+  primaryLinkCount?: number
 }
 
 // Helper that renders the Book a Meeting button. Encapsulates the modal
@@ -571,7 +586,7 @@ function BookingTrigger({ card, accentHex, accentText, buttonBg, buttonText, but
   )
 }
 
-function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context = null, contextControls = null, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false, omitCertifications = false }: BottomProps) {
+function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context = null, contextControls = null, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false, omitCertifications = false, primaryLinkCount = 0 }: BottomProps) {
   // Shadows the module import on purpose, so the three track() calls below
   // (contact_save, context_cta_clicked, share) are preview-aware without three
   // separate reminders to check a flag.
@@ -681,6 +696,12 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
   const audienceLinks = visibleLinks(links, context)
   const audienceGallery = visiblePicks(galleryImages, context, 'gallery', g => g.index)
 
+  // Split once, used twice below. clamped so a template asking for three on a
+  // card that has one does not leave an empty "More" heading behind it.
+  const leadCount = Math.max(0, Math.min(primaryLinkCount, audienceLinks.length))
+  const primaryLinks = audienceLinks.slice(0, leadCount)
+  const restLinks = audienceLinks.slice(leadCount)
+
   const sectionNodes: Record<ContextSection, React.ReactNode> = {
     certifications: (!omitAboveGallery && !omitCertifications && certifications.length > 0) ? (
       <div className="mt-8" key="ctx-certifications">
@@ -695,9 +716,37 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
 
     links: (!omitAboveGallery && audienceLinks.length > 0) ? (
       <div className="mt-8" key="ctx-links">
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Links</p>
+        {/* THE LEADING LINKS, when a template asks for them. Showroom asks for
+            three, because a dealership card exists to book a test drive, value
+            a trade-in and apply for finance, and a flat list buries all three
+            between "Our Facebook" and "Meet the team".
+            Ranked by POSITION, so the wording stays the cardholder's: a
+            dealership writes its own three and reorders them, rather than us
+            shipping a guess at what a forecourt calls a trade-in.
+            Sliced off the audience's list, not the raw one, so a Context that
+            reorders or hides links decides what leads for that audience too -
+            a trade-in first for somebody selling, stock first for somebody
+            buying. */}
+        {primaryLinks.length > 0 && (
+          <div className="space-y-2.5 mb-5">
+            {primaryLinks.map(l => (
+              <a key={l.index} href={l.url.startsWith('http') ? l.url : `https://${l.url}`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 rounded-2xl px-4 py-4 font-semibold transition hover:opacity-90 active:scale-[0.99]"
+                style={{ background: buttonBg, color: buttonText, border: buttonBorder || undefined, fontSize: buttonFontSize }}>
+                <span className="truncate">{l.title}</span>
+                <ArrowRight className="w-4 h-4 flex-shrink-0" />
+              </a>
+            ))}
+          </div>
+        )}
+        {restLinks.length > 0 && (
+          <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>
+            {primaryLinks.length > 0 ? 'More' : 'Links'}
+          </p>
+        )}
         <div className="space-y-2.5">
-          {audienceLinks.map(l => (
+          {restLinks.map(l => (
             <a key={l.index} href={l.url.startsWith('http') ? l.url : `https://${l.url}`}
               target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-4 rounded-2xl px-4 py-3.5 transition hover:opacity-80"
@@ -3669,7 +3718,11 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     // BottomSection owns all three for all sixteen templates, and a second copy
     // in here would double every one of them on the page.
     const heroPhoto = (card as any).image_1_url as string | undefined
-    const sellerSize = 44
+    // The seller chip follows the photo-size control like every other
+    // template's portrait does. 44 is the base rather than the ceiling: a
+    // dealer who wants their people recognisable can push it up, and one
+    // running a group brand can shrink it further toward the metal.
+    const sellerSize = calcPhotoSize(44, design)
     // AND THE HERO TYPOGRAPHY IS FIXED, which is the one real concession this
     // template makes. Every other template honours the per-card name, title
     // and company colours; those are chosen against a flat background, and
@@ -3756,7 +3809,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             <LogoZone {...shared} />
             {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
             <AllContacts {...shared} socialLinks={socialLinks} />
-            <BottomSection {...bottomProps} />
+            <BottomSection {...bottomProps} primaryLinkCount={3} />
           </div>
         </div>
       </div>

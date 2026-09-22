@@ -122,11 +122,12 @@ export const TEMPLATE_CONTROLS: Record<TemplateId, string[]> = {
   studio: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
   frost: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
   editorial: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
-  // Regenerated from the source by scripts/check-template-controls.mjs --print
-  // once the template existed, not guessed. The photo controls are absent on
-  // purpose: the seller's portrait is a fixed 44px chip here, so a size slider
-  // would be a promise the layout does not keep.
-  showroom: ['logo', 'bioType'],
+  // Regenerated from the source by scripts/check-template-controls.mjs --print,
+  // not guessed. Short for a reason: the hero sits on a photograph and sets its
+  // own type and colours, so nameType, titleType and companyType are absent
+  // rather than half-working. photoSize IS here - the seller chip reads it, and
+  // a size is a promise a photographic hero can actually keep.
+  showroom: ['photoSize', 'logo', 'bioType'],
 }
 
 /** Does this template read this setting at all? */

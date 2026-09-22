@@ -544,8 +544,23 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                     <div className="flex items-center gap-2">
                       <span className="w-6 h-6 rounded-lg grid place-items-center text-[11px] font-bold shrink-0"
                         style={{ background: TAB_COLOUR.media + '1f', color: TAB_COLOUR.media }}>{i}</span>
-                      <p className="text-xs font-semibold text-muted-foreground">Photo {i}</p>
+                      {/* SHOWROOM USES THE FIRST PHOTO AS ITS HERO, and nothing
+                          about a slot called "Photo 1" says so. The rule is
+                          fine once you know it and undiscoverable until then,
+                          so the label carries it on the template that behaves
+                          that way and stays out of the way on the fifteen that
+                          do not. Naming it here rather than adding a hero
+                          column keeps one gallery to fill in rather than two
+                          places to forget. */}
+                      <p className="text-xs font-semibold text-muted-foreground">
+                        {design.templateId === 'showroom' && i === 1 ? 'Hero image' : `Photo ${i}`}
+                      </p>
                     </div>
+                    {design.templateId === 'showroom' && i === 1 && (
+                      <p className="text-[11px] text-muted-foreground -mt-1">
+                        Showroom puts this one big across the top of your card. It still appears in the gallery below.
+                      </p>
+                    )}
                     <ImageUploader value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" />
                     <div>
                       {/* Migration 087. Written for Showroom, where the gallery

@@ -287,6 +287,16 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
     return usesBrand ? mergeBrand(withDesign, orgBrand, brandLocked) : withDesign
   }, [form, design, designTouched, usesBrand, orgBrand, brandLocked, card.color_theme])
 
+  // The template this card will ACTUALLY render as, which is not always
+  // `design`: a brand that locks design overrides the card's own. Labelling the
+  // gallery from the card's own template would promise a hero image on a card
+  // that renders as Classic, or hide the label on one the brand has set to
+  // Showroom. Read from the same merged value the preview beside it uses.
+  const effectiveTemplateId = useMemo(
+    () => parseDesign(previewForm.color_theme).templateId,
+    [previewForm.color_theme],
+  )
+
   // Covers closing the tab and reloading.
   useEffect(() => {
     if (!dirty) return
@@ -710,7 +720,17 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                   <div className="grid grid-cols-1 gap-4">
                     {IMAGE_SLOTS.map(i => (
                       <div key={i} className="rounded-xl border border-border p-3 space-y-2 bg-muted/20">
-                        <p className="text-xs font-semibold text-muted-foreground">Image {i}</p>
+                        {/* Showroom uses the first gallery image as the hero
+                            across the top of the card, and a slot called
+                            "Image 1" says nothing about that. */}
+                        <p className="text-xs font-semibold text-muted-foreground">
+                          {effectiveTemplateId === 'showroom' && i === 1 ? 'Hero image' : `Image ${i}`}
+                        </p>
+                        {effectiveTemplateId === 'showroom' && i === 1 && (
+                          <p className="text-[11px] text-muted-foreground">
+                            Showroom puts this one big across the top of the card. It still appears in the gallery below.
+                          </p>
+                        )}
                         <ImageUploader value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" />
                         <div>
                           {/* Migration 087, and the reason it had to cover

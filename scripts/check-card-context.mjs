@@ -1926,8 +1926,18 @@ function parse(label, input) {
     if (!/const audienceLinks = visibleLinks\(links, context\)/.test(body)) {
       bad(VIEW + ': BottomSection no longer derives audienceLinks from visibleLinks(links, context), so a saved link selection would be stored and never rendered')
     }
-    if (!/\{audienceLinks\.map\(/.test(body)) {
-      bad(VIEW + ': the links section does not map audienceLinks, so it renders every link whatever the audience chose')
+    // The links section may render audienceLinks directly, or render lists
+    // SLICED from it - Showroom leads with its first three as buttons and
+    // lists the rest below, which is two maps over two halves of the same
+    // filtered array. What matters is that every list shown descends from
+    // audienceLinks and nothing reaches around it to `links`, which the next
+    // check enforces.
+    const mapsFiltered = /\{audienceLinks\.map\(/.test(body)
+    const mapsSlices = /audienceLinks\.slice\(/.test(body)
+      && /\{primaryLinks\.map\(/.test(body)
+      && /\{restLinks\.map\(/.test(body)
+    if (!mapsFiltered && !mapsSlices) {
+      bad(VIEW + ': the links section neither maps audienceLinks nor maps lists sliced from it, so it renders every link whatever the audience chose')
     }
     if (/\{links\.map\(/.test(body)) {
       bad(VIEW + ': something in BottomSection still maps the card full link list')
