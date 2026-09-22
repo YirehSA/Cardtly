@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Card, extractLinks } from '@/types/database'
-import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, scrimAlphaForWhite, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, readableAccentOn, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS, SOCIAL_SLOTS, heroImageFor, readableBrandOn, focusFor, alignFor, justifyFor, type SocialKey } from '@/types/design'
+import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, scrimAlphaForWhite, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, readableAccentOn, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS, SOCIAL_SLOTS, heroImageFor, readableBrandOn, focusFor, bioAlignFor, type SocialKey } from '@/types/design'
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
@@ -1845,15 +1845,15 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                 <Avatar {...shared} size={124} extraStyle={{ border: `3px solid ${bg.page}`, display: 'block' }} />
               </div>
 
-              <h1 className="font-bold mt-5 leading-tight" style={{ fontFamily: font.heading, letterSpacing: '-0.02em', fontSize: calcNameSize(28, design), textAlign: alignFor(design), color: getNameColor(design, bg.text) }}>{card.name}</h1>
+              <h1 className="font-bold mt-5 leading-tight" style={{ fontFamily: font.heading, letterSpacing: '-0.02em', fontSize: calcNameSize(28, design), color: getNameColor(design, bg.text) }}>{card.name}</h1>
               {isPro && card.title && (
-                <p className="mt-2" style={{ textAlign: alignFor(design), color: getTitleColor(design, accentText), fontSize: calcTitleSize(12, design), fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' }}>{card.title}</p>
+                <p className="mt-2" style={{ color: getTitleColor(design, accentText), fontSize: calcTitleSize(12, design), fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' }}>{card.title}</p>
               )}
               {/* Set in small caps whether or not there is a title above it.
                   On a free card there is no title, and a plain grey company
                   line under the name was the whole of the type hierarchy. */}
               {card.company && (
-                <p className="mt-1.5" style={{ textAlign: alignFor(design), color: getCompanyColor(design, bg.subtext), fontSize: calcCompanySize(12, design), fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{card.company}</p>
+                <p className="mt-1.5" style={{ color: getCompanyColor(design, bg.subtext), fontSize: calcCompanySize(12, design), fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{card.company}</p>
               )}
 
               {/* A rule that fades out at both ends instead of a solid bar
@@ -1861,7 +1861,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               <div style={{ width: 132, height: 1, margin: '18px auto 0', background: `linear-gradient(90deg, transparent, ${accentHex}, transparent)` }} />
 
               <div className="mt-4"><LogoZone {...shared} /></div>
-              {card.bio && <p className="mt-3 leading-relaxed" style={{ textAlign: alignFor(design), color: getBioColor(design, bg.subtext), fontSize: calcBioSize(14, design) }}>{card.bio}</p>}
+              {card.bio && <p className="mt-3 leading-relaxed" style={{ textAlign: bioAlignFor(design), color: getBioColor(design, bg.subtext), fontSize: calcBioSize(14, design) }}>{card.bio}</p>}
             </div>
 
             {/* One panel with hairlines between the rows, not five separate
@@ -1979,14 +1979,14 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                 <Avatar {...shared} size={92} rounded="full" extraStyle={{ border: `2px solid ${accentHex}66` }} />
               </div>
               <div className="flex-1 min-w-0 pt-1" style={textNudge}>
-                <h1 style={{ margin: 0, fontSize: nameFontSize, fontWeight: 800, lineHeight: 1.1, fontFamily: font.heading, letterSpacing: '-0.02em', textAlign: alignFor(design), color: getNameColor(design, bg.text) }}>{card.name}</h1>
-                {isPro && card.title && <p style={{ margin: '6px 0 0', fontSize: calcTitleSize(12, design), fontWeight: 700, textAlign: alignFor(design), color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{card.title}</p>}
-                {card.company && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(13, design), textAlign: alignFor(design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
+                <h1 style={{ margin: 0, fontSize: nameFontSize, fontWeight: 800, lineHeight: 1.1, fontFamily: font.heading, letterSpacing: '-0.02em', color: getNameColor(design, bg.text) }}>{card.name}</h1>
+                {isPro && card.title && <p style={{ margin: '6px 0 0', fontSize: calcTitleSize(12, design), fontWeight: 700, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{card.title}</p>}
+                {card.company && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
               </div>
             </div>
             <div className="rounded-full mb-4" style={{ width: 40, height: 3, backgroundColor: accentHex, boxShadow: `0 0 16px ${accentHex}88` }} />
             <LogoZone {...shared} />
-            {card.bio && <p style={{ fontSize: calcBioSize(15, design), lineHeight: 1.7, marginBottom: 20, textAlign: alignFor(design), color: bioColor }}>{card.bio}</p>}
+            {card.bio && <p style={{ fontSize: calcBioSize(15, design), lineHeight: 1.7, marginBottom: 20, textAlign: bioAlignFor(design), color: bioColor }}>{card.bio}</p>}
             {/* Socials row - centered, UNDER the bio, in brand colours.
                 White icon on the platform's own brand colour, instant
                 recognition vs an accent-tinted row of identical pills. */}
@@ -2037,14 +2037,14 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               </div>
             </div>
             <div style={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 2, ...textNudge }}>
-              <h1 style={{ margin: '0 0 5px', fontSize: calcNameSize(22, design), fontWeight: 800, fontFamily: font.heading, textAlign: alignFor(design), color: getNameColor(design, '#fff'), lineHeight: 1.1 }}>{card.name}</h1>
-              {isPro && card.title && <p style={{ margin: '0 0 4px', fontSize: calcTitleSize(13, design), fontWeight: 600, textAlign: alignFor(design), color: getTitleColor(design, 'rgba(255,255,255,0.85)'), lineHeight: 1.2 }}>{card.title}</p>}
-              {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), textAlign: alignFor(design), color: getCompanyColor(design, 'rgba(255,255,255,0.65)'), lineHeight: 1.2 }}>{card.company}</p>}
+              <h1 style={{ margin: '0 0 5px', fontSize: calcNameSize(22, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, '#fff'), lineHeight: 1.1 }}>{card.name}</h1>
+              {isPro && card.title && <p style={{ margin: '0 0 4px', fontSize: calcTitleSize(13, design), fontWeight: 600, color: getTitleColor(design, 'rgba(255,255,255,0.85)'), lineHeight: 1.2 }}>{card.title}</p>}
+              {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), color: getCompanyColor(design, 'rgba(255,255,255,0.65)'), lineHeight: 1.2 }}>{card.company}</p>}
             </div>
           </div>
           <div className="px-6 py-6">
             <LogoZone {...shared} />
-            {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), textAlign: alignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
+            {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
             <AllContacts {...shared} socialLinks={socialLinks} />
             <BottomSection {...bottomProps} />
           </div>
@@ -2115,10 +2115,10 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               </div>
             )}
           </div>
-          <h1 style={{ margin: '0 0 6px', fontSize: calcNameSize(30, design), fontWeight: 800, color: getNameColor(design, ink), textAlign: alignFor(design, 'center'), fontFamily: font.heading, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{card.name}</h1>
-          {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(15, design), fontWeight: 500, color: getTitleColor(design, titleColor), textAlign: alignFor(design, 'center') }}>{card.title}</p>}
-          {card.company && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(14, design), color: getCompanyColor(design, muted), textAlign: alignFor(design, 'center') }}>{card.company}</p>}
-          {card.bio && <p style={{ fontSize: calcBioSize(13, design), color: getBioColor(design, muted), textAlign: alignFor(design, 'center'), lineHeight: 1.6, margin: '12px 0 0' }}>{card.bio}</p>}
+          <h1 style={{ margin: '0 0 6px', fontSize: calcNameSize(30, design), fontWeight: 800, color: getNameColor(design, ink), textAlign: 'center', fontFamily: font.heading, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{card.name}</h1>
+          {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(15, design), fontWeight: 500, color: getTitleColor(design, titleColor), textAlign: 'center' }}>{card.title}</p>}
+          {card.company && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(14, design), color: getCompanyColor(design, muted), textAlign: 'center' }}>{card.company}</p>}
+          {card.bio && <p style={{ fontSize: calcBioSize(13, design), color: getBioColor(design, muted), textAlign: bioAlignFor(design, 'center'), lineHeight: 1.6, margin: '12px 0 0' }}>{card.bio}</p>}
           {/* Up to 6 vibrant circular quick-actions (phone, email, linkedin,
               website, twitter/X, facebook). Wraps to a second row on narrow
               phones when 5+ are filled in. */}
@@ -2216,12 +2216,12 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.95) 100%)' }} />
             {/* Name + accent rule + title + company at the bottom */}
             <div style={{ position: 'absolute', bottom: 48, left: 24, right: 24 }}>
-              <h1 style={{ margin: '0 0 12px', fontSize: calcNameSize(36, design), fontWeight: 800, textAlign: alignFor(design), color: getNameColor(design, '#ffffff'), letterSpacing: '-0.025em', lineHeight: 0.96, fontFamily: font.heading, textShadow: '0 4px 24px rgba(0,0,0,0.6)' }}>{card.name}</h1>
+              <h1 style={{ margin: '0 0 12px', fontSize: calcNameSize(36, design), fontWeight: 800, color: getNameColor(design, '#ffffff'), letterSpacing: '-0.025em', lineHeight: 0.96, fontFamily: font.heading, textShadow: '0 4px 24px rgba(0,0,0,0.6)' }}>{card.name}</h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                 <div style={{ width: 36, height: 3, background: accentHex, boxShadow: `0 0 16px ${accentHex}aa` }} />
-                {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(11, design), fontWeight: 700, textAlign: alignFor(design), color: getTitleColor(design, '#ffffff'), textTransform: 'uppercase', letterSpacing: '0.28em' }}>{card.title}</p>}
+                {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(11, design), fontWeight: 700, color: getTitleColor(design, '#ffffff'), textTransform: 'uppercase', letterSpacing: '0.28em' }}>{card.title}</p>}
               </div>
-              {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(13, design), textAlign: alignFor(design), color: getCompanyColor(design, 'rgba(255,255,255,0.7)'), fontStyle: 'italic', letterSpacing: '0.02em' }}>{card.company}</p>}
+              {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(13, design), color: getCompanyColor(design, 'rgba(255,255,255,0.7)'), fontStyle: 'italic', letterSpacing: '0.02em' }}>{card.company}</p>}
             </div>
           </div>
           {/* Glass card - reduced overlap from -36 to -20 so there's clear
@@ -2231,7 +2231,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             {card.bio && (
               <div style={{ position: 'relative', padding: '8px 12px', textAlign: 'center' }}>
                 <span style={{ position: 'absolute', top: -10, left: 0, fontSize: 56, color: accentHex, fontFamily: 'Georgia, serif', lineHeight: 1, opacity: 0.5 }}>&ldquo;</span>
-                <p style={{ margin: 0, fontSize: calcBioSize(14, design), textAlign: alignFor(design), color: getBioColor(design, muted), lineHeight: 1.75, fontStyle: 'italic' }}>{card.bio}</p>
+                <p style={{ margin: 0, fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, muted), lineHeight: 1.75, fontStyle: 'italic' }}>{card.bio}</p>
                 <span style={{ position: 'absolute', bottom: -28, right: 0, fontSize: 56, color: accentHex, fontFamily: 'Georgia, serif', lineHeight: 1, opacity: 0.5 }}>&rdquo;</span>
               </div>
             )}
@@ -2379,36 +2379,33 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           <h1 className="text-center" style={{
             margin: 0, fontFamily: font.heading, fontSize: calcNameSize(42, design),
             fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 0.95,
-            textAlign: alignFor(design), color: getNameColor(design, bg.text),
+            color: getNameColor(design, bg.text),
             textShadow: `0 6px 30px ${accentHex}66`,
           }}>{card.name}</h1>
 
-          {/* A PILL, NOT A LINE OF TEXT, so the alignment control has to move
-              the flex row rather than set text-align on the badge.
-              getTitleColor rather than design.titleColor || onVivid, which is
-              the same thing written the long way - going through the helper is
-              what puts this style object inside the reach of
-              check-text-align. */}
+          {/* getTitleColor rather than design.titleColor || onVivid, which is
+              the same value written the long way. Going through the helper is
+              what every other template does. */}
           {isPro && card.title && (
-            <div className="flex" style={{ marginTop: 14, justifyContent: justifyFor(design) }}>
+            <div className="flex justify-center" style={{ marginTop: 14 }}>
               <span style={{
                 padding: '9px 20px', borderRadius: 999,
                 fontSize: calcTitleSize(14, design), fontWeight: 800, letterSpacing: '0.02em',
                 background: scrim + `linear-gradient(120deg, ${accentHex}, ${companion})`,
-                textAlign: alignFor(design), color: getTitleColor(design, onVivid),
+                color: getTitleColor(design, onVivid),
                 boxShadow: `0 10px 30px ${companion}66`,
               }}>{card.title}</span>
             </div>
           )}
           {card.company && (
-            <p className="text-center" style={{ margin: '12px 0 0', fontSize: calcCompanySize(14, design), fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', textAlign: alignFor(design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>
+            <p className="text-center" style={{ margin: '12px 0 0', fontSize: calcCompanySize(14, design), fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>
           )}
           <LogoZone {...shared} />
 
           {card.bio && (
             <p className="text-center leading-relaxed" style={{
               margin: '18px auto 0', maxWidth: 380,
-              fontSize: calcBioSize(15, design), textAlign: alignFor(design), color: getBioColor(design, bg.text), opacity: 0.9,
+              fontSize: calcBioSize(15, design), textAlign: bioAlignFor(design), color: getBioColor(design, bg.text), opacity: 0.9,
             }}>{card.bio}</p>
           )}
 
@@ -2502,9 +2499,9 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                 <Avatar {...shared} size={100} rounded="full" extraStyle={{ border: `3px solid ${accentHex}44` }} />
               </div>
               <div style={{ flex: 1, paddingLeft: 18, ...textNudge }}>
-                <h1 style={{ margin: '4px 0 6px', fontSize: nameFontSize, fontWeight: 800, fontFamily: font.heading, textAlign: alignFor(design), color: getNameColor(design, bg.text), lineHeight: 1.2 }}>{card.name}</h1>
-                {isPro && card.title && <p style={{ margin: '0 0 4px', fontSize: calcTitleSize(13, design), fontWeight: 600, textAlign: alignFor(design), color: titleColor }}>{card.title}</p>}
-                {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), textAlign: alignFor(design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
+                <h1 style={{ margin: '4px 0 6px', fontSize: nameFontSize, fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text), lineHeight: 1.2 }}>{card.name}</h1>
+                {isPro && card.title && <p style={{ margin: '0 0 4px', fontSize: calcTitleSize(13, design), fontWeight: 600, color: titleColor }}>{card.title}</p>}
+                {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
               </div>
             </div>
             <svg viewBox="0 0 400 56" style={{ display: 'block', width: '100%', height: 56, position: 'absolute', bottom: 0 }} preserveAspectRatio="none">
@@ -2513,7 +2510,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           </div>
           <div className="px-6 py-4 pb-10">
             <LogoZone {...shared} />
-            {card.bio && <p style={{ fontSize: calcBioSize(14, design), lineHeight: 1.7, marginBottom: 20, textAlign: alignFor(design), color: bioColor }}>{card.bio}</p>}
+            {card.bio && <p style={{ fontSize: calcBioSize(14, design), lineHeight: 1.7, marginBottom: 20, textAlign: bioAlignFor(design), color: bioColor }}>{card.bio}</p>}
             {/* Brand-coloured socials row - centred UNDER the bio.
                 Same pattern as Modern. */}
             {socialLinks.length > 0 && (
@@ -2654,12 +2651,12 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
         {/* minWidth 0 so a long unbroken word - an email address, a URL - makes
             this column wrap rather than push the band wider than the screen. */}
         <div style={{ flex: 1, minWidth: 0, padding: '28px 24px' }}>
-          <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(26, design), fontWeight: 800, fontFamily: font.heading, textAlign: alignFor(design), color: getNameColor(design, bg.text) }}>{card.name}</h1>
-          {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, textAlign: alignFor(design), color: getTitleColor(design, accentText), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
-          {card.company && <p style={{ margin: '0 0 16px', fontSize: calcCompanySize(13, design), textAlign: alignFor(design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
+          <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(26, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text) }}>{card.name}</h1>
+          {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentText), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
+          {card.company && <p style={{ margin: '0 0 16px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
           <div style={{ width: 32, height: 3, backgroundColor: accentHex, marginBottom: 12, borderRadius: 2 }} />
           <LogoZone {...shared} />
-          {card.bio && <p className="leading-relaxed" style={{ margin: 0, fontSize: calcBioSize(14, design), textAlign: alignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
+          {card.bio && <p className="leading-relaxed" style={{ margin: 0, fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
         </div>
         </div>
 
@@ -2799,11 +2796,11 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                 the bio and the link buttons clear the rail instead of butting
                 straight up against its edge. */}
             <div style={{ flex: 1, minWidth: 0, textAlign: 'center', paddingLeft: 20 }}>
-              <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(26, design), fontWeight: 800, fontFamily: font.heading, textAlign: alignFor(design), color: getNameColor(design, bg.text) }}>{card.name}</h1>
-              {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, textAlign: alignFor(design), color: getTitleColor(design, accentText), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
-              {card.company && <p style={{ margin: '0 0 14px', fontSize: calcCompanySize(13, design), textAlign: alignFor(design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
+              <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(26, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text) }}>{card.name}</h1>
+              {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentText), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
+              {card.company && <p style={{ margin: '0 0 14px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
               <LogoZone {...shared} />
-              {card.bio && <p className="leading-relaxed" style={{ margin: 0, fontSize: calcBioSize(14, design), textAlign: alignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
+              {card.bio && <p className="leading-relaxed" style={{ margin: 0, fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
 
               {/* Inside the content column, not in a block underneath it.
                   The rail now holds nine chips and the header holds four lines,
@@ -2945,7 +2942,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             <h1 style={{
               margin: '0 0 4px', fontSize: calcNameSize(30, design), fontWeight: 800, fontFamily: font.heading,
               textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.1,
-              textAlign: alignFor(design), color: getNameColor(design, accentHex),
+              color: getNameColor(design, accentHex),
             }}>{card.name}</h1>
             {/* The title sits in the accent alongside the name, not in the
                 companion. On the reference both lines are the same warm tone;
@@ -2956,14 +2953,14 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               <p style={{
                 margin: '0 0 6px', fontSize: calcTitleSize(15, design), fontWeight: 700,
                 textTransform: 'uppercase', letterSpacing: '0.1em',
-                textAlign: alignFor(design), color: getTitleColor(design, accentText), opacity: 0.85,
+                color: getTitleColor(design, accentText), opacity: 0.85,
               }}>{card.title}</p>
             )}
             {card.company && (
-              <p style={{ margin: '0 0 4px', fontSize: calcCompanySize(14, design), textAlign: alignFor(design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>
+              <p style={{ margin: '0 0 4px', fontSize: calcCompanySize(14, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>
             )}
             {card.bio && (
-              <p className="leading-relaxed" style={{ margin: '12px 0 0', fontSize: calcBioSize(14, design), textAlign: alignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>
+              <p className="leading-relaxed" style={{ margin: '12px 0 0', fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>
             )}
 
             {/* The traces. Every row is drawn the same way - accent at the
@@ -3164,7 +3161,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                   <span aria-hidden style={{ width: 26, height: 2, backgroundColor: accentHex, flexShrink: 0 }} />
                   <span style={{
                     fontSize: calcTitleSize(11, design), fontWeight: 700, letterSpacing: '0.16em',
-                    textTransform: 'uppercase', textAlign: alignFor(design), color: getTitleColor(design, accentText),
+                    textTransform: 'uppercase', color: getTitleColor(design, accentText),
                   }}>{card.title}</span>
                 </div>
               )}
@@ -3172,12 +3169,12 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                 margin: 0, fontFamily: font.heading,
                 fontSize: calcNameSize(38, design), fontWeight: 700,
                 letterSpacing: '-0.025em', lineHeight: 1.02,
-                textAlign: alignFor(design), color: getNameColor(design, bg.text),
+                color: getNameColor(design, bg.text),
               }}>{card.name}</h1>
               {card.company && (
                 <p style={{
                   margin: '10px 0 0', fontSize: calcCompanySize(15, design),
-                  textAlign: alignFor(design), color: getCompanyColor(design, bg.subtext),
+                  color: getCompanyColor(design, bg.subtext),
                 }}>{card.company}</p>
               )}
             </div>
@@ -3199,7 +3196,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                 <span style={label}>About</span>
                 <p className="leading-relaxed" style={{
                   margin: 0, fontSize: calcBioSize(15, design),
-                  textAlign: alignFor(design), color: getBioColor(design, bg.subtext),
+                  textAlign: bioAlignFor(design), color: getBioColor(design, bg.subtext),
                 }}>{card.bio}</p>
               </div>
             )}
@@ -3300,16 +3297,16 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               {/* The name is the sign. Give it the tube glow. */}
               <h1 style={{
                 margin: '0 0 4px', fontSize: calcNameSize(22, design), fontWeight: 700,
-                fontFamily: font.heading, textAlign: alignFor(design), color: getNameColor(design, '#e8e8ff'),
+                fontFamily: font.heading, color: getNameColor(design, '#e8e8ff'),
                 textShadow: design.nameColor ? undefined : `0 0 6px ${accentHex}88, 0 0 22px ${accentHex}55`,
               }}>{card.name}</h1>
-              {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), textAlign: alignFor(design), color: getTitleColor(design, accentText), fontWeight: 600, textShadow: `0 0 8px ${accentHex}`, textTransform: 'uppercase', letterSpacing: '0.14em' }}>{card.title}</p>}
-              {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), textAlign: alignFor(design), color: getCompanyColor(design, '#6a6aa8') }}>{card.company}</p>}
+              {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), color: getTitleColor(design, accentText), fontWeight: 600, textShadow: `0 0 8px ${accentHex}`, textTransform: 'uppercase', letterSpacing: '0.14em' }}>{card.title}</p>}
+              {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), color: getCompanyColor(design, '#6a6aa8') }}>{card.company}</p>}
             </div>
           </div>
           <div style={{ height: 2, background: `linear-gradient(90deg, transparent, ${accentHex}, transparent)`, marginBottom: 16, boxShadow: `0 0 12px ${accentHex}, 0 0 30px ${accentHex}66` }} />
           <LogoZone {...shared} />
-          {card.bio && <p className="mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), textAlign: alignFor(design), color: getBioColor(design, '#6060a0') }}>{card.bio}</p>}
+          {card.bio && <p className="mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, '#6060a0') }}>{card.bio}</p>}
           <div className="space-y-3">
             {[
               card.phone && { icon: <Smartphone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
@@ -3443,7 +3440,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                     Your<br />Logo
                   </div>
                 )}
-                {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(22, design), fontWeight: 800, textAlign: alignFor(design), color: getCompanyColor(design, '#ffffff'), textTransform: 'uppercase', letterSpacing: '0.04em', wordBreak: 'break-word', flex: 1, lineHeight: 1.1 }}>{card.company}</p>}
+                {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(22, design), fontWeight: 800, color: getCompanyColor(design, '#ffffff'), textTransform: 'uppercase', letterSpacing: '0.04em', wordBreak: 'break-word', flex: 1, lineHeight: 1.1 }}>{card.company}</p>}
               </div>
             </div>
           </div>
@@ -3462,8 +3459,8 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               overlapping photo above. Bio renders AFTER the action arc
               below, not here. */}
           <div style={{ backgroundColor: lightArea, marginTop: studioNameOffset, paddingTop: 0, paddingBottom: 0, paddingLeft: 20, paddingRight: 20, textAlign: 'center' }}>
-            <h1 style={{ margin: '0 0 8px', fontSize: calcNameSize(40, design), fontWeight: 900, textAlign: alignFor(design), color: getNameColor(design, areaInk), textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.0, fontFamily: font.heading }}>{card.name}</h1>
-            {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(14, design), fontWeight: 700, textAlign: alignFor(design), color: getTitleColor(design, areaInk), textTransform: 'uppercase', letterSpacing: '0.22em' }}>{card.title}</p>}
+            <h1 style={{ margin: '0 0 8px', fontSize: calcNameSize(40, design), fontWeight: 900, color: getNameColor(design, areaInk), textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.0, fontFamily: font.heading }}>{card.name}</h1>
+            {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(14, design), fontWeight: 700, color: getTitleColor(design, areaInk), textTransform: 'uppercase', letterSpacing: '0.22em' }}>{card.title}</p>}
           </div>
           {/* What they do.
               This was absolutely positioned inside the wedge below, pinned
@@ -3603,7 +3600,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           {/* Bio sits BELOW the action arc as per the reference image */}
           {card.bio && (
             <div style={{ backgroundColor: lightArea, padding: '24px 24px 8px', textAlign: 'center' }}>
-              <p style={{ margin: 0, fontSize: calcBioSize(14, design), textAlign: alignFor(design), color: getBioColor(design, '#525252'), lineHeight: 1.7, fontStyle: 'italic' }}>{card.bio}</p>
+              <p style={{ margin: 0, fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, '#525252'), lineHeight: 1.7, fontStyle: 'italic' }}>{card.bio}</p>
             </div>
           )}
           {/* Footer with custom links / save contact / share / contact form */}
@@ -3748,15 +3745,15 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             padding: '28px 24px 28px',
           }}>
             <h1 style={{
-              margin: 0, textAlign: alignFor(design, 'center'), fontFamily: font.heading,
+              margin: 0, textAlign: 'center', fontFamily: font.heading,
               fontSize: calcNameSize(29, design), fontWeight: 700,
               letterSpacing: '0.02em', color: getNameColor(design, ink),
             }}>{card.name}</h1>
             {isPro && card.title && (
-              <p style={{ margin: '10px 0 0', textAlign: alignFor(design, 'center'), fontSize: calcTitleSize(11, design), fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: getTitleColor(design, accentText) }}>{card.title}</p>
+              <p style={{ margin: '10px 0 0', textAlign: 'center', fontSize: calcTitleSize(11, design), fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: getTitleColor(design, accentText) }}>{card.title}</p>
             )}
             {card.company && (
-              <p style={{ margin: '6px 0 0', textAlign: alignFor(design, 'center'), fontSize: calcCompanySize(13, design), color: getCompanyColor(design, inkSoft) }}>{card.company}</p>
+              <p style={{ margin: '6px 0 0', textAlign: 'center', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, inkSoft) }}>{card.company}</p>
             )}
 
             {/* A shard of a rule rather than a plain line. */}
@@ -3768,7 +3765,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
 
             <LogoZone {...shared} />
             {card.bio && (
-              <p style={{ margin: '16px 0 0', textAlign: alignFor(design, 'center'), fontSize: calcBioSize(14, design), color: getBioColor(design, inkSoft), lineHeight: 1.7 }}>{card.bio}</p>
+              <p style={{ margin: '16px 0 0', textAlign: bioAlignFor(design, 'center'), fontSize: calcBioSize(14, design), color: getBioColor(design, inkSoft), lineHeight: 1.7 }}>{card.bio}</p>
             )}
 
             {rows.length > 0 && (
@@ -3845,9 +3842,9 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             <div style={{ width: '100%', borderTop: `1px solid ${ink}`, marginTop: 2 }} />
           </div>
           {/* Name in giant serif */}
-          <h1 style={{ margin: '0 0 8px', fontSize: calcNameSize(52, design), fontWeight: 900, color: getNameColor(design, ink), fontFamily: 'Georgia, "Times New Roman", serif', lineHeight: 0.95, letterSpacing: '-0.02em', textAlign: alignFor(design, 'center') }}>{card.name}</h1>
-          {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(16, design), color: getTitleColor(design, muted), textAlign: alignFor(design, 'center'), fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>{card.title}</p>}
-          {card.company && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, muted), textAlign: alignFor(design, 'center'), textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 600 }}>{card.company}</p>}
+          <h1 style={{ margin: '0 0 8px', fontSize: calcNameSize(52, design), fontWeight: 900, color: getNameColor(design, ink), fontFamily: 'Georgia, "Times New Roman", serif', lineHeight: 0.95, letterSpacing: '-0.02em', textAlign: 'center' }}>{card.name}</h1>
+          {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(16, design), color: getTitleColor(design, muted), textAlign: 'center', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>{card.title}</p>}
+          {card.company && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, muted), textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 600 }}>{card.company}</p>}
           <div style={{ width: 60, borderTop: `2px solid ${accentHex}`, margin: '24px auto' }} />
           {/* Centered portrait with serif rule */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
@@ -3856,7 +3853,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           <LogoZone {...shared} />
           {/* Bio as a leading paragraph with drop-cap first letter */}
           {card.bio && (
-            <p style={{ fontSize: calcBioSize(15, design), color: getBioColor(design, darkPaper ? '#e7e5e4' : '#3c2c20'), lineHeight: 1.75, margin: '0 0 28px', fontFamily: 'Georgia, serif', textAlign: alignFor(design, 'justify') }}>
+            <p style={{ fontSize: calcBioSize(15, design), color: getBioColor(design, darkPaper ? '#e7e5e4' : '#3c2c20'), lineHeight: 1.75, margin: '0 0 28px', fontFamily: 'Georgia, serif', textAlign: bioAlignFor(design, 'justify') }}>
               <span style={{ float: 'left', fontSize: 56, fontFamily: 'Georgia, serif', fontWeight: 900, lineHeight: 0.85, marginRight: 8, marginTop: 6, color: accentHex }}>{card.bio.charAt(0)}</span>
               {card.bio.slice(1)}
             </p>
@@ -4026,7 +4023,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                   without a dealership name is a card with a big picture and
                   the seller on it, which is a reasonable thing to be. */}
               {card.company && (
-                <h1 style={{ margin: '0 0 4px', fontSize: calcCompanySize(26, design), fontWeight: 800, fontFamily: font.heading, textAlign: alignFor(design), color: getCompanyColor(design, bg.text), lineHeight: 1.1, letterSpacing: '-0.02em', textShadow: heroShadow }}>
+                <h1 style={{ margin: '0 0 4px', fontSize: calcCompanySize(26, design), fontWeight: 800, fontFamily: font.heading, color: getCompanyColor(design, bg.text), lineHeight: 1.1, letterSpacing: '-0.02em', textShadow: heroShadow }}>
                   {card.company}
                 </h1>
               )}
@@ -4040,9 +4037,9 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                 <div style={{ minWidth: 0 }}>
                   {/* Unconditional. This is where the name lives, whether or
                       not there is a company above it. */}
-                  <p style={{ margin: 0, fontSize: calcNameSize(15, design), fontWeight: 700, fontFamily: font.heading, textAlign: alignFor(design), color: getNameColor(design, bg.text), lineHeight: 1.2, textShadow: heroShadow }}>{card.name}</p>
+                  <p style={{ margin: 0, fontSize: calcNameSize(15, design), fontWeight: 700, fontFamily: font.heading, color: getNameColor(design, bg.text), lineHeight: 1.2, textShadow: heroShadow }}>{card.name}</p>
                   {isPro && card.title && (
-                    <p style={{ margin: '1px 0 0', fontSize: calcTitleSize(12, design), textAlign: alignFor(design), color: getTitleColor(design, bg.subtext), lineHeight: 1.2, textShadow: heroShadow }}>{card.title}</p>
+                    <p style={{ margin: '1px 0 0', fontSize: calcTitleSize(12, design), color: getTitleColor(design, bg.subtext), lineHeight: 1.2, textShadow: heroShadow }}>{card.title}</p>
                   )}
                 </div>
               </div>
@@ -4051,7 +4048,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
 
           <div className="px-6 pb-6" style={{ paddingTop: 20 }}>
             <LogoZone {...shared} />
-            {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), textAlign: alignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
+            {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
             <AllContacts {...shared} socialLinks={socialLinks} compact />
             <BottomSection {...bottomProps} primaryLinkCount={3} />
           </div>

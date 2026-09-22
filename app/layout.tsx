@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Plus_Jakarta_Sans, Instrument_Sans } from 'next/font/google'
+import { cardFontVariables } from '@/lib/card-fonts'
 import './globals.css'
 import { Toaster } from 'sonner'
 import CapacitorBackButton from '@/components/CapacitorBackButton'
@@ -85,7 +86,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${jakarta.variable} ${display.variable} dark`} suppressHydrationWarning>
+    <html lang="en" className={`${jakarta.variable} ${display.variable} ${cardFontVariables} dark`} suppressHydrationWarning>
       <body className="font-sans antialiased bg-background text-foreground">
         {/* Who this company is, on every page. An assistant asked to recommend
             a product has to resolve the brand to an entity before it can cite

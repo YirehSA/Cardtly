@@ -1,17 +1,22 @@
-// Every piece of card text that takes a colour also takes an alignment.
+// The bio alignment control reaches every bio, and nothing but the bios.
 //
-// WHAT THIS EXISTS BECAUSE OF. The text alignment control is one setting read
-// by 64 separate style objects - the name, job title, company and bio, on all
-// sixteen templates. There is no shared component to put it in, because each
-// template sets its own type. A sweep like that rots: the next person to
-// restyle Frost's bio writes a fresh style object, forgets one property out of
-// eight, and the control silently stops working on one element of one
-// template. Nobody notices until a customer does.
+// WHAT THIS EXISTS BECAUSE OF. The control is one setting read by sixteen
+// separate style objects - one bio per template. There is no shared component
+// to put it in, because each template sets its own type. A sweep like that
+// rots: the next person to restyle Frost's bio writes a fresh style object,
+// forgets one property out of eight, and the control silently stops working on
+// one template. Nobody notices until a customer does.
 //
-// THE INVARIANT, and it is a simple one: if a style object asks for a text
-// COLOUR through one of the getXColor helpers, it must also ask for the
-// alignment. The two travel together because they describe the same run of
-// text, so the colour call is a reliable marker for "this is card text".
+// AND IT GUARDS THE BOUNDARY IN BOTH DIRECTIONS. This shipped for a few hours
+// as one control over the name, job title, company and bio together, on the
+// reasoning that alignment belongs to the text block. It does not, on a
+// business card: those three are each one short line placed by the template as
+// part of its design, and moving them moves the design. So the check is not
+// only "every bio honours it" but "nothing else does" - the easy mistake now
+// is a well-meaning sweep putting it back on the name.
+//
+// It also holds the per-template type size floors, which are the other place
+// the typography controls promise something a template has to deliver.
 //
 // Run: node scripts/check-text-align.mjs
 
@@ -22,7 +27,8 @@ const DESIGN = 'types/design.ts'
 const PANEL = 'components/card/DesignPanel.tsx'
 const LF = String.fromCharCode(10)
 
-const HELPERS = ['getNameColor(design', 'getTitleColor(design', 'getCompanyColor(design', 'getBioColor(design']
+const BIO = 'getBioColor(design'
+const NOT_BIO = ['getNameColor(design', 'getTitleColor(design', 'getCompanyColor(design']
 
 let fail = 0
 const bad = (msg) => { console.error(`  FAIL ${msg}`); fail++ }
@@ -33,9 +39,10 @@ const design = read(DESIGN)
 const panel = read(PANEL)
 if (!src || !design || !panel) { bad('a source file is missing'); process.exit(1) }
 
-/** The { ... } literal a position sits inside, or null when it is not in one
- *  (which is how `const bioColor = getBioColor(...)` is recognised rather than
- *  reported - those are wired at their usage site instead). */
+/** The { ... } literal a position sits inside, or null when it is not in one -
+ *  which is how a `const bioColor = getBioColor(...)` binding is recognised
+ *  rather than misread. Those are wired at their usage site, and the count in
+ *  section 3 is what keeps them honest. */
 function enclosingObject(s, at) {
   let depth = 0, i = at
   for (; i >= 0; i--) {
@@ -52,72 +59,90 @@ function enclosingObject(s, at) {
   return null
 }
 
-// ── 1. Every text colour is accompanied by an alignment ─────────────────────
-let checked = 0
-const missing = []
-for (const helper of HELPERS) {
+function objectsHolding(marker) {
+  const out = []
   let from = 0
   for (;;) {
-    const at = src.indexOf(helper, from)
+    const at = src.indexOf(marker, from)
     if (at < 0) break
-    from = at + helper.length
+    from = at + marker.length
     const obj = enclosingObject(src, at)
-    // Not inside an object literal: a `const x = getBioColor(...)` binding.
-    // Its alignment belongs to whichever style object uses `x`, and section 2
-    // below is what keeps the totals honest for those.
-    if (!obj) continue
-    // Nor is a ternary or a call argument a style object.
-    if (!/[:=]\s*$|^\{/.test(obj.slice(0, 1)) && !obj.includes(':')) continue
-    checked++
-    if (!obj.includes('alignFor(design')) {
-      missing.push({ helper, line: src.slice(0, at).split(LF).length, obj: obj.slice(0, 120).replace(/\n/g, ' ') })
+    if (!obj || !obj.includes(':')) continue
+    out.push({ at, line: src.slice(0, at).split(LF).length, obj })
+  }
+  return out
+}
+
+// ── 1. Every bio honours it ─────────────────────────────────────────────────
+let bios = 0
+for (const o of objectsHolding(BIO)) {
+  bios++
+  if (!o.obj.includes('bioAlignFor(design')) {
+    bad(`${CARD}:${o.line} styles a bio but never calls bioAlignFor, so the alignment control does nothing on that template. Add \`textAlign: bioAlignFor(design)\` (or \`bioAlignFor(design, 'center')\` if it hardcoded one).`)
+  }
+}
+
+// ── 2. And nothing else does ────────────────────────────────────────────────
+for (const marker of NOT_BIO) {
+  for (const o of objectsHolding(marker)) {
+    // An object can legitimately hold both when a template styles a block; the
+    // bio is what is being aligned there.
+    if (o.obj.includes(BIO)) continue
+    if (o.obj.includes('bioAlignFor(design')) {
+      bad(`${CARD}:${o.line} aligns ${marker.replace('(design', '')} text with bioAlignFor. The control is the BIO's only - the name, job title and company sit where each template puts them, and moving them moves the design.`)
     }
   }
 }
-for (const m of missing) {
-  bad(`${CARD}:${m.line} styles card text with ${m.helper}...) but never calls alignFor, so the text alignment control does nothing for it. Add \`textAlign: alignFor(design)\` to that style object (or \`alignFor(design, 'center')\` if it hardcoded one). Object: ${m.obj}`)
+
+// ── 3. The totals have not quietly drifted ──────────────────────────────────
+//
+// Sections 1 and 2 can only see objects they can parse. Two templates hold
+// their bio colour in a variable, so their style object carries no getBioColor
+// for section 1 to find; the count is what covers them. One bio per template.
+const EXPECTED = 16
+const actual = (src.match(/bioAlignFor\(design/g) || []).length
+if (actual !== EXPECTED) {
+  bad(`${CARD} calls bioAlignFor ${actual} times, not ${EXPECTED} - one per template. Fewer means a bio has stopped honouring the control somewhere the sections above cannot see; more means it has spread to text that is not a bio.`)
 }
 
-// ── 2. And the totals have not quietly dropped ──────────────────────────────
+// ── 4. Unset still means the template's own ─────────────────────────────────
 //
-// Section 1 can only check objects it can see. If a restyle moves a whole
-// template's text into variables or a helper component, those calls vanish
-// from its view and it goes green having checked less. The count is the
-// backstop: sixteen templates, four text elements, and one template with no
-// separate job title line.
-const EXPECTED_ALIGN_SITES = 64
-const actual = (src.match(/alignFor\(design/g) || []).length
-if (actual < EXPECTED_ALIGN_SITES) {
-  bad(`${CARD} calls alignFor ${actual} times, down from ${EXPECTED_ALIGN_SITES}. Text has stopped honouring the alignment control somewhere section 1 above cannot see - most likely it moved into a variable or a shared component. Wire it there and update EXPECTED_ALIGN_SITES.`)
-}
-
-// ── 2b. Creative's title pill moves with the row, not with text-align ───────
-//
-// It is a gradient badge in a flex row. text-align does nothing to it, so the
-// alignment has to reach justifyContent or choosing "left" moves every other
-// line on that card and leaves the badge centred - the control half working,
-// which is harder to report than it not working at all.
-if (!/justifyContent: justifyFor\(design\)/.test(src)) {
-  bad(`${CARD}: Creative's job-title pill no longer takes its position from justifyFor, so the alignment control cannot move it. Choosing "left" would move every other line on that card and leave the badge centred.`)
-}
-
-// ── 3. The setting still means "unset is the template's own" ────────────────
-//
-// If alignFor ever gained a default, every card in the database would jump to
-// that alignment at once, overriding sixteen designs that centre or left-set
-// their text on purpose.
-const fn = design.match(/export function alignFor\([\s\S]*?\n\}/)
-if (!fn) bad(`${DESIGN}: alignFor is gone, so 63 call sites in ${CARD} are calling nothing.`)
+// If bioAlignFor ever gained a default, every card in the database would jump
+// to that alignment at once, overriding the templates that centre or justify
+// their bio on purpose.
+const fn = design.match(/export function bioAlignFor\([\s\S]*?\n\}/)
+if (!fn) bad(`${DESIGN}: bioAlignFor is gone, so ${actual} call sites in ${CARD} are calling nothing.`)
 else if (!/return v === 'left' \|\| v === 'center' \|\| v === 'right' \? v : fallback/.test(fn[0])) {
-  bad(`${DESIGN}: alignFor no longer falls back to the caller's value for an unset alignment. An unset card MUST render the template's own alignment - anything else silently restyles every card that has never touched this control.`)
+  bad(`${DESIGN}: bioAlignFor no longer falls back to the caller's value for an unset alignment. An unset card MUST render the template's own - anything else silently restyles every card that has never touched this control.`)
 }
-if (/\btextAlign: '(left|center|right)'/.test(design.match(/export const DEFAULT_DESIGN[\s\S]*?\n\}/)?.[0] || '')) {
-  bad(`${DESIGN}: DEFAULT_DESIGN now sets textAlign. That makes it the alignment of every card that has never chosen one, overriding each template's own design.`)
+if (/\bbioAlign: '(left|center|right)'/.test(design.match(/export const DEFAULT_DESIGN[\s\S]*?\n\}/)?.[0] || '')) {
+  bad(`${DESIGN}: DEFAULT_DESIGN now sets bioAlign, which makes it the alignment of every card that has never chosen one.`)
 }
 
-// ── 4. The control can still give the template's alignment back ─────────────
-if (!/textAlign: undefined/.test(panel) && !/\{ v: undefined/.test(panel)) {
-  bad(`${PANEL}: the alignment control has no option that clears the setting, so once somebody picks an alignment they can never get the template's own back.`)
+// ── 5. The panel can hand the template's alignment back ─────────────────────
+if (!/\{ v: undefined, label: 'Template' \}/.test(panel)) {
+  bad(`${PANEL}: the bio alignment control has no option that clears the setting, so once somebody picks an alignment they can never get the template's own back.`)
+}
+if (/name, job title, company and bio together/.test(panel)) {
+  bad(`${PANEL}: the bio alignment control still tells people it moves the name, job title and company. It does not.`)
+}
+
+// ── 6. Showroom's company size can still go below 80 ────────────────────────
+//
+// Showroom sets the COMPANY as its 26px headline, so it is the one place where
+// going under 80% makes a card better rather than illegible. The floor is
+// enforced in TWO places and both have to hold: the panel's stepper, so the
+// value can be reached, and calcCompanySize, so a card carrying 60 that
+// switches to Classic does not print its company at 7px with no control able
+// to show a number that low.
+if (!/if \(templateId === 'showroom' && sizeKey === 'companySize'\) return 60/.test(design)) {
+  bad(`${DESIGN}: typeSizeMin no longer lets Showroom's company text go below 80%. It is the only template where the company IS the headline, which is the whole reason for the exception.`)
+}
+if (!/const min = typeSizeMin\(design\.templateId, 'companySize'\)/.test(design)) {
+  bad(`${DESIGN}: calcCompanySize no longer clamps to the per-template floor, so a card set to 60 on Showroom would print its company at 60% on templates where that is 7px.`)
+}
+if (!/Math\.max\(minPct, sizePct - 10\)/.test(panel) || !/disabled=\{sizePct <= minPct\}/.test(panel)) {
+  bad(`${PANEL}: the typography stepper is back to a flat minimum, so Showroom's company size cannot be taken below 80% however much calcCompanySize allows.`)
 }
 
 if (fail) {
@@ -125,6 +150,7 @@ if (fail) {
   process.exit(1)
 }
 console.log(
-  `check-text-align: all ${checked} card-text style objects honour the alignment control (${actual} call sites), unset still means ` +
-  "the template's own alignment, and the panel can hand that back.",
+  `check-text-align: all ${bios} bio style objects honour the alignment control and no name, title or company does ` +
+  `(${actual} call sites, one per template), unset still means the template's own, the panel can hand that back, and ` +
+  "Showroom's company size still reaches 60%.",
 )

@@ -104,7 +104,14 @@ export function heroImageFor(card: any): string {
 }
 
 export type TemplateId = 'classic' | 'modern' | 'bold' | 'minimal' | 'executive' | 'creative' | 'wave' | 'split' | 'splitpro' | 'circuit' | 'meridian' | 'neon' | 'studio' | 'frost' | 'editorial' | 'showroom'
-export type FontId = 'sans' | 'serif' | 'modern' | 'rounded' | 'mono'
+export type FontId =
+  // The original five. The IDs are stored on every card that has ever chosen a
+  // font, so they keep their names however the label changes.
+  | 'sans' | 'serif' | 'modern' | 'rounded' | 'mono'
+  // Fifteen more, by how widely they are used rather than by taste.
+  | 'roboto' | 'opensans' | 'montserrat' | 'lato' | 'poppins'
+  | 'raleway' | 'oswald' | 'playfair' | 'merriweather' | 'lora'
+  | 'worksans' | 'rubik' | 'quicksand' | 'bebas' | 'josefin'
 export type AccentColor = 'blue' | 'purple' | 'green' | 'red' | 'orange' | 'pink' | 'teal' | 'gold' | 'custom'
 export type LogoPosition = 'left' | 'center' | 'right' | 'hidden'
 export type CardStyle = 'flat' | 'glass' | 'gradient'
@@ -231,52 +238,42 @@ export interface CardDesign {
    *  behaviour a dealership with one set of stock photos wants. Eleven more
    *  columns and another migration would buy nothing. */
   imageFocus?: Record<string, string>
-  /** Which way the card's text is set: the name, the job title, the company
-   *  and the bio, together.
+  /** Which way the BIO paragraph is set. Nothing else moves.
    *
-   *  ONE SETTING RATHER THAN FOUR. Alignment is a property of the text BLOCK -
-   *  a centred name over a left-set bio is a mistake, not a choice - so this
-   *  is deliberately not split the way size and colour are.
+   *  THE BIO ONLY, AND THAT IS THE POINT. This started as one control over the
+   *  name, job title, company and bio together, on the reasoning that
+   *  alignment is a property of the text block. It is not, on a business card:
+   *  the name, title and company are each one short line, sitting where the
+   *  template put them as part of its design, and moving them moves the
+   *  design. The bio is the only run of real prose on a card, and it is the
+   *  only one where centring or ranging right is a sensible thing to want.
+   *  Named bioAlign rather than textAlign so the next person reading a call
+   *  site knows the scope without going looking.
    *
    *  UNSET MEANS THE TEMPLATE DECIDES, and that is why the default is absent
-   *  rather than 'left'. Classic centres its text, Editorial sets it left and
-   *  Showroom sets its bio left under a left headline; those are the designs,
-   *  not accidents. An absent value renders no textAlign at all, so every card
-   *  that has never touched this control is byte-for-byte what it was. */
-  textAlign?: 'left' | 'center' | 'right'
+   *  rather than 'left'. Minimal centres its bio and Editorial justifies it;
+   *  those are the designs, not accidents. An absent value renders no
+   *  textAlign at all, so every card that has never touched this control is
+   *  byte-for-byte what it was. */
+  bioAlign?: 'left' | 'center' | 'right'
 }
 
-/** The alignment for a run of card text, or the template's own when the card
- *  has not asked for one.
+/** How the bio paragraph is set, or the template's own when the card has not
+ *  asked for one.
  *
  *  `fallback` carries whatever the template already hardcoded - 'center' on
- *  Minimal's bio, 'justify' on Editorial's - so overriding is opt-in and
- *  undoing it returns to the design rather than to the browser default.
+ *  Minimal, 'justify' on Editorial - so overriding is opt-in and undoing it
+ *  returns to the design rather than to the browser default.
  *
  *  Returning undefined is load-bearing: React omits a style property that is
  *  undefined, so an unset alignment leaves the element inheriting exactly as
  *  it did before this existed. */
-export function alignFor(
+export function bioAlignFor(
   design: CardDesign,
   fallback?: 'left' | 'center' | 'right' | 'justify',
 ): 'left' | 'center' | 'right' | 'justify' | undefined {
-  const v = design.textAlign
+  const v = design.bioAlign
   return v === 'left' || v === 'center' || v === 'right' ? v : fallback
-}
-
-/** The same choice, as a flex main-axis alignment.
- *
- *  For text that is not a line of text. Creative sets its job title as a
- *  gradient PILL inside a flex row, and text-align does nothing to a pill -
- *  what moves it is the row's justifyContent. Without this, choosing "left"
- *  moved every other line on that card and left the badge stubbornly centred,
- *  which reads as the control half working. */
-export function justifyFor(
-  design: CardDesign,
-  fallback: 'left' | 'center' | 'right' = 'center',
-): 'flex-start' | 'center' | 'flex-end' {
-  const a = alignFor(design, fallback)
-  return a === 'left' ? 'flex-start' : a === 'right' ? 'flex-end' : 'center'
 }
 
 /** The centre crop, which is what the browser does unasked. */
@@ -598,12 +595,49 @@ export function getButtonBorder(design: CardDesign): string | null {
   return design.buttonBorderColor || null
 }
 
+// THE FONT A CARD IS SET IN.
+//
+// FAMILIES ARE CSS VARIABLES, NOT NAMES. Writing `Inter, system-ui` only asks
+// for Inter; it does not load it, and if nothing else on the page did, the
+// browser quietly used system-ui instead. That is exactly what was happening:
+// four of the original five choices were never loaded, so Clean, Modern and
+// Friendly all rendered identically. Every family below resolves to a variable
+// defined by lib/card-fonts, which self-hosts the file - so a family that is
+// not loaded is a build error rather than a card that looks wrong.
+//
+// LABELS ARE THE REAL NAMES. They used to be adjectives - Clean, Classic,
+// Modern, Friendly, Tech - which told somebody choosing nothing useful and
+// told a designer who already knows what Montserrat looks like even less.
+//
+// A DISPLAY FACE GETS A BODY PARTNER. Bebas Neue is capitals only and Oswald
+// is a condensed headline face; either one set as a bio is unreadable. The
+// heading/body split already existed for this, so those two use themselves for
+// the name and a plain sans underneath. Playfair takes Lora for the same
+// reason, one degree gentler.
+//
+// The generic at the end of each stack is the safety net for the seconds
+// before the file arrives, and for the rare browser that refuses it.
 export const FONTS: Record<FontId, { label: string; heading: string; body: string; sample: string }> = {
-  sans:    { label: 'Clean',    heading: 'Inter, system-ui, sans-serif',      body: 'Inter, system-ui, sans-serif',      sample: 'Aa' },
-  serif:   { label: 'Classic',  heading: 'Georgia, "Times New Roman", serif', body: 'Georgia, serif',                    sample: 'Aa' },
-  modern:  { label: 'Modern',   heading: '"DM Sans", system-ui, sans-serif',  body: '"DM Sans", system-ui, sans-serif',  sample: 'Aa' },
-  rounded: { label: 'Friendly', heading: '"Nunito", system-ui, sans-serif',   body: '"Nunito", system-ui, sans-serif',   sample: 'Aa' },
-  mono:    { label: 'Tech',     heading: '"Fira Code", monospace',            body: '"Fira Code", monospace',            sample: 'Aa' },
+  sans:        { label: 'Inter',             heading: 'var(--font-inter), system-ui, sans-serif',        body: 'var(--font-inter), system-ui, sans-serif',        sample: 'Aa' },
+  serif:       { label: 'Georgia',           heading: 'Georgia, "Times New Roman", serif',               body: 'Georgia, serif',                                  sample: 'Aa' },
+  modern:      { label: 'DM Sans',           heading: 'var(--font-dm-sans), system-ui, sans-serif',      body: 'var(--font-dm-sans), system-ui, sans-serif',      sample: 'Aa' },
+  rounded:     { label: 'Nunito',            heading: 'var(--font-nunito), system-ui, sans-serif',       body: 'var(--font-nunito), system-ui, sans-serif',       sample: 'Aa' },
+  mono:        { label: 'Fira Code',         heading: 'var(--font-fira-code), monospace',                body: 'var(--font-fira-code), monospace',                sample: 'Aa' },
+  roboto:      { label: 'Roboto',            heading: 'var(--font-roboto), system-ui, sans-serif',       body: 'var(--font-roboto), system-ui, sans-serif',       sample: 'Aa' },
+  opensans:    { label: 'Open Sans',         heading: 'var(--font-open-sans), system-ui, sans-serif',    body: 'var(--font-open-sans), system-ui, sans-serif',    sample: 'Aa' },
+  montserrat:  { label: 'Montserrat',        heading: 'var(--font-montserrat), system-ui, sans-serif',   body: 'var(--font-montserrat), system-ui, sans-serif',   sample: 'Aa' },
+  lato:        { label: 'Lato',              heading: 'var(--font-lato), system-ui, sans-serif',         body: 'var(--font-lato), system-ui, sans-serif',         sample: 'Aa' },
+  poppins:     { label: 'Poppins',           heading: 'var(--font-poppins), system-ui, sans-serif',      body: 'var(--font-poppins), system-ui, sans-serif',      sample: 'Aa' },
+  raleway:     { label: 'Raleway',           heading: 'var(--font-raleway), system-ui, sans-serif',      body: 'var(--font-raleway), system-ui, sans-serif',      sample: 'Aa' },
+  oswald:      { label: 'Oswald',            heading: 'var(--font-oswald), system-ui, sans-serif',       body: 'var(--font-lato), system-ui, sans-serif',         sample: 'Aa' },
+  playfair:    { label: 'Playfair Display',  heading: 'var(--font-playfair), Georgia, serif',            body: 'var(--font-lora), Georgia, serif',                sample: 'Aa' },
+  merriweather:{ label: 'Merriweather',      heading: 'var(--font-merriweather), Georgia, serif',        body: 'var(--font-merriweather), Georgia, serif',        sample: 'Aa' },
+  lora:        { label: 'Lora',              heading: 'var(--font-lora), Georgia, serif',                body: 'var(--font-lora), Georgia, serif',                sample: 'Aa' },
+  worksans:    { label: 'Work Sans',         heading: 'var(--font-work-sans), system-ui, sans-serif',    body: 'var(--font-work-sans), system-ui, sans-serif',    sample: 'Aa' },
+  rubik:       { label: 'Rubik',             heading: 'var(--font-rubik), system-ui, sans-serif',        body: 'var(--font-rubik), system-ui, sans-serif',        sample: 'Aa' },
+  quicksand:   { label: 'Quicksand',         heading: 'var(--font-quicksand), system-ui, sans-serif',    body: 'var(--font-quicksand), system-ui, sans-serif',    sample: 'Aa' },
+  bebas:       { label: 'Bebas Neue',        heading: 'var(--font-bebas), Impact, sans-serif',           body: 'var(--font-montserrat), system-ui, sans-serif',   sample: 'Aa' },
+  josefin:     { label: 'Josefin Sans',      heading: 'var(--font-josefin), system-ui, sans-serif',      body: 'var(--font-josefin), system-ui, sans-serif',      sample: 'Aa' },
 }
 
 export interface TemplateConfig {
@@ -959,8 +993,32 @@ export function calcTitleSize(base: number, design: CardDesign): number {
   return applyPercent(base, design.titleSize)
 }
 
+/** The range the typography steppers offer, and the range a stored value is
+ *  held to when it renders.
+ *
+ *  80 to 160 everywhere, with ONE exception: Showroom's company text. That
+ *  template inverts the usual arrangement and sets the COMPANY as its 26px
+ *  headline, where 80% is still a headline and there is real use for going
+ *  smaller - a group that carries its brand in the logo wants the name quieter
+ *  above the stock. On the other fifteen the company is 12 to 14px supporting
+ *  text, and 60% of 12px is 7px, which is not small type, it is an accident.
+ *
+ *  ENFORCED AT RENDER as well as in the panel. A card set to 60 on Showroom
+ *  and then switched to Classic would otherwise print its company at 8px, with
+ *  no control able to show a value that low and therefore no obvious way back. */
+export const TYPE_SIZE_MAX = 160
+export function typeSizeMin(
+  templateId: TemplateId,
+  sizeKey: 'nameSize' | 'titleSize' | 'companySize' | 'bioSize',
+): number {
+  if (templateId === 'showroom' && sizeKey === 'companySize') return 60
+  return 80
+}
+
 export function calcCompanySize(base: number, design: CardDesign): number {
-  return applyPercent(base, design.companySize)
+  const min = typeSizeMin(design.templateId, 'companySize')
+  const pct = Math.max(min, Math.min(TYPE_SIZE_MAX, design.companySize ?? 100))
+  return applyPercent(base, pct)
 }
 
 export function calcBioSize(base: number, design: CardDesign): number {
