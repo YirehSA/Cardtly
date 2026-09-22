@@ -51,7 +51,12 @@ const PROBES = {
   titleType:      ['calcTitleSize(', 'getTitleColor('],
   companyType:    ['calcCompanySize(', 'getCompanyColor('],
   bioType:        ['calcBioSize(', 'getBioColor('],
-  bodySize:       ['getBodyFontSize('],
+  // '<AllContacts' counts for the same reason '<Avatar' does above: the shared
+  // contact block sizes its own rows from getBodyFontSize, so a template that
+  // renders its contacts THROUGH it honours the setting without naming it.
+  // Probing only for the direct call reported nine templates as ignoring the
+  // control when five of them were honouring it perfectly well.
+  bodySize:       ['getBodyFontSize(', '<AllContacts', '<BottomSection'],
   textPosition:   ['textNudge', 'design.textX'],
   // The colour is resolved once, where socialLinks is built, so a template
   // honours the setting exactly when it RENDERS what socialLinks carries.

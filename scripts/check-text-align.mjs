@@ -145,6 +145,36 @@ if (!/Math\.max\(minPct, sizePct - 10\)/.test(panel) || !/disabled=\{sizePct <= 
   bad(`${PANEL}: the typography stepper is back to a flat minimum, so Showroom's company size cannot be taken below 80% however much calcCompanySize allows.`)
 }
 
+// ── 7. Body text size reaches the custom links, and the four templates that ──
+//      used to hardcode their contact rows
+//
+// The panel has said "Body text size - contact rows and custom links" since
+// the control shipped, and the links never read it: the leading ones took the
+// Save Contact BUTTON's size and the rest were a hardcoded Tailwind text-sm.
+// Half the label was untrue on all sixteen templates. This is the half that
+// was invisible, because a control that moves something looks like it works.
+const card = read(CARD)
+if (!/fontSize: bodyFontSize \}\}>\s*\n\s*<span className="truncate">\{l\.title\}/.test(card)) {
+  bad(`${CARD}: the leading custom links no longer take bodyFontSize. If they are back on buttonFontSize they follow the Save Contact button's size control instead of "Body text size", which is what the panel promises.`)
+}
+if (/className="flex-1 text-sm font-medium truncate"/.test(card)) {
+  bad(`${CARD}: the custom link title is back to Tailwind's text-sm. That is a fixed 14px and beats an absent inline size, so the Body text size control cannot move it.`)
+}
+if (!/fontSize: bodyFontSize \}\}>\{l\.title\}/.test(card)) {
+  bad(`${CARD}: the custom link title no longer sets fontSize from bodyFontSize.`)
+}
+// The three whose contact rows were hardcoded. Studio is deliberately absent:
+// its contacts are icon circles with no visible text to size.
+for (const [what, re] of [
+  ['Executive', /fontSize: getBodyFontSize\(design\) - 1/],
+  ['Neon', /fontSize: getBodyFontSize\(design\), color: '#c0c0e8'/],
+  ['Editorial', /fontSize: getBodyFontSize\(design\), color: ink, fontFamily: 'Georgia, serif'/],
+]) {
+  if (!re.test(card)) {
+    bad(`${CARD}: ${what}'s contact rows no longer read getBodyFontSize, so the Body text size control does nothing there - which is how it came to "not always work".`)
+  }
+}
+
 if (fail) {
   console.error(`${LF}check-text-align: ${fail} failure(s).`)
   process.exit(1)

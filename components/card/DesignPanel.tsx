@@ -647,7 +647,19 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
 
         {/* Body text size (contact rows + custom links) - kept as a
             3-button toggle since this controls multiple elements at
-            once and there's no individual sizing to do here */}
+            once and there's no individual sizing to do here.
+
+            IT NOW DOES WHAT THE LABEL SAYS. The custom links never read it:
+            the leading ones took the Save Contact button's size and the rest
+            were a hardcoded Tailwind text-sm, so half of "contact rows and
+            custom links" was untrue on every template since the control
+            shipped. Both now read it, which is also why this is no longer
+            gated - every template renders its links through BottomSection.
+
+            One honest gap left, and it is a gap in the CARD, not the control:
+            Studio shows its contacts as icon circles with no visible text, so
+            on Studio this moves the links and there are no contact rows for it
+            to move. */}
         <div>
           <label className="block text-xs font-medium mb-2">Body text size</label>
           <p className="text-xs text-muted-foreground mb-2">Contact rows and custom links</p>

@@ -660,6 +660,10 @@ interface BottomProps {
   buttonText: string
   buttonBorder: string | null
   buttonFontSize: number
+  /** The contact-row and custom-link text size, from the Body text size
+   *  control. Passed in for the same reason buttonFontSize is: BottomSection
+   *  is not given the design. */
+  bodyFontSize: number
   bg: Shared['bg']
   cardEffect: Shared['cardEffect']
   handleShare: () => void
@@ -724,7 +728,7 @@ function BookingTrigger({ card, accentHex, accentText, buttonBg, buttonText, but
   )
 }
 
-function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context = null, contextControls = null, buttonBg, buttonText, buttonBorder, buttonFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false, omitCertifications = false, primaryLinkCount = 0 }: BottomProps) {
+function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context = null, contextControls = null, buttonBg, buttonText, buttonBorder, buttonFontSize, bodyFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false, omitCertifications = false, primaryLinkCount = 0 }: BottomProps) {
   // Shadows the module import on purpose, so the three track() calls below
   // (contact_save, context_cta_clicked, share) are preview-aware without three
   // separate reminders to check a flag.
@@ -871,7 +875,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
               <a key={l.index} href={l.url.startsWith('http') ? l.url : `https://${l.url}`}
                 target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 rounded-2xl px-4 py-4 font-semibold transition hover:opacity-90 active:scale-[0.99]"
-                style={{ background: buttonBg, color: buttonText, border: buttonBorder || undefined, fontSize: buttonFontSize }}>
+                style={{ background: buttonBg, color: buttonText, border: buttonBorder || undefined, fontSize: bodyFontSize }}>
                 <span className="truncate">{l.title}</span>
                 <ArrowRight className="w-4 h-4 flex-shrink-0" />
               </a>
@@ -892,7 +896,10 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: accentHex + '22', color: accentHex }}>
                 <ExternalLink className="w-4 h-4" />
               </div>
-              <p className="flex-1 text-sm font-medium truncate" style={{ color: bg.text }}>{l.title}</p>
+              {/* fontSize inline rather than Tailwind's text-sm: the class is a
+                  fixed 14px and would win over nothing, so the Body text size
+                  control could never move it. */}
+              <p className="flex-1 font-medium truncate" style={{ color: bg.text, fontSize: bodyFontSize }}>{l.title}</p>
               <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: bg.subtext }} />
             </a>
           ))}
@@ -1770,7 +1777,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
       onSelect: chooseAudience,
       onShowFull: () => setShowFullProfile(true),
       onReturnToContext: () => setShowFullProfile(false),
-    } : null, buttonBg, buttonText, buttonBorder, buttonFontSize: getButtonFontSize(design), bg, cardEffect, handleShare, founderNumber }
+    } : null, buttonBg, buttonText, buttonBorder, buttonFontSize: getButtonFontSize(design), bodyFontSize: getBodyFontSize(design), bg, cardEffect, handleShare, founderNumber }
 
   const pageStyle: React.CSSProperties = { minHeight: '100vh', backgroundColor: bg.page, color: bg.text, fontFamily: font.body }
 
@@ -2172,7 +2179,9 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
         className="transition hover:scale-[1.02] active:scale-[0.98]">
         <div style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: accentHex + '22', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 2 }}>{icon}</div>
         <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: accentText, textTransform: 'uppercase', letterSpacing: '0.18em' }}>{label}</p>
-        <p style={{ margin: 0, fontSize: 13, color: ink, fontWeight: 600, wordBreak: 'break-word', lineHeight: 1.35 }}>{value}</p>
+        {/* -1 so Medium renders the 13px this tile was designed at, and the
+            control moves it to 11 or 15 rather than resetting the design. */}
+        <p style={{ margin: 0, fontSize: getBodyFontSize(design) - 1, color: ink, fontWeight: 600, wordBreak: 'break-word', lineHeight: 1.35 }}>{value}</p>
       </a>
     )
     return (
@@ -3329,7 +3338,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                     Neon's pill is a faint accent wash at 5% alpha, so a solid
                     disc in here would read as a sticker pasted on the card. */}
                 <span style={{ color: item.tint || accentHex }}>{item.icon}</span>
-                <span style={{ fontSize: 14, color: '#c0c0e8' }}>{item.label}</span>
+                <span style={{ fontSize: getBodyFontSize(design), color: '#c0c0e8' }}>{item.label}</span>
               </a>
             ))}
           </div>
@@ -3871,7 +3880,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                 <a key={i} href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                   style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 14, padding: '14px 0', borderBottom: `1px solid ${rule}`, textDecoration: 'none' }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.15em', fontFamily: 'Georgia, serif', flexShrink: 0 }}>{item.label}</span>
-                  <span style={{ fontSize: 14, color: ink, fontFamily: 'Georgia, serif', textAlign: 'right', wordBreak: 'break-word' }}>{item.value}</span>
+                  <span style={{ fontSize: getBodyFontSize(design), color: ink, fontFamily: 'Georgia, serif', textAlign: 'right', wordBreak: 'break-word' }}>{item.value}</span>
                 </a>
               ))}
             </div>
