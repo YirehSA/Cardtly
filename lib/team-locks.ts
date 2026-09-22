@@ -90,7 +90,12 @@ export const LOCK_GROUPS: LockGroup[] = [
     id: 'images',
     label: 'Gallery photos',
     hint: 'The photos shown on the card',
-    columns: IMAGE_SLOTS.flatMap(i => [`image_${i}_url`, `image_${i}_link`]),
+    // The caption belongs to the photo. Migration 087 added image_N_title and
+    // leaving it out here would have locked a dealership's stock photos while
+    // leaving every price under them editable by the salesperson - a lock that
+    // looks closed and is not, which is the exact shape of the bio and
+    // certifications defect found a day earlier.
+    columns: IMAGE_SLOTS.flatMap(i => [`image_${i}_url`, `image_${i}_link`, `image_${i}_title`]),
   },
   {
     // A bio is personal on a personal card. On a team card it is often the

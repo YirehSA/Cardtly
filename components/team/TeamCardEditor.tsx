@@ -713,8 +713,19 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                         <p className="text-xs font-semibold text-muted-foreground">Image {i}</p>
                         <ImageUploader value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" />
                         <div>
+                          {/* Migration 087, and the reason it had to cover
+                              team_cards rather than only cards: a dealership
+                              is a team, and a stock photo with no price under
+                              it is not a listing. Locked with the gallery, so
+                              a group that fixes its photos fixes the prices
+                              under them too. */}
+                          <label className="block text-xs font-medium mb-1 text-muted-foreground">Caption (optional)</label>
+                          <Input value={(form as any)[`image_${i}_title`] || ''} onChange={e => update(`image_${i}_title`, e.target.value)}
+                            placeholder="2021 Ranger Wildtrak · R589 000" disabled={isLocked(`image_${i}_title`)} />
+                        </div>
+                        <div>
                           <label className="block text-xs font-medium mb-1 text-muted-foreground">Link (optional)</label>
-                          <Input type="url" value={(form as any)[`image_${i}_link`] || ''} onChange={e => update(`image_${i}_link`, e.target.value)} placeholder="https://... (tap image to open)" />
+                          <Input type="url" value={(form as any)[`image_${i}_link`] || ''} onChange={e => update(`image_${i}_link`, e.target.value)} placeholder="https://... (tap image to open)" disabled={isLocked(`image_${i}_link`)} />
                         </div>
                       </div>
                     ))}

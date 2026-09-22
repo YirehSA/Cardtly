@@ -493,7 +493,7 @@ interface BottomProps {
   isTeamCard?: boolean
   links: { index: number; title: string; url: string }[]
   certifications: string[]
-  galleryImages: { index: number; url: string; link?: string }[]
+  galleryImages: { index: number; url: string; link?: string; title?: string }[]
   accentHex: string
   /** The accent adjusted to clear AA as small text. See where it is
    *  derived in PublicCardView: fills keep accentHex, text takes this. */
@@ -724,14 +724,38 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
             // raw file in a new tab where it overflows the screen. A real
             // webpage link still navigates. No link -> enlarge the shown image.
             const linkIsImage = !!item.link && /\.(jpe?g|png|webp|gif|avif)(\?|#|$)/i.test(item.link)
-            const thumb = <img src={item.url} alt={`Gallery ${i + 1}`} className="w-full aspect-video object-cover rounded-xl hover:opacity-80 transition cursor-pointer" />
+            // The caption, when there is one. Migration 087 added it for
+            // Showroom, where the gallery is a list of vehicles and a photo
+            // without a price under it is not a listing - but it renders on
+            // every template, because a photo that says what it is beats one
+            // that does not, whoever is looking. A card with no captions is
+            // byte-for-byte what it was before.
+            const caption = typeof item.title === 'string' && item.title.trim()
+              ? (
+                <span className="block mt-1.5 text-[11px] leading-snug" style={{ color: bg.subtext }}>
+                  {item.title.trim()}
+                </span>
+              )
+              : null
+            // alt falls back to the ordinal only when there is no caption. A
+            // screen reader saying "Gallery 3" where the sighted user reads
+            // "2021 Ranger Wildtrak, R589,000" is the accessible name being
+            // worse than the visible one.
+            const alt = typeof item.title === 'string' && item.title.trim() ? item.title.trim() : `Gallery ${i + 1}`
+            const thumb = <img src={item.url} alt={alt} className="w-full aspect-video object-cover rounded-xl hover:opacity-80 transition cursor-pointer" />
             if (item.link && !linkIsImage) {
-              return <a key={i} href={item.link} target="_blank" rel="noopener noreferrer">{thumb}</a>
+              return (
+                <a key={i} href={item.link} target="_blank" rel="noopener noreferrer" className="block">
+                  {thumb}
+                  {caption}
+                </a>
+              )
             }
             const full = linkIsImage ? item.link! : item.url
             return (
-              <button key={i} type="button" onClick={() => setLightbox(full)} className="block w-full" aria-label={`Open gallery image ${i + 1}`}>
+              <button key={i} type="button" onClick={() => setLightbox(full)} className="block w-full text-left" aria-label={`Open ${alt}`}>
                 {thumb}
+                {caption}
               </button>
             )
           })}
@@ -1455,8 +1479,12 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
       index: i,
       url: (card as any)[`image_${i}_url`],
       link: (card as any)[`image_${i}_link`],
+      // Migration 087. Optional on every template and load-bearing on one:
+      // Showroom renders the gallery as a list of vehicles, where a photo with
+      // no price under it is not a listing.
+      title: (card as any)[`image_${i}_title`],
     })),
-  ].filter(item => item.url) as { index: number; url: string; link?: string }[] : []
+  ].filter(item => item.url) as { index: number; url: string; link?: string; title?: string }[] : []
   // WHICH SOCIAL ACCOUNTS THIS CARD ACTUALLY HAS, counted off SOCIAL_SLOTS so
   // that adding an eighth is a one-line change in types/design and not three
   // edits in three templates, two of which would be forgotten. Every template
@@ -3615,6 +3643,121 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           <BottomSection {...bottomProps} />
           <div style={{ width: 60, borderTop: `2px solid ${accentHex}`, margin: '32px auto 8px' }} />
           <p style={{ textAlign: 'center', fontSize: 11, color: muted, fontFamily: 'Georgia, serif', letterSpacing: '0.15em', textTransform: 'uppercase' }}>cardtly.com/{card.slug}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (design.templateId === 'showroom') {
+    // THE ONLY TEMPLATE THAT DOES NOT LEAD WITH THE PERSON.
+    //
+    // Every other one opens with a portrait, which is right for a consultant
+    // and wrong for a dealership: nobody chooses where to buy a car by which
+    // salesperson they like. They come for the stock, the deal and whether the
+    // place looks like it will still be there in a year. So the vehicle fills
+    // the hero, the dealership's name carries the weight, and the seller is a
+    // 44px chip you tap to ask about a car.
+    //
+    // THE BACKDROP IS THE FIRST GALLERY PHOTO, and deliberately not a separate
+    // field. A new column would be one more thing to fill in and one more
+    // thing to leave empty; "your first photo is the big one" is a rule a
+    // salesperson can hold in their head. It reads as atmosphere rather than a
+    // duplicate listing, so the same car appearing again in the stock grid
+    // below is how every dealership site already works.
+    //
+    // No stock list, no link buttons and no certifications are rendered here.
+    // BottomSection owns all three for all sixteen templates, and a second copy
+    // in here would double every one of them on the page.
+    const heroPhoto = (card as any).image_1_url as string | undefined
+    const sellerSize = 44
+    // AND THE HERO TYPOGRAPHY IS FIXED, which is the one real concession this
+    // template makes. Every other template honours the per-card name, title
+    // and company colours; those are chosen against a flat background, and
+    // here they land on a photograph. The first card tried rendered its name
+    // in a dark grey picked for a pale template, over a bright billboard,
+    // effectively invisible - and a card switching to Showroom arrives
+    // carrying whatever the last template was set to.
+    //
+    // The controls could not be half-honoured either: check-template-controls
+    // treats calcNameSize OR getNameColor as support, so keeping the sizes
+    // would advertise a colour control that does nothing. This codebase is
+    // explicit that a slider which moves nothing is worse than one that is
+    // greyed out, so the hero sets its own sizes and colours and nameType,
+    // titleType and companyType are absent from its TEMPLATE_CONTROLS entry.
+    // Everything below the hero still honours bioType and the rest.
+    // THE SCRIM HAS TO BEAT THE PHOTOGRAPH, not merely tint it. A vehicle shot
+    // can be a white bakkie against a bright wall, and the headline sits on top
+    // of whatever happens to be there. The first version faded to 0.82 and the
+    // name was unreadable over a magenta billboard on the very first card it
+    // was tried on. Three stops now, reaching 0.94 by the time any text starts,
+    // with a shadow underneath as the belt to that brace.
+    // isLight, not design.bgMode. A card can carry a custom background
+    // colour, and applyCustomBg then flips text to suit it while bgMode still
+    // says 'dark'. The first card tested had exactly that: a dark scrim fading
+    // into a pale page, with dark text sitting on the black part of it. The
+    // scrim has to follow the colour the page actually ends up, which is what
+    // isLight already answers for the rest of this file.
+    const overlay = isLight
+      ? 'linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.70) 46%, rgba(255,255,255,0.95) 76%, var(--showroom-fade) 100%)'
+      : 'linear-gradient(180deg, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0.62) 46%, rgba(0,0,0,0.94) 76%, var(--showroom-fade) 100%)'
+    const heroShadow = heroPhoto
+      ? (isLight ? '0 1px 12px rgba(255,255,255,0.9)' : '0 1px 12px rgba(0,0,0,0.85)')
+      : 'none'
+
+    return (
+      <div style={pageStyle} className="animate-fade-up">
+        <InAppBackButton bgMode={design.bgMode} />
+        <button onClick={handleShare} className="fixed safe-top-3 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.35)' }}>
+          <Share2 className="w-4 h-4 text-white" />
+        </button>
+
+        <div className="max-w-md mx-auto">
+          <div style={{ position: 'relative', minHeight: 300, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden' }}>
+            {heroPhoto
+              ? <img src={heroPhoto} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(135deg, ${accentHex} 0%, ${accentHex}55 100%)` }} />}
+            {/* The fade has to end in the page colour or the hero stops in a
+                visible band above the content. Set as a variable so the light
+                and dark gradients above can share one definition. */}
+            <div style={{ position: 'absolute', inset: 0, background: overlay, ['--showroom-fade' as any]: bg.page }} />
+
+            <div style={{ position: 'relative', zIndex: 2, padding: 'calc(env(safe-area-inset-top, 0px) + 56px) 22px 22px' }}>
+              {/* The company, not the person, is the headline: a dealership
+                  card is the dealership's card first.
+                  WITH ONE FALLBACK. A card with no company would otherwise
+                  leave the hero with no headline at all and read as
+                  unfinished, so the name takes the slot - and the chip below
+                  then drops the name rather than printing it twice, three
+                  lines apart. Found on a demo card that carries its brand in
+                  the logo instead of the company field. */}
+              <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 800, fontFamily: font.heading, color: bg.text, lineHeight: 1.1, letterSpacing: '-0.02em', textShadow: heroShadow }}>
+                {card.company || card.name}
+              </h1>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginTop: 14 }}>
+                <div style={{ flexShrink: 0, width: sellerSize, height: sellerSize, borderRadius: '50%', overflow: 'hidden', border: `2px solid ${accentHex}` }}>
+                  {card.profile_image_url
+                    ? <img src={card.profile_image_url} alt="" style={{ width: sellerSize, height: sellerSize, objectFit: 'cover' }} />
+                    : <div style={{ width: sellerSize, height: sellerSize, backgroundColor: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: sellerSize * 0.4, fontWeight: 700, color: accentText, fontFamily: font.heading }}>{card.name?.[0]?.toUpperCase()}</div>}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  {card.company && (
+                    <p style={{ margin: 0, fontSize: 15, fontWeight: 700, fontFamily: font.heading, color: bg.text, lineHeight: 1.2, textShadow: heroShadow }}>{card.name}</p>
+                  )}
+                  {isPro && card.title && (
+                    <p style={{ margin: '1px 0 0', fontSize: 12, color: bg.subtext, lineHeight: 1.2, textShadow: heroShadow }}>{card.title}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-6 pb-6" style={{ paddingTop: 20 }}>
+            <LogoZone {...shared} />
+            {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
+            <AllContacts {...shared} socialLinks={socialLinks} />
+            <BottomSection {...bottomProps} />
+          </div>
         </div>
       </div>
     )

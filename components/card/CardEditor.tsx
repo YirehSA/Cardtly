@@ -548,6 +548,18 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                     </div>
                     <ImageUploader value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" />
                     <div>
+                      {/* Migration 087. Written for Showroom, where the gallery
+                          is a list of vehicles and a photo with no price under
+                          it is not a listing - but it shows on every template,
+                          because a photo that says what it is beats one that
+                          does not. Blank on every existing card, so nothing
+                          changes until somebody types here. */}
+                      <label className="block text-xs font-medium mb-1.5 text-muted-foreground">
+                        Caption under this photo (optional)
+                      </label>
+                      <Input value={(form as any)[`image_${i}_title`] || ''} onChange={e => update(`image_${i}_title`, e.target.value)} placeholder="2021 Ranger Wildtrak · 64 000 km · R589 000" />
+                    </div>
+                    <div>
                       <label className="block text-xs font-medium mb-1.5 text-muted-foreground">
                         Open a page when this photo is tapped (optional)
                       </label>

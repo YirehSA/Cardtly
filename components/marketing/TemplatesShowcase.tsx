@@ -56,7 +56,7 @@ interface Featured {
   bgMode?: BgMode
 }
 
-// All 15 templates. Tiles are small enough that showing the full set proves
+// All 16 templates. Tiles are small enough that showing the full set proves
 // the claim instead of just teasing it. Each gets a hand-picked accent so it
 // reads distinctly in the grid.
 //
@@ -123,7 +123,7 @@ export default function TemplatesShowcase() {
             <ArrowRight className="w-4 h-4" />
           </Link>
           <p className="text-xs mt-3" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            Pro unlocks all 15 templates plus custom theming.
+            Pro unlocks all 16 templates plus custom theming.
           </p>
         </div>
       </div>

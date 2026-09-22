@@ -522,7 +522,7 @@ export default async function DashboardPage() {
           <div className="min-w-0">
             <p className={LABEL}>Cardtly Pro</p>
             <p className="text-sm text-muted-foreground mt-1.5 max-w-md leading-relaxed">
-              15 templates, analytics, email signature, virtual background, contact form,
+              16 templates, analytics, email signature, virtual background, contact form,
               custom design and more.
             </p>
           </div>

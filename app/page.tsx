@@ -200,7 +200,7 @@ export default function HomePage() {
                 twice, and read as a mistake because it is one. */}
             {[
               { n: 'R97',      label: 'Per card, per month' },
-              { n: '15',       label: 'Designed templates' },
+              { n: '16',       label: 'Designed templates' },
               // Not "20 seats per team". Twenty is the ceiling on self-serve
               // Paystack billing, not a limit on the product: above it a team
               // moves to Enterprise on debit order, where there is no cap and
@@ -524,7 +524,7 @@ export default function HomePage() {
       <TemplatesShowcase />
 
       {/* Interactive customization demo — extends the templates story:
-          15 templates, and every one is fully editable */}
+          16 templates, and every one is fully editable */}
 
       {/* ── Company controls: departments, locks, per-rep reporting ──────────
              None of this was advertised anywhere on the site - not here, not on

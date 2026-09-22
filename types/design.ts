@@ -58,7 +58,13 @@ if (LINK_SLOTS.length !== MAX_CUSTOM_LINKS || IMAGE_SLOTS.length !== MAX_GALLERY
 
 /** Every link column, exactly, so a form holding these satisfies a preview. */
 export type LinkFields = { [K in LinkSlot as `link_${K}_title` | `link_${K}_url`]: string }
-export type ImageFields = { [K in ImageSlot as `image_${K}_url` | `image_${K}_link`]: string }
+// image_N_title arrived with migration 087. A gallery photo could carry a link
+// but never a word, so it could show a picture of a car and not its price -
+// which is the whole of a dealership listing. Optional everywhere: a card with
+// no captions renders exactly as it did before.
+export type ImageFields = {
+  [K in ImageSlot as `image_${K}_url` | `image_${K}_link` | `image_${K}_title`]: string
+}
 
 export function linkFieldsFrom(card: any): LinkFields {
   return Object.fromEntries(LINK_SLOTS.flatMap(i => [
@@ -71,10 +77,11 @@ export function imageFieldsFrom(card: any): ImageFields {
   return Object.fromEntries(IMAGE_SLOTS.flatMap(i => [
     [`image_${i}_url`, card?.[`image_${i}_url`] || ''],
     [`image_${i}_link`, card?.[`image_${i}_link`] || ''],
+    [`image_${i}_title`, card?.[`image_${i}_title`] || ''],
   ])) as ImageFields
 }
 
-export type TemplateId = 'classic' | 'modern' | 'bold' | 'minimal' | 'executive' | 'creative' | 'wave' | 'split' | 'splitpro' | 'circuit' | 'meridian' | 'neon' | 'studio' | 'frost' | 'editorial'
+export type TemplateId = 'classic' | 'modern' | 'bold' | 'minimal' | 'executive' | 'creative' | 'wave' | 'split' | 'splitpro' | 'circuit' | 'meridian' | 'neon' | 'studio' | 'frost' | 'editorial' | 'showroom'
 export type FontId = 'sans' | 'serif' | 'modern' | 'rounded' | 'mono'
 export type AccentColor = 'blue' | 'purple' | 'green' | 'red' | 'orange' | 'pink' | 'teal' | 'gold' | 'custom'
 export type LogoPosition = 'left' | 'center' | 'right' | 'hidden'
@@ -115,6 +122,11 @@ export const TEMPLATE_CONTROLS: Record<TemplateId, string[]> = {
   studio: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
   frost: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
   editorial: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
+  // Regenerated from the source by scripts/check-template-controls.mjs --print
+  // once the template existed, not guessed. The photo controls are absent on
+  // purpose: the seller's portrait is a fixed 44px chip here, so a size slider
+  // would be a promise the layout does not keep.
+  showroom: ['logo', 'bioType'],
 }
 
 /** Does this template read this setting at all? */
@@ -479,6 +491,12 @@ export const TEMPLATES: TemplateConfig[] = [
   { id: 'studio',    name: 'Studio',    description: 'Bold black header, curved accent bottom', proOnly: true, defaultBgMode: 'dark', previewGradient: 'from-black to-amber-900' },
   { id: 'frost',     name: 'Frost',     description: 'Glassmorphism on a soft gradient mesh',    proOnly: true, defaultBgMode: 'light', previewGradient: 'from-sky-200 to-violet-200' },
   { id: 'editorial', name: 'Editorial', description: 'Serif newspaper layout, traditional feel',  proOnly: true, defaultBgMode: 'light', previewGradient: 'from-stone-100 to-amber-50' },
+  // THE ONLY TEMPLATE WHERE THE PERSON IS NOT THE HERO. Built for dealerships.
+  // Nobody chooses a dealership by which salesperson they like; they come for
+  // the stock and the deal. So the car leads, the gallery becomes a list of
+  // vehicles with a price under each, and the seller is the chip you tap to ask
+  // about one.
+  { id: 'showroom',  name: 'Showroom',  description: 'Stock first, seller second - for dealerships', proOnly: true, defaultBgMode: 'dark', previewGradient: 'from-zinc-950 to-sky-950' },
 ]
 
 // Card style visual effects — returns CSS properties to apply
@@ -669,6 +687,12 @@ export function getBgColors(mode: BgMode, templateId: TemplateId, customBgColor?
     // real dark palette: night ice rather than day ice.
     frost:     { page: '#070d16', card: 'rgba(255,255,255,0.07)', surface: 'rgba(255,255,255,0.05)', text: '#eaf2fb', subtext: '#93a7bd', border: 'rgba(255,255,255,0.16)' },
     editorial: { page: '#fafaf9', card: '#ffffff', surface: '#f5f5f4', text: '#1c1917', subtext: '#716a65', border: '#e7e5e4' },
+    // Cool neutral graphite, for the same reason Meridian is neutral: the hero
+    // is a full-bleed photograph of a vehicle and the ground has to sit under
+    // white, black, red and silver paint without tinting any of them. subtext
+    // #9ba6b1 is 4.86 against this page, clearing the 4.8 target the block
+    // above sets.
+    showroom:  { page: '#0b0f14', card: '#141a21', surface: '#1c242d', text: '#f2f5f8', subtext: '#9ba6b1', border: '#28323d' },
   }
   return applyCustomBg(dark[templateId] || dark.classic)
 }

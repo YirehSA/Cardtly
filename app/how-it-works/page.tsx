@@ -25,7 +25,7 @@ const gradText: React.CSSProperties = {
 const HIW_FAQ = [
   {
     q: 'How do I make a digital business card?',
-    a: 'Sign up with an email address, and a live card exists immediately at your own address, such as cardtly.com/card/yourname. Add your name, photo, job title and contact details, pick one of 15 templates and set your colours and logo. Your QR code is generated automatically and your link works the moment the card is saved. There is no approval step, no setup wizard and no credit card needed to create the card. Most people have something they are happy to hand out inside two minutes, and everything on it can be changed afterwards without the link ever changing, so a card shared today keeps working after later edits.',
+    a: 'Sign up with an email address, and a live card exists immediately at your own address, such as cardtly.com/card/yourname. Add your name, photo, job title and contact details, pick one of 16 templates and set your colours and logo. Your QR code is generated automatically and your link works the moment the card is saved. There is no approval step, no setup wizard and no credit card needed to create the card. Most people have something they are happy to hand out inside two minutes, and everything on it can be changed afterwards without the link ever changing, so a card shared today keeps working after later edits.',
   },
   {
     q: 'How do people receive my card?',
@@ -54,7 +54,7 @@ const STEPS = [
     n: '02',
     time: '2 minutes',
     title: 'Type in your details',
-    desc: 'Name, job title, number, email. Pick one of 15 templates and a colour. That is the whole build.',
+    desc: 'Name, job title, number, email. Pick one of 16 templates and a colour. That is the whole build.',
     detail: 'No design skills. Every template already looks right - you are choosing, not designing.',
     color: '#7c3aed',
   },
