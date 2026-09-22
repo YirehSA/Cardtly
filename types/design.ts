@@ -231,6 +231,52 @@ export interface CardDesign {
    *  behaviour a dealership with one set of stock photos wants. Eleven more
    *  columns and another migration would buy nothing. */
   imageFocus?: Record<string, string>
+  /** Which way the card's text is set: the name, the job title, the company
+   *  and the bio, together.
+   *
+   *  ONE SETTING RATHER THAN FOUR. Alignment is a property of the text BLOCK -
+   *  a centred name over a left-set bio is a mistake, not a choice - so this
+   *  is deliberately not split the way size and colour are.
+   *
+   *  UNSET MEANS THE TEMPLATE DECIDES, and that is why the default is absent
+   *  rather than 'left'. Classic centres its text, Editorial sets it left and
+   *  Showroom sets its bio left under a left headline; those are the designs,
+   *  not accidents. An absent value renders no textAlign at all, so every card
+   *  that has never touched this control is byte-for-byte what it was. */
+  textAlign?: 'left' | 'center' | 'right'
+}
+
+/** The alignment for a run of card text, or the template's own when the card
+ *  has not asked for one.
+ *
+ *  `fallback` carries whatever the template already hardcoded - 'center' on
+ *  Minimal's bio, 'justify' on Editorial's - so overriding is opt-in and
+ *  undoing it returns to the design rather than to the browser default.
+ *
+ *  Returning undefined is load-bearing: React omits a style property that is
+ *  undefined, so an unset alignment leaves the element inheriting exactly as
+ *  it did before this existed. */
+export function alignFor(
+  design: CardDesign,
+  fallback?: 'left' | 'center' | 'right' | 'justify',
+): 'left' | 'center' | 'right' | 'justify' | undefined {
+  const v = design.textAlign
+  return v === 'left' || v === 'center' || v === 'right' ? v : fallback
+}
+
+/** The same choice, as a flex main-axis alignment.
+ *
+ *  For text that is not a line of text. Creative sets its job title as a
+ *  gradient PILL inside a flex row, and text-align does nothing to a pill -
+ *  what moves it is the row's justifyContent. Without this, choosing "left"
+ *  moved every other line on that card and left the badge stubbornly centred,
+ *  which reads as the control half working. */
+export function justifyFor(
+  design: CardDesign,
+  fallback: 'left' | 'center' | 'right' = 'center',
+): 'flex-start' | 'center' | 'flex-end' {
+  const a = alignFor(design, fallback)
+  return a === 'left' ? 'flex-start' : a === 'right' ? 'flex-end' : 'center'
 }
 
 /** The centre crop, which is what the browser does unasked. */

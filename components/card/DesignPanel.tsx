@@ -528,6 +528,33 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
       {/* ── TEXT TAB ────────────────────────────────────────────── */}
       <div className="space-y-8" style={{ display: activeTab === 'text' ? 'block' : 'none' }}>
 
+      {/* Text alignment. ONE control for the whole block rather than a row in
+          the table below, because alignment is a property of the text as a
+          set: a centred name over a left-set bio is a mistake, not a choice.
+
+          "Template" is a real option and the default, not a way of saying
+          none. Classic centres its text and Editorial sets it left because
+          those are their designs, so the control has to be able to give that
+          back once somebody has overridden it. */}
+      <div>
+        <label className="block text-sm font-semibold mb-1">Text alignment</label>
+        <p className="text-xs text-muted-foreground mb-3">Your name, job title, company and bio together</p>
+        <div className="flex gap-2">
+          {([
+            { v: undefined, label: 'Template' },
+            { v: 'left' as const, label: 'Left' },
+            { v: 'center' as const, label: 'Centre' },
+            { v: 'right' as const, label: 'Right' },
+          ]).map(o => (
+            <button key={o.label}
+              onClick={() => update({ textAlign: o.v })}
+              className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition ${design.textAlign === o.v ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Typography section - one row per element (Name, Title,
           Company, Bio). Each row exposes a colour swatch + native
           colour picker, and stepper buttons (-) (current %) (+) for
