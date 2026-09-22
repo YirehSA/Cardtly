@@ -469,7 +469,7 @@ function ContactBtn({ icon, label, sublabel, href, accentHex, bg, cardEffect, bo
 
 // ── AllContacts ───────────────────────────────────────────────────────────────
 function AllContacts({ card, isPro, accentHex, bg, cardEffect, design, socialLinks, compact = false }: Pick<Shared, 'card' | 'isPro' | 'accentHex' | 'bg' | 'cardEffect' | 'design'> & {
-  socialLinks: { platform: string; url: string; icon: React.ReactNode; color?: string }[]
+  socialLinks: { platform: string; url: string; icon: React.ReactNode; color?: string; onColor?: string }[]
   /** Render the contacts as a single row of icon buttons instead of a stack of
    *  full-width rows.
    *
@@ -496,17 +496,12 @@ function AllContacts({ card, isPro, accentHex, bg, cardEffect, design, socialLin
   // `action` is what the icon-only button announces to a screen reader and
   // shows on hover. It has to be the VALUE, not the category: "Call
   // +27 82 331 1360" tells somebody what will happen, "Phone" does not.
-  // EACH PLATFORM IN ITS OWN COLOUR, when the card asks for it. People
-  // recognise Facebook blue and WhatsApp green before they have read the
-  // glyph, which is worth more on an icon-only row than palette discipline is.
-  // Off by default, so no card made before this setting existed changes.
-  //
-  // Only the SOCIALS have a brand colour. Phone, email, address and website
-  // belong to the cardholder, not to a platform, so they stay on the accent
-  // either way - a green telephone would be inventing a brand that does not
-  // exist.
-  const useBrandColours = design.socialIconStyle === 'brand'
-
+  // COLOUR IS NOT DECIDED HERE. socialLinks arrives with each account's colour
+  // already resolved - the platform's own or the accent, depending on the
+  // card's setting, and already made readable against this page. This
+  // component only chooses a colour for the CONTACTS, which have no platform
+  // and so take the accent: a green telephone would be inventing a brand that
+  // does not exist.
   const entries: {
     key: string
     icon: React.ReactNode
@@ -514,9 +509,10 @@ function AllContacts({ card, isPro, accentHex, bg, cardEffect, design, socialLin
     sublabel?: string
     href: string
     action: string
-    /** The platform's own colour, already made readable against this card.
-     *  Absent on everything that is not a social account. */
-    brandColor?: string
+    /** Fill and glyph for a social account. Absent on the contacts, which
+     *  fall back to the accent. */
+    fill?: string
+    onFill?: string
   }[] = []
 
   if (card.phone) entries.push({
@@ -555,35 +551,54 @@ function AllContacts({ card, isPro, accentHex, bg, cardEffect, design, socialLin
   for (const s of socialLinks) entries.push({
     key: s.platform, icon: s.icon, label: `${s.platform} Profile`,
     href: s.url, action: `${s.platform} profile`,
-    // X and TikTok are #000000 and would disappear into a dark card, so the
-    // colour goes through readableBrandOn rather than being used raw. See
-    // types/design: readableAccentOn on its own hands black straight back.
-    brandColor: s.color ? readableBrandOn(s.color, bg.page) : undefined,
+    fill: s.color, onFill: s.onColor,
   })
 
   if (compact) {
+    // FIVE TO A ROW, and whatever is left centred underneath.
+    //
+    // Left to flex-wrap, this packed six onto the first line and orphaned the
+    // seventh below it, because seven 44px circles at a 10px gap is 368px
+    // against 342px of usable width. Chunking in fives is a decision rather
+    // than an accident of arithmetic: the rows stay even, the remainder is
+    // centred, and the shape does not change the day somebody adds a WhatsApp
+    // number. CSS cannot balance wrapped flex lines, so the chunking happens
+    // here and each chunk is its own centred row.
+    const ROW = 5
+    const rows: (typeof entries)[] = []
+    for (let i = 0; i < entries.length; i += ROW) rows.push(entries.slice(i, i + ROW))
+
     return (
       // 44px and a 10px gap are the floors, not the design: Apple's minimum
       // touch target and Material's minimum spacing between two of them. An
       // icon-only control that is 36px is a control people miss.
-      <div className="flex flex-wrap justify-center gap-2.5">
-        {entries.map(e => {
-          const tint = useBrandColours && e.brandColor ? e.brandColor : accentHex
-          return (
-            <a key={e.key} href={e.href}
-              target={e.href.startsWith('http') ? '_blank' : undefined}
-              rel={e.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-              aria-label={e.action} title={e.action}
-              className="rounded-full flex items-center justify-center transition hover:opacity-80"
-              style={{
-                width: 44, height: 44,
-                backgroundColor: tint + '22', color: tint,
-                border: cardEffect.borderStyle,
-              }}>
-              {e.icon}
-            </a>
-          )
-        })}
+      <div className="flex flex-col items-center gap-2.5">
+        {rows.map((row, i) => (
+          <div key={i} className="flex justify-center gap-2.5">
+            {row.map(e => {
+              // SOLID, not a wash. A 13% tint of Facebook blue is not
+              // recognisably Facebook; the colour only does its job - being
+              // read before the glyph is - at full strength. The glyph takes
+              // whichever of black or white reads on top, which matters
+              // because X on a dark card is a WHITE disc.
+              const fill = e.fill || accentHex
+              const glyph = e.fill ? (e.onFill || '#ffffff') : getReadableTextOn(accentHex)
+              return (
+                <a key={e.key} href={e.href}
+                  target={e.href.startsWith('http') ? '_blank' : undefined}
+                  rel={e.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  aria-label={e.action} title={e.action}
+                  className="rounded-full flex items-center justify-center transition hover:opacity-80"
+                  style={{
+                    width: 44, height: 44, flexShrink: 0,
+                    backgroundColor: fill, color: glyph,
+                  }}>
+                  {e.icon}
+                </a>
+              )
+            })}
+          </div>
+        ))}
       </div>
     )
   }
@@ -591,11 +606,13 @@ function AllContacts({ card, isPro, accentHex, bg, cardEffect, design, socialLin
   return (
     <div className="space-y-2.5">
       {entries.map(e => (
-        // accentHex is what tints the icon chip inside the row, so passing the
-        // brand colour here is the whole of "use each platform's colours" for
-        // the stacked shape too. The row's own surface is untouched.
+        // accentHex is what tints the icon chip inside the row, so handing the
+        // platform's colour to it is the whole of "use each platform's
+        // colours" for the stacked shape. The row's own surface is untouched:
+        // in a labelled list the chip is decoration and the words carry the
+        // meaning, so a full-strength disc would shout.
         <ContactBtn key={e.key} icon={e.icon} label={e.label} sublabel={e.sublabel} href={e.href}
-          accentHex={useBrandColours && e.brandColor ? e.brandColor : accentHex}
+          accentHex={e.fill || accentHex}
           bg={bg} cardEffect={cardEffect} bodyFontSize={bodyFontSize} />
       ))}
     </div>
@@ -1676,12 +1693,44 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     a => a.key,
   )
 
-  const socialLinks = socialAccounts.map(a => ({
-    platform: a.label,
-    url: a.url,
-    icon: socialIconFor(a.key, 'w-4 h-4'),
-    color: SOCIAL_BRAND_COLORS[a.key],
-  }))
+  // WHAT COLOUR A SOCIAL ICON IS, DECIDED ONCE FOR ALL SIXTEEN TEMPLATES.
+  //
+  // This used to be SOCIAL_BRAND_COLORS straight off the map, and roughly half
+  // the templates ignored it and drew the accent instead - so "use the
+  // platform's colours" was true on Modern and false on Frost, with nothing
+  // saying which was which. Every template now renders s.color and none of
+  // them decides what it is, the same rule socialAccounts already follows for
+  // WHICH accounts appear.
+  //
+  // DEFAULT IS THE PLATFORM'S OWN COLOUR. People recognise Facebook blue and
+  // WhatsApp green before they have read the glyph, and a row of identical
+  // accent-coloured circles makes somebody look at each one in turn. A card
+  // can still ask for the accent, which is what the Design panel's "My
+  // colour" does.
+  const useBrandSocials = (design.socialIconStyle ?? 'brand') === 'brand'
+  const socialLinks = socialAccounts.map(a => {
+    // readableBrandOn, not the raw hex: X and TikTok are #000000 and would be
+    // a black disc on a black card. See types/design for why readableAccentOn
+    // on its own cannot fix that one.
+    const color = useBrandSocials
+      ? readableBrandOn(SOCIAL_BRAND_COLORS[a.key], bg.page)
+      : accentHex
+    return {
+      // The KEY as well as the label, so a template that draws its glyphs at
+      // another size can call socialIconFor itself without going back to
+      // socialAccounts and losing the colour decision made here.
+      key: a.key,
+      platform: a.label,
+      url: a.url,
+      icon: socialIconFor(a.key, 'w-4 h-4'),
+      color,
+      // The glyph, for the templates that fill the shape with `color`. Derived
+      // rather than hardcoded '#fff', which is what the brand-coloured
+      // templates all did - correct for Facebook blue and wrong the moment the
+      // fill is white, which is exactly what X becomes on a dark card.
+      onColor: getReadableTextOn(color),
+    }
+  })
 
   async function handleShare() {
     // In a preview window.location.href is the dashboard, so this would offer
@@ -1853,8 +1902,8 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                     aria-label={s.platform} title={s.platform}
                     style={{
                       width: 44, height: 44, borderRadius: '50%', display: 'grid', placeItems: 'center',
-                      backgroundColor: s.color || accentHex, color: '#fff', textDecoration: 'none',
-                      boxShadow: `0 4px 14px ${(s.color || accentHex)}55`,
+                      backgroundColor: s.color, color: s.onColor, textDecoration: 'none',
+                      boxShadow: `0 4px 14px ${s.color}55`,
                     }}>{s.icon}</a>
                 ))}
               </div>
@@ -1937,7 +1986,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                   <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
                     aria-label={s.platform}
                     className="w-11 h-11 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95"
-                    style={{ backgroundColor: s.color, color: '#ffffff', boxShadow: `0 4px 14px ${s.color}66` }}>
+                    style={{ backgroundColor: s.color, color: s.onColor, boxShadow: `0 4px 14px ${s.color}66` }}>
                     {s.icon}
                   </a>
                 ))}
@@ -2009,13 +2058,16 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     // top-left to bottom-right so the blue starts at the top of the ring.
     const RING_GRADIENT = 'linear-gradient(135deg, #00d4ff 0%, #8b5cf6 50%, #ec4899 100%)'
     const URL_GRADIENT  = 'linear-gradient(90deg, #00d4ff, #8b5cf6, #ec4899)'
+    // CONTACTS ONLY. The social entries that used to live here (linkedin,
+    // twitter, facebook) have gone: socialLinks resolves those centrally now,
+    // and this map's LinkedIn was #3b82f6 rather than LinkedIn's actual
+    // #0a66c2, so Minimal disagreed with the other fifteen templates about
+    // what colour LinkedIn is. Phone, email and website have no platform and
+    // so keep this template's signature palette.
     const ICON_COLORS = {
       phone:    '#22c55e',  // green
       email:    '#ef4444',  // red
-      linkedin: '#3b82f6',  // blue
       website:  '#a855f7',  // purple
-      twitter:  '#1f2937',  // dark slate (X brand modern look, visible on black bg)
-      facebook: '#1877f2',  // facebook brand blue
     }
     type CircleProps = { href: string; color: string; icon: React.ReactNode; label: string }
     const Circle = ({ href, color, icon, label }: CircleProps) => (
@@ -2065,13 +2117,16 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             {card.email && <Circle href={`mailto:${card.email}`} color={ICON_COLORS.email} label="Email" icon={<Mail className="w-6 h-6" />} />}
             {card.website && <Circle href={card.website.startsWith('http') ? card.website : `https://${card.website}`} color={ICON_COLORS.website} label="Website" icon={<Globe className="w-6 h-6" />} />}
             {/* EVERY social this card has, not the four this template used to
-                name. ICON_COLORS is now an override: anything it has no
-                opinion about takes its brand colour and still renders, so the
-                palette can never again decide the list. */}
-            {socialAccounts.map(a => (
-              <Circle key={a.key} href={a.url} label={a.label}
-                color={(ICON_COLORS as Record<string, string>)[a.key] ?? SOCIAL_BRAND_COLORS[a.key]}
-                icon={socialIconFor(a.key, 'w-6 h-6')} />
+                name, and each in the colour socialLinks resolved - which
+                honours the card's "platform colours or my colour" setting.
+                ICON_COLORS no longer has an opinion about socials: it held a
+                LinkedIn blue that was not LinkedIn's (#3b82f6 against the real
+                #0a66c2), so this template quietly disagreed with the other
+                fifteen about what colour LinkedIn is. */}
+            {socialLinks.map(s => (
+              <Circle key={s.key} href={s.url} label={s.platform}
+                color={s.color}
+                icon={socialIconFor(s.key, 'w-6 h-6')} />
             ))}
           </div>
           {/* Pro extras that don't fit in the circle row */}
@@ -2197,7 +2252,12 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                   <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
                     aria-label={s.platform}
                     className="w-12 h-12 rounded-2xl flex items-center justify-center transition hover:scale-110 active:scale-95"
-                    style={{ backgroundColor: tileBg, color: accentHex, border: `1px solid ${glassBorder}`, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+                    // Solid fill, template's own shape. The rounded square and
+                    // the glass border are this design and stay; what was a
+                    // frosted tile with an accent glyph is now the platform's
+                    // colour, because an accent-coloured Facebook icon is not
+                    // a Facebook icon.
+                    style={{ backgroundColor: s.color, color: s.onColor, border: `1px solid ${glassBorder}` }}>
                     {s.icon}
                   </a>
                 ))}
@@ -2379,8 +2439,8 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                   aria-label={s.platform} title={s.platform}
                   style={{
                     width: 54, height: 54, borderRadius: 20, display: 'grid', placeItems: 'center',
-                    backgroundColor: s.color || accentHex, color: '#fff', textDecoration: 'none',
-                    boxShadow: `0 10px 26px ${(s.color || accentHex)}70`,
+                    backgroundColor: s.color, color: s.onColor, textDecoration: 'none',
+                    boxShadow: `0 10px 26px ${s.color}70`,
                   }}>{s.icon}</a>
               ))}
             </div>
@@ -2446,7 +2506,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                   <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
                     aria-label={s.platform}
                     className="w-11 h-11 rounded-full flex items-center justify-center transition hover:scale-110 active:scale-95"
-                    style={{ backgroundColor: s.color, color: '#ffffff', boxShadow: `0 4px 14px ${s.color}66` }}>
+                    style={{ backgroundColor: s.color, color: s.onColor, boxShadow: `0 4px 14px ${s.color}66` }}>
                     {s.icon}
                   </a>
                 ))}
@@ -2550,7 +2610,12 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             )}
             {socialLinks.map(s => (
               <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
-                aria-label={s.platform} title={s.platform} style={railPill}>
+                aria-label={s.platform} title={s.platform}
+                // The rail pill keeps its size and shape; the wash it was
+                // filled with becomes the platform's colour. railPill is still
+                // what the rail's OTHER buttons use, which is why this
+                // overrides rather than changes it.
+                style={{ ...railPill, background: s.color, color: s.onColor }}>
                 {/* socialLinks carries its glyphs at a fixed w-4 h-4 for the
                     contact rows, and they are shared with every other template,
                     so they are scaled here rather than resized at the source. */}
@@ -2707,7 +2772,8 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               )}
               {socialLinks.map(s => (
                 <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
-                  aria-label={s.platform} title={s.platform} style={socialChip} className={CHIP_GLYPH}>
+                  aria-label={s.platform} title={s.platform} className={CHIP_GLYPH}
+                  style={{ ...socialChip, background: s.color, color: s.onColor }}>
                   {s.icon}
                 </a>
               ))}
@@ -2796,14 +2862,16 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     // Room around the photo for the arcs to curl through.
     const arcBox = avatarSize + 44
 
-    const traceRows: { key: string; icon: React.ReactNode; label: string; href: string }[] = [
+    // `tint` is set only on the socials. A contact row has no platform and so
+    // keeps the accent, which is what every row used to do.
+    const traceRows: { key: string; icon: React.ReactNode; label: string; href: string; tint?: string; onTint?: string }[] = [
       card.phone && { key: 'phone', icon: <Smartphone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
       isPro && card.work_phone && { key: 'work', icon: <Phone className="w-4 h-4" />, label: card.work_phone, href: `tel:${card.work_phone}` },
       card.email && { key: 'email', icon: <Mail className="w-4 h-4" />, label: card.email, href: `mailto:${card.email}` },
       isPro && card.address && { key: 'addr', icon: <MapPin className="w-4 h-4" />, label: card.address, href: `https://maps.google.com/?q=${encodeURIComponent(card.address)}` },
       card.website && { key: 'web', icon: <Globe className="w-4 h-4" />, label: card.website.replace(/^https?:\/\//, ''), href: card.website.startsWith('http') ? card.website : `https://${card.website}` },
-      ...socialLinks.map(s => ({ key: s.platform, icon: s.icon, label: s.platform, href: s.url })),
-    ].filter(Boolean) as { key: string; icon: React.ReactNode; label: string; href: string }[]
+      ...socialLinks.map(s => ({ key: s.platform, icon: s.icon, label: s.platform, href: s.url, tint: s.color, onTint: s.onColor })),
+    ].filter(Boolean) as { key: string; icon: React.ReactNode; label: string; href: string; tint?: string; onTint?: string }[]
 
     return (
       <div style={{ ...pageStyle, minHeight: '100vh' }} className="animate-fade-up">
@@ -2896,11 +2964,16 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                   target={r.href.startsWith('http') ? '_blank' : undefined}
                   rel={r.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 44, textDecoration: 'none' }}>
+                  {/* A social row is filled with the platform's colour; a
+                      contact row keeps the accent ring and its faint wash,
+                      which is this template's own look. */}
                   <span style={{
                     width: 44, height: 44, flexShrink: 0, borderRadius: '50%',
                     display: 'grid', placeItems: 'center',
-                    border: `1.5px solid ${accentHex}`, color: accentHex,
-                    backgroundColor: accentHex + '1f', boxShadow: `0 0 14px ${accentHex}44`,
+                    border: `1.5px solid ${r.tint || accentHex}`,
+                    color: r.tint ? r.onTint : accentHex,
+                    backgroundColor: r.tint || accentHex + '1f',
+                    boxShadow: `0 0 14px ${r.tint || accentHex}44`,
                   }}>{r.icon}</span>
                   <span className="truncate" style={{ fontSize: bodySize + 2, fontWeight: 500, color: bg.text, maxWidth: '56%' }}>{r.label}</span>
                   <CircuitTrace up={i % 2 === 0} from={accentHex} to={companion} />
@@ -3149,8 +3222,8 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                     aria-label={s.platform} title={s.platform}
                     style={{
                       width: 44, height: 44, borderRadius: '50%', display: 'grid', placeItems: 'center',
-                      border: `1px solid ${bg.border}`, background: cardEffect.surfaceBg, backdropFilter: cardEffect.backdropFilter, WebkitBackdropFilter: cardEffect.backdropFilter, boxShadow: cardEffect.surfaceShadow,
-                      color: bg.text, textDecoration: 'none',
+                      border: `1px solid ${bg.border}`, boxShadow: cardEffect.surfaceShadow,
+                      background: s.color, color: s.onColor, textDecoration: 'none',
                     }}>{s.icon}</a>
                 ))}
               </div>
@@ -3232,10 +3305,17 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               // the same list of glowing pills the contacts and links use,
               // rather than getting a row of their own, because this template
               // has exactly one way of presenting a thing you can tap.
-              ...socialAccounts.map(a => ({ icon: socialIconFor(a.key, 'w-4 h-4'), label: a.label, href: a.url })),
+              // socialLinks rather than socialAccounts, because socialLinks is
+              // where the colour decision was made once for all sixteen
+              // templates. Same accounts, same order.
+              ...socialLinks.map(s => ({ icon: s.icon, label: s.platform, href: s.url, tint: s.color })),
             ].filter(Boolean).map((item: any, i) => (
               <a key={i} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: 14, backgroundColor: accentHex + '0d', borderRadius: 10, padding: '12px 16px', border: `1px solid ${accentHex}33`, textDecoration: 'none' }}>
-                <span style={{ color: accentHex }}>{item.icon}</span>
+                {/* The pill stays the template's; only the glyph inside it
+                    takes the platform's colour, and only on a social row.
+                    Neon's pill is a faint accent wash at 5% alpha, so a solid
+                    disc in here would read as a sticker pasted on the card. */}
+                <span style={{ color: item.tint || accentHex }}>{item.icon}</span>
                 <span style={{ fontSize: 14, color: '#c0c0e8' }}>{item.label}</span>
               </a>
             ))}
@@ -3289,12 +3369,10 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     const studioNameOffset =
       STUDIO_PHOTO_TOP + STUDIO_PHOTO_BOX + 16 - STUDIO_HEADER_H
     // Brand-coloured social action circles, matching the reference vibe.
+    // CONTACTS ONLY, for the same reason ICON_COLORS is. The socials that were
+    // here have gone to socialLinks; this one's WhatsApp was a warm yellow
+    // chosen to suit the wedge, and WhatsApp is green.
     const STUDIO_COLORS = {
-      whatsapp: '#FCC419',  // warm yellow
-      twitter:  '#1f2937',  // dark slate (X brand)
-      instagram:'#E1306C',  // instagram pink
-      facebook: '#1877F2',  // facebook blue
-      linkedin: '#0a66c2',  // linkedin blue
       email:    '#404040',  // dark grey
       website:  '#ffffff',  // white with dark icon
     }
@@ -3430,16 +3508,17 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             const actions: { color: string; href: string; icon: React.ReactNode; label: string; iconColor?: string }[] = [
               card.website ? { color: STUDIO_COLORS.website, href: card.website.startsWith('http') ? card.website : `https://${card.website}`, icon: <Globe className="w-6 h-6" />, label: 'Website', iconColor: darkInk } : null,
               card.email ? { color: STUDIO_COLORS.email, href: `mailto:${card.email}`, icon: <Mail className="w-6 h-6" />, label: 'Email' } : null,
-              // Every social, in SOCIAL_SLOTS order, which still ends on
-              // WhatsApp - the yellow standout this arc was built around.
-              // STUDIO_COLORS is an override over the brand colours, so
-              // YouTube and TikTok arrive with a colour instead of silently
-              // not arriving at all.
-              ...socialAccounts.map(a => ({
-                color: (STUDIO_COLORS as Record<string, string>)[a.key] ?? SOCIAL_BRAND_COLORS[a.key],
-                href: a.url,
-                icon: socialIconFor(a.key, 'w-6 h-6'),
-                label: a.label,
+              // Every social, in SOCIAL_SLOTS order, in the colour socialLinks
+              // resolved. STUDIO_COLORS no longer overrides them: its WhatsApp
+              // was #FCC419, a warm yellow picked to suit this wedge, and
+              // WhatsApp is green. A card that asks for platform colours has
+              // to get the platform's colour on every template or the setting
+              // means nothing.
+              ...socialLinks.map(s => ({
+                color: s.color,
+                href: s.url,
+                icon: socialIconFor(s.key, 'w-6 h-6'),
+                label: s.platform,
               })),
             ].filter(Boolean) as { color: string; href: string; icon: React.ReactNode; label: string; iconColor?: string }[]
             const n = actions.length
@@ -3707,8 +3786,11 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                     className="transition hover:scale-110"
                     style={{
                       width: 44, height: 44, display: 'grid', placeItems: 'center',
-                      clipPath: hex, backgroundColor: isLight ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.12)',
-                      color: accentHex, textDecoration: 'none',
+                      // The hexagon is the template and stays; only what fills
+                      // it changes, from a white wash with an accent glyph to
+                      // the platform's own colour.
+                      clipPath: hex, backgroundColor: s.color,
+                      color: s.onColor, textDecoration: 'none',
                     }}>{s.icon}</a>
                 ))}
               </div>
@@ -3841,10 +3923,20 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     // in here would double every one of them on the page.
     const heroPhoto = heroImageFor(card)
     // The seller chip follows the photo-size control like every other
-    // template's portrait does. 44 is the base rather than the ceiling: a
-    // dealer who wants their people recognisable can push it up, and one
-    // running a group brand can shrink it further toward the metal.
-    const sellerSize = calcPhotoSize(44, design)
+    // template's portrait does. A dealer who wants their people recognisable
+    // can push it up, and one running a group brand can shrink it toward the
+    // metal.
+    //
+    // BASE RAISED FROM 44 TO 56 because the control did not feel connected to
+    // anything. The wiring was right - 44 at 100%, 70 at 160% - but the whole
+    // 60-160% range spanned 26px to 70px, so a drag moved the chip a couple of
+    // pixels, and in the editor's preview, which is scaled to about a third,
+    // those pixels were invisible. Reported as "the profile image doesn't
+    // change size when I adjust it", and that is a fair description of a
+    // control whose entire range is smaller than one step on most templates.
+    // 56 gives 34px to 90px, which reads as a chip at one end and a portrait
+    // at the other.
+    const sellerSize = calcPhotoSize(56, design)
     // AND THE HERO TYPOGRAPHY IS FIXED, which is the one real concession this
     // template makes. Every other template honours the per-card name, title
     // and company colours; those are chosen against a flat background, and

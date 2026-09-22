@@ -670,23 +670,23 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
       </div>
       </OnlySomeTemplates>
 
-      {/* Social icon colour. Only offered on the templates that render their
-          socials through the shared contact block - the rest style their own
-          social row and would ignore this, which is exactly the "slider that
-          moves nothing" the OnlySomeTemplates wrapper exists to prevent. */}
+      {/* Social icon colour. Fifteen of the sixteen templates honour it. The
+          exception is Editorial, which renders its socials as a ruled list of
+          addresses and has no icons anywhere, so a colour control on it would
+          be the "slider that moves nothing" the wrapper exists to prevent. */}
       <OnlySomeTemplates applies={supportsControl(design.templateId, 'socialIcons')} control="socialIcons">
       <div>
         <label className="block text-sm font-semibold mb-1">Social icon colours</label>
-        <p className="text-xs text-muted-foreground mb-3">Use your accent colour, or each platform&rsquo;s own - Facebook blue, WhatsApp green, Instagram pink</p>
+        <p className="text-xs text-muted-foreground mb-3">Each platform&rsquo;s own colour - Facebook blue, WhatsApp green, Instagram pink - or all of them in your accent instead</p>
         <div className="flex gap-3">
           <button
             onClick={() => update({ socialIconStyle: 'accent' })}
-            className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition ${(design.socialIconStyle ?? 'accent') === 'accent' ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
+            className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition ${design.socialIconStyle === 'accent' ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
             My colour
           </button>
           <button
             onClick={() => update({ socialIconStyle: 'brand' })}
-            className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition ${design.socialIconStyle === 'brand' ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
+            className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition ${(design.socialIconStyle ?? 'brand') === 'brand' ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
             Platform colours
           </button>
         </div>

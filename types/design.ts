@@ -129,20 +129,20 @@ export const TEXT_POSITION_TEMPLATES: TemplateId[] = ['bold', 'wave', 'modern', 
 // and checked against it, so a template that stops reading a setting cannot
 // leave the panel promising it.
 export const TEMPLATE_CONTROLS: Record<TemplateId, string[]> = {
-  classic: ['photoSize', 'profileBorder', 'logo', 'cardStyle', 'solidBackground', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
-  modern: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition'],
+  classic: ['photoSize', 'profileBorder', 'logo', 'cardStyle', 'solidBackground', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize', 'socialIcons'],
+  modern: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition', 'socialIcons'],
   bold: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition', 'socialIcons'],
-  minimal: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
-  executive: ['photoZoom', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
-  creative: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
-  wave: ['photoSize', 'logo', 'solidBackground', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition'],
+  minimal: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize', 'socialIcons'],
+  executive: ['photoZoom', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'socialIcons'],
+  creative: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize', 'socialIcons'],
+  wave: ['photoSize', 'logo', 'solidBackground', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition', 'socialIcons'],
   split: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'socialIcons'],
-  splitpro: ['photoSize', 'profileBorder', 'logo', 'cardStyle', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
-  circuit: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
-  meridian: ['photoSize', 'photoZoom', 'logo', 'cardStyle', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
-  neon: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition'],
-  studio: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
-  frost: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize'],
+  splitpro: ['photoSize', 'profileBorder', 'logo', 'cardStyle', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize', 'socialIcons'],
+  circuit: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize', 'socialIcons'],
+  meridian: ['photoSize', 'photoZoom', 'logo', 'cardStyle', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize', 'socialIcons'],
+  neon: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'textPosition', 'socialIcons'],
+  studio: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'socialIcons'],
+  frost: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize', 'socialIcons'],
   editorial: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
   showroom: ['photoSize', 'logo', 'bioType', 'socialIcons'],
 }
@@ -243,7 +243,13 @@ export const DEFAULT_DESIGN: CardDesign = {
   bodySize: 'medium',
   buttonTextSize: 'medium',
   profileBorder: true,
-  socialIconStyle: 'accent',
+  // PLATFORM COLOURS BY DEFAULT. A row of identical accent-coloured circles
+  // makes somebody read each glyph in turn; Facebook blue and WhatsApp green
+  // are recognised before the glyph is. This is a product decision that
+  // changes existing cards: a card with no stored socialIconStyle resolves to
+  // this, so every card already out there moves to platform colours. That is
+  // intended. A card can go back with the Design panel's "My colour".
+  socialIconStyle: 'brand',
 }
 
 export const ACCENT_COLORS: Record<Exclude<AccentColor, 'custom'>, { label: string; hex: string }> = {

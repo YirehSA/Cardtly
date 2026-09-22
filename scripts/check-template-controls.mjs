@@ -53,12 +53,15 @@ const PROBES = {
   bioType:        ['calcBioSize(', 'getBioColor('],
   bodySize:       ['getBodyFontSize('],
   textPosition:   ['textNudge', 'design.textX'],
-  // AllContacts reads design.socialIconStyle, so the probe is the call - the
-  // same reasoning as '<Avatar' above. But it has to be the call WITH REAL
-  // SOCIALS: Minimal and Split Pro render their own social row and pass
-  // socialLinks={[]} here, so probing for '<AllContacts' alone would have
-  // advertised a colour control on two templates that ignore it.
-  socialIcons:    ['socialLinks={socialLinks}'],
+  // The colour is resolved once, where socialLinks is built, so a template
+  // honours the setting exactly when it RENDERS what socialLinks carries.
+  // Probing for socialLinks alone is not enough: Modern and Split Pro pass
+  // socialLinks={[]} to AllContacts and draw their socials themselves, and
+  // both of those branches do use socialLinks elsewhere, so either form
+  // counts. Editorial is the one template that deliberately has no icons at
+  // all - its socials are a ruled list of URLs - and it reads socialAccounts
+  // rather than socialLinks, which is why it drops out of this on its own.
+  socialIcons:    ['s.color', 'socialLinks.map', 'socialLinks={socialLinks}'],
 }
 
 const map = {}
