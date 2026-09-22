@@ -79,6 +79,7 @@ const FEATURED: Featured[] = [
   { id: 'studio',    name: 'Studio',    tag: 'Smile-curve',               accent: 'orange' },
   { id: 'frost',     name: 'Frost',     tag: 'Soft glass',                accent: 'blue',  bgMode: 'light' },
   { id: 'editorial', name: 'Editorial', tag: 'Magazine spread',           accent: 'red',   bgMode: 'light' },
+  { id: 'showroom',  name: 'Showroom',  tag: 'Stock first',               accent: 'blue'   },
 ]
 
 if (FEATURED.length !== TEMPLATE_CONFIGS.length) {
