@@ -144,7 +144,7 @@ export const TEMPLATE_CONTROLS: Record<TemplateId, string[]> = {
   studio: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'socialIcons'],
   frost: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'bodySize', 'socialIcons'],
   editorial: ['photoSize', 'profileBorder', 'logo', 'nameType', 'titleType', 'companyType', 'bioType'],
-  showroom: ['photoSize', 'logo', 'bioType', 'socialIcons'],
+  showroom: ['photoSize', 'logo', 'nameType', 'titleType', 'companyType', 'bioType', 'socialIcons'],
 }
 
 /** Does this template read this setting at all? */
@@ -211,6 +211,74 @@ export interface CardDesign {
    *  brand colour is passed through readableAccentOn before it is used. See
    *  AllContacts. */
   socialIconStyle?: 'accent' | 'brand'
+  /** WHERE EACH PHOTO IS CROPPED FROM, as a CSS object-position per image.
+   *
+   *  Every photo on a card is cropped to a shape it was not taken for: the
+   *  Showroom hero is a wide band, the gallery is 16:9, the portrait is a
+   *  circle. The browser crops from the centre, which is a guess, and on a
+   *  vehicle shot it is usually the wrong one - the car sits low in the frame
+   *  and the middle of the picture is sky and tarmac.
+   *
+   *  Keys are 'hero', 'photo' for the profile portrait, and '1' to '10' for
+   *  the gallery slots. Values are whatever object-position takes, written as
+   *  '50% 32%'. Absent means centred, so every card that has never been
+   *  reframed renders exactly as it did.
+   *
+   *  IN THE DESIGN JSON RATHER THAN ITS OWN COLUMN. A focal point is one
+   *  short string per image and needs no query, no index and no grant, and
+   *  color_theme is already a brand field - so a team that locks its design
+   *  locks the framing of its photographs along with them, which is the
+   *  behaviour a dealership with one set of stock photos wants. Eleven more
+   *  columns and another migration would buy nothing. */
+  imageFocus?: Record<string, string>
+}
+
+/** The centre crop, which is what the browser does unasked. */
+export const FOCUS_CENTRE = '50% 50%'
+
+/** The shapes the cropped surfaces are, so the editor's drag tool frames the
+ *  real crop rather than a square that has nothing to do with it. A tool
+ *  showing the wrong shape is worse than no tool: somebody centres the car
+ *  perfectly in it and the card still cuts the roof off.
+ *
+ *  GALLERY_ASPECT is exact - the thumbnail is Tailwind's aspect-video.
+ *
+ *  HERO_ASPECT is the phone, and the phone only. The Showroom hero is 300px
+ *  tall inside a column that is 390 wide on a handset and up to max-w-md on a
+ *  desktop browser, so its true ratio moves between about 1.3 and 1.5. 390 is
+ *  the width the card is designed at and the width CardPreview renders it at,
+ *  so framing against it is right where it matters and slightly conservative
+ *  everywhere else - a wider viewport reveals MORE to the sides, never less.
+ *
+ *  scripts/check-image-focus.mjs holds both to the source. */
+export const HERO_ASPECT = 390 / 300
+export const GALLERY_ASPECT = 16 / 9
+
+/** Where to crop one image from. See CardDesign.imageFocus for the keys.
+ *
+ *  Guarded rather than read straight off the record: color_theme is JSON a
+ *  customer's row carries, so a hand-edited or half-migrated value could be a
+ *  number or an object, and object-position silently ignores a value it cannot
+ *  parse - which would look like the reframing tool not working rather than
+ *  like bad data. Anything that is not a non-empty string is centred. */
+export function focusFor(design: CardDesign, key: string): string {
+  const v = design.imageFocus?.[key]
+  return typeof v === 'string' && v.trim() ? v : FOCUS_CENTRE
+}
+
+/** Read a focus back as percentages, for the editor's drag tool. */
+export function focusToXY(value: string): { x: number; y: number } {
+  const m = String(value || '').match(/(-?[\d.]+)%\s+(-?[\d.]+)%/)
+  if (!m) return { x: 50, y: 50 }
+  const clamp = (n: number) => Math.max(0, Math.min(100, n))
+  return { x: clamp(parseFloat(m[1])), y: clamp(parseFloat(m[2])) }
+}
+
+/** And write one. Rounded, because a focal point does not need decimals and
+ *  '50.000000001% 33.3333%' in a stored theme is noise. */
+export function xyToFocus(x: number, y: number): string {
+  const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
+  return `${clamp(x)}% ${clamp(y)}%`
 }
 
 export const DEFAULT_DESIGN: CardDesign = {

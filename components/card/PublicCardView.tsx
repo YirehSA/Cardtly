@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Card, extractLinks } from '@/types/database'
-import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, scrimAlphaForWhite, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, readableAccentOn, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS, SOCIAL_SLOTS, heroImageFor, readableBrandOn, type SocialKey } from '@/types/design'
+import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, scrimAlphaForWhite, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, readableAccentOn, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS, SOCIAL_SLOTS, heroImageFor, readableBrandOn, focusFor, type SocialKey } from '@/types/design'
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
@@ -372,6 +372,10 @@ function Avatar({ card, bg, accentHex, font, design, size = 112, rounded = 'full
   const borderRadius = rounded === 'full' ? '50%' : rounded === 'xl' ? 18 : 12
   const baseStyle: React.CSSProperties = {
     width: scaledSize, height: scaledSize, objectFit: 'cover', flexShrink: 0,
+    // Where the circle crops the portrait from. Before extraStyle, so a
+    // template that has its own opinion about a photo still wins - none
+    // currently sets objectPosition, but the ordering is the contract.
+    objectPosition: focusFor(design, 'photo'),
     borderRadius, border: `4px solid ${bg.page}`, ...extraStyle,
   }
   // When the user toggles profileBorder OFF, force border: none. Must
@@ -626,7 +630,9 @@ interface BottomProps {
   isTeamCard?: boolean
   links: { index: number; title: string; url: string }[]
   certifications: string[]
-  galleryImages: { index: number; url: string; link?: string; title?: string }[]
+  /** `focus` is the object-position for this photo's 16:9 crop, resolved by
+   *  the caller because BottomSection is not given the design. */
+  galleryImages: { index: number; url: string; link?: string; title?: string; focus?: string }[]
   accentHex: string
   /** The accent adjusted to clear AA as small text. See where it is
    *  derived in PublicCardView: fills keep accentHex, text takes this. */
@@ -923,7 +929,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
             // "2021 Ranger Wildtrak, R589,000" is the accessible name being
             // worse than the visible one.
             const alt = typeof item.title === 'string' && item.title.trim() ? item.title.trim() : `Gallery ${i + 1}`
-            const thumb = <img src={item.url} alt={alt} className="w-full aspect-video object-cover rounded-xl hover:opacity-80 transition cursor-pointer" />
+            const thumb = <img src={item.url} alt={alt} className="w-full aspect-video object-cover rounded-xl hover:opacity-80 transition cursor-pointer" style={{ objectPosition: item.focus || '50% 50%' }} />
             if (item.link && !linkIsImage) {
               return (
                 <a key={i} href={item.link} target="_blank" rel="noopener noreferrer" className="block">
@@ -1664,8 +1670,12 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
       // Showroom renders the gallery as a list of vehicles, where a photo with
       // no price under it is not a listing.
       title: (card as any)[`image_${i}_title`],
+      // WHICH PART OF THE PHOTO SURVIVES the 16:9 crop. Keyed by SLOT, not by
+      // position in the filtered list, for exactly the reason `index` above is:
+      // clearing photo 2 must not hand photo 5's framing to photo 6.
+      focus: focusFor(design, String(i)),
     })),
-  ].filter(item => item.url) as { index: number; url: string; link?: string; title?: string }[] : []
+  ].filter(item => item.url) as { index: number; url: string; link?: string; title?: string; focus?: string }[] : []
   // WHICH SOCIAL ACCOUNTS THIS CARD ACTUALLY HAS, counted off SOCIAL_SLOTS so
   // that adding an eighth is a one-line change in types/design and not three
   // edits in three templates, two of which would be forgotten. Every template
@@ -3937,21 +3947,26 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     // 56 gives 34px to 90px, which reads as a chip at one end and a portrait
     // at the other.
     const sellerSize = calcPhotoSize(56, design)
-    // AND THE HERO TYPOGRAPHY IS FIXED, which is the one real concession this
-    // template makes. Every other template honours the per-card name, title
-    // and company colours; those are chosen against a flat background, and
-    // here they land on a photograph. The first card tried rendered its name
-    // in a dark grey picked for a pale template, over a bright billboard,
-    // effectively invisible - and a card switching to Showroom arrives
-    // carrying whatever the last template was set to.
+    // THE HERO TYPOGRAPHY IS THE CARD'S, like every other template's.
     //
-    // The controls could not be half-honoured either: check-template-controls
-    // treats calcNameSize OR getNameColor as support, so keeping the sizes
-    // would advertise a colour control that does nothing. This codebase is
-    // explicit that a slider which moves nothing is worse than one that is
-    // greyed out, so the hero sets its own sizes and colours and nameType,
-    // titleType and companyType are absent from its TEMPLATE_CONTROLS entry.
-    // Everything below the hero still honours bioType and the rest.
+    // It was fixed when Showroom shipped, and the reasoning was that the hero
+    // text lands on a photograph rather than a flat colour: a card switching
+    // to Showroom arrives carrying whatever the last template was set to, and
+    // the first one tried rendered a dark grey name, picked for a pale
+    // template, over a bright billboard. Legible on the template it was chosen
+    // for and invisible here.
+    //
+    // That was solved a different way in the end. The scrim below reaches 0.94
+    // before any text starts and every line carries heroShadow, so the text
+    // sits on what is effectively a solid panel, not on the picture. The
+    // legibility argument for overriding the customer stopped applying once
+    // the backdrop stopped being the photograph.
+    //
+    // NOTE WHICH CONTROL DRIVES WHAT, because this template inverts the usual
+    // arrangement: the COMPANY is the headline and the NAME is the small line
+    // in the chip, so companyType sizes the big text and nameType sizes the
+    // small one. That is the controls being honest about what they name, not a
+    // mix-up.
     // THE SCRIM HAS TO BEAT THE PHOTOGRAPH, not merely tint it. A vehicle shot
     // can be a white bakkie against a bright wall, and the headline sits on top
     // of whatever happens to be there. The first version faded to 0.82 and the
@@ -3981,7 +3996,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
         <div className="max-w-md mx-auto">
           <div style={{ position: 'relative', minHeight: 300, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden' }}>
             {heroPhoto
-              ? <img src={heroPhoto} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+              ? <img src={heroPhoto} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: focusFor(design, 'hero') }} />
               : <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(135deg, ${accentHex} 0%, ${accentHex}55 100%)` }} />}
             {/* The fade has to end in the page colour or the hero stops in a
                 visible band above the content. Set as a variable so the light
@@ -3989,30 +4004,39 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             <div style={{ position: 'absolute', inset: 0, background: overlay, ['--showroom-fade' as any]: bg.page }} />
 
             <div style={{ position: 'relative', zIndex: 2, padding: 'calc(env(safe-area-inset-top, 0px) + 56px) 22px 22px' }}>
-              {/* The company, not the person, is the headline: a dealership
-                  card is the dealership's card first.
-                  WITH ONE FALLBACK. A card with no company would otherwise
-                  leave the hero with no headline at all and read as
-                  unfinished, so the name takes the slot - and the chip below
-                  then drops the name rather than printing it twice, three
-                  lines apart. Found on a demo card that carries its brand in
-                  the logo instead of the company field. */}
-              <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 800, fontFamily: font.heading, color: bg.text, lineHeight: 1.1, letterSpacing: '-0.02em', textShadow: heroShadow }}>
-                {card.company || card.name}
-              </h1>
+              {/* THE COMPANY IS THE HEADLINE, and with no company there is no
+                  headline.
+
+                  The name used to fall back into the empty slot, and the chip
+                  below then dropped it to avoid printing it twice. Turning the
+                  company off therefore made the person's name JUMP out of the
+                  chip and up into the headline at nearly double the size: the
+                  card read as having rearranged itself rather than as having
+                  lost one line, which is what actually happened.
+
+                  Nothing moves now. The hero's content is bottom aligned, so
+                  removing the h1 leaves the chip exactly where it was and
+                  gives it more of the photograph above. A dealership card
+                  without a dealership name is a card with a big picture and
+                  the seller on it, which is a reasonable thing to be. */}
+              {card.company && (
+                <h1 style={{ margin: '0 0 4px', fontSize: calcCompanySize(26, design), fontWeight: 800, fontFamily: font.heading, color: getCompanyColor(design, bg.text), lineHeight: 1.1, letterSpacing: '-0.02em', textShadow: heroShadow }}>
+                  {card.company}
+                </h1>
+              )}
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginTop: 14 }}>
                 <div style={{ flexShrink: 0, width: sellerSize, height: sellerSize, borderRadius: '50%', overflow: 'hidden', border: `2px solid ${accentHex}` }}>
                   {card.profile_image_url
-                    ? <img src={card.profile_image_url} alt="" style={{ width: sellerSize, height: sellerSize, objectFit: 'cover' }} />
+                    ? <img src={card.profile_image_url} alt="" style={{ width: sellerSize, height: sellerSize, objectFit: 'cover', objectPosition: focusFor(design, 'photo') }} />
                     : <div style={{ width: sellerSize, height: sellerSize, backgroundColor: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: sellerSize * 0.4, fontWeight: 700, color: accentText, fontFamily: font.heading }}>{card.name?.[0]?.toUpperCase()}</div>}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  {card.company && (
-                    <p style={{ margin: 0, fontSize: 15, fontWeight: 700, fontFamily: font.heading, color: bg.text, lineHeight: 1.2, textShadow: heroShadow }}>{card.name}</p>
-                  )}
+                  {/* Unconditional. This is where the name lives, whether or
+                      not there is a company above it. */}
+                  <p style={{ margin: 0, fontSize: calcNameSize(15, design), fontWeight: 700, fontFamily: font.heading, color: getNameColor(design, bg.text), lineHeight: 1.2, textShadow: heroShadow }}>{card.name}</p>
                   {isPro && card.title && (
-                    <p style={{ margin: '1px 0 0', fontSize: 12, color: bg.subtext, lineHeight: 1.2, textShadow: heroShadow }}>{card.title}</p>
+                    <p style={{ margin: '1px 0 0', fontSize: calcTitleSize(12, design), color: getTitleColor(design, bg.subtext), lineHeight: 1.2, textShadow: heroShadow }}>{card.title}</p>
                   )}
                 </div>
               </div>

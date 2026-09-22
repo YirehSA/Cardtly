@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
-import { CardDesign, parseDesign, serializeDesign, LINK_SLOTS, IMAGE_SLOTS, MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES, linkFieldsFrom, imageFieldsFrom, type LinkSlot, type ImageSlot } from '@/types/design'
+import { CardDesign, parseDesign, serializeDesign, LINK_SLOTS, IMAGE_SLOTS, MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES, linkFieldsFrom, imageFieldsFrom, HERO_ASPECT, GALLERY_ASPECT, type LinkSlot, type ImageSlot } from '@/types/design'
+import ImageFocusPicker from '@/components/card/ImageFocusPicker'
 import { mergeBrand } from '@/lib/team-brand'
 import { lockedColumns, LOCK_GROUPS } from '@/lib/team-locks'
 import { INDUSTRIES_BY_GROUP } from '@/lib/industries'
@@ -256,6 +257,15 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
   const update = useCallback((field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }))
   }, [])
+
+  // WHERE A PHOTO IS CROPPED FROM, set by the drag tool under each uploader.
+  // Lives in the design JSON, so it travels with color_theme and needs no
+  // column of its own. Functional update because two pickers on screen can be
+  // released in the same tick and the second must not drop the first.
+  const setFocus = useCallback((key: string, focus: string) => {
+    setDesign(d => ({ ...d, imageFocus: { ...(d.imageFocus || {}), [key]: focus } }))
+  }, [])
+
 
   // Unsaved-work tracking, same as the personal editor. Without it a member
   // could write a long bio, click the team breadcrumb, and lose the lot with
@@ -558,6 +568,25 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
               <div>
                 <label className="block text-sm font-medium mb-2">Profile Photo</label>
                 <ImageUploader value={form.profile_image_url} onChange={url => update('profile_image_url', url)} bucket="card-images" userId={userId} shape="circle" allowBackgroundRemoval />
+                {/* Framing is part of the design, and the design can be the
+                    company's. Locked, the reframe would save and then never
+                    render - mergeBrand hands a locked color_theme to the card
+                    whatever the row says - so the tool is read-only rather
+                    than quietly discarded. */}
+                {form.profile_image_url && (
+                  <div className="mt-3">
+                    <ImageFocusPicker
+                      src={form.profile_image_url}
+                      aspect={1}
+                      value={design.imageFocus?.photo}
+                      onChange={f => setFocus('photo', f)}
+                      disabled={isLocked('color_theme')}
+                      hint={isLocked('color_theme')
+                        ? `${org.name} sets how photos are cropped.`
+                        : 'Drag your face into the middle of the circle.'}
+                    />
+                  </div>
+                )}
               </div>
               <Field label="Full name" required>
                 <Input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Jane Smith" />
@@ -712,7 +741,21 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                         className="h-20 w-32 rounded-lg border border-border object-cover opacity-70" />
                     ) : <p className="text-xs text-muted-foreground">No hero image set.</p>
                   ) : (
-                    <ImageUploader value={(form as any).hero_image_url} onChange={url => update('hero_image_url', url)} bucket="card-images" userId={userId} shape="square" />
+                    <>
+                      <ImageUploader value={(form as any).hero_image_url} onChange={url => update('hero_image_url', url)} bucket="card-images" userId={userId} shape="square" />
+                      {(form as any).hero_image_url && (
+                        <div className="mt-3">
+                          <ImageFocusPicker
+                            src={(form as any).hero_image_url}
+                            aspect={HERO_ASPECT}
+                            value={design.imageFocus?.hero}
+                            onChange={f => setFocus('hero', f)}
+                            disabled={isLocked('color_theme')}
+                            hint="This is the band across the top of the card."
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -750,6 +793,16 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                             migration 088, so all ten of these are listings. */}
                         <p className="text-xs font-semibold text-muted-foreground">Image {i}</p>
                         <ImageUploader value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" />
+                        {(form as any)[`image_${i}_url`] && (
+                          <ImageFocusPicker
+                            src={(form as any)[`image_${i}_url`]}
+                            aspect={GALLERY_ASPECT}
+                            value={design.imageFocus?.[String(i)]}
+                            onChange={f => setFocus(String(i), f)}
+                            disabled={isLocked('color_theme')}
+                            hint="How this photo is cropped in the gallery."
+                          />
+                        )}
                         <div>
                           {/* Migration 087, and the reason it had to cover
                               team_cards rather than only cards: a dealership

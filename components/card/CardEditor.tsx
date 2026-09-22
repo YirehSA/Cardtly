@@ -5,7 +5,8 @@ import { isMissingColumn } from '@/lib/pg-errors'
 import { createClient } from '@/lib/supabase/client'
 import { Card, UserPlan } from '@/types/database'
 import { isPro } from '@/lib/plan'
-import { CardDesign, DEFAULT_DESIGN, parseDesign, serializeDesign, MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES, LINK_SLOTS, IMAGE_SLOTS, linkFieldsFrom, imageFieldsFrom } from '@/types/design'
+import { CardDesign, DEFAULT_DESIGN, parseDesign, serializeDesign, MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES, LINK_SLOTS, IMAGE_SLOTS, linkFieldsFrom, imageFieldsFrom, HERO_ASPECT, GALLERY_ASPECT } from '@/types/design'
+import ImageFocusPicker from './ImageFocusPicker'
 import { composeCardSlug, slugifyPart } from '@/lib/card-slug'
 import { toast } from 'sonner'
 import FlippableCardPreview from './FlippableCardPreview'
@@ -134,6 +135,15 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
   const update = useCallback((field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }))
   }, [])
+
+  // WHERE A PHOTO IS CROPPED FROM, set by the drag tool under each uploader.
+  // Lives in the design JSON, so it travels with color_theme and needs no
+  // column of its own. Functional update because two pickers on screen can be
+  // released in the same tick and the second must not drop the first.
+  const setFocus = useCallback((key: string, focus: string) => {
+    setDesign(d => ({ ...d, imageFocus: { ...(d.imageFocus || {}), [key]: focus } }))
+  }, [])
+
 
   // Everything on this page lives in local state until Save is pressed, so
   // leaving without saving threw the work away without a word. Compare what is
@@ -424,6 +434,20 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
             <Section title="Your photo" colour={TAB_COLOUR.basic} icon={<Camera className="w-4 h-4" />}
               hint="A friendly face gets saved far more often than a logo.">
               <ImageUploader value={form.profile_image_url} onChange={url => update('profile_image_url', url)} bucket="card-images" userId={userId} shape="circle" allowBackgroundRemoval={pro} />
+              {/* A portrait is cropped to a circle, and the browser takes the
+                  middle of the file - which on a photo with headroom is the
+                  chin and the shirt. */}
+              {form.profile_image_url && (
+                <div className="mt-3">
+                  <ImageFocusPicker
+                    src={form.profile_image_url}
+                    aspect={1}
+                    value={design.imageFocus?.photo}
+                    onChange={f => setFocus('photo', f)}
+                    hint="Drag your face into the middle of the circle."
+                  />
+                </div>
+              )}
             </Section>
 
             <Section title="Who you are" colour={TAB_COLOUR.basic} icon={<User className="w-4 h-4" />}
@@ -556,6 +580,20 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                 <Section title="Hero image" colour={TAB_COLOUR.media} icon={<Image className="w-4 h-4" />}
                   hint="The big photo across the top of your card. Your forecourt, your building, or the car you want people to see first. This one does NOT use up a gallery slot.">
                   <ImageUploader value={(form as any).hero_image_url} onChange={url => update('hero_image_url', url)} bucket="card-images" userId={userId} shape="square" />
+                  {/* THE CROP THIS TOOL WAS BUILT FOR. The hero is a wide band
+                      and a vehicle photo is not, so centring it cut the roof
+                      off the car and filled the rest with tarmac. */}
+                  {(form as any).hero_image_url && (
+                    <div className="mt-3">
+                      <ImageFocusPicker
+                        src={(form as any).hero_image_url}
+                        aspect={HERO_ASPECT}
+                        value={design.imageFocus?.hero}
+                        onChange={f => setFocus('hero', f)}
+                        hint="This is the band across the top of your card."
+                      />
+                    </div>
+                  )}
                   {/* Says out loud what heroImageFor does, so a dealer who
                       built their card before 088 is not left wondering why
                       there is already a photo up there. */}
@@ -581,6 +619,15 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                       <p className="text-xs font-semibold text-muted-foreground">Photo {i}</p>
                     </div>
                     <ImageUploader value={form[`image_${i}_url` as keyof typeof form]} onChange={url => update(`image_${i}_url`, url)} bucket="card-images" userId={userId} shape="square" />
+                    {(form as any)[`image_${i}_url`] && (
+                      <ImageFocusPicker
+                        src={(form as any)[`image_${i}_url`]}
+                        aspect={GALLERY_ASPECT}
+                        value={design.imageFocus?.[String(i)]}
+                        onChange={f => setFocus(String(i), f)}
+                        hint="How this photo is cropped in the gallery."
+                      />
+                    )}
                     <div>
                       {/* Migration 087. Written for Showroom, where the gallery
                           is a list of vehicles and a photo with no price under
