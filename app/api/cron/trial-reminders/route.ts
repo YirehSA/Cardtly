@@ -6,6 +6,7 @@ import { denyIfNotCron } from '@/lib/cron-auth'
 import { sendOpsDigest } from '@/lib/ops-digest'
 import { FROM_EMAIL } from '@/lib/email'
 import { sendPaymentFailedEmails } from '@/lib/payment-reminders'
+import { expireCancelledSubscriptions } from '@/lib/subscription-expiry'
 
 // Trial reminder emails. Triggered daily by Vercel Cron (see vercel.json).
 //
@@ -201,6 +202,7 @@ export async function GET(request: Request) {
       breakdown: queue.reduce((a: Record<string, number>, q) => ({ ...a, [q.kind]: (a[q.kind] || 0) + 1 }), {}),
       recipients: queue.map(q => ({ to: q.to, kind: q.kind, daysLeft: q.daysLeft })),
       payments: await sendPaymentFailedEmails(admin, resendKey, true),
+      expiries: await expireCancelledSubscriptions(admin, true),
     })
   }
 
@@ -319,6 +321,11 @@ export async function GET(request: Request) {
     overdue = { error: e?.message || 'overdue pass failed' }
   }
 
+  // Self-service cancellations whose paid period has ended. Housekeeping
+  // only - access already stopped at cancel_at - so it runs last and cannot
+  // disturb anything above it. See lib/subscription-expiry.
+  const expiries = await expireCancelledSubscriptions(admin)
+
   return NextResponse.json({
     ok: blocked.length === 0,
     delivered,
@@ -330,5 +337,6 @@ export async function GET(request: Request) {
     ...(blocked.length ? { blocked } : {}),
     ops,
     payments,
+    expiries,
   })
 }

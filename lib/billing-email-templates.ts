@@ -64,6 +64,53 @@ export function renderPaymentFailedEmail({
   }
 }
 
+// ── Subscription cancelled ─────────────────────────────────────────────────
+//
+// Written confirmation of a cancellation, with the date the card stops. Both
+// sides want it: the customer has proof they will not be charged again, and
+// Cardtly has proof it told them when the card goes offline - so "my card
+// vanished" three weeks later has a dated answer in their inbox.
+export interface SubscriptionCancelledInput {
+  firstName: string
+  slug: string | null
+  /** ISO timestamp: when the card stops serving. */
+  liveUntil: string
+}
+
+export function renderSubscriptionCancelledEmail({
+  firstName,
+  slug,
+  liveUntil,
+}: SubscriptionCancelledInput): { subject: string; html: string } {
+  const name = escapeHtml(firstName || 'there')
+  const cardUrl = escapeHtml(slug ? `cardtly.com/card/${slug}` : 'your card')
+  const until = escapeHtml(
+    new Date(liveUntil).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Johannesburg' }),
+  )
+
+  return {
+    subject: 'Your Cardtly subscription is cancelled',
+    html: wrap(`
+      <h1 style="font-size:22px;margin:0 0 4px">Cancelled, ${name}</h1>
+      <p style="color:#666;font-size:14px;margin:0 0 20px">
+        Your Cardtly subscription is cancelled and you will not be charged again.
+      </p>
+      <p style="color:#666;font-size:14px;margin:0 0 20px">
+        <strong>${cardUrl} stays live until ${until}</strong>, the end of the period you have
+        already paid for. After that it stops opening for anyone you have shared it with,
+        including anything printed or on an NFC card.
+      </p>
+      <p style="color:#666;font-size:14px;margin:0 0 24px">
+        Nothing is deleted. Your design, your details and every contact you captured stay
+        exactly where they are, and subscribing again brings the card back on the same link.
+      </p>
+      <p style="color:#999;font-size:13px;margin:0">
+        Did not mean to cancel? Reply to this email before ${until} and we will restore it.
+      </p>
+    `),
+  }
+}
+
 // ── Documents sent to a client ────────────────────────────────────────────
 // A separate wrapper from wrap() above, which signs off "you're getting this
 // because you have a Cardtly card". The person in an accounts department who

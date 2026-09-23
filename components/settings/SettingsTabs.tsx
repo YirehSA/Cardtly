@@ -489,14 +489,47 @@ function billingState(plan: UserPlan, subscription: Props['subscription']) {
 
 function BillingTab({ plan, subscription }: { plan: UserPlan; subscription: Props['subscription'] }) {
   const iosApp = useIosApp()
+  const router = useRouter()
   const state = billingState(plan, subscription)
   const daysLeft = plan.trialDaysLeft ?? 0
+
+  // Self-service cancellation (app/api/account/cancel-subscription). A
+  // cancelled subscription is still 'paid' until the end of the period it
+  // covers - plan.cancelAt says until when - so it is a variant of that state
+  // rather than a sixth one.
+  const [confirmCancel, setConfirmCancel] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelledUntil, setCancelledUntil] = useState<string | null>(plan.cancelAt ?? null)
+  const selfServe = !(subscription?.seats && subscription.seats > 1)
+
+  async function cancelSubscription() {
+    setCancelling(true)
+    try {
+      const res = await fetch('/api/account/cancel-subscription', { method: 'POST' })
+      const out = await res.json().catch(() => ({}))
+      if (!res.ok || !out?.ok) {
+        toast.error(out?.error || 'Could not cancel just now. Please try again.', { duration: 10000 })
+        return
+      }
+      setCancelledUntil(out.cancelAt)
+      setConfirmCancel(false)
+      toast.success(`Cancelled. Your card stays live until ${formatDay(out.cancelAt)}.`)
+      router.refresh()
+    } catch {
+      toast.error('Could not reach Cardtly. Nothing has been cancelled; please try again.')
+    } finally {
+      setCancelling(false)
+    }
+  }
 
   const HEADER = {
     trial:  { badge: 'Trial', title: 'Free trial', tone: daysLeft <= 7 ? '#f59e0b' : '#8b5cf6',
               sub: plan.trialEndsAt ? `Ends ${formatDay(plan.trialEndsAt)}` : 'Every Pro feature included' },
-    paid:   { badge: 'Pro', title: 'Pro plan', tone: '#22c55e',
-              sub: subscription?.created_at ? `Paying since ${formatDay(subscription.created_at)}` : 'Active' },
+    paid:   cancelledUntil
+      ? { badge: 'Pro', title: 'Pro plan, cancelled', tone: '#f59e0b',
+          sub: `Live until ${formatDay(cancelledUntil)}, then your card goes offline` }
+      : { badge: 'Pro', title: 'Pro plan', tone: '#22c55e',
+          sub: subscription?.created_at ? `Paying since ${formatDay(subscription.created_at)}` : 'Active' },
     comped: { badge: 'Pro', title: 'Pro, on the house', tone: '#22c55e',
               sub: subscription?.created_at ? `Active since ${formatDay(subscription.created_at)}` : 'Active' },
     team:   { badge: 'Pro', title: 'Pro, through your team', tone: '#22c55e',
@@ -577,18 +610,73 @@ function BillingTab({ plan, subscription }: { plan: UserPlan; subscription: Prop
       </div>
 
       {/* Only a real payer is told they are being billed. */}
-      {state === 'paid' && (
+      {state === 'paid' && cancelledUntil && (
+        <div className="pt-2 border-t border-border space-y-2">
+          <p className="text-sm text-muted-foreground">
+            You cancelled your subscription and will not be charged again. Your card stays live until{' '}
+            <strong className="text-foreground">{formatDay(cancelledUntil)}</strong>, the end of the period you have
+            already paid for. Nothing is deleted.
+            {/* The same care as the expired state above: inside the iOS app,
+                no invitation to go and pay, however politely phrased. */}
+            {!iosApp && ' Subscribing again after that brings it back on the same link.'}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Changed your mind? <a href="/contact" className="underline">Get in touch</a> before then and we will restore it.
+          </p>
+        </div>
+      )}
+
+      {state === 'paid' && !cancelledUntil && (
         <div className="pt-2 border-t border-border">
           <p className="text-sm text-muted-foreground mb-3">
             Billed {subscription?.billing_cycle === 'monthly' ? 'monthly' : subscription?.billing_cycle || 'monthly'} in ZAR via Paystack
             {subscription?.seats && subscription.seats > 1 ? `, for ${subscription.seats} seats` : ''}.
-            To cancel or change it, get in touch and we&apos;ll sort it out right away.
+            {/* NOT IN THE iOS APP. The app shows no purchase or billing
+                controls at all (Apple 3.1.1), and a cancel button there is a
+                billing control whichever direction it points. The website is
+                where this lives; the app keeps the contact route it had. Team
+                seats keep it too: that billing covers other people's cards. */}
+            {iosApp || !selfServe
+              ? <> To cancel or change it, get in touch and we&apos;ll sort it out right away.</>
+              : <> You can cancel at any time; you keep everything until the end of the period you have paid for.</>}
           </p>
-          <a href="/contact"
-            className="inline-flex items-center gap-2 border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition">
-            <CreditCard className="w-4 h-4" />
-            Manage subscription
-          </a>
+
+          {iosApp || !selfServe ? (
+            <a href="/contact"
+              className="inline-flex items-center gap-2 border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition">
+              <CreditCard className="w-4 h-4" />
+              Manage subscription
+            </a>
+          ) : !confirmCancel ? (
+            <button type="button" onClick={() => setConfirmCancel(true)}
+              className="inline-flex items-center gap-2 border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition">
+              <CreditCard className="w-4 h-4" />
+              Cancel subscription
+            </button>
+          ) : (
+            // A confirm step, not a modal: the consequence is written next to
+            // the button that causes it, and "Keep my subscription" is the
+            // first thing the eye lands on.
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 space-y-3">
+              <p className="text-sm font-semibold">Cancel your subscription?</p>
+              <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                <li>You will not be charged again.</li>
+                <li>Your card stays live until the end of the period you have already paid for, then stops opening for everyone you have shared it with, including printed and NFC cards.</li>
+                <li>Nothing is deleted. Subscribing again brings it back on the same link.</li>
+              </ul>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => setConfirmCancel(false)} disabled={cancelling}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-foreground text-background hover:opacity-90 transition">
+                  Keep my subscription
+                </button>
+                <button type="button" onClick={cancelSubscription} disabled={cancelling}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-red-500/50 text-red-500 hover:bg-red-500/10 transition disabled:opacity-60">
+                  {cancelling && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {cancelling ? 'Cancelling…' : 'Yes, cancel'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

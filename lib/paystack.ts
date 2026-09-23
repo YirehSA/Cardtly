@@ -18,6 +18,12 @@
 
 const PAYSTACK_API = 'https://api.paystack.co'
 
+// Paystack subscription statuses that can still produce a charge. 'active'
+// bills on its next date; 'attention' had a charge fail and keeps retrying it.
+// Anything else - 'non-renewing', 'completed', 'cancelled' - will not bill
+// again, so there is nothing left to cancel.
+const STILL_BILLING = new Set(['active', 'attention'])
+
 export interface PaystackSub {
   subscription_code: string
   status: string
@@ -152,9 +158,16 @@ export async function findActivePaystackSubs(email: string): Promise<{ ok: boole
 
     // Still match on email: ?customer= is the filter, but this is the field the
     // caller is actually reasoning about, and it costs nothing to confirm.
+    //
+    // 'attention' counts as live. It is what Paystack calls a subscription
+    // whose last charge failed, and it is still RETRYING that charge. Filtering
+    // to 'active' alone meant a customer with a declined card who cancelled, or
+    // deleted their account, was told it was done while Paystack kept retrying
+    // - and a retry that succeeded would have quietly re-subscribed them, since
+    // charge.success rewrites the row as active.
     const want = email.trim().toLowerCase()
     const subs = all.rows
-      .filter((s: any) => s?.status === 'active' && String(s?.customer?.email || '').toLowerCase() === want)
+      .filter((s: any) => STILL_BILLING.has(s?.status) && String(s?.customer?.email || '').toLowerCase() === want)
       .map(toSub)
     return { ok: true, subs }
   } catch (e: any) {
@@ -172,7 +185,9 @@ async function disableOne(code: string, key: string): Promise<{ ok: boolean; err
   if (!lookup.ok || !found?.status) {
     return { ok: false, error: found?.message || `lookup failed (${lookup.status})` }
   }
-  if (found?.data?.status && found.data.status !== 'active') return { ok: true, alreadyOff: true }
+  // Off already unless Paystack could still charge it. 'non-renewing',
+  // 'completed' and 'cancelled' will not bill again; 'attention' will retry.
+  if (found?.data?.status && !STILL_BILLING.has(found.data.status)) return { ok: true, alreadyOff: true }
 
   const token = found?.data?.email_token
   if (!token) return { ok: false, error: 'Paystack returned no email_token' }

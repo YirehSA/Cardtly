@@ -58,12 +58,29 @@ function body(src, decl) {
   if (!fn) {
     bad('getUserPlan is gone from lib/plan-server.ts, or was renamed')
   } else {
-    const iSub = fn.indexOf("from('whop_subscriptions')")
+    // The read is either inline or through latestSubscriptionFor, the select
+    // getUserPlan shares with the public card page so the two cannot pick
+    // different columns (see check-subscription-state). Accepting the helper
+    // must not become a way around this guard, so when it is used it has to be
+    // handed THE SERVICE CLIENT - `admin`, checked below to be
+    // createServiceClient() - and the helper itself has to read the table.
+    const iInline = fn.indexOf("from('whop_subscriptions')")
+    const iHelper = fn.indexOf('latestSubscriptionFor(admin')
+    const iSub = [iInline, iHelper].filter(i => i >= 0).sort((a, b) => a - b)[0] ?? -1
     const iState = fn.indexOf('subscriptionState(')
     const iServes = fn.indexOf('state.serves')
     const iTrial = fn.indexOf('trial_ends_at')
 
-    if (iSub < 0) bad('getUserPlan never reads whop_subscriptions')
+    if (iSub < 0) bad('getUserPlan never reads whop_subscriptions, either inline or through latestSubscriptionFor(admin, ...)')
+    if (iHelper >= 0) {
+      const helper = body(src, 'export async function latestSubscriptionFor')
+      if (!helper || !/from\('whop_subscriptions'\)/.test(helper)) {
+        bad('getUserPlan reads through latestSubscriptionFor, but that helper no longer reads whop_subscriptions')
+      }
+      if (/latestSubscriptionFor\((?!admin\b)/.test(fn)) {
+        bad('getUserPlan calls latestSubscriptionFor with something other than the service client `admin` - a user-scoped client reads nothing through RLS, and every payer resolves as expired')
+      }
+    }
     if (iState < 0) bad('getUserPlan does not go through subscriptionState, so the dashboard and the public card page can drift on who is paid up')
     if (iServes < 0) bad('getUserPlan never tests state.serves')
 

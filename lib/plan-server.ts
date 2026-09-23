@@ -1,8 +1,46 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { UserPlan } from '@/types/database'
 import { orgEntitlesMembers } from '@/lib/org-billing'
+import { isMissingColumn } from '@/lib/pg-errors'
 
 const DAY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * The newest subscription row for a user, carrying exactly the columns
+ * subscriptionState reads.
+ *
+ * ONE SELECT, SHARED BY THE DASHBOARD AND THE PUBLIC CARD PAGE. Each used to
+ * write its own column list, which is how a new column gets added to one and
+ * not the other: the dashboard would honour a cancellation that the public card
+ * never heard about, and a cancelled card would keep serving to the world while
+ * its owner was told it had stopped. scripts/check-subscription-state.mjs holds
+ * both callers to this function.
+ *
+ * FALLS BACK WITHOUT cancel_at IF MIGRATION 090 HAS NOT RUN. This is not
+ * caution for its own sake. Selecting a column that does not exist is an
+ * error, the callers read an error as "no row", and "no row" means "not paying"
+ * - so a deploy that landed before the migration would have taken every paying
+ * customer's card offline at once. Tested against the real database with the
+ * column absent before the migration was run, because a fallback that has
+ * never met the error it catches is not a fallback.
+ *
+ * Not filtered to status = 'active': a past_due row has to be read to know
+ * whether it is still inside its grace window.
+ */
+export async function latestSubscriptionFor(admin: any, userId: string, extraColumns = ''): Promise<any | null> {
+  const base = ['subscription_tier', 'status', 'past_due_since', extraColumns].filter(Boolean).join(', ')
+  const run = (cols: string) => admin
+    .from('whop_subscriptions')
+    .select(cols)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  let { data, error } = await run(`${base}, cancel_at`)
+  if (error && isMissingColumn(error)) ({ data, error } = await run(base))
+  return error ? null : data
+}
 
 // How long a card keeps serving after a payment fails. Paystack retries a
 // failed invoice over the following days, so cutting a card off at the first
@@ -15,6 +53,26 @@ export const PAYMENT_GRACE_DAYS = 7
 // into disagreeing about whether someone is paid up - the bug that would show
 // as a dashboard saying "active" over a card returning 404.
 export function subscriptionState(sub: {
+  subscription_tier?: string | null
+  status?: string | null
+  past_due_since?: string | null
+  cancel_at?: string | null
+} | null): { serves: boolean; isPastDue: boolean; graceEndsAt: string | null; graceDaysLeft: number; cancelAt: string | null } {
+  const base = baseSubscriptionState(sub)
+
+  // A CANCELLED SUBSCRIPTION SERVES UNTIL THE END OF WHAT WAS PAID FOR, then
+  // stops. The row stays 'active' in the meantime (see migration 090), so this
+  // is the only place that has to know the difference.
+  //
+  // An unreadable date is ignored rather than obeyed, for the same reason as
+  // everywhere else in this file: this gate can take a live card offline, and
+  // a data fault must never be what does it.
+  const endsMs = sub?.cancel_at ? new Date(sub.cancel_at).getTime() : NaN
+  if (!Number.isFinite(endsMs)) return { ...base, cancelAt: null }
+  return { ...base, serves: base.serves && endsMs > Date.now(), cancelAt: sub!.cancel_at! }
+}
+
+function baseSubscriptionState(sub: {
   subscription_tier?: string | null
   status?: string | null
   past_due_since?: string | null
@@ -96,13 +154,7 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
   // Deliberately not filtered to status = 'active'. A past_due row has to be
   // read to know whether it is still inside its grace window; filtering it out
   // here made a failed payment look identical to having no subscription.
-  const { data: sub } = await admin
-    .from('whop_subscriptions')
-    .select('subscription_tier, status, billing_cycle, past_due_since')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const sub = await latestSubscriptionFor(admin, userId, 'billing_cycle')
 
   const state = subscriptionState(sub as any)
   if (state.serves) {
@@ -114,6 +166,7 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
       isPastDue: state.isPastDue,
       graceEndsAt: state.graceEndsAt,
       graceDaysLeft: state.graceDaysLeft,
+      cancelAt: state.cancelAt,
     }
   }
 

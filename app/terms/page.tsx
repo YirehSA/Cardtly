@@ -138,8 +138,8 @@ export default function TermsPage() {
               <B>Organisations billed by invoice</B> are charged on the cycle and terms set out in the quote they accepted, which may be monthly, quarterly or annually, and pay by EFT.
             </p>
             <p>
-              <B>Cancelling.</B> You can cancel at any time by asking us, through the <a href="/contact" className="underline" style={link}>contact page</a> or at{' '}
-              <a href="mailto:andre@cardtly.com" className="underline" style={link}>andre@cardtly.com</a>, and we will cancel it promptly. Cancellation takes effect at the end of the period you have paid for. We do not refund part periods, except where the law requires it. Deleting your account also cancels your subscription, automatically.
+              <B>Cancelling.</B> You can cancel at any time. If you pay for your own card, cancel from Billing in your account settings on our website. For a team or invoiced account, ask us through the <a href="/contact" className="underline" style={link}>contact page</a> or at{' '}
+              <a href="mailto:andre@cardtly.com" className="underline" style={link}>andre@cardtly.com</a>, and we will cancel it promptly. Cancellation takes effect at the end of the period you have paid for: you are not charged again, and your card stays live until then. We email you to confirm the date. We do not refund part periods, except where the law requires it. Deleting your account also cancels your subscription, automatically.
             </p>
             <p>
               <B>Price changes.</B> We give active subscribers at least 30 days&apos; written notice of a price change. If you continue after the change takes effect, the new price applies.

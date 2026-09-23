@@ -37,6 +37,11 @@ function shape(row: any): Record<string, any> | null {
     subscription_tier: row.subscription_tier ?? null,
     billing_cycle: row.billing_cycle ?? null,
     seats: row.seats ?? null,
+    // A self-service cancellation changes nothing above - the row stays
+    // active until the paid period ends - so without this the log would record
+    // "updated" with identical before and after, and nobody could tell from it
+    // that the customer had cancelled, or until when they were paid.
+    cancel_at: row.cancel_at ?? null,
   }
 }
 

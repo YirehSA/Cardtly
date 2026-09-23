@@ -7,7 +7,7 @@ import CardTracker from '@/components/card/CardTracker'
 import ReportCardLink from '@/components/card/ReportCardLink'
 import TeamCardPublic from '@/components/card/TeamCardPublic'
 import { mergeBrand, resolveTeamBrand } from '@/lib/team-brand'
-import { planFromTrial, subscriptionState } from '@/lib/plan-server'
+import { planFromTrial, subscriptionState, latestSubscriptionFor } from '@/lib/plan-server'
 import { liveMirror } from '@/lib/questionnaire'
 
 interface Props {
@@ -119,17 +119,11 @@ export default async function PublicCardPage({ params }: Props) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     ) as any
 
-    const [{ data: sub }, { data: profile }] = await Promise.all([
-      // Not filtered to status = 'active': a past_due subscription still
-      // serves inside its grace window, and filtering it out here would have
-      // made a single declined charge look exactly like never having paid.
-      admin
-        .from('whop_subscriptions')
-        .select('subscription_tier, status, past_due_since')
-        .eq('user_id', (card as any).user_id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+    const [sub, { data: profile }] = await Promise.all([
+      // The same select the dashboard uses, from the same function, so the
+      // public card cannot disagree with its owner's dashboard about whether
+      // it is paid for - including after a cancellation (migration 090).
+      latestSubscriptionFor(admin, (card as any).user_id),
       admin
         .from('profiles')
         .select('last_active_at, is_founder, founder_number, trial_ends_at')

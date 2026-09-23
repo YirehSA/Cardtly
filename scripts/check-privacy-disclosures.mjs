@@ -131,10 +131,22 @@ const REGRESSIONS = [
 for (const [re, why] of REGRESSIONS) {
   if (re.test(privacy)) bad(`${PRIVACY} ${why}`)
 }
-// There is no self-service cancel: Settings says "get in touch". The terms said
-// otherwise for months.
-if (/cancel[^.]{0,60}from your account settings/i.test(terms)) {
-  bad(`${TERMS} says a subscription can be cancelled from account settings. It cannot - Settings sends people to the contact page. Either build self-service cancellation or keep the terms saying how it actually works.`)
+// The terms must describe cancellation the way the product actually does it.
+// For months they said "cancel from your account settings" when Settings sent
+// people to the contact page; self-service cancellation was then built
+// (app/api/account/cancel-subscription). So the rule follows the code in BOTH
+// directions: the terms may promise self-service cancel exactly when the
+// endpoint exists, and must when it does.
+const selfServiceCancel = existsSync('app/api/account/cancel-subscription/route.ts')
+const termsPromisesIt = /cancel[^.]{0,80}(from )?Billing in your account settings|cancel[^.]{0,60}from your account settings/i.test(terms)
+if (termsPromisesIt && !selfServiceCancel) {
+  bad(`${TERMS} says a subscription can be cancelled from account settings, but app/api/account/cancel-subscription does not exist. Keep the terms saying how cancellation actually works.`)
+}
+if (selfServiceCancel && !termsPromisesIt) {
+  bad(`${TERMS} does not tell people they can cancel from Billing in their account settings, which they can (app/api/account/cancel-subscription). A customer who cannot find the way out in the terms emails us instead, or disputes the charge.`)
+}
+if (selfServiceCancel && !/stays live until then/i.test(terms)) {
+  bad(`${TERMS} no longer says a cancelled card stays live until the end of the paid period. That is what cancel_at and subscriptionState now guarantee, and it is the part a customer relies on.`)
 }
 // The operator contract the privacy policy points at by anchor.
 if (!/id="data-protection"/.test(terms)) {
