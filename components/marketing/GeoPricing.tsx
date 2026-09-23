@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Check, ArrowRight } from 'lucide-react'
-import UsdEstimate from '@/components/marketing/UsdEstimate'
+import UsdEstimate, { RandChargeNote } from '@/components/marketing/UsdEstimate'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
@@ -35,6 +35,7 @@ export default function GeoPricing({ plan }: GeoPricingProps) {
             <span className="text-base pb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>/ month</span>
           </div>
           <UsdEstimate zar={97} suffix="/mo" className="block text-sm font-medium mb-1 text-white/70" />
+          <RandChargeNote className="block text-xs mb-1 text-white/60" />
           <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>ZAR · Billed monthly via Paystack. Cancel anytime.</p>
           <p className="text-sm mb-8 mt-3" style={{ color: 'rgba(255,255,255,0.45)' }}>
             Free trial on request. Cancel anytime.

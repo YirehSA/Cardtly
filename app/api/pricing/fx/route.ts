@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 
 // Returns whether to show a USD estimate for this visitor and the live
 // ZAR->USD rate to compute it. Billing is always in ZAR via Paystack;
@@ -16,8 +16,10 @@ export const dynamic = 'force-dynamic' // per-request geo, never cache the respo
 // Common Monetary Area: rand is legal tender or pegged 1:1.
 const RAND_COUNTRIES = new Set(['ZA', 'NA', 'LS', 'SZ'])
 
-// Fallback if every FX source is unreachable (~R18.5 to the dollar).
-const FALLBACK_ZAR_TO_USD = 0.054
+// Fallback if every FX source is unreachable. Refreshed 2026-09-23, when the
+// live rate was 0.0617 (about R16.20 to the dollar); it was 0.054 (R18.50),
+// which would have shown an outage as a dollar price 12% too low.
+const FALLBACK_ZAR_TO_USD = 0.06
 
 // Live ZAR->USD with a two-source fallback chain, each cached an hour
 // (so at most one upstream call per source per hour across all
@@ -43,7 +45,12 @@ async function liveRate(): Promise<number> {
 
 export async function GET() {
   const h = await headers()
-  const country = (h.get('x-vercel-ip-country') || '').toUpperCase()
+  // Local development has no Vercel geo header, so nothing international can
+  // be looked at. An fx_country cookie stands in for it there, and only there.
+  const devCountry = process.env.NODE_ENV !== 'production'
+    ? (await cookies()).get('fx_country')?.value
+    : undefined
+  const country = (devCountry || h.get('x-vercel-ip-country') || '').toUpperCase()
   // No country (local dev, unknown) -> don't show USD; rand is the
   // honest default for an SA-first product.
   const showUsd = country.length === 2 && !RAND_COUNTRIES.has(country)

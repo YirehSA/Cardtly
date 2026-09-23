@@ -45,7 +45,7 @@ interface Props {
   className?: string
 }
 
-export default function UsdEstimate({ zar, suffix = '', className }: Props) {
+function useFx(): Fx | null {
   const [fx, setFx] = useState<Fx | null>(cached)
 
   useEffect(() => {
@@ -54,9 +54,43 @@ export default function UsdEstimate({ zar, suffix = '', className }: Props) {
     return () => { alive = false }
   }, [])
 
+  return fx
+}
+
+export default function UsdEstimate({ zar, suffix = '', className }: Props) {
+  const fx = useFx()
   if (!fx || !fx.showUsd || !fx.rate) return null
 
   return (
     <span className={className}>≈ ${formatUsd(zar * fx.rate)}{suffix}</span>
+  )
+}
+
+/**
+ * What the dollar figure is NOT: the charge. Shown to the same visitors who
+ * see an estimate, wherever a price leads to paying.
+ *
+ * Paystack cannot charge a South African business's customers in dollars (USD
+ * is Kenya and Nigeria only), so every Cardtly charge is in rand and a foreign
+ * card's own bank does the conversion, at its rate, sometimes with a fee. A
+ * "$6" with nothing next to it reads as the price, and the statement then
+ * shows something else. Visa's rules also want the transaction currency stated
+ * before a card is stored for recurring charges.
+ */
+export function RandChargeNote({ className, currencyStated = false }: {
+  className?: string
+  /** The surrounding text already says "charged in South African rand (ZAR)",
+   *  as the checkouts' terms do: say only what the bank does. */
+  currencyStated?: boolean
+}) {
+  const fx = useFx()
+  if (!fx || !fx.showUsd) return null
+
+  return (
+    <span className={className}>
+      {currencyStated
+        ? 'If your card is from outside South Africa, your bank converts the rand amount at its own rate and may add a foreign-card fee.'
+        : 'Charged in South African rand (ZAR). Your bank converts it at its own rate and may add a foreign-card fee.'}
+    </span>
   )
 }

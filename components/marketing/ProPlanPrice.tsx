@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import UsdEstimate from './UsdEstimate'
+import UsdEstimate, { RandChargeNote } from './UsdEstimate'
 import { SEAT_PRICE_RAND } from '@/lib/org-billing'
 
 // Pro price block on the marketing pricing page with a monthly/yearly
@@ -72,6 +72,7 @@ export default function ProPlanPrice() {
 
       {/* Live USD estimate for visitors outside the rand zone */}
       <UsdEstimate zar={zar} suffix={isYearly ? '/yr' : '/mo'} className="block text-sm font-medium mb-1 text-white/70" />
+      <RandChargeNote className="block text-xs mb-1 text-white/60" />
 
       {isYearly && (
         <p className="text-xs mb-1" style={{ color: '#34d399' }}>

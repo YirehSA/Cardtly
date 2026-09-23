@@ -9,7 +9,7 @@ import {
   CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail, UserCheck, Send, BarChart2, Sparkles, ClipboardList, Network,
   Search, Eye, Inbox, FileSpreadsheet, Phone,
 } from 'lucide-react'
-import UsdEstimate from '@/components/marketing/UsdEstimate'
+import UsdEstimate, { RandChargeNote } from '@/components/marketing/UsdEstimate'
 import BulkImportModal from '@/components/team/BulkImportModal'
 import WebhookPanel from '@/components/team/WebhookPanel'
 import ApiKeyPanel from '@/components/team/ApiKeyPanel'
@@ -637,6 +637,23 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                 <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-green-500" />{f}
               </div>
             ))}
+          </div>
+
+          {/* The recurring terms beside the button that agrees to them: amount,
+              currency, frequency, cancellation, and whose company this is.
+              The same block as the Pro checkout, for the same card-network
+              reasons; see UpgradeView. */}
+          <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground space-y-1.5">
+            <p>
+              You pay <strong className="text-foreground">R{seatCount * SEAT_PRICE} now</strong>, then R{seatCount * SEAT_PRICE} every
+              month until you cancel, charged in South African rand (ZAR).{' '}
+              <RandChargeNote currencyStated />
+            </p>
+            <p>
+              To cancel or change seats, get in touch. You are not charged again, and the cards stay live until
+              the end of the period you have paid for.
+            </p>
+            <p className="text-xs">Sold by Cardtly (Pty) Ltd, a South African company.</p>
           </div>
 
           <button onClick={handleCreateOrg} disabled={loading || !orgName.trim()}

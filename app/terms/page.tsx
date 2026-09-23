@@ -132,7 +132,10 @@ export default function TermsPage() {
               <B>Every new account starts with a 7-day trial</B> of the full service. No payment details are needed to start it. We may offer a longer trial through a code, in which case the length stated with the code applies.
             </p>
             <p>
-              <B>After the trial, a paid subscription is needed for each card</B> to keep it live. Subscriptions are charged monthly in advance, per card, through our payment processor Paystack, at the fees published on our website when you subscribe. By subscribing you authorise Paystack to charge your payment method each month until you cancel.
+              <B>After the trial, a paid subscription is needed for each card</B> to keep it live. Subscriptions are charged in advance, per card, monthly or yearly depending on the plan you choose, through our payment processor Paystack, at the fees published on our website when you subscribe. By subscribing you authorise Paystack to charge your payment method at the start of each billing period until you cancel.
+            </p>
+            <p>
+              <B>Currency.</B> Every charge is made in South African rand (ZAR), wherever you are. Any figure we show in another currency is an estimate for convenience only. If your card was issued outside South Africa, your bank converts the rand amount at its own exchange rate and may add its own fee, which we do not control or receive.
             </p>
             <p>
               <B>Organisations billed by invoice</B> are charged on the cycle and terms set out in the quote they accepted, which may be monthly, quarterly or annually, and pay by EFT.

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Check, Zap, ArrowRight, Loader2, ShieldCheck, Clock, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import UsdEstimate from '@/components/marketing/UsdEstimate'
+import UsdEstimate, { RandChargeNote } from '@/components/marketing/UsdEstimate'
 import TrialCodeBox from './TrialCodeBox'
 
 const grad = 'hsl(var(--accent))'
@@ -194,6 +194,26 @@ export default function UpgradeView({ state, trialDaysLeft }: Props) {
             ))}
           </div>
 
+          {/* THE TERMS OF THE RECURRING CHARGE, next to the button that agrees
+              to them. Visa requires the cardholder's informed consent before a
+              card is stored for recurring charges, to the amount, the
+              transaction currency, how often, and how to cancel, shown apart
+              from the general terms; and the merchant's country shown within
+              the checkout. The currency matters most to a foreign card: the
+              dollar estimate above is not what the statement will say. */}
+          <div className="rounded-lg border border-border bg-muted/40 p-4 mb-4 text-sm text-muted-foreground space-y-1.5">
+            <p>
+              You pay <strong className="text-foreground">{price} now</strong>, then {price} every{' '}
+              {billing === 'monthly' ? 'month' : 'year'} until you cancel, charged in South African rand (ZAR).{' '}
+              <RandChargeNote currencyStated />
+            </p>
+            <p>
+              Cancel any time from Billing in your settings. You are not charged again, and your card stays
+              live until the end of the period you have paid for.
+            </p>
+            <p className="text-xs">Sold by Cardtly (Pty) Ltd, a South African company.</p>
+          </div>
+
           <button onClick={handleCheckout} disabled={loading}
             className="w-full flex items-center justify-center gap-3 py-4 rounded-lg text-base font-bold text-white transition hover:opacity-90 disabled:opacity-60"
             style={{ background: grad, boxShadow: '0 8px 32px hsl(var(--accent) / 0.35)' }}>
@@ -208,7 +228,6 @@ export default function UpgradeView({ state, trialDaysLeft }: Props) {
           <div className="mt-4 flex items-center justify-center gap-5 text-xs text-muted-foreground flex-wrap">
             <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5" />Paid securely through Paystack</span>
             <span>Cancel whenever</span>
-            <span>Billed in rand</span>
           </div>
         </div>
       </div>

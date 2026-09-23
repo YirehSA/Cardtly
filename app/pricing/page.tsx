@@ -5,7 +5,7 @@ import { graph, faqPage, breadcrumb, softwareApplication } from '@/lib/seo-schem
 import Footer from '@/components/marketing/Footer'
 import ProPlanPrice from '@/components/marketing/ProPlanPrice'
 import Reveal from '@/components/marketing/Reveal'
-import UsdEstimate from '@/components/marketing/UsdEstimate'
+import UsdEstimate, { RandChargeNote } from '@/components/marketing/UsdEstimate'
 import { Check, ArrowRight, Zap, Building2, CreditCard, Sparkles } from 'lucide-react'
 // Read from the billing code rather than typed in. The seat ceiling appears in
 // four places on this page, and the Enterprise tile had drifted to "20+" while
@@ -243,6 +243,7 @@ export default function PricingPage() {
                 <span className="text-base pb-1" style={{ color: DIM }}>/ seat / month</span>
               </div>
               <UsdEstimate zar={SEAT_PRICE_RAND} suffix="/seat/mo" className="block text-sm font-medium mb-1 text-white/70" />
+              <RandChargeNote className="block text-xs mb-1 text-white/60" />
               <p className="text-sm mb-8 mt-1" style={{ color: BODY }}>
                 2 to {MAX_SELF_SERVE_SEATS} seats. Set it up yourself in minutes.
               </p>

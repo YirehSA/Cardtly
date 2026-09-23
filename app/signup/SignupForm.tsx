@@ -11,6 +11,8 @@ import { toast } from 'sonner'
 import { Mail, ArrowLeft, Check, Sparkles, QrCode, Loader2, ArrowRight } from 'lucide-react'
 import { getStoredReferralCode, clearReferralCode } from '@/lib/referral'
 import { getStoredTrialCode, clearTrialCode } from '@/lib/trial-code-link'
+import UsdEstimate, { RandChargeNote } from '@/components/marketing/UsdEstimate'
+import { SEAT_PRICE_RAND } from '@/lib/org-billing'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 const gradText: React.CSSProperties = {
@@ -514,6 +516,10 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
                   {liveSlug
                     ? `Either way you get cardtly.com/card/${liveSlug.slice(0, 24)}${liveSlug.length > 24 ? '…' : ''}`
                     : 'Either way your card is live in minutes. Cancel any time.'}
+                  {/* Outside the rand zone only: what R97 is in dollars, and
+                      that the charge itself stays in rand. */}
+                  <UsdEstimate zar={SEAT_PRICE_RAND} suffix=" a month." className="block mt-2" />
+                  <RandChargeNote className="block" />
                 </p>
 
                 {/* THE THIRD ROUTE, and the one that had no front door. Somebody
