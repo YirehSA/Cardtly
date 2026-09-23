@@ -142,7 +142,7 @@ export default function PrivacyPage() {
 
           <Section id="who" title="1. Who we are">
             <p>
-              Cardtly is a South African digital business card platform. This policy explains how we handle personal information about the people who use Cardtly, the people who view and interact with Cardtly cards, and the people whose details are captured through them.
+              Cardtly is a digital business card platform operated by Cardtly (Pty) Ltd, a company registered in South Africa (registration number 2025/727173/07). This policy explains how we handle personal information about the people who use Cardtly, the people who view and interact with Cardtly cards, and the people whose details are captured through them.
             </p>
             <p>
               We process personal information in line with the Protection of Personal Information Act 4 of 2013 (POPIA). Questions about this policy, or requests about your information, go to our Information Officer at{' '}
@@ -384,8 +384,15 @@ export default function PrivacyPage() {
 
           <Section id="contact" title="16. Contact and the Information Officer">
             <p>
-              Cardtly<br />
-              South Africa<br />
+              {/* The company details ECTA section 43 requires of a website that
+                  sells goods or services: legal name, registration number,
+                  physical address and telephone. Taken from billing_settings,
+                  the same record the invoices print, so the two cannot differ;
+                  change them there and here together. */}
+              Cardtly (Pty) Ltd<br />
+              Registration number 2025/727173/07<br />
+              119 Pretoria Road, Benoni, Gauteng, South Africa<br />
+              Telephone 062 460 7440<br />
               Information Officer: <a href="mailto:andre@cardtly.com" className="underline" style={link}>andre@cardtly.com</a>
             </p>
             <p>

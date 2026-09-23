@@ -110,7 +110,7 @@ export default function TermsPage() {
 
           <Section id="about" title="1. About these terms">
             <p>
-              These terms govern your use of Cardtly, a South African digital business card platform (&ldquo;Cardtly&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;). By creating an account or using the service you agree to them. If you do not agree, do not use the service.
+              These terms govern your use of Cardtly, a digital business card platform operated by Cardtly (Pty) Ltd, a company registered in South Africa with registration number 2025/727173/07 (&ldquo;Cardtly&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;). By creating an account or using the service you agree to them. If you do not agree, do not use the service.
             </p>
             <p>
               <B>If you accept these terms for an organisation,</B> you confirm that you have authority to bind it, and &ldquo;you&rdquo; includes that organisation. Our <a href="/privacy" className="underline" style={link}>Privacy Policy</a> forms part of these terms.
@@ -286,8 +286,15 @@ export default function TermsPage() {
 
           <Section id="contact" title="16. Contact">
             <p>
-              Cardtly<br />
-              South Africa<br />
+              {/* The company details ECTA section 43 requires of a website that
+                  sells goods or services: legal name, registration number,
+                  physical address and telephone. Taken from billing_settings,
+                  the same record the invoices print, so the two cannot differ;
+                  change them there and here together. */}
+              Cardtly (Pty) Ltd<br />
+              Registration number 2025/727173/07<br />
+              119 Pretoria Road, Benoni, Gauteng, South Africa<br />
+              Telephone 062 460 7440<br />
               <a href="mailto:andre@cardtly.com" className="underline" style={link}>andre@cardtly.com</a>
             </p>
           </Section>
