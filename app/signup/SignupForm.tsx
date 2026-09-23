@@ -496,7 +496,9 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
                 <>{liveSlug ? `Claim cardtly.com/card/${liveSlug.slice(0, 24)}${liveSlug.length > 24 ? '…' : ''}` : 'Create your card'}
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" /></>
               ) : (
-                <>Get started &mdash; R97/month
+                // Outside the rand zone the button carries the estimate too,
+                // "(≈ £4.50)", with the rand notice right under these buttons.
+                <><span>Get started &mdash; R{SEAT_PRICE_RAND}/month<PriceEstimate zar={SEAT_PRICE_RAND} prefix=" (" suffix=")" className="font-semibold opacity-85" /></span>
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" /></>
               )}
             </button>
@@ -516,10 +518,10 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
                   {liveSlug
                     ? `Either way you get cardtly.com/card/${liveSlug.slice(0, 24)}${liveSlug.length > 24 ? '…' : ''}`
                     : 'Either way your card is live in minutes. Cancel any time.'}
-                  {/* Outside the rand zone only: what R97 is in their own currency, and
-                      that the charge itself stays in rand. */}
-                  <PriceEstimate zar={SEAT_PRICE_RAND} suffix=" a month." className="block mt-2" />
-                  <RandChargeNote className="block" />
+                  {/* Outside the rand zone only: the paid button above shows the
+                      price in their own currency, and this says the charge
+                      itself stays in rand. */}
+                  <RandChargeNote className="block mt-2" />
                 </p>
 
                 {/* THE THIRD ROUTE, and the one that had no front door. Somebody

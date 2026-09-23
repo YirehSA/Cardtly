@@ -49,16 +49,17 @@ function useFx(): Fx | null {
 
 interface Props {
   zar: number
-  suffix?: string        // e.g. '/mo', '/yr', ''
+  prefix?: string        // e.g. ' (' when the estimate follows a price inline
+  suffix?: string        // e.g. '/mo', '/yr', ')'
   className?: string
 }
 
-export default function PriceEstimate({ zar, suffix = '', className }: Props) {
+export default function PriceEstimate({ zar, prefix = '', suffix = '', className }: Props) {
   const fx = useFx()
   if (!fx || !fx.currency || !fx.rate) return null
 
   return (
-    <span className={className}>≈ {formatEstimate(zar * fx.rate, fx.currency)}{suffix}</span>
+    <span className={className}>{prefix}≈ {formatEstimate(zar * fx.rate, fx.currency)}{suffix}</span>
   )
 }
 
@@ -73,20 +74,27 @@ export default function PriceEstimate({ zar, suffix = '', className }: Props) {
  * then shows something else. Visa's rules also want the transaction currency
  * stated before a card is stored for recurring charges.
  */
-export function RandChargeNote({ className, currencyStated = false }: {
+export function RandChargeNote({ className, currencyStated = false, short = false }: {
   className?: string
   /** The surrounding text already says "charged in South African rand (ZAR)",
    *  as the checkouts' terms do: say only what the bank does. */
   currencyStated?: boolean
+  /** A few words to finish a sentence the estimate starts, where a full
+   *  sentence will not fit: "≈ £4.50 a month, charged in rand (ZAR)". For
+   *  places that are not the last word before paying; the checkouts carry the
+   *  full terms. */
+  short?: boolean
 }) {
   const fx = useFx()
   if (!fx || !fx.currency) return null
 
   return (
     <span className={className}>
-      {currencyStated
-        ? 'If your card is from outside South Africa, your bank converts the rand amount at its own rate and may add a foreign-card fee.'
-        : 'Charged in South African rand (ZAR). Your bank converts it at its own rate and may add a foreign-card fee.'}
+      {short
+        ? 'charged in rand (ZAR)'
+        : currencyStated
+          ? 'If your card is from outside South Africa, your bank converts the rand amount at its own rate and may add a foreign-card fee.'
+          : 'Charged in South African rand (ZAR). Your bank converts it at its own rate and may add a foreign-card fee.'}
     </span>
   )
 }

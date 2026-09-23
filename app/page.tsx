@@ -4,6 +4,8 @@ import Footer from '@/components/marketing/Footer'
 import Reveal from '@/components/marketing/Reveal'
 import NativeAppRedirect from '@/components/NativeAppRedirect'
 import { PROMOS_ENABLED } from '@/lib/promos'
+import { SEAT_PRICE_RAND } from '@/lib/org-billing'
+import PriceEstimate, { RandChargeNote } from '@/components/marketing/PriceEstimate'
 import HeroScene from '@/components/marketing/HeroScene'
 import ThreeWaysToShare from '@/components/marketing/ThreeWaysToShare'
 import TemplatesShowcase from '@/components/marketing/TemplatesShowcase'
@@ -199,7 +201,7 @@ export default function HomePage() {
                 per month" and "A card a month" - which is the same price said
                 twice, and read as a mistake because it is one. */}
             {[
-              { n: 'R97',      label: 'Per card, per month' },
+              { n: `R${SEAT_PRICE_RAND}`, label: 'Per card, per month', estimate: true },
               { n: '16',       label: 'Designed templates' },
               // Not "20 seats per team". Twenty is the ceiling on self-serve
               // Paystack billing, not a limit on the product: above it a team
@@ -208,7 +210,7 @@ export default function HomePage() {
               // team could ever be, which undersells it badly.
               { n: 'Unlimited', label: 'Seats with Enterprise' },
               { n: '5–7 days', label: 'NFC card delivery, SA' },
-            ].map(({ n, label }, i) => (
+            ].map(({ n, label, estimate }, i) => (
               <Reveal key={label} delay={i * 90}>
                 <div className="text-center">
                   {/* nowrap: "5-7 days" was breaking after the number and
@@ -222,6 +224,15 @@ export default function HomePage() {
                       fits from 1024 up. */}
                   <p className="text-4xl md:text-5xl xl:text-6xl font-black tracking-tight whitespace-nowrap" style={gradText}>{n}</p>
                   <p className="text-xs md:text-sm mt-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>{label}</p>
+                  {/* Outside the rand zone only: the price in the visitor's own
+                      currency, and that the charge stays in rand. Renders
+                      nothing in South Africa, so the band is unchanged there. */}
+                  {estimate && (
+                    <p className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                      <PriceEstimate zar={SEAT_PRICE_RAND} suffix=" a month, " />
+                      <RandChargeNote short />
+                    </p>
+                  )}
                 </div>
               </Reveal>
             ))}
@@ -736,7 +747,11 @@ export default function HomePage() {
                   {PROMOS_ENABLED ? 'See the prize ladder' : 'See pricing'}
                 </Link>
               </div>
-              <p className="text-xs mt-6" style={{ color: 'rgba(255,255,255,0.35)' }}>Free trial on request · Cancel anytime · R97 a card a month</p>
+              <p className="text-xs mt-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                Free trial on request · Cancel anytime · R{SEAT_PRICE_RAND} a card a month
+                <PriceEstimate zar={SEAT_PRICE_RAND} suffix=" a month." className="block mt-1.5" />
+                <RandChargeNote className="block" />
+              </p>
             </div>
           </div>
         </Reveal>

@@ -121,6 +121,9 @@ else {
   // The rendered string, quote included, so the prop's doc comment (which
   // quotes the same words) cannot stand in for it.
   if (!/'Charged in South African rand \(ZAR\)\./.test(note)) bad('RandChargeNote no longer names the charge currency as South African rand (ZAR).')
+  if (/\bshort\b/.test(note) && !/'charged in rand \(ZAR\)'/.test(note)) {
+    bad("RandChargeNote's short form no longer says the charge is in rand (ZAR). It is the only notice the home page's stats band carries.")
+  }
   if (!/!fx\.currency\) return null/.test(note)) bad('RandChargeNote no longer shows for exactly the visitors who see an estimate (fx.currency).')
 }
 if (!/formatEstimate\(/.test(est)) bad(`${EST} no longer formats with formatEstimate, so the tested rounding and symbols are not what visitors see.`)
