@@ -176,17 +176,22 @@ that card links to.
 Volunteering these is what makes the rest credible. A vendor with no gaps is a
 vendor who has not looked.
 
-1. **No two-factor authentication on login, and one way to sign in.** Email and
-   password only: the password is stored as a one-way hash by the
-   authentication platform, which also rate limits sign-in attempts, and the
-   minimum length is six characters. Checked against cardtly.com on
-   2026-09-23. There is no Google sign-in. Microsoft sign-in is built but
-   switched off in production; turning it on needs an Azure app registration
-   and the Supabase provider configured, then a flag. Once live, a Microsoft
-   365 customer's own tenant would enforce their MFA - a good answer, but a
-   future one. Offer to enable it and come back with a date; do not describe it
-   as available. An earlier version of this document said Google and Microsoft
-   sign-in both existed.
+1. **No two-factor authentication of our own.** Three ways to sign in, checked
+   by rendering cardtly.com/login in a browser on 2026-09-23: email and
+   password (stored as a one-way hash, minimum six characters, attempts rate
+   limited by the authentication platform), a one-time sign-in link emailed to
+   the address, or Sign in with Microsoft. If they use Microsoft 365, their
+   staff sign in with their work account and their own tenant enforces MFA and
+   conditional access on that sign-in, which is a genuinely good answer and
+   worth offering. The Microsoft sign-in goes to Microsoft's multi-organisation
+   "common" endpoint, so it is built to accept any company's work accounts;
+   before a customer depends on it in writing, have them try one of their own.
+
+   **There is no Google sign-in.** An earlier version of this document listed
+   it. A correction made on 2026-09-23 then wrongly said Microsoft sign-in was
+   switched off too: that check read the page's server HTML, which does not
+   contain the sign-in form at all, because it is drawn in the browser. Check
+   sign-in options by rendering the page, never by fetching its HTML.
 2. **A content security policy is deployed but not yet enforcing.** It is in
    report-only mode by design, collecting evidence on real traffic before being
    switched on, because a wrong one takes the site down.

@@ -94,12 +94,14 @@ Admin log 42 / 0. Rep activity 94 / 0.
 The left number matters: zero out of zero proves nothing.
 
 **"Do you have MFA?"**
-No. Sign-in is email and password only, with the password stored as a one-way
-hash and sign-in attempts rate limited by the authentication platform.
-*(Microsoft sign-in is built but switched OFF in production; it needs an Azure
-app registration before it can go live. If they want their Microsoft 365 tenant
-to enforce MFA, say it can be enabled and come back with a date - do not
-present it as something they can use today. There is no Google sign-in at all.)*
+Not our own. If you use Microsoft 365, your staff sign in with their Microsoft
+work account, and your own tenant enforces your MFA and conditional access on
+that sign-in. That is the better answer anyway.
+*(Sign-in options, checked in a real browser on 2026-09-23: email and password,
+an emailed one-time sign-in link, or Sign in with Microsoft. There is NO Google
+sign-in - never offer it. The Microsoft button uses Microsoft's multi-organisation
+endpoint, so any company's work accounts can reach it; before a customer relies
+on it in writing, have them try one of their own accounts.)*
 
 **"Have you had an incident?"**
 Yes, one, and it was ours not an attacker's: a billing row was deleted during
@@ -114,9 +116,8 @@ logged with who, when, and the before and after.
   SA company, not a certified multinational, and the controls above are real
   regardless.
 - **Penetration testing.** Not independently tested. Do not imply otherwise.
-- **Sign-in options.** Email and password only, checked on cardtly.com on
-  2026-09-23. No Google sign-in exists, and Microsoft sign-in is built but not
-  switched on. An earlier version of this sheet said both were available.
+- **Google sign-in.** It does not exist. An earlier version of this sheet listed
+  Google as a sign-in provider. Microsoft sign-in is real and live; Google is not.
 - **Rate limiting.** Sign-in attempts are limited by the authentication
   platform. Our own API endpoints are not.
 

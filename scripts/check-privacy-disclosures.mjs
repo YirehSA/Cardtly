@@ -59,6 +59,13 @@ const SERVICES = [
   { name: 'ipapi.co', present: null /* decided by the host scan below */ },
   { name: 'Google Wallet', present: existsSync('app/api/wallet/google') },
   { name: 'Firebase Analytics', present: /firebase-analytics/.test(androidGradle) },
+  // Sign-in providers. Microsoft is not a processor Cardtly sends data to, but
+  // it is where a Microsoft sign-in happens and where the name and email come
+  // from, and a corporate reader looks for it. Keyed on the component existing
+  // rather than the NEXT_PUBLIC_MS_SSO flag, which lives in Vercel where this
+  // script cannot see it - and a flag guessed from here is how the security
+  // docs came to call a live button "switched off".
+  { name: 'Microsoft', present: existsSync('components/auth/MicrosoftSignIn.tsx') },
 ]
 
 // ── 2. Every outbound host the server code calls ────────────────────────────
@@ -118,6 +125,8 @@ const REGRESSIONS = [
   // response time for a request and is true.
   [/(delet|remov)[^.]{0,120}within 30 days/i, 'says deletion happens "within 30 days". It is immediate from live systems; only encrypted backups linger.'],
   [/data controller/i, 'uses "data controller", which is GDPR vocabulary. Under POPIA it is "responsible party", and the operator distinction depends on the term being right.'],
+  [/password only|only (by|with) (email and )?password/i, 'says sign-in is by password only. There are three ways in: a password, an emailed one-time link, and Sign in with Microsoft.'],
+  [/(sign in|sign-in|log in) with google|google sign-in/i, 'mentions Google sign-in. It does not exist; Google appears in the policy only for Wallet, Firebase and Play.'],
 ]
 for (const [re, why] of REGRESSIONS) {
   if (re.test(privacy)) bad(`${PRIVACY} ${why}`)

@@ -171,7 +171,7 @@ export default function PrivacyPage() {
           </Section>
 
           <Section id="collect" title="3. What we collect">
-            <p><B>Account information.</B> Your name, email address and a password, which is stored only as a one-way hash by our authentication provider. We never see or keep your password itself.</p>
+            <p><B>Account information.</B> Your name and email address, and a password if you use one, which is stored only as a one-way hash by our authentication provider. We never see or keep the password itself. You can instead sign in with a one-time link emailed to you, or with a Microsoft work or school account. If you use Microsoft, you sign in on Microsoft&apos;s own page, Microsoft sends us your name and email address, and no Cardtly password exists; your organisation&apos;s own Microsoft security settings, such as multi-factor authentication, apply to that sign-in.</p>
             <p><B>Where you signed up from.</B> When you create an account we look up the approximate city, region and country of your internet connection, using the IP address it arrived from, and store that on your profile. The lookup is done by ipapi.co (see section 7). We do not store the IP address itself on your profile.</p>
             <p><B>Card content.</B> Everything you put on your card: name, job title, company, phone and WhatsApp numbers, email, address, website, bio, photographs, logos, gallery images and captions, links and social profiles. This is published at your card&apos;s address and is public by design (see section 5).</p>
             <p><B>People who view your card.</B> When someone opens a card or taps something on it, we record that it happened, which link or button they used, their device type, browser and operating system, and the website that sent them, reduced to the site&apos;s address rather than the full page. <B>We do not store the IP address of people who view a card.</B> To count unique visitors we derive a one-way code from the connection and browser that is different for every card and changes every day, so it cannot be used to follow a person between cards or from one day to the next.</p>
@@ -247,6 +247,7 @@ export default function PrivacyPage() {
                 [<B key="i">ipapi.co</B>, 'Signup location lookup', 'The IP address a new account was created from'],
                 [<B key="g">Google</B>, 'Google Wallet passes; Firebase Analytics in the Android app; Google Play', 'A card’s public details when a visitor chooses to save it to Google Wallet; app usage and device data from the Android app'],
                 [<B key="a">Apple</B>, 'App Store', 'What Apple collects under its own terms when you install the iOS app'],
+                [<B key="m">Microsoft</B>, 'Sign in with Microsoft, if you choose it', 'Your sign-in, which you complete on Microsoft’s own page under your or your organisation’s Microsoft terms. It sends us your name and email address'],
               ]}
             />
             <p>
@@ -258,7 +259,8 @@ export default function PrivacyPage() {
               <a className="underline" href="https://openai.com/policies/privacy-policy" style={link}>OpenAI</a>,{' '}
               <a className="underline" href="https://ipapi.co/privacy/" style={link}>ipapi.co</a>,{' '}
               <a className="underline" href="https://policies.google.com/privacy" style={link}>Google</a>,{' '}
-              <a className="underline" href="https://www.apple.com/legal/privacy/" style={link}>Apple</a>.
+              <a className="underline" href="https://www.apple.com/legal/privacy/" style={link}>Apple</a>,{' '}
+              <a className="underline" href="https://privacy.microsoft.com/privacystatement" style={link}>Microsoft</a>.
             </p>
             <p>
               <B>We will update this list, and the date at the top of this page, before a new provider starts processing personal information for us.</B>
