@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import HeroSceneLoader from './HeroSceneLoader'
+import PriceEstimate from './PriceEstimate'
+import { SEAT_PRICE_RAND } from '@/lib/org-billing'
 
 // The scroll-driven hero.
 //
@@ -20,6 +22,17 @@ import HeroSceneLoader from './HeroSceneLoader'
 //     that exact stack, so putting the hero on the site's Jakarta would
 //     invalidate the arithmetic the responsive treatment is built on
 //   - the bare `*`, `a` and second `:root` selectors scoped the same way
+//
+// And one addition since, for the price (2026-09-23): a third tick, "R97 a
+// card a month", which outside the rand zone adds the visitor's own currency,
+// "(≈ £4.50)". It sits on a row of its own and never wraps, so the block is
+// the same height with or without the estimate. That matters because
+// scene.js measures the copy block to decide where the model goes, and it
+// measures on resize and when fonts load, not when the estimate arrives a
+// moment later. The tick rules were narrowed to direct children (`.ticks >
+// span`) so the estimate's own span is not animated as a fourth tick, and the
+// third tick gets its own place in the stagger. The tick rows' vertical gap
+// came down to .5rem to pay for the extra row (see .ticks).
 //
 // Everything else, including the comments explaining why each number is what
 // it is, is untouched.
@@ -266,7 +279,7 @@ const CSS = `/* Scoped to the section rather than :root. Every one of these is r
   /* ---------- the ticks, which are the block's only idle motion ----------
      Everything else in the hero waits for scroll, so with the page held still
      the copy column was completely inert. Rather than add a decoration, the
-     two feature lines that were already there do the work: each one's mark
+     feature lines that were already there do the work: each one's mark
      DRAWS ITSELF as a check, a ring pulses out from behind it, and the label
      lifts a shade brighter, staggered so they read one after the other on a
      slow loop rather than blinking together.
@@ -275,12 +288,20 @@ const CSS = `/* Scoped to the section rather than :root. Every one of these is r
      label's resting state is legible; the animation moves them ABOVE that, so
      with animations off, under reduced motion, or with no script at all, the
      lines still read exactly as written. */
-  .ticks{display:flex;gap:1.35rem;flex-wrap:wrap;margin-top:1.4rem;
+  /* Row gap .5rem, column gap as delivered. The price tick added a second
+     row, and at the delivered 1.35rem both ways it made the opening block
+     520px tall: taller than the closing block's 514, which is what the short
+     landscape allowance below is measured against, so on a 1280x620 laptop
+     the block ran 2px under the header and 2px off the bottom of the frame. */
+  .ticks{display:flex;gap:.5rem 1.35rem;flex-wrap:wrap;margin-top:1.4rem;
          color:var(--muted);font-size:.92rem}
   .hero-copy--right .ticks{justify-content:flex-end}
-  .ticks span{position:relative;display:inline-flex;align-items:center;
+  .ticks > span{position:relative;display:inline-flex;align-items:center;
               gap:.5rem;color:var(--muted);
               animation:tick-label 5.2s ease-in-out infinite}
+  /* The price: its own row, never wrapped, so the estimate arriving after
+     load cannot change the block's height (see the note at the top). */
+  .ticks > .tick-price{flex-basis:100%;white-space:nowrap}
   .ticks svg{flex:none;width:17px;height:17px;overflow:visible}
   /* The ring is a circle that scales out and fades, drawn behind the check. */
   .ticks .ring{fill:none;stroke:var(--cyan);stroke-width:1.4;opacity:0;
@@ -292,7 +313,8 @@ const CSS = `/* Scoped to the section rather than :root. Every one of these is r
                stroke-linecap:round;stroke-linejoin:round;
                stroke-dasharray:22;stroke-dashoffset:0;
                animation:tick-draw 5.2s cubic-bezier(.5,0,.15,1) infinite}
-  .ticks span:nth-child(2) *,.ticks span:nth-child(2){animation-delay:.42s}
+  .ticks > span:nth-child(2) *,.ticks > span:nth-child(2){animation-delay:.42s}
+  .ticks > span:nth-child(3) *,.ticks > span:nth-child(3){animation-delay:.84s}
   @keyframes tick-draw{
     0%{stroke-dashoffset:22}
     14%,100%{stroke-dashoffset:0}}
@@ -453,7 +475,7 @@ const CSS = `/* Scoped to the section rather than :root. Every one of these is r
        a hover state never resolves on them, so the row is wider on a phone
        than it is in a desktop browser pretending to be one. */
     .btn{padding:.78em 1em;font-size:clamp(.88rem,1.85vh,1.6rem)}
-    .ticks{gap:1rem;font-size:clamp(.85rem,1.6vh,1.4rem);margin-top:.8rem;
+    .ticks{gap:.5rem 1rem;font-size:clamp(.85rem,1.6vh,1.4rem);margin-top:.8rem;
            line-height:1.3}
     .ticks svg{width:1.15em;height:1.15em}
     /* Sized to its content again, and no longer padded out to the tallest
@@ -499,7 +521,7 @@ const CSS = `/* Scoped to the section rather than :root. Every one of these is r
   @media (prefers-reduced-motion: reduce){
     /* The tick loop stops and everything stays in its resting state, which is
        drawn, legible and complete. */
-    .ticks span,.ticks .ring,.ticks .mark{animation:none}
+    .ticks > span,.ticks .ring,.ticks .mark{animation:none}
     .ticks .ring{opacity:0}
     /* The idle animation stops; the mark and the rule stay drawn, because
        their resting state is the visible one. */
@@ -562,9 +584,9 @@ const NOSCRIPT_CSS = `/* No script means no animation, so the two blocks stop be
   .hero-beats{display:none}`
 
 // The mark that draws itself, once per tick line.
-function Tick({ children }: { children: React.ReactNode }) {
+function Tick({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <span>
+    <span className={className}>
       <svg viewBox="0 0 17 17" aria-hidden="true">
         <circle className="ring" cx="8.5" cy="8.5" r="7" />
         <path className="mark" d="M3.6 8.9 L7 12.2 L13.4 4.9" />
@@ -631,6 +653,12 @@ export default function HeroScene() {
             <div className="ticks">
               <Tick>Free trial on request</Tick>
               <Tick>Live in 2 minutes</Tick>
+              {/* One inner span, because a tick is a flex container: left as
+                  two children, the estimate would sit a flex gap away from
+                  the price instead of reading as part of the same line. */}
+              <Tick className="tick-price">
+                <span>R{SEAT_PRICE_RAND} a card a month<PriceEstimate zar={SEAT_PRICE_RAND} prefix=" (" suffix=")" /></span>
+              </Tick>
             </div>
           </div>
 

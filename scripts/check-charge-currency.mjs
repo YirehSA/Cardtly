@@ -139,10 +139,21 @@ const showing = files
   .filter(f => f !== EST) // defines it
   .filter(f => /<PriceEstimate\b/.test(read(f) || ''))
 if (showing.length < 4) bad(`found only ${showing.length} files showing a price estimate; expected the pricing, signup, upgrade and team pages at least.`)
+// A component can rely on the page that renders it for the notice, but only
+// if EVERY file that imports it carries one. The home page hero is the case:
+// its price tick has room for "(≈ £4.50)" and not for a sentence, and the
+// home page's stats band and closing line carry the notice.
+const importersOf = (f) => {
+  const base = f.replace(/\.(tsx|ts)$/, '').split('/').pop()
+  const re = new RegExp(`from\\s+['"][^'"]*/${base}['"]`)
+  return files.filter(g => g !== f && re.test(read(g) || ''))
+}
+const carries = (src) => /<RandChargeNote\b|<PriceEstimateLine\b/.test(src || '')
 for (const f of showing) {
-  if (!/<RandChargeNote\b/.test(read(f) || '')) {
-    bad(`${f} shows a price estimate without RandChargeNote. A foreign visitor reads "≈ £4.50" as the price, and the statement then says something else.`)
-  }
+  if (/<RandChargeNote\b/.test(read(f) || '')) continue
+  const importers = importersOf(f)
+  if (importers.length > 0 && importers.every(g => carries(read(g)))) continue
+  bad(`${f} shows a price estimate without RandChargeNote${importers.length ? `, and ${importers.filter(g => !carries(read(g))).join(', ')} renders it without one either` : ''}. A foreign visitor reads "≈ £4.50" as the price, and the statement then says something else.`)
 }
 const stale = files.filter(f => /\bUsdEstimate\b/.test(read(f) || ''))
 if (stale.length) bad(`${stale.join(', ')} still refer to UsdEstimate, which no longer exists.`)
