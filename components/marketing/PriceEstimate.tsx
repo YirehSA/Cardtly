@@ -64,6 +64,32 @@ export default function PriceEstimate({ zar, prefix = '', suffix = '', className
 }
 
 /**
+ * A whole line under a price: "≈ £4.50 a month, charged in rand (ZAR)". For
+ * tiles and bands where the estimate needs its own line.
+ *
+ * The line itself is absent in the rand zone, not an empty paragraph: an empty
+ * <p> still carries its margin, which made South Africans' tiles a few pixels
+ * taller for a line they never see.
+ */
+export function PriceEstimateLine({ zar, suffix = ', ', className, style }: {
+  zar: number
+  /** Joins the estimate to the notice, e.g. ' a month, ' or ' a seat a month, '. */
+  suffix?: string
+  className?: string
+  style?: React.CSSProperties
+}) {
+  const fx = useFx()
+  if (!fx || !fx.currency || !fx.rate) return null
+
+  return (
+    <p className={className} style={style}>
+      <PriceEstimate zar={zar} suffix={suffix} />
+      <RandChargeNote short />
+    </p>
+  )
+}
+
+/**
  * What the estimate is NOT: the charge. Shown to the same visitors who see an
  * estimate, wherever a price leads to paying.
  *

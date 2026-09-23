@@ -5,7 +5,7 @@ import { graph, faqPage, breadcrumb, softwareApplication } from '@/lib/seo-schem
 import Footer from '@/components/marketing/Footer'
 import ProPlanPrice from '@/components/marketing/ProPlanPrice'
 import Reveal from '@/components/marketing/Reveal'
-import PriceEstimate, { RandChargeNote } from '@/components/marketing/PriceEstimate'
+import PriceEstimate, { PriceEstimateLine, RandChargeNote } from '@/components/marketing/PriceEstimate'
 import { Check, ArrowRight, Zap, Building2, CreditCard, Sparkles } from 'lucide-react'
 // Read from the billing code rather than typed in. The seat ceiling appears in
 // four places on this page, and the Enterprise tile had drifted to "20+" while
@@ -185,15 +185,22 @@ export default function PricingPage() {
             {/* One tile per plan, in the order they scale. These were two
                 identical R97 rows and a third about cancellation, which told
                 nobody which plan they were on. */}
+            {/* The two priced tiles carry the estimate outside the rand zone:
+                "≈ £4.50 a month, charged in rand (ZAR)". Enterprise is quoted,
+                so it has no figure to convert. */}
             {[
-              { k: `R${SEAT_PRICE_RAND}`, v: 'Individual: per card, per month' },
-              { k: `R${SEAT_PRICE_RAND} / seat`, v: `Pro Teams: 2 to ${MAX_SELF_SERVE_SEATS} seats, one invoice` },
-              { k: `${MAX_SELF_SERVE_SEATS + 1}+ seats`, v: 'Enterprise: quoted on your seat count' },
-            ].map(({ k, v }) => (
+              { k: `R${SEAT_PRICE_RAND}`, v: 'Individual: per card, per month', per: ' a month, ' },
+              { k: `R${SEAT_PRICE_RAND} / seat`, v: `Pro Teams: 2 to ${MAX_SELF_SERVE_SEATS} seats, one invoice`, per: ' a seat a month, ' },
+              { k: `${MAX_SELF_SERVE_SEATS + 1}+ seats`, v: 'Enterprise: quoted on your seat count', per: null },
+            ].map(({ k, v, per }) => (
               <div key={v} className="rounded-2xl p-5"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <p className="text-2xl font-black tracking-tight whitespace-nowrap" style={gradText}>{k}</p>
                 <p className="text-sm mt-1" style={{ color: BODY }}>{v}</p>
+                {per && (
+                  <PriceEstimateLine zar={SEAT_PRICE_RAND} suffix={per}
+                    className="text-xs mt-1.5" style={{ color: DIM }} />
+                )}
               </div>
             ))}
           </div>
@@ -363,6 +370,8 @@ export default function PricingPage() {
           </h2>
           <p className="mb-8" style={{ color: BODY }}>
             Free for {TRIAL_DAYS} days, then R{SEAT_PRICE_RAND} a card. Set up in minutes, cancel any time.
+            <PriceEstimate zar={SEAT_PRICE_RAND} suffix=" a card a month." className="block mt-2 text-sm" />
+            <RandChargeNote className="block text-xs" />
           </p>
           <Link href="/signup"
             className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:opacity-90"

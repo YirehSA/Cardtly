@@ -127,6 +127,13 @@ else {
   if (!/!fx\.currency\) return null/.test(note)) bad('RandChargeNote no longer shows for exactly the visitors who see an estimate (fx.currency).')
 }
 if (!/formatEstimate\(/.test(est)) bad(`${EST} no longer formats with formatEstimate, so the tested rounding and symbols are not what visitors see.`)
+// PriceEstimateLine is an estimate with its notice built in, which is why the
+// files that use it are not required to add RandChargeNote themselves.
+const lineAt = est.indexOf('export function PriceEstimateLine')
+const line = lineAt < 0 ? '' : est.slice(lineAt, est.indexOf('export function RandChargeNote', lineAt))
+if (lineAt >= 0 && !/<RandChargeNote short \/>/.test(line)) {
+  bad('PriceEstimateLine no longer carries the short rand notice, so every tile that uses it shows an estimate with nothing saying the charge is in rand.')
+}
 
 const showing = files
   .filter(f => f !== EST) // defines it

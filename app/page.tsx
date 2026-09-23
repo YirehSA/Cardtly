@@ -5,7 +5,7 @@ import Reveal from '@/components/marketing/Reveal'
 import NativeAppRedirect from '@/components/NativeAppRedirect'
 import { PROMOS_ENABLED } from '@/lib/promos'
 import { SEAT_PRICE_RAND } from '@/lib/org-billing'
-import PriceEstimate, { RandChargeNote } from '@/components/marketing/PriceEstimate'
+import PriceEstimate, { PriceEstimateLine, RandChargeNote } from '@/components/marketing/PriceEstimate'
 import HeroScene from '@/components/marketing/HeroScene'
 import ThreeWaysToShare from '@/components/marketing/ThreeWaysToShare'
 import TemplatesShowcase from '@/components/marketing/TemplatesShowcase'
@@ -228,10 +228,8 @@ export default function HomePage() {
                       currency, and that the charge stays in rand. Renders
                       nothing in South Africa, so the band is unchanged there. */}
                   {estimate && (
-                    <p className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                      <PriceEstimate zar={SEAT_PRICE_RAND} suffix=" a month, " />
-                      <RandChargeNote short />
-                    </p>
+                    <PriceEstimateLine zar={SEAT_PRICE_RAND} suffix=" a month, "
+                      className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.6)' }} />
                   )}
                 </div>
               </Reveal>
