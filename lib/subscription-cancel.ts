@@ -67,3 +67,81 @@ export function cancellationEndsAt(
   // always set. If it happens anyway, end now rather than invent a period.
   return new Date(nowMs).toISOString()
 }
+
+export type PaystackCancellation =
+  | { action: 'ignore'; reason: string }
+  | { action: 'set'; cancelAt: string }
+
+/**
+ * What a Paystack cancellation webhook means for our subscription row.
+ *
+ * Paystack sends two events, and neither is the one this codebase used to
+ * listen for ('subscription.disabled', which does not exist):
+ *
+ *   subscription.not_renew  the moment a subscription is cancelled - from our
+ *                           own cancel route, the Paystack dashboard, or the
+ *                           customer's Paystack "manage subscription" page. It
+ *                           arrives with next_payment_date null, so the end
+ *                           date comes from the last payment.
+ *   subscription.disable    on the next payment date, when the cancelled
+ *                           subscription actually stops. Its next_payment_date
+ *                           is that moment.
+ *
+ * Both only ever set cancel_at, never status. subscriptionState stops serving
+ * at that date and the daily cron marks the row cancelled afterwards, so a
+ * cancellation made anywhere keeps the Terms' promise: the card stays live
+ * until the end of the period already paid for.
+ *
+ * The dangerous case is a customer who cancels and then subscribes again. The
+ * old subscription's events keep arriving, keyed by the same email, while the
+ * new one is paying. So the event is ignored when the row provably belongs to
+ * a different subscription code, and when Paystack still bills this customer
+ * on any other subscription.
+ */
+export function paystackCancellation(
+  kind: 'not_renew' | 'disable',
+  eventSub: { subscription_code?: string | null; next_payment_date?: string | null },
+  row: {
+    status?: string | null; plan_id?: string | null; billing_cycle?: string | null
+    created_at?: string | null; metadata?: any; membership_id?: string | null
+    cancel_at?: string | null
+  } | null,
+  otherLiveCodes: string[],
+  now: Date = new Date(),
+): PaystackCancellation {
+  if (!row) return { action: 'ignore', reason: 'no subscription row for this customer' }
+  if (row.status !== 'active' && row.status !== 'past_due') {
+    return { action: 'ignore', reason: `row is already ${row.status || 'not live'}` }
+  }
+  if (!String(row.plan_id || '').startsWith('paystack') || row.metadata?.comped || row.billing_cycle === 'comp') {
+    return { action: 'ignore', reason: 'row is not billed through Paystack checkout (comp, team or invoiced)' }
+  }
+
+  const eventCode = eventSub?.subscription_code || null
+  const stored = [row.metadata?.paystack_subscription_code, row.membership_id]
+    .find(c => typeof c === 'string' && c.startsWith('SUB_')) || null
+  if (stored && eventCode && stored !== eventCode) {
+    return { action: 'ignore', reason: `row pays for ${stored}, not ${eventCode}` }
+  }
+  const others = otherLiveCodes.filter(c => c && c !== eventCode)
+  if (others.length > 0) {
+    return { action: 'ignore', reason: `Paystack still bills this customer on ${others.join(', ')}` }
+  }
+
+  const endsAt = cancellationEndsAt(row, [eventSub?.next_payment_date], now)
+  const existingMs = row.cancel_at ? new Date(row.cancel_at).getTime() : NaN
+  const hasExisting = valid(existingMs)
+
+  if (kind === 'not_renew') {
+    // Our own cancel route got there first and recorded Paystack's date.
+    if (hasExisting) return { action: 'ignore', reason: `already ends ${row.cancel_at}` }
+    return { action: 'set', cancelAt: endsAt }
+  }
+
+  // disable: the paid period is over by Paystack's account. Bring the date in
+  // if ours is later; never push it out.
+  if (hasExisting && existingMs <= new Date(endsAt).getTime()) {
+    return { action: 'ignore', reason: `already ends ${row.cancel_at}` }
+  }
+  return { action: 'set', cancelAt: endsAt }
+}

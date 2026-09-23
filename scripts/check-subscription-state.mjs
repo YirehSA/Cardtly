@@ -80,6 +80,40 @@ for (const [what, got, want] of cases) {
   if (got !== want) bad(`cancellationEndsAt - ${what}: got ${got}, expected ${want}`)
 }
 
+// paystackCancellation: what a Paystack cancellation webhook does to the row.
+const PAID = { status: 'active', plan_id: 'paystack_monthly', billing_cycle: 'monthly',
+  created_at: '2026-09-13T08:00:00Z', metadata: { paid_at: '2026-09-13T08:00:00Z' }, cancel_at: null }
+const pc = (kind, ev, row, others = []) => {
+  const d = M.paystackCancellation(kind, ev, row, others, NOW)
+  return d.action === 'set' ? d.cancelAt : 'ignore'
+}
+const webhookCases = [
+  ['not_renew arrives with no next date: ends a month after the last payment',
+    pc('not_renew', { subscription_code: 'SUB_a', next_payment_date: null }, PAID), iso('2026-10-13T08:00:00Z')],
+  ['not_renew after our own cancel route recorded the date: leaves it alone',
+    pc('not_renew', { subscription_code: 'SUB_a' }, { ...PAID, cancel_at: '2026-10-10T00:00:00Z' }), 'ignore'],
+  ['disable on the payment date: ends now',
+    pc('disable', { subscription_code: 'SUB_a', next_payment_date: NOW.toISOString() }, PAID), NOW.toISOString()],
+  ['disable when our date is later than Paystack\'s: brought in to Paystack\'s',
+    pc('disable', { subscription_code: 'SUB_a', next_payment_date: NOW.toISOString() }, { ...PAID, cancel_at: '2026-10-13T08:00:00Z' }), NOW.toISOString()],
+  ['disable never pushes an earlier date out',
+    pc('disable', { subscription_code: 'SUB_a', next_payment_date: '2026-10-20T00:00:00Z' }, { ...PAID, cancel_at: '2026-10-01T00:00:00Z' }), 'ignore'],
+  ['cancelled and subscribed again: the old subscription\'s event is ignored while Paystack bills the new one',
+    pc('disable', { subscription_code: 'SUB_old', next_payment_date: NOW.toISOString() }, PAID, ['SUB_new']), 'ignore'],
+  ['row stores a different subscription code: ignored',
+    pc('not_renew', { subscription_code: 'SUB_old' }, { ...PAID, metadata: { ...PAID.metadata, paystack_subscription_code: 'SUB_new' } }), 'ignore'],
+  ['comped row, even on a Paystack plan id: ignored',
+    pc('not_renew', { subscription_code: 'SUB_a' }, { ...PAID, metadata: { ...PAID.metadata, comped: true } }), 'ignore'],
+  ['comp billing cycle, even on a Paystack plan id: ignored',
+    pc('not_renew', { subscription_code: 'SUB_a' }, { ...PAID, billing_cycle: 'comp' }), 'ignore'],
+  ['team or invoiced row: ignored', pc('not_renew', { subscription_code: 'SUB_a' }, { ...PAID, plan_id: 'pro_team' }), 'ignore'],
+  ['already cancelled row: ignored', pc('disable', { subscription_code: 'SUB_a' }, { ...PAID, status: 'cancelled' }), 'ignore'],
+  ['no row: ignored', pc('not_renew', { subscription_code: 'SUB_a' }, null), 'ignore'],
+]
+for (const [what, got, want] of webhookCases) {
+  if (got !== want) bad(`paystackCancellation - ${what}: got ${got}, expected ${want}`)
+}
+
 // ── 2. Both readers of the entitlement use the shared select ────────────────
 function walk(dir, acc = []) {
   let entries
@@ -154,11 +188,32 @@ if (!/STILL_BILLING = new Set\(\[[^\]]*'attention'/.test(paystack)) {
   bad("lib/paystack.ts no longer treats 'attention' as still billing. Paystack keeps retrying a declined charge, so a customer who cancels in that state would be charged - and silently re-subscribed - by the next retry.")
 }
 
+// ── 5. The Paystack webhook hears cancellations, and keeps the paid period ──
+const hook = read('app/api/webhooks/paystack/route.ts') || ''
+if (/event\.event === 'subscription\.disabled'/.test(hook)) {
+  bad("the Paystack webhook listens for 'subscription.disabled' again. Paystack sends 'subscription.disable'; the misspelt name never fires, and a cancellation made at Paystack leaves the customer on Pro forever.")
+}
+for (const ev of ['subscription.not_renew', 'subscription.disable']) {
+  if (!hook.includes(`event.event === '${ev}'`)) {
+    bad(`the Paystack webhook no longer handles '${ev}', so a cancellation made in the Paystack dashboard or on Paystack's manage page never reaches Cardtly.`)
+  }
+}
+if (!/paystackCancellation\(/.test(hook) || !/findActivePaystackSubs\(/.test(hook)) {
+  bad('the Paystack webhook no longer decides cancellations with paystackCancellation and a live-subscription check. Without the check, the old subscription of a customer who cancelled and subscribed again cuts off the new one.')
+}
+if (/status: 'cancelled'/.test(hook)) {
+  bad("the Paystack webhook sets status 'cancelled' directly. That ends access on the spot and takes back the rest of a period the customer paid for; record cancel_at and let the daily cron move the status.")
+}
+if (!/\.eq\('created_at', row\.created_at\)/.test(hook)) {
+  bad('the webhook\'s cancel_at write is no longer pinned to the row it reasoned about. A payment landing in between re-creates the row, and a customer who has just paid would be given an end date.')
+}
+
 if (fail) {
   console.error(`\ncheck-subscription-state: ${fail} failure(s).`)
   process.exit(1)
 }
 console.log(
-  `check-subscription-state: cancellationEndsAt passes ${cases.length} cases, both entitlement readers use the shared select with ` +
-  'its missing-column fallback, the cancel route checks before it acts, and a declined-card subscription still counts as billing.',
+  `check-subscription-state: cancellationEndsAt passes ${cases.length} cases and paystackCancellation ${webhookCases.length}, both entitlement readers use the shared select with ` +
+  'its missing-column fallback, the cancel route checks before it acts, a declined-card subscription still counts as billing, ' +
+  'and the Paystack webhook hears real cancellation events without cutting a paid period short.',
 )

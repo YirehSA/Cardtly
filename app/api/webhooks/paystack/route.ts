@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 import { logSubscriptionChange } from '@/lib/subscription-audit'
+import { findActivePaystackSubs } from '@/lib/paystack'
+import { paystackCancellation } from '@/lib/subscription-cancel'
 
 export async function POST(request: Request) {
   try {
@@ -143,7 +145,7 @@ export async function POST(request: Request) {
         // Paystack had actually been paid, and the card went dark at the end
         // of the grace window despite the money having arrived.
         //
-        // Recover by email, the same key subscription.disabled and
+        // Recover by email, the same key the cancellation events and
         // invoice.payment_failed already use.
         const { data: existing } = await admin
           .from('whop_subscriptions')
@@ -172,27 +174,59 @@ export async function POST(request: Request) {
       }
     }
 
-    // Subscription disabled — cancel Pro
-    if (event.event === 'subscription.disabled') {
-      const { customer } = event.data
+    // Cancelled at Paystack. This used to listen for 'subscription.disabled',
+    // an event Paystack does not send (it is 'subscription.disable'), so a
+    // cancellation made in the Paystack dashboard, or by the customer on
+    // Paystack's own manage-subscription page, never reached Cardtly and that
+    // customer kept Pro indefinitely. It also set status 'cancelled' outright,
+    // which would have cut off the rest of a period already paid for.
+    //
+    // Now both real events only record cancel_at: see paystackCancellation for
+    // what each one means and for the resubscribe case it must not trip over.
+    if (event.event === 'subscription.not_renew' || event.event === 'subscription.disable') {
+      const kind = event.event === 'subscription.disable' ? 'disable' : 'not_renew'
+      const data = event.data || {}
+      const code: string | null = data.subscription_code || null
+      const email: string = data.customer?.email || ''
 
-      const { data: sub } = await admin
-        .from('whop_subscriptions')
-        .select('user_id')
-        .eq('email', customer.email)
-        .single()
+      const row = await subscriptionRowFor(admin, code, email)
+      let decision = paystackCancellation(kind, data, row, [])
 
-      if (sub) {
-        await admin.from('whop_subscriptions').update({
-          status: 'cancelled',
-          updated_at: new Date().toISOString(),
-        }).eq('user_id', sub.user_id)
+      // Only a row we would act on is worth a Paystack call: is this customer
+      // still billed on some OTHER subscription? If Paystack cannot answer,
+      // fail the webhook so Paystack retries, rather than guess.
+      if (decision.action === 'set' && email) {
+        const live = await findActivePaystackSubs(email)
+        if (!live.ok) {
+          console.error('Paystack', event.event, 'could not list live subscriptions:', live.error)
+          return NextResponse.json({ error: 'Could not confirm live subscriptions' }, { status: 503 })
+        }
+        decision = paystackCancellation(kind, data, row, live.subs.map(s => s.subscription_code))
+      }
 
-        await logSubscriptionChange(admin, {
-          change: 'cancelled', userId: sub.user_id, email: customer.email,
-          source: 'paystack_webhook', reason: 'subscription.disabled',
-          after: { status: 'cancelled' },
-        })
+      if (decision.action === 'ignore') {
+        console.log('Paystack', event.event, code, 'ignored:', decision.reason)
+      } else {
+        // Pinned to the exact row reasoned about. charge.success re-creates the
+        // row on every payment, so a payment landing in between produces a new
+        // created_at - and that customer has just paid.
+        const { data: updated, error: writeErr } = await admin
+          .from('whop_subscriptions')
+          .update({ cancel_at: decision.cancelAt, updated_at: new Date().toISOString() })
+          .eq('user_id', row.user_id)
+          .eq('created_at', row.created_at)
+          .in('status', ['active', 'past_due'])
+          .select('user_id')
+        if (writeErr) throw writeErr
+
+        if (updated?.length) {
+          await logSubscriptionChange(admin, {
+            change: 'updated', userId: row.user_id, email: row.email || email,
+            source: 'paystack_webhook',
+            reason: `${event.event} for ${code || 'unknown code'}: serves until ${decision.cancelAt}.`,
+            before: row, after: { ...row, cancel_at: decision.cancelAt },
+          })
+        }
       }
     }
 
@@ -228,4 +262,28 @@ export async function POST(request: Request) {
     console.error('Webhook error:', error)
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
   }
+}
+
+// The live row a Paystack subscription event is about: by subscription code
+// when we happen to have stored one, otherwise by the customer's email, the key
+// the other branches here use. A read error throws, so Paystack retries rather
+// than the event being dropped as "no such customer".
+async function subscriptionRowFor(admin: any, code: string | null, email: string): Promise<any | null> {
+  const cols = 'user_id, email, plan_id, status, billing_cycle, created_at, metadata, membership_id, seats, cancel_at'
+  const latestLive = (q: any) => q
+    .in('status', ['active', 'past_due'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (code) {
+    const { data, error } = await latestLive(
+      admin.from('whop_subscriptions').select(cols).eq('metadata->>paystack_subscription_code', code))
+    if (error) throw error
+    if (data) return data
+  }
+  if (!email) return null
+  const { data, error } = await latestLive(admin.from('whop_subscriptions').select(cols).eq('email', email))
+  if (error) throw error
+  return data
 }
