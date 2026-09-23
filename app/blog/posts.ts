@@ -964,6 +964,248 @@ export const POSTS: BlogPost[] = [
       },
     ],
   },
+
+  {
+    slug: 'digital-business-cards-for-car-dealerships',
+    title: 'Digital Business Cards for Car Dealerships',
+    description:
+      'Digital business cards for car dealerships that lead with stock, not the salesperson. Put vehicles and prices on the card and keep leads when staff move.',
+    excerpt:
+      'A dealership card has the wrong thing on it. The buyer came for the car, and the card opens with a photograph of the salesperson.',
+    date: '2026-09-23',
+    readMins: 8,
+    body: `<p>Walk onto any forecourt in the country and watch what a buyer actually does. They look at the metal. They walk around it, they check the mileage, they ask what it is going for. Somewhere in the next twenty minutes they learn the salesperson's name, and by the following week they have forgotten it.</p>
+
+<p>Every business card ever printed for a dealership gets this backwards. It opens with the person, because that is what a business card is, and the person is the part the buyer cares least about. This is how South African dealers are using <strong>digital business cards for car dealerships</strong> to put the stock first, and the specific problems it solves.</p>
+
+<h2>The card should lead with the car</h2>
+
+<p>Cardtly has a template built for this called Showroom, and it inverts the usual layout on purpose. A photograph fills the top of the card, the dealership's name carries the headline, and the salesperson is a small round chip you tap to ask about a vehicle.</p>
+
+<p>Under that sits a gallery of up to ten vehicles, and each one carries a caption and its own link. So a listing reads "2021 Ranger Wildtrak, 64 000 km, R589 000" under the photograph, and tapping it opens that unit on your website. That is the difference between a business card and a pocket-sized stock list.</p>
+
+<p>Three buttons lead the rest of the card, and the dealer writes them. Most choose a version of book a test drive, value my trade-in, and apply for finance, because those are the three things a buyer on a forecourt is actually trying to do. They sit above everything else rather than fourth in a list under "Our Facebook".</p>
+
+<h2>The floor turns over and the cards do not</h2>
+
+<p>Vehicle sales has staff movement that most industries would find alarming. A salesperson who stays three years is a veteran, and a dealer principal budgets for a floor that looks different at the end of the year to how it looked at the start.</p>
+
+<p>Printed cards make every one of those moves cost money twice. You print 250 for somebody who leaves in month seven, and the other 190 go in a drawer. Then you print again for their replacement, who may also leave.</p>
+
+<p>The worse cost is invisible. When a salesperson walks, the relationships go with them - the phone, the WhatsApp threads, the buyers who said "call me in March when my balloon is up". The dealership paid for the floor, the stock, the advertising and the salary, and kept none of the pipeline that came out of it.</p>
+
+<p>A team account turns that around. The cards belong to the dealership, not the person. When somebody leaves, their card is archived, which takes it offline the same minute, and the seat goes to whoever replaces them. Every lead that card ever captured stays in the dealership's shared contact list.</p>
+
+<h2>South African buyers are on WhatsApp</h2>
+
+<p>This is not a small detail here. A buyer who is interested but not ready does not want a phone call at work, and will not fill in a form. They want to message.</p>
+
+<p>Every card carries a WhatsApp button, and the card itself can be sent to a number as a WhatsApp or SMS link, so a salesperson who takes a call from a listing can put their whole card in the buyer's hand before the call ends. The buyer taps once to save the details to their phone contacts, and the dealership is stored properly instead of as "Ford guy".</p>
+
+<h2>Stock photographs, framed by the dealer</h2>
+
+<p>A vehicle photograph is a wide shot of a long object, and a card is a tall rectangle. Left alone, a browser crops from the middle of the picture, which on a forecourt shot is usually tarmac and sky with the roof of the car cut off.</p>
+
+<p>Cardtly lets you drag the photograph inside the frame to choose which part survives the crop, on the hero image and on every gallery photo. It takes a few seconds per picture and it is the difference between a listing that looks like a listing and one that looks like a mistake.</p>
+
+<h2>A group with four franchises is still one account</h2>
+
+<p>Motor groups are rarely one brand. A typical structure is a holding company over several franchises, each with a manufacturer's corporate identity that is not negotiable, plus a used-vehicle operation with branding of its own.</p>
+
+<p>That breaks most software, which assumes one company with one logo. Cardtly has three levels: a group at the top, companies beneath it, and departments inside those. The group is billed once on one invoice from one seat pool, while each franchise keeps its own logo, colours and web address.</p>
+
+<p>Departments inherit from their own franchise rather than from the group, so new-vehicle sales, used vehicles, service and parts stay consistent inside their own brand. Read more about <a href="/teams">how the group, company and department structure works</a>.</p>
+
+<h2>What it costs against printing</h2>
+
+<p>The comparison most dealers run is against their current print bill, so here it is plainly.</p>
+
+<table>
+<thead>
+<tr><th></th><th>Printed cards</th><th>Cardtly</th></tr>
+</thead>
+<tbody>
+<tr><td>New salesperson starts</td><td>Print run, wait for delivery</td><td>Card live the same day</td></tr>
+<tr><td>Salesperson leaves</td><td>Remaining cards wasted</td><td>Seat reassigned, card archived</td></tr>
+<tr><td>Price or model change</td><td>Reprint, or hand out stale cards</td><td>Edit once, live everywhere</td></tr>
+<tr><td>Stock on the card</td><td>None</td><td>Ten vehicles with prices and links</td></tr>
+<tr><td>Leads when somebody walks</td><td>Leave with them</td><td>Stay with the dealership</td></tr>
+<tr><td>Cost</td><td>Per print run, repeated</td><td>R97 per card a month</td></tr>
+</tbody>
+</table>
+
+<h2>Getting the floor onto it</h2>
+
+<p>The order that works is to set the dealership up first and add people second, so nobody builds a card that has to be corrected later.</p>
+
+<ol>
+<li><strong>Set the brand once.</strong> Logo, dealership name, website, address and switchboard, then lock the fields that must not change. A salesperson can edit their own name, photograph, cell number and job title, and nothing else, unless you decide otherwise.</li>
+<li><strong>Choose Showroom and load the stock.</strong> Hero photograph across the top, then up to ten vehicles with a price under each. One person doing this for the whole floor is faster than sixteen people each doing their own.</li>
+<li><strong>Write the three lead buttons.</strong> Test drive, trade-in valuation, finance application, pointed at whichever pages or forms you already use.</li>
+<li><strong>Add the salespeople.</strong> Seats can be added one at a time or imported from a spreadsheet for a whole floor at once.</li>
+<li><strong>Decide how they share it.</strong> The QR code and link work immediately on every card. An <a href="/nfc">NFC card</a> for the tap is optional, at R150 once-off with your logo on our layout or R200 designed around your brand, plus R100 shipping per order in South Africa.</li>
+</ol>
+
+<h2>The part that pays for itself</h2>
+
+<p>Ask a dealer principal how many enquiries came off the floor last month and most can answer. Ask which salesperson's card was opened, how often, and what the buyer tapped once it was open, and almost nobody can.</p>
+
+<p>Every card reports its views, its taps and its saves, and every contact captured lands in a shared list the dealership owns. When a salesperson resigns, you do not lose the pipeline and you do not spend a fortnight reconstructing it from a phone nobody can unlock.</p>
+
+<p>If you want to see it before committing, every signup gets 7 days of the full product with no credit card. Build one card for one salesperson, load ten vehicles into it, and hand it to a buyer on Saturday.</p>`,
+    faq: [
+      {
+        q: 'What makes a digital business card different for a car dealership?',
+        a: 'The layout. A normal business card opens with the person, and a buyer on a forecourt came for the vehicle. Cardtly has a template called Showroom that puts a photograph across the top, the dealership name as the headline, and the salesperson as a small chip, with up to ten vehicles underneath, each with a price caption and its own link.',
+      },
+      {
+        q: 'Can I put stock and prices on a digital business card?',
+        a: 'Yes. The gallery holds up to ten photographs, and each one takes a caption and a link. A caption like "2021 Ranger Wildtrak, 64 000 km, R589 000" sits under the picture, and tapping it opens that unit on your website.',
+      },
+      {
+        q: 'What happens to the leads when a salesperson leaves?',
+        a: 'They stay with the dealership. On a team account the cards belong to the company, so an archived card goes offline immediately, the seat is reassigned to the replacement, and every contact that card captured remains in the shared list in the team dashboard.',
+      },
+      {
+        q: 'Can a motor group with several franchises use one account?',
+        a: 'Yes. A group sits above several companies, and each franchise keeps its own logo, colours and web address while the group is billed once from one seat pool. Departments such as new vehicles, used vehicles, service and parts inherit from their own franchise rather than from the group.',
+      },
+      {
+        q: 'How much does it cost for a dealership?',
+        a: 'R97 per card a month, billed in rand through Paystack, with 7 days of the full product first and no credit card required. A physical NFC card is optional at R150 once-off with your logo on our layout, or R200 designed around your brand, plus R100 shipping per order in South Africa.',
+      },
+      {
+        q: 'Do buyers need an app to open the card?',
+        a: 'No. The card opens as an ordinary web page whether you share it by tap, QR code, or a WhatsApp link, and the buyer can save your details to their phone contacts with one tap.',
+      },
+    ],
+  },
+
+  {
+    slug: 'digital-business-cards-for-corporate-companies',
+    title: 'Digital Business Cards for Corporate Companies',
+    description:
+      'Digital business cards for corporate companies: lock branding, run several brands on one account, roll out in bulk and keep the leads when staff leave.',
+    excerpt:
+      'One person with the wrong logo is a mistake. Two hundred people each ordering their own cards is a brand with no owner.',
+    date: '2026-09-23',
+    readMins: 9,
+    body: `<p>In a company of eight, business cards are stationery. Somebody orders a box, everybody takes a handful, and the logo is right because one person chose it.</p>
+
+<p>In a company of eight hundred, they are a control problem. Cards get ordered by region, by division, by whoever has a budget code and a deadline, and within two years there are four versions of the logo in circulation, three phone numbers for a switchboard that moved, and a set of job titles HR has never seen. Nobody decided this. It is just what happens when a physical object is printed by many people over a long time.</p>
+
+<p>This is what changes when a corporate moves to <strong>digital business cards</strong>, and the questions procurement will ask before it signs anything.</p>
+
+<h2>Branding stops being a request</h2>
+
+<p>The usual method for keeping cards on-brand is asking people nicely and checking at the proof stage. It works until somebody is in a hurry.</p>
+
+<p>On a team account, an administrator sets the logo, company name, website, address and social profiles once, and then chooses which of those an employee may change. A locked field is not a rule in a brand manual. The editor will not let it be typed, and the server refuses the write even if somebody opens the browser tools and tries to send it anyway.</p>
+
+<p>What stays personal is the part that should be: name, photograph, direct line, cell number. What the company standardises is the part that carries the brand. A job title can go either way, which matters more than it sounds - locking it means the company decides what somebody's title is, rather than the person deciding for themselves.</p>
+
+<h2>Corporates are not one company</h2>
+
+<p>Most large South African businesses are a group. A holding company over several operating companies, each with its own name, its own registration, often its own board, and sometimes branding that shares nothing but a shareholder.</p>
+
+<p>Cardtly has three levels for this: a group at the top, companies beneath it, and departments inside those. The group is billed once, from one seat pool, on one invoice, while each operating company keeps its own logo, colours and slice of the web address.</p>
+
+<p>Each company chooses whether to wear the group look or its own, and the group owner can lock that choice. Departments inherit from their own company rather than from the group, so a subsidiary stays internally consistent even when it looks nothing like its parent. Department heads can tighten the rules for their own people without being given control of the whole group.</p>
+
+<h2>Onboarding and offboarding stop being print jobs</h2>
+
+<p>The week somebody starts, a corporate has to get them a laptop, an email address, a building card and, eventually, business cards. The cards are always last because they involve an outside supplier and a minimum order quantity.</p>
+
+<p>A digital card is issued the same day, from the same dashboard, by the same person who does the rest of it. A whole intake can be imported from a spreadsheet in one go rather than typed in one at a time.</p>
+
+<p>Offboarding is the half nobody plans for and the half that matters. When an employee leaves a company with printed cards, several hundred of those cards are in other people's wallets, and they keep working. The number on them still rings. A digital card is archived and it is offline immediately, everywhere, including the copy somebody saved to their phone months ago.</p>
+
+<h2>The leads belong to the company</h2>
+
+<p>This is the argument that usually lands in a boardroom, because it is the one with money attached.</p>
+
+<p>When a salesperson at a large company leaves, the network leaves too. The contacts are in their phone, the conversations are in their WhatsApp, and the pile of cards they collected at three years of conferences is in their drawer. The company paid for every one of those trips.</p>
+
+<p>Cards on a team account capture contacts into a shared list the company owns. Somebody scanning a paper card into the app, somebody exchanging details at a conference, somebody filling in a lead form on a card - all of it lands somewhere the company can still see it after that employee has gone.</p>
+
+<h2>What procurement will ask</h2>
+
+<p>Corporate buying is a different exercise to a small business signing up, and the questions arrive in a predictable order.</p>
+
+<table>
+<thead>
+<tr><th>Question</th><th>Answer</th></tr>
+</thead>
+<tbody>
+<tr><td>Who controls what staff can put on a card?</td><td>The company admin, field by field, enforced on the server</td></tr>
+<tr><td>What happens when someone leaves?</td><td>Card archived and offline immediately, seat reassigned</td></tr>
+<tr><td>Who owns the contacts collected?</td><td>The company, in a shared list in the team dashboard</td></tr>
+<tr><td>Can we run several brands?</td><td>Yes, group over companies over departments</td></tr>
+<tr><td>Can we add people in bulk?</td><td>Yes, spreadsheet import</td></tr>
+<tr><td>Can it talk to our systems?</td><td>Yes, through a team API key</td></tr>
+<tr><td>How is it billed?</td><td>R97 per card a month in rand, one invoice for the group</td></tr>
+<tr><td>What about POPIA?</td><td>See the questions below</td></tr>
+</tbody>
+</table>
+
+<p>Self-serve covers 2 to 20 cards. Above twenty, the sizing and the invoicing are arranged directly, which is usually what a corporate wants anyway.</p>
+
+<h2>POPIA is a procurement question, not a footnote</h2>
+
+<p>A business card holds personal information, so a card platform processes personal information on the company's behalf, which makes it an operator under POPIA. That is not alarming, but it does mean somebody in legal will want answers before the rollout.</p>
+
+<p>The questions worth asking any vendor are where the data is hosted, who the sub-processors are, how one customer's data is separated from another's, whether you can export everything yourself, and what happens to it when you leave. We wrote those out in full, with what a good answer looks like, in <a href="/blog/digital-business-cards-and-popia">digital business cards and POPIA</a>.</p>
+
+<h2>What employees actually get</h2>
+
+<p>None of the control matters if the thing is unpleasant to use, because people quietly stop sharing it.</p>
+
+<p>An employee gets a card that opens as a normal web page for whoever receives it, with no app to download on either side. They share it by tap, by QR code, or as a link over WhatsApp or email. They pick from 16 designed templates, within whatever the company has locked. They can carry up to ten custom links and a gallery of up to ten photographs, and they can see how often their own card was opened and what people tapped.</p>
+
+<p>The recipient saves the details to their phone with one tap, which is the whole point, and is the part a paper card has never managed.</p>
+
+<h2>How a rollout usually goes</h2>
+
+<ol>
+<li><strong>Set the group and the companies.</strong> Get the structure right before anybody is invited, because moving people afterwards is more work than doing it once.</li>
+<li><strong>Brand each company and lock the fields.</strong> Decide deliberately what an employee may change. Most corporates lock logo, company name, website, address and socials, and leave name, photograph and direct line open.</li>
+<li><strong>Pilot one department.</strong> Twenty people for a month tells you more than a policy document. Sales is the usual choice because they will complain fastest if something is wrong.</li>
+<li><strong>Import the rest.</strong> A spreadsheet per company, rather than a form per person.</li>
+<li><strong>Decide about NFC.</strong> The QR code and the link need no hardware. Physical <a href="/nfc">NFC cards</a> are optional at R150 once-off with your logo on our layout, or R200 designed around your brand, plus R100 shipping per order in South Africa.</li>
+</ol>
+
+<p>Every signup gets 7 days of the full product with no credit card required, which is enough to run the pilot before anybody signs a purchase order. See <a href="/teams">how team accounts work</a> or read the comparison of <a href="/blog/business-card-costs-for-sales-teams">what business cards cost a sales team</a>.</p>`,
+    faq: [
+      {
+        q: 'How do digital business cards keep a large company on-brand?',
+        a: 'An administrator sets the logo, company name, website, address and social profiles once, then chooses which fields an employee may change. A locked field is enforced on the server, not just hidden in the editor, so it cannot be written even by someone bypassing the interface.',
+      },
+      {
+        q: 'Can one account hold several operating companies?',
+        a: 'Yes. Cardtly has three levels: a group at the top, companies beneath it, and departments inside those. Each company keeps its own logo, colours and web address while the group is billed once from one seat pool, and departments inherit from their own company rather than from the group.',
+      },
+      {
+        q: 'What happens to an employee card when they resign?',
+        a: 'It is archived from the team dashboard and goes offline immediately, including for anyone who saved the link. The seat is reassigned to their replacement, and every contact that card captured stays in the company shared list.',
+      },
+      {
+        q: 'Who owns the contacts an employee collects?',
+        a: 'The company. Contacts captured through a card, scanned from a paper card, or exchanged at an event land in a shared list in the team dashboard, so a person leaving does not take the network with them.',
+      },
+      {
+        q: 'How many cards can a company have?',
+        a: '2 to 20 cards can be set up self-serve. Above twenty, sizing and invoicing are arranged directly with Cardtly, which is usually what a larger company prefers.',
+      },
+      {
+        q: 'Does Cardtly comply with POPIA?',
+        a: 'A card platform processes personal information on the company behalf, which makes it an operator under POPIA. The questions worth putting to any vendor are where data is hosted, who the sub-processors are, how customer data is separated, whether you can export everything, and what happens to it when you leave. Those are set out in full in our POPIA guide.',
+      },
+      {
+        q: 'Can we add staff in bulk and connect it to our systems?',
+        a: 'Yes. A whole intake can be imported from a spreadsheet rather than added one at a time, and a team API key is available for connecting card creation to your own systems.',
+      },
+    ],
+  },
 ]
 
 export function getPost(slug: string): BlogPost | undefined {

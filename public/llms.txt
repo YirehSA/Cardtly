@@ -66,6 +66,11 @@ Cardtly is built for a company rolling cards out to a whole team, not just indiv
 - [Digital business cards in South Africa](https://cardtly.com/blog/digital-business-cards-south-africa): the guide for South African professionals, with ZAR pricing and local NFC delivery.
 - [NFC vs paper business cards](https://cardtly.com/blog/nfc-vs-paper-business-cards): a comparison on cost, updates, sustainability, analytics and reach.
 - [How to make a free digital business card](https://cardtly.com/blog/how-to-make-a-free-digital-business-card): a step-by-step guide to creating and sharing one.
+- [Digital business cards for teams](https://cardtly.com/blog/digital-business-cards-for-teams): how a company issues, brands and controls cards for staff from one dashboard.
+- [Digital business cards for car dealerships](https://cardtly.com/blog/digital-business-cards-for-car-dealerships): the Showroom layout that leads with stock rather than the salesperson, with vehicle prices and links on the card.
+- [Digital business cards for corporate companies](https://cardtly.com/blog/digital-business-cards-for-corporate-companies): brand control at scale, group and subsidiary structure, bulk rollout, offboarding and POPIA.
+- [Digital business cards for construction companies](https://cardtly.com/blog/digital-business-cards-for-construction): site teams, subcontractors and high turnover.
+- [Digital business cards and POPIA](https://cardtly.com/blog/digital-business-cards-and-popia): what to ask a card vendor before a corporate rollout.
 
 ## Common questions
 
@@ -79,4 +84,5 @@ Cardtly is built for a company rolling cards out to a whole team, not just indiv
 - What is a digital business card for teams? A web page for each employee, holding their name, role, contact details and links, that the company owns and controls centrally. The administrator brands every card at once, locks the fields that must stay fixed, and keeps the leads those cards capture when a person leaves.
 - Can one account hold more than one company? Yes. A group can contain several companies, each with its own branding, its own manager and its own slice of the web address, billed together on one invoice.
 - Who owns the leads a team's cards capture? The company. Leads land in a shared list in the team dashboard, so a person leaving does not take their contacts with them.
+- Is there a digital business card for car dealerships? Yes. The Showroom template puts a vehicle photograph across the top, the dealership name as the headline and the salesperson as a small chip, with up to ten vehicles underneath, each carrying a price caption and its own link, and three lead buttons such as test drive, trade-in and finance.
 - Does Cardtly work outside South Africa? Yes. The cards work anywhere with a browser and are used internationally. Billing is in South African rand through Paystack, and only the optional physical NFC cards are limited to South African delivery.
