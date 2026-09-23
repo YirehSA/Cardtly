@@ -92,6 +92,13 @@ export async function POST() {
     if (cardIds.length > 0) {
       await admin.from('contacts').delete().in('card_id', cardIds)
       await admin.from('slug_redirects').delete().in('card_id', cardIds)
+      // View and tap records, explicitly. card_events was created in the
+      // Supabase dashboard rather than a migration, so nothing in this repo
+      // proves its foreign key cascades - and the privacy policy says these go
+      // with the account. Deleting them here makes that true whatever the
+      // constraint turns out to be. team_card_events does cascade (migration
+      // 010), so team cards need nothing extra.
+      await admin.from('card_events').delete().in('card_id', cardIds)
     }
 
     // Delete any orgs owned by this user and their associated team cards
@@ -117,6 +124,43 @@ export async function POST() {
 
     // Profile
     await admin.from('profiles').delete().eq('user_id', userId)
+
+    // UPLOADED IMAGES. Profile photos, logos, gallery and hero photos.
+    //
+    // This route used to delete every row that pointed at these files and
+    // leave the files themselves, in PUBLIC buckets, at URLs that kept working.
+    // So "delete my account" removed the card and kept serving the person's
+    // photograph to anyone who had the link - while the privacy policy said
+    // deletion removed their data permanently. A face is personal information;
+    // POPIA s24 means it goes when they ask.
+    //
+    // ImageUploader writes every file to `${userId}/...`, so the folder is the
+    // whole of what they uploaded and nothing anybody else did. Listed from
+    // offset 0 each pass because each pass removes what it listed; capped so a
+    // storage error that removes nothing cannot spin forever.
+    //
+    // A failure here is logged and does NOT stop the deletion. They asked for
+    // the account to go, and refusing over a stray file is the worse outcome;
+    // the audit entry carries the user id, which is the folder name, so the
+    // files can be found and finished by hand.
+    const storageErrors: string[] = []
+    for (const bucket of ['card-images', 'company-logos']) {
+      for (let pass = 0; pass < 50; pass++) {
+        const { data: files, error: listErr } = await admin.storage.from(bucket).list(userId, { limit: 1000 })
+        if (listErr) { storageErrors.push(`${bucket} list: ${listErr.message}`); break }
+        const paths = (files || []).filter((f: { name: string }) => f.name).map((f: { name: string }) => `${userId}/${f.name}`)
+        if (paths.length === 0) break
+        const { error: rmErr } = await admin.storage.from(bucket).remove(paths)
+        if (rmErr) { storageErrors.push(`${bucket} remove: ${rmErr.message}`); break }
+      }
+    }
+    if (storageErrors.length > 0) {
+      await auditLog(admin, {
+        actorUserId: userId, actorEmail: user.email,
+        action: 'delete_account', targetUserId: userId, targetEmail: user.email, ok: false,
+        detail: { stage: 'storage', errors: storageErrors, folder: userId },
+      })
+    }
 
     // Finally remove the auth user itself
     const { error: authError } = await admin.auth.admin.deleteUser(userId)
