@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Check, Zap, ArrowRight, Loader2, ShieldCheck, Clock, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import UsdEstimate, { RandChargeNote } from '@/components/marketing/UsdEstimate'
+import PriceEstimate, { RandChargeNote } from '@/components/marketing/PriceEstimate'
 import TrialCodeBox from './TrialCodeBox'
 
 const grad = 'hsl(var(--accent))'
@@ -15,8 +15,8 @@ const gradText: React.CSSProperties = {
 }
 
 // The one place the price lives. Everything shown - the per-month figure, the
-// saving, the percentage, the dollar estimate - is derived from these, because
-// last time the price moved the discount badge and the dollar estimate were
+// saving, the percentage, the currency estimate - is derived from these, because
+// last time the price moved the discount badge and the currency estimate were
 // left behind on the old numbers and quietly understated the price by a third.
 const MONTHLY = 97
 const YEARLY = 970
@@ -169,7 +169,7 @@ export default function UpgradeView({ state, trialDaysLeft }: Props) {
               <span className="text-muted-foreground pb-1">{billing === 'monthly' ? '/ month' : '/ year'}</span>
             </div>
             {/* Derived from the real price, not a copy of it left behind. */}
-            <UsdEstimate zar={billing === 'monthly' ? MONTHLY : YEARLY}
+            <PriceEstimate zar={billing === 'monthly' ? MONTHLY : YEARLY}
               suffix={billing === 'monthly' ? '/mo' : '/yr'}
               className="block text-sm font-medium text-muted-foreground mb-1" />
             {billing === 'yearly' && (
@@ -200,7 +200,7 @@ export default function UpgradeView({ state, trialDaysLeft }: Props) {
               transaction currency, how often, and how to cancel, shown apart
               from the general terms; and the merchant's country shown within
               the checkout. The currency matters most to a foreign card: the
-              dollar estimate above is not what the statement will say. */}
+              pound, euro or dollar estimate above is not what the statement will say. */}
           <div className="rounded-lg border border-border bg-muted/40 p-4 mb-4 text-sm text-muted-foreground space-y-1.5">
             <p>
               You pay <strong className="text-foreground">{price} now</strong>, then {price} every{' '}

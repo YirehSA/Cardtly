@@ -96,8 +96,9 @@ const HOST_OWNER = {
 // Hosts that receive NO personal information, and why. Adding to this list is
 // a claim; the reason is there so the next person can check it.
 const NON_PERSONAL = {
-  'api.frankfurter.app': 'Currency rate for the ZAR-to-USD price display. Called server-side with no user data.',
-  'open.er-api.com': 'Same currency lookup, fallback provider. Server-side, no user data.',
+  // frankfurter.app now only redirects here; the request is the same.
+  'api.frankfurter.dev': 'Currency rates for the ZAR price estimate in USD, EUR or GBP. Called server-side with no user data; the visitor\'s country is used on our side to pick a rate and is never sent.',
+  'open.er-api.com': 'Same currency lookup, the primary provider. Server-side, no user data.',
 }
 
 for (const [host, file] of hosts) {

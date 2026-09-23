@@ -9,7 +9,7 @@ import {
   CreditCard, ChevronDown, ChevronUp, Check, Building2, X, Mail, UserCheck, Send, BarChart2, Sparkles, ClipboardList, Network,
   Search, Eye, Inbox, FileSpreadsheet, Phone,
 } from 'lucide-react'
-import UsdEstimate, { RandChargeNote } from '@/components/marketing/UsdEstimate'
+import PriceEstimate, { RandChargeNote } from '@/components/marketing/PriceEstimate'
 import BulkImportModal from '@/components/team/BulkImportModal'
 import WebhookPanel from '@/components/team/WebhookPanel'
 import ApiKeyPanel from '@/components/team/ApiKeyPanel'
@@ -617,8 +617,8 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                 )
               })}
             </div>
-            {/* Live USD estimate of the team total for non-rand admins */}
-            <UsdEstimate zar={seatCount * SEAT_PRICE} suffix="/mo" className="block text-sm font-medium text-muted-foreground mt-3" />
+            {/* Live estimate of the team total in the admin's own currency, outside the rand zone */}
+            <PriceEstimate zar={seatCount * SEAT_PRICE} suffix="/mo" className="block text-sm font-medium text-muted-foreground mt-3" />
             <p className="text-xs text-muted-foreground mt-1">
               You can add more cards later. Billed monthly, cancel anytime.
             </p>

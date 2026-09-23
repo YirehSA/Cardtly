@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import UsdEstimate, { RandChargeNote } from './UsdEstimate'
+import PriceEstimate, { RandChargeNote } from './PriceEstimate'
 import { SEAT_PRICE_RAND } from '@/lib/org-billing'
 
 // Pro price block on the marketing pricing page with a monthly/yearly
 // toggle. Display-only - the actual billing choice happens at
 // /dashboard/upgrade after signup - but it shows visitors the yearly
-// option (R970/yr = 2 months free) exists. USD estimate reacts to the
+// option (R970/yr = 2 months free) exists. The currency estimate reacts to the
 // toggle for visitors outside the rand zone.
 
 export default function ProPlanPrice() {
@@ -70,8 +70,8 @@ export default function ProPlanPrice() {
         </span>
       </div>
 
-      {/* Live USD estimate for visitors outside the rand zone */}
-      <UsdEstimate zar={zar} suffix={isYearly ? '/yr' : '/mo'} className="block text-sm font-medium mb-1 text-white/70" />
+      {/* Live estimate in the visitor's own currency, outside the rand zone */}
+      <PriceEstimate zar={zar} suffix={isYearly ? '/yr' : '/mo'} className="block text-sm font-medium mb-1 text-white/70" />
       <RandChargeNote className="block text-xs mb-1 text-white/60" />
 
       {isYearly && (
