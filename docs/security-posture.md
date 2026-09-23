@@ -121,14 +121,26 @@ people have access than at a larger vendor, and the ones who do are named.
 
 ### "What are your sub-processors?"
 
-Named in the published privacy policy, not just internally: Supabase (database
-and authentication), Vercel (hosting), Paystack (payments), Resend (email),
-Google (sign-in). The policy also states retention periods, a 30-day deletion
-window, a 90-day backup window, and points to the Information Regulator at
+Named in section 7 of the published privacy policy, with what each one
+receives: Supabase (database, sign-in and file storage), Vercel (hosting),
+Paystack (payments), Resend (email), OpenAI (the AI bio writer and paper card
+scanning), ipapi.co (the IP address of a new signup, to record its city),
+Google (Wallet passes when a visitor saves a card, Firebase Analytics in the
+Android app, and Google Play) and Apple (the App Store). The policy also states
+retention periods - deletion is immediate from live systems, with encrypted
+backups overwritten within 90 days - and points to the Information Regulator at
 inforegulator.org.za for complaints.
 
-A policy that names its sub-processors is a reasonable thing to be asked to
-show. Offer it before they ask.
+**Volunteer OpenAI.** The bio writer sends the job title, company, expertise,
+location and any existing bio a user types, only when they ask for a draft.
+Card scanning sends the photograph of a paper business card, which is somebody
+else's personal information. No stored lead or contact is ever sent. Never
+describe the AI as touching "only the user's own data": the scanner does not.
+
+This list was corrected on 2026-09-23. The version before said "Google
+(sign-in)", which has never existed, and omitted OpenAI, ipapi.co and Firebase,
+all of which were live. A policy that names its sub-processors is a reasonable
+thing to be asked to show. Offer it before they ask.
 
 ---
 
@@ -164,9 +176,17 @@ that card links to.
 Volunteering these is what makes the rest credible. A vendor with no gaps is a
 vendor who has not looked.
 
-1. **No two-factor authentication on login.** Email and password, or Google, or
-   Microsoft sign-in. If they use Microsoft 365, their own tenant enforces MFA
-   on that path, which is a genuinely good answer and worth offering.
+1. **No two-factor authentication on login, and one way to sign in.** Email and
+   password only: the password is stored as a one-way hash by the
+   authentication platform, which also rate limits sign-in attempts, and the
+   minimum length is six characters. Checked against cardtly.com on
+   2026-09-23. There is no Google sign-in. Microsoft sign-in is built but
+   switched off in production; turning it on needs an Azure app registration
+   and the Supabase provider configured, then a flag. Once live, a Microsoft
+   365 customer's own tenant would enforce their MFA - a good answer, but a
+   future one. Offer to enable it and come back with a date; do not describe it
+   as available. An earlier version of this document said Google and Microsoft
+   sign-in both existed.
 2. **A content security policy is deployed but not yet enforcing.** It is in
    report-only mode by design, collecting evidence on real traffic before being
    switched on, because a wrong one takes the site down.
@@ -174,8 +194,11 @@ vendor who has not looked.
    set can be requested at once rather than one link at a time. That is a
    decision to make deliberately rather than an accident, and it is worth
    deciding before someone else raises it.
-4. **No application-level rate limiting** on our own endpoints. Sign-in attempts
-   are rate limited by the authentication platform; our own API routes are not.
+4. **Rate limiting is partial.** The customer API (/api/v1) enforces a per-key
+   hourly limit and returns 429 over it (lib/api-auth.ts), and sign-in attempts
+   are rate limited by the authentication platform. The website's own internal
+   endpoints are not separately rate limited. Say the first two; do not round
+   it up to "yes, we rate limit".
 
 Fixed on 2026-09-14, in the course of preparing this document: the subscription
 table and the physical card order table were both readable by the public key.
@@ -199,11 +222,17 @@ is at least as strict as POPIA rather than weaker. Section 72 also permits
 transfer where it is necessary to perform the contract with the data subject,
 which independently covers running the service they signed up for.
 
-The published privacy policy already discloses this, in section 5,
-"International transfers". It names the United States and the European Union,
-states that information may be processed outside South Africa, and says
-standard contractual clauses are relied on. That disclosure is what POPIA
-section 18 requires, so the obligation is met rather than outstanding.
+The published privacy policy discloses this in section 8, "Where it is
+stored": it names Supabase's West Europe region, says personal information is
+processed outside South Africa, relies on the two section 72 grounds above,
+and says plainly that South-Africa-only storage is not offered as standard.
+That disclosure is what POPIA section 18 requires, so the obligation is met
+rather than outstanding.
+
+It does NOT claim standard contractual clauses, and neither should anyone
+saying it out loud. An earlier version of the policy did, and nothing on file
+shows Cardtly has signed them with its providers, so the claim was removed on
+2026-09-23 rather than defended.
 
 **Say it plainly and without apology.** "In the EU, under GDPR" is a stronger
 answer than most local hosting arrangements. Hesitating over it is what makes it

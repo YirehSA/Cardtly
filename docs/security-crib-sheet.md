@@ -13,8 +13,11 @@ through Paystack, a South African provider.
 Yes, it is processed in the EU, and our privacy policy says so rather than
 burying it. POPIA s72 permits this where the receiving jurisdiction gives
 adequate protection, and the EU is the benchmark adequacy is measured against.
-GDPR is at least as strict as POPIA. We rely on standard contractual clauses.
-*(Say this plainly. Hesitating makes it sound like a problem when it is not.)*
+GDPR is at least as strict as POPIA. The transfer is also needed to run the
+service they signed up for, which s72 permits separately.
+*(Say this plainly. Hesitating makes it sound like a problem when it is not.
+Do NOT say "standard contractual clauses": nothing on file shows we have them,
+and the published policy no longer claims them.)*
 
 **"We need data to stay in South Africa."**
 Separate conversation, and come back with an answer rather than committing in
@@ -61,8 +64,14 @@ privacy policy names every sub-processor, the retention periods and the
 Information Regulator. Breach notification under s22 is a documented process.
 
 **"Who are your sub-processors?"**
-Supabase, Vercel, Paystack, Resend, Google. All named in the published privacy
-policy, which we can send you.
+Supabase (database, sign-in, files), Vercel (hosting), Paystack (payments),
+Resend (email), OpenAI (the AI bio writer and paper card scanning), ipapi.co
+(signup location), Google (Wallet passes, and Firebase Analytics in the Android
+app) and Apple (App Store). All named, with what each receives, in section 7 of
+the published privacy policy, which we can send you.
+*(Volunteer OpenAI before they find it. Card scanning sends the PHOTO of a paper
+business card, which is someone else's details, so never say "nobody else's
+data" or "only the bio writer". No stored lead or contact is ever sent.)*
 
 **"Who at Cardtly can see our data?"**
 A small named team, through an admin interface, and admin actions are logged.
@@ -85,8 +94,12 @@ Admin log 42 / 0. Rep activity 94 / 0.
 The left number matters: zero out of zero proves nothing.
 
 **"Do you have MFA?"**
-Not our own yet. If you use Microsoft 365, sign in with Microsoft and your own
-tenant enforces your MFA policy. That is the better answer anyway.
+No. Sign-in is email and password only, with the password stored as a one-way
+hash and sign-in attempts rate limited by the authentication platform.
+*(Microsoft sign-in is built but switched OFF in production; it needs an Azure
+app registration before it can go live. If they want their Microsoft 365 tenant
+to enforce MFA, say it can be enabled and come back with a date - do not
+present it as something they can use today. There is no Google sign-in at all.)*
 
 **"Have you had an incident?"**
 Yes, one, and it was ours not an attacker's: a billing row was deleted during
@@ -101,6 +114,9 @@ logged with who, when, and the before and after.
   SA company, not a certified multinational, and the controls above are real
   regardless.
 - **Penetration testing.** Not independently tested. Do not imply otherwise.
+- **Sign-in options.** Email and password only, checked on cardtly.com on
+  2026-09-23. No Google sign-in exists, and Microsoft sign-in is built but not
+  switched on. An earlier version of this sheet said both were available.
 - **Rate limiting.** Sign-in attempts are limited by the authentication
   platform. Our own API endpoints are not.
 

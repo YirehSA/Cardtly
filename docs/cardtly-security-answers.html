@@ -148,11 +148,12 @@
   privacy policy rather than buried. POPIA section 72 permits this where the receiving
   jurisdiction gives adequate protection, and the EU is the benchmark that adequacy is
   usually measured against. GDPR is at least as strict as POPIA, not a weaker regime.</p>
-  <p class="a">We rely on standard contractual clauses with our providers, which the
-  policy also states.</p>
-  <p class="a">One exception to name yourself: the optional AI bio writer sends a name, job
-  title and company to OpenAI in the United States. Only that, only when a user asks for
-  it, and never any lead or contact data.</p>
+  <p class="a">Section 72 also allows a transfer that is needed to run the service they
+  signed up for, which covers it independently.</p>
+  <p class="a">Name the rest yourself: our other providers can process what they receive
+  outside the EU, including in the United States. The one to volunteer is OpenAI, which
+  handles the two optional AI features: the bio writer, and scanning a paper business card.
+  Section 8 of the privacy policy states all of this.</p>
   <span class="note">Answer this plainly and without apology. "In the EU under GDPR" is a
   stronger answer than most local hosting, and hesitating makes it sound like a problem
   when it is not. But do not say "the EU" full stop and leave the US transfer to be
@@ -231,14 +232,17 @@
 
 <div class="qa">
   <p class="q">Who are your sub-processors?</p>
-  <p class="a">Supabase for database and authentication, Vercel for hosting, Paystack for
-  payments, Resend for email, Google and Microsoft for sign-in, and OpenAI for one optional
-  feature. All named in the published privacy policy, which we will send you.</p>
-  <p class="a">The OpenAI one is worth stating before they find it. If a user taps "let the
-  AI write it" on their own bio, their name, job title and company are sent to OpenAI to
-  draft a sentence. Nobody else's data is involved, no lead or contact data is ever sent,
-  and the feature is optional. It is the only place customer information leaves our own
-  providers.</p>
+  <p class="a">Supabase for the database, sign-in and file storage; Vercel for hosting;
+  Paystack for payments; Resend for email; OpenAI for the two optional AI features;
+  ipapi.co to look up the city a new account signed up from; Google for Wallet passes and,
+  in the Android app only, Firebase Analytics; and Apple for the App Store. All named in
+  section 7 of the published privacy policy, with what each one receives, which we will
+  send you.</p>
+  <p class="a">The OpenAI one is worth stating before they find it. The bio writer sends the
+  job title, company, expertise, location and any existing bio a user types, only when they
+  ask it for a draft. Card scanning sends the photograph of a paper business card someone
+  was handed, so that is another person's contact details. Both are optional, and no stored
+  lead or contact is ever sent to OpenAI.</p>
   <span class="note">Volunteer this rather than waiting to be asked. An AI sub-processor
   found by a reviewer who was told the list was complete costs more trust than the feature
   is worth.</span>
@@ -315,9 +319,13 @@
 
 <div class="qa">
   <p class="q">Do you have multi-factor authentication?</p>
-  <p class="a">Not our own yet. If you are on Microsoft 365, your staff sign in with
-  Microsoft and your own tenant enforces your MFA policy, your conditional access and your
-  offboarding. That is a better answer than anything we would build.</p>
+  <p class="a">No. Sign-in is email and password only. Passwords are stored as one-way
+  hashes, and sign-in attempts are rate limited by the authentication platform.</p>
+  <span class="note">Do not offer Microsoft or Google sign-in as available: neither is live.
+  Microsoft sign-in is built but switched off, and needs an Azure app registration before it
+  can be. If a Microsoft 365 customer wants their own tenant to enforce MFA, say it can be
+  enabled and come back with a date. There is no Google sign-in at all. Checked on
+  cardtly.com on 23 September 2026; an earlier version of this page said both existed.</span>
 </div>
 
 <div class="qa">
