@@ -1,7 +1,11 @@
 import { isIosApp } from '@/lib/app-platform'
 import SignupForm from './SignupForm'
 
-export const metadata = { title: 'Sign up' }
+// NO metadata export here, deliberately. The title and description live in
+// ./layout.tsx, and a page export overrides the layout key by key: this file
+// used to export `{ title: 'Sign up' }`, which quietly replaced the layout's
+// "Sign Up - Create Your Digital Business Card" with a 17-character tab title
+// that told a search result nothing.
 
 // A SERVER COMPONENT WRAPPING THE FORM, for one reason: the paid option quotes
 // a price and leads to a checkout, and App Review rejected this product twice

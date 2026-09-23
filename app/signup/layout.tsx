@@ -1,7 +1,13 @@
 import type { Metadata } from 'next'
 
-// The signup page is a client component ('use client') so it can't
-// export metadata itself - this layout wrapper carries it instead.
+// THE SIGNUP METADATA LIVES HERE AND ONLY HERE.
+//
+// This comment used to say the page was a client component and so could not
+// export metadata. That stopped being true when page.tsx became a server
+// component wrapping SignupForm (for the App Review 3.1.1 price gating), and
+// the page then grew its own `{ title: 'Sign up' }` - which overrode this one,
+// because Next merges page metadata over layout metadata key by key. The good
+// title below was being thrown away. Keep page.tsx free of a metadata export.
 export const metadata: Metadata = {
   title: 'Sign Up - Create Your Digital Business Card',
   description:

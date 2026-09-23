@@ -3,7 +3,7 @@ import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy',
+  title: 'Privacy Policy: How We Handle Your Data',
   description:
     'How Cardtly collects, uses and protects your personal information: what we store on your card and your leads, and how to request or delete your data.',
   alternates: { canonical: '/privacy' },

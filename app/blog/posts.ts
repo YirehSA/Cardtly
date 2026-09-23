@@ -718,7 +718,7 @@ export const POSTS: BlogPost[] = [
     slug: 'digital-business-cards-for-construction',
     title: 'Digital Business Cards for Construction Companies',
     description:
-      'Site teams, subcontractors and high turnover break paper business cards. How South African construction firms issue branded digital cards, reassign them when people leave, and capture leads from site visits.',
+      'Digital business cards for construction companies: branded cards for site teams, reassigned when people leave, and site-visit leads kept by the company.',
     excerpt:
       'A construction company is not one office. It is a head office, six sites and a rotating cast of subcontractors, and the paper card was designed for none of that.',
     date: '2026-09-08',
@@ -837,9 +837,9 @@ export const POSTS: BlogPost[] = [
   // privacy notice, because it does not yet.
   {
     slug: 'digital-business-cards-and-popia',
-    title: 'Digital Business Cards and POPIA: What You Actually Have to Do',
+    title: 'Digital Business Cards and POPIA: What to Do',
     description:
-      'Capturing a lead makes you the responsible party under POPIA. What the Act requires when you collect contact details on a digital business card, and what to ask any vendor before you sign.',
+      'Capturing a lead makes you the responsible party under POPIA. What the Act requires of a digital business card, and what to ask a vendor before you sign.',
     excerpt:
       'The moment someone fills in their details on your card, POPIA applies to you, not to your card provider. Here is what that actually requires.',
     date: '2026-09-14',

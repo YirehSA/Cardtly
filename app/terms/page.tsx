@@ -3,7 +3,7 @@ import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
 
 export const metadata: Metadata = {
-  title: 'Terms of Service',
+  title: 'Terms of Service for Digital Business Cards',
   description:
     'The terms you agree to when using Cardtly: your account and card, billing in rand, free trials, cancellation, and how the service is run.',
   // The root layout deliberately omits a canonical so it cannot point every
