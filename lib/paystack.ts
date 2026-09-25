@@ -202,6 +202,24 @@ async function disableOne(code: string, key: string): Promise<{ ok: boolean; err
   return { ok: true }
 }
 
+// Disable exactly these subscriptions, by code, and nothing else.
+//
+// For replacing a failing subscription with a new one: cancelSubscriptionsFor
+// takes everything live for an email, which at that moment includes the new
+// subscription the customer has just paid for.
+export async function disableSubscriptionCodes(codes: string[]): Promise<DisableResult> {
+  const key = secret()
+  if (!key) return { ok: false, cancelled: [], skipped: 'not_configured', error: 'PAYSTACK_SECRET_KEY is not configured' }
+  const cancelled: string[] = []
+  for (const code of codes) {
+    if (!code || !code.startsWith('SUB_')) continue
+    const r = await disableOne(code, key)
+    if (!r.ok) return { ok: false, cancelled, error: `${code}: ${r.error}` }
+    if (!r.alreadyOff) cancelled.push(code)
+  }
+  return { ok: true, cancelled }
+}
+
 // Cancel every active Paystack subscription for a customer.
 //
 // `hintCode` is our stored code if we happen to have a real one. It is only a

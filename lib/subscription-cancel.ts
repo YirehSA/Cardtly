@@ -123,6 +123,14 @@ export function paystackCancellation(
   if (stored && eventCode && stored !== eventCode) {
     return { action: 'ignore', reason: `row pays for ${stored}, not ${eventCode}` }
   }
+  // A customer who paid again after a failed charge: the webhook disabled the
+  // failing subscription and listed its code on the NEW row first. Paystack's
+  // answer to that disable is about the old subscription, and can arrive
+  // before the new one is even listed as live - so the list is the proof.
+  const replaced = row.metadata?.replaced_subscription_codes
+  if (eventCode && Array.isArray(replaced) && replaced.includes(eventCode)) {
+    return { action: 'ignore', reason: `${eventCode} was replaced by this row's subscription` }
+  }
   const others = otherLiveCodes.filter(c => c && c !== eventCode)
   if (others.length > 0) {
     return { action: 'ignore', reason: `Paystack still bills this customer on ${others.join(', ')}` }

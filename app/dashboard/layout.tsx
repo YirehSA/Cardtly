@@ -179,7 +179,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             {/* First, because a card nobody can open outranks everything else
                 on the page. */}
             {archivedCards.length > 0 && <ArchivedCardBanner cards={archivedCards} />}
-            {plan.isPastDue && <PastDueBanner graceDaysLeft={plan.graceDaysLeft} />}
+            {plan.isPastDue && <PastDueBanner graceDaysLeft={plan.graceDaysLeft} iosApp={iosApp} />}
             {/* One-time: the Network lists people by default, so it only works
                 as a fair deal if they are actually told. Not shown to anyone
                 who has already switched their listing off. */}

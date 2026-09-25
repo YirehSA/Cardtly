@@ -109,6 +109,12 @@ const webhookCases = [
   ['team or invoiced row: ignored', pc('not_renew', { subscription_code: 'SUB_a' }, { ...PAID, plan_id: 'pro_team' }), 'ignore'],
   ['already cancelled row: ignored', pc('disable', { subscription_code: 'SUB_a' }, { ...PAID, status: 'cancelled' }), 'ignore'],
   ['no row: ignored', pc('not_renew', { subscription_code: 'SUB_a' }, null), 'ignore'],
+  ['paid again after a failed charge: the replaced subscription\'s not_renew is ignored, even before the new one is listed',
+    pc('not_renew', { subscription_code: 'SUB_failed' }, { ...PAID, metadata: { ...PAID.metadata, replaced_subscription_codes: ['SUB_failed'] } }, []), 'ignore'],
+  ['...and its disable too', pc('disable', { subscription_code: 'SUB_failed', next_payment_date: NOW.toISOString() },
+    { ...PAID, metadata: { ...PAID.metadata, replaced_subscription_codes: ['SUB_failed'] } }, []), 'ignore'],
+  ['a replaced list does not shield a different subscription',
+    pc('not_renew', { subscription_code: 'SUB_new' }, { ...PAID, metadata: { ...PAID.metadata, replaced_subscription_codes: ['SUB_failed'] } }, []), iso('2026-10-13T08:00:00Z')],
 ]
 for (const [what, got, want] of webhookCases) {
   if (got !== want) bad(`paystackCancellation - ${what}: got ${got}, expected ${want}`)
@@ -214,6 +220,23 @@ if (!/paystackCancellation\(/.test(hook) || !/findActivePaystackSubs\(/.test(hoo
 }
 if (/status: 'cancelled'/.test(hook)) {
   bad("the Paystack webhook sets status 'cancelled' directly. That ends access on the spot and takes back the rest of a period the customer paid for; record cancel_at and let the daily cron move the status.")
+}
+// Paying again after a failed charge must not leave the failing subscription
+// retrying: record its code on the new row, THEN disable exactly those codes.
+const successAt = hook.indexOf("event.event === 'charge.success'")
+const success = successAt < 0 ? '' : hook.slice(successAt, hook.indexOf("event.event === 'subscription.not_renew'"))
+const iRecord = success.indexOf('replaced_subscription_codes: replacedCodes')
+const iDisable = success.indexOf('disableSubscriptionCodes(replacedCodes)')
+if (iRecord < 0 || iDisable < 0) {
+  bad('charge.success no longer replaces a failing subscription when the customer pays again: the old one keeps retrying and the customer is charged twice.')
+} else if (iDisable < iRecord) {
+  bad('charge.success disables the failing subscription before recording it on the new row, so Paystack\'s cancellation event can give the NEW subscription an end date.')
+}
+if (!/s\.status === 'attention'/.test(success)) {
+  bad('charge.success no longer limits replacement to failing (attention) subscriptions, so it could cancel a healthy one.')
+}
+if (/cancelSubscriptionsFor\(/.test(success)) {
+  bad('charge.success uses cancelSubscriptionsFor, which cancels every live subscription for the email - including the one just paid for.')
 }
 // A renewal records its payment date. cancellationEndsAt falls back to
 // paid_at + one cycle, and a row that still says "last paid in May" after

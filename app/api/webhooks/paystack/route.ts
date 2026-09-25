@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 import { logSubscriptionChange } from '@/lib/subscription-audit'
-import { findActivePaystackSubs } from '@/lib/paystack'
+import { disableSubscriptionCodes, findActivePaystackSubs } from '@/lib/paystack'
 import { paystackCancellation } from '@/lib/subscription-cancel'
 
 export async function POST(request: Request) {
@@ -44,6 +44,31 @@ export async function POST(request: Request) {
         const { data: prior } = await admin
           .from('whop_subscriptions').select('*').eq('user_id', userId).maybeSingle()
 
+        // PAYING AGAIN AFTER A FAILED CHARGE. The payment-failed banner sends
+        // people to checkout, which starts a NEW subscription; the one that
+        // failed is still in 'attention' and retries next month, so without
+        // this the customer would be charged twice from then on. Only the
+        // failing ones ('attention'), never a healthy one, and never this
+        // payment's own. Recorded on the new row BEFORE they are disabled:
+        // Paystack answers a disable with subscription.not_renew, which finds
+        // this new row by email, and paystackCancellation ignores an event for
+        // a code listed here instead of giving the new subscription an end
+        // date. Best effort: if Paystack cannot be asked, the payment still
+        // activates, and the log says what was left running.
+        let replacedCodes: string[] = []
+        try {
+          const live = await findActivePaystackSubs(customer.email)
+          if (live.ok) {
+            replacedCodes = live.subs
+              .filter(s => s.status === 'attention' && s.subscription_code !== subscription_code)
+              .map(s => s.subscription_code)
+          } else {
+            console.error('charge.success: could not list subscriptions to replace:', live.error)
+          }
+        } catch (e) {
+          console.error('charge.success: subscription lookup threw', e)
+        }
+
         await admin.from('whop_subscriptions').delete().eq('user_id', userId)
         await admin.from('whop_subscriptions').insert({
           user_id: userId,
@@ -59,8 +84,20 @@ export async function POST(request: Request) {
             paystack_subscription_code: subscription_code,
             amount,
             paid_at,
+            ...(replacedCodes.length ? { replaced_subscription_codes: replacedCodes } : {}),
           },
         })
+
+        if (replacedCodes.length) {
+          const off = await disableSubscriptionCodes(replacedCodes)
+          await logSubscriptionChange(admin, {
+            change: 'updated', userId, email: customer.email,
+            source: 'paystack_webhook',
+            reason: off.ok
+              ? `Paid again after a failed charge: disabled the failing subscription(s) ${off.cancelled.join(', ') || replacedCodes.join(', ')} so the customer is not charged twice.`
+              : `Paid again after a failed charge, but disabling ${replacedCodes.join(', ')} FAILED (${off.error}). Disable it in Paystack by hand or the customer is charged twice.`,
+          }).catch(() => {})
+        }
 
         // No actor: Paystack did this, not a person. That is exactly what the
         // source field is for - without it a webhook activation and an admin

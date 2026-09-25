@@ -100,7 +100,7 @@ export default function CommandPalette({ isAdmin = false }: { isAdmin?: boolean 
     // that is not In-App Purchase, which Guideline 3.1.1 forbids wherever it
     // appears - a command palette entry included.
     ...(iosApp ? [] : [
-      { id: 'upgrade' as const, group: 'account' as const, label: 'Upgrade to Pro', icon: Sparkles, href: '/upgrade', keywords: ['pro', 'plan', 'billing'] },
+      { id: 'upgrade' as const, group: 'account' as const, label: 'Upgrade to Pro', icon: Sparkles, href: '/dashboard/upgrade', keywords: ['pro', 'plan', 'billing'] },
     ]),
     { id: 'theme',       group: 'account',  label: theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode', icon: theme === 'dark' ? Sun : Moon, action: () => toggle(), keywords: ['theme', 'appearance', 'dark', 'light'] },
     { id: 'signout',     group: 'account',  label: 'Sign out',        icon: LogOut,      action: signOut },

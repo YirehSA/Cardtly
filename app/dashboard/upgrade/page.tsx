@@ -25,8 +25,13 @@ export default async function UpgradePage() {
   // read three different things, and the middle one is the whole reason the
   // page exists.
   const plan = await getUserPlan(user.id)
-  const state: 'trial' | 'expired' | 'paid' =
-    plan.tier === 'expired' ? 'expired' : plan.isTrial ? 'trial' : 'paid'
+  // A fourth person: paying, but the last charge failed. Before this they read
+  // "You are already on Pro, nothing to do here" directly under the banner
+  // that had sent them to fix a payment.
+  const state: 'trial' | 'expired' | 'paid' | 'past_due' =
+    plan.tier === 'expired' ? 'expired'
+      : plan.isPastDue ? 'past_due'
+      : plan.isTrial ? 'trial' : 'paid'
 
-  return <UpgradeView state={state} trialDaysLeft={plan.trialDaysLeft ?? 0} />
+  return <UpgradeView state={state} trialDaysLeft={plan.trialDaysLeft ?? 0} graceDaysLeft={plan.graceDaysLeft ?? 0} />
 }

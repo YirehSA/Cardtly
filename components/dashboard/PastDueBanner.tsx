@@ -7,7 +7,15 @@ import { CreditCard } from 'lucide-react'
 // card kept working, then stopped, and nothing anywhere said why. Its own
 // component rather than inline markup so it can be rendered and checked
 // without putting a real account into past_due to look at it.
-export default function PastDueBanner({ graceDaysLeft }: { graceDaysLeft?: number }) {
+//
+// The button used to link to /upgrade, a route with no page, so "Fix payment"
+// was a 404 (found 2026-09-25). It now goes to /dashboard/upgrade, which knows
+// about a failed payment: paying there starts the subscription again, and the
+// Paystack webhook cancels the failing one so nobody is charged twice.
+//
+// NOT IN THE iOS APP as a button. A way to pay outside the app is a Guideline
+// 3.1.1 call to action, so in the app the banner states the fact and stops.
+export default function PastDueBanner({ graceDaysLeft, iosApp = false }: { graceDaysLeft?: number; iosApp?: boolean }) {
   const remaining =
     typeof graceDaysLeft === 'number'
       ? ` for another ${graceDaysLeft} ${graceDaysLeft === 1 ? 'day' : 'days'}`
@@ -27,16 +35,20 @@ export default function PastDueBanner({ graceDaysLeft }: { graceDaysLeft?: numbe
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold">Your last payment did not go through</p>
         <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-          Your card is still live{remaining}. Update your payment details to keep it online.
+          {iosApp
+            ? `Your card is still live${remaining}.`
+            : `Your card is still live${remaining}. Pay now to keep it online.`}
         </p>
       </div>
-      <a
-        href="/upgrade"
-        className="shrink-0 inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
-        style={{ background: 'hsl(var(--accent))' }}
-      >
-        Fix payment
-      </a>
+      {!iosApp && (
+        <a
+          href="/dashboard/upgrade"
+          className="shrink-0 inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
+          style={{ background: 'hsl(var(--accent))' }}
+        >
+          Fix payment
+        </a>
+      )}
     </div>
   )
 }

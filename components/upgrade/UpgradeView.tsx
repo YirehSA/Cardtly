@@ -46,11 +46,13 @@ const PRO_FEATURES = [
 ]
 
 interface Props {
-  state: 'trial' | 'expired' | 'paid'
+  state: 'trial' | 'expired' | 'paid' | 'past_due'
   trialDaysLeft: number
+  /** past_due only: days of the payment grace window left. */
+  graceDaysLeft?: number
 }
 
-export default function UpgradeView({ state, trialDaysLeft }: Props) {
+export default function UpgradeView({ state, trialDaysLeft, graceDaysLeft = 0 }: Props) {
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly')
   const [loading, setLoading] = useState(false)
 
@@ -94,7 +96,26 @@ export default function UpgradeView({ state, trialDaysLeft }: Props) {
           </div>
         </div>
       )}
-      {state !== 'paid' && <TrialCodeBox />}
+      {/* The payment-failed banner sends people here. Paying starts the
+          subscription again today; the Paystack webhook then cancels the
+          subscription that failed (it would otherwise retry next month), so
+          the customer is never charged twice. That last part is the thing a
+          customer who has just had a charge fail most needs to hear. */}
+      {state === 'past_due' && (
+        <div className="rounded-lg border p-4 flex items-start gap-3"
+          style={{ borderColor: 'rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.1)' }}>
+          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#f59e0b' }} />
+          <div>
+            <p className="font-semibold text-sm">Your last payment did not go through</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Your card is still live for another {graceDaysLeft} {graceDaysLeft === 1 ? 'day' : 'days'}.
+              Paying below starts your subscription again today, on the same link. Your previous
+              subscription is cancelled once this payment goes through, so you are never charged twice.
+            </p>
+          </div>
+        </div>
+      )}
+      {state !== 'paid' && state !== 'past_due' && <TrialCodeBox />}
 
       {state === 'trial' && (
         <div className="rounded-lg border p-4 flex items-start gap-3"
@@ -220,7 +241,9 @@ export default function UpgradeView({ state, trialDaysLeft }: Props) {
             {loading
               ? <><Loader2 className="w-5 h-5 animate-spin" />Taking you to payment...</>
               : <><Zap className="w-5 h-5" />
-                  {state === 'expired' ? `Pay ${price} - bring my card back` : `Pay ${price} - go Pro`}
+                  {state === 'expired' ? `Pay ${price} - bring my card back`
+                    : state === 'past_due' ? `Pay ${price} - keep my card live`
+                    : `Pay ${price} - go Pro`}
                   <ArrowRight className="w-5 h-5" /></>
             }
           </button>
