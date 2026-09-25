@@ -132,7 +132,11 @@ const callers = walk('app').concat(walk('lib')).concat(walk('components'))
 if (callers.length < 2) bad('found fewer than two readers of subscriptionState; the dashboard and the public card page should both be here.')
 for (const f of new Set(callers)) {
   const src = read(f) || ''
-  if (!/latestSubscriptionFor\(/.test(src)) {
+  // A bulk reader (the reminder cron reads every row at once) cannot use the
+  // per-user helper; it passes if its own select carries cancel_at, which is
+  // the thing this rule exists to protect.
+  const bulkWithCancelAt = /from\('whop_subscriptions'\)\.select\('[^']*\bcancel_at\b[^']*'\)/.test(src)
+  if (!/latestSubscriptionFor\(/.test(src) && !bulkWithCancelAt) {
     bad(`${f} decides entitlement with subscriptionState but does not get its row from latestSubscriptionFor. A hand-written select that omits cancel_at makes this reader keep serving a cancelled subscription while the other one has stopped.`)
   }
 }
@@ -203,6 +207,14 @@ if (!/paystackCancellation\(/.test(hook) || !/findActivePaystackSubs\(/.test(hoo
 }
 if (/status: 'cancelled'/.test(hook)) {
   bad("the Paystack webhook sets status 'cancelled' directly. That ends access on the spot and takes back the rest of a period the customer paid for; record cancel_at and let the daily cron move the status.")
+}
+// A failed Paystack charge may only put a Paystack-billed row on the clock. On
+// 2026-09-22 an old subscription's failed retry matched a comped customer by
+// email and would have taken the comp offline seven days later.
+const failedAt = hook.indexOf("event.event === 'invoice.payment_failed'")
+const failedBranch = failedAt < 0 ? '' : hook.slice(failedAt)
+if (!/billedByPaystack/.test(failedBranch) || !/metadata\?\.comped/.test(failedBranch) || !/if \(sub && billedByPaystack\)/.test(failedBranch)) {
+  bad("the webhook's invoice.payment_failed branch no longer checks that the matching row is billed by Paystack. A comped customer with a leftover Paystack subscription would be marked past_due and go offline after the grace window.")
 }
 if (!/\.eq\('created_at', row\.created_at\)/.test(hook)) {
   bad('the webhook\'s cancel_at write is no longer pinned to the row it reasoned about. A payment landing in between re-creates the row, and a customer who has just paid would be given an end date.')

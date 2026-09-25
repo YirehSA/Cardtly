@@ -7,6 +7,7 @@ import { sendOpsDigest } from '@/lib/ops-digest'
 import { FROM_EMAIL } from '@/lib/email'
 import { sendPaymentFailedEmails } from '@/lib/payment-reminders'
 import { expireCancelledSubscriptions } from '@/lib/subscription-expiry'
+import { subscriptionState } from '@/lib/plan-server'
 
 // Trial reminder emails. Triggered daily by Vercel Cron (see vercel.json).
 //
@@ -68,10 +69,13 @@ export async function GET(request: Request) {
 
   const admin = createAdminClient(url, serviceKey) as any
 
-  const [{ data: profiles, error: profErr }, { data: subs }, { data: teamCards }, { data: cards }, { data: alreadySent }] =
+  const [{ data: profiles, error: profErr }, { data: subs, error: subErr }, { data: teamCards }, { data: cards }, { data: alreadySent }] =
     await Promise.all([
       admin.from('profiles').select('user_id, name, trial_ends_at').not('trial_ends_at', 'is', null),
-      admin.from('whop_subscriptions').select('user_id').eq('status', 'active'),
+      // Every row, not just status = 'active': whether a subscription still
+      // serves is subscriptionState's call (see below), and it needs the
+      // past_due and cancelled rows to make it.
+      admin.from('whop_subscriptions').select('user_id, status, subscription_tier, past_due_since, cancel_at'),
       admin.from('team_cards').select('user_id').not('user_id', 'is', null),
       admin.from('cards').select('user_id, name, slug, created_at'),
       admin.from('trial_emails').select('user_id, kind'),
@@ -83,7 +87,25 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'profiles read failed', detail: profErr.message }, { status: 500 })
   }
 
-  const paid = new Set((subs || []).map((s: any) => s.user_id).filter(Boolean))
+  // Without the subscription list, every paying customer would look like a
+  // lapsed trialist and be told their card is offline. Do nothing instead.
+  if (subErr) {
+    return NextResponse.json({ error: 'subscriptions read failed', detail: subErr.message }, { status: 500 })
+  }
+
+  // Paying means THE CARD IS SERVED, decided by the same subscriptionState the
+  // public card page uses. This used to be status = 'active' alone, so the day
+  // a renewal failed the row went past_due, the customer dropped out of this
+  // set, and the next run emailed "your card is offline, your trial has ended"
+  // while the card was live in its 7-day grace window and they had never been
+  // on a trial. It happened to a comped customer and to a test account on
+  // 2026-09-23. Using the page's own rule means the two cannot disagree.
+  const paid = new Set((subs || [])
+    .filter((s: any) => subscriptionState(s).serves)
+    .map((s: any) => s.user_id).filter(Boolean))
+  // Anyone who has ever had a subscription row. When their card goes offline
+  // it is because a subscription ended, not a trial, and the email says so.
+  const everSubscribed = new Set((subs || []).map((s: any) => s.user_id).filter(Boolean))
   // A claimed team member's card is served by their org and is never gated on
   // their personal trial, so "your card is about to go offline" would be a
   // lie. Excluded outright.
@@ -102,7 +124,7 @@ export async function GET(request: Request) {
   for (const u of authData?.users || []) if (u.id && u.email) emailByUser[u.id] = u.email
 
   const now = Date.now()
-  const queue: Array<{ userId: string; to: string; kind: Kind; firstName: string; slug: string | null; daysLeft: number }> = []
+  const queue: Array<{ userId: string; to: string; kind: Kind; firstName: string; slug: string | null; daysLeft: number; endedBecause?: 'trial' | 'subscription' }> = []
 
   for (const p of (profiles || []) as any[]) {
     const userId = p.user_id
@@ -150,6 +172,7 @@ export async function GET(request: Request) {
       firstName: (card.name || p.name || '').split(' ')[0] || 'there',
       slug: card.slug,
       daysLeft: Math.max(0, Math.ceil(msLeft / DAY_MS)),
+      endedBecause: everSubscribed.has(userId) ? 'subscription' : 'trial',
     })
   }
 

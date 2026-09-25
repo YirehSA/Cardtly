@@ -236,11 +236,25 @@ export async function POST(request: Request) {
 
       const { data: sub } = await admin
         .from('whop_subscriptions')
-        .select('user_id, past_due_since')
+        .select('user_id, past_due_since, plan_id, billing_cycle, metadata')
         .eq('email', customer.email)
         .maybeSingle()
 
-      if (sub) {
+      // Only a row Paystack actually bills can fall behind on payment. A comp
+      // matched by the same email is not paid by this subscription at all:
+      // on 2026-09-22 a customer comped on 15 September still had an old R65
+      // Paystack subscription retrying in the background, its failed retry
+      // landed here, and the comp was put on the clock to go offline 7 days
+      // later. Same test as paystackCancellation uses.
+      const billedByPaystack = sub
+        && String(sub.plan_id || '').startsWith('paystack')
+        && !sub.metadata?.comped
+        && sub.billing_cycle !== 'comp'
+      if (sub && !billedByPaystack) {
+        console.log('Paystack invoice.payment_failed ignored: the matching row is not billed by Paystack', sub.plan_id)
+      }
+
+      if (sub && billedByPaystack) {
         // coalesce, so a second failed retry does not restart the grace clock
         // and hand out another full window.
         await admin.from('whop_subscriptions').update({

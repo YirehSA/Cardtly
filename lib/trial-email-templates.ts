@@ -19,6 +19,11 @@ export interface TrialEmailInput {
   firstName: string
   slug: string | null
   daysLeft: number
+  /** trial_expired only: whether it was a trial or a subscription that ended.
+   *  Someone who paid and cancelled, or whose card payments lapsed, was never
+   *  on a trial by the time the card went down, and "your trial has ended"
+   *  told them something untrue. */
+  endedBecause?: 'trial' | 'subscription'
 }
 
 const BTN =
@@ -30,7 +35,7 @@ function wrap(inner: string): string {
   </div>`
 }
 
-export function renderTrialEmail({ kind, firstName, slug, daysLeft }: TrialEmailInput): { subject: string; html: string } {
+export function renderTrialEmail({ kind, firstName, slug, daysLeft, endedBecause = 'trial' }: TrialEmailInput): { subject: string; html: string } {
   const name = escapeHtml(firstName)
   const cardUrl = escapeHtml(slug ? `cardtly.com/card/${slug}` : 'your card link')
 
@@ -64,7 +69,7 @@ export function renderTrialEmail({ kind, firstName, slug, daysLeft }: TrialEmail
       html: wrap(`
         <h1 style="font-size:22px;margin:0 0 4px">Your card is offline, ${name}</h1>
         <p style="color:#666;font-size:14px;margin:0 0 20px">
-          Your trial has ended, so <strong>${cardUrl}</strong> no longer opens for anyone you have shared it with.
+          ${endedBecause === 'subscription' ? 'Your subscription has ended' : 'Your trial has ended'}, so <strong>${cardUrl}</strong> no longer opens for anyone you have shared it with.
         </p>
         <p style="color:#666;font-size:14px;margin:0 0 24px">
           Nothing has been deleted. Your design, your details and every contact you captured are exactly where you left them. Subscribe and your card goes back live on the same link.

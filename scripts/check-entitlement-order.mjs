@@ -280,10 +280,23 @@ function body(src, decl) {
 {
   const src = code(read(CRON))
 
-  // The set has to be built from ACTIVE subscriptions. Built from all of them
-  // it would also excuse cancelled accounts, which do need the warning.
-  if (!/from\('whop_subscriptions'\)[\s\S]{0,120}eq\('status',\s*'active'\)/.test(src)) {
-    bad('the cron does not build its paid set from active subscriptions')
+  // The set has to be built from subscriptions that SERVE, by the same
+  // subscriptionState the public card page uses. Built from every row it would
+  // excuse cancelled accounts, which do need the warning. Built from status =
+  // 'active', which is what it was until 2026-09-25, it dropped every customer
+  // whose renewal had just failed: their row goes past_due, their card stays
+  // live for the grace window, and the cron told them it was offline and that
+  // their trial had ended.
+  // The whole statement, up to the next declaration: it spans several lines and
+  // its first line ends in a bracket, so a bracket-based match stops early.
+  const paidAt = src.indexOf('const paid = new Set')
+  const paidDecl = paidAt < 0 ? '' : src.slice(paidAt, src.indexOf('\n  const ', paidAt + 1))
+  if (!/subscriptionState\([^)]*\)\.serves/.test(paidDecl)) {
+    bad('the cron does not build its paid set with subscriptionState(...).serves, so it can disagree with the public card about whether a card is live')
+  }
+  // And it must not run on no data: an empty list makes every payer a trialist.
+  if (!/if \(subErr\)\s*\{\s*return NextResponse\.json/.test(src)) {
+    bad('the cron carries on when the subscription read fails, and would then email every paying customer that their card is offline')
   }
 
   // EVERY loop, not the first one. This file has two passes over profiles - the
