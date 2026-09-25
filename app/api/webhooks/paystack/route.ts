@@ -149,7 +149,7 @@ export async function POST(request: Request) {
         // invoice.payment_failed already use.
         const { data: existing } = await admin
           .from('whop_subscriptions')
-          .select('user_id')
+          .select('user_id, metadata')
           .eq('email', customer.email)
           .maybeSingle()
 
@@ -160,6 +160,17 @@ export async function POST(request: Request) {
             // Cleared with it, so a failure months from now warns again rather
             // than being silently treated as already-notified.
             past_due_email_sent_at: null,
+            // The renewal is the latest payment, so it is the paid_at that
+            // cancellationEndsAt counts a cycle from when Paystack no longer
+            // has a next date to give. Without this a customer renewing
+            // monthly since May still read as last paid in May, and a
+            // cancellation retry would have ended their card on the spot.
+            metadata: {
+              ...(existing.metadata || {}),
+              paid_at: paid_at || new Date().toISOString(),
+              amount,
+              paystack_reference: event.data.reference,
+            },
             updated_at: new Date().toISOString(),
           }).eq('user_id', existing.user_id)
 

@@ -135,7 +135,9 @@ for (const f of new Set(callers)) {
   // A bulk reader (the reminder cron reads every row at once) cannot use the
   // per-user helper; it passes if its own select carries cancel_at, which is
   // the thing this rule exists to protect.
-  const bulkWithCancelAt = /from\('whop_subscriptions'\)\.select\('[^']*\bcancel_at\b[^']*'\)/.test(src)
+  // '*' counts too: the cancel route reads the whole row, and tests for the
+  // column itself before acting.
+  const bulkWithCancelAt = /from\('whop_subscriptions'\)\s*\.select\('(\*|[^']*\bcancel_at\b[^']*)'\)/.test(src)
   if (!/latestSubscriptionFor\(/.test(src) && !bulkWithCancelAt) {
     bad(`${f} decides entitlement with subscriptionState but does not get its row from latestSubscriptionFor. A hand-written select that omits cancel_at makes this reader keep serving a cancelled subscription while the other one has stopped.`)
   }
@@ -173,6 +175,11 @@ else {
   } else if (!(canRecord < readDate && readDate < disable && disable < write)) {
     bad('the cancel route does its steps out of order. It must confirm it can record the date, then read the paid-to date while Paystack still has it, then disable, then record. Disabling first can leave a subscription that nobody bills and Cardtly serves forever.')
   }
+  // A failing subscription has no paid period left, only the grace window, so
+  // its end date is the grace end - never Paystack's next retry a month out.
+  if (!/grace\.isPastDue\s*\?\s*\(grace\.graceEndsAt/.test(route)) {
+    bad('the cancel route no longer ends a past_due subscription at its grace end. Paystack\'s next_payment_date for a failing subscription is the next RETRY, so the confirmation would promise a card live for weeks after it goes offline.')
+  }
   if (!/row\.seats && row\.seats > 1/.test(route)) {
     bad('the cancel route no longer refuses team-seat subscriptions. Those cover other people\'s cards and are cancelled by hand.')
   }
@@ -207,6 +214,12 @@ if (!/paystackCancellation\(/.test(hook) || !/findActivePaystackSubs\(/.test(hoo
 }
 if (/status: 'cancelled'/.test(hook)) {
   bad("the Paystack webhook sets status 'cancelled' directly. That ends access on the spot and takes back the rest of a period the customer paid for; record cancel_at and let the daily cron move the status.")
+}
+// A renewal records its payment date. cancellationEndsAt falls back to
+// paid_at + one cycle, and a row that still says "last paid in May" after
+// four monthly renewals would end a cancellation on the spot.
+if (!/past_due_email_sent_at: null,[\s\S]{0,700}paid_at: paid_at/.test(hook)) {
+  bad('the webhook no longer records paid_at when a renewal recovers the row by email, so the cancellation fallback counts from a stale payment date.')
 }
 // A failed Paystack charge may only put a Paystack-billed row on the clock. On
 // 2026-09-22 an old subscription's failed retry matched a comped customer by

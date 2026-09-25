@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { cancelSubscriptionsFor, findActivePaystackSubs, subscriptionCodeOf } from '@/lib/paystack'
 import { cancellationEndsAt } from '@/lib/subscription-cancel'
+import { subscriptionState } from '@/lib/plan-server'
 import { logSubscriptionChange } from '@/lib/subscription-audit'
 import { renderSubscriptionCancelledEmail } from '@/lib/billing-email-templates'
 import { FROM_EMAIL } from '@/lib/email'
@@ -96,7 +97,17 @@ export async function POST() {
       error: `We could not reach our payment provider just now, so nothing has been cancelled. Please try again in a minute, or ${CONTACT.charAt(0).toLowerCase()}${CONTACT.slice(1)}`,
     }, { status: 502 })
   }
-  const cancelAt = cancellationEndsAt(row, live.subs.map(s => s.next_payment_date))
+  // A subscription whose last charge failed has no paid period left: what
+  // keeps its card live is the payment grace window, and cancelling ends the
+  // hope of a retry. So its date is the end of that window, not Paystack's
+  // next_payment_date - which for a subscription in 'attention' is the NEXT
+  // RETRY, a month away. Left alone, the confirmation email promised a card
+  // live until that retry date while subscriptionState took it offline when
+  // the grace ran out (found on a test account, 2026-09-25).
+  const grace = subscriptionState(row)
+  const cancelAt = grace.isPastDue
+    ? (grace.graceEndsAt ?? new Date().toISOString())
+    : cancellationEndsAt(row, live.subs.map(s => s.next_payment_date))
 
   // 3. Stop the billing.
   const result = await cancelSubscriptionsFor(billingEmail, subscriptionCodeOf(row))
