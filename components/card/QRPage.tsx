@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { SendCardModal } from './SendCardToPhone'
+import { useIosApp } from '@/components/dashboard/PlatformProvider'
 
 interface CardOption {
   id: string
@@ -182,6 +183,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
   const [generating, setGenerating] = useState(false)
   const [busy, setBusy] = useState(false)
   const pro = isPro(plan)
+  const iosApp = useIosApp()
   const hasOwnLogo = !!card.company_logo_url
 
   const brandAccent = useMemo(() => getAccentHex(parseDesign(card.color_theme || null)), [card.color_theme])
@@ -692,7 +694,12 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
                   <button key={opt.id}
                     onClick={() => {
                       if (opt.id === 'own') {
-                        if (!pro) return toast.error('Upgrade to Pro to use your own logo')
+                        // In the iOS app this states the fact and offers nothing
+                        // to buy, like ProGate: "Upgrade to Pro" is a call to
+                        // action to purchase outside the app (Guideline 3.1.1).
+                        if (!pro) return toast.error(iosApp
+                          ? 'Your own logo is part of Cardtly Pro. Your account does not have it at the moment.'
+                          : 'Upgrade to Pro to use your own logo')
                         if (!hasOwnLogo) return toast.error('Upload a company logo in the Media tab first')
                       }
                       setLogoChoice(opt.id)
