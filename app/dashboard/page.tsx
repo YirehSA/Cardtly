@@ -396,11 +396,16 @@ export default async function DashboardPage() {
                   accentHex={accentHex}
                 />
 
-                <TapToShareButton
-                  cardUrl={`https://cardtly.com/card/${card.slug}`}
-                  cardName={card.name || firstName}
-                  accentHex={accentHex}
-                />
+                {/* Not in the iOS app: the tile says "Android app only", and
+                    App Store Guideline 2.3.10 bars naming other mobile
+                    platforms in the app. It does nothing on an iPhone anyway. */}
+                {!iosApp && (
+                  <TapToShareButton
+                    cardUrl={`https://cardtly.com/card/${card.slug}`}
+                    cardName={card.name || firstName}
+                    accentHex={accentHex}
+                  />
+                )}
 
                 <div className="flex items-center gap-2 flex-wrap">
                   <a href={`/card/${card.slug}`} target="_blank" rel="noopener noreferrer"

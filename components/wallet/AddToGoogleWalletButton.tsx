@@ -7,13 +7,30 @@
 // which builds the pass JWT server-side and redirects to the
 // Google Wallet save sheet.
 
+import { useEffect, useState } from 'react'
+import { isIosAppUA } from '@/lib/app-platform'
+
 interface Props {
   slug: string
   // Optional class override for fine-tuning placement
   className?: string
 }
 
+// NEVER IN THE iOS APP. App Store Guideline 2.3.10: no names, icons or
+// imagery of other mobile platforms in the app or its metadata, and this is
+// Google's own branded button. It showed on the dashboard and on every card
+// opened inside the iOS app, and in the iPad screenshots taken for review on
+// 2026-09-25.
+//
+// Decided here rather than at each of the pages that render it (dashboard,
+// public card, team card, previews), and decided AFTER mount: the server
+// renders nothing, so the app never receives the markup even for a moment,
+// and a browser shows the button once it has confirmed it is not the app.
 export default function AddToGoogleWalletButton({ slug, className = '' }: Props) {
+  const [show, setShow] = useState(false)
+  useEffect(() => { setShow(!isIosAppUA(navigator.userAgent)) }, [])
+  if (!show) return null
+
   return (
     <a
       href={`/api/wallet/google/${slug}`}
