@@ -104,6 +104,12 @@ The app supports iPhone and iPad, portrait and landscape.
   - Google Wallet API - optional "add to wallet" pass, Android and web only
   - Paystack - subscription billing. NOT reachable from the iOS app. See 9.
 
+Sign-in in the app is Cardtly's own account only: email and password, or a
+one-time link emailed to the user. The website also offers Sign in with
+Microsoft for company work accounts; the iOS app does not, because App Store
+Guideline 4.8 would then require Sign in with Apple beside it (rejection of
+23 September 2026). app/login/page.tsx decides this on the server.
+
 No advertising, tracking or analytics SDKs are embedded. The app does not use
 App Tracking Transparency because it does not track users across apps or
 websites.

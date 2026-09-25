@@ -46,9 +46,12 @@ finished card, so no screen is empty.
 
 5. EXTERNAL SERVICES USED
 Supabase for database and authentication, Vercel for hosting, Paystack for
-payments on the website only, Resend for email, Google and Microsoft for
-optional sign-in, and OpenAI for one optional feature that drafts a bio from a
-name, job title and company. No other data is sent to it.
+payments on the website only, Resend for email, and OpenAI for two optional
+features: drafting a bio from a name, job title and company, and reading the
+text off a photographed paper business card. Sign-in in the app is Cardtly's
+own account only: email and
+password, or a one-time link emailed to the user. There is no third-party or
+social login in the app.
 
 6. PERMISSIONS THE APP ASKS FOR
 Camera, to photograph a paper business card. Contacts, to save a received card
