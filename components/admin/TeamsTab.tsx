@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle, Flag, ExternalLink, MailQuestion, UserCheck, UserPlus, Layers, UserCog, Palette, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
-import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, DEFAULT_ENTERPRISE_FREE_DAYS, orgMonthlyRand, orgBillingStartsInDays, type OrgBillingMode } from '@/lib/org-billing'
+import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, DEFAULT_ENTERPRISE_FREE_DAYS, orgMonthlyRand, orgBillingStartsInDays, PREPAID_RENEWAL_NOTICE_DAYS, type OrgBillingMode } from '@/lib/org-billing'
 import type { AdminOrgRow, AdminUserRow } from '@/lib/admin-data'
 import type { RepStats } from '@/lib/reps'
 
@@ -16,6 +16,9 @@ interface Form {
   notes: string
   trialEndsAt: string
   billingStartsOn: string
+  /** Prepaid only: typed in when they paid some other way. Otherwise the
+   *  invoice sets it when it is marked paid. */
+  paidUntil: string
   /** Set instead of userId when the owner has no Cardtly account yet. */
   ownerEmail: string
   sendWelcome: boolean
@@ -89,7 +92,7 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
   const [editing, setEditing] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [sort, setSort] = useState<OrgSortId>('seats')
-  const [form, setForm] = useState<Form>({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '', billingStartsOn: '', ownerEmail: '', sendWelcome: true })
+  const [form, setForm] = useState<Form>({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '', billingStartsOn: '', paidUntil: '', ownerEmail: '', sendWelcome: true })
 
   function openEdit(o: AdminOrgRow) {
     setCreating(false)
@@ -98,13 +101,13 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
     // Seed from the org being edited. The old stepper was one shared
     // useState(5) that never read the org, so opening a 50-seat team showed
     // "5" next to a label saying "currently 50 seats", and saving wiped 45.
-    setForm({ userId: o.adminUserId, name: o.name, seats: String(o.maxSeats), mode: o.billingMode, notes: o.billingNotes || '', trialEndsAt: o.trialEndsAt ? o.trialEndsAt.slice(0, 10) : '', billingStartsOn: o.billingStartsOn ? o.billingStartsOn.slice(0, 10) : '', ownerEmail: '', sendWelcome: true })
+    setForm({ userId: o.adminUserId, name: o.name, seats: String(o.maxSeats), mode: o.billingMode, notes: o.billingNotes || '', trialEndsAt: o.trialEndsAt ? o.trialEndsAt.slice(0, 10) : '', billingStartsOn: o.billingStartsOn ? o.billingStartsOn.slice(0, 10) : '', paidUntil: o.paidUntil ? String(o.paidUntil).slice(0, 10) : '', ownerEmail: '', sendWelcome: true })
   }
 
   function openCreate() {
     setEditing(null)
     setCreating(c => !c)
-    setForm({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '', billingStartsOn: '', ownerEmail: '', sendWelcome: true })
+    setForm({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '', billingStartsOn: '', paidUntil: '', ownerEmail: '', sendWelcome: true })
   }
 
   const revenue = orgs.filter(o => o.isRevenue).reduce((n, o) => n + o.monthlyRand, 0)
@@ -260,7 +263,7 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
                   </button>
                   </div>
 
-                  {(o.trialDaysLeft !== null || o.needsCollecting || o.suspendedAt || (o.billingStartsInDays !== null && o.billingStartsInDays > 0)) && (
+                  {(o.trialDaysLeft !== null || o.needsCollecting || o.suspendedAt || (o.billingStartsInDays !== null && o.billingStartsInDays > 0) || o.billingMode === 'prepaid') && (
                     <div className="px-3.5 pb-3 -mt-1 flex flex-wrap gap-2">
                       {o.suspendedAt && (
                         <span className="text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1.5"
@@ -278,6 +281,29 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
                           {o.trialDaysLeft <= 0
                             ? `Trial ended ${fmtDate(o.trialEndsAt)}. Still live, still free. Convert them.`
                             : `Trial ends ${fmtDate(o.trialEndsAt)} (${o.trialDaysLeft} days)`}
+                        </span>
+                      )}
+                      {/* Prepaid by invoice. Nothing goes offline at the date, so
+                          this chip is the only thing that says the next invoice
+                          is due - red once the date has passed, amber inside the
+                          renewal window. */}
+                      {o.billingMode === 'prepaid' && (
+                        <span className="text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1.5"
+                          style={o.paidUntilDaysLeft === null
+                            ? { background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.35)', color: '#f59e0b' }
+                            : o.paidUntilDaysLeft < 0
+                              ? { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.35)', color: '#ef4444' }
+                              : o.paidUntilDaysLeft <= PREPAID_RENEWAL_NOTICE_DAYS
+                                ? { background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.35)', color: '#f59e0b' }
+                                : { background: 'rgba(20,184,166,0.1)', border: '1px solid rgba(20,184,166,0.3)', color: '#14b8a6' }}>
+                          <CalendarClock className="w-3 h-3" />
+                          {o.paidUntilDaysLeft === null
+                            ? 'Prepaid. Waiting for the first invoice to be paid.'
+                            : o.paidUntilDaysLeft < 0
+                              ? `Paid until ${fmtDate(o.paidUntil)}, ${-o.paidUntilDaysLeft} day${o.paidUntilDaysLeft === -1 ? '' : 's'} ago. Still live. Send the next invoice.`
+                              : o.paidUntilDaysLeft <= PREPAID_RENEWAL_NOTICE_DAYS
+                                ? `Paid until ${fmtDate(o.paidUntil)} (${o.paidUntilDaysLeft} day${o.paidUntilDaysLeft === 1 ? '' : 's'}). Send the renewal invoice.`
+                                : `Paid until ${fmtDate(o.paidUntil)}`}
                         </span>
                       )}
                       {/* Signed, live, and deliberately not billed yet. Without
@@ -521,6 +547,21 @@ function TeamForm({ form, setForm, users, onSave, busy, showUserPicker }: {
             className={inputClass} style={inputStyle} />
           <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
             Their cards stay live after this date. Nothing is cut off: it flags here and you convert them.
+          </p>
+        </div>
+      )}
+
+      {form.mode === 'prepaid' && (
+        <div>
+          <label className="text-[11px] font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            Paid until (usually left empty)
+          </label>
+          <input type="date" value={form.paidUntil} onChange={e => setForm(f => ({ ...f, paidUntil: e.target.value }))}
+            className={inputClass} style={inputStyle} />
+          <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            Leave empty and the team goes live when its invoice is marked paid: give the invoice a prepaid
+            period (3, 6, 12 months...) under Billing, and every paid invoice adds its months to this date.
+            Fill it in only if they paid some other way. Nothing goes offline when the date passes: it flags here.
           </p>
         </div>
       )}

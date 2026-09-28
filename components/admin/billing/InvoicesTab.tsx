@@ -66,7 +66,7 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
       onAddClient?.()
       return
     }
-    setEditing({ id: null, client_id: clients[0]?.id || '', notes: '', lines: [{ ...BLANK_LINE }] })
+    setEditing({ id: null, client_id: clients[0]?.id || '', notes: '', prepaid_months: '', lines: [{ ...BLANK_LINE }] })
   }
 
   async function openDraft(inv: Invoice) {
@@ -77,6 +77,8 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
       id: data.invoice.id,
       client_id: data.invoice.client_id,
       notes: data.invoice.notes || '',
+      prepaid_months: data.invoice.prepaid_months ? String(data.invoice.prepaid_months) : '',
+      prepaid_applied_at: data.invoice.prepaid_applied_at || null,
       status: data.invoice.status,
       number: data.invoice.number,
       lines: (data.lines || []).map((l: any) => ({
@@ -97,6 +99,7 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
       id: editing.id || undefined,
       client_id: editing.client_id,
       notes: editing.notes,
+      ...(clientTeam(editing.client_id) ? { prepaid_months: editing.prepaid_months ? Number(editing.prepaid_months) : null } : {}),
       lines: (editing.lines || [])
         .filter((l: Line) => l.description.trim())
         .map((l: Line) => ({
@@ -114,6 +117,31 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
     setBusy(false)
     if (!res.ok || data?.error) { toast.error(data?.error || 'That did not save'); return null }
     return data.invoice?.id || editing.id
+  }
+
+  // The team a client is linked to, if any. A prepaid period only means
+  // something for those: paying it switches that team on.
+  function clientTeam(clientId: string): string | null {
+    const c = clients.find((x: any) => x.id === clientId)
+    return c?.organization_id || null
+  }
+
+  // For an invoice already issued: the period is not printed, so it can still
+  // be set until the invoice's payment has applied it.
+  async function savePrepaidOnly() {
+    setBusy(true)
+    const res = await fetch('/api/admin/billing/invoices', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: editing.id, action: 'set_prepaid', prepaid_months: editing.prepaid_months ? Number(editing.prepaid_months) : null }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setBusy(false)
+    if (!res.ok || data?.error) { toast.error(data?.error || 'That did not save'); return }
+    toast.success(data?.applied?.applied
+      ? `Saved, and applied: the team is paid until ${data.applied.paidUntil}`
+      : data?.prepaid_months ? `Saved. The team gets ${data.prepaid_months} months when this invoice is paid.` : 'Prepaid period removed')
+    setEditing(null); load()
   }
 
   async function saveAndClose() {
@@ -284,6 +312,51 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
               {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </label>
+
+          {/* PREPAID PERIOD. Only for a client linked to a team. When this
+              invoice is fully paid, the team goes live and its paid-until date
+              moves out by these months (lib/prepaid). */}
+          {clientTeam(editing.client_id) && (
+            <div className="mb-4 rounded-lg p-3" style={{ background: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.3)' }}>
+              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                Prepaid period
+              </span>
+              {editing.prepaid_applied_at ? (
+                <p className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                  {editing.prepaid_months} months, added to the team on {String(editing.prepaid_applied_at).slice(0, 10)}. To change the
+                  team&apos;s date now, edit it under Teams.
+                </p>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                    <input className={inputClass} style={{ ...inputStyle, width: 90 }} inputMode="numeric" placeholder="None"
+                      value={editing.prepaid_months ?? ''}
+                      onChange={e => setEditing({ ...editing, prepaid_months: e.target.value.replace(/[^0-9]/g, '').slice(0, 3) })} />
+                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>months</span>
+                    {[3, 6, 12, 36].map(n => (
+                      <button key={n} type="button" onClick={() => setEditing({ ...editing, prepaid_months: String(n) })}
+                        className="px-2.5 py-1 rounded-lg text-xs font-semibold"
+                        style={{
+                          background: editing.prepaid_months === String(n) ? 'rgba(20,184,166,0.2)' : 'rgba(255,255,255,0.05)',
+                          color: editing.prepaid_months === String(n) ? '#14b8a6' : 'rgba(255,255,255,0.6)',
+                        }}>{n}</button>
+                    ))}
+                    {editing.status && editing.status !== 'draft' && (
+                      <button type="button" onClick={savePrepaidOnly} disabled={busy}
+                        className="px-3 py-1 rounded-lg text-xs font-semibold disabled:opacity-40"
+                        style={{ background: 'rgba(20,184,166,0.2)', color: '#14b8a6' }}>
+                        Save period
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[11px] mt-1.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                    When this invoice is fully paid, the team goes live and its paid-until date moves out by this many
+                    months. Leave empty for an ordinary invoice.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             {(editing.lines || []).map((l: Line, i: number) => (

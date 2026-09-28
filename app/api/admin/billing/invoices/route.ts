@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin, adminDb, migrationMissing } from '@/lib/admin-api'
+import { applyPrepaidPeriod } from '@/lib/prepaid'
 import {
   documentTotals, effectiveVatRateBp, defaultDueDate, invoiceOutstanding,
   fromSnapshot, toSnapshot, bankSnapshot, lineTotalCents,
@@ -93,6 +94,33 @@ export async function GET(request: Request) {
 }
 
 /** Create a draft. */
+/**
+ * The prepaid period from a request body, checked.
+ *
+ * Absent means "not mentioned, leave it". null, '' or 0 clears it. Anything
+ * else must be 1 to 120 whole months, and only for a client linked to a team:
+ * a period with no team behind it would be paid for and switch nothing on.
+ */
+async function prepaidMonthsFrom(db: any, body: any, clientId: string): Promise<{ value?: number | null; error?: NextResponse }> {
+  if (!body || !('prepaid_months' in body)) return {}
+  const raw = body.prepaid_months
+  if (raw === null || raw === '' || raw === 0 || raw === '0') return { value: null }
+  const n = Math.floor(Number(raw))
+  if (!Number.isFinite(n) || n < 1 || n > 120) {
+    return { error: NextResponse.json({ error: 'A prepaid period is 1 to 120 months.' }, { status: 400 }) }
+  }
+  const { data: client } = await db
+    .from('billing_clients').select('organization_id').eq('id', clientId).maybeSingle()
+  if (!client?.organization_id) {
+    return {
+      error: NextResponse.json({
+        error: 'This client is not linked to a team, so a prepaid period would switch nothing on. Link the client to its team under Clients first.',
+      }, { status: 400 }),
+    }
+  }
+  return { value: n }
+}
+
 export async function POST(request: Request) {
   const gate = await requireAdmin()
   if ('error' in gate) return gate.error
@@ -111,7 +139,12 @@ export async function POST(request: Request) {
   const vatRateBp = effectiveVatRateBp(settings?.vat_number, settings?.vat_rate_bp)
   const totals = documentTotals(lines, vatRateBp)
 
+  const prepaid = await prepaidMonthsFrom(db, body, body.client_id)
+  if (prepaid.error) return prepaid.error
+
   const { data: invoice, error } = await db.from('invoices').insert({
+    // Only when given, so a draft without one still saves before migration 091.
+    ...(prepaid.value !== undefined ? { prepaid_months: prepaid.value } : {}),
     client_id: body.client_id,
     status: 'draft',
     currency: 'ZAR',
@@ -154,6 +187,34 @@ export async function PATCH(request: Request) {
   if (iErr || !invoice) return NextResponse.json({ error: 'No such invoice' }, { status: 404 })
 
   if (body.action === 'issue') return issue(db, invoice, gate.user.id)
+
+  // The prepaid period is not printed on the invoice, so unlike the lines it
+  // may be set after issuing: the invoice goes out, and before it is paid the
+  // period that payment buys can still be recorded or corrected. Never once
+  // it has been applied - that period is already on the team.
+  if (body.action === 'set_prepaid') {
+    if (['cancelled', 'written_off', 'credited'].includes(invoice.status)) {
+      return NextResponse.json({ error: `This invoice is ${invoice.status.replace('_', ' ')}, so it cannot switch a team on.` }, { status: 409 })
+    }
+    if (invoice.prepaid_applied_at) {
+      return NextResponse.json({
+        error: `The prepaid period on this invoice was already added to the team on ${String(invoice.prepaid_applied_at).slice(0, 10)}. Change the team's paid-until date under Teams instead.`,
+      }, { status: 409 })
+    }
+    const prepaid = await prepaidMonthsFrom(db, { prepaid_months: body.prepaid_months ?? null }, invoice.client_id)
+    if (prepaid.error) return prepaid.error
+    const { error: setErr } = await db
+      .from('invoices').update({ prepaid_months: prepaid.value ?? null, updated_at: new Date().toISOString() }).eq('id', invoice.id)
+    if (setErr) return NextResponse.json({ error: setErr.message || 'Could not save the prepaid period' }, { status: 500 })
+    await db.from('document_events').insert({
+      doc_type: 'invoice', doc_id: invoice.id, event: 'prepaid_set', actor: gate.user.id,
+      meta: { prepaid_months: prepaid.value ?? null },
+    })
+    // Already paid: apply it now rather than waiting for a payment that has
+    // already happened.
+    const result = invoice.status === 'paid' && prepaid.value ? await applyPrepaidPeriod(db, invoice.id) : null
+    return NextResponse.json({ ok: true, prepaid_months: prepaid.value ?? null, applied: result })
+  }
   if (body.action === 'cancel') {
     if (invoice.paid_cents > 0) {
       return NextResponse.json({
@@ -175,6 +236,11 @@ export async function PATCH(request: Request) {
   const patch: Record<string, any> = { updated_at: new Date().toISOString() }
   if (body.client_id) patch.client_id = body.client_id
   if ('notes' in body) patch.notes = typeof body.notes === 'string' ? body.notes.trim() || null : null
+  {
+    const prepaid = await prepaidMonthsFrom(db, body, body.client_id || invoice.client_id)
+    if (prepaid.error) return prepaid.error
+    if (prepaid.value !== undefined) patch.prepaid_months = prepaid.value
+  }
 
   if (Array.isArray(body.lines)) {
     const lines = normaliseLines(body.lines)

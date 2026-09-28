@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin, adminDb, migrationMissing } from '@/lib/admin-api'
 import { allocationPlan, statusAfterPayment, unallocatedCents } from '@/lib/billing-docs'
+import { applyPrepaidPeriod } from '@/lib/prepaid'
 
 // Money in, then money allocated.
 //
@@ -42,6 +43,11 @@ async function restatus(db: any, invoiceIds: string[]) {
     if (next !== i.status) {
       await db.from('invoices').update({ status: next, updated_at: new Date().toISOString() }).eq('id', i.id)
     }
+    // Fully paid: a prepaid invoice switches its team on for its months.
+    // Called whenever the invoice reads as paid, not only on the change, so
+    // a period set after the payment landed is still applied; applying is
+    // idempotent (lib/prepaid claims the invoice first).
+    if (next === 'paid') await applyPrepaidPeriod(db, i.id)
   }
 }
 

@@ -688,7 +688,7 @@ export async function POST(request: Request) {
   // it is set explicitly here rather than defaulted to 'monthly' and forgotten
   // (which is how Cardtly's own 50-seat org came to report R4,850/month).
   if (action === 'create_org') {
-    const { user_id, owner_email, send_welcome, org_name, seat_count, billing_period, billing_notes, trial_ends_at, billing_starts_on } = body
+    const { user_id, owner_email, send_welcome, org_name, seat_count, billing_period, billing_notes, trial_ends_at, billing_starts_on, paid_until } = body
 
     // Seats drive what the team can actually do (team/route.ts blocks
     // adding cards past max_seats), so refuse junk rather than writing
@@ -782,7 +782,7 @@ export async function POST(request: Request) {
 
     // maybeSingle, not single: single throws on zero rows, and the error was
     // discarded, so this only worked by accident.
-    const { data: existing } = await admin.from('organizations').select('id').eq('admin_user_id', ownerId).maybeSingle()
+    const { data: existing } = await admin.from('organizations').select('id, business_plan_active').eq('admin_user_id', ownerId).maybeSingle()
 
     // Seats cannot be cut below the cards that already exist. Nothing deletes
     // cards to fit a smaller number, so the org would just sit over its cap:
@@ -812,6 +812,19 @@ export async function POST(request: Request) {
       business_plan_active: true,
     }
 
+    // PREPAID BY INVOICE goes live when its invoice is paid (lib/prepaid), not
+    // when the team is set up: a new prepaid team is created switched off. An
+    // existing team moved onto prepaid keeps whatever state it was in, so a
+    // live client is never taken offline by changing how they pay. A
+    // paid-until date typed in here - money received some other way - counts
+    // as paid up to then.
+    if (billing === 'prepaid') {
+      const typed = typeof paid_until === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(paid_until) ? paid_until : null
+      if (typed) fields.paid_until = typed
+      const typedIsFuture = !!typed && typed >= new Date().toISOString().slice(0, 10)
+      fields.business_plan_active = existing ? (!!existing.business_plan_active || typedIsFuture) : typedIsFuture
+    }
+
     // A new team gets its card-link prefix now, so every card it creates
     // carries the company name from the first one. Only on insert: on update
     // this would overwrite a prefix the owner had deliberately edited on the
@@ -823,7 +836,7 @@ export async function POST(request: Request) {
     // comps and monthlies included - with a 42703 about a column that has
     // nothing to do with them. Retry without them and say so, rather than
     // failing a seat change over an unrelated feature.
-    const LATE_COLUMNS = ['billing_starts_on', 'card_slug_prefix'] as const
+    const LATE_COLUMNS = ['billing_starts_on', 'card_slug_prefix', 'paid_until'] as const
     async function write(): Promise<{ error: any; degraded: boolean }> {
       const run = (f: Record<string, any>) => existing
         ? admin.from('organizations').update({ ...f, updated_at: new Date().toISOString() }).eq('id', existing.id)
@@ -858,7 +871,10 @@ export async function POST(request: Request) {
     // org exists would be a lie told to a paying customer.
     const notes: string[] = []
     if (degraded) {
-      notes.push('Saved, but the debit order start date and card-link prefix were not: migrations 043 and 044 have not both been run on this database yet.')
+      notes.push('Saved, but the debit order start date, card-link prefix or paid-until date was not: migrations 043, 044 and 091 have not all been run on this database yet.')
+    }
+    if (billing === 'prepaid' && !fields.business_plan_active) {
+      notes.push('Prepaid team saved but NOT live yet. It goes live when its invoice is marked paid: create the invoice under Billing and give it a prepaid period.')
     }
     if (createdAccount) {
       if (send_welcome === false) {

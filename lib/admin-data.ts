@@ -1,6 +1,6 @@
 import { FOUNDER_ADMIN_USER_ID } from '@/lib/admin-check'
 import { isBillablePaystackSub, listActivePaystackSubs } from '@/lib/paystack'
-import { orgMonthlyRand, BILLING_MODE_META, isOrgBillingMode, orgTrialDaysLeft, orgNeedsCollecting, orgBillingStartsInDays, type OrgBillingMode } from '@/lib/org-billing'
+import { orgMonthlyRand, BILLING_MODE_META, isOrgBillingMode, orgTrialDaysLeft, orgNeedsCollecting, orgBillingStartsInDays, orgPaidUntilDaysLeft, type OrgBillingMode } from '@/lib/org-billing'
 import { computeRep, type RepRow, type RepStats } from '@/lib/reps'
 
 // Everything the admin page needs, assembled in one place so the page stays a
@@ -95,6 +95,9 @@ export interface AdminOrgRow {
   // Enterprise only: when the debit order starts. Free until then.
   billingStartsOn: string | null
   billingStartsInDays: number | null
+  // Prepaid by invoice only: the last day paid for, and days until it.
+  paidUntil: string | null
+  paidUntilDaysLeft: number | null
   suspendedAt: string | null
   suspensionMessage: string | null
   departments: DeptRow[]
@@ -322,6 +325,8 @@ export async function loadAdminData(admin: any) {
       needsCollecting: orgNeedsCollecting(mode, o.last_collected_on || null, o.billing_starts_on || null),
       billingStartsOn: o.billing_starts_on || null,
       billingStartsInDays: orgBillingStartsInDays(mode, o.billing_starts_on || null),
+      paidUntil: o.paid_until || null,
+      paidUntilDaysLeft: orgPaidUntilDaysLeft(mode, o.paid_until || null),
       suspendedAt: o.suspended_at || null,
       suspensionMessage: o.suspension_message || null,
       departments: deptsByOrg[o.id] || [],

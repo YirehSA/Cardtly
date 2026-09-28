@@ -569,7 +569,8 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
               billing_notes: f.notes || null,
               trial_ends_at: f.trialEndsAt || null,
               billing_starts_on: f.billingStartsOn || null,
-            }, `${f.name}: ${f.seats} seats, ${f.mode === 'comp' ? 'free' : f.mode.replace('_', ' ')}${f.mode === 'debit_order' && f.billingStartsOn ? `, free until ${f.billingStartsOn}` : ''}`)} />
+              paid_until: f.mode === 'prepaid' ? (f.paidUntil || null) : null,
+            }, `${f.name}: ${f.seats} seats, ${f.mode === 'comp' ? 'free' : f.mode.replace('_', ' ')}${f.mode === 'debit_order' && f.billingStartsOn ? `, free until ${f.billingStartsOn}` : ''}${f.mode === 'prepaid' ? (f.paidUntil ? `, paid until ${f.paidUntil}` : ', live once its invoice is paid') : ''}`)} />
         )}
 
         {tab === 'trials' && (

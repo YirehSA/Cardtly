@@ -6,7 +6,7 @@
 // deliberately free, and defaulting everything to 'monthly' is what made the
 // dashboard report R6,499 of revenue that will never be collected.
 
-export const ORG_BILLING_MODES = ['monthly', 'yearly', 'debit_order', 'comp', 'trial'] as const
+export const ORG_BILLING_MODES = ['monthly', 'yearly', 'debit_order', 'prepaid', 'comp', 'trial'] as const
 export type OrgBillingMode = (typeof ORG_BILLING_MODES)[number]
 
 export const MAX_SELF_SERVE_SEATS = 20
@@ -38,6 +38,13 @@ export const BILLING_MODE_META: Record<OrgBillingMode, {
     short: 'Debit order',
     colour: '#f59e0b',
     desc: 'Enterprise. Invoiced and collected outside Paystack. Real revenue, but nothing collects it automatically: you do. Set a start date to give them a free run first.',
+    isRevenue: true,
+  },
+  prepaid: {
+    label: 'Prepaid by invoice',
+    short: 'Prepaid',
+    colour: '#14b8a6',
+    desc: 'Pays in advance by invoice for a set period: 3, 6, 12 months or more. Goes live when the invoice is marked paid, and every paid invoice adds its months to the paid-until date. Nothing goes offline when the period ends: it flags here and you send the next invoice.',
     isRevenue: true,
   },
   comp: {
@@ -111,6 +118,45 @@ export function orgNeedsCollecting(mode: string | null, lastCollectedOn: string 
   const days = (todayMidnight() - since) / (24 * 60 * 60 * 1000)
   return !Number.isFinite(days) || days >= 30
 }
+
+/**
+ * A prepaid team's new paid-until date once `months` more have been paid for.
+ *
+ * Counted from whichever is later: today, or the date already paid up to.
+ * Paying early for the next period must not lose the days still left on this
+ * one, and a team renewing after its date passed starts again from today
+ * rather than being backdated into time it was not paid for.
+ *
+ * Calendar months, clamped to the end of the month: 31 January plus one month
+ * is 28 February, not 3 March, which is what Date.setMonth would say.
+ * Returned as YYYY-MM-DD, the shape of the date column it is written to.
+ */
+export function prepaidPeriodEnd(currentPaidUntil: string | null, months: number, today = new Date()): string {
+  const todayMs = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+  const current = currentPaidUntil ? midnight(currentPaidUntil) : NaN
+  const base = new Date(Number.isFinite(current) && current > todayMs ? current : todayMs)
+  const whole = Math.max(0, Math.floor(months))
+  const y = base.getFullYear()
+  const m = base.getMonth() + whole
+  const lastDay = new Date(y, m + 1, 0).getDate()
+  const end = new Date(y, m, Math.min(base.getDate(), lastDay))
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`
+}
+
+/** Whole calendar days until a prepaid team's paid-until date: 0 is today,
+ *  negative has passed. Null when the team is not prepaid or has no date,
+ *  which is the case before its first invoice is paid. */
+export function orgPaidUntilDaysLeft(mode: string | null, paidUntil: string | null): number | null {
+  if (mode !== 'prepaid' || !paidUntil) return null
+  const end = midnight(paidUntil)
+  if (!Number.isFinite(end)) return null
+  return Math.round((end - todayMidnight()) / (24 * 60 * 60 * 1000))
+}
+
+// How early admin starts flagging a prepaid team, so the next invoice can go
+// out and be paid before the date rather than after it.
+export const PREPAID_RENEWAL_NOTICE_DAYS = 30
 
 // A date column comes back as YYYY-MM-DD, which Date parses as midnight UTC.
 // Everything here is counted in local calendar days, so pin both sides to

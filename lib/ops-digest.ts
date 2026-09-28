@@ -1,6 +1,6 @@
 import { Resend } from 'resend'
 import { FROM_EMAIL } from '@/lib/email'
-import { orgTrialDaysLeft, orgNeedsCollecting, orgBillingStartsInDays, orgMonthlyRand, isOrgBillingMode } from '@/lib/org-billing'
+import { orgTrialDaysLeft, orgNeedsCollecting, orgBillingStartsInDays, orgMonthlyRand, isOrgBillingMode, orgPaidUntilDaysLeft } from '@/lib/org-billing'
 
 // The things nothing else will notice.
 //
@@ -24,6 +24,7 @@ export interface OpsDigest {
   ending: any[]
   collect: any[]
   starting: any[]
+  renew: any[]
   nothingToDo: boolean
   subject: string
   html: string
@@ -42,6 +43,9 @@ export async function buildOpsDigest(admin: any): Promise<OpsDigest | { error: s
   const ending: any[] = []
   const collect: any[] = []
   const starting: any[] = []
+  // Prepaid teams whose next invoice is due. They stay live past the date, so
+  // this is the only nudge that the renewal has not been paid.
+  const renew: any[] = []
 
   for (const o of orgs || []) {
     const mode = isOrgBillingMode(o.billing_period) ? o.billing_period : 'monthly'
@@ -60,9 +64,11 @@ export async function buildOpsDigest(admin: any): Promise<OpsDigest | { error: s
     if (startsIn !== null && startsIn > 0 && startsIn <= 7) {
       starting.push({ ...o, startsIn, rand: orgMonthlyRand(o.max_seats ?? 0, mode) })
     }
+    const paidLeft = orgPaidUntilDaysLeft(mode, o.paid_until ?? null)
+    if (paidLeft !== null && paidLeft <= 14) renew.push({ ...o, paidLeft })
   }
 
-  const nothingToDo = !lapsed.length && !ending.length && !collect.length && !starting.length
+  const nothingToDo = !lapsed.length && !ending.length && !collect.length && !starting.length && !renew.length
 
   const rows = (title: string, items: string[], colour: string) => items.length
     ? `<p style="font-size:13px;font-weight:700;margin:20px 0 6px;color:${colour}">${title}</p>
@@ -78,6 +84,8 @@ export async function buildOpsDigest(admin: any): Promise<OpsDigest | { error: s
       `<strong>${esc(o.name)}</strong> &mdash; ends ${fmt(o.trial_ends_at)} (${o.days} day${o.days === 1 ? '' : 's'})`), '#a855f7')}
     ${rows('Debit orders starting within a week', starting.map(o =>
       `<strong>${esc(o.name)}</strong> &mdash; first collection ${fmt(o.billing_starts_on)}, in ${o.startsIn} day${o.startsIn === 1 ? '' : 's'}, ${rand(o.rand)}/month. The mandate needs to be with the bank before then.${o.billing_notes ? ` ${esc(o.billing_notes)}` : ''}`), '#0ea5e9')}
+    ${rows('Prepaid teams due for their next invoice (still live)', renew.map(o =>
+      `<strong>${esc(o.name)}</strong> &mdash; ${o.paidLeft < 0 ? `paid until ${fmt(o.paid_until)}, ${Math.abs(o.paidLeft)} day${o.paidLeft === -1 ? '' : 's'} ago` : `paid until ${fmt(o.paid_until)} (${o.paidLeft} day${o.paidLeft === 1 ? '' : 's'})`}. Send the renewal invoice and give it a prepaid period.`), '#14b8a6')}
     ${rows('Debit orders to load', collect.map(o =>
       `<strong>${esc(o.name)}</strong> &mdash; ${rand(o.rand)}. ${o.last_collected_on ? `Last collected ${fmt(o.last_collected_on)}.` : 'Never collected.'}${o.billing_notes ? ` ${esc(o.billing_notes)}` : ''}`), '#f59e0b')}
     <a href="${APP_URL}/admin" style="display:inline-block;margin-top:24px;background:linear-gradient(135deg,#00d4ff,#7c3aed,#ec4899);color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:13px 26px;border-radius:11px">Open the admin</a>
@@ -89,9 +97,10 @@ export async function buildOpsDigest(admin: any): Promise<OpsDigest | { error: s
     ending.length ? `${ending.length} ending` : null,
     starting.length ? `${starting.length} starting` : null,
     collect.length ? `${collect.length} to collect` : null,
+    renew.length ? `${renew.length} to renew` : null,
   ].filter(Boolean).join(', ')
 
-  return { lapsed, ending, collect, starting, nothingToDo, subject: `Cardtly teams: ${bits}`, html }
+  return { lapsed, ending, collect, starting, renew, nothingToDo, subject: `Cardtly teams: ${bits}`, html }
 }
 
 // Sends only when there is something to do. A daily "nothing to report" mail
