@@ -115,7 +115,11 @@ export default function UpgradeView({ state, trialDaysLeft, graceDaysLeft = 0 }:
           </div>
         </div>
       )}
-      {state !== 'paid' && state !== 'past_due' && <TrialCodeBox />}
+      {/* During a trial only. Once it has ended a code cannot be redeemed
+          (see /api/trial-code/claim), so offering the box then only invites a
+          customer to be told no - or, before the server refused it, handed
+          them a second trial. */}
+      {state === 'trial' && <TrialCodeBox />}
 
       {state === 'trial' && (
         <div className="rounded-lg border p-4 flex items-start gap-3"

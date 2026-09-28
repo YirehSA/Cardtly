@@ -80,7 +80,9 @@ export default function TrialCodeBox() {
           value={code}
           onChange={e => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''))}
           onKeyDown={e => { if (e.key === 'Enter') redeem() }}
-          placeholder="CARDTLY30"
+          // Never a real code. This said CARDTLY30, which IS a live 30-day
+          // code, so every account shown this box was being handed one.
+          placeholder="Enter your code"
           aria-label="Trial code"
           autoCapitalize="characters"
           autoComplete="off"

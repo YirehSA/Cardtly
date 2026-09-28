@@ -77,13 +77,40 @@ export async function POST(request: Request) {
   // trials indefinitely - the account is already signed in, so the request is
   // trivially repeatable.
   const { data: profile } = await admin
-    .from('profiles').select('trial_code').eq('user_id', user.id).maybeSingle()
+    .from('profiles').select('trial_code, trial_ends_at').eq('user_id', user.id).maybeSingle()
   if ((profile as any)?.trial_code) {
     // A dead end for the customer unless it says what to do next: they cannot
     // clear this themselves, and a second trial is a decision for us to make in
     // the admin panel rather than something a code should stack.
     return NextResponse.json({
       error: 'A trial code has already been used on this account. Contact us if you need more time.',
+    }, { status: 409 })
+  }
+
+  // ONE TRIAL PER ACCOUNT, not one code. The check above only stopped a second
+  // CODE, so an account whose ordinary 7-day trial had run out could still
+  // enter one and start a fresh 30 days - and the upgrade page, shown to every
+  // account whose card had gone offline, used a live code as the box's
+  // placeholder. A founder-offer customer did exactly that on 15 September,
+  // the morning their free period ended.
+  //
+  // A code is for the start of a trial (a ?code= signup claims it seconds
+  // after the account is made, while its default 7 days are running), or to
+  // lengthen one still running. It is refused once the trial has ended, and
+  // for any account that has ever had a subscription row - a lapsed payer or
+  // an ended comp is not a new customer. More time after that is a decision
+  // for the admin panel, which is what the message says.
+  const trialEndsMs = (profile as any)?.trial_ends_at ? new Date((profile as any).trial_ends_at).getTime() : NaN
+  const { count: subCount, error: subErr } = await admin
+    .from('whop_subscriptions').select('user_id', { count: 'exact', head: true }).eq('user_id', user.id)
+  if (subErr) {
+    // Fail closed: granting a trial wrongly is the harm this check exists for.
+    console.error('trial-code claim: subscription check failed:', subErr)
+    return NextResponse.json({ error: 'Could not check that code. Please try again.' }, { status: 500 })
+  }
+  if ((Number.isFinite(trialEndsMs) && trialEndsMs <= Date.now()) || (subCount ?? 0) > 0) {
+    return NextResponse.json({
+      error: 'This account has already had its free trial, so a trial code cannot be used on it. Subscribe to keep your card live, or contact us if you need more time.',
     }, { status: 409 })
   }
 
