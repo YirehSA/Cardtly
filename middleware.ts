@@ -35,7 +35,11 @@ export async function middleware(request: NextRequest) {
   // not pay for a session refresh they have no use for. The home page is on
   // this list now, so getting it wrong costs an auth round trip on the busiest
   // page on the site.
-  if (blocked && !earlyPath.startsWith('/dashboard')) {
+  //
+  // /signup is on the list too (the iOS app is company teams only), but on the
+  // web it still needs the session, to send a signed-in visitor on to the
+  // dashboard below. So it is not one of the routes that can skip it.
+  if (blocked && !earlyPath.startsWith('/dashboard') && earlyPath !== '/signup') {
     return NextResponse.next()
   }
 
@@ -106,6 +110,8 @@ export const config = {
     '/blog/:path*',
     '/pricing',
     '/teams',
+    '/network',
+    '/promotions',
     '/upgrade/:path*',
     // Refresh the Supabase session on authenticated API routes so
     // long-running tabs don't hit "Unauthorized" when their access

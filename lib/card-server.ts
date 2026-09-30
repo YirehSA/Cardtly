@@ -39,6 +39,35 @@ export async function getPrimaryCard<T = Record<string, unknown>>(
 }
 
 /**
+ * Does this person hold a live card in a company team? One of the ways into
+ * the iOS app, which serves company teams only (lib/app-platform,
+ * iosAppAdmits).
+ *
+ * The same rows getUserPlan counts (active, and belonging to an organisation),
+ * but asked on its own because getUserPlan answers a different question. It
+ * stops at the person's own paid subscription, and deliberately ignores a team
+ * that is not paid up, and neither of those makes someone less of a team member.
+ *
+ * A failed read is a no, like getOwnedOrgs beside it in the dashboard layout.
+ */
+export async function holdsCompanyTeamCard(admin: any, userId: string): Promise<boolean> {
+  if (!userId) return false
+  try {
+    const { data, error } = await admin
+      .from('team_cards')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .not('organization_id', 'is', null)
+      .limit(1)
+      .maybeSingle()
+    return !error && !!data
+  } catch {
+    return false
+  }
+}
+
+/**
  * Find the team card claimed by this user, if any. Used to power
  * the dashboard for team members - they don't have a personal
  * card in the `cards` table but DO have one in `team_cards` once

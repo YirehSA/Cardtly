@@ -5,7 +5,7 @@ import { getUserPlan } from '@/lib/plan-server'
 import { isAdminUser } from '@/lib/admin-check'
 import { getManagedDepartments, getOwnedOrgs } from '@/lib/department-perms'
 import { getRepForUser } from '@/lib/rep-access'
-import { isIosApp } from '@/lib/app-platform'
+import { isIosApp, iosAppAdmits } from '@/lib/app-platform'
 import { ThemeProvider } from '@/components/dashboard/ThemeProvider'
 import { PlatformProvider } from '@/components/dashboard/PlatformProvider'
 import Sidebar from '@/components/dashboard/Sidebar'
@@ -17,7 +17,8 @@ import NetworkNotice from '@/components/dashboard/NetworkNotice'
 import ArchivedCardBanner, { type ArchivedCard } from '@/components/dashboard/ArchivedCardBanner'
 import AnnouncementModal from '@/components/AnnouncementModal'
 import HeartbeatPing from '@/components/dashboard/HeartbeatPing'
-import { getMemberTeamCard } from '@/lib/card-server'
+import { getMemberTeamCard, holdsCompanyTeamCard } from '@/lib/card-server'
+import CompanyTeamsOnly from '@/components/dashboard/CompanyTeamsOnly'
 import { withResolvedBrand } from '@/lib/resolve-card-brand'
 import { parseDesign, getAccentHex } from '@/types/design'
 import { brandThemeStyle } from '@/lib/brand-theme'
@@ -123,6 +124,29 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Read once here and shared with every client component below, so nothing in
   // the dashboard has to render a purchase button and then take it away again.
   const iosApp = await isIosApp()
+
+  // THE iOS APP IS FOR COMPANY TEAMS ONLY (App Review, 3.1.1 and 3.1.3(c),
+  // 2026-09-30; the reasoning is on iosAppAdmits in lib/app-platform). Someone
+  // whose access does not come from a company gets a screen saying so, with
+  // sign-out and account deletion, instead of the dashboard. Decided here, in
+  // the layout every dashboard page renders inside, so no page can be reached
+  // around it. The team-card lookup runs only for the app, and only when the
+  // cheaper answers already in hand have not settled it.
+  if (iosApp) {
+    const admitted = iosAppAdmits({
+      isStaff: isAdmin,
+      ownsTeam: ownedOrgsList.length > 0,
+      managesDepartment: managedDeptsList.length > 0,
+      holdsTeamCard: plan.viaTeam === true || (await holdsCompanyTeamCard(deptAdmin, user.id)),
+    })
+    if (!admitted) {
+      return (
+        <ThemeProvider>
+          <CompanyTeamsOnly email={user.email || ''} />
+        </ThemeProvider>
+      )
+    }
+  }
 
   // The dashboard wears the colour of the card it manages.
   //

@@ -28,6 +28,7 @@ import QuestionnaireForm from './QuestionnaireForm'
 import InAppBackButton from '@/components/InAppBackButton'
 import BookingModal from './BookingModal'
 import AddToGoogleWalletButton from '@/components/wallet/AddToGoogleWalletButton'
+import { isIosAppUA } from '@/lib/app-platform'
 import { describeContactError, CONTACT_NETWORK_ERROR } from '@/lib/contact-errors'
 import CaptureNotice from './CaptureNotice'
 import {
@@ -746,6 +747,13 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
   // viewer to scroll and drag; this fitted overlay scales any shape to the
   // screen instead.
   const [lightbox, setLightbox] = useState<string | null>(null)
+  // Inside the iOS app, which serves company teams only (lib/app-platform,
+  // iosAppAdmits), "Get your own Cardtly card" is an invitation to sign up as
+  // an individual, and /signup is blocked there. Settled after mount, like the
+  // Wallet button: this component also renders the public card page, which is
+  // static and cannot read the request's user agent.
+  const [inIosApp, setInIosApp] = useState(false)
+  useEffect(() => { setInIosApp(isIosAppUA(navigator.userAgent)) }, [])
   // Shown when Save Contact is tapped inside an in-app browser that cannot
   // download the .vcf. See lib/in-app-browser.ts.
   const [browserHint, setBrowserHint] = useState(false)
@@ -1406,7 +1414,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           quiet "Powered by" line it has always carried. That rule does not
           change: the badge is a nicer way of saying the same thing, not a way
           for a free card to shed it. */}
-      {(card as any).addons?.cardtlyBadge !== false ? (
+      {inIosApp ? null : (card as any).addons?.cardtlyBadge !== false ? (
         <div className="mt-10 flex flex-col items-center gap-2">
           <div className="w-16 h-px" style={{ background: bg.subtext, opacity: 0.25 }} />
           {/* Straight to signup, not the homepage. Somebody who has just tapped

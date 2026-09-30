@@ -50,10 +50,20 @@ function LoginForm({ iosApp }: { iosApp: boolean }) {
     setLoading(true)
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+        // Supabase makes a new account for an email it has never seen unless
+        // told not to. In the iOS app that would be signing up by the back
+        // door, and the app is for company teams only (lib/app-platform).
+        shouldCreateUser: !iosApp,
+      },
     })
     if (error) {
-      toast.error(error.message)
+      // Supabase's refusal for an unknown email reads "Signups not allowed for
+      // otp", which means nothing to the person holding the phone.
+      toast.error(iosApp && /signups? not allowed/i.test(error.message)
+        ? 'No Cardtly account uses that email. If your company uses Cardtly, use the invite it sent you.'
+        : error.message)
       setLoading(false)
       return
     }
@@ -266,12 +276,24 @@ export default function LoginPageClient({ iosApp }: { iosApp: boolean }) {
             <LoginForm iosApp={iosApp} />
           </Suspense>
 
-          <p className="text-center text-sm mt-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            No account yet?{' '}
-            <Link href="/signup" className="font-semibold hover:opacity-80 transition" style={{ color: '#00d4ff' }}>
-              Create one free
-            </Link>
-          </p>
+          {/* The iOS app is for company teams only (lib/app-platform,
+              iosAppAdmits), so there is no signing up in it. Its people get
+              their account from their company's invite link instead, and this
+              says so rather than leaving them looking for a way in. */}
+          {iosApp && (
+            <p className="text-center text-sm mt-6 leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              Cardtly for iPhone and iPad is for company teams. New to your team?
+              Use the invite your company sent you to set up your account.
+            </p>
+          )}
+          {!iosApp && (
+            <p className="text-center text-sm mt-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              No account yet?{' '}
+              <Link href="/signup" className="font-semibold hover:opacity-80 transition" style={{ color: '#00d4ff' }}>
+                Create one free
+              </Link>
+            </p>
+          )}
         </div>
       </div>
     </div>

@@ -149,11 +149,15 @@ export default function Navbar() {
           <Link href="/login" className="text-sm font-medium transition" style={{ color: 'rgba(255,255,255,0.6)' }}>
             Sign in
           </Link>
-          <Link href="/signup"
-            className="px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)', boxShadow: '0 4px 20px rgba(124,58,237,0.4)' }}>
-            Sign up
-          </Link>
+          {/* No signing up in the iOS app: it is for company teams, whose
+              people arrive by invite (lib/app-platform, iosAppAdmits). */}
+          {!iosApp && (
+            <Link href="/signup"
+              className="px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
+              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)', boxShadow: '0 4px 20px rgba(124,58,237,0.4)' }}>
+              Sign up
+            </Link>
+          )}
         </div>
 
         {/* Mobile toggle. The icon stays 20px; the BUTTON is 44 square, which
@@ -181,11 +185,13 @@ export default function Navbar() {
               className="block text-center py-2.5 rounded-xl text-sm font-medium border border-white/10 text-white/60">
               Sign in
             </Link>
-            <Link href="/signup" onClick={() => setOpen(false)}
-              className="block text-center py-2.5 rounded-xl text-sm font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
-              Sign up
-            </Link>
+            {!iosApp && (
+              <Link href="/signup" onClick={() => setOpen(false)}
+                className="block text-center py-2.5 rounded-xl text-sm font-bold text-white"
+                style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>
+                Sign up
+              </Link>
+            )}
           </div>
         </div>
       )}
