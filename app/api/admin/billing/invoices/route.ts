@@ -4,7 +4,7 @@ import { applyPrepaidPeriod } from '@/lib/prepaid'
 import {
   documentTotals, effectiveVatRateBp, defaultDueDate, invoiceOutstanding,
   fromSnapshot, toSnapshot, bankSnapshot, lineTotalCents,
-  recipientChanges, signatureCopies,
+  recipientChanges, signatureCopies, statusAfterPayment,
   type DueRule, type DocLine,
 } from '@/lib/billing-docs'
 
@@ -288,6 +288,49 @@ export async function PATCH(request: Request) {
       meta: { by: copies.map(c => c.name) },
     })
     return NextResponse.json({ ok: true, signatures: copies.map(c => ({ name: c.name, title: c.title, signedAt: c.signedAt })) })
+  }
+
+  // A NEW DUE DATE, which is how an overdue invoice is brought back: the
+  // client asked for more time, or the invoice was wrong and has been
+  // corrected and resent. The due date is not one of the frozen fields - it is
+  // payment terms, not what was charged - so the number, lines and money stay
+  // exactly as issued. The status is then worked out again by the same rule
+  // the daily job uses, so a date moved into the future reads Sent rather than
+  // Overdue, and the chasing ladder restarts from the new date
+  // (lib/overdue-chasing counts reminders only since the last change).
+  if (body.action === 'set_due_date') {
+    if (invoice.status === 'draft') {
+      return NextResponse.json({ error: 'A draft gets its due date when it is issued.' }, { status: 409 })
+    }
+    if (['cancelled', 'written_off', 'credited', 'paid'].includes(invoice.status)) {
+      return NextResponse.json({ error: `Invoice ${invoice.number} is ${invoice.status.replace('_', ' ')}, so there is nothing left to fall due.` }, { status: 409 })
+    }
+    const dueAt = typeof body.due_at === 'string' ? body.due_at.trim() : ''
+    const parsed = /^\d{4}-\d{2}-\d{2}$/.test(dueAt) ? new Date(dueAt + 'T00:00:00Z') : null
+    if (!parsed || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== dueAt) {
+      return NextResponse.json({ error: 'Choose a valid date.' }, { status: 400 })
+    }
+    const today = new Date().toISOString().slice(0, 10)
+    if (dueAt < today) {
+      return NextResponse.json({ error: 'A new due date has to be today or later, or the invoice is overdue again straight away.' }, { status: 400 })
+    }
+
+    const { data: credits } = await db
+      .from('credit_notes').select('total_cents').eq('invoice_id', invoice.id).eq('status', 'issued')
+    const credited = (credits || []).reduce((n: number, c: any) => n + (c.total_cents || 0), 0)
+    const nextStatus = statusAfterPayment(invoice.total_cents || 0, invoice.paid_cents || 0, dueAt, new Date(), credited)
+    // 'sent' for an invoice that was never emailed would claim a send that did
+    // not happen. It stays 'issued' until somebody actually sends it.
+    const status = nextStatus === 'sent' && invoice.status === 'issued' ? 'issued' : nextStatus
+
+    const { error: dErr } = await db.from('invoices')
+      .update({ due_at: dueAt, status, updated_at: new Date().toISOString() }).eq('id', invoice.id)
+    if (dErr) return NextResponse.json({ error: dErr.message || 'Could not change the due date' }, { status: 500 })
+    await db.from('document_events').insert({
+      doc_type: 'invoice', doc_id: invoice.id, event: 'due_date_changed', actor: gate.user.id,
+      meta: { from: invoice.due_at, to: dueAt, status_from: invoice.status, status_to: status },
+    })
+    return NextResponse.json({ ok: true, due_at: dueAt, status })
   }
 
   // THE ORDER NUMBER it is raised against, printed on the invoice. Often only

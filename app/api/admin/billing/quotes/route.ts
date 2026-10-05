@@ -196,6 +196,36 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: LOCKED[quote.status] }, { status: 409 })
   }
 
+  // EXTEND IT. A quote that lapsed before the client got round to it is the
+  // ordinary case: same work, same price, they just need more time. This moves
+  // the date it stands until, and nothing else, so the accept link works again
+  // and the PDF prints the new date. Not a revision: what the client is asked
+  // to sign has not changed, and bumping the revision would turn their open
+  // page into a "this was updated, refresh" error for no reason. The old and
+  // new dates go on the record.
+  if (body.action === 'extend') {
+    if (quote.status === 'draft') {
+      return NextResponse.json({ error: 'A draft gets its valid-until date when it is issued.' }, { status: 409 })
+    }
+    const validUntil = typeof body.valid_until === 'string' ? body.valid_until.trim() : ''
+    const parsed = /^\d{4}-\d{2}-\d{2}$/.test(validUntil) ? new Date(validUntil + 'T00:00:00Z') : null
+    if (!parsed || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== validUntil) {
+      return NextResponse.json({ error: 'Choose a valid date.' }, { status: 400 })
+    }
+    if (validUntil < new Date().toISOString().slice(0, 10)) {
+      return NextResponse.json({ error: 'The new date has to be today or later, or the quote has lapsed again straight away.' }, { status: 400 })
+    }
+    const { data, error } = await db.from('quotes')
+      .update({ valid_until: validUntil, updated_at: new Date().toISOString() }).eq('id', quote.id)
+      .select('*').maybeSingle()
+    if (error) return NextResponse.json({ error: error.message || 'Could not extend it' }, { status: 500 })
+    await db.from('document_events').insert({
+      doc_type: 'quote', doc_id: quote.id, event: 'extended', actor: actor.userId,
+      meta: { from: quote.valid_until, to: validUntil, was_expired: isQuoteExpired(quote) },
+    })
+    return NextResponse.json({ quote: { ...data, display_status: quoteDisplayStatus(data) } })
+  }
+
   const { data: settings } = await db.from('billing_settings').select('*').eq('id', true).maybeSingle()
   const patch: Record<string, any> = { updated_at: new Date().toISOString() }
   if (body.client_id) patch.client_id = body.client_id

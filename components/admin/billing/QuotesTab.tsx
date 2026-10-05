@@ -59,6 +59,9 @@ export default function QuotesTab() {
   // staff only, so without this the first quote of every relationship is a
   // dead end.
   const [newClient, setNewClient] = useState<any | null>(null)
+  // Extending a quote that lapsed (or is about to): a new valid-until date,
+  // same lines and price. See the 'extend' action in the quotes route.
+  const [extending, setExtending] = useState<null | { quote: Quote; date: string }>(null)
 
   async function load() {
     setLoading(true)
@@ -194,6 +197,27 @@ export default function QuotesTab() {
     const data = await res.json().catch(() => ({}))
     if (!res.ok || data?.error) { toast.error(data?.error || 'Could not cancel'); return }
     toast.success('Cancelled'); load()
+  }
+
+  /** YYYY-MM-DD, n days from today. */
+  const daysFromToday = (n: number) => {
+    const d = new Date()
+    d.setUTCDate(d.getUTCDate() + n)
+    return d.toISOString().slice(0, 10)
+  }
+
+  async function extend() {
+    if (!extending) return
+    setBusy(true)
+    const res = await fetch('/api/admin/billing/quotes', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: extending.quote.id, action: 'extend', valid_until: extending.date }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setBusy(false)
+    if (!res.ok || data?.error) { toast.error(data?.error || 'Could not extend it'); return }
+    toast.success(`${extending.quote.number} now stands until ${data.quote.valid_until}. The accept link works again; copy it and send it to them.`, { duration: 8000 })
+    setExtending(null); load()
   }
 
   function copyLink(q: Quote) {
@@ -398,6 +422,40 @@ export default function QuotesTab() {
         </div>
       )}
 
+      {extending && (
+        <Section
+          title={`Extend ${extending.quote.number}`}
+          sub={`${extending.quote.client_name}. ${extending.quote.display_status === 'expired'
+            ? `It lapsed on ${fmtDate(extending.quote.valid_until)}.`
+            : `It stands until ${fmtDate(extending.quote.valid_until)}.`} The lines and price stay exactly as they are.`}
+          right={<button onClick={() => setExtending(null)}><X className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} /></button>}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <input type="date" className={inputClass} style={{ ...inputStyle, width: 170, colorScheme: 'dark' }}
+              min={daysFromToday(0)} value={extending.date}
+              onChange={e => setExtending({ ...extending, date: e.target.value })} />
+            {[7, 14, 30].map(n => (
+              <button key={n} type="button" onClick={() => setExtending({ ...extending, date: daysFromToday(n) })}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
+                style={{
+                  background: extending.date === daysFromToday(n) ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.05)',
+                  color: extending.date === daysFromToday(n) ? '#a855f7' : 'rgba(255,255,255,0.65)',
+                }}>
+                {n} days
+              </button>
+            ))}
+            <div className="flex-1" />
+            <button onClick={extend} disabled={busy || !extending.date}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
+              style={{ background: grad, color: '#fff' }}>
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}Extend quote
+            </button>
+          </div>
+          <p className="text-[11px] mt-2" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            The client&apos;s existing accept link works again straight away, and the PDF shows the new date.
+          </p>
+        </Section>
+      )}
+
       {quotes.length === 0 ? (
         <Empty>{filter === 'open' ? 'No open quotes.' : 'No quotes here.'}</Empty>
       ) : (
@@ -434,6 +492,18 @@ export default function QuotesTab() {
                       title="PDF" className="p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
                       <FileText className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.6)' }} />
                     </a>
+                  )}
+                  {/* Issued or sent, lapsed or not: give it more time. Loudest on
+                      an expired one, which can no longer be accepted at all. */}
+                  {q.number && ['issued', 'sent'].includes(q.status) && (
+                    <button onClick={() => { setExtending({ quote: q, date: daysFromToday(14) }); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                      title="Give it a new valid-until date"
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                      style={q.display_status === 'expired'
+                        ? { background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.4)' }
+                        : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.7)' }}>
+                      Extend
+                    </button>
                   )}
                   {q.display_status === 'accepted' && (
                     <button onClick={() => convert(q)}

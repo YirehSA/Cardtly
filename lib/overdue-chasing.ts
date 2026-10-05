@@ -66,11 +66,27 @@ export async function findOverdue(admin: any, today = new Date()): Promise<{
   // How many reminders have actually gone out. The event log is the record
   // rather than a counter column: a counter can drift, and "when did we last
   // chase them" is a question worth being able to answer exactly.
+  //
+  // Counted only since the due date last moved. A new due date is a new
+  // agreement (the client was given more time, or the invoice was corrected
+  // and resent), so the ladder starts again from it: the first time it is late
+  // against the NEW date earns a gentle nudge, not the final notice the old
+  // reminders had worked up to.
   const { data: events } = await admin
-    .from('document_events').select('doc_id, created_at')
-    .eq('doc_type', 'invoice').eq('event', 'reminder_sent').in('doc_id', ids)
+    .from('document_events').select('doc_id, event, created_at')
+    .eq('doc_type', 'invoice').in('event', ['reminder_sent', 'due_date_changed']).in('doc_id', ids)
+  const dueMovedAt: Record<string, string> = {}
+  for (const e of events || []) {
+    if (e.event === 'due_date_changed' && (!dueMovedAt[e.doc_id] || e.created_at > dueMovedAt[e.doc_id])) {
+      dueMovedAt[e.doc_id] = e.created_at
+    }
+  }
   const sentBy: Record<string, string[]> = {}
-  for (const e of events || []) (sentBy[e.doc_id] ||= []).push(e.created_at)
+  for (const e of events || []) {
+    if (e.event !== 'reminder_sent') continue
+    if (dueMovedAt[e.doc_id] && e.created_at <= dueMovedAt[e.doc_id]) continue
+    ;(sentBy[e.doc_id] ||= []).push(e.created_at)
+  }
 
   const { data: clients } = await admin.from('billing_clients').select('id, name, email')
   const clientById = Object.fromEntries((clients || []).map((c: any) => [c.id, c]))

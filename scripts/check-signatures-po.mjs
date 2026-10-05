@@ -155,6 +155,40 @@ else {
 if (!existsSync('app/po/[token]/page.tsx')) bad('the public signing page app/po/[token]/page.tsx is missing.')
 else if (!/robots: \{ index: false/.test(read('app/po/[token]/page.tsx'))) bad('the signing page can be indexed by search engines; its URL is its only security.')
 
+// ── 6. Bringing an overdue invoice or a lapsed quote back ───────────────────
+// A new due date (invoice) or valid-until date (quote) moves a DATE and
+// nothing else. The invoice's status is worked out again by the same rule as
+// the daily job, so it cannot be left reading Overdue, or be marked Sent when
+// nothing was sent. Reminders restart from the new date. A quote the client
+// has signed or declined is a decision, and is never extended.
+const dueBlock = inv.match(/if \(body\.action === 'set_due_date'\) \{[\s\S]*?\n  \}\n/)?.[0] || ''
+if (!dueBlock) bad('the invoice route has no set_due_date action, so an overdue invoice cannot be brought back.')
+else {
+  if (!/\['cancelled', 'written_off', 'credited', 'paid'\]\.includes\(invoice\.status\)/.test(dueBlock)) bad('set_due_date no longer refuses a paid, credited or cancelled invoice.')
+  if (!/if \(dueAt < today\)/.test(dueBlock)) bad('set_due_date accepts a date in the past, which leaves the invoice overdue.')
+  if (!/statusAfterPayment\(/.test(dueBlock)) bad('set_due_date no longer works the status out again, so a reactivated invoice can keep reading Overdue.')
+  if (!/nextStatus === 'sent' && invoice\.status === 'issued' \? 'issued'/.test(dueBlock)) bad('set_due_date can mark a never-emailed invoice as Sent.')
+  if (!/event: 'due_date_changed'/.test(dueBlock)) bad('set_due_date no longer records the old and new dates.')
+  if (/to_snapshot|total_cents:|number:/.test(dueBlock.replace(/invoice\.total_cents/g, '').replace(/v_number/g, ''))) bad('set_due_date writes more than the due date and status.')
+}
+const chasing = read('lib/overdue-chasing.ts')
+if (!/\.in\('event', \['reminder_sent', 'due_date_changed'\]\)/.test(chasing)
+  || !/if \(dueMovedAt\[e\.doc_id\] && e\.created_at <= dueMovedAt\[e\.doc_id\]\) continue/.test(chasing)) {
+  bad('overdue chasing counts reminders sent before the due date moved, so a reactivated invoice jumps straight to the final notice.')
+}
+const quotesRoute = read('app/api/admin/billing/quotes/route.ts')
+const extendAt = quotesRoute.indexOf("if (body.action === 'extend')")
+const lockedAt = quotesRoute.indexOf('if (LOCKED[quote.status])')
+if (extendAt < 0) bad('the quotes route has no extend action, so a lapsed quote cannot be given more time.')
+else {
+  if (lockedAt < 0 || lockedAt > extendAt) bad('quote extend runs before the signed/declined/cancelled lock, so a signed quote could be extended.')
+  const extendBlock = quotesRoute.slice(extendAt, quotesRoute.indexOf('\n  }\n', extendAt))
+  if (/revision/.test(extendBlock.replace(/\/\/.*$/gm, ''))) bad('quote extend bumps the revision, which turns the client\'s open accept page into a refresh error.')
+  if (!/\.update\(\{ valid_until: validUntil, updated_at:/.test(extendBlock)) bad('quote extend writes more than the valid-until date.')
+  if (!/event: 'extended'/.test(extendBlock)) bad('quote extend no longer records the old and new dates.')
+  if (!/if \(validUntil < new Date\(\)\.toISOString\(\)\.slice\(0, 10\)\)/.test(extendBlock)) bad('quote extend accepts a date in the past.')
+}
+
 if (fail) {
   console.error(`\ncheck-signatures-po: ${fail} failure(s).`)
   process.exit(1)

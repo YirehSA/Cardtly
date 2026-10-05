@@ -87,6 +87,7 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
       number: data.invoice.number,
       to_snapshot: data.invoice.to_snapshot || null,
       po_number: data.invoice.po_number || null,
+      due_at: data.invoice.due_at || null,
       signed_by: data.invoice.signed_by || [],
       lines: (data.lines || []).map((l: any) => ({
         description: l.description, qty: String(Number(l.qty)), unit_price_cents: toRands(l.unit_price_cents),
@@ -428,7 +429,7 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
               invoice={{
                 id: editing.id, number: editing.number || null, status: editing.status || 'draft',
                 to_snapshot: editing.to_snapshot || null, po_number: editing.po_number || null,
-                signed_by: editing.signed_by || [],
+                signed_by: editing.signed_by || [], due_at: editing.due_at || null,
               }}
               client={clients.find((c: any) => c.id === editing.client_id) || null}
               onChanged={() => { openDraft({ id: editing.id } as Invoice); load() }}
@@ -588,6 +589,12 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
                   {inv.due_at ? ` · due ${fmtDate(inv.due_at)}` : ''}
                   {inv.po_number ? ` · order ${inv.po_number}` : ''}
                 </p>
+                {/* Overdue: the way back is a new due date, in the invoice's view. */}
+                {inv.status === 'overdue' && (
+                  <button onClick={() => openDraft(inv)} className="text-[11px] font-semibold mt-0.5 mr-3" style={{ color: '#ef4444' }}>
+                    Give it a new due date
+                  </button>
+                )}
                 {/* The client's record was corrected after this went out, so the
                     invoice is still made out to the old details. View it to update. */}
                 {inv.status !== 'draft' && inv.status !== 'cancelled'

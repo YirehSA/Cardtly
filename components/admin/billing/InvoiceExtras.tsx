@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Loader2, RefreshCw, PenLine, Hash, ClipboardCheck, FileText, Link2, X, Ban } from 'lucide-react'
+import { Loader2, RefreshCw, PenLine, Hash, ClipboardCheck, FileText, Link2, X, Ban, CalendarClock } from 'lucide-react'
 import { inputClass, inputStyle, grad } from '../shared'
 import { recipientChanges } from '@/lib/billing-docs'
 import SignaturePad from '@/components/billing/SignaturePad'
@@ -40,6 +40,7 @@ export default function InvoiceExtras({
     id: string; number: string | null; status: string
     to_snapshot: Record<string, any> | null; po_number: string | null
     signed_by: { name: string; title: string | null; signedAt: string | null }[]
+    due_at?: string | null
   }
   client: Record<string, any> | null
   onChanged: () => void
@@ -55,6 +56,31 @@ export default function InvoiceExtras({
   const [newPo, setNewPo] = useState<null | { approver_role: string; approver_name: string; approver_email: string; buyer_reference: string }>(null)
   const [recording, setRecording] = useState<null | { id: string; number: string; signer_name: string; signer_title: string; png: string | null }>(null)
   const [busy, setBusy] = useState<string | null>(null)
+
+  // A new due date: how an overdue invoice comes back. Offered while there is
+  // still something owing; a paid, credited or cancelled invoice has nothing
+  // left to fall due.
+  const owing = issued && !['cancelled', 'written_off', 'credited', 'paid'].includes(invoice.status)
+  const daysFromToday = (n: number) => {
+    const d = new Date()
+    d.setUTCDate(d.getUTCDate() + n)
+    return d.toISOString().slice(0, 10)
+  }
+  const endOfThisMonth = (() => {
+    const d = new Date()
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).toISOString().slice(0, 10)
+  })()
+  const [dueDate, setDueDate] = useState(invoice.status === 'overdue' ? endOfThisMonth : (invoice.due_at || ''))
+  const daysLate = invoice.due_at
+    ? Math.floor((Date.parse(new Date().toISOString().slice(0, 10)) - Date.parse(String(invoice.due_at).slice(0, 10))) / 86400000)
+    : 0
+
+  async function saveDueDate() {
+    const d = await patchInvoice({ action: 'set_due_date', due_at: dueDate }, 'due')
+    if (!d) return
+    toast.success(`${invoice.number} is now due ${d.due_at} and reads ${d.status === 'overdue' ? 'Overdue' : d.status === 'issued' ? 'Issued' : 'Sent'}. Send it again so they have the new date.`, { duration: 8000 })
+    onChanged()
+  }
 
   useEffect(() => {
     fetch('/api/admin/billing/signatories').then(r => r.json()).then(d => setSignatories(d.signatories || [])).catch(() => setSignatories([]))
@@ -187,6 +213,49 @@ export default function InvoiceExtras({
         ) : (
           <p className="text-[11px]" style={muted}>Addressed to {invoice.to_snapshot?.name || 'the client'} exactly as on the client record.</p>
         )
+      )}
+
+      {/* ── Due date ───────────────────────────────────────────────────── */}
+      {owing && (
+        <div className="rounded-lg p-3" style={invoice.status === 'overdue'
+          ? { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)' }
+          : box}>
+          <p className={head} style={{ color: invoice.status === 'overdue' ? '#ef4444' : 'rgba(255,255,255,0.5)' }}>
+            <CalendarClock className="w-3.5 h-3.5" />
+            {invoice.status === 'overdue'
+              ? `Overdue by ${daysLate} day${daysLate === 1 ? '' : 's'} (was due ${String(invoice.due_at).slice(0, 10)})`
+              : `Due ${invoice.due_at ? String(invoice.due_at).slice(0, 10) : 'date not set'}`}
+          </p>
+          <p className="text-[11px] mt-1" style={muted}>
+            {invoice.status === 'overdue'
+              ? 'Give it a new due date to bring it back: it reads as current again, leaves the overdue list, and reminders start over from the new date. The amount and number do not change.'
+              : 'Agreed more time? Move the due date. The amount and number do not change.'}
+          </p>
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <input type="date" className={inputClass} style={{ ...inputStyle, width: 170, colorScheme: 'dark' }}
+              min={daysFromToday(0)} value={dueDate} onChange={e => setDueDate(e.target.value)} />
+            {[
+              { label: 'End of month', value: endOfThisMonth },
+              { label: '+7 days', value: daysFromToday(7) },
+              { label: '+14 days', value: daysFromToday(14) },
+              { label: '+30 days', value: daysFromToday(30) },
+            ].map(o => (
+              <button key={o.label} type="button" onClick={() => setDueDate(o.value)}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
+                style={{
+                  background: dueDate === o.value ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.05)',
+                  color: dueDate === o.value ? '#60a5fa' : 'rgba(255,255,255,0.65)',
+                }}>{o.label}</button>
+            ))}
+            <button onClick={saveDueDate}
+              disabled={busy === 'due' || !dueDate || dueDate === String(invoice.due_at || '').slice(0, 10)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40"
+              style={{ background: grad, color: '#fff' }}>
+              {busy === 'due' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CalendarClock className="w-3.5 h-3.5" />}
+              {invoice.status === 'overdue' ? 'Reactivate with this date' : 'Save due date'}
+            </button>
+          </div>
+        </div>
       )}
 
       <div className="grid sm:grid-cols-2 gap-3">
