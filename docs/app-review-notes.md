@@ -11,6 +11,14 @@ Keep this file updated rather than rewriting it each rejection. It is the
 answer to Guideline 2.1 "Information Needed", which is a documentation
 rejection, not a defect in the app.
 
+**Since 2026-09-30 the iOS app serves company teams only** (rejection 6,
+Guidelines 3.1.1 and 3.1.3(c); `iosAppAdmits` in `lib/app-platform.ts`). The
+primary demo account is now demo@cardtly.com, owner of the fictional "Demo
+Company (Pty) Ltd" team, and applereview@cardtly.com is the individual account
+that shows the company-teams screen. There is no registration in the app. The
+shot list further down predates this: steps 2 and 14 still hold, but the video
+it produced shows in-app registration, which no longer exists.
+
 ## Do this first
 
 Run `docs/demo-account-seed.sql` in the Supabase SQL editor before recording
@@ -28,25 +36,22 @@ CARDTLY - APP REVIEW INFORMATION
 
 1. DEMO ACCOUNTS
 
-Two accounts are provided because the app behaves differently at each
-subscription state, and a previous review asked to see the expired one.
+Two accounts are provided: one inside a company team, which the app serves,
+and one outside any team, which it does not.
 
-  Primary account - this is the account shown in the walkthrough video, so
-  what you see signing in matches what you see in the recording. Full access
-  to every feature.
-    Username: demo1@cardtly.com
+  Company team account - administrator of the demo team "Demo Company (Pty)
+  Ltd". Full access to every feature, including Team Cards.
+    Username: demo@cardtly.com
     Password: <<FILL IN>>
 
-  Expired account - subscription has lapsed. Provided so you can confirm that
-  the app never offers a way to pay outside the App Store at any point.
+  Individual account - not part of any company team. Provided so you can
+  confirm the app is not offered to individuals and never offers a way to pay.
     Username: applereview@cardtly.com
     Password: <<FILL IN>>
 
-  No other credentials, codes or sample files are needed. The primary account
-  is a live trial account with a finished card and a captured contact, and it
-  is the same account used throughout the video. The second account is
-  intentionally left in the lapsed state and is there only for the check
-  described in section 9.
+  No other credentials, codes or sample files are needed. The team account has
+  a finished card, captured contacts and a small team of fictional employees.
+  The individual account is there only for the check described in section 9.
 
 2. WHAT THE APP DOES AND WHO IT IS FOR
 
@@ -62,16 +67,19 @@ edited once and everyone who already has the link sees the new version. It
 also solves the other half, which paper never did - the sender finds out
 whether the card was opened at all, and keeps the recipient's details.
 
-Target audience: working professionals and sales teams, primarily in South
-Africa. Two kinds of customer - an individual with one card, and a company
-that issues a branded card to every employee and watches which of them are
-being used.
+Target audience of the iOS app: companies, primarily in South Africa, that
+issue a branded card to every employee and watch which of them are being used.
+Team administrators manage the company's cards in the app, and employees use
+the card their company provides. Companies buy Cardtly directly from us,
+outside the app. The app is not offered to individual consumers.
 
 3. HOW TO SET UP AND REACH THE MAIN FEATURES
 
-Sign in with the primary account above. Everything below is reachable from
-the dashboard immediately after signing in; nothing needs configuring first.
+Sign in with the company team account above. Everything below is reachable
+from the dashboard immediately after signing in; nothing needs configuring
+first.
 
+  - Team Cards - the company's employee cards, managed by the administrator
   - My Card - edit the card, change its design, colours and layout
   - Share - QR code, and the public link
   - Contacts - leads captured from the card, exportable
@@ -169,17 +177,22 @@ nothing is geo-restricted. The only regional element in the business is
 outside the app: the public website prices in South African rand, and the
 optional physical NFC card ships within South Africa.
 
-9. SUBSCRIPTIONS AND IN-APP PURCHASE
+9. ENTERPRISE SERVICES AND IN-APP PURCHASE (GUIDELINE 3.1.3(c))
 
-There is no purchase mechanism of any kind inside the iOS app, and no way to
-unlock a subscription from it. Every route that sells or that quotes a price
-is blocked for the app specifically, including the marketing pages, so a
-reviewer cannot reach a checkout, a price or a promotional code by navigating
-or by typing a URL. The expired demo account in section 1 is provided so this
-can be verified in the state where a prompt to pay would be most expected.
+Cardtly sells team plans directly to companies and organisations for their
+employees, on the website or by invoice, outside the app. The company is the
+customer and pays for every seat. The app serves only those organisations: it
+opens for team administrators and for employees whose card their company
+provides. Anyone else who signs in, such as the individual account in section
+1, sees a screen saying the app is for company teams, offering only sign-out
+and account deletion.
 
-Subscriptions are sold only on the website, in a browser, to customers who
-arrive there independently.
+There is no registration in the app: employees join through an invitation
+from their company. There is no purchase mechanism of any kind inside the app
+and no way to unlock anything from it. Every route that sells or quotes a
+price is blocked for the app specifically, including the marketing pages and
+the sign-up page, so a reviewer cannot reach a checkout, a price or a
+promotional code by navigating or by typing a URL.
 
 10. REGULATED INDUSTRY AND THIRD-PARTY MATERIAL
 
