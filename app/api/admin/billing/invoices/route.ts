@@ -4,6 +4,7 @@ import { applyPrepaidPeriod } from '@/lib/prepaid'
 import {
   documentTotals, effectiveVatRateBp, defaultDueDate, invoiceOutstanding,
   fromSnapshot, toSnapshot, bankSnapshot, lineTotalCents,
+  recipientChanges, signatureCopies,
   type DueRule, type DocLine,
 } from '@/lib/billing-docs'
 
@@ -22,6 +23,22 @@ import {
 export const runtime = 'nodejs'
 
 type LineIn = { description?: string; qty?: number | string; unit_price_cents?: number | string }
+
+/**
+ * An invoice as the screen needs it: who signed, without the images.
+ *
+ * A signature copy is a PNG of tens of kilobytes, and the list returns up to
+ * 300 invoices. Only the PDF needs the pictures; the screen needs the names.
+ */
+function forScreen(i: any) {
+  const { signatures, ...rest } = i || {}
+  return {
+    ...rest,
+    signed_by: Array.isArray(signatures)
+      ? signatures.map((x: any) => ({ name: x?.name, title: x?.title || null, signedAt: x?.signedAt || null }))
+      : [],
+  }
+}
 
 /** Lines as the client sent them, cleaned and priced. Rounding happens once,
  *  in lineTotalCents, so a stored line always matches what gets printed. */
@@ -53,7 +70,7 @@ export async function GET(request: Request) {
       .from('invoice_lines').select('*').eq('invoice_id', id).order('position')
     const { data: payments } = await db
       .from('billing_payments').select('*').eq('invoice_id', id).order('paid_on')
-    return NextResponse.json({ invoice, lines: lines || [], payments: payments || [] })
+    return NextResponse.json({ invoice: forScreen(invoice), lines: lines || [], payments: payments || [] })
   }
 
   let q = db.from('invoices').select('*').order('created_at', { ascending: false }).limit(300)
@@ -85,7 +102,7 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     invoices: (data || []).map((i: any) => ({
-      ...i,
+      ...forScreen(i),
       client_name: byId[i.client_id] || 'Unknown client',
       credited_cents: creditedBy[i.id] || 0,
       outstanding_cents: invoiceOutstanding(i.total_cents || 0, i.paid_cents || 0, creditedBy[i.id] || 0),
@@ -215,6 +232,77 @@ export async function PATCH(request: Request) {
     const result = invoice.status === 'paid' && prepaid.value ? await applyPrepaidPeriod(db, invoice.id) : null
     return NextResponse.json({ ok: true, prepaid_months: prepaid.value ?? null, applied: result })
   }
+  // CORRECT WHO IT IS ADDRESSED TO. An issued invoice keeps a copy of the
+  // client as they were when it was issued, so fixing a client's registered
+  // name, address or VAT number changes nothing already sent - and their
+  // accounts department will not pay an invoice made out wrongly. This copies
+  // the client's current details onto the invoice and nothing else: same
+  // number, same lines, same money. It goes through refresh_invoice_recipient
+  // (migration 092), the one door the database leaves open for it, which also
+  // records the old and new details in the invoice's history.
+  if (body.action === 'refresh_client') {
+    if (invoice.status === 'draft') {
+      return NextResponse.json({ error: 'A draft already shows the client as they are now.' }, { status: 409 })
+    }
+    if (invoice.status === 'cancelled') {
+      return NextResponse.json({ error: `Invoice ${invoice.number} is cancelled.` }, { status: 409 })
+    }
+    const { data: client } = await db.from('billing_clients').select('*').eq('id', invoice.client_id).maybeSingle()
+    if (!client) return NextResponse.json({ error: 'This invoice has no client to copy from.' }, { status: 400 })
+    const changed = recipientChanges(invoice.to_snapshot, client)
+    if (!changed.length) {
+      return NextResponse.json({ ok: true, changed: [], message: `${invoice.number} already shows the client's current details.` })
+    }
+    const { error: rErr } = await db.rpc('refresh_invoice_recipient', {
+      p_invoice_id: invoice.id, p_to: toSnapshot(client), p_actor: gate.user.id,
+    })
+    if (rErr) {
+      return NextResponse.json({
+        error: /refresh_invoice_recipient/.test(rErr.message || '')
+          ? 'Migration 092 has not been run yet, so issued invoices cannot be corrected.'
+          : rErr.message || 'Could not update the invoice',
+      }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true, changed })
+  }
+
+  // SIGN IT. Copies of the chosen signatures go onto the invoice, so replacing
+  // a signature later does not alter what this one shows. Not one of the
+  // frozen fields, so an invoice already issued can be signed (or unsigned).
+  if (body.action === 'sign') {
+    if (invoice.status === 'cancelled') {
+      return NextResponse.json({ error: `Invoice ${invoice.number} is cancelled.` }, { status: 409 })
+    }
+    const ids: string[] = Array.isArray(body.signatory_ids) ? body.signatory_ids.filter((x: unknown) => typeof x === 'string') : []
+    let copies: ReturnType<typeof signatureCopies> = []
+    if (ids.length) {
+      const { data: people, error: pErr } = await db.from('billing_signatories').select('*').in('id', ids).order('position')
+      if (pErr) return migrationMissing('Signatures')
+      copies = signatureCopies(people || [], new Date())
+    }
+    const { error: sErr } = await db.from('invoices')
+      .update({ signatures: copies.length ? copies : null, updated_at: new Date().toISOString() }).eq('id', invoice.id)
+    if (sErr) return NextResponse.json({ error: sErr.message || 'Could not sign it' }, { status: 500 })
+    await db.from('document_events').insert({
+      doc_type: 'invoice', doc_id: invoice.id, event: copies.length ? 'signed' : 'unsigned', actor: gate.user.id,
+      meta: { by: copies.map(c => c.name) },
+    })
+    return NextResponse.json({ ok: true, signatures: copies.map(c => ({ name: c.name, title: c.title, signedAt: c.signedAt })) })
+  }
+
+  // THE ORDER NUMBER it is raised against, printed on the invoice. Often only
+  // arrives after the invoice has gone out, so it may be set at any time.
+  if (body.action === 'set_po_number') {
+    const po = typeof body.po_number === 'string' ? body.po_number.trim().slice(0, 80) || null : null
+    const { error: pErr } = await db.from('invoices')
+      .update({ po_number: po, updated_at: new Date().toISOString() }).eq('id', invoice.id)
+    if (pErr) return NextResponse.json({ error: pErr.message || 'Could not save the order number' }, { status: 500 })
+    await db.from('document_events').insert({
+      doc_type: 'invoice', doc_id: invoice.id, event: 'po_number_set', actor: gate.user.id, meta: { po_number: po },
+    })
+    return NextResponse.json({ ok: true, po_number: po })
+  }
+
   if (body.action === 'cancel') {
     if (invoice.paid_cents > 0) {
       return NextResponse.json({
@@ -304,7 +392,23 @@ async function issue(db: any, invoice: any, actor: string) {
   const rule = (settings?.invoice_due_rule as DueRule) || 'end_of_month'
   const dueAt = defaultDueDate(rule, issuedAt, Number(settings?.payment_terms_days ?? 14))
 
+  // Signed by whoever signs invoices by default, unless somebody already chose
+  // who signs this one. Read tolerantly: before migration 092 there is no
+  // signatories table, and issuing must not fail over a signature.
+  let signatures: ReturnType<typeof signatureCopies> | null = null
+  if (!Array.isArray(invoice.signatures) || !invoice.signatures.length) {
+    try {
+      const { data: people, error: pErr } = await db
+        .from('billing_signatories').select('*').eq('sign_invoices', true).order('position')
+      if (!pErr && people?.length) {
+        const copies = signatureCopies(people, issuedAt)
+        if (copies.length) signatures = copies
+      }
+    } catch { /* unsigned is better than unissued */ }
+  }
+
   const { data, error } = await db.from('invoices').update({
+    ...(signatures ? { signatures } : {}),
     number,
     status: 'issued',
     issued_at: issuedAt.toISOString(),

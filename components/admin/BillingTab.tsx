@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import { Loader2, Save, FileText, Landmark, Building2, Receipt, ScrollText, AlertTriangle } from 'lucide-react'
 import { Section, inputClass, inputStyle, grad } from './shared'
+import SignatoriesSection from './billing/SignatoriesSection'
 
 // Who Cardtly is on a quote or an invoice, and the terms it promises.
 //
@@ -268,6 +269,8 @@ export default function BillingTab() {
           </span>
         </label>
       </Section>
+
+      <SignatoriesSection />
 
       <Section
         title="Terms and conditions"

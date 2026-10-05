@@ -47,6 +47,33 @@ export interface DocView {
   terms?: string | null
 
   /**
+   * The purchase order an invoice is raised against, printed under the number.
+   * On a purchase order itself: the client's own order number, when their
+   * system issues one.
+   */
+  poNumber?: string | null
+  /** A purchase order's source document, e.g. "Invoice INV-2026-1001". */
+  reference?: string | null
+
+  /**
+   * Signed for the party issuing the document (Cardtly). Copies taken when it
+   * was signed, so they render the same however the signatures change later.
+   */
+  signatures?: Array<{ name: string; title?: string | null; png: string; signedAt?: string | null }> | null
+
+  /**
+   * A purchase order's approval by the buyer: the department manager who signs
+   * it. Unsigned, the block prints empty lines to sign by hand.
+   */
+  approval?: {
+    role: string
+    name?: string | null
+    title?: string | null
+    png?: string | null
+    signedAt?: string | null
+  } | null
+
+  /**
    * The stationery, as opposed to the document.
    *
    * Deliberately separate from `from`. Everything in `from` is snapshotted onto
@@ -165,6 +192,17 @@ const s: Record<string, Style> = {
   // Anchored to the page edge, not the content margin: on the letterhead it
   // bleeds into the corner, and insetting it would read as a mistake.
   swoosh: { position: 'absolute', right: 0, bottom: 0, width: 100, height: 71 },
+
+  // Signatures. A fixed box for the image, so a wide signature and a short one
+  // sit on the same line, and the rule under it is where a pen would go on an
+  // unsigned purchase order.
+  sigSection: { marginTop: 24 },
+  sigRow: { flexDirection: 'row', flexWrap: 'wrap' },
+  sigBlock: { width: 168, marginRight: 22, marginTop: 6 },
+  sigImage: { width: 150, height: 46, objectFit: 'contain' },
+  sigBlank: { width: 150, height: 46 },
+  sigRule: { borderTopWidth: 1, borderTopColor: INK, width: 160, marginTop: 2, marginBottom: 5 },
+  sigMeta: { fontSize: 8, color: MUTED, lineHeight: 1.45 },
 }
 
 const dateOf = (iso: string | null | undefined) =>
@@ -175,11 +213,65 @@ const dateOf = (iso: string | null | undefined) =>
 const optional = (value: string | null | undefined, style: Style | Style[] = s.line, prefix = '') =>
   value ? text({ style }, `${prefix}${value}`) : null
 
+/**
+ * One signature: the image (or the space a pen needs), a rule, then who and
+ * when. Unsigned, it prints labelled blanks to fill in by hand, which is how a
+ * purchase order still works for a manager who will only sign on paper.
+ */
+function signatureBlock(o: { png?: string | null; name?: string | null; title?: string | null; date?: string | null }): PdfNode {
+  return view({ style: s.sigBlock, wrap: false },
+    o.png ? image({ style: s.sigImage, src: o.png }) : view({ style: s.sigBlank }),
+    view({ style: s.sigRule }),
+    text({ style: [s.line, s.strong] }, o.name || 'Name:'),
+    o.title ? text({ style: s.sigMeta }, o.title) : null,
+    text({ style: s.sigMeta }, o.date ? `Date ${dateOf(o.date)}` : 'Date:'),
+  )
+}
+
 export function invoiceDocument(d: DocView): PdfNode {
   const title = documentTitle(d.kind, d.from.vatNumber)
   const money = (c: number) => formatMoney(c, d.currency)
   const showVat = d.vatRateBp > 0
   const outstanding = d.totalCents - (d.paidCents || 0)
+  const isPO = d.kind === 'purchase_order'
+  const issuer = d.from.tradingName || d.from.legalName
+  const signatures = (d.signatures || []).filter(x => x && x.png)
+
+  // Who signs, and where.
+  //
+  // A purchase order needs the buyer's approval above all: that signature is
+  // what the client's accounts department pays against, so its block is
+  // always printed, signed or blank. An invoice prints Cardtly's signatures
+  // only when it has been signed; an empty "signed for" block on an invoice
+  // reads as one somebody forgot to sign.
+  const signatureSection = isPO
+    ? view({ style: s.sigSection, wrap: false },
+        view({ style: s.row },
+          view({ style: s.block },
+            text({ style: s.label }, `APPROVED BY THE BUYER (${(d.approval?.role || 'Department Manager').toUpperCase()})`),
+            signatureBlock({
+              png: d.approval?.png,
+              name: d.approval?.name,
+              title: d.approval?.title || d.approval?.role || 'Department Manager',
+              date: d.approval?.signedAt,
+            }),
+          ),
+          view({ style: s.block },
+            text({ style: s.label }, `ACCEPTED FOR ${issuer.toUpperCase()}`),
+            signatures.length
+              ? signatures.map(x => signatureBlock({ png: x.png, name: x.name, title: x.title, date: x.signedAt }))
+              : signatureBlock({}),
+          ),
+        ),
+      )
+    : signatures.length
+      ? view({ style: s.sigSection, wrap: false },
+          text({ style: s.label }, `SIGNED FOR ${issuer.toUpperCase()}`),
+          view({ style: s.sigRow },
+            signatures.map(x => signatureBlock({ png: x.png, name: x.name, title: x.title, date: x.signedAt })),
+          ),
+        )
+      : null
 
   const footerText = [
     d.from.legalName,
@@ -205,10 +297,15 @@ export function invoiceDocument(d: DocView): PdfNode {
           // A draft says so. A preview or an unapproved recurring invoice that
           // looks numbered is one somebody eventually emails to a client.
           text({ style: s.meta }, d.number || 'DRAFT'),
-          optional(d.issuedAt ? dateOf(d.issuedAt) : null, s.meta, 'Issued '),
+          optional(d.issuedAt ? dateOf(d.issuedAt) : null, s.meta, isPO ? 'Date ' : 'Issued '),
           d.kind === 'quote'
             ? optional(d.validUntil ? dateOf(d.validUntil) : null, s.meta, 'Valid until ')
-            : optional(d.dueAt ? dateOf(d.dueAt) : null, s.meta, 'Due '),
+            : isPO ? null : optional(d.dueAt ? dateOf(d.dueAt) : null, s.meta, 'Due '),
+          // The order an invoice is raised against is how the client's
+          // accounts department matches it before paying. On a purchase order
+          // the same field is the client's own order number.
+          optional(d.poNumber, s.meta, isPO ? 'Your ref. ' : 'Order no. '),
+          isPO ? optional(d.reference, s.meta, 'Re. ') : null,
         ),
       ),
 
@@ -217,7 +314,7 @@ export function invoiceDocument(d: DocView): PdfNode {
       // ── Who, and to whom ────────────────────────────────────────────────
       view({ style: s.row },
         view({ style: s.block },
-          text({ style: s.label }, 'FROM'),
+          text({ style: s.label }, isPO ? 'SUPPLIER' : 'FROM'),
           text({ style: [s.line, s.strong] }, d.from.legalName),
           optional(d.from.regNumber, s.line, 'Reg. No. '),
           // Printed only when there is one. A business that is not registered
@@ -229,7 +326,7 @@ export function invoiceDocument(d: DocView): PdfNode {
           optional(d.from.website),
         ),
         view({ style: s.block },
-          text({ style: s.label }, d.kind === 'quote' ? 'QUOTE FOR' : 'BILL TO'),
+          text({ style: s.label }, d.kind === 'quote' ? 'QUOTE FOR' : isPO ? 'ORDERED BY' : 'BILL TO'),
           text({ style: [s.line, s.strong] }, d.to.name),
           optional(d.to.contactPerson),
           optional(d.to.address),
@@ -304,11 +401,13 @@ export function invoiceDocument(d: DocView): PdfNode {
         // anybody guessing. Not on a quote: there is nothing to pay yet, and
         // a quote number used as a payment reference is a payment nothing can
         // be matched to.
-        d.number && d.kind !== 'quote'
+        d.number && d.kind !== 'quote' && !isPO
           ? text({ style: [s.line, s.strong, { marginTop: 6 }] },
               `Please use ${paymentReference(d.number)} as your payment reference.`)
           : null,
       ) : null,
+
+      signatureSection,
 
       // `break` starts a fresh page. Terms belong on one of their own: on a
       // quote they are what the client is being asked to agree to, and squeezed

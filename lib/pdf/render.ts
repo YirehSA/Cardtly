@@ -37,7 +37,10 @@ export async function renderDocumentPdf(d: DocView): Promise<Buffer> {
 
 /** Filename a client sees when they save the attachment. */
 export function pdfFilename(d: DocView): string {
-  const kind = d.kind === 'credit_note' ? 'Credit-Note' : d.kind === 'quote' ? 'Quote' : 'Invoice'
+  const kind = d.kind === 'credit_note' ? 'Credit-Note'
+    : d.kind === 'quote' ? 'Quote'
+    : d.kind === 'purchase_order' ? 'Purchase-Order'
+    : 'Invoice'
   return `Cardtly-${kind}-${d.number || 'DRAFT'}.pdf`
 }
 

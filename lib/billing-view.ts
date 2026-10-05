@@ -119,6 +119,49 @@ export function docViewFromInvoice(
     to: to as DocView['to'],
     bank,
     terms: invoice.terms_snapshot || null,
+    // Both read off the row, like everything else: the signatures are the
+    // copies taken when it was signed, and the order number is the one the
+    // client gave us.
+    signatures: Array.isArray(invoice.signatures) ? invoice.signatures : null,
+    poNumber: invoice.po_number || null,
+  }
+}
+
+/**
+ * A purchase order as a printable document.
+ *
+ * Cardtly drafts it for the client, so the supplier is Cardtly and the buyer
+ * is the client - both copied onto the row when it was raised. No banking and
+ * no terms: a purchase order authorises a purchase, it does not ask for money.
+ */
+export function docViewFromPurchaseOrder(po: Row, lines: Row[]): DocView {
+  return {
+    kind: 'purchase_order',
+    number: po.number || null,
+    issuedAt: po.issued_at || null,
+    dueAt: null,
+    currency: po.currency || 'ZAR',
+    subtotalCents: toNum(po.subtotal_cents),
+    vatRateBp: toNum(po.vat_rate_bp),
+    vatCents: toNum(po.vat_cents),
+    totalCents: toNum(po.total_cents),
+    paidCents: 0,
+    notes: po.notes || null,
+    lines: linesOf(lines),
+    from: { ...(po.supplier_snapshot || { legalName: 'Cardtly' }) } as DocView['from'],
+    to: { ...(po.buyer_snapshot || { name: 'No client' }) } as DocView['to'],
+    bank: null,
+    terms: null,
+    poNumber: po.buyer_reference || null,
+    reference: po.source_label || null,
+    signatures: Array.isArray(po.supplier_signatures) ? po.supplier_signatures : null,
+    approval: {
+      role: po.approver_role || 'Department Manager',
+      name: po.signer_name || po.approver_name || null,
+      title: po.signer_title || po.approver_role || 'Department Manager',
+      png: po.signature_png || null,
+      signedAt: po.signed_at || null,
+    },
   }
 }
 

@@ -10,7 +10,7 @@
 //
 // Relative imports only - see lib/team-locks for why.
 
-export type DocKind = 'quote' | 'invoice' | 'credit_note'
+export type DocKind = 'quote' | 'invoice' | 'credit_note' | 'purchase_order'
 
 export interface DocLine {
   description: string
@@ -73,6 +73,7 @@ export function documentTotals(lines: DocLine[], vatRateBp: number): DocTotals {
 export function documentTitle(kind: DocKind, vatNumber: string | null | undefined): string {
   const registered = !!(vatNumber && vatNumber.trim())
   if (kind === 'quote') return 'QUOTATION'
+  if (kind === 'purchase_order') return 'PURCHASE ORDER'
   if (kind === 'credit_note') return registered ? 'TAX CREDIT NOTE' : 'CREDIT NOTE'
   return registered ? 'TAX INVOICE' : 'INVOICE'
 }
@@ -577,6 +578,69 @@ export function bankSnapshot(s: BillingSettingsLike) {
     accountType: s.bank_account_type || null,
     swift: s.bank_swift || null,
   }
+}
+
+/**
+ * Has the client's record moved on since this document was addressed?
+ *
+ * An issued invoice keeps its own copy of who it went to, so correcting a
+ * client's registered name or VAT number changes nothing already issued. This
+ * says which fields differ, in words, so the screen can offer to correct the
+ * invoice and say exactly what the correction will change.
+ */
+export function recipientChanges(snapshot: Record<string, any> | null | undefined, client: ClientLike | null | undefined): string[] {
+  if (!snapshot || !client) return []
+  const now = toSnapshot(client) as Record<string, any>
+  const LABELS: Record<string, string> = {
+    name: 'name', contactPerson: 'contact person', email: 'email',
+    phone: 'phone', address: 'address', vatNumber: 'VAT number',
+  }
+  const norm = (v: unknown) => String(v ?? '').trim()
+  return Object.keys(LABELS).filter(k => norm(snapshot[k]) !== norm(now[k])).map(k => LABELS[k])
+}
+
+/**
+ * A signature image: a PNG data URL, small enough to sit in a PDF.
+ *
+ * Signatures are stored and copied as data URLs rather than links on purpose.
+ * A signature that can be fetched by URL can be pasted onto anybody's
+ * document; one that lives only inside the billing tables and the PDFs they
+ * render cannot be picked up from anywhere.
+ */
+export const SIGNATURE_MAX_CHARS = 400_000
+
+export function isSignaturePng(v: unknown): v is string {
+  return typeof v === 'string'
+    && v.length <= SIGNATURE_MAX_CHARS
+    && /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(v)
+}
+
+export interface SignatureCopy {
+  name: string
+  title: string | null
+  png: string
+  signedAt: string
+}
+
+/**
+ * The signatures copied onto a document.
+ *
+ * A copy, like the client and the bank details: replacing Andre's signature
+ * next year must not change what last year's invoices show. Anybody without a
+ * name or a valid image is left off rather than printed as an empty block.
+ */
+export function signatureCopies(
+  signatories: Array<{ name?: string | null; title?: string | null; signature_png?: string | null }>,
+  at: Date,
+): SignatureCopy[] {
+  return (signatories || [])
+    .filter(s => !!(s.name && s.name.trim()) && isSignaturePng(s.signature_png))
+    .map(s => ({
+      name: String(s.name).trim(),
+      title: s.title?.trim() || null,
+      png: s.signature_png as string,
+      signedAt: at.toISOString(),
+    }))
 }
 
 /** The reference a client should use when paying. The document number is the

@@ -6,6 +6,8 @@ import { Loader2, Plus, Save, X, FileText, Send, Trash2, Lock, Mail, Undo2 } fro
 import { Section, inputClass, inputStyle, grad } from '../shared'
 import { money, toCents, toRands, StatusPill, Empty, fmtDate } from './shared'
 import OverdueQueue from './OverdueQueue'
+import InvoiceExtras from './InvoiceExtras'
+import { recipientChanges } from '@/lib/billing-docs'
 
 // Invoices: draft, edit, issue.
 //
@@ -18,6 +20,8 @@ type Invoice = {
   client_name: string; issued_at: string | null; due_at: string | null
   total_cents: number; paid_cents: number; outstanding_cents: number
   credited_cents: number
+  to_snapshot?: Record<string, any> | null
+  po_number?: string | null
 }
 type Line = { description: string; qty: string; unit_price_cents: string }
 
@@ -81,6 +85,9 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
       prepaid_applied_at: data.invoice.prepaid_applied_at || null,
       status: data.invoice.status,
       number: data.invoice.number,
+      to_snapshot: data.invoice.to_snapshot || null,
+      po_number: data.invoice.po_number || null,
+      signed_by: data.invoice.signed_by || [],
       lines: (data.lines || []).map((l: any) => ({
         description: l.description, qty: String(Number(l.qty)), unit_price_cents: toRands(l.unit_price_cents),
       })),
@@ -299,8 +306,9 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
             <div className="flex items-start gap-2 rounded-lg p-3 text-xs mb-4"
               style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.35)', color: 'rgba(255,255,255,0.75)' }}>
               <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#a855f7' }} />
-              <div>This invoice has been issued, so it cannot be changed. Correcting it means raising a credit note,
-                which leaves both documents on the books and is what an auditor expects to see.</div>
+              <div>This invoice has been issued, so its lines and amounts cannot be changed. Correcting those means raising a
+                credit note, which leaves both documents on the books and is what an auditor expects to see. The client&apos;s
+                details, the signatures and the order number can still be updated below.</div>
             </div>
           ) : null}
 
@@ -413,6 +421,19 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
               disabled={!!editing.status && editing.status !== 'draft'}
               onChange={e => setEditing({ ...editing, notes: e.target.value })} />
           </label>
+
+          {editing.id && (
+            <InvoiceExtras
+              key={editing.id}
+              invoice={{
+                id: editing.id, number: editing.number || null, status: editing.status || 'draft',
+                to_snapshot: editing.to_snapshot || null, po_number: editing.po_number || null,
+                signed_by: editing.signed_by || [],
+              }}
+              client={clients.find((c: any) => c.id === editing.client_id) || null}
+              onChanged={() => { openDraft({ id: editing.id } as Invoice); load() }}
+            />
+          )}
 
           <div className="flex justify-end gap-2 mt-4 flex-wrap">
             {editing.id && (
@@ -565,7 +586,16 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>
                   {inv.issued_at ? `Issued ${fmtDate(inv.issued_at)}` : 'Not issued'}
                   {inv.due_at ? ` · due ${fmtDate(inv.due_at)}` : ''}
+                  {inv.po_number ? ` · order ${inv.po_number}` : ''}
                 </p>
+                {/* The client's record was corrected after this went out, so the
+                    invoice is still made out to the old details. View it to update. */}
+                {inv.status !== 'draft' && inv.status !== 'cancelled'
+                  && recipientChanges(inv.to_snapshot, clients.find((c: any) => c.id === inv.client_id)).length > 0 && (
+                  <button onClick={() => openDraft(inv)} className="text-[11px] font-semibold mt-0.5" style={{ color: '#f59e0b' }}>
+                    Client details changed since issue. Update
+                  </button>
+                )}
               </div>
               <div className="text-right w-32">
                 <p className="text-sm font-bold text-white">{money(inv.total_cents)}</p>

@@ -200,6 +200,53 @@ const printed = (view) => textOf(D.invoiceDocument(view)).join('\n')
   if (!t.includes('Cardtly (Pty) Ltd')) bad('the legal name must always print')
 }
 
+// ── Signatures and order numbers (migration 092) ──────────────────────────
+// A signed invoice shows who signed it for Cardtly, with the image; an
+// unsigned one prints no empty "signed for" block; the order number an
+// invoice is raised against prints with it.
+const PNG = 'data:image/png;base64,iVBORw0KGgo='
+const imagesOf = (node, acc = []) => {
+  if (!node) return acc
+  if (node.type === 'IMAGE') acc.push(node.props?.src)
+  for (const c of node.children || []) imagesOf(c, acc)
+  return acc
+}
+{
+  const signed = { ...BASE, kind: 'invoice', poNumber: 'PO-2026-1001',
+    signatures: [{ name: 'Andre Nel', title: 'Director', png: PNG, signedAt: '2026-10-05T08:00:00Z' }] }
+  const t = printed(signed)
+  if (!t.includes('SIGNED FOR CARDTLY')) bad('a signed invoice must say who signed it for Cardtly')
+  if (!t.includes('Andre Nel') || !t.includes('Director')) bad('a signature must print its name and position')
+  if (!imagesOf(D.invoiceDocument(signed)).includes(PNG)) bad('a signed invoice must carry the signature image')
+  if (!t.includes('Order no. PO-2026-1001')) bad('the purchase order number must print on the invoice')
+  const unsigned = printed({ ...BASE, kind: 'invoice' })
+  if (unsigned.includes('SIGNED FOR')) bad('an unsigned invoice must not print an empty signature block')
+  if (unsigned.includes('Order no.')) bad('"Order no." printed with no order number')
+}
+
+// ── A purchase order ──────────────────────────────────────────────────────
+// It authorises a purchase; it does not ask for money. So: its own heading,
+// the buyer's approval block always present (blank to sign by hand when
+// unsigned), and no banking or payment reference.
+{
+  const po = {
+    // BASE's due date left in on purpose: a purchase order must not print one
+    // even when the view carries it.
+    ...BASE, kind: 'purchase_order', number: 'PO-2026-1001', bank: null,
+    poNumber: 'JET-4471', reference: 'Invoice INV-2026-1001',
+    approval: { role: 'Department Manager', name: null, title: null, png: null, signedAt: null },
+  }
+  const t = printed(po)
+  for (const m of ['PURCHASE ORDER', 'PO-2026-1001', 'SUPPLIER', 'ORDERED BY', 'APPROVED BY THE BUYER (DEPARTMENT MANAGER)', 'Your ref. JET-4471', 'Re. Invoice INV-2026-1001', 'Date:']) {
+    if (!t.includes(m)) bad(`a purchase order is missing "${m}"`)
+  }
+  for (const m of ['BANKING DETAILS', 'payment reference', 'Due ', 'BILL TO']) {
+    if (t.includes(m)) bad(`a purchase order must not print "${m}"`)
+  }
+  const signedPo = printed({ ...po, approval: { role: 'Department Manager', name: 'Thandi Mokoena', title: 'Department Manager', png: PNG, signedAt: '2026-10-06T09:00:00Z' } })
+  if (!signedPo.includes('Thandi Mokoena') || !signedPo.includes('Date 2026-10-06')) bad('a signed purchase order must print who approved it and when')
+}
+
 // ── A draft says so ───────────────────────────────────────────────────────
 {
   const t = printed({ ...BASE, kind: 'invoice', number: null })

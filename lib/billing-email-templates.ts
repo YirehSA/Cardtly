@@ -334,3 +334,58 @@ export function renderQuoteAcceptedEmail({
     </div>`,
   }
 }
+
+// ── When a client's manager approves a purchase order ─────────────────────
+
+export interface PurchaseOrderSignedInput {
+  number: string
+  clientName: string
+  signerName: string
+  signerTitle: string | null
+  signerEmail: string
+  signedAt: string
+  totalFormatted: string
+  reference: string | null
+  ip?: string | null
+}
+
+/**
+ * The email that says a client's manager signed our purchase order.
+ *
+ * Internal, like the quote one, and for the same reason it carries the
+ * evidence: the moment worth capturing is the moment it happens. The next step
+ * is to send the signed PDF to the client's accounts department with the
+ * invoice it authorises.
+ */
+export function renderPurchaseOrderSignedEmail({
+  number, clientName, signerName, signerTitle, signerEmail, signedAt, totalFormatted, reference, ip,
+}: PurchaseOrderSignedInput): { subject: string; html: string } {
+  const rows: [string, string][] = [
+    ['Purchase order', number],
+    ...(reference ? [['For', reference] as [string, string]] : []),
+    ['Client', clientName],
+    ['Signed by', signerName + (signerTitle ? `, ${signerTitle}` : '') + ' (' + signerEmail + ')'],
+    ['Value', totalFormatted],
+    ['When', signedAt.replace('T', ' ').slice(0, 19) + ' UTC'],
+    ...(ip ? [['From', ip] as [string, string]] : []),
+  ]
+
+  return {
+    subject: `Purchase order signed: ${number} by ${clientName} (${totalFormatted})`,
+    html: `<div style="font-family:system-ui,-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;color:#111827">
+      <p style="font-size:12px;letter-spacing:1px;color:#059669;font-weight:700;margin:0 0 6px">PURCHASE ORDER SIGNED</p>
+      <h1 style="font-size:21px;margin:0 0 4px;color:#111827">${escapeHtml(clientName)} approved ${escapeHtml(number)}</h1>
+      <p style="color:#4B5563;font-size:14px;margin:0 0 20px">
+        Download the signed PDF from Accounting, Invoices, and send it to their accounts department with the invoice.
+      </p>
+      <table style="border-collapse:collapse;margin:0 0 8px">
+        ${rows.map(([k, v]) =>
+          `<tr><td style="color:#6B7280;font-size:13px;padding:3px 14px 3px 0;vertical-align:top">${escapeHtml(k)}</td>` +
+          `<td style="font-size:13px;font-weight:600;color:#111827">${escapeHtml(v)}</td></tr>`).join('')}
+      </table>
+      <p style="color:#9CA3AF;font-size:12px;margin:22px 0 0;border-top:1px solid #E5E7EB;padding-top:14px">
+        Sent automatically when the purchase order was signed on its approval page.
+      </p>
+    </div>`,
+  }
+}
