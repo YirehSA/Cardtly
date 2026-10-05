@@ -797,10 +797,15 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           already hold above 4.5:1, and the accent is left carrying only the
           rule, where the requirement is 3:1 for a non-text indicator. */}
       <div className="flex gap-6 border-b border-border overflow-x-auto">
+        {/* No Billing tab in the iOS app. Everything on it is a price or a way
+            to pay ("5 seats · R485/month", Manage billing, Upgrade seat plan),
+            and the tab used to show the plan summary there because only the
+            seat upgrade was gated. Hiding the tab is the gate that cannot be
+            half done. check-iap holds it. */}
         {([
           ['people', 'People', Users, cards.length || null],
           ['integrations', 'Integrations', Network, null],
-          ['billing', 'Billing', CreditCard, null],
+          ...(iosApp ? [] : [['billing', 'Billing', CreditCard, null] as const]),
         ] as const).map(([id, label, Icon, count]) => {
           const active = tab === id
           return (
@@ -855,7 +860,11 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
       {seatsTotal > 0 && seatsAvailable === 0 && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-sm text-amber-600 flex items-center gap-2">
           <Users className="w-4 h-4 flex-shrink-0" />
-          All {seatsTotal} seats are in use. Add more seats to create additional cards.
+          {/* In the app this states the fact and stops: adding seats is a
+              purchase, and the app offers none (Guideline 3.1.1). */}
+          {iosApp
+            ? `All ${seatsTotal} seats are in use.`
+            : `All ${seatsTotal} seats are in use. Add more seats to create additional cards.`}
         </div>
       )}
 
@@ -1321,8 +1330,8 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
         </div>
       )}
 
-      {/* Plan summary */}
-      {tab === 'billing' && (
+      {/* Plan summary. Quotes the monthly price, so never in the iOS app. */}
+      {tab === 'billing' && !iosApp && (
       <div className="bg-card border border-border rounded-lg p-5 flex items-center justify-between flex-wrap gap-4">
         <div className="text-sm">
           <p className="font-semibold">{org.name} · Team plan</p>
