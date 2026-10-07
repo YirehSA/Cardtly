@@ -380,7 +380,15 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
     // who did not look. Sending everything and letting the server strip it is
     // both simpler and the only version that is true.
     const payload: Record<string, any> = { ...form }
+    // The design goes too whenever this person was shown the Design tab: the
+    // admin always, and a member when the company has not locked design. It
+    // used to go for admins only, so a member could open Design (shown to them
+    // since the locks were wired), change it - the Company name switch, a
+    // colour - and have it silently dropped on save. Only when touched, so an
+    // untouched card is not rewritten with its defaults spelled out. The
+    // server still strips color_theme from a member if design is locked.
     if (isAdmin) payload.color_theme = serializeDesign(design)
+    else if (!designLocked && designTouched) payload.color_theme = serializeDesign(design)
 
     const res = await fetch('/api/team/card/save', {
       method: 'POST',
