@@ -1514,6 +1514,12 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
   const design = parseDesign(card.color_theme)
   const font = FONTS[design.fontId]
   const bg = getBgColors(design.bgMode, design.templateId, design.customBgColor)
+  // The company NAME as the card shows it. The cardholder can switch it off
+  // (Design, Profile, Company name) when their logo already says it. Display
+  // only: the saved contact, the share text, the booking form and the lead
+  // capture below still use card.company, because it is still who they work
+  // for. scripts/check-company-toggle.mjs keeps every template on this.
+  const shownCompany = design.showCompany === false ? null : card.company
   // ── Cardtly Context ──────────────────────────────────────────────────
   //
   // Resolved AFTER MOUNT, on the client, deliberately. The server renders the
@@ -1874,8 +1880,8 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               {/* Set in small caps whether or not there is a title above it.
                   On a free card there is no title, and a plain grey company
                   line under the name was the whole of the type hierarchy. */}
-              {card.company && (
-                <p className="mt-1.5" style={{ color: getCompanyColor(design, bg.subtext), fontSize: calcCompanySize(12, design), fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{card.company}</p>
+              {shownCompany && (
+                <p className="mt-1.5" style={{ color: getCompanyColor(design, bg.subtext), fontSize: calcCompanySize(12, design), fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{shownCompany}</p>
               )}
 
               {/* A rule that fades out at both ends instead of a solid bar
@@ -2003,7 +2009,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               <div className="flex-1 min-w-0 pt-1" style={textNudge}>
                 <h1 style={{ margin: 0, fontSize: nameFontSize, fontWeight: 800, lineHeight: 1.1, fontFamily: font.heading, letterSpacing: '-0.02em', color: getNameColor(design, bg.text) }}>{card.name}</h1>
                 {isPro && card.title && <p style={{ margin: '6px 0 0', fontSize: calcTitleSize(12, design), fontWeight: 700, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{card.title}</p>}
-                {card.company && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
+                {shownCompany && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{shownCompany}</p>}
               </div>
             </div>
             <div className="rounded-full mb-4" style={{ width: 40, height: 3, backgroundColor: accentHex, boxShadow: `0 0 16px ${accentHex}88` }} />
@@ -2061,7 +2067,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             <div style={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 2, ...textNudge }}>
               <h1 style={{ margin: '0 0 5px', fontSize: calcNameSize(22, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, '#fff'), lineHeight: 1.1 }}>{card.name}</h1>
               {isPro && card.title && <p style={{ margin: '0 0 4px', fontSize: calcTitleSize(13, design), fontWeight: 600, color: getTitleColor(design, 'rgba(255,255,255,0.85)'), lineHeight: 1.2 }}>{card.title}</p>}
-              {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), color: getCompanyColor(design, 'rgba(255,255,255,0.65)'), lineHeight: 1.2 }}>{card.company}</p>}
+              {shownCompany && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), color: getCompanyColor(design, 'rgba(255,255,255,0.65)'), lineHeight: 1.2 }}>{shownCompany}</p>}
             </div>
           </div>
           <div className="px-6 py-6">
@@ -2139,7 +2145,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           </div>
           <h1 style={{ margin: '0 0 6px', fontSize: calcNameSize(30, design), fontWeight: 800, color: getNameColor(design, ink), textAlign: 'center', fontFamily: font.heading, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{card.name}</h1>
           {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(15, design), fontWeight: 500, color: getTitleColor(design, titleColor), textAlign: 'center' }}>{card.title}</p>}
-          {card.company && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(14, design), color: getCompanyColor(design, muted), textAlign: 'center' }}>{card.company}</p>}
+          {shownCompany && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(14, design), color: getCompanyColor(design, muted), textAlign: 'center' }}>{shownCompany}</p>}
           {card.bio && <p style={{ fontSize: calcBioSize(13, design), color: getBioColor(design, muted), textAlign: bioAlignFor(design, 'center'), lineHeight: 1.6, margin: '12px 0 0' }}>{card.bio}</p>}
           {/* Up to 6 vibrant circular quick-actions (phone, email, linkedin,
               website, twitter/X, facebook). Wraps to a second row on narrow
@@ -2245,7 +2251,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                 <div style={{ width: 36, height: 3, background: accentHex, boxShadow: `0 0 16px ${accentHex}aa` }} />
                 {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(11, design), fontWeight: 700, color: getTitleColor(design, '#ffffff'), textTransform: 'uppercase', letterSpacing: '0.28em' }}>{card.title}</p>}
               </div>
-              {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(13, design), color: getCompanyColor(design, 'rgba(255,255,255,0.7)'), fontStyle: 'italic', letterSpacing: '0.02em' }}>{card.company}</p>}
+              {shownCompany && <p style={{ margin: 0, fontSize: calcCompanySize(13, design), color: getCompanyColor(design, 'rgba(255,255,255,0.7)'), fontStyle: 'italic', letterSpacing: '0.02em' }}>{shownCompany}</p>}
             </div>
           </div>
           {/* Glass card - reduced overlap from -36 to -20 so there's clear
@@ -2421,8 +2427,8 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               }}>{card.title}</span>
             </div>
           )}
-          {card.company && (
-            <p className="text-center" style={{ margin: '12px 0 0', fontSize: calcCompanySize(14, design), fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>
+          {shownCompany && (
+            <p className="text-center" style={{ margin: '12px 0 0', fontSize: calcCompanySize(14, design), fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: getCompanyColor(design, bg.subtext) }}>{shownCompany}</p>
           )}
           <LogoZone {...shared} />
 
@@ -2525,7 +2531,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               <div style={{ flex: 1, paddingLeft: 18, ...textNudge }}>
                 <h1 style={{ margin: '4px 0 6px', fontSize: nameFontSize, fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text), lineHeight: 1.2 }}>{card.name}</h1>
                 {isPro && card.title && <p style={{ margin: '0 0 4px', fontSize: calcTitleSize(13, design), fontWeight: 600, color: titleColor }}>{card.title}</p>}
-                {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
+                {shownCompany && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), color: getCompanyColor(design, bg.subtext) }}>{shownCompany}</p>}
               </div>
             </div>
             <svg viewBox="0 0 400 56" style={{ display: 'block', width: '100%', height: 56, position: 'absolute', bottom: 0 }} preserveAspectRatio="none">
@@ -2677,7 +2683,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
         <div style={{ flex: 1, minWidth: 0, padding: '28px 24px' }}>
           <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(26, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text) }}>{card.name}</h1>
           {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentText), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
-          {card.company && <p style={{ margin: '0 0 16px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
+          {shownCompany && <p style={{ margin: '0 0 16px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{shownCompany}</p>}
           <div style={{ width: 32, height: 3, backgroundColor: accentHex, marginBottom: 12, borderRadius: 2 }} />
           <LogoZone {...shared} />
           {card.bio && <p className="leading-relaxed" style={{ margin: 0, fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
@@ -2822,7 +2828,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             <div style={{ flex: 1, minWidth: 0, textAlign: 'center', paddingLeft: 20 }}>
               <h1 style={{ margin: '0 0 4px', fontSize: calcNameSize(26, design), fontWeight: 800, fontFamily: font.heading, color: getNameColor(design, bg.text) }}>{card.name}</h1>
               {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), fontWeight: 600, color: getTitleColor(design, accentText), textTransform: 'uppercase', letterSpacing: '0.07em' }}>{card.title}</p>}
-              {card.company && <p style={{ margin: '0 0 14px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>}
+              {shownCompany && <p style={{ margin: '0 0 14px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{shownCompany}</p>}
               <LogoZone {...shared} />
               {card.bio && <p className="leading-relaxed" style={{ margin: 0, fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
 
@@ -2980,8 +2986,8 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                 color: getTitleColor(design, accentText), opacity: 0.85,
               }}>{card.title}</p>
             )}
-            {card.company && (
-              <p style={{ margin: '0 0 4px', fontSize: calcCompanySize(14, design), color: getCompanyColor(design, bg.subtext) }}>{card.company}</p>
+            {shownCompany && (
+              <p style={{ margin: '0 0 4px', fontSize: calcCompanySize(14, design), color: getCompanyColor(design, bg.subtext) }}>{shownCompany}</p>
             )}
             {card.bio && (
               <p className="leading-relaxed" style={{ margin: '12px 0 0', fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>
@@ -3195,11 +3201,11 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                 letterSpacing: '-0.025em', lineHeight: 1.02,
                 color: getNameColor(design, bg.text),
               }}>{card.name}</h1>
-              {card.company && (
+              {shownCompany && (
                 <p style={{
                   margin: '10px 0 0', fontSize: calcCompanySize(15, design),
                   color: getCompanyColor(design, bg.subtext),
-                }}>{card.company}</p>
+                }}>{shownCompany}</p>
               )}
             </div>
           </div>
@@ -3325,7 +3331,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                 textShadow: design.nameColor ? undefined : `0 0 6px ${accentHex}88, 0 0 22px ${accentHex}55`,
               }}>{card.name}</h1>
               {isPro && card.title && <p style={{ margin: '0 0 3px', fontSize: calcTitleSize(12, design), color: getTitleColor(design, accentText), fontWeight: 600, textShadow: `0 0 8px ${accentHex}`, textTransform: 'uppercase', letterSpacing: '0.14em' }}>{card.title}</p>}
-              {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), color: getCompanyColor(design, '#6a6aa8') }}>{card.company}</p>}
+              {shownCompany && <p style={{ margin: 0, fontSize: calcCompanySize(12, design), color: getCompanyColor(design, '#6a6aa8') }}>{shownCompany}</p>}
             </div>
           </div>
           <div style={{ height: 2, background: `linear-gradient(90deg, transparent, ${accentHex}, transparent)`, marginBottom: 16, boxShadow: `0 0 12px ${accentHex}, 0 0 30px ${accentHex}66` }} />
@@ -3464,7 +3470,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                     Your<br />Logo
                   </div>
                 )}
-                {card.company && <p style={{ margin: 0, fontSize: calcCompanySize(22, design), fontWeight: 800, color: getCompanyColor(design, '#ffffff'), textTransform: 'uppercase', letterSpacing: '0.04em', wordBreak: 'break-word', flex: 1, lineHeight: 1.1 }}>{card.company}</p>}
+                {shownCompany && <p style={{ margin: 0, fontSize: calcCompanySize(22, design), fontWeight: 800, color: getCompanyColor(design, '#ffffff'), textTransform: 'uppercase', letterSpacing: '0.04em', wordBreak: 'break-word', flex: 1, lineHeight: 1.1 }}>{shownCompany}</p>}
               </div>
             </div>
           </div>
@@ -3776,8 +3782,8 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             {isPro && card.title && (
               <p style={{ margin: '10px 0 0', textAlign: 'center', fontSize: calcTitleSize(11, design), fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: getTitleColor(design, accentText) }}>{card.title}</p>
             )}
-            {card.company && (
-              <p style={{ margin: '6px 0 0', textAlign: 'center', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, inkSoft) }}>{card.company}</p>
+            {shownCompany && (
+              <p style={{ margin: '6px 0 0', textAlign: 'center', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, inkSoft) }}>{shownCompany}</p>
             )}
 
             {/* A shard of a rule rather than a plain line. */}
@@ -3868,7 +3874,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           {/* Name in giant serif */}
           <h1 style={{ margin: '0 0 8px', fontSize: calcNameSize(52, design), fontWeight: 900, color: getNameColor(design, ink), fontFamily: 'Georgia, "Times New Roman", serif', lineHeight: 0.95, letterSpacing: '-0.02em', textAlign: 'center' }}>{card.name}</h1>
           {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(16, design), color: getTitleColor(design, muted), textAlign: 'center', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>{card.title}</p>}
-          {card.company && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, muted), textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 600 }}>{card.company}</p>}
+          {shownCompany && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, muted), textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 600 }}>{shownCompany}</p>}
           <div style={{ width: 60, borderTop: `2px solid ${accentHex}`, margin: '24px auto' }} />
           {/* Centered portrait with serif rule */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
@@ -4046,9 +4052,9 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                   gives it more of the photograph above. A dealership card
                   without a dealership name is a card with a big picture and
                   the seller on it, which is a reasonable thing to be. */}
-              {card.company && (
+              {shownCompany && (
                 <h1 style={{ margin: '0 0 4px', fontSize: calcCompanySize(26, design), fontWeight: 800, fontFamily: font.heading, color: getCompanyColor(design, bg.text), lineHeight: 1.1, letterSpacing: '-0.02em', textShadow: heroShadow }}>
-                  {card.company}
+                  {shownCompany}
                 </h1>
               )}
 

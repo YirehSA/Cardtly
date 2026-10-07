@@ -201,6 +201,10 @@ export interface CardDesign {
   companyColor?: string      // hex - overrides the company colour (defaults to muted)
   bioSize?: number           // 80-160 percentage
   bioColor?: string          // hex - overrides the bio paragraph colour
+  /** Show the company NAME on the card. Off for a cardholder whose logo
+   *  already says it. Display only: the saved contact, share text, booking
+   *  and lead capture still carry the company. Defaults to on. */
+  showCompany?: boolean
   /** The section headings under the card: Certifications, Links / More,
    *  Gallery, and a template's own section titles (Get In Touch, Connect,
    *  Correspondence, Elsewhere). Defaults to the palette's muted text. */
@@ -358,6 +362,7 @@ export const DEFAULT_DESIGN: CardDesign = {
   companyColor: undefined,
   bioSize: 100,
   bioColor: undefined,
+  showCompany: true,
   sectionHeadingColor: undefined,
   captionColor: undefined,
   bodySize: 'medium',
