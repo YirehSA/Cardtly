@@ -679,8 +679,8 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
         </div>
       </div>
 
-      {/* Live preview */}
-      <div className="xl:w-80 xl:flex-shrink-0">
+      {/* Live preview, at phone width: see the same panel in TeamCardEditor. */}
+      <div className="xl:w-[360px] 2xl:w-96 xl:flex-shrink-0">
         <div className="sticky top-6">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Live Preview</p>

@@ -73,7 +73,7 @@ export default function FlippableCardPreview({ form, isPro, design, cardUrl }: P
         className={`flip-card-inner ${spinning ? 'animate-card-spin' : ''}`}
         style={{ minHeight: 500 }}>
         {/* Front */}
-        <div className="flip-card-face rounded-lg overflow-hidden shadow-2xl border border-gray-800"
+        <div className="flip-card-face rounded-lg overflow-hidden shadow-2xl border border-gray-800 scrollbar-thin"
           style={{ maxHeight: '82vh', overflowY: flipped ? 'hidden' : 'auto' }}>
           <CardPreview form={form} isPro={isPro} design={design} />
         </div>

@@ -959,11 +959,16 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
         </div>
       </div>
 
-      {/* Live preview */}
-      <div className="xl:w-80 xl:flex-shrink-0">
+      {/* Live preview. Phone width (360px, 384px on wide screens), because the
+          card is written for a phone and rendered here unscaled: in the 320px
+          column it had, less a full-width Windows scrollbar, it laid out at
+          about 300px and wrapped and truncated far more than on any real
+          phone. The thin scrollbar keeps that width for the card. Not wider at
+          xl: at 1280px the form beside it would squeeze its five tabs. */}
+      <div className="xl:w-[360px] 2xl:w-96 xl:flex-shrink-0">
         <div className="sticky top-6">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Live Preview</p>
-          <div className="rounded-lg overflow-hidden shadow-2xl border border-gray-800" style={{ maxHeight: '82vh', overflowY: 'auto' }}>
+          <div className="rounded-lg overflow-hidden shadow-2xl border border-gray-800 scrollbar-thin" style={{ maxHeight: '82vh', overflowY: 'auto' }}>
             <CardPreview
               form={previewForm}
               isPro={true}
