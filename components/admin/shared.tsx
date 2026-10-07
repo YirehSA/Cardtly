@@ -1,5 +1,6 @@
 'use client'
 
+import { Search, X } from 'lucide-react'
 import type { UserStatus } from '@/lib/admin-data'
 
 export const grad = 'hsl(var(--accent))'
@@ -36,6 +37,49 @@ export function StatusPill({ status, daysLeft }: { status: UserStatus; daysLeft?
       {m.label}{suffix}
     </span>
   )
+}
+
+/**
+ * The search box on the Users and Teams lists.
+ *
+ * Sticky, because the list it filters is long: finding somebody meant
+ * scrolling back up to the box, typing, then scrolling down to them again.
+ * One id for both, since only one of the two tabs is ever on screen, so "/"
+ * (wired in AdminDashboard) can jump to whichever is showing. `bg` matches
+ * whatever the box sits on, or the rows scrolling under it show through.
+ */
+export function AdminSearch({ value, onChange, placeholder, bg = '#0a0a0a' }: {
+  value: string; onChange: (v: string) => void; placeholder: string; bg?: string
+}) {
+  return (
+    <div className="sticky top-0 z-20 py-2" style={{ background: bg }}>
+      <div className="relative">
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.3)' }} />
+        <input id="admin-search" type="text" value={value} onChange={e => onChange(e.target.value)}
+          placeholder={placeholder} autoComplete="off" spellCheck={false}
+          onKeyDown={e => { if (e.key === 'Escape') { onChange(''); (e.target as HTMLInputElement).blur() } }}
+          className={inputClass + ' pl-9 pr-10'} style={inputStyle} />
+        {value ? (
+          <button onClick={() => onChange('')} aria-label="Clear search"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10">
+            <X className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+          </button>
+        ) : (
+          <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 rounded text-[10px] font-mono hidden sm:block"
+            title="Press / to search"
+            style={{ color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.15)' }}>/</kbd>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Every word of the search somewhere in these values, in any order. */
+export function matchesAllWords(needle: string, values: unknown[]): boolean {
+  const words = needle.trim().toLowerCase().split(/\s+/).filter(Boolean)
+  if (!words.length) return true
+  const hay = values.filter(v => v !== null && v !== undefined && v !== '').map(v => String(v).toLowerCase()).join('  ')
+  return words.every(w => hay.includes(w))
 }
 
 export function Stat({ label, value, colour, hint, warn }: {

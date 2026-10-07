@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle, Flag, ExternalLink, MailQuestion, UserCheck, UserPlus, Layers, UserCog, Palette, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
-import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
+import { Section, randFmt, fmtDate, inputClass, inputStyle, grad, AdminSearch, matchesAllWords } from './shared'
 import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, DEFAULT_ENTERPRISE_FREE_DAYS, orgMonthlyRand, orgBillingStartsInDays, PREPAID_RENEWAL_NOTICE_DAYS, type OrgBillingMode } from '@/lib/org-billing'
 import type { AdminOrgRow, AdminUserRow } from '@/lib/admin-data'
 import type { RepStats } from '@/lib/reps'
@@ -82,13 +82,21 @@ interface Props {
   onSuspend: (orgId: string, suspended: boolean, message: string | null) => Promise<boolean>
   onDept: (action: string, body: Record<string, any>, key: string, msg: string) => Promise<boolean>
   loading: string | null
+  /** The search, shared with the Users tab so a term carries across. */
+  query?: string
+  onQuery?: (q: string) => void
+  onShowCustomers?: () => void
 }
 
 // Teams had no home at all before: an org appeared as a suffix on its owner's
 // row and as a count tile, seat utilisation was invisible, and there was
 // nowhere to say how a team is billed, so every one of them defaulted to
 // "monthly" and reported revenue nobody collects.
-export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssignRep, onMarkCollected, onSuspend, onDept, loading }: Props) {
+export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssignRep, onMarkCollected, onSuspend, onDept, loading, query: sharedQuery, onQuery, onShowCustomers }: Props) {
+  // Shared with the Users tab when the dashboard hands it down; local otherwise.
+  const [localQuery, setLocalQuery] = useState('')
+  const query = sharedQuery ?? localQuery
+  const setQuery = onQuery ?? setLocalQuery
   const [editing, setEditing] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [sort, setSort] = useState<OrgSortId>('seats')
@@ -133,6 +141,49 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
     }
   }, [orgs, sort])
 
+  // FINDING A TEAM. By anything you might remember: its name, the owner's
+  // email, how it is billed, the notes, a company or department in it, or
+  // anybody on it - their card name, card link, or the email they signed in
+  // with. Usually you know the person, not the team ("Timothy"), so the
+  // people are searched too, and the row says which card matched.
+  const emailByUser = useMemo(
+    () => Object.fromEntries(users.map(u => [u.id, u.email])) as Record<string, string>,
+    [users],
+  )
+  const cardsByOrg = useMemo(() => {
+    const m: Record<string, any[]> = {}
+    for (const c of teamCards) if (c.organization_id) (m[c.organization_id] ||= []).push(c)
+    return m
+  }, [teamCards])
+  const { visibleOrgs, matchedVia } = useMemo(() => {
+    const needle = query.trim()
+    if (!needle) return { visibleOrgs: sortedOrgs, matchedVia: {} as Record<string, string> }
+    const via: Record<string, string> = {}
+    const list = sortedOrgs.filter(o => {
+      const meta = BILLING_MODE_META[o.billingMode]
+      const own = [o.name, o.adminEmail, o.billingNotes, meta?.short, meta?.label, o.billingMode,
+        ...o.departments.map(d => d.name), ...o.ownerPersonalCards.map(c => c.slug)]
+      const people = (cardsByOrg[o.id] || []).map(c => [c.name, c.slug, c.user_id ? emailByUser[c.user_id] : null])
+      if (matchesAllWords(needle, [...own, ...people.flat()])) {
+        // Say why, when it was not the team's own name or owner that matched.
+        if (!matchesAllWords(needle, own)) {
+          const hit = (cardsByOrg[o.id] || []).find(c =>
+            matchesAllWords(needle, [c.name, c.slug, c.user_id ? emailByUser[c.user_id] : null]))
+          if (hit) via[o.id] = hit.name || hit.slug
+        }
+        return true
+      }
+      return false
+    })
+    return { visibleOrgs: list, matchedVia: via }
+  }, [sortedOrgs, query, cardsByOrg, emailByUser])
+  // Customers the same words find, for when the person you want has no team.
+  const customerMatches = useMemo(() => {
+    const needle = query.trim()
+    if (!needle) return 0
+    return users.filter(u => matchesAllWords(needle, [u.email, u.card?.name, u.card?.slug, u.org?.name, u.memberOfOrg])).length
+  }, [users, query])
+
   return (
     <div className="space-y-4">
       <Section
@@ -170,11 +221,43 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
           </div>
         )}
 
+        {orgs.length > 0 && (
+          <div className="mb-2">
+            {/* #0f0f0f is this panel's tint over the page, so rows scrolling
+                under the pinned box do not show through it. */}
+            <AdminSearch value={query} onChange={setQuery} bg="#0f0f0f"
+              placeholder="Search teams: name, owner, anybody on it, company, billing" />
+            {query.trim() && (
+              <div className="flex items-center justify-between gap-3 flex-wrap mt-1">
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  {visibleOrgs.length} of {orgs.length} team{orgs.length === 1 ? '' : 's'}
+                </p>
+                {customerMatches > 0 && onShowCustomers && (
+                  <button onClick={onShowCustomers} className="text-xs font-semibold underline-offset-2 hover:underline"
+                    style={{ color: '#a78bfa' }}>
+                    {customerMatches} customer{customerMatches === 1 ? '' : 's'} match too. Show them
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {orgs.length === 0 && !creating ? (
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>No teams yet.</p>
         ) : (
           <div className="space-y-2">
-            {sortedOrgs.map(o => {
+            {query.trim() && visibleOrgs.length === 0 && (
+              <p className="text-sm text-center py-8" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                No team matches that.
+                {customerMatches > 0 && onShowCustomers && (
+                  <> <button onClick={onShowCustomers} className="underline" style={{ color: '#a78bfa' }}>
+                    {customerMatches} customer{customerMatches === 1 ? '' : 's'} do
+                  </button>.</>
+                )}
+              </p>
+            )}
+            {visibleOrgs.map(o => {
               const idle = o.maxSeats - o.cardsCreated
               const busy = loading === `org-${o.adminUserId}`
               const meta = BILLING_MODE_META[o.billingMode]
@@ -211,6 +294,9 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
                         )}
                       </div>
                       <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{o.adminEmail || o.adminUserId.slice(0, 8)}</p>
+                      {matchedVia[o.id] && (
+                        <p className="text-[11px] mt-0.5" style={{ color: '#a78bfa' }}>Matched card: {matchedVia[o.id]}</p>
+                      )}
                     </div>
 
                     {/* Counted from real team_cards rows. organizations.used_seats

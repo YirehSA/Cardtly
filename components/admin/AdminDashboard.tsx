@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
-  Users as UsersIcon, Building2, Search, Loader2, Trash2, Mail, MailCheck,
+  Users as UsersIcon, Building2, Loader2, Trash2, Mail, MailCheck,
   KeyRound, Lock, Shield, Sparkles, ChevronDown, ChevronUp, ExternalLink, Megaphone,
-  ScrollText, Wifi, AlertTriangle, CalendarClock, PhoneCall, X, LayoutGrid, UserCog, Banknote, Ticket, Flag,
+  ScrollText, Wifi, AlertTriangle, CalendarClock, PhoneCall, LayoutGrid, UserCog, Banknote, Ticket, Flag,
   Receipt, Contact, SlidersHorizontal, FileSignature, RefreshCw,
 } from 'lucide-react'
 import TeamsTab from './TeamsTab'
@@ -23,7 +23,7 @@ import QuotesTab from './billing/QuotesTab'
 import RecurringTab from './billing/RecurringTab'
 import AccountingHub from './billing/AccountingHub'
 import PaymentsTab from './billing/PaymentsTab'
-import { Stat, Section, StatusPill, STATUS_META, grad, inputClass, inputStyle, fmtDate, fmtWhen, randFmt } from './shared'
+import { Stat, Section, StatusPill, STATUS_META, grad, inputClass, inputStyle, fmtDate, fmtWhen, randFmt, AdminSearch, matchesAllWords } from './shared'
 import { NFC_STATUSES, NFC_STATUS_COLORS, NFC_STATUS_LABELS, type NfcStatus } from '@/lib/nfc'
 import type { AdminUserRow, AdminOrgRow, UserStatus, TrialCodeRow } from '@/lib/admin-data'
 import type { RepStats } from '@/lib/reps'
@@ -249,9 +249,9 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
       if (!needle) return true
       // Search everything you might actually know about a person. The old one
       // matched email substrings only, so you could not find someone by their
-      // card name, slug, or team.
-      return [u.email, u.card?.name, u.card?.slug, u.org?.name, u.memberOfOrg, u.country, u.city, u.id]
-        .filter(Boolean).some(v => String(v).toLowerCase().includes(needle))
+      // card name, slug, or team. Every word, in any order, across all of it:
+      // "timothy jetour" is two true things about one person.
+      return matchesAllWords(needle, [u.email, u.card?.name, u.card?.slug, u.org?.name, u.memberOfOrg, u.country, u.city, u.id])
     })
 
     // filter() already returned a new array, so sorting here does not disturb
@@ -274,11 +274,25 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
   const matchingTeamCards = useMemo(() => {
     const needle = q.trim().toLowerCase()
     if (!needle) return []
-    return teamCards.filter((c: any) =>
-      [c.name, c.slug, c.email, c.company, c.org_name].filter(Boolean)
-        .some((v: any) => String(v).toLowerCase().includes(needle))
-    )
+    return teamCards.filter((c: any) => matchesAllWords(needle, [c.name, c.slug, c.email, c.company, c.org_name]))
   }, [teamCards, q])
+
+  // "/" jumps to the search on whichever list is showing, the way most admin
+  // tools do, so finding somebody never starts with scrolling back up.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return
+      const t = e.target as HTMLElement | null
+      if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) return
+      const box = document.getElementById('admin-search') as HTMLInputElement | null
+      if (!box) return
+      e.preventDefault()
+      box.focus()
+      box.select()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   return (
     <div className="min-h-screen p-4 sm:p-6" style={{ background: '#0a0a0a' }}>
@@ -469,17 +483,8 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
 
         {tab === 'users' && (
           <div className="space-y-3">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.3)' }} />
-              <input value={q} onChange={e => setQ(e.target.value)}
-                placeholder="Search email, card name, slug, team, country, user id"
-                className={inputClass + ' pl-9'} style={inputStyle} />
-              {q && (
-                <button onClick={() => setQ('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10">
-                  <X className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.4)' }} />
-                </button>
-              )}
-            </div>
+            <AdminSearch value={q} onChange={setQ}
+              placeholder="Search customers: email, name, card link, team, country" />
 
             <div className="flex gap-1.5 flex-wrap">
               {FILTERS.map(f => {
@@ -551,6 +556,7 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
 
         {tab === 'teams' && (
           <TeamsTab orgs={orgs} users={users} teamCards={teamCards} reps={reps} loading={loading}
+            query={q} onQuery={setQ} onShowCustomers={() => setTab('users')}
             onAssignRep={(orgId, repId) => run(`reporg-${orgId}`, { action: 'assign_rep', org_id: orgId, rep_id: repId }, repId ? 'Team linked to rep' : 'Rep unlinked')}
             onMarkCollected={(orgId) => run(`collect-${orgId}`, { action: 'mark_collected', org_id: orgId }, 'Recorded as collected today')}
             onDept={(action, body, key, msg) => run(key, { action, ...body }, msg)}
