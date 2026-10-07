@@ -1,4 +1,5 @@
 import { prepaidPeriodEnd } from './org-billing'
+import { settleOwnerCard } from './owner-team-card'
 
 // A prepaid invoice, once fully paid, switches its team on and adds its months.
 //
@@ -79,6 +80,10 @@ export async function applyPrepaidPeriod(db: any, invoiceId: string, today = new
     doc_type: 'invoice', doc_id: invoice.id, event: 'prepaid_period_applied', actor: null,
     meta: { organization_id: org.id, team: org.name, months, previous_paid_until: org.paid_until ?? null, paid_until: paidUntil },
   })
+
+  // The team is live now, so its owner's own card belongs in it as a seat
+  // (lib/owner-team-card). Never throws; the payment is the real work here.
+  await settleOwnerCard(db, org.id)
 
   return { applied: true, organizationId: org.id, paidUntil, months }
 }

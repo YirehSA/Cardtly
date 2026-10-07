@@ -12,6 +12,8 @@ import { findUserByEmail } from '@/lib/department-perms'
 import { orgSlugPrefix } from '@/lib/card-slug'
 import { normaliseCode } from '@/lib/trial-codes'
 import { sendTeamOwnerWelcome } from '@/lib/team-owner-invite'
+import { movePersonalCardIntoTeam } from '@/lib/move-card-to-team'
+import { settleOwnerCard } from '@/lib/owner-team-card'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -687,6 +689,28 @@ export async function POST(request: Request) {
   // billing_period is what decides whether this team shows up as revenue, so
   // it is set explicitly here rather than defaulted to 'monthly' and forgotten
   // (which is how Cardtly's own 50-seat org came to report R4,850/month).
+  // Move a team owner's personal card into their team, as one of its seats,
+  // keeping its link. See lib/move-card-to-team for the order of operations
+  // and why a personal card outside an invoice-paid team goes offline.
+  if (action === 'move_card_into_team') {
+    const { org_id, card_id } = body
+    if (!org_id || !card_id) return NextResponse.json({ error: 'Which team and which card?' }, { status: 400 })
+    const result = await movePersonalCardIntoTeam(admin, { orgId: org_id, cardId: card_id })
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email, action: 'move_card_into_team',
+      ok: result.ok, detail: { org_id, card_id, ...result },
+    })
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: 409 })
+    // A move that worked with something to report is a WARNING, which the admin
+    // screen shows beside the success, not an error, which it treats as failure.
+    const notes = [
+      result.error || null,
+      result.notCarried?.length ? `Not carried (no such field on team cards): ${result.notCarried.join(', ')}.` : null,
+    ].filter(Boolean).join(' ')
+    const { error: _note, ...rest } = result
+    return NextResponse.json({ ...rest, ...(notes ? { warning: notes } : {}) })
+  }
+
   if (action === 'create_org') {
     const { user_id, owner_email, send_welcome, org_name, seat_count, billing_period, billing_notes, trial_ends_at, billing_starts_on, paid_until } = body
 
@@ -893,6 +917,19 @@ export async function POST(request: Request) {
       })
     } else if (wantsNewOwner) {
       notes.push(`${ownerEmail} already had an account, so the team was linked to it.`)
+    }
+
+    // The owner's own card belongs in the team as one of its seats, if the
+    // team is live and they do not pay for the card some other way
+    // (lib/owner-team-card). Without it the owner's card sat outside the team
+    // and went offline when their signup trial ended (JETOUR, 2026-10-07).
+    {
+      const { data: saved } = await admin.from('organizations').select('id').eq('admin_user_id', ownerId).maybeSingle()
+      if (saved?.id) {
+        const moved = await settleOwnerCard(admin, saved.id)
+        if (moved?.ok) notes.push(`The owner's own card was moved into the team as one of its ${seats} seats, at the same link.${moved.error ? ` ${moved.error}` : ''}`)
+        else if (moved?.error) notes.push(`The owner's own card could not be moved into the team: ${moved.error}`)
+      }
     }
 
     return NextResponse.json({

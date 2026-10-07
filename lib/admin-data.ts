@@ -98,6 +98,15 @@ export interface AdminOrgRow {
   // Prepaid by invoice only: the last day paid for, and days until it.
   paidUntil: string | null
   paidUntilDaysLeft: number | null
+  /** The owner's PERSONAL cards: outside the team's seats, and served by the
+   *  owner's own trial or subscription rather than the team. Offered a move
+   *  into the team (lib/move-card-to-team). */
+  ownerPersonalCards: { id: string; name: string | null; slug: string }[]
+  /** Whether the owner already holds a card inside this team. */
+  ownerHoldsTeamCard: boolean
+  /** The owner has an active subscription of their own, which keeps a
+   *  personal card live, so the automatic move leaves them alone. */
+  ownerHasOwnSubscription: boolean
   suspendedAt: string | null
   suspensionMessage: string | null
   departments: DeptRow[]
@@ -330,6 +339,11 @@ export async function loadAdminData(admin: any) {
       billingStartsInDays: orgBillingStartsInDays(mode, o.billing_starts_on || null),
       paidUntil: o.paid_until || null,
       paidUntilDaysLeft: orgPaidUntilDaysLeft(mode, o.paid_until || null),
+      ownerPersonalCards: (cards || [])
+        .filter((c: any) => c.user_id && c.user_id === o.admin_user_id)
+        .map((c: any) => ({ id: c.id, name: c.name || null, slug: c.slug })),
+      ownerHoldsTeamCard: (teamCards || []).some((tc: any) => tc.organization_id === o.id && tc.user_id === o.admin_user_id),
+      ownerHasOwnSubscription: !!subBy[o.admin_user_id],
       suspendedAt: o.suspended_at || null,
       suspensionMessage: o.suspension_message || null,
       departments: deptsByOrg[o.id] || [],

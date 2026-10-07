@@ -1,4 +1,5 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { ownerTeamNeedingCard, createOwnerTeamCard } from '@/lib/owner-team-card'
 
 // Everything a brand-new account needs before the dashboard makes sense.
 //
@@ -121,6 +122,18 @@ export async function ensureAccountReady(
   }
   if (teamCard) {
     return { profileCreated, nameFilled, cardCreated: false, cardSlug: teamCard.slug, cardSkipped: 'has-team-card' }
+  }
+
+  // The owner of a live team gets their card inside the team, as one of its
+  // seats, rather than a personal one that would sit outside it on a signup
+  // trial (lib/owner-team-card).
+  const ownerTeam = await ownerTeamNeedingCard(admin, user.id)
+  if (ownerTeam) {
+    const teamCardId = await createOwnerTeamCard(admin, ownerTeam, user, displayName)
+    if (teamCardId) {
+      const { data: made } = await admin.from('team_cards').select('slug').eq('id', teamCardId).maybeSingle()
+      return { profileCreated, nameFilled, cardCreated: true, cardSlug: made?.slug ?? null, cardSkipped: null }
+    }
   }
 
   const slug = await findFreeSlug(admin, buildSlug(displayName))

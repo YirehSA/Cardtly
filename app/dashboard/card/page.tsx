@@ -4,6 +4,7 @@ import { getUserPlan } from '@/lib/plan-server'
 import { redirect } from 'next/navigation'
 import CardEditor from '@/components/card/CardEditor'
 import { userOrgSlugPrefix, newPersonalCardSlug } from '@/lib/card-slug-server'
+import { ownerTeamNeedingCard, settleOwnerCard, createOwnerTeamCard } from '@/lib/owner-team-card'
 
 export const metadata = { title: 'My Card' }
 
@@ -35,6 +36,26 @@ export default async function CardPage() {
   let card = (existingCards || []).find((c: { is_primary?: boolean | null }) => c.is_primary === true)
     || (existingCards || [])[0]
     || null
+
+  // A TEAM OWNER'S CARD LIVES IN THEIR TEAM (lib/owner-team-card), unless they
+  // pay for it some other way. An owner arriving here with a personal card has
+  // it moved in, same link; one arriving with none gets it made inside the
+  // team. Either way they land in the team card editor, as an owner does.
+  // Before getUserPlan, so the plan read below sees the card where it ended up.
+  {
+    const ownerTeam = await ownerTeamNeedingCard(admin, user.id)
+    if (ownerTeam) {
+      if (card) {
+        const moved = await settleOwnerCard(admin, ownerTeam.id)
+        if (moved?.ok && moved.teamCardId) redirect(`/dashboard/team/card/${moved.teamCardId}`)
+      } else {
+        const meta = (user.user_metadata || {}) as Record<string, any>
+        const name = meta.full_name || meta.name || user.email?.split('@')[0] || 'My card'
+        const id = await createOwnerTeamCard(admin, ownerTeam, user, name)
+        if (id) redirect(`/dashboard/team/card/${id}`)
+      }
+    }
+  }
 
   const plan = await getUserPlan(user.id)
 

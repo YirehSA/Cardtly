@@ -331,6 +331,40 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
 
                   {editing === o.id && (
                     <div className="px-3.5 pb-3.5 pt-1 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                      {/* The owner's own card, made outside the team. It is a
+                          card the company is not paying a seat for, served by
+                          the owner's personal trial, so it goes offline when
+                          that ends. Moving it in makes it one of the seats and
+                          keeps its link (lib/move-card-to-team). */}
+                      {!o.ownerHoldsTeamCard && o.ownerPersonalCards.length > 0 && (
+                        <div className="text-xs mb-3 rounded-lg px-3 py-2.5"
+                          style={{ background: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.3)', color: 'rgba(255,255,255,0.8)' }}>
+                          <p>
+                            <span className="font-semibold" style={{ color: '#14b8a6' }}>{o.adminEmail || 'The owner'}</span> has their own card outside
+                            this team, so it does not use one of its {o.maxSeats} seats.{' '}
+                            {o.ownerHasOwnSubscription
+                              ? 'Their own subscription keeps it live, so it is not moved automatically. Move it in only if the team should cover it instead.'
+                              : 'It is not covered by the team, so it goes offline when their personal trial ends. While the team is live it moves in by itself the next time they open their Card page, or move it now.'}
+                            {' '}Its link stays the same.
+                          </p>
+                          <div className="flex gap-2 flex-wrap mt-2">
+                            {o.ownerPersonalCards.map(c => (
+                              <button key={c.id}
+                                disabled={loading === `move-${c.id}` || o.cardsCreated >= o.maxSeats}
+                                title={o.cardsCreated >= o.maxSeats ? 'Every seat is taken. Add a seat first.' : `Move /card/${c.slug} into ${o.name}`}
+                                onClick={() => {
+                                  if (!confirm(`Move ${c.name || c.slug}'s card into ${o.name}?\n\nIt becomes one of the team's ${o.maxSeats} seats, keeps the link /card/${c.slug}, and brings its captured contacts with it. The personal card is then removed.`)) return
+                                  onDept('move_card_into_team', { org_id: o.id, card_id: c.id }, `move-${c.id}`,
+                                    `${c.name || 'The card'} is now one of ${o.name}'s seats, at the same link.`)
+                                }}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40"
+                                style={{ background: 'rgba(20,184,166,0.2)', color: '#14b8a6' }}>
+                                {loading === `move-${c.id}` ? 'Moving' : `Move ${c.name || c.slug}'s card into the team`}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {idle > 0 && o.isRevenue && (
                         <p className="text-xs mb-3 rounded-lg px-3 py-2"
                           style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: '#f59e0b' }}>
