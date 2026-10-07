@@ -60,8 +60,14 @@ export async function GET(request: Request) {
     if (out > 0) { bucket.outstandingCents += out; bucket.openCount += 1 }
   }
 
+  // The teams a client can be linked to. A client linked to its team is what
+  // lets a paid invoice switch that team on (prepaid_months, lib/prepaid), and
+  // the screen had no way to make the link until a company first paid one.
+  const { data: teams } = await db.from('organizations').select('id, name, billing_period').order('name')
+
   return NextResponse.json({
     clients: (data || []).map((c: any) => ({ ...c, ...(owing[c.id] || { outstandingCents: 0, openCount: 0 }) })),
+    teams: teams || [],
   })
 }
 

@@ -15,10 +15,12 @@ import { money, Empty, fmtDate } from './shared'
 type Client = {
   id: string; name: string; contact_person: string | null; email: string | null
   phone: string | null; address: string | null; vat_number: string | null; notes: string | null
+  organization_id: string | null
   outstandingCents: number; openCount: number
 }
+type Team = { id: string; name: string; billing_period: string | null }
 
-const BLANK = { name: '', contact_person: '', email: '', phone: '', address: '', vat_number: '', notes: '' }
+const BLANK = { name: '', contact_person: '', email: '', phone: '', address: '', vat_number: '', notes: '', organization_id: '' }
 
 export default function ClientsTab() {
   const [loading, setLoading] = useState(true)
@@ -28,6 +30,7 @@ export default function ClientsTab() {
   const [editing, setEditing] = useState<any | null>(null)
   const [busy, setBusy] = useState(false)
   const [statement, setStatement] = useState<any | null>(null)
+  const [teams, setTeams] = useState<Team[]>([])
 
   async function load() {
     setLoading(true)
@@ -37,7 +40,9 @@ export default function ClientsTab() {
     if (!res.ok) { setUnavailable(data?.error || 'Could not load clients'); return }
     setUnavailable(null)
     setClients(data.clients || [])
+    setTeams(data.teams || [])
   }
+  const teamName = (id: string | null) => teams.find(t => t.id === id)?.name || null
   useEffect(() => { load() }, [])
 
   async function save() {
@@ -120,6 +125,22 @@ export default function ClientsTab() {
               <input className={`${inputClass} mt-1.5`} style={inputStyle} value={editing.address ?? ''}
                 onChange={e => setEditing({ ...editing, address: e.target.value })} />
             </label>
+            {/* The link that lets a paid invoice switch a team on. Optional:
+                plenty of clients pay for things that are not a team. */}
+            <label className="block sm:col-span-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>Team in Cardtly</span>
+              <select className={`${inputClass} mt-1.5`} style={inputStyle} value={editing.organization_id ?? ''}
+                onChange={e => setEditing({ ...editing, organization_id: e.target.value })}>
+                <option value="">Not linked to a team</option>
+                {teams.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}{t.billing_period === 'prepaid' ? ' (prepaid by invoice)' : ''}</option>
+                ))}
+              </select>
+              <span className="block mt-1 text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                Link the client to the team they pay for. Then an invoice can carry a prepaid period, and paying it
+                switches the team on and moves its paid-until date. Create the team under Teams first.
+              </span>
+            </label>
           </div>
           <div className="flex justify-end mt-4">
             <button onClick={save} disabled={busy || !editing.name?.trim()}
@@ -143,6 +164,9 @@ export default function ClientsTab() {
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>
                   {[c.contact_person, c.email, c.phone].filter(Boolean).join(' · ') || 'No contact details'}
                 </p>
+                {teamName(c.organization_id) && (
+                  <p className="text-[11px] mt-0.5" style={{ color: '#14b8a6' }}>Team: {teamName(c.organization_id)}</p>
+                )}
               </div>
               <div className="text-right">
                 <p className="text-sm font-bold" style={{ color: c.outstandingCents > 0 ? '#f59e0b' : 'rgba(255,255,255,0.35)' }}>
