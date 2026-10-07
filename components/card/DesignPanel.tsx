@@ -528,6 +528,33 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
       {/* ── TEXT TAB ────────────────────────────────────────────── */}
       <div className="space-y-8" style={{ display: activeTab === 'text' ? 'block' : 'none' }}>
 
+      {/* Company name on or off. Every template prints it, so no
+          OnlySomeTemplates wrapper. On the TEXT tab, first, beside the
+          company's own colour and size below: it first shipped on the Photo
+          tab next to the logo controls, and nobody looks for a text setting
+          under Photo (2026-10-07). Only the card's display changes: the saved
+          contact keeps the company. */}
+      <div>
+        <label className="block text-sm font-semibold mb-1">Company name</label>
+        <p className="text-xs text-muted-foreground mb-3">
+          Show your company name on the card. Turn it off if your logo already says it. It is still saved when someone adds you to their contacts.
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={() => update({ showCompany: true })}
+            aria-pressed={design.showCompany !== false}
+            className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition ${design.showCompany !== false ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
+            Show
+          </button>
+          <button
+            onClick={() => update({ showCompany: false })}
+            aria-pressed={design.showCompany === false}
+            className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition ${design.showCompany === false ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
+            Hide
+          </button>
+        </div>
+      </div>
+
       {/* Bio alignment, and the bio only. The name, job title and company are
           each a single short line placed by the template as part of its
           design; the bio is the one run of prose on a card and the only one
@@ -832,31 +859,6 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
           </div>
         </div>
       )}
-
-      {/* Company name on or off. Every template prints it, so no
-          OnlySomeTemplates wrapper. Sits beside the logo controls because the
-          usual reason to switch it off is that the logo already says it. Only
-          the card's display changes: the saved contact keeps the company. */}
-      <div>
-        <label className="block text-sm font-semibold mb-1">Company name</label>
-        <p className="text-xs text-muted-foreground mb-3">
-          Show your company name on the card. Turn it off if your logo already says it. It is still saved when someone adds you to their contacts.
-        </p>
-        <div className="flex gap-3">
-          <button
-            onClick={() => update({ showCompany: true })}
-            aria-pressed={design.showCompany !== false}
-            className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition ${design.showCompany !== false ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
-            Show
-          </button>
-          <button
-            onClick={() => update({ showCompany: false })}
-            aria-pressed={design.showCompany === false}
-            className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition ${design.showCompany === false ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
-            Hide
-          </button>
-        </div>
-      </div>
 
       {/* Logo position */}
       <div>
