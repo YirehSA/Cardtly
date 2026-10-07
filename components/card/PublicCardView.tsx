@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Card, extractLinks } from '@/types/database'
-import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, scrimAlphaForWhite, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, readableAccentOn, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS, SOCIAL_SLOTS, heroImageFor, readableBrandOn, focusFor, bioAlignFor, type SocialKey } from '@/types/design'
+import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, scrimAlphaForWhite, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, readableAccentOn, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS, SOCIAL_SLOTS, heroImageFor, readableBrandOn, focusFor, bioAlignFor, getSectionHeadingColor, getCaptionColor, sectionMutedOn, type SocialKey } from '@/types/design'
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
@@ -700,6 +700,11 @@ interface BottomProps {
    *
    *  Zero everywhere else, so every other template is untouched. */
   primaryLinkCount?: number
+  /** The section headings (Certifications, Links / More, Gallery) and the
+   *  gallery captions. The cardholder's picks from Design, Typography, else
+   *  sectionMutedOn: readable on the page they actually sit on. */
+  headingColor: string
+  captionColor: string
 }
 
 // Helper that renders the Book a Meeting button. Encapsulates the modal
@@ -729,7 +734,7 @@ function BookingTrigger({ card, accentHex, accentText, buttonBg, buttonText, but
   )
 }
 
-function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context = null, contextControls = null, buttonBg, buttonText, buttonBorder, buttonFontSize, bodyFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false, omitCertifications = false, primaryLinkCount = 0 }: BottomProps) {
+function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context = null, contextControls = null, buttonBg, buttonText, buttonBorder, buttonFontSize, bodyFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false, omitCertifications = false, primaryLinkCount = 0, headingColor, captionColor }: BottomProps) {
   // Shadows the module import on purpose, so the three track() calls below
   // (contact_save, context_cta_clicked, share) are preview-aware without three
   // separate reminders to check a flag.
@@ -855,7 +860,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
   const sectionNodes: Record<ContextSection, React.ReactNode> = {
     certifications: (!omitAboveGallery && !omitCertifications && certifications.length > 0) ? (
       <div className="mt-8" key="ctx-certifications">
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Certifications</p>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: headingColor }}>Certifications</p>
         <div className="flex flex-wrap gap-2">
           {certifications.map(c => (
             <span key={c} className="text-xs px-3 py-1.5 rounded-full" style={{ backgroundColor: accentHex + '22', color: accentText, border: `1px solid ${accentHex}44` }}>#{c}</span>
@@ -891,7 +896,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
           </div>
         )}
         {restLinks.length > 0 && (
-          <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>
+          <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: headingColor }}>
             {primaryLinks.length > 0 ? 'More' : 'Links'}
           </p>
         )}
@@ -917,7 +922,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
 
     gallery: (audienceGallery.length > 0) ? (
       <div className="mt-8" key="ctx-gallery">
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: bg.subtext }}>Gallery</p>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: headingColor }}>Gallery</p>
         <div className="grid grid-cols-2 gap-2">
           {audienceGallery.map((item, i) => {
             // The per-image link field is "open a page when tapped". If it
@@ -934,7 +939,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
             // byte-for-byte what it was before.
             const caption = typeof item.title === 'string' && item.title.trim()
               ? (
-                <span className="block mt-1.5 text-[11px] leading-snug" style={{ color: bg.subtext }}>
+                <span className="block mt-1.5 text-[11px] leading-snug" style={{ color: captionColor }}>
                   {item.title.trim()}
                 </span>
               )
@@ -1785,7 +1790,9 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
       onSelect: chooseAudience,
       onShowFull: () => setShowFullProfile(true),
       onReturnToContext: () => setShowFullProfile(false),
-    } : null, buttonBg, buttonText, buttonBorder, buttonFontSize: getButtonFontSize(design), bodyFontSize: getBodyFontSize(design), bg, cardEffect, handleShare, founderNumber }
+    } : null, buttonBg, buttonText, buttonBorder, buttonFontSize: getButtonFontSize(design), bodyFontSize: getBodyFontSize(design), bg, cardEffect, handleShare, founderNumber,
+    headingColor: getSectionHeadingColor(design, sectionMutedOn(bg.subtext, design.customBgColor)),
+    captionColor: getCaptionColor(design, sectionMutedOn(bg.subtext, design.customBgColor)) }
 
   const pageStyle: React.CSSProperties = { minHeight: '100vh', backgroundColor: bg.page, color: bg.text, fontFamily: font.body }
 
@@ -2255,7 +2262,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           </div>
           {/* Contact grid */}
           <div style={{ padding: '28px 16px 0' }}>
-            <p style={{ margin: '0 0 16px', fontSize: 10, fontWeight: 800, color: ink, textTransform: 'uppercase', letterSpacing: '0.3em', textAlign: 'center' }}>Get In Touch</p>
+            <p style={{ margin: '0 0 16px', fontSize: 10, fontWeight: 800, color: getSectionHeadingColor(design, ink), textTransform: 'uppercase', letterSpacing: '0.3em', textAlign: 'center' }}>Get In Touch</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               {/* Order is tuned so the grid fills neatly: Call | Email on
                   row 1, then WhatsApp | Website pair on row 2, Work alone
@@ -2273,7 +2280,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           {/* Connect section with glass-square social icons */}
           {socialLinks.length > 0 && (
             <div style={{ padding: '32px 16px 0', textAlign: 'center' }}>
-              <p style={{ margin: '0 0 16px', fontSize: 10, fontWeight: 800, color: ink, textTransform: 'uppercase', letterSpacing: '0.3em' }}>Connect</p>
+              <p style={{ margin: '0 0 16px', fontSize: 10, fontWeight: 800, color: getSectionHeadingColor(design, ink), textTransform: 'uppercase', letterSpacing: '0.3em' }}>Connect</p>
               <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 12 }}>
                 {socialLinks.map(s => (
                   <a key={s.platform} href={s.url} target="_blank" rel="noopener noreferrer"
@@ -3877,7 +3884,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           )}
           {/* Contact list with classical rules */}
           <div style={{ borderTop: `1px solid ${rule}`, paddingTop: 16 }}>
-            <p style={{ margin: '0 0 12px', fontSize: 10, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.3em' }}>Correspondence</p>
+            <p style={{ margin: '0 0 12px', fontSize: 10, fontWeight: 700, color: getSectionHeadingColor(design, muted), textTransform: 'uppercase', letterSpacing: '0.3em' }}>Correspondence</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {[
                 card.phone && { label: 'Telephone', value: card.phone, href: `tel:${card.phone}` },
@@ -3902,7 +3909,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               because this template does not have icons anywhere. */}
           {socialAccounts.length > 0 && (
             <div style={{ borderTop: `1px solid ${rule}`, paddingTop: 16, marginTop: 24 }}>
-              <p style={{ margin: '0 0 12px', fontSize: 10, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.3em' }}>Elsewhere</p>
+              <p style={{ margin: '0 0 12px', fontSize: 10, fontWeight: 700, color: getSectionHeadingColor(design, muted), textTransform: 'uppercase', letterSpacing: '0.3em' }}>Elsewhere</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                 {socialAccounts.map(a => (
                   <a key={a.key} href={a.url} target="_blank" rel="noopener noreferrer"

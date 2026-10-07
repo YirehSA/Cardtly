@@ -201,6 +201,13 @@ export interface CardDesign {
   companyColor?: string      // hex - overrides the company colour (defaults to muted)
   bioSize?: number           // 80-160 percentage
   bioColor?: string          // hex - overrides the bio paragraph colour
+  /** The section headings under the card: Certifications, Links / More,
+   *  Gallery, and a template's own section titles (Get In Touch, Connect,
+   *  Correspondence, Elsewhere). Defaults to the palette's muted text. */
+  sectionHeadingColor?: string
+  /** The captions under gallery photos. Falls back to sectionHeadingColor, so
+   *  one pick colours both, then to the palette's muted text. */
+  captionColor?: string
   bodySize?: 'small' | 'medium' | 'large'  // contact row + custom link text size (separate)
   buttonTextSize?: 'small' | 'medium' | 'large'  // Save Contact button text size
   profileBorder?: boolean    // toggle the photo's border ring on/off (default: true)
@@ -351,6 +358,8 @@ export const DEFAULT_DESIGN: CardDesign = {
   companyColor: undefined,
   bioSize: 100,
   bioColor: undefined,
+  sectionHeadingColor: undefined,
+  captionColor: undefined,
   bodySize: 'medium',
   buttonTextSize: 'medium',
   profileBorder: true,
@@ -576,6 +585,41 @@ export function companionHex(hex: string): string {
 export function isLightBg(color: string | undefined): boolean {
   if (!color) return false
   return getReadableTextOn(color) === '#0a0a0a'
+}
+
+/**
+ * Does white text fail 3:1 on this colour?
+ *
+ * getReadableTextOn keeps white until luminance 0.55. Right for a button and
+ * for a template's hero, and wrong for the small muted text on a mid-grey
+ * page: #c2c2c2 sits just under the line, so a card set to it drew its section
+ * headings and gallery captions in 60% white at about 1.4:1 (Cecile Nel's
+ * card, 2026-10-07). 3:1 is the floor even for large text.
+ *
+ * Used ONLY for the text that sits on the page below the hero: the section
+ * headings and gallery captions (sectionMutedOn). Not for bg.subtext, and not
+ * for isLightBg: Showroom draws its job title in bg.subtext over a dark hero
+ * scrim, so turning the palette's muted text dark put a dark title on a dark
+ * scrim, and flipping the page to "light" would have flipped the scrim itself.
+ * Of 27 cards with a custom background, only the two greys, #c2c2c2 and
+ * #9e9e9e, are affected; a mid blue like #4f7cb0 still gives white 4.3:1.
+ */
+export function whiteTextFailsOn(color: string | undefined): boolean {
+  if (!color) return false
+  const L = hexLuminance(color)
+  return L !== null && (1.05 / (L + 0.05)) < 3
+}
+
+/** Relative luminance of a 3- or 6-digit hex colour, or null for anything else. */
+function hexLuminance(hex: string): number | null {
+  const h = hex.replace('#', '')
+  if (!/^([0-9a-f]{3}|[0-9a-f]{6})$/i.test(h)) return null
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h
+  const lin = (i: number) => {
+    const c = parseInt(full.slice(i, i + 2), 16) / 255
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+  }
+  return 0.2126 * lin(0) + 0.7152 * lin(2) + 0.0722 * lin(4)
 }
 
 // Resolve the Save Contact button background. Falls back to accent if not set.
@@ -1039,6 +1083,25 @@ export function getCompanyColor(design: CardDesign, fallbackHex: string): string
 
 export function getBioColor(design: CardDesign, fallbackHex: string): string {
   return design.bioColor || fallbackHex
+}
+
+/** Section headings (Certifications, Links, Gallery, a template's own titles). */
+export function getSectionHeadingColor(design: CardDesign, fallbackHex: string): string {
+  return design.sectionHeadingColor || fallbackHex
+}
+
+/**
+ * The automatic colour for the headings and captions on the page, before the
+ * cardholder picks one: the palette's muted text, except on a custom page
+ * colour white cannot carry (whiteTextFailsOn), where it goes dark.
+ */
+export function sectionMutedOn(paletteSubtext: string, customBgColor: string | undefined): string {
+  return customBgColor && whiteTextFailsOn(customBgColor) ? 'rgba(0,0,0,0.60)' : paletteSubtext
+}
+
+/** Gallery captions: their own colour, else the headings', else the fallback. */
+export function getCaptionColor(design: CardDesign, fallbackHex: string): string {
+  return design.captionColor || design.sectionHeadingColor || fallbackHex
 }
 
 const BODY_SIZE_PX: Record<NonNullable<CardDesign['bodySize']>, number> = {

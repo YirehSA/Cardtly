@@ -645,6 +645,53 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
         })()}
         </div>
 
+        {/* SECTION HEADINGS AND GALLERY CAPTIONS. Colour only: they are small
+            labels, and their size follows the card. Asked for on a grey
+            Showroom card whose headings came out white (2026-10-07). Captions
+            follow the headings unless given their own, so one pick colours
+            both. Auto is readable on the page they sit on (sectionMutedOn). */}
+        <div className="space-y-2 mt-2">
+          {([
+            { key: 'sectionHeadingColor', label: 'Section headings', hint: 'Certifications, Links, More, Gallery and similar titles' },
+            { key: 'captionColor', label: 'Gallery captions', hint: 'The text under each gallery photo' },
+          ] as const).map(row => {
+            const value = design[row.key]
+            const followsHeadings = row.key === 'captionColor' && !value && !!design.sectionHeadingColor
+            return (
+              <div key={row.key} className="rounded-xl border border-border bg-card/40 px-3 py-2.5">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold">{row.label}</p>
+                    <p className="text-[11px] text-muted-foreground">{row.hint}</p>
+                  </div>
+                  {value && (
+                    <button
+                      onClick={() => update({ [row.key]: undefined } as Partial<CardDesign>)}
+                      className="text-xs text-muted-foreground hover:text-foreground underline flex-shrink-0"
+                      title="Back to the automatic colour"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={value || (followsHeadings ? design.sectionHeadingColor! : '#9ca3af')}
+                    onChange={e => update({ [row.key]: e.target.value } as Partial<CardDesign>)}
+                    className="w-8 h-8 rounded-md border border-border cursor-pointer bg-transparent flex-shrink-0"
+                    title="Pick a colour"
+                    aria-label={`${row.label} colour`}
+                  />
+                  <span className="text-xs text-muted-foreground font-mono flex-1 min-w-0 truncate">
+                    {value || (followsHeadings ? 'Same as headings' : 'Auto')}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
         {/* Body text size (contact rows + custom links) - kept as a
             3-button toggle since this controls multiple elements at
             once and there's no individual sizing to do here.
