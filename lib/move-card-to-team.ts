@@ -133,9 +133,29 @@ export interface MoveResult {
   wouldLose?: string[]
 }
 
+// lib/card-slug's slugifyPart(name, 40), repeated so this file needs no
+// imports and the guard can compile it on its own.
 const slugifyName = (s: string) =>
-  String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'card'
+  String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/g, '') || 'card'
+
+/**
+ * The person half of /card/<company>/<person>, free across the organisation,
+ * as newTeamPersonSlug picks it. That route looks a person up by this across
+ * the WHOLE organisation, so in a group of several companies an owner sharing
+ * a name with one of the staff would make the lookup find two cards and break
+ * both people's company links.
+ */
+async function freePersonSlug(db: Db, orgId: string, name: string): Promise<string> {
+  const base = slugifyName(name)
+  const { data, error } = await db.from('team_cards').select('slug_person').eq('organization_id', orgId)
+  // Before migration 054 the column does not exist and nothing reads it.
+  if (error) return base
+  const used = new Set((data || []).map((r: any) => String(r.slug_person || '').toLowerCase()).filter(Boolean))
+  if (!used.has(base)) return base
+  for (let n = 2; n < 200; n++) if (!used.has(`${base}-${n}`)) return `${base}-${n}`
+  return `${base}-${Math.random().toString(36).slice(2, 7)}`
+}
 
 const EVENT_PAGE = 500
 
@@ -237,6 +257,9 @@ export async function movePersonalCardIntoTeam(
     }
   }
 
+  // Worked out before anything is written, so a failure here changes nothing.
+  const slugPerson = await freePersonSlug(db, org.id, card.name)
+
   // 2. Free the link for the team card, keeping a way back.
   const originalSlug: string = card.slug
   const parkedSlug = `${originalSlug}--moving-${Date.now().toString(36)}`
@@ -262,7 +285,7 @@ export async function movePersonalCardIntoTeam(
     claimed_at: new Date().toISOString(),
     is_active: true,
     slug: originalSlug,
-    slug_person: slugifyName(card.name),
+    slug_person: slugPerson,
   })
 
   const notCarried: string[] = []

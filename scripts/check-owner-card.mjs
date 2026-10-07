@@ -244,6 +244,18 @@ const seed = (extra = {}) => ({
   }
 }
 
+// A group: /card/<company>/<person> looks a person up by slug_person across
+// the whole organisation, so the owner must not take a staff member's.
+{
+  const s = seed()
+  s.team_cards[0].slug_person = 'jo-owner'
+  s.team_cards[1].slug_person = 'jo-owner-2'
+  const db = makeDb(s)
+  const r = await M.movePersonalCardIntoTeam(db, { orgId: 'org-1', cardId: 'card-1', requireLossless: true })
+  const tc = db.tables().team_cards.find(c => c.id === r.teamCardId)
+  if (tc?.slug_person !== 'jo-owner-3') bad(`in a group, the owner took slug_person "${tc?.slug_person}" while jo-owner and jo-owner-2 were in use: both company links would break`)
+}
+
 // Content a team card cannot hold: an automatic move refuses, an admin may force.
 {
   const extra = { phone_numbers: ['+27 82 000 0000'], link_2_image_url: 'https://example.test/x.png' }
