@@ -49,7 +49,13 @@ interface Dept {
 }
 interface OwnedOrg { id: string; name: string; lockedFields: string[] }
 /** One of the viewer's own personal cards, offered as a look to copy. */
-interface MyCard { id: string; name: string | null; brand: Record<string, any> }
+// The viewer's own cards. A team card (an owner's card lives in their team,
+// lib/owner-team-card) can only be a look for departments of its own
+// organisation, which is all verifyBrandSource accepts.
+interface MyCard {
+  id: string; name: string | null; brand: Record<string, any>
+  table?: 'cards' | 'team_cards'; organizationId?: string | null
+}
 
 const grad = 'hsl(var(--accent))'
 
@@ -619,13 +625,17 @@ function SectionHead({ n, accent, icon: Icon, title, body, state, stateTone }: {
   )
 }
 
-function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = [], onBack, call, loading }: {
+function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards: allMyCards = [], onBack, call, loading }: {
   dept: Dept; accent: string; departments: Dept[]; orgLocks?: string[]; myCards?: MyCard[]; onBack?: () => void
   call: (k: string, b: object, m: string) => Promise<boolean>; loading: string | null
 }) {
   const [inviteName, setInviteName] = useState('')
   const [inviteEmail, setInviteEmail] = useState('')
   const [headEmail, setHeadEmail] = useState('')
+  // A team card of the viewer's that already sits in this department is
+  // offered below with the department's own cards, so not twice.
+  const myCards = allMyCards.filter(c => (c.table || 'cards') === 'cards'
+    || (c.organizationId === dept.organizationId && !dept.cards.some(dc => dc.id === c.id)))
 
   // Companies this department could be moved into. Its current parent is
   // excluded, since moving somewhere it already is does nothing.
@@ -867,7 +877,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards = 
               department, which a new department has none of. */}
           {myCards.map(c => (
             <button key={`mine-${c.id}`} disabled={loading === `brand-${dept.id}`}
-              onClick={() => call(`brand-${dept.id}`, { action: 'set_brand', department_id: dept.id, brand: c.brand, source: { table: 'cards', id: c.id } }, `Now following ${c.name || 'your card'}`)}
+              onClick={() => call(`brand-${dept.id}`, { action: 'set_brand', department_id: dept.id, brand: c.brand, source: { table: c.table || 'cards', id: c.id } }, `Now following ${c.name || 'your card'}`)}
               className="text-sm px-3.5 min-h-[44px] rounded-xl font-semibold border transition hover:bg-muted disabled:opacity-40 flex items-center gap-2"
               style={{ borderColor: `${accent}55`, color: accent }}>
               {loading === `brand-${dept.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}

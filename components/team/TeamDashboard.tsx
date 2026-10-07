@@ -584,8 +584,8 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
             ))}
           </ol>
           <p className="text-xs text-muted-foreground mt-5 pt-4 border-t border-border">
-            This is the same account you are signed in with now. A team is created from your personal
-            account, so your own card stays exactly as it is and you manage both from here.
+            This is the same account you are signed in with now. Your own card becomes one of the team&apos;s
+            cards, at the same link, so count yourself in when you choose how many.
           </p>
         </div>
 
@@ -620,7 +620,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
             {/* Live estimate of the team total in the admin's own currency, outside the rand zone */}
             <PriceEstimate zar={seatCount * SEAT_PRICE} suffix="/mo" className="block text-sm font-medium text-muted-foreground mt-3" />
             <p className="text-xs text-muted-foreground mt-1">
-              You can add more cards later. Billed monthly, cancel anytime.
+              Includes your own card. You can add more cards later. Billed monthly, cancel anytime.
             </p>
           </div>
 

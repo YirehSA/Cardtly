@@ -344,16 +344,28 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
                             this team, so it does not use one of its {o.maxSeats} seats.{' '}
                             {o.ownerHasOwnSubscription
                               ? 'Their own subscription keeps it live, so it is not moved automatically. Move it in only if the team should cover it instead.'
-                              : 'It is not covered by the team, so it goes offline when their personal trial ends. While the team is live it moves in by itself the next time they open their Card page, or move it now.'}
+                              : o.ownerPersonalCards.length > 1
+                                ? 'They have several personal cards, so none is moved automatically unless exactly one is marked as their main card. Pick the one that is theirs.'
+                                : o.ownerPersonalCards[0].wouldLose
+                                  ? 'It is not moved automatically, because it has content a team card has no place for (below). Move it yourself if losing that is fine.'
+                                  : 'While the team is live it moves in by itself the next time they open their Card page, or move it now.'}
                             {' '}Its link stays the same.
                           </p>
+                          {o.ownerPersonalCards.filter(c => c.wouldLose).map(c => (
+                            <p key={`lose-${c.id}`} className="mt-1.5" style={{ color: '#f59e0b' }}>
+                              /card/{c.slug} would drop: {c.wouldLose}.
+                            </p>
+                          ))}
                           <div className="flex gap-2 flex-wrap mt-2">
                             {o.ownerPersonalCards.map(c => (
                               <button key={c.id}
                                 disabled={loading === `move-${c.id}` || o.cardsCreated >= o.maxSeats}
-                                title={o.cardsCreated >= o.maxSeats ? 'Every seat is taken. Add a seat first.' : `Move /card/${c.slug} into ${o.name}`}
+                                title={o.cardsCreated >= o.maxSeats ? 'Every seat is taken. Add a seat first.' : c.wouldLose ? `Would drop: ${c.wouldLose}` : `Move /card/${c.slug} into ${o.name}`}
                                 onClick={() => {
-                                  if (!confirm(`Move ${c.name || c.slug}'s card into ${o.name}?\n\nIt becomes one of the team's ${o.maxSeats} seats, keeps the link /card/${c.slug}, and brings its captured contacts with it. The personal card is then removed.`)) return
+                                  const loses = c.wouldLose
+                                    ? `\n\nA team card has no place for: ${c.wouldLose}. That disappears from the card (the values are kept in the audit log).`
+                                    : ''
+                                  if (!confirm(`Move ${c.name || c.slug}'s card into ${o.name}?\n\nIt becomes one of the team's ${o.maxSeats} seats, keeps the link /card/${c.slug}, and brings its contacts, bookings and view history with it. The personal card is then removed.${loses}`)) return
                                   onDept('move_card_into_team', { org_id: o.id, card_id: c.id }, `move-${c.id}`,
                                     `${c.name || 'The card'} is now one of ${o.name}'s seats, at the same link.`)
                                 }}

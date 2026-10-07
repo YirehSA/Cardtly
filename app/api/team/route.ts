@@ -377,14 +377,21 @@ export async function POST(request: Request) {
     const { data: org } = await admin.from('organizations').select('id').eq('id', org_id).eq('admin_user_id', user.id).single()
     if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
 
-    const { data: myCard } = await admin
+    const { data: myPersonal } = await admin
       .from('cards').select('*').eq('user_id', user.id).eq('is_primary', true).maybeSingle()
-    if (!myCard) return NextResponse.json({ error: 'You have no personal card to pull a brand from.' }, { status: 404 })
+    // An owner's own card usually lives in the team now, as one of its seats
+    // (lib/owner-team-card), so that is "my card" just as much. Without this
+    // the button told JETOUR's owner he had no card, the day his moved in.
+    const { data: myTeamCard } = myPersonal ? { data: null } : await admin
+      .from('team_cards').select('*').eq('organization_id', org_id).eq('user_id', user.id)
+      .limit(1).maybeSingle()
+    const myCard = myPersonal || myTeamCard
+    if (!myCard) return NextResponse.json({ error: 'You have no card of your own to pull a brand from yet. Open My Card first.' }, { status: 404 })
 
     const brand = extractBrand(myCard)
     const patch: Record<string, any> = {
       brand,
-      brand_source: linked === false ? null : { table: 'cards', id: myCard.id },
+      brand_source: linked === false ? null : { table: myPersonal ? 'cards' : 'team_cards', id: myCard.id },
     }
     let { error } = await admin.from('organizations').update(patch).eq('id', org_id)
     // Migration 059 is applied by hand after the deploy. Until it is, the copy

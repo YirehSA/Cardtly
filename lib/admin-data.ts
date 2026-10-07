@@ -2,6 +2,7 @@ import { FOUNDER_ADMIN_USER_ID } from '@/lib/admin-check'
 import { isBillablePaystackSub, listActivePaystackSubs } from '@/lib/paystack'
 import { orgMonthlyRand, BILLING_MODE_META, isOrgBillingMode, orgTrialDaysLeft, orgNeedsCollecting, orgBillingStartsInDays, orgPaidUntilDaysLeft, orgEntitlesMembers, type OrgBillingMode } from '@/lib/org-billing'
 import { computeRep, type RepRow, type RepStats } from '@/lib/reps'
+import { contentThatWouldNotCarry, describeColumns } from '@/lib/move-card-to-team'
 
 // Everything the admin page needs, assembled in one place so the page stays a
 // thin shell and this stays testable.
@@ -101,7 +102,7 @@ export interface AdminOrgRow {
   /** The owner's PERSONAL cards: outside the team's seats, and served by the
    *  owner's own trial or subscription rather than the team. Offered a move
    *  into the team (lib/move-card-to-team). */
-  ownerPersonalCards: { id: string; name: string | null; slug: string }[]
+  ownerPersonalCards: { id: string; name: string | null; slug: string; wouldLose: string | null }[]
   /** Whether the owner already holds a card inside this team. */
   ownerHoldsTeamCard: boolean
   /** The owner has an active subscription of their own, which keeps a
@@ -310,6 +311,19 @@ export async function loadAdminData(admin: any) {
     })
   }
 
+  // Owners' personal cards in full, only to say which would lose content in a
+  // move (lib/move-card-to-team). One query for a handful of rows; the list
+  // above deliberately reads few columns of every card.
+  const ownerIds = [...new Set((orgs || []).map((o: any) => o.admin_user_id).filter(Boolean))]
+  const { data: ownerCardRows } = ownerIds.length
+    ? await admin.from('cards').select('*').in('user_id', ownerIds)
+    : { data: [] }
+  const wouldLoseByCard: Record<string, string> = {}
+  for (const c of ownerCardRows || []) {
+    const lose = contentThatWouldNotCarry(c)
+    if (lose.length) wouldLoseByCard[c.id] = describeColumns(lose)
+  }
+
   const orgRows: AdminOrgRow[] = (orgs || []).map((o: any) => {
     const b = cardsByOrg[o.id] || { created: 0, claimed: 0 }
     // Narrow once: anything unrecognised is treated as 'monthly', matching
@@ -341,9 +355,11 @@ export async function loadAdminData(admin: any) {
       paidUntilDaysLeft: orgPaidUntilDaysLeft(mode, o.paid_until || null),
       ownerPersonalCards: (cards || [])
         .filter((c: any) => c.user_id && c.user_id === o.admin_user_id)
-        .map((c: any) => ({ id: c.id, name: c.name || null, slug: c.slug })),
+        .map((c: any) => ({ id: c.id, name: c.name || null, slug: c.slug, wouldLose: wouldLoseByCard[c.id] || null })),
       ownerHoldsTeamCard: (teamCards || []).some((tc: any) => tc.organization_id === o.id && tc.user_id === o.admin_user_id),
-      ownerHasOwnSubscription: !!subBy[o.admin_user_id],
+      // A self-serve team's subscription sits on its owner but is the TEAM's
+      // (lib/owner-team-card), so it does not count as paying their own way.
+      ownerHasOwnSubscription: !!subBy[o.admin_user_id] && !o.whop_membership_id,
       suspendedAt: o.suspended_at || null,
       suspensionMessage: o.suspension_message || null,
       departments: deptsByOrg[o.id] || [],

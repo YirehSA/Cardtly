@@ -75,7 +75,7 @@ export default async function TeamBrandPage() {
         slugPrefix={identity.card_slug_prefix} industry={identity.industry}
         cardCount={totalCards} />
 
-      <TeamBrandPanel orgId={org.id} brand={brand} hasBrand={hasBrand}
+      <TeamBrandPanel orgId={org.id} orgName={org.name} brand={brand} hasBrand={hasBrand}
         totalCards={totalCards} brandedCards={brandedCards} />
     </div>
   )

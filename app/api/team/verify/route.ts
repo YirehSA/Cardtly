@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { settleOwnerCard } from '@/lib/owner-team-card'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -49,6 +50,11 @@ export async function GET(request: Request) {
     if (updateError) {
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/team?status=error`)
     }
+
+    // The team is live: the owner's own card becomes one of its seats, at the
+    // same link (lib/owner-team-card). Never throws, and never stands between
+    // a customer and the seats they just paid for.
+    await settleOwnerCard(supabase, orgId)
 
     return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/team?status=success`)
   } catch {

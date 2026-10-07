@@ -12,7 +12,7 @@ import { findUserByEmail } from '@/lib/department-perms'
 import { orgSlugPrefix } from '@/lib/card-slug'
 import { normaliseCode } from '@/lib/trial-codes'
 import { sendTeamOwnerWelcome } from '@/lib/team-owner-invite'
-import { movePersonalCardIntoTeam } from '@/lib/move-card-to-team'
+import { movePersonalCardIntoTeam, SETTINGS_ONLY, describeColumns } from '@/lib/move-card-to-team'
 import { settleOwnerCard } from '@/lib/owner-team-card'
 
 export async function POST(request: Request) {
@@ -703,11 +703,15 @@ export async function POST(request: Request) {
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 409 })
     // A move that worked with something to report is a WARNING, which the admin
     // screen shows beside the success, not an error, which it treats as failure.
+    // Only what a team card has no place for and a visitor would have seen is
+    // worth a warning; dropped look settings are routine (lib/move-card-to-team).
+    const lostContent = (result.notCarried || []).filter(c => !SETTINGS_ONLY.has(c))
     const notes = [
       result.error || null,
-      result.notCarried?.length ? `Not carried (no such field on team cards): ${result.notCarried.join(', ')}.` : null,
+      lostContent.length ? `Not carried, because a team card has no place for it: ${describeColumns(lostContent)}. The values are kept in the audit log.` : null,
     ].filter(Boolean).join(' ')
-    const { error: _note, ...rest } = result
+    // The dropped values go to the audit log above, never to the browser.
+    const { error: _note, dropped: _dropped, ...rest } = result
     return NextResponse.json({ ...rest, ...(notes ? { warning: notes } : {}) })
   }
 
@@ -928,7 +932,7 @@ export async function POST(request: Request) {
       if (saved?.id) {
         const moved = await settleOwnerCard(admin, saved.id)
         if (moved?.ok) notes.push(`The owner's own card was moved into the team as one of its ${seats} seats, at the same link.${moved.error ? ` ${moved.error}` : ''}`)
-        else if (moved?.error) notes.push(`The owner's own card could not be moved into the team: ${moved.error}`)
+        else if (moved?.error) notes.push(`The owner's own card is still outside the team. ${moved.error}`)
       }
     }
 

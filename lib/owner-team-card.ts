@@ -2,9 +2,9 @@ import { orgEntitlesMembers } from '@/lib/org-billing'
 import { subscriptionState, latestSubscriptionFor } from '@/lib/plan-server'
 import { movePersonalCardIntoTeam, type MoveResult } from '@/lib/move-card-to-team'
 import { newTeamCardSlug, newTeamPersonSlug } from '@/lib/card-slug-server'
+import { auditLog } from '@/lib/admin-audit'
 
-// THE RULE: a team owner's own card lives in their team, as one of its seats,
-// unless they pay for it some other way.
+// THE RULE: a team owner's own card lives in their team, as one of its seats.
 //
 // Why it has to be automatic (Andre, 2026-10-07): JETOUR's administrator made
 // his card from the dashboard before anybody thought about it, so it sat
@@ -13,20 +13,31 @@ import { newTeamCardSlug, newTeamPersonSlug } from '@/lib/card-slug-server'
 // had paid for. An admin-only fix does nothing for a company that sets itself
 // up, so the product does it at the moments the situation arises:
 //
-//   - a team goes live (admin create_org, a paid prepaid invoice):
-//     settleOwnerCard moves the owner's existing card in
+//   - a team goes live (admin create_org, a self-serve Paystack payment in
+//     team/verify, a paid prepaid invoice): settleOwnerCard moves the owner's
+//     existing card in
 //   - an owner of a live team opens their Card page, or signs in for the
 //     first time (ensureAccountReady), with no card: the card is created
 //     inside the team (ownerTeamNeedingCard + createOwnerTeamCard)
 //   - an owner of a live team opens their Card page with a personal card:
 //     settleOwnerCard moves it in, same link
 //
-// "Unless they pay some other way": an owner whose own subscription serves
-// their card is left exactly as they are. That includes every self-serve
-// Paystack team, because the Paystack webhook writes the team's subscription
-// onto the owner's user, which is why app/api/team/verify is not hooked.
-// Nothing changes for a paying customer; this is for the owners whose card
-// would otherwise go dark when their trial ends.
+// SELF-SERVE TEAMS INCLUDED (Andre, same day): a team bought through checkout
+// is the owner plus the others, the same as an invoiced one. The Paystack
+// webhook writes the team's subscription onto the owner's user, so "they pay
+// for their own card" cannot be read off that subscription for these teams;
+// a self-serve team is recognised by the Paystack reference team/verify puts
+// on it (whop_membership_id), and its owner is moved like anybody else.
+//
+// LEFT ALONE, on purpose:
+//   - the owner of any other team whose own subscription keeps their card live
+//     (comped admins and the like): their card is paid for already
+//   - an owner with several personal cards and none marked primary: which one
+//     is theirs is a guess, and a wrong guess rebuilds the wrong card
+//   - a card carrying content a team card has no place for (extra phone
+//     numbers, link images...): moving it would take that off their live card
+//     without anybody asking. Admin, Teams shows it with a Move button.
+// Doing nothing is always the safe failure for something that rebuilds a card.
 
 /** Does this person's own subscription already keep their card live? */
 async function paysOwnWay(db: any, userId: string): Promise<boolean> {
@@ -40,12 +51,15 @@ async function paysOwnWay(db: any, userId: string): Promise<boolean> {
   }
 }
 
-interface LiveTeam { id: string; name: string; admin_user_id: string; max_seats: number }
+interface LiveTeam { id: string; name: string; admin_user_id: string; max_seats: number; whop_membership_id?: string | null }
+
+/** Bought through self-serve checkout: its subscription is the team's, not the owner's own. */
+const boughtSelfServe = (org: LiveTeam) => !!org.whop_membership_id
 
 /** The owner's live team with a free seat and no card of theirs in it, if any. */
 async function teamNeedingOwnerCard(db: any, orgId: string): Promise<LiveTeam | null> {
   const { data: org } = await db.from('organizations')
-    .select('id, name, admin_user_id, max_seats, suspended_at, business_plan_active, billing_period, trial_ends_at')
+    .select('id, name, admin_user_id, max_seats, suspended_at, business_plan_active, billing_period, trial_ends_at, whop_membership_id')
     .eq('id', orgId).maybeSingle()
   if (!org?.admin_user_id || !orgEntitlesMembers(org)) return null
   const { data: cards } = await db.from('team_cards').select('user_id').eq('organization_id', org.id)
@@ -54,23 +68,44 @@ async function teamNeedingOwnerCard(db: any, orgId: string): Promise<LiveTeam | 
   return org
 }
 
+/** Whether the rule reaches this owner at all. */
+async function ruleApplies(db: any, org: LiveTeam): Promise<boolean> {
+  return boughtSelfServe(org) || !(await paysOwnWay(db, org.admin_user_id))
+}
+
 /**
  * A team just went live, or its owner opened their Card page: if the owner's
  * own card belongs in it, move it in. Returns null when there is nothing to
- * do, which is the usual answer. Never throws: the caller's real work (a
- * payment, a team being set up) must not fail over this.
+ * do, which is the usual answer, and { ok: false, error } when it deliberately
+ * left the card alone. Never throws: the caller's real work (a payment, a team
+ * being set up) must not fail over this.
  */
 export async function settleOwnerCard(db: any, orgId: string): Promise<MoveResult | null> {
   try {
     const org = await teamNeedingOwnerCard(db, orgId)
     if (!org) return null
-    if (await paysOwnWay(db, org.admin_user_id)) return null
+    if (!(await ruleApplies(db, org))) return null
     const { data: personal } = await db.from('cards')
       .select('id, is_primary, created_at').eq('user_id', org.admin_user_id)
       .order('created_at', { ascending: true })
-    const pick = (personal || []).find((c: any) => c.is_primary) || (personal || [])[0]
-    if (!pick) return null
-    return await movePersonalCardIntoTeam(db, { orgId: org.id, cardId: pick.id })
+    const list = personal || []
+    if (!list.length) return null
+    const primaries = list.filter((c: any) => c.is_primary)
+    const pick = primaries.length === 1 ? primaries[0] : list.length === 1 ? list[0] : null
+    if (!pick) {
+      return { ok: false, error: `Not moved automatically: the owner has ${list.length} personal cards and ${primaries.length ? 'more than one is' : 'none is'} marked as their main one. Move the right one from Admin, Teams.` }
+    }
+    const result = await movePersonalCardIntoTeam(db, { orgId: org.id, cardId: pick.id, requireLossless: true })
+    // Every move, and every failed attempt at one, is on record with what did
+    // not carry and its values. A refusal to drop content is not: it changed
+    // nothing, and the Card page asks again on every visit.
+    if (!result.wouldLose) {
+      await auditLog(db, {
+        action: 'owner_card_auto_move', targetUserId: org.admin_user_id, ok: result.ok,
+        detail: { org_id: org.id, card_id: pick.id, ...result },
+      })
+    }
+    return result
   } catch (e) {
     console.error('settleOwnerCard', orgId, e)
     return null
@@ -82,7 +117,7 @@ export async function ownerTeamNeedingCard(db: any, userId: string): Promise<Liv
   const { data: owned } = await db.from('organizations').select('id').eq('admin_user_id', userId)
   for (const o of owned || []) {
     const org = await teamNeedingOwnerCard(db, o.id)
-    if (org && !(await paysOwnWay(db, userId))) return org
+    if (org && (await ruleApplies(db, org))) return org
   }
   return null
 }

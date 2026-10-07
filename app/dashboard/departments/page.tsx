@@ -167,8 +167,18 @@ export default async function DepartmentsPage() {
     .order('is_primary', { ascending: false })
     .order('created_at', { ascending: true })
 
-  const myCards = (personalCards || [])
-    .map((c: any) => ({ id: c.id, name: c.name as string | null, brand: extractBrand(c) }))
+  // And their own team cards in these organisations: an owner's card lives in
+  // their team as one of its seats (lib/owner-team-card), so for an owner it
+  // is usually the only card they have. The manager offers each only to
+  // departments of its own organisation.
+  const { data: ownTeamCards } = orgIds.length
+    ? await admin.from('team_cards').select('*').eq('user_id', user.id).in('organization_id', orgIds)
+    : { data: [] }
+
+  const myCards = [
+    ...(personalCards || []).map((c: any) => ({ id: c.id, name: c.name as string | null, brand: extractBrand(c), table: 'cards' as const, organizationId: null })),
+    ...(ownTeamCards || []).map((c: any) => ({ id: c.id, name: c.name as string | null, brand: extractBrand(c), table: 'team_cards' as const, organizationId: c.organization_id as string })),
+  ]
     // A card with nothing set has no look worth copying, and offering it would
     // hand somebody a button that appears to work and changes nothing.
     .filter((c: { brand: Record<string, any> }) =>

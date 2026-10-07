@@ -12,8 +12,8 @@ interface Brand {
   color_theme?: string | null
 }
 
-export default function TeamBrandPanel({ orgId, brand, hasBrand, totalCards = 0, brandedCards = 0 }: {
-  orgId: string; brand: Brand; hasBrand: boolean
+export default function TeamBrandPanel({ orgId, orgName, brand, hasBrand, totalCards = 0, brandedCards = 0 }: {
+  orgId: string; orgName?: string | null; brand: Brand; hasBrand: boolean
   totalCards?: number; brandedCards?: number
 }) {
   const router = useRouter()
@@ -92,7 +92,10 @@ export default function TeamBrandPanel({ orgId, brand, hasBrand, totalCards = 0,
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="font-bold">{brand.company || 'No company name set'}</p>
+            {/* The team's own name until a brand says otherwise. This read "No
+                company name set" on a team created as JETOUR Bryanston, which
+                looked like the setup had lost the name. */}
+            <p className="font-bold">{brand.company || orgName || 'No company name set'}</p>
             {brand.website && (
               <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5">
                 <Globe className="w-3.5 h-3.5" />{brand.website}
