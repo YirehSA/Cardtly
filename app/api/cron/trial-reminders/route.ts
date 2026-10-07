@@ -8,6 +8,7 @@ import { FROM_EMAIL } from '@/lib/email'
 import { sendPaymentFailedEmails } from '@/lib/payment-reminders'
 import { expireCancelledSubscriptions } from '@/lib/subscription-expiry'
 import { subscriptionState } from '@/lib/plan-server'
+import { orgEntitlesMembers } from '@/lib/org-billing'
 
 // Trial reminder emails. Triggered daily by Vercel Cron (see vercel.json).
 //
@@ -69,7 +70,7 @@ export async function GET(request: Request) {
 
   const admin = createAdminClient(url, serviceKey) as any
 
-  const [{ data: profiles, error: profErr }, { data: subs, error: subErr }, { data: teamCards }, { data: cards }, { data: alreadySent }] =
+  const [{ data: profiles, error: profErr }, { data: subs, error: subErr }, { data: teamCards }, { data: cards }, { data: alreadySent }, { data: orgs }] =
     await Promise.all([
       admin.from('profiles').select('user_id, name, trial_ends_at').not('trial_ends_at', 'is', null),
       // Every row, not just status = 'active': whether a subscription still
@@ -79,6 +80,8 @@ export async function GET(request: Request) {
       admin.from('team_cards').select('user_id').not('user_id', 'is', null),
       admin.from('cards').select('user_id, name, slug, created_at'),
       admin.from('trial_emails').select('user_id, kind'),
+      // Appended last on purpose: Promise.all binds by position.
+      admin.from('organizations').select('admin_user_id, suspended_at, business_plan_active, billing_period, trial_ends_at'),
     ])
 
   // If trial_ends_at does not exist yet (migration 024 unapplied), this
@@ -110,6 +113,13 @@ export async function GET(request: Request) {
   // their personal trial, so "your card is about to go offline" would be a
   // lie. Excluded outright.
   const teamMembers = new Set((teamCards || []).map((t: any) => t.user_id).filter(Boolean))
+  // And a team's owner, while the team is live: the company pays for them too,
+  // and getUserPlan counts them as covered. Without this the administrator of
+  // a team paid by invoice was emailed "your trial is ending" by their own
+  // supplier (JETOUR Bryanston, 2026-10-07).
+  for (const o of (orgs || []) as any[]) {
+    if (o.admin_user_id && orgEntitlesMembers(o)) teamMembers.add(o.admin_user_id)
+  }
   const sent = new Set((alreadySent || []).map((r: any) => `${r.user_id}:${r.kind}`))
 
   const cardByUser: Record<string, { name: string | null; slug: string | null; createdAt: string | null }> = {}

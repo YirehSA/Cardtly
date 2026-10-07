@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Plus, Save, X, Wand2, Trash2, Link2 } from 'lucide-react'
+import { Loader2, Plus, Save, X, Wand2, Trash2, Link2, FileText } from 'lucide-react'
 import { Section, inputClass, inputStyle, grad } from '../shared'
 import { money, toCents, toRands, METHODS, Empty, fmtDate } from './shared'
 
@@ -299,11 +299,16 @@ export default function PaymentsTab() {
               </div>
               {r.allocations.length > 0 && (
                 <div className="flex gap-2 flex-wrap mt-2 pl-24">
+                  {/* Each one opens the invoice it paid, so checking what a
+                      payment settled is one click rather than a search on the
+                      Invoices tab. The PDF shows it paid, with what is left. */}
                   {r.allocations.map(a => (
-                    <span key={a.id} className="px-2 py-0.5 rounded text-[11px] font-mono"
+                    <a key={a.id} href={`/api/admin/billing/invoices/pdf?id=${a.invoice_id}`} target="_blank" rel="noreferrer"
+                      title={`Open ${a.invoice_number}`}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono transition hover:opacity-80"
                       style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }}>
-                      {a.invoice_number} {money(a.amount_cents)}
-                    </span>
+                      <FileText className="w-3 h-3" />{a.invoice_number} {money(a.amount_cents)}
+                    </a>
                   ))}
                 </div>
               )}

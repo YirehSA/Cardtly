@@ -226,6 +226,25 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
     }
   }
 
+  // A team's OWNER, covered by the team they run.
+  //
+  // Card holders and department heads were covered and owners were not, so the
+  // owner of a company paid by invoice, debit order or comp sat on a 7-day
+  // signup trial: "Expiring 7D" in admin, a trial banner in their own
+  // dashboard, and trial emails once they made a card. JETOUR Bryanston's
+  // administrator was the first, the day their prepaid invoice was paid
+  // (2026-10-07). Paystack team owners never showed it, because their team
+  // subscription sits on their own user_id and the subscription check above
+  // already serves them. Same rule as the two checks above: the org has to be
+  // entitling its members.
+  const { data: ownedOrgs } = await admin
+    .from('organizations')
+    .select('suspended_at, business_plan_active, billing_period, trial_ends_at')
+    .eq('admin_user_id', userId)
+  if ((ownedOrgs || []).some((o: any) => orgEntitlesMembers(o))) {
+    return { tier: 'pro', isActive: true, isTrial: false, viaTeam: true }
+  }
+
   const { data: profile } = await admin
     .from('profiles')
     .select('trial_ends_at')

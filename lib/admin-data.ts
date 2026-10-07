@@ -1,6 +1,6 @@
 import { FOUNDER_ADMIN_USER_ID } from '@/lib/admin-check'
 import { isBillablePaystackSub, listActivePaystackSubs } from '@/lib/paystack'
-import { orgMonthlyRand, BILLING_MODE_META, isOrgBillingMode, orgTrialDaysLeft, orgNeedsCollecting, orgBillingStartsInDays, orgPaidUntilDaysLeft, type OrgBillingMode } from '@/lib/org-billing'
+import { orgMonthlyRand, BILLING_MODE_META, isOrgBillingMode, orgTrialDaysLeft, orgNeedsCollecting, orgBillingStartsInDays, orgPaidUntilDaysLeft, orgEntitlesMembers, type OrgBillingMode } from '@/lib/org-billing'
 import { computeRep, type RepRow, type RepStats } from '@/lib/reps'
 
 // Everything the admin page needs, assembled in one place so the page stays a
@@ -233,10 +233,13 @@ export async function loadAdminData(admin: any) {
 
     // Precedence mirrors what actually decides access:
     // an active sub wins, then a claimed team card (served by the org and
-    // never gated on a personal trial), then the trial.
+    // never gated on a personal trial), then owning a live team (covered by
+    // it, as getUserPlan says - otherwise an invoice-paid team's administrator
+    // read "Expiring 7D" the day their invoice was paid), then the trial.
     let status: UserStatus
     if (sub) status = isBillablePaystackSub(sub) ? 'paying' : 'comped'
     else if (memberOrg) status = 'member'
+    else if (org && orgEntitlesMembers(org)) status = 'member'
     else if (daysLeft === null) status = 'trial'      // no date: fails open, still live
     else if (daysLeft <= 0) status = 'expired'
     else if (daysLeft <= 7) status = 'expiring'

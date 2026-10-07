@@ -334,6 +334,31 @@ function body(src, decl) {
   })
 }
 
+// ── A team's owner is covered by the team, in all three places ──────────────
+// The owner of a team paid by invoice, debit order or comp has no subscription
+// of their own, and was left on a 7-day signup trial: "Expiring 7D" in admin,
+// a trial banner, and trial emails once they made a card (JETOUR Bryanston,
+// 2026-10-07). getUserPlan, the admin list and the reminder cron must all
+// treat the owner of a live team as covered, by the same orgEntitlesMembers.
+{
+  const plan = read(PLAN).replace(/\r/g, '')
+  const iOwner = plan.search(/\.from\('organizations'\)\s*\n\s*\.select\('suspended_at, business_plan_active, billing_period, trial_ends_at'\)\s*\n\s*\.eq\('admin_user_id', userId\)/)
+  const iTrial = plan.search(/\.select\('trial_ends_at'\)/)
+  if (iOwner < 0) bad('getUserPlan no longer checks whether the user owns a live team, so an invoice-paid team\'s owner sits on a signup trial.')
+  else if (iTrial >= 0 && iOwner > iTrial) bad('getUserPlan reads the trial before checking team ownership, so an owner can be treated as a trialist.')
+  if (!/\n  if \(\(ownedOrgs \|\| \[\]\)\.some\(\(o: any\) => orgEntitlesMembers\(o\)\)\) \{\s*\n\s*return \{ tier: 'pro', isActive: true, isTrial: false, viaTeam: true \}/.test(plan)) {
+    bad('getUserPlan\'s owner check no longer returns the team plan for the owner of a live team.')
+  }
+  const cron = read(CRON).replace(/\r/g, '')
+  if (!/if \(o\.admin_user_id && orgEntitlesMembers\(o\)\) teamMembers\.add\(o\.admin_user_id\)/.test(cron)) {
+    bad('the reminder cron no longer counts a live team\'s owner as covered, so it can email them "your trial is ending".')
+  }
+  const adminData = read('lib/admin-data.ts').replace(/\r/g, '')
+  if (!/else if \(org && orgEntitlesMembers\(org\)\) status = 'member'/.test(adminData)) {
+    bad('the admin user list no longer shows a live team\'s owner as a member, so it reads "Expiring" for a paying company\'s administrator.')
+  }
+}
+
 if (fail) {
   console.error(`\ncheck-entitlement-order: ${fail} failure(s).`)
   process.exit(1)
