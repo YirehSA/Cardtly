@@ -37,6 +37,10 @@ interface Props {
 type LogoChoice = 'cardtly' | 'own' | 'none'
 type LogoShape = 'circle' | 'square' | 'rectangle'
 type ColourId = 'classic' | 'brand' | 'midnight' | 'ink'
+// The plate behind the centre logo. White was the only option, which suits a
+// dark logo and leaves a white logo (or one made for a dark background) as a
+// blank square in the middle of the code.
+type PlateId = 'white' | 'brand' | 'code' | 'custom'
 
 const STORAGE_KEY = 'cardtly:qr-prefs'
 
@@ -46,7 +50,11 @@ interface QrPrefs {
   logoShape?: LogoShape
   colour?: ColourId
   size?: number
+  plate?: PlateId
+  plateCustom?: string
 }
+
+const isHex6 = (v: unknown): v is string => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v)
 
 function loadPrefs(): QrPrefs {
   if (typeof window === 'undefined') return {}
@@ -180,6 +188,8 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
   const [logoShape, setLogoShape] = useState<LogoShape>(initial.logoShape || 'square')
   const [colour, setColour] = useState<ColourId>(initial.colour || 'classic')
   const [size, setSize] = useState<number>(initial.size || 1024)
+  const [plate, setPlate] = useState<PlateId>(initial.plate || 'white')
+  const [plateCustom, setPlateCustom] = useState<string>(isHex6(initial.plateCustom) ? initial.plateCustom : '#000000')
   const [generating, setGenerating] = useState(false)
   const [busy, setBusy] = useState(false)
   const pro = isPro(plan)
@@ -198,6 +208,20 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
   const chosen = swatches.find(s => s.id === colour) || swatches[0]
   const { colour: fg, adjusted } = useMemo(() => makeScannable(chosen.base), [chosen.base])
 
+  // Any colour is safe here: the plate covers the same modules whatever its
+  // colour, and the highest error correction (on whenever there is a logo) is
+  // what reads past it. The card colour is used as it is, not deepened like
+  // the code's, because nothing has to scan it.
+  const plateColour = (
+    plate === 'brand' ? (isHex6(brandAccent) ? brandAccent : '#ffffff')
+    : plate === 'code' ? fg
+    : plate === 'custom' ? (isHex6(plateCustom) ? plateCustom : '#ffffff')
+    : '#ffffff'
+  ).toLowerCase()
+  // A coloured plate gets a thin white ring, so it reads as a badge set into
+  // the code rather than running into the modules around it.
+  const plateRing = plateColour !== '#ffffff'
+
   // A logo punches a hole in the middle of the code, so the highest error
   // correction level is what makes it still readable. Without this a printed
   // code with a logo can simply fail to scan.
@@ -214,8 +238,8 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
   const qrUrl = `${cardUrl}?s=qr`
 
   useEffect(() => {
-    savePrefs({ selectedId, logoChoice, logoShape, colour, size })
-  }, [selectedId, logoChoice, logoShape, colour, size])
+    savePrefs({ selectedId, logoChoice, logoShape, colour, size, plate, plateCustom })
+  }, [selectedId, logoChoice, logoShape, colour, size, plate, plateCustom])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -235,7 +259,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
     })()
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card.slug, logoChoice, logoShape, fg, ecLevel])
+  }, [card.slug, logoChoice, logoShape, fg, ecLevel, plateColour])
 
   // Renders the whole code at any size, so a 2048px print export is identical
   // to the preview rather than an upscaled copy of it.
@@ -274,7 +298,8 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
       img = await loadImage(CARDTLY_MARK)
     }
 
-    const plate = (x: number, y: number, w: number, h: number, r: number) => {
+    const ring = 4 * k
+    const roundRect = (x: number, y: number, w: number, h: number, r: number, fill: string) => {
       ctx.beginPath()
       ctx.moveTo(x + r, y)
       ctx.lineTo(x + w - r, y)
@@ -286,17 +311,29 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
       ctx.lineTo(x, y + r)
       ctx.quadraticCurveTo(x, y, x + r, y)
       ctx.closePath()
-      ctx.fillStyle = '#ffffff'
+      ctx.fillStyle = fill
       ctx.fill()
+    }
+    // The plate behind the logo, in the chosen colour, with a white ring
+    // round a coloured one.
+    const plate = (x: number, y: number, w: number, h: number, r: number) => {
+      if (plateRing) roundRect(x - ring, y - ring, w + ring * 2, h + ring * 2, r + ring, '#ffffff')
+      roundRect(x, y, w, h, r, plateColour)
     }
 
     const shape = logoChoice === 'own' ? logoShape : 'circle'
 
     if (shape === 'circle') {
       const r = logoRadius + pad
+      if (plateRing) {
+        ctx.beginPath()
+        ctx.arc(cx, cy, r + inset + ring, 0, Math.PI * 2)
+        ctx.fillStyle = '#ffffff'
+        ctx.fill()
+      }
       ctx.beginPath()
       ctx.arc(cx, cy, r + inset, 0, Math.PI * 2)
-      ctx.fillStyle = '#ffffff'
+      ctx.fillStyle = plateColour
       ctx.fill()
       const s = r * 1.7
       ctx.save()
@@ -353,17 +390,24 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
     const cx = px / 2
     const cy = px / 2
     const base = (68 + 10) * k
+    const ring = 4 * k
+    // plateColour is always a validated #rrggbb, so it is safe in an attribute.
     if (shape === 'circle') {
       const r = base
       const s = r * 1.7
-      return `<circle cx="${cx}" cy="${cy}" r="${r + 6 * k}" fill="#ffffff"/>
+      const ringMark = plateRing ? `<circle cx="${cx}" cy="${cy}" r="${r + 6 * k + ring}" fill="#ffffff"/>` : ''
+      return `${ringMark}<circle cx="${cx}" cy="${cy}" r="${r + 6 * k}" fill="${plateColour}"/>
         <clipPath id="qrLogoClip"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath>
         <image href="${logo.href}" x="${cx - s / 2}" y="${cy - s / 2}" width="${s}" height="${s}" clip-path="url(#qrLogoClip)" preserveAspectRatio="xMidYMid slice"/>`
     }
     const w = shape === 'rectangle' ? base * 3 : base * 2
     const h = shape === 'rectangle' ? base * 1.5 : base * 2
     const r = (shape === 'rectangle' ? 10 : 12) * k
-    return `<rect x="${cx - w / 2 - 6 * k}" y="${cy - h / 2 - 6 * k}" width="${w + 12 * k}" height="${h + 12 * k}" rx="${r}" fill="#ffffff"/>
+    const x = cx - w / 2 - 6 * k, y = cy - h / 2 - 6 * k, pw = w + 12 * k, ph = h + 12 * k
+    const ringMark = plateRing
+      ? `<rect x="${x - ring}" y="${y - ring}" width="${pw + ring * 2}" height="${ph + ring * 2}" rx="${r + ring}" fill="#ffffff"/>`
+      : ''
+    return `${ringMark}<rect x="${x}" y="${y}" width="${pw}" height="${ph}" rx="${r}" fill="${plateColour}"/>
       <image href="${logo.href}" x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet"/>`
   }
 
@@ -731,6 +775,38 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
                       <span className="text-[11px] text-muted-foreground block">{s.desc}</span>
                     </button>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Behind the logo. A white logo, or one designed for a dark
+                background, disappeared on the white plate that was the only
+                option. */}
+            {usesLogo && (
+              <div className="mt-4">
+                <p className="text-xs font-medium mb-2">Background behind the logo</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {([
+                    { id: 'white' as PlateId, label: 'White', swatch: '#ffffff' },
+                    { id: 'brand' as PlateId, label: 'Card colour', swatch: isHex6(brandAccent) ? brandAccent : '#ffffff' },
+                    { id: 'code' as PlateId, label: 'Code colour', swatch: fg },
+                  ]).map(p => (
+                    <button key={p.id} onClick={() => setPlate(p.id)}
+                      className={`rounded-xl border-2 py-2 px-2 flex items-center gap-2 transition ${plate === p.id ? 'border-primary bg-primary/5' : 'border-border hover:border-foreground/20'}`}>
+                      <span className="w-5 h-5 rounded-md border border-border shrink-0" style={{ background: p.swatch }} />
+                      <span className="text-xs font-semibold">{p.label}</span>
+                    </button>
+                  ))}
+                  {/* A real colour input inside the tile, so choosing Custom and
+                      picking the colour are one action. */}
+                  <label
+                    className={`rounded-xl border-2 py-2 px-2 flex items-center gap-2 transition cursor-pointer ${plate === 'custom' ? 'border-primary bg-primary/5' : 'border-border hover:border-foreground/20'}`}>
+                    <input type="color" value={plateCustom} aria-label="Pick a colour for behind the logo"
+                      onChange={e => { setPlateCustom(e.target.value); setPlate('custom') }}
+                      onClick={() => setPlate('custom')}
+                      className="w-5 h-5 rounded-md border border-border shrink-0 cursor-pointer p-0 bg-transparent [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch]:rounded-md" />
+                    <span className="text-xs font-semibold">Custom</span>
+                  </label>
                 </div>
               </div>
             )}
