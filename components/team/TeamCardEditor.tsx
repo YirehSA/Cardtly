@@ -434,7 +434,10 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
     // untouched card is not rewritten with its defaults spelled out. The
     // server still strips color_theme from a member if design is locked.
     if (isAdmin) payload.color_theme = serializeDesign(design)
-    else if (!designLocked && designTouched) payload.color_theme = serializeDesign(design)
+    // A member's design goes up even when the design is locked: it carries the
+    // framing of their photos, which follows each image's own lock, not the
+    // design's. The server keeps only what they may change (withMemberFraming).
+    else if (designTouched) payload.color_theme = serializeDesign(design)
 
     const res = await fetch('/api/team/card/save', {
       method: 'POST',
@@ -680,10 +683,7 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                       zoom={design.imageZoom?.photo}
                       onZoomChange={z => setZoom('photo', z)}
                       backdrop={false}
-                      disabled={isLocked('color_theme')}
-                      hint={isLocked('color_theme')
-                        ? `${org.name} sets how photos are cropped.`
-                        : 'Drag your face into the middle of the circle.'}
+                      hint="Drag your face into the middle of the circle."
                     />
                   </div>
                 )}
@@ -825,7 +825,6 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                         zoom={design.imageZoom?.logo}
                         onZoomChange={z => setZoom('logo', z)}
                         backdrop={false}
-                        disabled={isLocked('color_theme')}
                         hint="Zoom in to trim empty space round the logo, then drag to centre it."
                       />
                     </div>
@@ -873,7 +872,6 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                             onChange={f => setFocus('hero', f)}
                             zoom={design.imageZoom?.hero}
                             onZoomChange={z => setZoom('hero', z)}
-                            disabled={isLocked('color_theme')}
                             hint="This is the band across the top of the card."
                           />
                         </div>
@@ -924,7 +922,6 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                             onChange={f => setFocus(String(i), f)}
                             zoom={design.imageZoom?.[String(i)]}
                             onZoomChange={z => setZoom(String(i), z)}
-                            disabled={isLocked('color_theme')}
                             hint="How this photo is cropped in the gallery."
                           />
                         )}

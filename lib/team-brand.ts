@@ -159,7 +159,121 @@ export function mergeBrand<T extends Record<string, any>>(
     if (!(f in brand)) continue
     if (lockedSet.has(f) || (unset(card[f]) && !LOCKED_ONLY_FIELDS.has(f))) merged[f] = brand[f]
   }
+  const framed = framingForShownCard(merged.color_theme, card, brand, merged, lockedSet)
+  if (framed !== undefined) merged.color_theme = framed
   return merged as T
+}
+
+// ── IMAGE FRAMING FOLLOWS THE IMAGE, NOT THE DESIGN ─────────────────────────
+//
+// Where each photo is cropped from and how far it is zoomed (imageFocus and
+// imageZoom in the design JSON) are stored inside color_theme, so they used to
+// be locked with the DESIGN: a team that locked its design locked every staff
+// member out of framing their own profile photo, gallery and hero, and the look
+// replaced their framing on the card anyway (Andre, 2026-10-08: "the zoom must
+// only be locked if the main card locked the Hero image"). Now each image's
+// framing goes with that image's own lock:
+//
+//   hero  -> 'hero' lock (hero_image_url)     logo -> 'logo' lock
+//   1..10 -> 'images' lock (image_N_url)      photo -> never: always the person's
+//
+// Locked image: the image comes from the look, so its framing does too. Open
+// image: the person's own framing, whatever the design lock says - except
+// where the image shown is the look's own (filled into a blank) and they have
+// not framed it, when the look's framing goes with it.
+
+const FRAMING_FIELDS = ['imageFocus', 'imageZoom'] as const
+
+/** The card column holding the image a framing key belongs to. */
+export function framingImageColumn(key: string): string | null {
+  if (key === 'hero') return 'hero_image_url'
+  if (key === 'logo') return 'company_logo_url'
+  if (key === 'photo') return 'profile_image_url'
+  if (/^\d+$/.test(key)) return `image_${key}_url`
+  return null
+}
+
+/** Whether an image lock takes a framing key out of the person's hands. */
+export function framingGoverned(key: string, locked: ReadonlySet<string>): boolean {
+  const col = framingImageColumn(key)
+  return !!col && col !== 'profile_image_url' && locked.has(col)
+}
+
+function parseTheme(v: unknown): Record<string, any> | null {
+  if (typeof v !== 'string') return null
+  try {
+    const o = JSON.parse(v)
+    return o && typeof o === 'object' && !Array.isArray(o) ? o : null
+  } catch {
+    return null
+  }
+}
+
+/** The framing on a card wearing the look. undefined: leave color_theme as is. */
+function framingForShownCard(
+  shownTheme: unknown,
+  card: Record<string, any>,
+  brand: Record<string, any>,
+  merged: Record<string, any>,
+  locked: ReadonlySet<string>,
+): string | undefined {
+  const shown = parseTheme(shownTheme)
+  // A legacy theme that is not JSON ('blue') carries no framing to settle.
+  if (!shown) return undefined
+  const own = parseTheme(card.color_theme) || {}
+  const look = parseTheme(brand.color_theme) || {}
+  for (const field of FRAMING_FIELDS) {
+    const next: Record<string, any> = {}
+    const keys = new Set([...Object.keys(own[field] || {}), ...Object.keys(look[field] || {})])
+    for (const k of keys) {
+      const col = framingImageColumn(k)
+      const imageIsLooks = !!col && col in brand && merged[col] === brand[col]
+      const mine = own[field]?.[k]
+      const v = framingGoverned(k, locked) ? look[field]?.[k]
+        : mine !== undefined ? mine
+        : imageIsLooks ? look[field]?.[k]
+        : undefined
+      if (v !== undefined) next[k] = v
+    }
+    if (Object.keys(next).length) shown[field] = next
+    else delete shown[field]
+  }
+  return JSON.stringify(shown)
+}
+
+/**
+ * What a STAFF MEMBER's save may do to the design JSON: their own framing for
+ * every image they can still change, the stored framing for every image locked
+ * to them, and - when the design itself is locked to them - nothing else. Used
+ * by /api/team/card/save before the design lock would otherwise throw the
+ * whole design, framing included, away.
+ *
+ * Returns the theme to store, or undefined when there is nothing to store.
+ */
+export function withMemberFraming(
+  submitted: unknown,
+  existing: unknown,
+  locked: ReadonlySet<string>,
+): string | undefined {
+  const sent = parseTheme(submitted)
+  const stored = parseTheme(existing)
+  if (!sent) return undefined
+  const designLocked = locked.has('color_theme')
+  // Design locked over a theme that is not JSON: leave it alone rather than
+  // replace the card's look with a theme holding nothing but framing.
+  if (designLocked && !stored && existing) return undefined
+  const base: Record<string, any> = designLocked ? { ...(stored || {}) } : { ...sent }
+  for (const field of FRAMING_FIELDS) {
+    const next: Record<string, any> = {}
+    const keys = new Set([...Object.keys(sent[field] || {}), ...Object.keys(stored?.[field] || {})])
+    for (const k of keys) {
+      const v = framingGoverned(k, locked) ? stored?.[field]?.[k] : sent[field]?.[k]
+      if (v !== undefined) next[k] = v
+    }
+    if (Object.keys(next).length) base[field] = next
+    else delete base[field]
+  }
+  return JSON.stringify(base)
 }
 
 // The effective team brand for a card, cascading department over org.

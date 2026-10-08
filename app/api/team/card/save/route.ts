@@ -3,7 +3,8 @@ import { isMissingColumn } from '@/lib/pg-errors'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { canManageDepartment, isOrgOwner } from '@/lib/department-perms'
-import { resolveLocks, stripLocked } from '@/lib/team-locks'
+import { resolveLocks, stripLocked, lockedColumns } from '@/lib/team-locks'
+import { withMemberFraming } from '@/lib/team-brand'
 
 // Saving a team card, with the field locks actually enforced.
 //
@@ -96,10 +97,24 @@ export async function POST(request: Request) {
       readLocks('departments', card.department_id),
     ])
     const locks = resolveLocks(orgLocks, deptLocks)
+
+    // IMAGE FRAMING FOLLOWS THE IMAGE, NOT THE DESIGN (lib/team-brand). The
+    // crop and zoom of each photo live inside color_theme, so the design lock
+    // used to throw a member's framing away with it. Work out what they may
+    // store first: their own framing for every image still open to them, the
+    // stored framing for every image locked to them, and nothing else of the
+    // design when the design is locked.
+    let framedTheme: string | undefined
+    if (typeof payload.color_theme === 'string') {
+      const { data: row } = await admin.from('team_cards').select('color_theme').eq('id', cardId).maybeSingle()
+      framedTheme = withMemberFraming(payload.color_theme, row?.color_theme ?? null, new Set(lockedColumns(locks)))
+    }
+
     const result = stripLocked(payload, locks)
-    removed = result.removed
+    removed = result.removed.filter(c => !(c === 'color_theme' && framedTheme !== undefined))
     for (const key of Object.keys(payload)) delete payload[key]
     Object.assign(payload, result.cleaned)
+    if (framedTheme !== undefined) payload.color_theme = framedTheme
   }
 
   if (Object.keys(payload).length === 0) {

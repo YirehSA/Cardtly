@@ -80,6 +80,42 @@ if (open.bio !== '') bad(`an OPEN bio left blank was filled with the look's ("${
 if (open.work_phone !== look.work_phone) bad('an open office number left blank is not filled in from the look')
 if (B.COPYABLE_LOOK_FIELDS.includes('bio')) bad('starting a new card from another card\'s look copies that person\'s bio')
 
+// ── 2b. Image framing follows the image, not the design, run ────────────────
+// Andre, 2026-10-08: staff could not zoom or drag any photo once the design
+// was locked, because the framing lives inside color_theme. It must follow
+// each image's own lock instead; the profile photo is always the person's.
+{
+  const theme = (focus, zoom) => JSON.stringify({ templateId: 'showroom', accentColor: 'blue', imageFocus: focus, imageZoom: zoom })
+  const lookTheme = theme({ hero: '10% 10%', photo: '1% 1%', 2: '20% 20%' }, { hero: 2, 2: 1.5 })
+  const ownTheme = JSON.stringify({ templateId: 'classic', imageFocus: { photo: '50% 30%', 1: '70% 70%', hero: '90% 90%' }, imageZoom: { photo: 1.4, 1: 1.2, hero: 3 } })
+  const look = { color_theme: lookTheme, hero_image_url: 'look-hero.jpg', image_2_url: 'look-2.jpg' }
+  const card = { color_theme: ownTheme, hero_image_url: 'my-hero.jpg', image_1_url: 'my-1.jpg', image_2_url: '' }
+  // Design and hero locked; the gallery open.
+  const shown = JSON.parse(B.mergeBrand(card, look, L.lockedColumns(['design', 'hero'])).color_theme)
+  if (shown.templateId !== 'showroom') bad('a locked design no longer comes from the look')
+  if (shown.imageFocus?.photo !== '50% 30%' || shown.imageZoom?.photo !== 1.4) bad(`the profile photo's framing came from the look (${JSON.stringify([shown.imageFocus?.photo, shown.imageZoom?.photo])}): a person's face must keep their own crop and zoom`)
+  if (shown.imageFocus?.hero !== '10% 10%' || shown.imageZoom?.hero !== 2) bad('a LOCKED hero must take the look\'s framing along with the look\'s photo')
+  if (shown.imageFocus?.['1'] !== '70% 70%' || shown.imageZoom?.['1'] !== 1.2) bad('an OPEN gallery photo lost its own framing because the design is locked')
+  if (shown.imageFocus?.['2'] !== '20% 20%') bad('a gallery slot filled in from the look (blank on the card) should carry the look\'s framing with it')
+
+  // The profile photo is never anybody else's to frame, even if a lock ever
+  // came to cover its column.
+  if (B.framingGoverned('photo', new Set(['profile_image_url']))) bad('a lock on the profile photo column would take a person\'s own crop and zoom away from them')
+
+  // Saving as a member: design and hero locked.
+  const stored = JSON.stringify({ templateId: 'classic', accentColor: 'red', imageFocus: { hero: '5% 5%' }, imageZoom: { hero: 1.1 } })
+  const sent = JSON.stringify({ templateId: 'bold', accentColor: 'green', imageFocus: { hero: '99% 99%', photo: '40% 40%', 3: '30% 30%' }, imageZoom: { hero: 4, photo: 2, 3: 1.3 } })
+  const saved = JSON.parse(B.withMemberFraming(sent, stored, new Set(L.lockedColumns(['design', 'hero']))) || '{}')
+  if (saved.templateId !== 'classic' || saved.accentColor !== 'red') bad('a member\'s save changed a LOCKED design while storing their framing')
+  if (saved.imageFocus?.photo !== '40% 40%' || saved.imageZoom?.photo !== 2) bad('a member\'s profile photo framing was not stored because the design is locked')
+  if (saved.imageFocus?.['3'] !== '30% 30%' || saved.imageZoom?.['3'] !== 1.3) bad('a member\'s framing of an OPEN gallery photo was not stored')
+  if (saved.imageFocus?.hero !== '5% 5%' || saved.imageZoom?.hero !== 1.1) bad('a member re-framed a LOCKED hero image')
+  // Design open, hero locked: the design is theirs, the hero framing is not.
+  const saved2 = JSON.parse(B.withMemberFraming(sent, stored, new Set(L.lockedColumns(['hero']))) || '{}')
+  if (saved2.templateId !== 'bold') bad('with the design open, a member\'s own design was not stored')
+  if (saved2.imageFocus?.hero !== '5% 5%') bad('with the design open, a member could still re-frame a LOCKED hero')
+}
+
 // ── 3. The editor greys them out ────────────────────────────────────────────
 const editor = read('components/team/TeamCardEditor.tsx')
 if (!/const fromLook = useCallback\(\(field: string\) =>\s*usesBrand && brandLocked\.has\(field\) && \(BRAND_FIELDS as readonly string\[\]\)\.includes\(field\)/.test(editor)) {
@@ -90,6 +126,23 @@ if (!/const isLocked = useCallback\(\(field: string\) => locked\.has\(field\) \|
 }
 for (const f of ['work_phone', 'address', 'website', 'company', 'bio']) {
   if (!new RegExp(`value=\\{shown\\('${f}'\\)\\}`).test(editor)) bad(`the ${f} box shows the card's own value under a lock, not the look's value the card actually shows`)
+}
+
+// The framing tools follow each image's lock, not the design's, and a
+// member's framing reaches the server even with the design locked.
+if (/<ImageFocusPicker[^>]*disabled=\{isLocked\('color_theme'\)\}/.test(editor.replace(/\n/g, ' '))) {
+  bad('the editor still locks a photo\'s drag and zoom with the DESIGN lock; it must follow the image\'s own lock')
+}
+if (!/else if \(designTouched\) payload\.color_theme = serializeDesign\(design\)/.test(editor)) {
+  bad('the editor does not send a member\'s framing when the design is locked, so their zoom and drag are never saved')
+}
+const save = read('app/api/team/card/save/route.ts')
+if (!/framedTheme = withMemberFraming\(payload\.color_theme, row\?\.color_theme \?\? null, new Set\(lockedColumns\(locks\)\)\)/.test(save)
+  || save.indexOf('withMemberFraming(payload') > save.indexOf('stripLocked(payload, locks)')) {
+  bad('/api/team/card/save must settle a member\'s framing (withMemberFraming) before the design lock strips color_theme')
+}
+if (!/Object\.assign\(payload, result\.cleaned\)\s*if \(framedTheme !== undefined\) payload\.color_theme = framedTheme/.test(save)) {
+  bad('/api/team/card/save works out a member\'s framing but does not store it after the locks are applied')
 }
 
 if (fail) {
