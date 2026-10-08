@@ -663,6 +663,11 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards: a
   const parentName = dept.parentId
     ? (departments.find(d => d.id === dept.parentId)?.name || null)
     : null
+  // A group (several companies in one organisation) and a single company use
+  // different words for the level above a team. JETOUR, a single company, was
+  // told to "Change it in Group rules", a screen it does not have.
+  const isGroup = departments.some(d => d.organizationId === dept.organizationId && d.kind === 'company')
+  const above = parentName || (isGroup ? 'the group' : 'the company look')
 
   // The chain of parents above this node, nearest last. Cycle-guarded: the
   // trigger in migration 053 rejects them, but a walk that trusts the data is
@@ -926,8 +931,8 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards: a
         <SectionHead
           n={2} accent={accent} icon={Building2}
           title="Where this look comes from"
-          body={`The look is the company name, logo, colours and fonts, website, address, social profiles and link buttons. On, ${dept.name} takes those from ${parentName || 'the group'} and anything it sets for itself still wins. Off, nothing from above reaches it and ${dept.kind === 'company' ? 'its own departments follow it instead' : 'it wears only what it sets itself'}.`}
-          state={inheritOn ? 'Group look' : 'Its own look'}
+          body={`The look is the company name, logo, colours and fonts, website, address, social profiles and link buttons. On, ${dept.name} takes those from ${above} and anything it sets for itself still wins. Off, nothing from above reaches it and ${dept.kind === 'company' ? 'its own departments follow it instead' : 'it wears only what it sets itself'}.`}
+          state={inheritOn ? (isGroup ? 'Group look' : 'Company look') : 'Its own look'}
           stateTone={inheritOn ? accent : undefined} />
 
         <div className="divide-y divide-border">
@@ -935,12 +940,12 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards: a
             on={inheritOn}
             disabled={loading === `inherit-${dept.id}` || (inheritLocked && !dept.isOwner)}
             disabledReason={inheritLocked && !dept.isOwner
-              ? 'The group owner has locked this. Ask them to change it.'
+              ? `The ${isGroup ? 'group' : 'company'} owner has locked this. Ask them to change it.`
               : undefined}
-            label={parentName ? `Use the look from ${parentName}` : 'Use the group look'}
+            label={parentName ? `Use the look from ${parentName}` : isGroup ? 'Use the group look' : 'Use the company look'}
             hint={inheritOn
-              ? `Logo, colours, website, address and socials come from ${parentName || 'the group'}. Anything set here overrides them.`
-              : `Uses only what is set here. Nothing comes down from ${parentName || 'the group'}.`}
+              ? `Logo, colours, website, address and socials come from ${above}. Anything set here overrides them.`
+              : `Uses only what is set here. Nothing comes down from ${above}.`}
             onChange={next => call(`inherit-${dept.id}`,
               { action: 'set_brand_inheritance', department_id: dept.id, inherit: next },
               next ? 'Now following the look from above' : 'Now using its own look')}
@@ -970,7 +975,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards: a
           company's own locks always apply on top. */}
       <div className="rounded-lg border border-border bg-card p-5">
         <SectionHead
-          n={2} accent={accent} icon={Lock}
+          n={3} accent={accent} icon={Lock}
           title="What your team can change"
           body="A locked item is fixed on every card here and nobody in the team can edit it. Everything you leave open, they can change themselves."
           state={`${lockedCount} of ${LOCK_GROUPS.length} locked`}
@@ -999,7 +1004,11 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards: a
                 tone="lock"
                 on={own || fromCompany}
                 disabled={loading === `locks-${dept.id}` || fromCompany}
-                disabledReason={fromCompany ? 'Locked for the whole group. Change it in Group rules.' : undefined}
+                disabledReason={fromCompany
+                  ? (isGroup
+                    ? 'Locked for the whole group. Change it in Group rules, on the Departments overview.'
+                    : 'Locked for the whole company. Change it in Company rules, on the Departments overview.')
+                  : undefined}
                 label={g.label}
                 hint={own ? g.hint : 'Anyone in this team can change this'}
                 onChange={next => {
@@ -1018,7 +1027,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards: a
       {/* The people */}
       <div className="rounded-lg border border-border bg-card p-5">
         <SectionHead
-          n={3} accent={accent} icon={Users}
+          n={4} accent={accent} icon={Users}
           title="The people"
           body="Everyone with a card in this team. Invite somebody by email and they get a card that is already branded and filled in, ready for them to claim."
           state={`${claimed} of ${dept.cards.length} joined`}
