@@ -96,16 +96,22 @@ export const LOCK_GROUPS: LockGroup[] = [
     // looks closed and is not, which is the exact shape of the bio and
     // certifications defect found a day earlier.
     //
-    // hero_image_url joins them for the same reason. It is not a gallery slot
-    // (migration 088 split it out so the hero stops eating a listing), but it
-    // is the same DECISION to a human: a group that has taken control of the
-    // photographs on its cards has taken control of the big one at the top
-    // too. Leaving it out would lock ten photos and leave the largest one on
-    // the card free for anyone to replace.
-    columns: [
-      ...IMAGE_SLOTS.flatMap(i => [`image_${i}_url`, `image_${i}_link`, `image_${i}_title`]),
-      'hero_image_url',
-    ],
+    // The hero image is NOT here. It sat in this group as "the same decision"
+    // until companies showed it is not (Andre, 2026-10-08): some want one
+    // forecourt shot across the top of every card, others want each seller's
+    // own, and both may still want the gallery fixed. It is its own group
+    // below. Migration 093 gave 'hero' to every company and team that locked
+    // 'images' before the split, so none of them changed.
+    columns: IMAGE_SLOTS.flatMap(i => [`image_${i}_url`, `image_${i}_link`, `image_${i}_title`]),
+  },
+  {
+    // The big photo across the top of a Showroom card (migration 088). Locked,
+    // every card wearing the team look shows the look's; open, each person
+    // can put their own, and the look's fills in for anyone who has not.
+    id: 'hero',
+    label: 'Hero image',
+    hint: 'The same photo across the top of every card',
+    columns: ['hero_image_url'],
   },
   {
     // A bio is personal on a personal card. On a team card it is often the

@@ -66,6 +66,21 @@ for (const col of [...columns].sort()) {
   }
 }
 
+// The hero image is its own lock, not part of the gallery's (2026-10-08): some
+// companies want one hero on every card and their own gallery, others the
+// reverse. And everyone who locked the gallery before the split must have been
+// given the hero lock, or their sellers' own hero photos replace the company's
+// on live cards.
+const imagesGroup = locksSrc.match(/id:\s*'images'[\s\S]*?columns:\s*([^\n]*)/)?.[1] || ''
+if (/hero_image_url/.test(imagesGroup)) bad(`${LOCKS}: the gallery lock ('images') covers the hero image again, so a company cannot lock one without the other`)
+if (!/id:\s*'hero',[\s\S]{0,200}columns:\s*\['hero_image_url'\]/.test(locksSrc)) bad(`${LOCKS}: there is no 'hero' lock group covering hero_image_url on its own`)
+const heroMigration = read('supabase/migrations/093_hero_image_lock.sql')
+for (const table of ['organizations', 'departments']) {
+  if (!new RegExp(`update public\\.${table}\\s+set locked_fields = locked_fields \\|\\| '\\["hero"\\]'::jsonb\\s+where locked_fields \\? 'images'`).test(heroMigration)) {
+    bad(`migration 093 must give 'hero' to every ${table} row that locks 'images', or the split unlocks their hero images`)
+  }
+}
+
 // And the mechanism itself has to still be there.
 if (!/const isLocked = /.test(editor)) {
   bad(`${EDITOR}: isLocked is gone, so no field is disabled by a lock any more`)

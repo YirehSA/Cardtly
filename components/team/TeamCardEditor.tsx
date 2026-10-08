@@ -793,9 +793,10 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
               ) : null}
               {/* The Showroom hero, its own field since migration 088 rather
                   than gallery slot 1 - which on a forty-seller dealership was
-                  costing every card one of its ten listings. Locked with the
-                  gallery, because a group that fixes its photos is fixing its
-                  forecourt shot too. */}
+                  costing every card one of its ten listings. Locked on its own
+                  ('hero' in lib/team-locks), not with the gallery: some
+                  companies want one forecourt shot on every card, others want
+                  each seller's own. */}
               {effectiveTemplateId === 'showroom' && (
                 <div>
                   <label className="block text-sm font-medium mb-1">Hero Image</label>
