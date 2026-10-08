@@ -104,6 +104,11 @@ if (!/resolveBrandChain\(/.test(editorPage)) bad('the card editor must resolve t
 if (!/isTeamLook=\{isTeamLook\}/.test(editorPage)) bad('the card editor is not told when it is editing the card the look follows')
 const editor = read('components/team/TeamCardEditor.tsx')
 if (!/const usesBrand = !!\(card as any\)\.use_team_brand && !isTeamLook && /.test(editor)) bad('the editor previews the look over the card it is read from: the owner changes the design and sees no change')
+// The design controls give way to "Design is set by your company brand" only on
+// a card that wears the look. Keyed on the lock alone, the note sat on the very
+// card the brand is taken from, with no way to change the team's design.
+if (!/const designFromLook = designLocked && \(usesBrand \|\| !isAdmin\)/.test(editor)) bad('the Design tab must only defer to the team look on a card that wears it (designFromLook)')
+if (!/activeTab === 'design' && \(\s*designFromLook \?/.test(editor)) bad('the Design tab hides the design controls on the card the team look is read from')
 
 // ── 5. No switch on the source card ─────────────────────────────────────────
 const dash = read('components/team/TeamDashboard.tsx')

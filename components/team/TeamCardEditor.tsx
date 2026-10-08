@@ -130,6 +130,14 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
   const brandLocked = useMemo(() => new Set(lockedColumns(brandLockedGroups)), [brandLockedGroups])
   const isLocked = useCallback((field: string) => locked.has(field), [locked])
   const designLocked = brandLockedGroups.includes('design')
+  // Whether the design on screen actually comes from the team look. Only on a
+  // card that WEARS the look (usesBrand, which is never the card the look is
+  // read from): there a design saved on the card would not show, so the
+  // controls make way for a note. On any other card the design is the card's
+  // own, and an admin edits it like anything else. This used to key on the
+  // lock alone, which put "Design is set by your company brand" on the very
+  // card the brand is taken from (JETOUR, 2026-10-08).
+  const designFromLook = designLocked && (usesBrand || !isAdmin)
   // Locked items the team look actually supplies. A locked job title, office
   // number or bio is not in the look (BRAND_FIELDS): it stays per card and
   // only an admin may set it, so it is not "from the team look".
@@ -899,7 +907,7 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
               the reason and where to change it instead, which is the one place
               it does anything: the team brand. */}
           {activeTab === 'design' && (
-            designLocked ? (
+            designFromLook ? (
               <div className="rounded-xl border border-border p-5">
                 <div className="flex items-start gap-3">
                   <span aria-hidden="true" className="w-9 h-9 rounded-xl grid place-items-center flex-shrink-0"
