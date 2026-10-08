@@ -173,7 +173,6 @@ export default function MobileBottomNav({ isAdmin = false, isPro = false, manage
                   <Link
                     key={href}
                     href={href}
-                    prefetch={true}
                     onClick={() => setMoreOpen(false)}
                     className="flex flex-col items-center gap-1.5 py-3 rounded-lg transition active:scale-95"
                     style={{
@@ -236,7 +235,6 @@ export default function MobileBottomNav({ isAdmin = false, isPro = false, manage
               <Link
                 key={href}
                 href={href}
-                prefetch={true}
                 className="flex flex-col items-center gap-1 py-1.5 rounded-xl transition active:scale-95"
                 aria-current={active ? 'page' : undefined}
               >

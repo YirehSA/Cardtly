@@ -17,6 +17,7 @@ import NetworkNotice from '@/components/dashboard/NetworkNotice'
 import ArchivedCardBanner, { type ArchivedCard } from '@/components/dashboard/ArchivedCardBanner'
 import AnnouncementModal from '@/components/AnnouncementModal'
 import HeartbeatPing from '@/components/dashboard/HeartbeatPing'
+import FreshOnReturn from '@/components/dashboard/FreshOnReturn'
 import { getMemberTeamCard, holdsCompanyTeamCard } from '@/lib/card-server'
 import CompanyTeamsOnly from '@/components/dashboard/CompanyTeamsOnly'
 import { withResolvedBrand } from '@/lib/resolve-card-brand'
@@ -215,6 +216,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </main>
         <CommandPalette isAdmin={isAdmin} />
         <HeartbeatPing />
+        <FreshOnReturn />
         <AnnouncementModal />
         <MobileBottomNav isAdmin={isAdmin} isPro={isPro} managesDepartments={managesDepartments} showTeamCards={showTeamCards} isRep={isRep} teamTabLabel={teamTabLabel} />
       </div>

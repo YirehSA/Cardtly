@@ -267,10 +267,15 @@ function NavTile({
   active: boolean
   wide?: boolean
 }) {
+  // Default prefetch, NOT prefetch={true}. Full prefetch loaded each page's
+  // data ahead of time and Next reused that copy for five minutes, so after a
+  // change - a lock, a card, the team look - the menu took you to the page as
+  // it was before it, until you reloaded (2026-10-08). Default prefetch loads
+  // the layout and loading skeleton ahead and the data on the click. The
+  // mobile bottom bar does the same.
   return (
     <Link
       href={href}
-      prefetch={true}
       title={label}
       data-active={active}
       className={`sidebar-tile group relative flex rounded-xl overflow-hidden transition-all duration-200 ${

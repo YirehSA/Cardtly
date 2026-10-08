@@ -95,6 +95,12 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
 
   const [org, setOrg] = useState<Org | null>(initialOrg)
   const [cards, setCards] = useState<TeamCard[]>(initialCards)
+  // Fresh server data replaces the local copy. useState only reads its first
+  // value, so when the page was fetched again (FreshOnReturn after Back, or
+  // any router.refresh) the list stayed as it was first loaded and only a
+  // reload showed the change.
+  useEffect(() => { setCards(initialCards) }, [initialCards])
+  useEffect(() => { setOrg(initialOrg) }, [initialOrg])
   const [loading, setLoading] = useState(false)
 
   // Finding one person in a 50-seat team is a scroll. In a 500-seat team it is
