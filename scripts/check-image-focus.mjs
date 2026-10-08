@@ -77,13 +77,13 @@ if (!avatar) {
 const SURFACES = [
   {
     what: 'the Showroom hero band',
-    re: /src=\{heroPhoto\}[\s\S]{0,320}?objectPosition: focusFor\(design, 'hero'\)/,
-    fix: "the hero <img> must set objectPosition: focusFor(design, 'hero').",
+    re: /<FramedImage src=\{heroPhoto\} focus=\{focusFor\(design, 'hero'\)\} zoom=\{zoomFor\(design, 'hero'\)\}/,
+    fix: "the hero must be <FramedImage src={heroPhoto} focus={focusFor(design, 'hero')} zoom={zoomFor(design, 'hero')} />.",
   },
   {
     what: 'the gallery thumbnail',
-    re: /const thumb = <img[\s\S]{0,360}?objectPosition: item\.focus/,
-    fix: 'the gallery thumb must set objectPosition from item.focus.',
+    re: /const thumb = item\.zoom[\s\S]{0,300}?<FramedImage src=\{item\.url\} focus=\{item\.focus[\s\S]{0,200}?zoom=\{item\.zoom\}[\s\S]{0,400}?objectPosition: item\.focus/,
+    fix: 'the gallery thumb must draw a FramedImage with item.focus and item.zoom when zoomed, and set objectPosition from item.focus when not.',
   },
   {
     // Showroom draws its seller chip itself rather than through Avatar, so it
@@ -92,8 +92,8 @@ const SURFACES = [
     // reframing a portrait worked everywhere except the one template the
     // reframing tool was built for.
     what: "Showroom's seller chip",
-    re: /width: sellerSize, height: sellerSize, objectFit: 'cover', objectPosition: focusFor\(design, 'photo'\)/,
-    fix: "the seller chip <img> must set objectPosition: focusFor(design, 'photo').",
+    re: /<FramedBox src=\{card\.profile_image_url\} focus=\{focusFor\(design, 'photo'\)\} zoom=\{zoomFor\(design, 'photo'\)\} backdrop=\{false\} style=\{\{ width: sellerSize, height: sellerSize \}\}/,
+    fix: "the seller chip must be a FramedBox with focusFor(design, 'photo') and zoomFor(design, 'photo').",
   },
 ]
 for (const s of SURFACES) {
@@ -105,9 +105,35 @@ for (const s of SURFACES) {
 // And the gallery has to carry it per SLOT. Keyed off the filtered position, a
 // cleared photo would hand its framing to the next one along, which is the
 // exact defect the `index` field on the same object was added to prevent.
-if (!/focus: focusFor\(design, String\(i\)\)/.test(card)) {
+if (!/focus: focusFor\(design, String\(i\)\)/.test(card) || !/zoom: zoomFor\(design, String\(i\)\)/.test(card)) {
   bad(`${CARD}: gallery items no longer take their focus from the slot number. Keyed off anything else, clearing photo 2 re-frames every photo after it.`)
 }
+
+// EVERY TEMPLATE, not just the ones that use Avatar. Six templates drew the
+// profile photo themselves and ignored the drag entirely (found 2026-10-08),
+// so reframing a face worked on some designs and silently did nothing on
+// others. Every remaining raw profile photo <img> must apply the focal point,
+// and no logo may be a raw <img>: they all go through FramedLogo.
+const rawPhotos = [...card.matchAll(/<img src=\{card\.profile_image_url\}[\s\S]{0,420}?\/>/g)].map(m => m[0])
+for (const tag of rawPhotos) {
+  // Avatar's own <img> carries it in baseStyle, checked above.
+  if (!/focusFor\(design, 'photo'\)|imageFocus\?\.photo|style=\{baseStyle\}/.test(tag)) {
+    bad(`${CARD}: a profile photo is drawn without the focal point, so dragging the photo does nothing on that template: ${tag.slice(0, 120)}...`)
+  }
+}
+if (/<img src=\{card\.company_logo_url\}/.test(card)) {
+  bad(`${CARD}: a logo is drawn as a raw <img>, so its zoom and framing are ignored on that template. Use <FramedLogo ... focus={focusFor(design, 'logo')} zoom={zoomFor(design, 'logo')} />.`)
+}
+const logos = (card.match(/<FramedLogo src=\{card\.company_logo_url\} focus=\{focusFor\(design, 'logo'\)\} zoom=\{zoomFor\(design, 'logo'\)\}/g) || []).length
+if (logos < 5) bad(`${CARD}: only ${logos} logo(s) draw through FramedLogo with the logo's focus and zoom; there are five places a logo is drawn.`)
+
+// The drawing itself: unzoomed it is the old cover crop at the focal point;
+// zoomed, the whole image fitted in and scaled about the SAME point, which is
+// what makes the zoom line up with the crop it replaces.
+const framed = read('components/card/FramedImage.tsx') || ''
+if (!/objectFit: 'cover', objectPosition: focus \}\} \/>/.test(framed)) bad('FramedImage: unzoomed, a photo must be object-fit cover at its focal point, exactly as before zoom existed')
+if (!/objectFit: 'contain', objectPosition: focus, transform: `scale\(\$\{zoom\}\)`, transformOrigin: focus/.test(framed)) bad('FramedImage: zoomed, the photo must be contained and scaled about its focal point (transformOrigin: focus), or zooming shifts the picture away from where it was dragged')
+if (!/<FramedImage src=\{src\} focus=\{focus\} zoom=\{zoomLocal\}/.test(picker)) bad(`${PICKER}: the tool no longer draws through FramedImage, so what it shows can drift from the card`)
 
 // ── 2. The tool's frame is the card's frame ─────────────────────────────────
 const heroAspect = design.match(/export const HERO_ASPECT = (\d+) \/ (\d+)/)
@@ -130,7 +156,7 @@ else {
 if (!galleryAspect) bad(`${DESIGN}: GALLERY_ASPECT is gone or is no longer a width / height pair.`)
 else {
   // aspect-video IS 16/9. If the thumb moves off it, the constant is wrong.
-  const usesAspectVideo = /const thumb = <img[\s\S]{0,200}?aspect-video/.test(card)
+  const usesAspectVideo = /const thumb = [\s\S]{0,300}?aspect-video/.test(card)
   if (!usesAspectVideo) {
     bad(`${CARD}: the gallery thumbnail is no longer aspect-video, so GALLERY_ASPECT (${galleryAspect[1]}/${galleryAspect[2]}) is now describing a crop that does not exist.`)
   } else if (galleryAspect[1] !== '16' || galleryAspect[2] !== '9') {
@@ -159,9 +185,12 @@ for (const e of EDITORS) {
     bad(`${e} no longer renders ImageFocusPicker, so photos on this editor cannot be reframed at all.`)
     continue
   }
-  for (const [key, label] of [["'photo'", 'the profile portrait'], ["'hero'", 'the Showroom hero'], ['String(i)', 'the gallery slots']]) {
+  for (const [key, label] of [["'photo'", 'the profile portrait'], ["'hero'", 'the Showroom hero'], ['String(i)', 'the gallery slots'], ["'logo'", 'the company logo']]) {
     if (!src.includes(`setFocus(${key}`)) {
       bad(`${e}: ${label} has no reframing control (setFocus(${key}) is gone).`)
+    }
+    if (!src.includes(`setZoom(${key}`)) {
+      bad(`${e}: ${label} has no zoom (setZoom(${key}) is gone).`)
     }
   }
 }

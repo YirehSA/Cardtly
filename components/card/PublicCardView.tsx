@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Card, extractLinks } from '@/types/database'
-import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, scrimAlphaForWhite, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, readableAccentOn, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS, SOCIAL_SLOTS, heroImageFor, readableBrandOn, focusFor, bioAlignFor, getSectionHeadingColor, getCaptionColor, sectionMutedOn, type SocialKey } from '@/types/design'
+import { parseDesign, FONTS, getBgColors, calcPhotoSize, calcLogoHeight, getAccentHex, getReadableTextOn, companionHex, scrimAlphaForWhite, getButtonBg, getButtonText, getButtonBorder, getCardStyleEffect, readableAccentOn, TEXT_POSITION_TEMPLATES, calcNameSize, calcTitleSize, calcCompanySize, calcBioSize, getNameColor, getTitleColor, getCompanyColor, getBioColor, getBodyFontSize, getButtonFontSize, isLightBg, IMAGE_SLOTS, SOCIAL_SLOTS, heroImageFor, readableBrandOn, focusFor, zoomFor, bioAlignFor, getSectionHeadingColor, getCaptionColor, sectionMutedOn, type SocialKey } from '@/types/design'
+import FramedImage, { FramedBox, FramedLogo } from '@/components/card/FramedImage'
 import {
   Phone, Mail, MapPin, Globe, MessageCircle,
   ExternalLink, Share2, Download, ChevronRight,
@@ -343,7 +344,7 @@ function LogoZone({ card, design, accentHex }: Pick<Shared, 'card' | 'design' | 
       {/* maxWidth was a flat 160px, so past about 200% the slider stopped
           doing anything for any logo wider than it is tall. The column is the
           only real limit; object-fit keeps it in proportion at the clamp. */}
-      <img src={card.company_logo_url} style={{ height: h, width: 'auto', objectFit: 'contain', maxWidth: '100%' }} />
+      <FramedLogo src={card.company_logo_url} focus={focusFor(design, 'logo')} zoom={zoomFor(design, 'logo')} style={{ height: h, width: 'auto', objectFit: 'contain', maxWidth: '100%' }} />
     </div>
   )
 }
@@ -383,7 +384,19 @@ function Avatar({ card, bg, accentHex, font, design, size = 112, rounded = 'full
   // override AFTER extraStyle so template-specific borders are also
   // suppressed.
   if (design.profileBorder === false) baseStyle.border = 'none'
-  if (card.profile_image_url) return <img src={card.profile_image_url} style={baseStyle} />
+  if (card.profile_image_url) {
+    // Zoomed: the same box, holding the framed photo. No blurred fill behind:
+    // a profile photo can have its background removed, and it would smear.
+    const zoom = zoomFor(design, 'photo')
+    if (zoom) {
+      return (
+        <div style={{ ...baseStyle, position: baseStyle.position ?? 'relative', overflow: 'hidden' }}>
+          <FramedImage src={card.profile_image_url} focus={focusFor(design, 'photo')} zoom={zoom} backdrop={false} />
+        </div>
+      )
+    }
+    return <img src={card.profile_image_url} style={baseStyle} />
+  }
   return (
     <div style={{ ...baseStyle, backgroundColor: accentHex + '33', color: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: scaledSize * 0.36, fontWeight: 700, fontFamily: font.heading }}>
       {card.name?.[0]?.toUpperCase()}
@@ -633,7 +646,7 @@ interface BottomProps {
   certifications: string[]
   /** `focus` is the object-position for this photo's 16:9 crop, resolved by
    *  the caller because BottomSection is not given the design. */
-  galleryImages: { index: number; url: string; link?: string; title?: string; focus?: string }[]
+  galleryImages: { index: number; url: string; link?: string; title?: string; focus?: string; zoom?: number | null }[]
   accentHex: string
   /** The accent adjusted to clear AA as small text. See where it is
    *  derived in PublicCardView: fills keep accentHex, text takes this. */
@@ -949,7 +962,10 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
             // "2021 Ranger Wildtrak, R589,000" is the accessible name being
             // worse than the visible one.
             const alt = typeof item.title === 'string' && item.title.trim() ? item.title.trim() : `Gallery ${i + 1}`
-            const thumb = <img src={item.url} alt={alt} className="w-full aspect-video object-cover rounded-xl hover:opacity-80 transition cursor-pointer" style={{ objectPosition: item.focus || '50% 50%' }} />
+            // Zoomed, the same 16:9 box holding the framed photo.
+            const thumb = item.zoom
+              ? <div role="img" aria-label={alt} className="relative w-full aspect-video overflow-hidden rounded-xl hover:opacity-80 transition cursor-pointer"><FramedImage src={item.url} focus={item.focus || '50% 50%'} zoom={item.zoom} /></div>
+              : <img src={item.url} alt={alt} className="w-full aspect-video object-cover rounded-xl hover:opacity-80 transition cursor-pointer" style={{ objectPosition: item.focus || '50% 50%' }} />
             if (item.link && !linkIsImage) {
               return (
                 <a key={i} href={item.link} target="_blank" rel="noopener noreferrer" className="block">
@@ -1700,8 +1716,9 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
       // position in the filtered list, for exactly the reason `index` above is:
       // clearing photo 2 must not hand photo 5's framing to photo 6.
       focus: focusFor(design, String(i)),
+      zoom: zoomFor(design, String(i)),
     })),
-  ].filter(item => item.url) as { index: number; url: string; link?: string; title?: string; focus?: string }[] : []
+  ].filter(item => item.url) as { index: number; url: string; link?: string; title?: string; focus?: string; zoom?: number | null }[] : []
   // WHICH SOCIAL ACCOUNTS THIS CARD ACTUALLY HAS, counted off SOCIAL_SLOTS so
   // that adding an eighth is a one-line change in types/design and not three
   // edits in three templates, two of which would be forgotten. Every template
@@ -2060,7 +2077,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             <div style={{ flexShrink: 0, position: 'relative', zIndex: 2 }}>
               <div style={{ borderRadius: '50%', overflow: 'hidden', width: heroPhotoSize, height: heroPhotoSize, border: design.profileBorder === false ? 'none' : '3px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
                 {card.profile_image_url
-                  ? <img src={card.profile_image_url} style={{ width: heroPhotoSize, height: heroPhotoSize, objectFit: 'cover' }} />
+                  ? <FramedBox src={card.profile_image_url} focus={focusFor(design, 'photo')} zoom={zoomFor(design, 'photo')} backdrop={false} style={{ width: heroPhotoSize, height: heroPhotoSize }} />
                   : <div style={{ width: heroPhotoSize, height: heroPhotoSize, backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: heroPhotoSize * 0.36, fontWeight: 700, color: '#fff', fontFamily: font.heading }}>{card.name?.[0]?.toUpperCase()}</div>}
               </div>
             </div>
@@ -2127,7 +2144,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               design.logoPosition for this template only. */}
           {card.company_logo_url && design.logoPosition !== 'hidden' && (
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-              <img src={card.company_logo_url} style={{ height: calcLogoHeight(48, design), width: 'auto', objectFit: 'contain', maxWidth: 220 }} />
+              <FramedLogo src={card.company_logo_url} focus={focusFor(design, 'logo')} zoom={zoomFor(design, 'logo')} style={{ height: calcLogoHeight(48, design), width: 'auto', objectFit: 'contain', maxWidth: 220 }} />
             </div>
           )}
           {/* Photo with neon-blue → purple → pink gradient ring. Avatar
@@ -2236,10 +2253,10 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                   {/* Blurred photo fills the letterbox area so the whole
                       portrait is visible (object-fit: contain) without ugly
                       black bars on the sides. */}
-                  <img src={card.profile_image_url} aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', filter: 'blur(40px) brightness(0.55) saturate(1.1)', transform: 'scale(1.15)' }} />
+                  <img src={card.profile_image_url} aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: focusFor(design, 'photo'), filter: 'blur(40px) brightness(0.55) saturate(1.1)', transform: 'scale(1.15)' }} />
                   {/* Foreground: full photo, contained so nothing is
                       cropped. boldImageZoom slider applies on top. */}
-                  <img src={card.profile_image_url} style={{ position: 'relative', width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', transform: `scale(${(design.boldImageZoom ?? 100) / 100})`, transformOrigin: 'center', transition: 'transform 0.3s ease' }} />
+                  <img src={card.profile_image_url} style={{ position: 'relative', width: '100%', height: '100%', objectFit: 'contain', objectPosition: focusFor(design, 'photo'), transform: `scale(${zoomFor(design, 'photo') ?? (design.boldImageZoom ?? 100) / 100})`, transformOrigin: focusFor(design, 'photo'), transition: 'transform 0.3s ease' }} />
                 </>
               : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${accentHex} 0%, ${accentHex}66 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 130, fontWeight: 800, color: '#ffffff' }}>{card.name?.[0]?.toUpperCase()}</div>}
             {/* Bottom-only vignette so the name overlay reads */}
@@ -2401,7 +2418,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           }}>
             <div style={{ width: '100%', height: '100%', borderRadius: '31%', overflow: 'hidden', backgroundColor: bg.page }}>
               {card.profile_image_url
-                ? <img src={card.profile_image_url} alt={card.name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                ? <FramedBox src={card.profile_image_url} alt={card.name || ''} focus={focusFor(design, 'photo')} zoom={zoomFor(design, 'photo')} backdrop={false} style={{ width: '100%', height: '100%', display: 'block' }} />
                 : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', background: scrim + `linear-gradient(150deg, ${accentHex}, ${companion})`, color: onVivid, fontFamily: font.heading, fontSize: photoSize * 0.3, fontWeight: 900 }}>{initialsOf(card.name)}</div>}
             </div>
           </div>
@@ -2942,7 +2959,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 26 }}>
               <div style={{ flex: 1, minWidth: 0, paddingTop: 14 }}>
                 {card.company_logo_url && design.logoPosition !== 'hidden' && (
-                  <img src={card.company_logo_url} alt="" style={{ height: calcLogoHeight(52, design), width: 'auto', maxWidth: '100%', objectFit: 'contain' }} />
+                  <FramedLogo src={card.company_logo_url} focus={focusFor(design, 'logo')} zoom={zoomFor(design, 'logo')} style={{ height: calcLogoHeight(52, design), width: 'auto', maxWidth: '100%', objectFit: 'contain' }} />
                 )}
               </div>
               {/* The arc box is bigger than the photo, and the photo is centred
@@ -3139,12 +3156,19 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               // pulls away from the frame and leaves gaps down the sides.
               // The origin matches objectPosition so the face stays put as it
               // scales rather than drifting out of frame.
-              <img src={card.profile_image_url} alt={card.name || ''}
-                style={{
-                  width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 18%',
-                  transform: `scale(${Math.max(1, (design.boldImageZoom ?? 100) / 100)})`,
-                  transformOrigin: '50% 18%',
-                }} />
+              // The drag and the shared zoom win once set; until then the
+              // template's own 50% 18% and its photo-zoom slider, as before.
+              zoomFor(design, 'photo')
+                ? <FramedImage src={card.profile_image_url} alt={card.name || ''}
+                    focus={design.imageFocus?.photo ? focusFor(design, 'photo') : '50% 18%'}
+                    zoom={zoomFor(design, 'photo')} backdrop={false} />
+                : <img src={card.profile_image_url} alt={card.name || ''}
+                    style={{
+                      width: '100%', height: '100%', objectFit: 'cover',
+                      objectPosition: design.imageFocus?.photo ? focusFor(design, 'photo') : '50% 18%',
+                      transform: `scale(${Math.max(1, (design.boldImageZoom ?? 100) / 100)})`,
+                      transformOrigin: design.imageFocus?.photo ? focusFor(design, 'photo') : '50% 18%',
+                    }} />
             ) : (
               <div style={{
                 width: '100%', height: '100%', display: 'grid', placeItems: 'center',
@@ -3179,7 +3203,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             }} />
 
             {card.company_logo_url && design.logoPosition !== 'hidden' && (
-              <img src={card.company_logo_url} alt="" style={{
+              <FramedLogo src={card.company_logo_url} focus={focusFor(design, 'logo')} zoom={zoomFor(design, 'logo')} style={{
                 position: 'absolute', right: 22, top: 'calc(env(safe-area-inset-top, 0px) + 20px)',
                 height: calcLogoHeight(38, design), width: 'auto', maxWidth: '45%', objectFit: 'contain',
               }} />
@@ -3315,7 +3339,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               const inner = (
                 <div style={{ borderRadius: '50%', overflow: 'hidden', width: photoSize, height: photoSize, backgroundColor: '#0a0a1a' }}>
                   {card.profile_image_url
-                    ? <img src={card.profile_image_url} style={{ width: photoSize, height: photoSize, objectFit: 'cover' }} />
+                    ? <FramedBox src={card.profile_image_url} focus={focusFor(design, 'photo')} zoom={zoomFor(design, 'photo')} backdrop={false} style={{ width: photoSize, height: photoSize }} />
                     : <div style={{ width: photoSize, height: photoSize, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: photoSize * 0.35, fontWeight: 700, color: accentHex }}>{card.name?.[0]?.toUpperCase()}</div>}
                 </div>
               )
@@ -3464,7 +3488,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             <div style={{ position: 'relative', padding: '50px 20px 0', zIndex: 2 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                 {card.company_logo_url ? (
-                  <img src={card.company_logo_url} style={{ height: calcLogoHeight(60, design), maxWidth: 140, objectFit: 'contain', flexShrink: 0 }} />
+                  <FramedLogo src={card.company_logo_url} focus={focusFor(design, 'logo')} zoom={zoomFor(design, 'logo')} style={{ height: calcLogoHeight(60, design), maxWidth: 140, objectFit: 'contain', flexShrink: 0 }} />
                 ) : (
                   <div style={{ width: 76, height: 76, border: '2px dashed rgba(255,255,255,0.3)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 600, textAlign: 'center', lineHeight: 1.2 }}>
                     Your<br />Logo
@@ -3481,7 +3505,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           <div style={{ position: 'absolute', top: STUDIO_PHOTO_TOP, left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
             <div style={{ width: STUDIO_PHOTO, height: STUDIO_PHOTO, borderRadius: '50%', overflow: 'hidden', border: design.profileBorder === false ? 'none' : `${STUDIO_PHOTO_BORDER}px solid #ffffff`, boxShadow: '0 12px 36px rgba(0,0,0,0.55)' }}>
               {card.profile_image_url
-                ? <img src={card.profile_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ? <FramedBox src={card.profile_image_url} focus={focusFor(design, 'photo')} zoom={zoomFor(design, 'photo')} backdrop={false} style={{ width: '100%', height: '100%' }} />
                 : <div style={{ width: '100%', height: '100%', backgroundColor: accentHex + '44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(STUDIO_PHOTO * 0.36), fontWeight: 800, color: accentHex }}>{card.name?.[0]?.toUpperCase()}</div>}
             </div>
           </div>
@@ -3762,7 +3786,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             }}>
               <div style={{ width: photoSize - 7, height: photoSize - 7, clipPath: hex, overflow: 'hidden', background: isLight ? '#ffffff' : bg.page }}>
                 {card.profile_image_url
-                  ? <img src={card.profile_image_url} alt={card.name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  ? <FramedBox src={card.profile_image_url} alt={card.name || ''} focus={focusFor(design, 'photo')} zoom={zoomFor(design, 'photo')} backdrop={false} style={{ width: '100%', height: '100%', display: 'block' }} />
                   : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: accentHex, fontFamily: font.heading, fontSize: photoSize * 0.3, fontWeight: 700 }}>{initialsOf(card.name)}</div>}
               </div>
             </div>
@@ -4029,7 +4053,9 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
         <div className="max-w-md mx-auto">
           <div style={{ position: 'relative', minHeight: 300, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden' }}>
             {heroPhoto
-              ? <img src={heroPhoto} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: focusFor(design, 'hero') }} />
+              // Focal point and zoom both, drawn by the same component the
+              // editor's reframing tool uses (components/card/FramedImage).
+              ? <FramedImage src={heroPhoto} focus={focusFor(design, 'hero')} zoom={zoomFor(design, 'hero')} />
               : <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(135deg, ${accentHex} 0%, ${accentHex}55 100%)` }} />}
             {/* The fade has to end in the page colour or the hero stops in a
                 visible band above the content. Set as a variable so the light
@@ -4061,7 +4087,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginTop: 14 }}>
                 <div style={{ flexShrink: 0, width: sellerSize, height: sellerSize, borderRadius: '50%', overflow: 'hidden', border: `2px solid ${accentHex}` }}>
                   {card.profile_image_url
-                    ? <img src={card.profile_image_url} alt="" style={{ width: sellerSize, height: sellerSize, objectFit: 'cover', objectPosition: focusFor(design, 'photo') }} />
+                    ? <FramedBox src={card.profile_image_url} focus={focusFor(design, 'photo')} zoom={zoomFor(design, 'photo')} backdrop={false} style={{ width: sellerSize, height: sellerSize }} />
                     : <div style={{ width: sellerSize, height: sellerSize, backgroundColor: accentHex, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: sellerSize * 0.4, fontWeight: 700, color: accentText, fontFamily: font.heading }}>{card.name?.[0]?.toUpperCase()}</div>}
                 </div>
                 <div style={{ minWidth: 0 }}>

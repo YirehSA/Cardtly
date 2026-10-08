@@ -237,8 +237,9 @@ export interface CardDesign {
    *  vehicle shot it is usually the wrong one - the car sits low in the frame
    *  and the middle of the picture is sky and tarmac.
    *
-   *  Keys are 'hero', 'photo' for the profile portrait, and '1' to '10' for
-   *  the gallery slots. Values are whatever object-position takes, written as
+   *  Keys are 'hero', 'photo' for the profile portrait, '1' to '10' for the
+   *  gallery slots, and 'logo' (a logo is shown whole, so its focus only
+   *  matters once it is zoomed). Values are whatever object-position takes, written as
    *  '50% 32%'. Absent means centred, so every card that has never been
    *  reframed renders exactly as it did.
    *
@@ -249,6 +250,19 @@ export interface CardDesign {
    *  behaviour a dealership with one set of stock photos wants. Eleven more
    *  columns and another migration would buy nothing. */
   imageFocus?: Record<string, string>
+  /** HOW FAR A PHOTO IS ZOOMED, keyed exactly like imageFocus: every image
+   *  that can be dragged can be zoomed (Andre, 2026-10-08).
+   *
+   *  Dragging moves a photo but cannot resize it, so a hero shot taken too
+   *  tight or too loose could only ever be cropped, never fitted (Andre,
+   *  2026-10-08). Absent means exactly what it always did: the photo fills
+   *  its frame (object-fit cover). Set, it is a multiple of the WHOLE photo
+   *  fitted inside the frame (object-fit contain): 1 shows all of it, larger
+   *  zooms in around the focal point. Below the size that fills the frame, a
+   *  blurred copy of the same photo fills the edges, so the band never shows
+   *  a gap. Drawn by components/card/FramedImage, for the card and the
+   *  editor's tool alike. */
+  imageZoom?: Record<string, number>
   /** Which way the BIO paragraph is set. Nothing else moves.
    *
    *  THE BIO ONLY, AND THAT IS THE POINT. This started as one control over the
@@ -318,6 +332,18 @@ export const GALLERY_ASPECT = 16 / 9
 export function focusFor(design: CardDesign, key: string): string {
   const v = design.imageFocus?.[key]
   return typeof v === 'string' && v.trim() ? v : FOCUS_CENTRE
+}
+
+/** The zoom range. 1 is the whole photo; 8 is far past anything a hero needs. */
+export const ZOOM_MIN = 1
+export const ZOOM_MAX = 8
+
+/** How far one image is zoomed, or null for "fill the frame" (the default,
+ *  and every card that has never been zoomed). Guarded like focusFor: this is
+ *  JSON a customer's row carries. */
+export function zoomFor(design: CardDesign, key: string): number | null {
+  const v = design.imageZoom?.[key]
+  return typeof v === 'number' && Number.isFinite(v) ? Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, v)) : null
 }
 
 /** Read a focus back as percentages, for the editor's drag tool. */

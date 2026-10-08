@@ -293,6 +293,17 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
   const setFocus = useCallback((key: string, focus: string) => {
     setDesign(d => ({ ...d, imageFocus: { ...(d.imageFocus || {}), [key]: focus } }))
   }, [])
+  // The zoom beside it (CardDesign.imageZoom). undefined goes back to "fill
+  // the frame" by removing the key, so an un-zoomed card's design is exactly
+  // what it was.
+  const setZoom = useCallback((key: string, zoom: number | undefined) => {
+    setDesign(d => {
+      const next = { ...(d.imageZoom || {}) }
+      if (zoom === undefined) delete next[key]
+      else next[key] = Math.round(zoom * 100) / 100
+      return { ...d, imageZoom: next }
+    })
+  }, [])
 
 
   // Unsaved-work tracking, same as the personal editor. Without it a member
@@ -666,6 +677,9 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                       aspect={1}
                       value={design.imageFocus?.photo}
                       onChange={f => setFocus('photo', f)}
+                      zoom={design.imageZoom?.photo}
+                      onZoomChange={z => setZoom('photo', z)}
+                      backdrop={false}
                       disabled={isLocked('color_theme')}
                       hint={isLocked('color_theme')
                         ? `${org.name} sets how photos are cropped.`
@@ -799,6 +813,23 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                   <label className="block text-sm font-medium mb-1">Company Logo</label>
                   <p className="text-xs text-muted-foreground mb-3">Shown on the card with position controlled in Design tab</p>
                   <ImageUploader value={form.company_logo_url} onChange={url => update('company_logo_url', url)} bucket="company-logos" userId={userId} shape="square" />
+                  {/* The logo is shown whole; zooming in trims the empty space
+                      many logo files carry round the mark (FramedLogo). Part
+                      of the design, so locked with it. */}
+                  {form.company_logo_url && (
+                    <div className="mt-3 max-w-xs">
+                      <ImageFocusPicker
+                        src={form.company_logo_url}
+                        value={design.imageFocus?.logo}
+                        onChange={f => setFocus('logo', f)}
+                        zoom={design.imageZoom?.logo}
+                        onZoomChange={z => setZoom('logo', z)}
+                        backdrop={false}
+                        disabled={isLocked('color_theme')}
+                        hint="Zoom in to trim empty space round the logo, then drag to centre it."
+                      />
+                    </div>
+                  )}
                 </div>
               ) : shown('company_logo_url') ? (
                 <div>
@@ -840,6 +871,8 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                             aspect={HERO_ASPECT}
                             value={design.imageFocus?.hero}
                             onChange={f => setFocus('hero', f)}
+                            zoom={design.imageZoom?.hero}
+                            onZoomChange={z => setZoom('hero', z)}
                             disabled={isLocked('color_theme')}
                             hint="This is the band across the top of the card."
                           />
@@ -889,6 +922,8 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                             aspect={GALLERY_ASPECT}
                             value={design.imageFocus?.[String(i)]}
                             onChange={f => setFocus(String(i), f)}
+                            zoom={design.imageZoom?.[String(i)]}
+                            onZoomChange={z => setZoom(String(i), z)}
                             disabled={isLocked('color_theme')}
                             hint="How this photo is cropped in the gallery."
                           />

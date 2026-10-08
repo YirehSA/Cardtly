@@ -143,6 +143,17 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
   const setFocus = useCallback((key: string, focus: string) => {
     setDesign(d => ({ ...d, imageFocus: { ...(d.imageFocus || {}), [key]: focus } }))
   }, [])
+  // The zoom beside it (CardDesign.imageZoom). undefined goes back to "fill
+  // the frame" by removing the key, so an un-zoomed card's design is exactly
+  // what it was.
+  const setZoom = useCallback((key: string, zoom: number | undefined) => {
+    setDesign(d => {
+      const next = { ...(d.imageZoom || {}) }
+      if (zoom === undefined) delete next[key]
+      else next[key] = Math.round(zoom * 100) / 100
+      return { ...d, imageZoom: next }
+    })
+  }, [])
 
 
   // Everything on this page lives in local state until Save is pressed, so
@@ -444,6 +455,9 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                     aspect={1}
                     value={design.imageFocus?.photo}
                     onChange={f => setFocus('photo', f)}
+                    zoom={design.imageZoom?.photo}
+                    onZoomChange={z => setZoom('photo', z)}
+                    backdrop={false}
                     hint="Drag your face into the middle of the circle."
                   />
                 </div>
@@ -565,6 +579,21 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
               <Section title="Your company logo" colour={TAB_COLOUR.media} icon={<Building2 className="w-4 h-4" />}
                 hint="Shown on your card and in the middle of your QR code. Resize it in Design.">
                 <ImageUploader value={form.company_logo_url} onChange={url => update('company_logo_url', url)} bucket="company-logos" userId={userId} shape="square" />
+                {/* The logo is shown whole; zooming in trims the empty space
+                    many logo files carry round the mark (FramedLogo). */}
+                {form.company_logo_url && (
+                  <div className="mt-3 max-w-xs">
+                    <ImageFocusPicker
+                      src={form.company_logo_url}
+                      value={design.imageFocus?.logo}
+                      onChange={f => setFocus('logo', f)}
+                      zoom={design.imageZoom?.logo}
+                      onZoomChange={z => setZoom('logo', z)}
+                      backdrop={false}
+                      hint="Zoom in to trim empty space round your logo, then drag to centre it."
+                    />
+                  </div>
+                )}
               </Section>
 
               {/* THE HERO IS ITS OWN SECTION, above the gallery, and only on
@@ -590,6 +619,8 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                         aspect={HERO_ASPECT}
                         value={design.imageFocus?.hero}
                         onChange={f => setFocus('hero', f)}
+                        zoom={design.imageZoom?.hero}
+                        onZoomChange={z => setZoom('hero', z)}
                         hint="This is the band across the top of your card."
                       />
                     </div>
@@ -625,6 +656,8 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                         aspect={GALLERY_ASPECT}
                         value={design.imageFocus?.[String(i)]}
                         onChange={f => setFocus(String(i), f)}
+                        zoom={design.imageZoom?.[String(i)]}
+                        onZoomChange={z => setZoom(String(i), z)}
                         hint="How this photo is cropped in the gallery."
                       />
                     )}
