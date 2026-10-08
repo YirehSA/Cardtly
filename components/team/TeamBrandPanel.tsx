@@ -208,10 +208,10 @@ export default function TeamBrandPanel({ orgId, orgName, brand, hasBrand, totalC
               <div>
                 <p className="font-medium">What nobody can change{lockedLabels.length ? `: ${lockedLabels.join(', ')}` : ': nothing locked'}</p>
                 <p className="text-muted-foreground text-xs mt-0.5">
-                  Only you can change a locked item. On cards wearing the look, a locked logo, design, company
-                  detail or set of links comes from the look; a locked job title, office number or bio stays on each
-                  card as you set it. Anything left open, the look fills in where a card is blank and each person can
-                  change their own. Set these in{' '}
+                  Only you can change a locked item, and on every card wearing the look it comes from the look.
+                  The one exception is the job title: locked, it stays on each card as you set it. Anything left
+                  open, each person can change their own, and the look fills in where a card is blank (never the
+                  bio, which is somebody&rsquo;s own words). Set these in{' '}
                   <a href="/dashboard/departments" className="underline hover:text-foreground">Company rules</a>
                   ; a department can lock more for its own team.
                 </p>
@@ -228,7 +228,7 @@ export default function TeamBrandPanel({ orgId, orgName, brand, hasBrand, totalC
 
       <div className="text-xs text-muted-foreground leading-relaxed max-w-lg space-y-3">
         <p>
-          The brand is taken from your own card: logo, company, website, address, colours, template,
+          The brand is taken from your own card: logo, company, website, address, office number, bio, colours, template,
           fonts, links, certifications and gallery. Edit those on
           {' '}<a href="/dashboard/card" className="underline hover:text-foreground">your card</a>
           {lookSource

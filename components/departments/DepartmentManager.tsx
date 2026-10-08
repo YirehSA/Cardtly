@@ -690,9 +690,14 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards: a
       {/* Hero */}
       <div className="rounded-xl p-5 sm:p-6 relative overflow-hidden border border-border"
         style={{ background: `linear-gradient(135deg, ${accent}22, transparent 70%)` }}>
+        {/* A real button, not a line of small grey text. People missed it
+            and could not find their way back to the overview, which is where
+            Company rules live (Andre, 2026-10-08). */}
         {onBack && (
-          <button onClick={onBack} className="text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1 mb-3">
-            <ChevronLeft className="w-3.5 h-3.5" /> All departments
+          <button onClick={onBack}
+            className="inline-flex items-center gap-1.5 mb-4 px-3.5 min-h-[40px] rounded-lg border text-sm font-semibold transition hover:bg-muted/60"
+            style={{ borderColor: `${accent}66`, background: `${accent}14`, color: accent }}>
+            <ChevronLeft className="w-4 h-4" /> All departments{dept.isOwner ? (isGroup ? ' and Group rules' : ' and Company rules') : ''}
           </button>
         )}
         <div className="flex items-center gap-3">

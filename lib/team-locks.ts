@@ -46,7 +46,9 @@ export const LOCK_GROUPS: LockGroup[] = [
     // BRAND_FIELDS, and mergeBrand only ever copies fields that are. So the
     // lock removes the member's ability to write the column and leaves each
     // card's own title exactly where the admin set it, instead of overwriting
-    // forty people with one. `bio` already works this way.
+    // forty people with one. It is the ONE lock that works this way: every
+    // other locked item comes from the team look (lib/team-brand), the bio
+    // included since 2026-10-08.
     id: 'title',
     label: 'Job title',
     hint: 'Only an admin can set what someone’s title is',
@@ -55,7 +57,9 @@ export const LOCK_GROUPS: LockGroup[] = [
   {
     id: 'office_phone',
     label: 'Office number',
-    hint: 'The switchboard number stays as you set it',
+    // Part of the team look since 2026-10-08 (BRAND_FIELDS), so locking it
+    // puts the look's switchboard number on every card wearing the look.
+    hint: 'Everyone shows the same switchboard number',
     columns: ['work_phone'],
   },
   {

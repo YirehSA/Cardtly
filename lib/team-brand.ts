@@ -1,13 +1,33 @@
 // The team brand: fields that are shared across a team and controlled
 // centrally by the org admin. Everything NOT in this list is personal
-// (name, title, bio, email, phone, work_phone, whatsapp,
-// profile_image_url) and stays editable per member.
+// (name, title, email, phone, whatsapp, profile_image_url) and stays
+// editable per member.
+//
+// EVERY LOCK MEANS THE SAME THING (2026-10-08): locked, the item comes from
+// the team look on every card wearing it, and is greyed out there for
+// everybody. The one deliberate exception is the job title, which is per
+// person by nature: locked, only an admin sets each one (see lib/team-locks).
 
 export const BRAND_FIELDS = [
   'company',
   'company_logo_url',
   'website',
   'address',
+  // The office number is the company's switchboard, like its address, so it
+  // is part of the look (2026-10-08). It used to be personal, which made its
+  // lock mean only "an admin types it in, card by card": JETOUR locked it
+  // expecting every card to show the main card's number and found each card
+  // still carrying, and an admin still typing, its own. Locked, it now comes
+  // from the look on every card wearing it; open, a person's own number wins
+  // and the look's fills in for anyone who has none.
+  'work_phone',
+  // The bio, ONLY when locked (LOCKED_ONLY_FIELDS). Its lock promised "the same
+  // wording about the business on every card" while the look never carried
+  // it, so locking it froze each card's own bio instead. Locked, it now comes
+  // from the look. Left open it never fills a blank: the look's card is
+  // somebody's own, usually written in the first person, and "As the Sales
+  // Manager, I..." is not something to put on a colleague's card unasked.
+  'bio',
   'color_theme',            // design: template, colours, fonts
   'linkedin_url',
   'twitter_url',
@@ -53,6 +73,12 @@ export const BRAND_FIELDS = [
 export type BrandField = typeof BRAND_FIELDS[number]
 
 /**
+ * Look fields that apply only where the company has LOCKED them. Every other
+ * look field also fills in a card that has left it blank; these never do.
+ */
+export const LOCKED_ONLY_FIELDS: ReadonlySet<string> = new Set(['bio'])
+
+/**
  * The look copied when a new team card is started from an existing one.
  *
  * Everything the brand covers except the company name and the gallery: the name
@@ -67,6 +93,8 @@ export type BrandField = typeof BRAND_FIELDS[number]
 export const COPYABLE_LOOK_FIELDS: string[] =
   BRAND_FIELDS.filter(f =>
     f !== 'company' &&
+    // Somebody's own words, not part of a house style to start a card from.
+    f !== 'bio' &&
     !f.startsWith('image_') &&
     // The Showroom hero is a photograph, so it belongs with the gallery on the
     // wrong side of this filter rather than with the colours and the logo. It
@@ -129,7 +157,7 @@ export function mergeBrand<T extends Record<string, any>>(
   const merged: Record<string, any> = { ...card }
   for (const f of BRAND_FIELDS) {
     if (!(f in brand)) continue
-    if (lockedSet.has(f) || unset(card[f])) merged[f] = brand[f]
+    if (lockedSet.has(f) || (unset(card[f]) && !LOCKED_ONLY_FIELDS.has(f))) merged[f] = brand[f]
   }
   return merged as T
 }

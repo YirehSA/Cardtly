@@ -128,7 +128,16 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
   const locked = useMemo(() => new Set(lockedColumns(lockedGroups)), [lockedGroups])
   // The brand's reach, which is not the same as this user's restrictions.
   const brandLocked = useMemo(() => new Set(lockedColumns(brandLockedGroups)), [brandLockedGroups])
-  const isLocked = useCallback((field: string) => locked.has(field), [locked])
+  // A locked item the team look supplies, on a card that WEARS the look: the
+  // look wins on the public card, so what is typed here would be saved and
+  // never shown. It is greyed out for admins as well as members, and shows
+  // the look's value. Admins used to get an open box, which is how JETOUR
+  // locked the office number and went on typing a different one into each
+  // card (2026-10-08).
+  const fromLook = useCallback((field: string) =>
+    usesBrand && brandLocked.has(field) && (BRAND_FIELDS as readonly string[]).includes(field),
+  [usesBrand, brandLocked])
+  const isLocked = useCallback((field: string) => locked.has(field) || fromLook(field), [locked, fromLook])
   const designLocked = brandLockedGroups.includes('design')
   // Whether the design on screen actually comes from the team look. Only on a
   // card that WEARS the look (usesBrand, which is never the card the look is
@@ -138,9 +147,9 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
   // lock alone, which put "Design is set by your company brand" on the very
   // card the brand is taken from (JETOUR, 2026-10-08).
   const designFromLook = designLocked && (usesBrand || !isAdmin)
-  // Locked items the team look actually supplies. A locked job title, office
-  // number or bio is not in the look (BRAND_FIELDS): it stays per card and
-  // only an admin may set it, so it is not "from the team look".
+  // Locked items the team look actually supplies. A locked job title is not in
+  // the look (BRAND_FIELDS): it stays per card and only an admin may set it,
+  // so it is not "from the team look".
   const lookSuppliedGroups = useMemo(() => LOCK_GROUPS.filter(g =>
     brandLockedGroups.includes(g.id) && g.columns.some(c => (BRAND_FIELDS as readonly string[]).includes(c))),
   [brandLockedGroups])
@@ -315,6 +324,13 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
     const withDesign = { ...form, color_theme: designTouched ? serializeDesign(design) : card.color_theme }
     return usesBrand ? mergeBrand(withDesign, orgBrand, brandLocked) : withDesign
   }, [form, design, designTouched, usesBrand, orgBrand, brandLocked, card.color_theme])
+
+  // What a field shows. A field the look supplies (fromLook) shows the look's
+  // value, the one the public card shows, rather than whatever this row still
+  // holds underneath; every other field shows the row as before.
+  const shown = (field: string): string => ((fromLook(field) ? (previewForm as any)[field] : (form as any)[field]) ?? '') as string
+  // Who sets a locked field, for the chip beside it.
+  const lockedByFor = (field: string) => fromLook(field) ? 'the team look' : org.name
 
   // The template this card will ACTUALLY render as, which is not always
   // `design`: a brand that locks design overrides the card's own. Labelling the
@@ -661,11 +677,11 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
               <Field label="Full name" required>
                 <Input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Jane Smith" />
               </Field>
-              <Field label="Job title" locked={isLocked('title')} lockedBy={org.name}>
+              <Field label="Job title" locked={isLocked('title')} lockedBy={lockedByFor('title')}>
                 <Input value={form.title} onChange={e => update('title', e.target.value)} placeholder="Sales Manager" disabled={isLocked('title')} />
               </Field>
-              <Field label="Company" locked={isLocked('company')} lockedBy={org.name}>
-                <Input value={form.company} onChange={e => update('company', e.target.value)} placeholder={org.name} disabled={isLocked('company')} />
+              <Field label="Company" locked={isLocked('company')} lockedBy={lockedByFor('company')}>
+                <Input value={shown('company')} onChange={e => update('company', e.target.value)} placeholder={org.name} disabled={isLocked('company')} />
               </Field>
               {/* The AI writer, same as a personal card gets. A team card is
                   always Pro, since the organisation pays for it, so there is no
@@ -684,22 +700,25 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                   build if any lockable field the editor writes by hand is left
                   undisabled. */}
               <Field label="Bio" hint="Stuck? Let the AI write it."
-                locked={isLocked('bio')} lockedBy={org.name}>
+                locked={isLocked('bio')} lockedBy={lockedByFor('bio')}>
                 <div className="relative">
-                  <textarea value={form.bio} onChange={e => update('bio', e.target.value)}
+                  <textarea value={shown('bio')} onChange={e => update('bio', e.target.value)}
                     disabled={isLocked('bio')}
                     placeholder="Tell people about this team member..." rows={4}
                     className="w-full px-4 py-2.5 pr-32 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition resize-none disabled:opacity-60" />
+                  {/* Not on a locked bio: whatever it wrote could not be saved. */}
+                  {!isLocked('bio') && (
                   <button type="button" onClick={() => setAiBioOpen(true)}
                     className="absolute top-2 right-2 flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-white transition hover:opacity-90"
                     style={{ background: 'hsl(var(--accent))' }}>
                     <Sparkles className="w-3 h-3" />Write it for me
                   </button>
+                  )}
                 </div>
               </Field>
               <Field label="Certifications / Tags" hint="Comma separated e.g. Sales, Certified, CPA"
-                locked={isLocked('certifications')} lockedBy={org.name}>
-                <Input value={form.certifications} onChange={e => update('certifications', e.target.value)} placeholder="Sales, Certified, CPA" disabled={isLocked('certifications')} />
+                locked={isLocked('certifications')} lockedBy={lockedByFor('certifications')}>
+                <Input value={shown('certifications')} onChange={e => update('certifications', e.target.value)} placeholder="Sales, Certified, CPA" disabled={isLocked('certifications')} />
               </Field>
             </>
           )}
@@ -712,35 +731,35 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
               <Field label="Phone">
                 <Input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="+27 82 000 0000" />
               </Field>
-              <Field label="Work phone" locked={isLocked('work_phone')} lockedBy={org.name}>
-                <Input type="tel" value={form.work_phone} onChange={e => update('work_phone', e.target.value)} placeholder="+27 11 000 0000" disabled={isLocked('work_phone')} />
+              <Field label="Work phone" locked={isLocked('work_phone')} lockedBy={lockedByFor('work_phone')}>
+                <Input type="tel" value={shown('work_phone')} onChange={e => update('work_phone', e.target.value)} placeholder="+27 11 000 0000" disabled={isLocked('work_phone')} />
               </Field>
               <Field label="WhatsApp">
                 <Input type="tel" value={form.whatsapp} onChange={e => update('whatsapp', e.target.value)} placeholder="+27 82 000 0000" />
               </Field>
-              <Field label="Address" locked={isLocked('address')} lockedBy={org.name}>
-                <Input value={form.address} onChange={e => update('address', e.target.value)} placeholder="Johannesburg, South Africa" disabled={isLocked('address')} />
+              <Field label="Address" locked={isLocked('address')} lockedBy={lockedByFor('address')}>
+                <Input value={shown('address')} onChange={e => update('address', e.target.value)} placeholder="Johannesburg, South Africa" disabled={isLocked('address')} />
               </Field>
-              <Field label="Website" locked={isLocked('website')} lockedBy={org.name}>
-                <Input type="url" value={form.website} onChange={e => update('website', e.target.value)} placeholder="https://yoursite.com" disabled={isLocked('website')} />
+              <Field label="Website" locked={isLocked('website')} lockedBy={lockedByFor('website')}>
+                <Input type="url" value={shown('website')} onChange={e => update('website', e.target.value)} placeholder="https://yoursite.com" disabled={isLocked('website')} />
               </Field>
-              <Field label="LinkedIn URL" locked={isLocked('linkedin_url')} lockedBy={org.name}>
-                <Input type="url" value={form.linkedin_url} onChange={e => update('linkedin_url', e.target.value)} placeholder="https://linkedin.com/in/jane" disabled={isLocked('linkedin_url')} />
+              <Field label="LinkedIn URL" locked={isLocked('linkedin_url')} lockedBy={lockedByFor('linkedin_url')}>
+                <Input type="url" value={shown('linkedin_url')} onChange={e => update('linkedin_url', e.target.value)} placeholder="https://linkedin.com/in/jane" disabled={isLocked('linkedin_url')} />
               </Field>
-              <Field label="Twitter / X URL" locked={isLocked('twitter_url')} lockedBy={org.name}>
-                <Input type="url" value={form.twitter_url} onChange={e => update('twitter_url', e.target.value)} placeholder="https://twitter.com/jane" disabled={isLocked('twitter_url')} />
+              <Field label="Twitter / X URL" locked={isLocked('twitter_url')} lockedBy={lockedByFor('twitter_url')}>
+                <Input type="url" value={shown('twitter_url')} onChange={e => update('twitter_url', e.target.value)} placeholder="https://twitter.com/jane" disabled={isLocked('twitter_url')} />
               </Field>
-              <Field label="Instagram URL" locked={isLocked('instagram_url')} lockedBy={org.name}>
-                <Input type="url" value={form.instagram_url} onChange={e => update('instagram_url', e.target.value)} placeholder="https://instagram.com/jane" disabled={isLocked('instagram_url')} />
+              <Field label="Instagram URL" locked={isLocked('instagram_url')} lockedBy={lockedByFor('instagram_url')}>
+                <Input type="url" value={shown('instagram_url')} onChange={e => update('instagram_url', e.target.value)} placeholder="https://instagram.com/jane" disabled={isLocked('instagram_url')} />
               </Field>
-              <Field label="Facebook URL" locked={isLocked('facebook_url')} lockedBy={org.name}>
-                <Input type="url" value={(form as any).facebook_url || ''} onChange={e => update('facebook_url', e.target.value)} placeholder="https://facebook.com/yourpage" disabled={isLocked('facebook_url')} />
+              <Field label="Facebook URL" locked={isLocked('facebook_url')} lockedBy={lockedByFor('facebook_url')}>
+                <Input type="url" value={shown('facebook_url')} onChange={e => update('facebook_url', e.target.value)} placeholder="https://facebook.com/yourpage" disabled={isLocked('facebook_url')} />
               </Field>
-              <Field label="YouTube URL" locked={isLocked('youtube')} lockedBy={org.name}>
-                <Input type="url" value={(form as any).youtube || ''} onChange={e => update('youtube', e.target.value)} placeholder="https://youtube.com/@you" disabled={isLocked('youtube')} />
+              <Field label="YouTube URL" locked={isLocked('youtube')} lockedBy={lockedByFor('youtube')}>
+                <Input type="url" value={shown('youtube')} onChange={e => update('youtube', e.target.value)} placeholder="https://youtube.com/@you" disabled={isLocked('youtube')} />
               </Field>
-              <Field label="TikTok URL" locked={isLocked('tiktok')} lockedBy={org.name}>
-                <Input type="url" value={(form as any).tiktok || ''} onChange={e => update('tiktok', e.target.value)} placeholder="https://tiktok.com/@you" disabled={isLocked('tiktok')} />
+              <Field label="TikTok URL" locked={isLocked('tiktok')} lockedBy={lockedByFor('tiktok')}>
+                <Input type="url" value={shown('tiktok')} onChange={e => update('tiktok', e.target.value)} placeholder="https://tiktok.com/@you" disabled={isLocked('tiktok')} />
               </Field>
             </>
           )}
@@ -751,7 +770,7 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                 <div className="flex items-start gap-2 rounded-xl border border-border bg-muted/40 p-3 text-sm">
                   <Lock className="w-4 h-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
                   <p className="text-muted-foreground">
-                    The link buttons on this card are set by {org.name} and are the same across the team.
+                    The link buttons on this card are set by {lockedByFor('link_1_url')} and are the same across the team.
                   </p>
                 </div>
               ) : (
@@ -762,11 +781,11 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Link {i}</p>
                   <div>
                     <label className="block text-xs font-medium mb-1.5 text-muted-foreground">Label</label>
-                    <Input value={form[`link_${i}_title` as keyof typeof form]} onChange={e => update(`link_${i}_title`, e.target.value)} placeholder="e.g. Our Website" disabled={isLocked('link_1_url')} />
+                    <Input value={shown(`link_${i}_title`)} onChange={e => update(`link_${i}_title`, e.target.value)} placeholder="e.g. Our Website" disabled={isLocked('link_1_url')} />
                   </div>
                   <div>
                     <label className="block text-xs font-medium mb-1.5 text-muted-foreground">URL</label>
-                    <Input type="url" value={form[`link_${i}_url` as keyof typeof form]} onChange={e => update(`link_${i}_url`, e.target.value)} placeholder="https://..." disabled={isLocked('link_1_url')} />
+                    <Input type="url" value={shown(`link_${i}_url`)} onChange={e => update(`link_${i}_url`, e.target.value)} placeholder="https://..." disabled={isLocked('link_1_url')} />
                   </div>
                 </div>
               ))}
@@ -781,13 +800,13 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                   <p className="text-xs text-muted-foreground mb-3">Shown on the card with position controlled in Design tab</p>
                   <ImageUploader value={form.company_logo_url} onChange={url => update('company_logo_url', url)} bucket="company-logos" userId={userId} shape="square" />
                 </div>
-              ) : form.company_logo_url ? (
+              ) : shown('company_logo_url') ? (
                 <div>
                   <label className="block text-sm font-medium mb-1">Company Logo</label>
-                  <p className="text-xs text-muted-foreground mb-3">Set by {org.name} and shared across all team cards.</p>
+                  <p className="text-xs text-muted-foreground mb-3">Set by {lockedByFor('company_logo_url')} and shared across all team cards.</p>
                   <div className="inline-block rounded-xl border border-border p-3 bg-muted/30">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={form.company_logo_url} alt="Company logo" className="h-16 w-auto object-contain opacity-70" />
+                    <img src={shown('company_logo_url')} alt="Company logo" className="h-16 w-auto object-contain opacity-70" />
                   </div>
                 </div>
               ) : null}
@@ -802,13 +821,13 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                   <label className="block text-sm font-medium mb-1">Hero Image</label>
                   <p className="text-xs text-muted-foreground mb-3">
                     {isLocked('hero_image_url')
-                      ? `The photo across the top of this card is set by ${org.name}.`
+                      ? `The photo across the top of this card is set by ${lockedByFor('hero_image_url')}.`
                       : 'The big photo across the top of the card. It does not use up a gallery slot.'}
                   </p>
                   {isLocked('hero_image_url') ? (
-                    (form as any).hero_image_url ? (
+                    shown('hero_image_url') ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={(form as any).hero_image_url} alt="Hero image"
+                      <img src={shown('hero_image_url')} alt="Hero image"
                         className="h-20 w-32 rounded-lg border border-border object-cover opacity-70" />
                     ) : <p className="text-xs text-muted-foreground">No hero image set.</p>
                   ) : (
@@ -835,7 +854,7 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                 <label className="block text-sm font-medium mb-1">Gallery Images</label>
                 <p className="text-xs text-muted-foreground mb-3">
                   {isLocked('image_1_url')
-                    ? `The gallery on this card is set by ${org.name}.`
+                    ? `The gallery on this card is set by ${lockedByFor('image_1_url')}.`
                     : `Up to ${MAX_GALLERY_IMAGES} images shown on the card`}
                 </p>
                 {isLocked('image_1_url') ? (
@@ -844,14 +863,14 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
                   // than showing none.
                   <div className="flex flex-wrap gap-3">
                     {IMAGE_SLOTS
-                      .map(i => (form as any)[`image_${i}_url`] as string)
+                      .map(i => shown(`image_${i}_url`))
                       .filter(Boolean)
                       .map((url, i) => (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img key={i} src={url} alt={`Gallery image ${i + 1}`}
                           className="h-20 w-20 rounded-lg border border-border object-cover opacity-70" />
                       ))}
-                    {!IMAGE_SLOTS.some(i => (form as any)[`image_${i}_url`]) && (
+                    {!IMAGE_SLOTS.some(i => shown(`image_${i}_url`)) && (
                       <p className="text-xs text-muted-foreground">No gallery images set.</p>
                     )}
                   </div>
