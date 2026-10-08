@@ -7,7 +7,7 @@ import ReportCardLink from '@/components/card/ReportCardLink'
 import CardTracker from '@/components/card/CardTracker'
 import { mergeBrand } from '@/lib/team-brand'
 import { lockedColumnsFor } from '@/lib/team-locks'
-import { hydrateBrandSources } from '@/lib/brand-source'
+import { hydrateBrandSources, isLookSource } from '@/lib/brand-source'
 import { liveMirror } from '@/lib/questionnaire'
 import { indexById, ancestorChain, resolveBrandChain, type DeptNode } from '@/lib/department-tree'
 
@@ -37,6 +37,8 @@ export default async function TeamCardPublic({ teamCard }: { teamCard: any }) {
   // longer looks finished, so the person carrying it asks their finance team
   // why. That is the lever.
   let suspendedMessage: string | null = null
+  // The card the team (or its department) look is read from. See brandToApply.
+  let isSourceCard = false
 
   if (teamCard.organization_id) {
     const admin = createAdminClient(
@@ -97,14 +99,19 @@ export default async function TeamCardPublic({ teamCard }: { teamCard: any }) {
         inherit_brand: d.inherit_brand ?? null,
       }))
       deptChain = ancestorChain(teamCard.department_id, indexById(nodes))
+      const chainIds = new Set(deptChain.map(d => d.id))
+      isSourceCard = isLookSource(teamCard.id, (depts || []).filter((d: any) => chainIds.has(d.id)))
     }
+    isSourceCard = isSourceCard || isLookSource(teamCard.id, [org])
   }
 
   // The team brand is merged over this card ONLY if the admin opted it in
   // (use_team_brand). Cards that keep their own branding (a family member, a
   // contractor with their own company) are left untouched. Personal fields
   // always win for anything not in the brand.
-  const brandToApply = teamCard.use_team_brand
+  // Except on the card the look is read from: it IS the look (lib/brand-source,
+  // isLookSource), so it shows its own values.
+  const brandToApply = teamCard.use_team_brand && !isSourceCard
     ? resolveBrandChain(orgBrand, deptChain)
     : {}
 

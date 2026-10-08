@@ -24,6 +24,29 @@ export function parseBrandSource(v: unknown): BrandSource | null {
   return { table: t, id }
 }
 
+/**
+ * Is this team card the one a look in its own chain follows?
+ *
+ * A card a look is read FROM must not also wear that look. The owner's card
+ * became the usual source once it moved into the team as one of its seats
+ * (lib/owner-team-card), and "Apply to all cards" then switched it on too: the
+ * card wore a copy of itself. Its public face was mostly right, since the live
+ * look is its own values, but anything the owner cleared came back from the
+ * stored copy, and the editor previewed the stored copy over every locked
+ * field, so changing the design of the very card the team looks like showed
+ * no change at all.
+ *
+ * `records` is the organisation and the departments above the card; any of
+ * them following this card makes it the source.
+ */
+export function isLookSource(teamCardId: string | null | undefined, records: Array<Record<string, any> | null | undefined>): boolean {
+  if (!teamCardId) return false
+  return records.some(r => {
+    const s = parseBrandSource(r?.brand_source)
+    return !!s && s.table === 'team_cards' && s.id === teamCardId
+  })
+}
+
 /** A brand field worth taking from the source card. */
 function set(v: unknown): boolean {
   if (v === null || v === undefined) return false

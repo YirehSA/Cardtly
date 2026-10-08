@@ -4,8 +4,8 @@ import { redirect, notFound } from 'next/navigation'
 import TeamCardEditor from '@/components/team/TeamCardEditor'
 import { canManageDepartment } from '@/lib/department-perms'
 import { resolveLocks } from '@/lib/team-locks'
-import { resolveTeamBrand } from '@/lib/team-brand'
-import { hydrateBrandSources } from '@/lib/brand-source'
+import { hydrateBrandSources, isLookSource } from '@/lib/brand-source'
+import { indexById, ancestorChain, resolveBrandChain, type DeptNode } from '@/lib/department-tree'
 
 export const metadata = { title: 'Edit Team Card' }
 
@@ -68,10 +68,41 @@ export default async function TeamCardPage({ params }: { params: Promise<{ id: s
   // department over org. Passing only the org brand meant anyone in a
   // department with its own look previewed the company's brand while their
   // real card wore the department's.
-  const { data: dept } = card.department_id
-    ? await admin.from('departments').select('brand').eq('id', card.department_id).maybeSingle()
-    : { data: null }
-  const resolvedBrand = resolveTeamBrand((org as any).brand || {}, (dept as any)?.brand || {})
+  //
+  // And the LIVE look, the way TeamCardPublic resolves it: a look that follows
+  // a card is read from that card (hydrateBrandSources), down the whole chain
+  // of departments. This read the stored copy and one department, so once the
+  // team look followed the owner's card, staff previewed the copy taken the
+  // day it was chosen while their public cards showed it as it is now.
+  //
+  // select('*') here only, server-side: `org` above is the narrow object that
+  // goes to the browser.
+  const [{ data: orgFull }, { data: deptRows }] = await Promise.all([
+    admin.from('organizations').select('*').eq('id', org.id).maybeSingle(),
+    card.department_id
+      ? admin.from('departments').select('*').eq('organization_id', org.id)
+      : Promise.resolve({ data: [] as any[] }),
+  ])
+  const [hydratedOrgs, hydratedDepts] = await Promise.all([
+    hydrateBrandSources(admin, orgFull ? [orgFull] : []),
+    hydrateBrandSources(admin, (deptRows || []) as any[]),
+  ])
+  const nodes: DeptNode[] = (hydratedDepts as any[]).map((d: any) => ({
+    id: d.id,
+    organization_id: d.organization_id,
+    name: d.name,
+    parent_id: d.parent_id ?? null,
+    kind: d.kind === 'company' ? 'company' : 'department',
+    slug_segment: d.slug_segment ?? null,
+    brand: d.brand || {},
+    locked_fields: d.locked_fields ?? null,
+    inherit_brand: d.inherit_brand ?? null,
+  }))
+  const chain = card.department_id ? ancestorChain(card.department_id, indexById(nodes)) : []
+  const resolvedBrand = resolveBrandChain((hydratedOrgs[0] as any)?.brand || (org as any).brand || {}, chain)
+  // The card the look is read from: it is the look, so it never wears it.
+  const chainIds = new Set(chain.map(d => d.id))
+  const isTeamLook = isLookSource(card.id, [orgFull, ...((deptRows || []) as any[]).filter((d: any) => chainIds.has(d.id))])
 
   // The company half of this card's URL. Asked for on its own and tolerantly:
   // the column arrives with migration 044 while the code deploys on commit,
@@ -129,6 +160,7 @@ export default async function TeamCardPage({ params }: { params: Promise<{ id: s
       lockedGroups={lockedGroups}
       brandLockedGroups={brandLockedGroups}
       slugPrefix={slugPrefix}
+      isTeamLook={isTeamLook}
     />
   )
 }

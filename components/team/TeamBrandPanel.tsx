@@ -12,9 +12,14 @@ interface Brand {
   color_theme?: string | null
 }
 
-export default function TeamBrandPanel({ orgId, orgName, brand, hasBrand, totalCards = 0, brandedCards = 0 }: {
+export default function TeamBrandPanel({ orgId, orgName, brand, hasBrand, totalCards = 0, brandedCards = 0, lookSource = null, lockedLabels = [] }: {
   orgId: string; orgName?: string | null; brand: Brand; hasBrand: boolean
+  /** The cards that can wear the look: every card except the one it follows. */
   totalCards?: number; brandedCards?: number
+  /** The card the look follows, if it follows one (null: a copy). */
+  lookSource?: { name: string | null; own: boolean } | null
+  /** Company rules, by label. */
+  lockedLabels?: string[]
 }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
@@ -55,9 +60,12 @@ export default function TeamBrandPanel({ orgId, orgName, brand, hasBrand, totalC
     // no undo. "Remove from all" in particular throws away each member's
     // opt-in, which somebody then has to set again card by card.
     const n = totalCards
+    // The card the look follows is never switched (it IS the look), so say so
+    // rather than let "all" read as including it.
+    const except = lookSource ? ` ${lookSource.own ? 'Your own card' : `${lookSource.name || 'The card'}’s card`} stays as it is: the look comes from it.` : ''
     const msg = value
-      ? `Put the team brand on ${n === 1 ? 'the 1 card' : `all ${n} cards`}? Their own logo, colours and links will be replaced by the brand.`
-      : `Take the team brand off ${n === 1 ? 'the 1 card' : `all ${n} cards`}? Every card goes back to its own branding, and you will have to switch people back on one at a time.`
+      ? `Put the team brand on ${n === 1 ? 'the 1 card' : `all ${n} cards`}? What Company rules lock comes from the brand on every one of them, and the brand fills in anything they have left blank.${except}`
+      : `Take the team brand off ${n === 1 ? 'the 1 card' : `all ${n} cards`}? Every card goes back to its own branding, and you will have to switch people back on one at a time.${except}`
     if (!window.confirm(msg)) return
     setBusy(true)
     try {
@@ -103,7 +111,9 @@ export default function TeamBrandPanel({ orgId, orgName, brand, hasBrand, totalC
             )}
             <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1">
               <Palette className="w-3.5 h-3.5" />
-              {hasBrand ? 'Design, colours & links applied from your card' : 'No brand set yet'}
+              {!hasBrand ? 'No brand set yet'
+                : lookSource ? `Follows ${lookSource.own ? 'your card' : `${lookSource.name || 'a card'}’s card`}${lookSource.own && lookSource.name ? ` (${lookSource.name})` : ''}: change it and the team changes with it`
+                : 'A copy of your card, taken once. Update it after you change your card'}
             </p>
           </div>
           {/* What is actually true, rather than "Live on all team cards"
@@ -162,12 +172,68 @@ export default function TeamBrandPanel({ orgId, orgName, brand, hasBrand, totalC
         </div>
       )}
 
+      {/* THE THREE THINGS, in one place. They live on three screens (this
+          one, Team Cards and Departments), and how they combine was the part
+          nobody could work out: a company locked the design, the logo and the
+          address, never switched the look on for anybody, and its people's
+          cards kept whatever they were made with and could not be changed. */}
+      {hasBrand && (
+        <div className="rounded-lg border border-border bg-card p-5 space-y-4">
+          <p className="font-semibold text-sm">How your team&rsquo;s cards come out</p>
+          <ol className="space-y-3 text-sm">
+            <li className="flex gap-3">
+              <span className="w-5 h-5 rounded-full grid place-items-center text-[11px] font-bold text-white shrink-0" style={{ background: 'hsl(var(--accent))' }}>1</span>
+              <div>
+                <p className="font-medium">The look</p>
+                <p className="text-muted-foreground text-xs mt-0.5">
+                  {lookSource
+                    ? <>Taken from {lookSource.own ? 'your card' : `${lookSource.name || 'a card'}’s card`} and kept in step with it. Design that card the way the team should look. It always shows its own details, so it is never switched on below.</>
+                    : <>A copy of your card. After you change your card, use &ldquo;Update brand from my card&rdquo; to bring the team up to date.</>}
+                </p>
+              </div>
+            </li>
+            <li className="flex gap-3">
+              <span className="w-5 h-5 rounded-full grid place-items-center text-[11px] font-bold text-white shrink-0" style={{ background: 'hsl(var(--accent))' }}>2</span>
+              <div>
+                <p className="font-medium">Who wears it: {brandedCards} of {totalCards} card{totalCards === 1 ? '' : 's'}</p>
+                <p className="text-muted-foreground text-xs mt-0.5">
+                  {brandedCards === 0
+                    ? 'Nobody yet. Until a card wears the look, it keeps its own logo, colours and links. Use “Apply to all cards” above.'
+                    : 'Each card has its own switch in Team Cards, for anyone who should keep their own branding.'}
+                </p>
+              </div>
+            </li>
+            <li className="flex gap-3">
+              <span className="w-5 h-5 rounded-full grid place-items-center text-[11px] font-bold text-white shrink-0" style={{ background: 'hsl(var(--accent))' }}>3</span>
+              <div>
+                <p className="font-medium">What nobody can change{lockedLabels.length ? `: ${lockedLabels.join(', ')}` : ': nothing locked'}</p>
+                <p className="text-muted-foreground text-xs mt-0.5">
+                  Only you can change a locked item. On cards wearing the look, a locked logo, design, company
+                  detail or set of links comes from the look; a locked job title, office number or bio stays on each
+                  card as you set it. Anything left open, the look fills in where a card is blank and each person can
+                  change their own. Set these in{' '}
+                  <a href="/dashboard/departments" className="underline hover:text-foreground">Company rules</a>
+                  ; a department can lock more for its own team.
+                </p>
+                {brandedCards === 0 && lockedLabels.length > 0 && (
+                  <p className="text-xs mt-1.5 text-amber-500">
+                    Locked, but nobody wears the look yet, so those cards keep what they were made with and their people cannot change it. Apply the look to fix that.
+                  </p>
+                )}
+              </div>
+            </li>
+          </ol>
+        </div>
+      )}
+
       <div className="text-xs text-muted-foreground leading-relaxed max-w-lg space-y-3">
         <p>
           The brand is taken from your own card: logo, company, website, address, colours, template,
           fonts, links, certifications and gallery. Edit those on
-          {' '}<a href="/dashboard/card" className="underline hover:text-foreground">your card</a>{' '}
-          then click &ldquo;Update brand from my card&rdquo;.
+          {' '}<a href="/dashboard/card" className="underline hover:text-foreground">your card</a>
+          {lookSource
+            ? <>; the team follows it, so there is nothing else to press.</>
+            : <>{' '}then click &ldquo;Update brand from my card&rdquo;.</>}
         </p>
         <p>
           Each card has its own switch in{' '}

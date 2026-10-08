@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og'
 import { createClient } from '@supabase/supabase-js'
 import { parseDesign, getAccentHex, getBgColors, getReadableTextOn } from '@/types/design'
 import { ancestorChain, indexById, resolveBrandChain, type DeptNode } from '@/lib/department-tree'
-import { hydrateBrandSources } from '@/lib/brand-source'
+import { hydrateBrandSources, isLookSource } from '@/lib/brand-source'
 import { CARDTLY_MARK } from '@/lib/og-cardtly-mark'
 
 // Edge runtime: next/og renders reliably here. Satori (inside it) only handles
@@ -124,7 +124,7 @@ export async function GET(
   // still returns a valid (generic) OG image rather than 500ing,
   // which WhatsApp would cache as "no image" for days.
   let card: { name?: string | null; title?: string | null; company?: string | null; profile_image_url?: string | null; company_logo_url?: string | null; color_theme?: string | null } | null = null
-  let brandCtx: { orgId: string; deptId: string | null } | null = null
+  let brandCtx: { orgId: string; deptId: string | null; cardId: string } | null = null
 
   try {
     const { data: personalCard } = await supabase
@@ -138,7 +138,7 @@ export async function GET(
     } else {
       const { data: teamCard } = await supabase
         .from('team_cards')
-        .select('name, title, company, profile_image_url, company_logo_url, color_theme, use_team_brand, organization_id, department_id')
+        .select('id, name, title, company, profile_image_url, company_logo_url, color_theme, use_team_brand, organization_id, department_id')
         .eq('slug', slug)
         .maybeSingle()
       if (teamCard) {
@@ -149,7 +149,7 @@ export async function GET(
         // WhatsApp's scraper times out on a slow image, so cold generation
         // speed is load-bearing, not a nicety.
         if ((teamCard as any).use_team_brand && (teamCard as any).organization_id) {
-          brandCtx = { orgId: (teamCard as any).organization_id, deptId: (teamCard as any).department_id || null }
+          brandCtx = { orgId: (teamCard as any).organization_id, deptId: (teamCard as any).department_id || null, cardId: (teamCard as any).id }
         }
       }
     }
@@ -202,6 +202,9 @@ export async function GET(
         inherit_brand: d.inherit_brand ?? null,
       }))
       const chain = brandCtx.deptId ? ancestorChain(brandCtx.deptId, indexById(nodes)) : []
+      // The card the look is read from shows itself, as on the page.
+      const chainIds = new Set(chain.map(d => d.id))
+      if (isLookSource(brandCtx.cardId, [orgRes.data, ...((deptRes.data || []) as any[]).filter((d: any) => chainIds.has(d.id))])) return own
       const resolved = resolveBrandChain((hydratedOrg[0] as any)?.brand || {}, chain)
       return {
         colorTheme: resolved.color_theme || own.colorTheme,

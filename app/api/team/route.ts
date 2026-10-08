@@ -3,7 +3,7 @@ import { isMissingColumn } from '@/lib/pg-errors'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { BRAND_FIELDS, extractBrand, copyLook } from '@/lib/team-brand'
-import { hydrateBrandSources } from '@/lib/brand-source'
+import { hydrateBrandSources, parseBrandSource } from '@/lib/brand-source'
 import { newTeamCardSlug, newTeamPersonSlug, orgIndustry } from '@/lib/card-slug-server'
 import { slugifyPart, isReservedSlug } from '@/lib/card-slug'
 import { isIndustryId } from '@/lib/industries'
@@ -359,10 +359,18 @@ export async function POST(request: Request) {
   if (action === 'apply_brand_to_all') {
     const { org_id, value } = body as { org_id?: string; value?: boolean }
     if (!org_id || typeof value !== 'boolean') return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
-    const { data: org } = await admin.from('organizations').select('id').eq('id', org_id).eq('admin_user_id', user.id).single()
+    // select('*') so brand_source comes with it without naming a column a
+    // hand-applied migration may not have added.
+    const { data: org } = await admin.from('organizations').select('*').eq('id', org_id).eq('admin_user_id', user.id).single()
     if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
 
-    const { error } = await admin.from('team_cards').update({ use_team_brand: value }).eq('organization_id', org_id)
+    // Every card EXCEPT the one the look is read from: that card is the look,
+    // and switching it on made the owner's own card wear a copy of itself
+    // (lib/brand-source, isLookSource). It is left exactly as it is.
+    const source = parseBrandSource((org as any).brand_source)
+    let q = admin.from('team_cards').update({ use_team_brand: value }).eq('organization_id', org_id)
+    if (source?.table === 'team_cards') q = q.neq('id', source.id)
+    const { error } = await q
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ success: true })
   }

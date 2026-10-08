@@ -153,6 +153,10 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   // "Use team brand" on before a brand exists reported success and changed
   // nothing at all - the card looked identical and the toast said otherwise.
   const hasTeamBrand = Object.keys((org as any)?.brand || {}).length > 0
+  // The card the team look follows, usually the owner's own. It IS the look,
+  // so it never wears it (lib/brand-source, isLookSource) and gets no switch.
+  const lookSourceCardId: string | null =
+    (org as any)?.brand_source?.table === 'team_cards' ? (org as any).brand_source.id || null : null
 
   // Create org form
   // Prefilled from an org that was started but never paid for, so resuming
@@ -1167,7 +1171,17 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                 })()}
 
                 {/* Team brand toggle. Disabled until a brand exists, because
-                    without one it is a switch that does nothing. */}
+                    without one it is a switch that does nothing. Not offered
+                    on the card the look follows: that card is the look. */}
+                {card.id === lookSourceCardId ? (
+                <div className="flex items-center justify-between pt-3 border-t border-border">
+                  <span className="text-xs flex items-center gap-1.5 text-muted-foreground">
+                    <Sparkles className="w-3.5 h-3.5" style={{ color: 'hsl(var(--accent))' }} />
+                    This card is the team look
+                  </span>
+                  <Link href="/dashboard/team/brand" className="text-xs underline text-muted-foreground hover:text-foreground">Team brand</Link>
+                </div>
+                ) : (
                 <div className="flex items-center justify-between pt-3 border-t border-border">
                   <span className={`text-xs flex items-center gap-1.5 ${hasTeamBrand ? 'text-muted-foreground' : 'text-muted-foreground/60'}`}>
                     <Sparkles className="w-3.5 h-3.5" />
@@ -1192,6 +1206,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                       style={{ transform: card.use_team_brand && hasTeamBrand ? 'translateX(18px)' : 'translateX(2px)' }} />
                   </button>
                 </div>
+                )}
 
                 {/* Network listing. The admin decides whether the org allows
                     this card in the directory; the member has their own switch

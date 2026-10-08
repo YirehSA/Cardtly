@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { CardDesign, parseDesign, serializeDesign, LINK_SLOTS, IMAGE_SLOTS, MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES, linkFieldsFrom, imageFieldsFrom, HERO_ASPECT, GALLERY_ASPECT, type LinkSlot, type ImageSlot } from '@/types/design'
 import ImageFocusPicker from '@/components/card/ImageFocusPicker'
-import { mergeBrand } from '@/lib/team-brand'
+import { mergeBrand, BRAND_FIELDS } from '@/lib/team-brand'
 import { lockedColumns, LOCK_GROUPS } from '@/lib/team-locks'
 import { INDUSTRIES_BY_GROUP } from '@/lib/industries'
 import { orgSlugPrefix, composeCardSlug, slugifyPart } from '@/lib/card-slug'
@@ -76,6 +76,8 @@ interface Props {
   /** The company half of this card's URL, from the organisation. Null before
    *  migration 044, in which case it is derived from the company name. */
   slugPrefix?: string | null
+  /** This card is the one the team (or its department) look follows. */
+  isTeamLook?: boolean
 }
 
 // One comparable string for "everything the user can change", so unsaved work
@@ -107,11 +109,14 @@ const TAB_FIELDS: Record<TabId, string[]> = {
   design:  [],
 }
 
-export default function TeamCardEditor({ card, org, userId, role = 'admin', orgBrand = {}, lockedGroups = [], brandLockedGroups = [], slugPrefix = null }: Props) {
+export default function TeamCardEditor({ card, org, userId, role = 'admin', orgBrand = {}, lockedGroups = [], brandLockedGroups = [], slugPrefix = null, isTeamLook = false }: Props) {
   // Brand only applies to this card if the admin opted it in AND a
   // team brand is set. Cards keeping their own branding stay fully
-  // editable, with no brand merged into the preview.
-  const usesBrand = !!(card as any).use_team_brand && Object.keys(orgBrand).length > 0
+  // editable, with no brand merged into the preview. Nor does it apply to the
+  // card the look is read from (isTeamLook): that card IS the look, and
+  // previewing the look over it showed the owner the stored copy instead of
+  // the design they were changing.
+  const usesBrand = !!(card as any).use_team_brand && !isTeamLook && Object.keys(orgBrand).length > 0
   const isAdmin = role === 'admin'
   const isMember = role === 'member'
 
@@ -125,6 +130,12 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
   const brandLocked = useMemo(() => new Set(lockedColumns(brandLockedGroups)), [brandLockedGroups])
   const isLocked = useCallback((field: string) => locked.has(field), [locked])
   const designLocked = brandLockedGroups.includes('design')
+  // Locked items the team look actually supplies. A locked job title, office
+  // number or bio is not in the look (BRAND_FIELDS): it stays per card and
+  // only an admin may set it, so it is not "from the team look".
+  const lookSuppliedGroups = useMemo(() => LOCK_GROUPS.filter(g =>
+    brandLockedGroups.includes(g.id) && g.columns.some(c => (BRAND_FIELDS as readonly string[]).includes(c))),
+  [brandLockedGroups])
   const TABS = ALL_TABS.filter(t => t.id !== 'design' || isAdmin || !designLocked)
   const [saving, setSaving] = useState(false)
   const [aiBioOpen, setAiBioOpen] = useState(false)
@@ -501,6 +512,49 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
             </button>
           </div>
         </div>
+
+        {/* The card the team look follows. Said here, because what is saved on
+            this card shows on everybody wearing the look, and nothing else in
+            the editor would tell the owner that. */}
+        {isTeamLook && (
+          <div className="mb-5 rounded-xl p-4 border flex items-start gap-3" style={{ borderColor: 'hsl(var(--accent) / 0.3)', background: 'hsl(var(--accent) / 0.07)' }}>
+            <Sparkles className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'hsl(var(--accent))' }} />
+            <div className="flex-1 text-sm">
+              <p className="font-semibold mb-0.5">This card is the team look</p>
+              <p className="text-muted-foreground">
+                Every card wearing the team look takes its logo, colours, design and company details from this one:
+                {lookSuppliedGroups.length > 0
+                  ? ` always for what Company rules lock (${lookSuppliedGroups.map(g => g.label.toLowerCase()).join(', ')}), and wherever a card has left the rest blank.`
+                  : ' wherever a card has left them blank. Lock items in Company rules to make every card match.'}
+                {' '}What you save here reaches them straight away. This card always shows its own details.{' '}
+                <Link href="/dashboard/team/brand" className="underline hover:text-foreground">Team brand</Link>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* An admin on somebody else's card that wears the look: the locked
+            items on it come from the team look, so editing them here changes
+            the row but not what shows. Said up front rather than discovered. */}
+        {isAdmin && !isTeamLook && usesBrand && lookSuppliedGroups.length > 0 && (
+          <div className="mb-5 rounded-xl p-4 border flex items-start gap-3" style={{ borderColor: 'hsl(var(--accent) / 0.3)', background: 'hsl(var(--accent) / 0.07)' }}>
+            <Sparkles className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'hsl(var(--accent))' }} />
+            <div className="flex-1 text-sm">
+              <p className="font-semibold mb-0.5">This card wears the team look</p>
+              <p className="text-muted-foreground mb-2">
+                These come from the team look, not from this card. Change them on the card the team look follows, or switch the team look off for this card in Team Cards.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {lookSuppliedGroups.map(g => (
+                  <span key={g.id} title={g.hint}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs border border-border bg-background/60 text-muted-foreground">
+                    <Lock className="w-3 h-3" />{g.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Member banner. This used to state a fixed list of what was locked,
             which stopped being true the moment locks became choosable - it

@@ -1,6 +1,6 @@
 import { mergeBrand } from './team-brand'
 import { lockedColumnsFor } from './team-locks'
-import { hydrateBrandSources } from './brand-source'
+import { hydrateBrandSources, isLookSource } from './brand-source'
 import { indexById, ancestorChain, resolveBrandChain, type DeptNode } from './department-tree'
 
 // What a team card actually LOOKS like, for the pages that generate something
@@ -78,9 +78,14 @@ export async function withResolvedBrand<T extends Record<string, any>>(
     inherit_brand: d.inherit_brand ?? null,
   })))
 
+  const orgRowById: Record<string, any> = Object.fromEntries(orgs.map((o: any) => [o.id, o]))
+  const deptRowById: Record<string, any> = Object.fromEntries(depts.map((d: any) => [d.id, d]))
+
   return cards.map(c => {
     if (!c?.use_team_brand) return c
     const chain = c.department_id ? ancestorChain(c.department_id, byId) : []
+    // The card a look is read from shows itself, as on the public card.
+    if (isLookSource(c.id, [orgRowById[c.organization_id], ...chain.map(d => deptRowById[d.id])])) return c
     // Same rule as the public card: the brand wins on what the company locked,
     // and fills in what the member left blank. Anything else they set is theirs.
     return mergeBrand(

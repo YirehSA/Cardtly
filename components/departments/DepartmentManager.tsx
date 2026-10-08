@@ -309,7 +309,7 @@ function CompanyRules({ org, call, loading, hasCompanies = false }: {
               on={on}
               disabled={loading === key}
               label={g.label}
-              hint={on ? g.hint : 'Each company decides'}
+              hint={on ? g.hint : hasCompanies ? 'Each company decides' : 'Each person can change their own'}
               onChange={next =>
                 call(key,
                   { action: 'set_org_locks', org_id: org.id,
