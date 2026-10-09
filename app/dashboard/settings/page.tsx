@@ -3,7 +3,8 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
 import { getPrimaryCard } from '@/lib/card-server'
-import SettingsTabs from '@/components/settings/SettingsTabs'
+import SettingsTabs, { type TeamBilling } from '@/components/settings/SettingsTabs'
+import { orgEntitlesMembers, orgPaidUntilDaysLeft, orgTrialDaysLeft, orgBillingStartsInDays } from '@/lib/org-billing'
 
 interface CardSummary {
   id: string
@@ -71,6 +72,42 @@ export default async function SettingsPage() {
     leadCounts('team_card_id', (allTeam || []).map((c: any) => c.id)),
   ])
 
+  // THE TEAM BEHIND A TEAM-COVERED ACCOUNT, so Billing can say how long the
+  // cover runs. It said only "your company pays for your seat", so the owner of
+  // a team prepaid for a year could not see the year anywhere in their own
+  // account (life360, 2026-10-09). The team they run comes first; otherwise
+  // the team of the card they hold. Only what the page shows leaves the server.
+  let team: TeamBilling | null = null
+  if (plan.viaTeam) {
+    const { data: owned } = await admin.from('organizations').select('*').eq('admin_user_id', user.id)
+      .order('business_plan_active', { ascending: false }).order('created_at', { ascending: true })
+      .limit(1).maybeSingle()
+    const isOwner = !!owned && orgEntitlesMembers(owned)
+    let org: any = isOwner ? owned : null
+    if (!org) {
+      const orgId = (allTeam || []).find((c: any) => c.organization_id)?.organization_id
+      if (orgId) org = (await admin.from('organizations').select('*').eq('id', orgId).maybeSingle()).data
+    }
+    if (org) {
+      const { count: used } = isOwner
+        ? await admin.from('team_cards').select('id', { count: 'exact', head: true }).eq('organization_id', org.id)
+        : { count: null }
+      team = {
+        name: org.name || null,
+        isOwner,
+        mode: org.billing_period || null,
+        paidUntil: org.paid_until || null,
+        paidUntilDaysLeft: orgPaidUntilDaysLeft(org.billing_period, org.paid_until || null),
+        trialEndsAt: org.billing_period === 'trial' ? org.trial_ends_at || null : null,
+        trialDaysLeft: orgTrialDaysLeft(org.billing_period, org.trial_ends_at || null),
+        billingStartsOn: org.billing_starts_on || null,
+        billingStartsInDays: orgBillingStartsInDays(org.billing_period, org.billing_starts_on || null),
+        seats: isOwner ? org.max_seats ?? null : null,
+        used: isOwner ? used ?? null : null,
+      }
+    }
+  }
+
   const myCards = [
     ...(allPersonal || []).map((c: any) => ({
       id: c.id, slug: c.slug, name: c.name, kind: 'personal' as const,
@@ -90,6 +127,7 @@ export default async function SettingsPage() {
       user={{ id: user.id, email: user.email || '' }}
       profile={{ fullName: profile?.name || (card as any)?.name || '' }}
       plan={plan}
+      team={team}
       subscription={sub || null}
       card={(card as any) || null}
     />

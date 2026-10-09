@@ -26,6 +26,23 @@ interface Props {
   } | null
   /** Every card this person holds, for the primary-card picker. */
   myCards?: PickerCard[]
+  team?: TeamBilling | null
+}
+
+/** The team behind a "Pro, through your team" account (app/dashboard/settings). */
+export interface TeamBilling {
+  name: string | null
+  /** They run the team, so they see how it is billed and its seats. */
+  isOwner: boolean
+  mode: string | null
+  paidUntil: string | null
+  paidUntilDaysLeft: number | null
+  trialEndsAt: string | null
+  trialDaysLeft: number | null
+  billingStartsOn: string | null
+  billingStartsInDays: number | null
+  seats: number | null
+  used: number | null
 }
 
 type Tab = 'profile' | 'security' | 'billing' | 'danger'
@@ -37,7 +54,7 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'danger',   label: 'Danger zone', icon: <AlertTriangle className="w-4 h-4" /> },
 ]
 
-export default function SettingsTabs({ user, profile, plan, subscription, card, myCards = [] }: Props & { card?: Props['card'] }) {
+export default function SettingsTabs({ user, profile, plan, subscription, card, myCards = [], team = null }: Props & { card?: Props['card'] }) {
   const [tab, setTab] = useState<Tab>('profile')
   const supabase = createClient()
   const router = useRouter()
@@ -71,7 +88,7 @@ export default function SettingsTabs({ user, profile, plan, subscription, card, 
           </div>
         )}
         {tab === 'security' && <SecurityTab user={user} supabase={supabase} />}
-        {tab === 'billing' && <BillingTab plan={plan} subscription={subscription} />}
+        {tab === 'billing' && <BillingTab plan={plan} subscription={subscription} team={team} />}
         {tab === 'danger' && (
           <DangerTab user={user} supabase={supabase} router={router}
             isPaying={billingState(plan, subscription) === 'paid'} />
@@ -463,6 +480,41 @@ const PRO_FEATURES = [
   'Virtual background generator', 'Contact form and leads', 'QR code with your logo',
 ]
 
+const days = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`
+
+/**
+ * What a team-covered account is covered by, and until when. The owner sees
+ * how the team is billed and its seats; staff see only that their company
+ * covers them, and until when. No prices: this tab is in the iOS app too.
+ */
+function TeamCover({ team }: { team: TeamBilling }) {
+  const who = team.name || 'Your company'
+  const left = team.paidUntilDaysLeft
+  const lines: React.ReactNode[] = []
+  if (team.mode === 'prepaid' && team.paidUntil) {
+    lines.push(left != null && left < 0
+      ? <>The paid period ended on <strong className="text-foreground">{formatDay(team.paidUntil)}</strong>. {team.isOwner ? 'Your cards are still live while the renewal is sorted out; we will be in touch.' : 'Your card is still live.'}</>
+      : <>{team.isOwner ? `${who} is prepaid` : `${who} covers your card`} up until <strong className="text-foreground">{formatDay(team.paidUntil)}</strong>{left != null ? `, ${days(left)} from today` : ''}.{team.isOwner && left != null && left <= 30 ? ' Renewal is coming up: we will send the next invoice, and your cards stay live meanwhile.' : ''}</>)
+  } else if (team.mode === 'trial' && team.trialEndsAt) {
+    lines.push(<>{who} is on a team trial until <strong className="text-foreground">{formatDay(team.trialEndsAt)}</strong>{team.trialDaysLeft != null && team.trialDaysLeft >= 0 ? `, ${days(team.trialDaysLeft)} from today` : ''}.</>)
+  } else if (team.isOwner && team.mode === 'debit_order') {
+    lines.push(<>{who} is billed by debit order{team.billingStartsOn && team.billingStartsInDays != null && team.billingStartsInDays > 0 ? <>, starting <strong className="text-foreground">{formatDay(team.billingStartsOn)}</strong></> : ''}.</>)
+  } else if (team.isOwner && team.mode === 'comp') {
+    lines.push(<>{who} is on Cardtly at no charge.</>)
+  } else if (team.isOwner && (team.mode === 'monthly' || team.mode === 'yearly')) {
+    lines.push(<>{who} is billed {team.mode} through Paystack.</>)
+  }
+  if (team.isOwner && team.seats) {
+    lines.push(<>{team.used ?? 0} of {team.seats} cards in use. <a href="/dashboard/team" className="underline hover:text-foreground">Team Cards</a></>)
+  }
+  if (!lines.length) return null
+  return (
+    <div className="text-sm text-muted-foreground mt-4 space-y-1.5">
+      {lines.map((l, i) => <p key={i}>{l}</p>)}
+    </div>
+  )
+}
+
 function formatDay(iso: string) {
   return new Date(iso).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })
 }
@@ -487,7 +539,7 @@ function billingState(plan: UserPlan, subscription: Props['subscription']) {
   return 'paid' as const
 }
 
-function BillingTab({ plan, subscription }: { plan: UserPlan; subscription: Props['subscription'] }) {
+function BillingTab({ plan, subscription, team = null }: { plan: UserPlan; subscription: Props['subscription']; team?: TeamBilling | null }) {
   const iosApp = useIosApp()
   const router = useRouter()
   const state = billingState(plan, subscription)
@@ -532,8 +584,19 @@ function BillingTab({ plan, subscription }: { plan: UserPlan; subscription: Prop
           sub: subscription?.created_at ? `Paying since ${formatDay(subscription.created_at)}` : 'Active' },
     comped: { badge: 'Pro', title: 'Pro, on the house', tone: '#22c55e',
               sub: subscription?.created_at ? `Active since ${formatDay(subscription.created_at)}` : 'Active' },
-    team:   { badge: 'Pro', title: 'Pro, through your team', tone: '#22c55e',
-              sub: 'Your company pays for your seat. Nothing to set up or pay for.' },
+    // HOW LONG THE TEAM'S COVER RUNS, which this said nothing about: the owner
+    // of a team prepaid for a year could not find the year anywhere in their
+    // account. Amber inside the renewal window, red once the paid period has
+    // passed - though the cards stay live (lib/prepaid never takes them off).
+    team: {
+      badge: 'Pro', title: team?.name ? `Pro, through ${team.name}` : 'Pro, through your team',
+      tone: team?.paidUntilDaysLeft != null && team.paidUntilDaysLeft < 0 ? '#ef4444'
+        : (team?.paidUntilDaysLeft != null && team.paidUntilDaysLeft <= 30) || (team?.trialDaysLeft != null && team.trialDaysLeft <= 7) ? '#f59e0b'
+        : '#22c55e',
+      sub: team?.paidUntil ? `Paid up until ${formatDay(team.paidUntil)}`
+        : team?.trialEndsAt ? `Team trial until ${formatDay(team.trialEndsAt)}`
+        : 'Your company pays for your seat. Nothing to set up or pay for.',
+    },
     expired:{ badge: 'Off', title: 'Your card is offline', tone: '#ef4444',
               sub: 'Your trial has ended, so your card link no longer opens' },
   }[state]
@@ -581,6 +644,7 @@ function BillingTab({ plan, subscription }: { plan: UserPlan; subscription: Prop
               : 'Subscribe for R97 a month and your card goes straight back live on the same link, with nothing lost.'}
           </p>
         )}
+        {state === 'team' && team && <TeamCover team={team} />}
         {state === 'comped' && (
           <p className="text-sm text-muted-foreground mt-4">
             This account is on Cardtly at no charge. There is no subscription and no card on file, so nothing will ever be billed.
