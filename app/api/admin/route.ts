@@ -14,6 +14,7 @@ import { normaliseCode } from '@/lib/trial-codes'
 import { sendTeamOwnerWelcome } from '@/lib/team-owner-invite'
 import { movePersonalCardIntoTeam, SETTINGS_ONLY, describeColumns } from '@/lib/move-card-to-team'
 import { settleOwnerCard } from '@/lib/owner-team-card'
+import { resetTeamAnalytics } from '@/lib/team-analytics'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -692,6 +693,27 @@ export async function POST(request: Request) {
   // Move a team owner's personal card into their team, as one of its seats,
   // keeping its link. See lib/move-card-to-team for the order of operations
   // and why a personal card outside an invoice-paid team goes offline.
+  // Start a team's analytics again from zero, after Cardtly has set it up and
+  // tested its cards (lib/team-analytics). Contacts are kept. The owner has
+  // the same button on Team analytics; this is for when we did the setup.
+  if (action === 'reset_team_analytics') {
+    const { org_id, card_id } = body
+    if (!org_id) return NextResponse.json({ error: 'Which team?' }, { status: 400 })
+    try {
+      const result = await resetTeamAnalytics(admin, org_id, card_id || null)
+      await auditLog(admin, {
+        actorUserId: user?.id, actorEmail: user?.email, action: 'admin_reset_team_analytics',
+        detail: { org_id, card_id: card_id || null, ...result },
+      })
+      return NextResponse.json({
+        success: true, ...result,
+        warning: result.cards === 0 ? 'That team has no cards, so there was nothing to reset.' : undefined,
+      })
+    } catch (e: any) {
+      return NextResponse.json({ error: e?.message || 'Could not reset the analytics.' }, { status: 500 })
+    }
+  }
+
   if (action === 'move_card_into_team') {
     const { org_id, card_id } = body
     if (!org_id || !card_id) return NextResponse.json({ error: 'Which team and which card?' }, { status: 400 })

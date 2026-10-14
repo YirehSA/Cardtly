@@ -469,6 +469,28 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
                           Billed for {o.maxSeats} seats, only {o.cardsCreated} card{o.cardsCreated === 1 ? '' : 's'} created. {idle} idle.
                         </p>
                       )}
+                      {/* After we have set a team up and tested its cards: so
+                          the company's numbers start with its own activity,
+                          not ours (lib/team-analytics). The owner has the same
+                          button on Team analytics. */}
+                      {o.cardsCreated > 0 && (
+                        <div className="mb-3 flex items-center justify-between gap-3 flex-wrap rounded-lg px-3 py-2"
+                          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                            Done setting up and testing? Reset the analytics so {o.name} starts from zero. Contacts are kept.
+                          </p>
+                          <button
+                            disabled={loading === `reset-${o.id}`}
+                            onClick={() => {
+                              if (!confirm(`Reset the analytics for all ${o.cardsCreated} card${o.cardsCreated === 1 ? '' : 's'} in ${o.name}?\n\nEvery open, tap and scan recorded so far is deleted and the counts start from zero. Contacts are kept. This cannot be undone.`)) return
+                              onDept('reset_team_analytics', { org_id: o.id }, `reset-${o.id}`, `${o.name}: analytics reset to zero`)
+                            }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40"
+                            style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.85)' }}>
+                            {loading === `reset-${o.id}` ? 'Resetting' : 'Reset analytics'}
+                          </button>
+                        </div>
+                      )}
                       {o.billingMode === 'debit_order' && (
                         <p className="text-xs mb-3 rounded-lg px-3 py-2"
                           style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: '#f59e0b' }}>

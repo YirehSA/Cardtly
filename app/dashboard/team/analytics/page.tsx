@@ -7,6 +7,8 @@ import {
 } from 'lucide-react'
 import PageHeader from '@/components/dashboard/PageHeader'
 import { LABEL } from '@/components/dashboard/ui'
+import TeamAnalyticsActions, { TeamCardResetButton } from '@/components/team/TeamAnalyticsActions'
+import { recentMonths } from '@/lib/team-analytics'
 
 export const metadata = { title: 'Team Analytics' }
 
@@ -24,7 +26,7 @@ export default async function TeamAnalyticsPage() {
   // against the same admin, and .single() returns nothing when it does.
   const { data: org } = await admin
     .from('organizations')
-    .select('id, name')
+    .select('id, name, max_seats')
     .eq('admin_user_id', user.id)
     .order('business_plan_active', { ascending: false })
     .order('created_at', { ascending: true })
@@ -76,6 +78,19 @@ export default async function TeamAnalyticsPage() {
     }))
     .sort((a: any, b: any) => (b.views30 - a.views30) || (b.allTime - a.allTime))
 
+  // When the numbers last started again, so a company is not puzzled by a
+  // count that was busy last week and is near zero now. Whole-team resets
+  // only; the audit log is where they are recorded (lib/team-analytics).
+  const { data: lastReset } = await admin
+    .from('admin_audit_log')
+    .select('created_at')
+    .in('action', ['team_reset_analytics', 'admin_reset_team_analytics'])
+    .eq('detail->>org_id', org.id)
+    .is('detail->>card_id', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
   const sum = (k: string) => rows.reduce((s: number, r: any) => s + r[k], 0)
   const quiet = rows.filter((r: any) => r.allTime === 0).length
 
@@ -94,6 +109,9 @@ export default async function TeamAnalyticsPage() {
         title="How your team is doing"
         subtitle="Who is getting their card in front of people, and who needs a nudge."
       />
+
+      {/* The monthly report, and starting the numbers again after setup. */}
+      <TeamAnalyticsActions months={recentMonths(12)} orgName={org.name} cardCount={cards.length} />
 
       {/* Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -140,12 +158,15 @@ export default async function TeamAnalyticsPage() {
                   <p className="font-semibold text-sm truncate">{r.name || 'Unnamed'}</p>
                   {r.title && <p className="text-xs text-muted-foreground truncate">{r.title}</p>}
                 </div>
-                {r.slug && (
-                  <a href={`/card/${r.slug}`} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition shrink-0">
-                    <ExternalLink className="w-3.5 h-3.5" />View card
-                  </a>
-                )}
+                <div className="flex items-center gap-3 shrink-0">
+                  {r.slug && (
+                    <a href={`/card/${r.slug}`} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition">
+                      <ExternalLink className="w-3.5 h-3.5" />View card
+                    </a>
+                  )}
+                  <TeamCardResetButton cardId={r.id} name={r.name || 'This card'} />
+                </div>
               </div>
               <div className="grid grid-cols-4 gap-2 mt-3">
                 {[
@@ -175,7 +196,9 @@ export default async function TeamAnalyticsPage() {
       )}
 
       <p className="text-xs text-muted-foreground text-center">
-        Opens are counted from when team analytics launched. Taps are counted from when tap tracking launched.
+        {lastReset?.created_at
+          ? `Counting since the analytics were reset on ${new Date(lastReset.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}. `
+          : 'Opens are counted from when team analytics launched. Taps are counted from when tap tracking launched. '}
         Both 30-day figures are rolling windows.
       </p>
     </div>
