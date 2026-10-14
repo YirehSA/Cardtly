@@ -540,8 +540,14 @@ export async function POST(request: Request) {
     // inside it. Allowing a card to hang off the company itself creates a
     // fourth place to look for somebody and a person who belongs to no team.
     if (to_department_id) {
-      const { data: target } = await admin.from('departments').select('kind, name').eq('id', to_department_id).maybeSingle()
-      if (target?.kind === 'company') {
+      const { data: target } = await admin.from('departments').select('organization_id, kind, name').eq('id', to_department_id).maybeSingle()
+      // The same team only. Somebody who runs two teams manages departments in
+      // both, and without this a card could be filed under the other team's
+      // department while its seat, invoice and owner stayed here.
+      if (!target || target.organization_id !== loc.organizationId) {
+        return NextResponse.json({ error: 'That department is not in this card\'s team.' }, { status: 400 })
+      }
+      if (target.kind === 'company') {
         return NextResponse.json(
           { error: `${target.name} is a company. Put the card in one of its departments.` },
           { status: 400 },

@@ -195,6 +195,8 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   // Which card is mid-cancel or mid-revoke - we just block the
   // buttons during the round-trip to avoid double-fires.
   const [actioningCardId, setActioningCardId] = useState<string | null>(null)
+  // Which card is mid-move into a department.
+  const [movingCardId, setMovingCardId] = useState<string | null>(null)
 
   type InviteStatus = 'not_invited' | 'invited' | 'claimed'
   function getInviteStatus(card: TeamCard): InviteStatus {
@@ -392,6 +394,49 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
     } else {
       setCards(prev => prev.map(c => c.id === card.id ? { ...c, org_hide_from_network: nextListed } : c)) // revert
       toast.error(data.error || 'Could not update')
+    }
+  }
+
+  // Which department a card sits in, and through it which company.
+  //
+  // The owner's only way to place somebody was inviting them from a department
+  // page, which makes a NEW card on a NEW link. Cards made here, or imported
+  // without a business-unit column, sat at the top of the team and nothing but
+  // Cardtly's admin could file them (RTB Project Enterprises, 2026-10-14, with
+  // NFC cards already printed). Moving changes department_id and nothing else:
+  // the card keeps its link, so printed NFC cards and QR codes carry on working.
+  //
+  // Departments only, never a company itself: a card lives in a department,
+  // and /api/department refuses a company by name.
+  const placeTargets = importTargets.filter(d => d.kind !== 'company')
+  async function moveCard(card: TeamCard, toDept: string | null) {
+    const from = card.department_id ?? null
+    if (from === toDept) return
+    const who = card.name?.split(' ')[0] || 'The card'
+    setMovingCardId(card.id)
+    setCards(prev => prev.map(c => c.id === card.id ? { ...c, department_id: toDept } : c))
+    const revert = () => setCards(prev => prev.map(c => c.id === card.id ? { ...c, department_id: from } : c))
+    try {
+      const res = await fetch('/api/department', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'move_card', team_card_id: card.id, to_department_id: toDept }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
+        const to = placeTargets.find(d => d.id === toDept)
+        toast.success(to
+          ? `${who} is now in ${to.parentName ? `${to.parentName} › ` : ''}${to.name}. Same link and QR code.`
+          : `${who} is no longer in a department. Same link and QR code.`)
+      } else {
+        revert()
+        toast.error(data.error || 'Could not move the card')
+      }
+    } catch {
+      revert()
+      toast.error('Network error')
+    } finally {
+      setMovingCardId(null)
     }
   }
 
@@ -1241,6 +1286,47 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                   <p className="text-[11px] text-muted-foreground/80 mt-1.5 leading-relaxed">
                     Allowed, but {card.name.split(' ')[0]} has switched the Network off on their own card.
                   </p>
+                )}
+
+                {/* Which department this card sits in. Only once the team has
+                    one; a group with companies but no departments yet is
+                    pointed at where to make one, since a company holds
+                    departments and the departments hold the people. */}
+                {placeTargets.length > 0 ? (() => {
+                  // A card invited straight into a company page sits on the
+                  // company itself. Show where it is rather than letting the
+                  // select fall back to its first option and claim "nowhere".
+                  const elsewhere = card.department_id && !placeTargets.some(d => d.id === card.department_id)
+                    ? importTargets.find(d => d.id === card.department_id) || null
+                    : null
+                  return (
+                    <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1.5 shrink-0">
+                        <Building2 className="w-3.5 h-3.5" />Department
+                      </span>
+                      <select
+                        value={card.department_id || ''}
+                        disabled={movingCardId === card.id}
+                        onChange={e => moveCard(card, e.target.value || null)}
+                        title="Which department this card sits in. Moving it keeps the same link and QR code."
+                        className="text-xs px-2 py-1.5 rounded-lg border border-border bg-background min-w-0 max-w-[170px] focus:outline-none focus:ring-1 focus:ring-ring transition disabled:opacity-50"
+                      >
+                        <option value="">Not in a department</option>
+                        {elsewhere && <option value={elsewhere.id} disabled>{elsewhere.name}</option>}
+                        {placeTargets.map(d => (
+                          <option key={d.id} value={d.id}>{d.parentName ? `${d.parentName} › ${d.name}` : d.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )
+                })() : companies.length > 0 && (
+                  <div className="flex items-center gap-1.5 pt-3 border-t border-border text-xs text-muted-foreground/60">
+                    <Building2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      No departments yet &middot;{' '}
+                      <Link href="/dashboard/departments" className="underline hover:text-foreground">Add one to a company</Link>
+                    </span>
+                  </div>
                 )}
 
                 {/* Per-card lead form picker - shown when the org add-on is on
