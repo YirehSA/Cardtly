@@ -1479,6 +1479,226 @@ export const POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: 'digital-business-cards-for-real-estate-agents',
+    title: 'Digital Business Cards for Real Estate Agents',
+    description:
+      'Digital business cards for estate agents: listings with prices on the card, a QR code on every board, show day leads captured, and an agency that keeps them.',
+    excerpt:
+      'An estate agent hands out more cards than almost anyone, and most of them end up in a show-house bin. The card should carry the listings, not just the name.',
+    date: '2026-10-14',
+    readMins: 8,
+    body: `<p>Stand at the door of a show house on a Sunday afternoon and count the business cards that leave with visitors. Then count how many of those visitors phone the agent afterwards. The first number is large. The second is small, and the cards are in a car door pocket or a kitchen bin by Monday.</p>
+
+<p>Estate agents hand out more business cards than almost anyone, and the card does very little of the work. It carries a name and a number, while the thing the buyer actually cared about, the house, is nowhere on it. This is how agents and agencies are using <strong>digital business cards for real estate</strong> to put listings on the card, turn show day visitors into leads, and keep those leads when agents move on.</p>
+
+<h2>The card should carry the listings</h2>
+
+<p>A buyer remembers the house, not the agent. So the card should open with property. Cardtly has a layout called Showroom, built first for car dealerships, that does exactly this: a photograph fills the top of the card, the agency name carries the headline, and the agent is a small round chip below it.</p>
+
+<p>Underneath sits a gallery of up to ten listings. Each photo takes a caption and its own link, so a listing reads "3 bed, 2 bath, Fourways, R2 450 000" under the picture, and tapping it opens that property on your website or the portal it is listed on. When a property sells, swap the photo for the next listing. Nothing is reprinted, and every card already handed out shows the new stock.</p>
+
+<p>Agents who prefer a more personal card can use any other layout and still keep the listings gallery. Either way, you can drag and zoom each photo inside its frame, so the front of the house is what shows rather than the sky above it.</p>
+
+<h2>Show day leads that survive until Monday</h2>
+
+<p>The paper register at the front door is the weakest part of a show day. Handwriting is hard to read, numbers are wrong, and the page holds every visitor's details in plain view of the next person signing in.</p>
+
+<p>Put a QR code on a stand at the door with "Scan to register and get the details" underneath. The visitor scans with their phone camera, no app needed, and lands on your card. From there:</p>
+
+<ul>
+<li>they save your details to their phone in one tap,</li>
+<li>a contact exchange invites them to share theirs back, so you have a correct number and email,</li>
+<li>up to five questions of your own ask what matters, such as buying or selling, budget, area, and whether they have a home to sell first,</li>
+<li>the book-a-meeting button lets them request a time for a private viewing, and you are emailed straight away.</li>
+</ul>
+
+<p>Every one of those leads lands in a contacts list with a one-tap WhatsApp button, so the follow-up message on Sunday evening takes a minute, not an hour of deciphering a register. If you run show days often, our <a href="/blog/trade-show-lead-capture">lead capture guide</a> covers the follow-up habits that turn a list into appointments.</p>
+
+<h2>A QR code on every board</h2>
+
+<p>An estate agent already prints more than most businesses: For Sale boards, show-house signs, window cards, brochures and flyers. Each one is a place a QR code can send a buyer straight to you.</p>
+
+<p>Cardtly marks the link inside each QR code, so your analytics show how people arrived: a scan of a board or brochure, a tap of your NFC card, a link you sent on WhatsApp, or the QR in your email signature. That tells you which boards and which suburbs are producing interest, rather than guessing. Our guide to <a href="/blog/qr-code-business-card">QR code business cards</a> covers the size and contrast rules that keep a code scannable on a board seen from the pavement.</p>
+
+<h2>Buyers and sellers are on WhatsApp</h2>
+
+<p>South African property runs on WhatsApp. A buyer who saw a board on the way home will message before they call. Every card carries a WhatsApp button, and an agent can send their whole card to a number as a WhatsApp or SMS link while they are still on the phone with a buyer, so the buyer saves the agent properly instead of as "estate agent Saturday".</p>
+
+<h2>Agents move, and the database should stay</h2>
+
+<p>Agents change agencies more often than most professionals change jobs, and when they leave, the database usually leaves with them: the WhatsApp threads, the buyers waiting for a three-bedroom in the right school zone, the sellers who said to call in spring.</p>
+
+<p>On a team account, the cards belong to the agency. When an agent leaves, their card is archived and goes offline immediately, and the seat goes to whoever replaces them. Every contact the card captured, from every show day and every board, stays in the agency's shared contact list. The principal keeps the pipeline the agency paid to build.</p>
+
+<h2>One brand across every branch</h2>
+
+<p>Agencies grow by branches and franchises, and keeping every agent's card on brand is a constant job. Cardtly runs a group, the companies inside it and their departments from one account. A franchise group can sit at the top, each franchisee office as a company with its own manager, and each office's teams, such as sales and rentals, as departments.</p>
+
+<p>The principal sets the logo, colours, office number, address and website once, applies that look to every agent's card, and locks what must stay the same. Each agent still edits their own name, photo, title and mobile number. Leave the Skills and accreditations field open, so each agent can show their own designation and Fidelity Fund Certificate number rather than one copied from the principal's card. Our guide to <a href="/blog/employee-business-card-brand-consistency">keeping every employee card on brand</a> covers which fields agencies usually lock.</p>
+
+<h2>Printed cards against digital</h2>
+
+<table>
+<thead>
+<tr><th></th><th>Printed</th><th>Cardtly</th></tr>
+</thead>
+<tbody>
+<tr><td>Listings</td><td>None</td><td>Ten, with prices and links</td></tr>
+<tr><td>Show day</td><td>Paper register</td><td>Scan, save, leads</td></tr>
+<tr><td>Property sells</td><td>Card goes stale</td><td>Swap the photo</td></tr>
+<tr><td>Agent leaves</td><td>Leads leave too</td><td>Leads stay</td></tr>
+<tr><td>Cost</td><td>Each print run</td><td>R97 per card a month</td></tr>
+</tbody>
+</table>
+
+<h2>Setting up an agency</h2>
+
+<ol>
+<li><strong>Set the brand once.</strong> Logo, agency name, office number, address and website on the principal's card, then apply that look to every agent's card and lock the fields that must not change.</li>
+<li><strong>Choose a layout and load the listings.</strong> Showroom puts property first. Add up to ten listings with a price caption and a link under each.</li>
+<li><strong>Write your show day questions.</strong> Buying or selling, budget, area and timing are a good start.</li>
+<li><strong>Add the agents.</strong> One at a time, or a whole office at once from a spreadsheet.</li>
+<li><strong>Print the QR codes.</strong> Boards, show-house stands, window cards and brochures. An <a href="/nfc">NFC card</a> for the tap is optional, at R150 once-off with your logo on our layout or R200 designed around your brand, plus R100 shipping per order in South Africa.</li>
+</ol>
+
+<p>Every signup gets 7 days of the full product with no credit card, so an agent can build a card, load this weekend's listings and use it at Sunday's show day before anyone commits. Agencies setting up more than one agent can read how <a href="/teams">Cardtly works for teams</a>.</p>`,
+    faq: [
+      {
+        q: 'What should an estate agent put on a digital business card?',
+        a: 'Name, photo, mobile and WhatsApp, the agency details, and your current listings. Cardtly holds up to ten listings in a gallery, each with a caption such as the price and suburb and a link to the property, plus a book-a-meeting button for viewings and your own short questions for buyers.',
+      },
+      {
+        q: 'Can a digital business card replace the show-house register?',
+        a: 'It can do the same job better. Visitors scan a QR code at the door, save your details, share theirs back and answer up to five questions, and every lead lands in your contacts list with a WhatsApp button, instead of on a paper page every other visitor can read.',
+      },
+      {
+        q: 'What happens to an agent\'s contacts when they leave the agency?',
+        a: 'On a team account they stay with the agency. The departing agent\'s card is archived and goes offline immediately, the seat is reassigned, and every contact the card captured remains in the agency\'s shared list.',
+      },
+      {
+        q: 'Can I put a QR code on For Sale boards?',
+        a: 'Yes. Any board, sign, brochure or window card can carry your card\'s QR code, and Cardtly\'s analytics show scans separately from NFC taps and links sent on WhatsApp, so you can see which boards are producing interest.',
+      },
+      {
+        q: 'Can a franchise group manage all its offices in one account?',
+        a: 'Yes. A group sits at the top, each office is a company with its own manager, and teams such as sales and rentals are departments. The brand is set once and locked where it must stay the same, while each agent edits their own details.',
+      },
+      {
+        q: 'How much does it cost?',
+        a: 'R97 per card a month, billed in rand, with 7 days of the full product first and no credit card required. An NFC card is optional at R150 once-off with your logo, or R200 designed around your brand, plus R100 shipping per order in South Africa.',
+      },
+    ],
+  },
+  {
+    slug: 'digital-business-cards-for-financial-advisors',
+    title: 'Digital Business Cards for Financial Advisors',
+    description:
+      'Digital business cards for financial advisors and brokers: approved firm wording on every card, meetings booked from the card, and client details kept safe.',
+    excerpt:
+      'An adviser\'s card is the first thing a client checks before trusting them with their money. It should say exactly what compliance signed off, every time.',
+    date: '2026-10-14',
+    readMins: 8,
+    body: `<p>Before a client trusts somebody with their retirement, their medical aid or their family's cover, they check who that person is. They look at the card, they look up the firm, and they notice whether the details match. In a regulated business, a business card is not just contact details. It is the first thing a client uses to decide whether you are legitimate.</p>
+
+<p>That makes cards awkward for advisory firms. Every adviser wants their own card, and every card has to say the same thing about the firm, worded exactly as compliance approved it. This is how financial advisers, insurance brokers and the firms they work for are using <strong>digital business cards</strong> to get both.</p>
+
+<h2>The firm's wording, the same on every card</h2>
+
+<p>Advisory firms are regulated, and what goes in front of a client is not a free-for-all. Most firms want the registered name, the FSP number, the office details and an approved paragraph about the business on every card, exactly as it was signed off, with no adviser improvising their own version.</p>
+
+<p>On a Cardtly team account, the firm sets its look on one main card, applies it to every adviser's card, and locks what must stay the same in Company rules. Locked items then come from that main card on every adviser's card, and the advisers cannot change them:</p>
+
+<ul>
+<li><strong>Company name and logo,</strong> so the registered name appears consistently.</li>
+<li><strong>Office number, address and website,</strong> so clients always reach the firm, not an old cellphone.</li>
+<li><strong>Bio,</strong> which can carry the approved paragraph about the firm, including its FSP number and the products it is licensed for.</li>
+<li><strong>Design,</strong> so every card looks like the firm.</li>
+</ul>
+
+<p>Change the wording on the main card, and every adviser's card shows the new version the same minute. There is no reprint and no adviser left handing out last year's disclosure. Check with your compliance officer what belongs on a client-facing card; once it is decided, the card enforces it.</p>
+
+<h2>Each adviser's own credentials</h2>
+
+<p>Clients want to know the person, not just the firm: who they are, what they are qualified in, how to reach them directly. Each adviser keeps control of their own name, photo, job title and mobile number. Leave the Skills and accreditations field open in Company rules, so each adviser shows their own qualifications and designations. Locked, every card would show the same list, copied from the firm's main card.</p>
+
+<h2>Meetings booked from the card</h2>
+
+<p>Most advice starts with a meeting, and most clients put off booking one. Every card carries a book-a-meeting button: the client requests a time from the card, the adviser is emailed straight away, and the client is saved to their contacts.</p>
+
+<p>A short questionnaire on the card, up to five questions of the firm's choosing, can ask what the client wants to discuss before the meeting: retirement, investments, medical aid, life or short-term cover. The answers are saved against the lead, so the adviser walks into the meeting prepared rather than starting from a blank page.</p>
+
+<h2>Referrals that arrive properly</h2>
+
+<p>Advice grows by referral. A happy client says "speak to my adviser" and forwards a contact, often with the number typed wrong. Send the client your card as a link instead, and they forward that. Whoever opens it gets the adviser's full, current card, saves it in one tap, and is invited to share their own details back, so the referral lands as a proper lead instead of a missed call from an unknown number.</p>
+
+<h2>Client details, handled with care</h2>
+
+<p>Financial advice runs on personal information, and South Africa's POPIA applies to every lead a card captures. Ask any card vendor where the data is hosted, who can see it, whether you can export everything, and what happens to it if you leave. Our <a href="/blog/digital-business-cards-and-popia">POPIA guide</a> lists the questions.</p>
+
+<p>On Cardtly, leads captured through a firm's cards land in the firm's shared contact list in the team dashboard, not on an adviser's personal phone. Cardtly's directory of users, the Network, never shows a phone number or email address, and any card can be taken out of it.</p>
+
+<h2>When an adviser moves on</h2>
+
+<p>Advisers move between firms, and the client relationships they built at the firm are often the most valuable thing the firm owns. When an adviser leaves, their card is archived and goes offline immediately, and every contact that card captured stays in the firm's list. Their replacement gets a card in minutes, already branded and worded correctly.</p>
+
+<h2>Video consultations and email</h2>
+
+<p>Much advice now happens on a screen. Cardtly creates a branded virtual background for Zoom and Teams with your QR code on it, so a prospect on a call can scan and save you during the meeting. The email signature generator puts your card details and QR code under every email, matching the card exactly.</p>
+
+<h2>Printed cards against digital</h2>
+
+<table>
+<thead>
+<tr><th></th><th>Printed</th><th>Cardtly</th></tr>
+</thead>
+<tbody>
+<tr><td>Firm wording</td><td>Reprint to change</td><td>Change once, live</td></tr>
+<tr><td>Booking</td><td>Phone or email</td><td>From the card</td></tr>
+<tr><td>Referrals</td><td>Number retyped</td><td>Card forwarded</td></tr>
+<tr><td>Adviser leaves</td><td>Contacts leave</td><td>Contacts stay</td></tr>
+<tr><td>Cost</td><td>Each print run</td><td>R97 per card a month</td></tr>
+</tbody>
+</table>
+
+<h2>Setting up a practice</h2>
+
+<ol>
+<li><strong>Write the firm's card first.</strong> Logo, registered name, office number, address, website and the approved bio, on one main card.</li>
+<li><strong>Apply it and lock what compliance signed off.</strong> Apply the firm's look to every adviser's card, then lock company name, logo, office number, address, website, bio and design. Leave Skills and accreditations open for each adviser.</li>
+<li><strong>Add a meeting button and your questions.</strong> Up to five questions about what the client wants to discuss.</li>
+<li><strong>Add the advisers.</strong> One at a time, or a whole office from a spreadsheet. A larger firm can split into branches or teams, each with its own manager.</li>
+<li><strong>Share it everywhere.</strong> Link, QR code, email signature and virtual background are included. An <a href="/nfc">NFC card</a> for the tap is optional, at R150 once-off or R200 designed around your brand, plus R100 shipping per order in South Africa.</li>
+</ol>
+
+<p>Every signup gets 7 days of the full product with no credit card, so a practice can build the firm's card and one adviser's card and see them side by side before rolling out. Read how <a href="/teams">Cardtly works for teams</a> for the full company setup, or our <a href="/blog/best-digital-business-card">checklist for choosing a digital business card</a> if you are comparing options.</p>`,
+    faq: [
+      {
+        q: 'Can every adviser\'s card show the same approved firm wording?',
+        a: 'Yes. The firm writes its details and approved bio on one main card, applies that look to every adviser\'s card, and locks them in Company rules. Locked items then come from the main card, cannot be changed by the advisers, and update everywhere at once when the firm changes them.',
+      },
+      {
+        q: 'Where does our FSP number go on a digital business card?',
+        a: 'Most firms put it in the approved bio paragraph, alongside the registered name and the products the firm is licensed for. Lock the bio and every adviser\'s card shows the same wording. Check with your compliance officer what your cards should say.',
+      },
+      {
+        q: 'Can each adviser still show their own qualifications?',
+        a: 'Yes. Leave the Skills and accreditations field open in Company rules and each adviser fills in their own. Each adviser also keeps their own name, photo, job title and mobile number.',
+      },
+      {
+        q: 'Can clients book a meeting from the card?',
+        a: 'Yes. Every card has a book-a-meeting button. The client requests a time, the adviser is emailed straight away, and the client is saved to contacts, with answers to up to five questions about what they want to discuss.',
+      },
+      {
+        q: 'What happens to client contacts when an adviser leaves?',
+        a: 'Contacts captured through the firm\'s cards stay in the firm\'s shared list. The adviser\'s card is archived and goes offline immediately, and the seat is reassigned to their replacement.',
+      },
+      {
+        q: 'How much does it cost?',
+        a: 'R97 per card a month, billed in rand, with 7 days of the full product first and no credit card required. Teams of 2 to 20 cards are self-serve, and larger firms are set up directly.',
+      },
+    ],
+  },
 ]
 
 export function getPost(slug: string): BlogPost | undefined {

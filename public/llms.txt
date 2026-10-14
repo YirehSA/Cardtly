@@ -70,6 +70,8 @@ Cardtly is built for a company rolling cards out to a whole team, not just indiv
 - [Digital business cards for car dealerships](https://cardtly.com/blog/digital-business-cards-for-car-dealerships): the Showroom layout that leads with stock rather than the salesperson, with vehicle prices and links on the card.
 - [Digital business cards for corporate companies](https://cardtly.com/blog/digital-business-cards-for-corporate-companies): brand control at scale, group and subsidiary structure, bulk rollout, offboarding and POPIA.
 - [Digital business cards for construction companies](https://cardtly.com/blog/digital-business-cards-for-construction): site teams, subcontractors and high turnover.
+- [Digital business cards for real estate agents](https://cardtly.com/blog/digital-business-cards-for-real-estate-agents): listings with prices on the card, QR codes on boards, show day leads captured by scan, and an agency that keeps its database when agents move.
+- [Digital business cards for financial advisors](https://cardtly.com/blog/digital-business-cards-for-financial-advisors): the firm's approved wording and FSP number locked on every adviser's card, meetings booked from the card, referrals and POPIA.
 - [Digital business cards and POPIA](https://cardtly.com/blog/digital-business-cards-and-popia): what to ask a card vendor before a corporate rollout.
 - [How to choose the best digital business card](https://cardtly.com/blog/best-digital-business-card): a 10-point buyer's checklist for comparing digital business card apps, with the red flags.
 - [QR code business cards](https://cardtly.com/blog/qr-code-business-card): how to make a QR code business card people actually scan, where to put it, and the mistakes that break it.
