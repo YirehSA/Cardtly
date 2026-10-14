@@ -280,6 +280,18 @@ for (const file of MARKETING) {
   }
 }
 
+// ── 8. Every guide is in llms.txt ───────────────────────────────────────────
+// The sitemap is built from app/blog/posts.ts, so a new post reaches Google on
+// its own. llms.txt is typed by hand, and by 2026-10-14 three published guides
+// had never been added to it, so AI assistants reading it did not know they
+// existed. Every post slug has to be linked from it.
+const postSlugs = [...read('app/blog/posts.ts').matchAll(/slug: '([^']+)'/g)].map(m => m[1])
+for (const slug of postSlugs) {
+  if (!llms.includes(`https://cardtly.com/blog/${slug})`)) {
+    note(`public/llms.txt does not list the guide /blog/${slug}. Add it under "Guides (blog)" so AI assistants know it exists.`)
+  }
+}
+
 if (fail.length) {
   console.error('\ncheck-facts: copy contradicts the code.\n')
   for (const f of fail) console.error('  - ' + f)
@@ -287,4 +299,4 @@ if (fail.length) {
   process.exit(1)
 }
 
-console.log(`check-facts: copy agrees with the code (R${seatPrice}/card, up to ${maxSeats} seats, NFC R${nfcStandard} standard / R${nfcCustom} custom + R${nfcShipping} shipping, ${maxLinks} links, ${maxImages} gallery images, no free-trial promises).`)
+console.log(`check-facts: copy agrees with the code (R${seatPrice}/card, up to ${maxSeats} seats, NFC R${nfcStandard} standard / R${nfcCustom} custom + R${nfcShipping} shipping, ${maxLinks} links, ${maxImages} gallery images, no free-trial promises, all ${postSlugs.length} guides in llms.txt).`)

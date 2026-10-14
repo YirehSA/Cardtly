@@ -1699,6 +1699,210 @@ export const POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: 'digital-business-cards-for-travel-and-tourism',
+    title: 'Digital Business Cards for Travel and Tourism',
+    description:
+      'Digital business cards for tour operators, travel agents and lodges: your tours on the card, WhatsApp for overseas guests, and enquiries you can follow up.',
+    excerpt:
+      'A tourist meets your guide once, flies home, and tries to remember the name of the company a month later. The card is the only thing that goes with them.',
+    date: '2026-10-14',
+    readMins: 7,
+    body: `<p>A visitor spends a day with your guide, has the best afternoon of their trip, and flies home. A month later a friend asks who they toured with, and they cannot remember the name. The paper card they were given is in a hotel bin in another country.</p>
+
+<p>Tourism is a business of short meetings and long memories. Most of your future bookings come from people who met you once, often from abroad, and the business card is the one thing that leaves with them. This is how tour operators, travel agents, lodges and guesthouses are using <strong>digital business cards</strong> so that the card works long after the guest has gone home.</p>
+
+<h2>Put the experiences on the card</h2>
+
+<p>A tourist does not remember a phone number. They remember the sunset drive, the wine farm, the township walk. So the card should show them. A Cardtly card holds a gallery of up to ten photos, and each photo takes a caption and its own link. A tour reads "Full-day Cape Peninsula, from R1 450 per person" under the picture, and tapping it opens that tour's booking page.</p>
+
+<p>The Showroom layout puts a photograph across the top of the card with your company name as the headline and your guide as a small chip below, so the first thing a guest sees is the place, not the person. You can drag and zoom every photo inside its frame, so the mountain fits and the vehicle in the foreground does not crowd it out.</p>
+
+<h2>Guests from abroad, on any phone</h2>
+
+<p>Your guests come from everywhere, and none of them will install an app to see your details. A digital card opens in any phone browser in any country, by a tap, a QR code scan or a link. The guest saves you to their contacts in one tap, with your name spelled correctly, so you are there when they want to book again.</p>
+
+<p>Cardtly is billed in rand, but the cards themselves work anywhere with a browser, so it makes no difference to your guests where they live.</p>
+
+<h2>WhatsApp is how they will contact you</h2>
+
+<p>International visitors rarely phone a South African number. They message. Every card carries a WhatsApp button, so a guest can ask about another tour, a transfer or a recommendation without the cost of a call. You can also send your whole card to a guest's number as a WhatsApp link before they arrive, so your details are on their phone from the moment they land.</p>
+
+<h2>Turn an enquiry into a booking</h2>
+
+<p>A guest who is interested but not ready to book is a lead, and most tourism businesses lose them because there is no easy way to follow up. A card can collect what you need to follow up properly:</p>
+
+<ul>
+<li>a contact exchange invites the guest to share their details back after saving yours,</li>
+<li>up to five questions of your own ask what matters, such as travel dates, group size and interests,</li>
+<li>a book-a-meeting button lets them request a time for a call to plan a trip,</li>
+<li>every enquiry lands in one contacts list with a one-tap WhatsApp button and an Excel export.</li>
+</ul>
+
+<p>At a travel expo, the same card captures every visitor to your stand. Our <a href="/blog/trade-show-lead-capture">trade show lead capture guide</a> covers how to follow up before the leads go cold.</p>
+
+<h2>A QR code everywhere a guest stands still</h2>
+
+<p>Tourism has more places to put a QR code than most businesses: the back of a vehicle, the lodge reception desk, a card in each room, the concierge desk of a partner hotel, a brochure rack, the last page of an itinerary. Each one can send a guest straight to your card.</p>
+
+<p>Cardtly marks the link inside each QR code, so your analytics show how people arrived: a QR scan, a tap of an NFC card, a link sent on WhatsApp or the QR in your email signature. That tells you whether the brochure at the partner hotel is producing anything. Our guide to <a href="/blog/qr-code-business-card">QR code business cards</a> covers the size and contrast rules that keep a code scannable.</p>
+
+<h2>Reviews and links in one place</h2>
+
+<p>A guest who loved the day is most willing to leave a review in the first few hours. Put the link on your card, along with your booking page, your social profiles and anything else you want them to find. A card holds up to 10 custom links, so a review link, a booking page, a gift voucher and a newsletter can all sit one tap away.</p>
+
+<h2>Seasonal guides and a team that changes</h2>
+
+<p>Many operators take on guides and drivers for the season. Printed cards for people who leave in a few months are money in a drawer. On a team account, each guide gets a card in minutes, branded and filled in, with the company's logo, details and links locked so they stay correct. When the season ends, the card is archived and goes offline, the seat goes to next season's guide, and every enquiry that card captured stays with the company.</p>
+
+<h2>Printed cards against digital</h2>
+
+<table>
+<thead>
+<tr><th></th><th>Printed</th><th>Cardtly</th></tr>
+</thead>
+<tbody>
+<tr><td>Tours</td><td>None</td><td>Ten, with links</td></tr>
+<tr><td>Overseas guest</td><td>Lost in transit</td><td>Saved on phone</td></tr>
+<tr><td>Contact</td><td>A phone call</td><td>WhatsApp</td></tr>
+<tr><td>Guide leaves</td><td>Cards wasted</td><td>Seat reassigned</td></tr>
+<tr><td>Cost</td><td>Each print run</td><td>R97 per card a month</td></tr>
+</tbody>
+</table>
+
+<h2>Getting started</h2>
+
+<ol>
+<li><strong>Build the company card.</strong> Logo, name, office number, website and booking links, with your best tours in the gallery.</li>
+<li><strong>Write your enquiry questions.</strong> Travel dates, group size and interests are a good start.</li>
+<li><strong>Add your guides and staff.</strong> Apply the company look to every card and lock what must stay the same.</li>
+<li><strong>Print the QR codes.</strong> Vehicles, reception, rooms, brochures and itineraries. An <a href="/nfc">NFC card</a> for the tap is optional, at R150 once-off with your logo or R200 designed around your brand, plus R100 shipping per order in South Africa.</li>
+</ol>
+
+<p>Every signup gets 7 days of the full product with no credit card, so you can build a card, load your tours and hand it to your next guests before deciding. For more than one guide, read how <a href="/teams">Cardtly works for teams</a>.</p>`,
+    faq: [
+      {
+        q: 'Can overseas guests open a South African digital business card?',
+        a: 'Yes. The card is an ordinary web page that opens in any phone browser in any country, with no app, and guests save your details to their contacts in one tap.',
+      },
+      {
+        q: 'Can I show my tours and prices on the card?',
+        a: 'Yes. The gallery holds up to ten photos, each with a caption and its own link, so each tour can show a price and open its booking page.',
+      },
+      {
+        q: 'How do guests contact me from the card?',
+        a: 'Most use the WhatsApp button. Every card also has your phone and email, a book-a-meeting button, and an optional enquiry form with up to five questions of your own, such as travel dates and group size.',
+      },
+      {
+        q: 'Where should a tourism business put its QR code?',
+        a: 'Anywhere a guest stands still: vehicles, reception, guest rooms, partner hotel concierge desks, brochures and itineraries. Cardtly\'s analytics show QR scans separately from NFC taps and WhatsApp links, so you can see which places produce enquiries.',
+      },
+      {
+        q: 'What happens to a seasonal guide\'s card at the end of the season?',
+        a: 'It is archived from the team dashboard and goes offline, the seat is reassigned to the next guide, and every enquiry the card captured stays in the company\'s contact list.',
+      },
+      {
+        q: 'How much does it cost?',
+        a: 'R97 per card a month, billed in rand, with 7 days of the full product first and no credit card required. An NFC card is optional at R150 once-off with your logo, or R200 designed around your brand, plus R100 shipping per order in South Africa.',
+      },
+    ],
+  },
+  {
+    slug: 'digital-business-cards-for-wholesalers-and-distributors',
+    title: 'Digital Business Cards for Wholesalers',
+    description:
+      'Digital business cards for wholesalers and distributors: product ranges on every rep\'s card, branch details kept right, and customers that stay with you.',
+    excerpt:
+      'A wholesale rep visits the same trade customers for years. When they leave for a competitor, the customers usually go with them. The card should not.',
+    date: '2026-10-14',
+    readMins: 7,
+    body: `<p>A good wholesale rep knows every electrician, plumber, builder and buyer on their route by name. They visit the same customers every few weeks for years, and the customer orders through them because they trust them. Then the rep takes a job at a competitor down the road, and within a month half of those customers are ordering from the competitor.</p>
+
+<p>That is the hidden cost in wholesale and distribution: the relationships live in the rep's phone, not in the business. The business card is a small part of the answer, but it is the part that touches every customer. This is how wholesalers and distributors are using <strong>digital business cards</strong> to give every rep a better card and to keep the customer relationships with the company.</p>
+
+<h2>The product ranges on every card</h2>
+
+<p>A trade customer wants to know what you carry, what is in stock and where to order it. A paper card tells them a name and a number. A digital card can show the ranges. Each card holds a gallery of up to ten photos with a caption and a link under each, so "Cable and wiring", "Lighting" and "Solar and backup power" each open the right page of your online catalogue or price list.</p>
+
+<p>Add up to 10 custom links for the things customers ask for most: the online store, the latest price list, a credit account application, the specials of the month and the branch locations. Change a link once, and every rep's card shows the new version the same minute.</p>
+
+<h2>Branch details that stay correct</h2>
+
+<p>Distributors usually run several branches, each with its own trade counter, address and phone number, and those details go wrong on printed cards all the time: a rep moves branches, a branch moves premises, the switchboard changes.</p>
+
+<p>Cardtly runs a group, the companies inside it and their departments from one account, so each branch can be a department with a look of its own that carries that branch's address and office number. Head office sets the logo, colours and website once, applies that look to every card, and locks what must stay the same, including the address and office number, which each branch's look then supplies. Each rep still edits their own name, photo, title and cell number. Move a rep to another branch and their card picks up that branch's details.</p>
+
+<h2>Customers stay with the company</h2>
+
+<p>On a team account, the cards belong to the business, not the rep. Every customer a rep meets can save the rep's card in one tap and share their own details back, and those contacts land in the company's shared contact list, not only in the rep's phone. Reps can also photograph a customer's paper business card on site, and the details are read into a saved contact.</p>
+
+<p>When a rep leaves, their card is archived and goes offline the same minute, so their old card does not keep sending customers to a person who now works for a competitor. The seat goes to the new rep, and every contact the card captured stays with the company. The new rep starts with the customer list, not a blank phone.</p>
+
+<h2>WhatsApp orders and follow-ups</h2>
+
+<p>Trade customers order and query on WhatsApp more than by email. Every card carries a WhatsApp button, and every captured contact has a one-tap WhatsApp follow-up in the contacts list. A rep can send their whole card to a new customer's number as a WhatsApp link while standing at the trade counter, so the customer has the right details before they leave.</p>
+
+<h2>Trade shows and site visits</h2>
+
+<p>Distributors spend heavily on trade shows and get frustratingly little back, mostly because the leads from the stand are never followed up. With a digital card, every visitor who scans at the stand and shares their details back becomes a lead in the shared list, with their answers to up to five questions of your choosing. Our <a href="/blog/trade-show-lead-capture">trade show lead capture guide</a> covers how to make those leads survive the trip back to the office.</p>
+
+<h2>Know which reps are working their cards</h2>
+
+<p>Every card reports its views, taps, link clicks and saved contacts, and the team dashboard shows the same numbers per rep, so a sales manager can see whose card is being used and whose is sitting in a drawer. A weekly email summarises the past seven days of views and new leads. Our guide on <a href="/blog/business-card-costs-for-sales-teams">what business cards really cost a sales team</a> covers how this compares with a print budget.</p>
+
+<h2>Printed cards against digital</h2>
+
+<table>
+<thead>
+<tr><th></th><th>Printed</th><th>Cardtly</th></tr>
+</thead>
+<tbody>
+<tr><td>Product ranges</td><td>None</td><td>Ten, with links</td></tr>
+<tr><td>Branch moves</td><td>Reprint</td><td>Updates itself</td></tr>
+<tr><td>Rep leaves</td><td>Customers follow</td><td>Contacts stay</td></tr>
+<tr><td>Who is using it</td><td>No idea</td><td>Per rep</td></tr>
+<tr><td>Cost</td><td>Each print run</td><td>R97 per card a month</td></tr>
+</tbody>
+</table>
+
+<h2>Rolling it out</h2>
+
+<ol>
+<li><strong>Build the company card.</strong> Logo, name, website, product range gallery and the links customers need most.</li>
+<li><strong>Set up the branches.</strong> One department per branch, each with a look carrying its own address and office number.</li>
+<li><strong>Apply the look and lock it.</strong> Apply the company look to every card, then lock the logo, company name, website, links, address, office number and design.</li>
+<li><strong>Add the reps.</strong> One at a time, or a whole branch at once from a spreadsheet.</li>
+<li><strong>Give them a way to share.</strong> The link and QR code work immediately. An <a href="/nfc">NFC card</a> for the tap is optional, at R150 once-off with your logo or R200 designed around your brand, plus R100 shipping per order in South Africa.</li>
+</ol>
+
+<p>Every signup gets 7 days of the full product with no credit card. Teams of 2 to 20 cards are self-serve, and larger distributors are set up directly. Read how <a href="/teams">Cardtly works for teams</a> for the full company setup.</p>`,
+    faq: [
+      {
+        q: 'Can each rep\'s card show our product ranges?',
+        a: 'Yes. Each card holds a gallery of up to ten photos with a caption and a link under each, so every range can open the right page of your online catalogue, plus up to 10 custom links for the store, price list and account applications.',
+      },
+      {
+        q: 'Can different branches show their own address and phone number?',
+        a: 'Yes. Each branch can be a department with a look carrying its own address and office number. With those fields locked in Company rules, every card in the branch shows that branch\'s details, while head office sets the company brand once for all of them.',
+      },
+      {
+        q: 'What happens to a rep\'s customers when they leave?',
+        a: 'Contacts captured through the company\'s cards stay in the shared contact list. The rep\'s card is archived and goes offline immediately, so it stops sending customers to them, and the seat goes to their replacement.',
+      },
+      {
+        q: 'Can reps scan a customer\'s paper business card?',
+        a: 'Yes. A rep photographs the paper card and the details are read into a saved contact in the shared list.',
+      },
+      {
+        q: 'Can managers see which reps are using their cards?',
+        a: 'Yes. The team dashboard shows views, taps, link clicks and saved contacts for each rep, and a weekly email summarises views and new leads.',
+      },
+      {
+        q: 'How much does it cost?',
+        a: 'R97 per card a month, billed in rand, with 7 days of the full product first and no credit card required. Teams of 2 to 20 cards are self-serve, and larger distributors are set up directly.',
+      },
+    ],
+  },
 ]
 
 export function getPost(slug: string): BlogPost | undefined {
