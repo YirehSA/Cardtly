@@ -105,6 +105,9 @@ const FAQS = [
   { q: 'Is there a team plan?', a: `Yes, and you can set it up yourself right now. Teams run from 2 to ${MAX_SELF_SERVE_SEATS} seats at R${SEAT_PRICE_RAND} a seat per month, with locked company branding, email invites, and one admin dashboard. Need more than ${MAX_SELF_SERVE_SEATS} seats? That is Enterprise, and we bill it by debit order.` },
   { q: `What happens above ${MAX_SELF_SERVE_SEATS} seats?`, a: 'You move to Enterprise. Same product, but billed by debit order instead of a card, with invoicing that suits your finance team. Talk to us and we will set it up.' },
   { q: 'Can I cancel anytime?', a: 'Yes. Cancel whenever you like, no lock-in and no cancellation fee. You keep Pro until the end of the period you have paid for.' },
+  // Worded to match the Terms ("We do not refund part periods, except where
+  // the law requires it"), so the page and the contract say the same thing.
+  { q: 'If I pay upfront and cancel early, do I get a refund?', a: `Once you cancel, nothing renews and you won't be charged again, and your cards stay live until the end of the period you've already paid for, so you keep what you paid for. We don't refund part of a period that's been paid upfront, except where the law requires it. If you'd rather not commit for the year, you're welcome to pay monthly instead and cancel whenever you like.` },
   { q: 'What payment methods do you accept?', a: 'All major credit and debit cards through Paystack, our secure payment partner. Billing is in South African rand (ZAR). International cards are welcome, your bank simply converts the rand amount at checkout. Enterprise is billed by debit order.' },
   { q: 'Will my card URL ever change?', a: 'Never. Your card URL is yours, and it stays the same no matter what you do with your plan. Anything you have printed or handed out keeps working.' },
 ]
