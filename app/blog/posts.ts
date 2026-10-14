@@ -1206,6 +1206,279 @@ export const POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: 'best-digital-business-card',
+    title: 'How to Choose the Best Digital Business Card',
+    description:
+      'Comparing digital business card apps? A 10-point checklist: sharing, saving to phone, lead capture, team control, privacy and pricing, plus red flags.',
+    excerpt:
+      'Most digital business cards look alike in a demo. Ten questions that separate the ones that work in a real meeting from the ones that do not.',
+    date: '2026-10-14',
+    readMins: 8,
+    body: `<p>The best digital business card is the one the other person can open without installing anything, save to their phone in one tap, and still find you on months later. Everything else, the templates, the animations, the extras, matters less than those three things. This guide is a checklist for comparing digital business card apps, written for anyone about to choose one for themselves or for a whole team.</p>
+
+<p>Most products in this space look alike in a demo. The differences show up later: when a client cannot open your card because it needs an app, when you rename your card and every printed QR code points at nothing, or when a salesperson leaves and takes every lead with them. Here is what to check before you commit.</p>
+
+<h2>The checklist at a glance</h2>
+
+<table>
+<thead>
+<tr><th>What to check</th><th>Why it matters</th></tr>
+</thead>
+<tbody>
+<tr><td>1. Opens without an app</td><td>The person you meet will not install anything to see your details.</td></tr>
+<tr><td>2. Saves to contacts in one tap</td><td>A card that is not saved is forgotten by Friday.</td></tr>
+<tr><td>3. Shares by NFC, QR code and link</td><td>You meet people in person, on screens and over WhatsApp.</td></tr>
+<tr><td>4. A link you control</td><td>Printed QR codes and NFC cards must keep working when details change.</td></tr>
+<tr><td>5. Captures leads, not just views</td><td>Views do not pay. Contacts you can follow up do.</td></tr>
+<tr><td>6. Analytics you can act on</td><td>You should know which events and channels actually work.</td></tr>
+<tr><td>7. Design without a designer</td><td>It has to look like your brand on day one.</td></tr>
+<tr><td>8. Company control</td><td>A business needs one brand, locked fields and leads it owns.</td></tr>
+<tr><td>9. Privacy</td><td>You are collecting other people's personal information.</td></tr>
+<tr><td>10. Honest pricing</td><td>Something given away can be taken away.</td></tr>
+</tbody>
+</table>
+
+<h2>1. It opens without an app</h2>
+
+<p>This is the single most important test. A <strong>digital business card</strong> is only useful if the person receiving it can see it straight away, on whatever phone they have, without downloading anything or creating an account. If a product asks the recipient to install its app, most people will simply not bother, and your card never reaches them.</p>
+
+<p>Ask the vendor to send you a card and open it on a phone that has never seen their product. It should load as an ordinary web page.</p>
+
+<h2>2. It saves to the phone in one tap</h2>
+
+<p>A card that is looked at and closed is barely better than no card. What you want is your name, number, email and company landing in the other person's contacts, spelled correctly, so you show up when they search for you next month. Good platforms do this with a standard contact file (a vCard) behind a single Save button that works on iPhone and Android alike.</p>
+
+<p>Check that the saved contact includes your photo, job title and company, not only a name and a number.</p>
+
+<h2>3. It shares three ways: NFC, QR code and link</h2>
+
+<p>You will hand your card over in very different situations, so one sharing method is not enough:</p>
+
+<ul>
+<li><strong>NFC tap</strong> for meetings in person. Hold an NFC card near their phone and your card opens. It is the quickest option, and it feels like handing over a business card.</li>
+<li><strong>QR code</strong> for screens, slides, stands, name badges and print. Every modern phone camera reads one. Our guide to <a href="/blog/qr-code-business-card">QR code business cards</a> covers how to make one people actually manage to scan.</li>
+<li><strong>A link</strong> for WhatsApp, email and SMS, when you are not in the same room.</li>
+</ul>
+
+<p>All three should open the same card. With Cardtly they come with every card, and the physical <a href="/nfc">NFC card</a> is an optional once-off extra rather than a requirement.</p>
+
+<h2>4. You control a link that survives change</h2>
+
+<p>This one catches people a year in. Your QR code is printed on a banner, your NFC card is in your wallet, and your link sits in a hundred email signatures. Then you rename the card or change role, the link changes with it, and every printed copy goes dead.</p>
+
+<p>Look for a short, readable link you choose yourself, such as cardtly.com/card/yourname, and a clear answer on what happens when you rename it. On Cardtly the old address keeps redirecting to the new one, so anything already printed still works. If a vendor's answer is that the old link simply stops, everything you print is on borrowed time.</p>
+
+<h2>5. It captures leads, not just views</h2>
+
+<p>A view count tells you somebody opened your card. A lead tells you who. The better platforms turn a card into a way for the other person to give you their details too:</p>
+
+<ul>
+<li>a contact exchange that invites them to share their details back after saving yours,</li>
+<li>a short form with your own questions, so you know what they are interested in,</li>
+<li>a book-a-meeting button that sends the request straight to you,</li>
+<li>one list of every lead, with a one-tap WhatsApp follow-up and an export to Excel.</li>
+</ul>
+
+<p>If you meet people at events, this is where the return on a card comes from. Our <a href="/blog/trade-show-lead-capture">trade show lead capture guide</a> covers how to make those leads survive the trip back to the office.</p>
+
+<h2>6. The analytics answer real questions</h2>
+
+<p>Useful analytics answer the questions you would actually ask. How many people opened my card this week? How many saved me? Which links did they click? Did the expo produce anything? Per-card views, taps, link clicks and saved contacts are the minimum, and it helps to see how people arrived: a QR scan, an NFC tap, your email signature or a card you sent on WhatsApp.</p>
+
+<p>For a team, you want the same numbers per person, so a manager can see whose card is working and whose is sitting in a drawer. Be wary of one big number with no breakdown. Views on their own are easy to inflate and hard to act on.</p>
+
+<h2>7. It looks like your brand without a designer</h2>
+
+<p>You should be able to make a card that looks like your business on the first day: your logo, your exact colours rather than the nearest preset, a font that suits you, and a layout that fits what you do. A car salesperson wants stock photos up front, while a consultant wants a clean profile and a booking button. Check that you can set any colour by its hex code, upload your own logo and photos, and reframe a photo so faces and products are not cropped awkwardly.</p>
+
+<h2>8. It gives a company control</h2>
+
+<p>If you are buying for a team, this is where products differ the most. The questions to ask:</p>
+
+<ul>
+<li>Can the company set its logo, colours and design once and apply them to every card?</li>
+<li>Can it lock specific fields, such as the company name, office number and website, while each person still edits their own name, photo and mobile number?</li>
+<li>Can it split the company into departments or branches, each with its own manager?</li>
+<li>Does the company own the leads its cards capture, so a person leaving does not take the contacts with them?</li>
+<li>Can a card be switched off the day somebody resigns?</li>
+</ul>
+
+<p>Our guides to <a href="/blog/digital-business-cards-for-teams">digital business cards for teams</a> and <a href="/blog/employee-business-card-brand-consistency">keeping every employee card on brand</a> go into each of these in detail.</p>
+
+<h2>9. It takes privacy seriously</h2>
+
+<p>A digital business card collects personal information: the details of everyone who saves your card or fills in your form. In South Africa that brings POPIA into play, and other countries have similar laws. Ask where the data is hosted, who can see it, whether you can export everything, and what happens to it when you leave. A directory of users should never publish phone numbers or email addresses, and people should be able to take themselves out of it. Our <a href="/blog/digital-business-cards-and-popia">POPIA guide</a> lists the questions to put to any vendor.</p>
+
+<h2>10. The price is honest</h2>
+
+<p>Pricing in this market comes in three shapes: a monthly subscription per card, a once-off fee for a physical NFC card, and no-cost versions with limits. Watch for three things:</p>
+
+<ul>
+<li><strong>Versions you do not pay for that shrink.</strong> What a company gives away is often the first thing it changes. If your whole sales team depends on it, you are exposed to that decision.</li>
+<li><strong>Prices in another currency.</strong> A dollar price billed in rand moves with the exchange rate every month.</li>
+<li><strong>Hardware that only works with one service.</strong> An NFC card should open an ordinary web link, so it does not become useless if you ever move.</li>
+</ul>
+
+<p>Cardtly costs R97 per card per month in South African rand, with every feature on every card and no permanent free tier to be withdrawn later. An NFC card is an optional once-off purchase: R150 for the standard design or R200 for a custom one, plus R100 shipping per order within South Africa. The <a href="/pricing">pricing page</a> has the details.</p>
+
+<h2>Red flags</h2>
+
+<ul>
+<li>The person receiving your card has to install an app.</li>
+<li>Your link changes when you edit your name, with no redirect.</li>
+<li>You cannot export your contacts.</li>
+<li>Leads go to the individual only, with no copy for the company.</li>
+<li>The NFC card can only be set up by the vendor and only opens their app.</li>
+<li>There is no way to see whether anyone opened your card.</li>
+</ul>
+
+<h2>How Cardtly measures up</h2>
+
+<p>Cardtly is a South African digital business card platform used by individuals, teams and companies here and abroad. Every card opens in any phone browser with no app, saves to contacts in one tap, and shares by NFC tap, QR code or link. You choose your own short link, and renaming it keeps the old one redirecting. A card holds up to 10 custom links, a gallery of up to 10 photos, social profiles, WhatsApp and a booking button, and every lead lands in a contacts list with WhatsApp follow-up and Excel export.</p>
+
+<p>For companies, Cardtly runs a group, its companies and their departments from one account. Set the brand once, lock the fields that must stay the same, and keep every lead in a shared company list. Teams of 2 to 20 cards are self-serve, and larger companies are set up directly. See everything on the <a href="/features">features page</a>, or read <a href="/teams">how Cardtly works for teams</a>.</p>`,
+    faq: [
+      {
+        q: 'What is the best digital business card app?',
+        a: 'The best one opens without an app for the person receiving it, saves to their contacts in one tap, shares by NFC, QR code and link, captures leads you can follow up, and keeps your link working when your details change. For a company, add central brand control, locked fields and leads the company owns.',
+      },
+      {
+        q: 'Do people need an app to open a digital business card?',
+        a: 'They should not. A good digital business card is an ordinary web page that opens in any phone browser. Cardtly cards need no app to view or save.',
+      },
+      {
+        q: 'Is a no-cost digital business card good enough?',
+        a: 'For trying the idea, often yes. For a business, check what happens if that version changes, whether you can export your contacts, and whether your link and printed QR codes keep working if you move. Cardtly has no permanent free tier: every card has the full feature set at R97 per card per month.',
+      },
+      {
+        q: 'How much does a digital business card cost in South Africa?',
+        a: 'Most are priced per card per month, with NFC cards sold once-off. Cardtly is R97 per card per month in rand, and an optional NFC card is R150 standard or R200 custom, plus R100 shipping per order in South Africa.',
+      },
+      {
+        q: 'Can a company manage digital business cards for its staff?',
+        a: 'Yes, if the platform supports teams. Look for one place to set the brand, locks on the fields that must stay the same, departments with their own managers, and leads that belong to the company. Cardtly does all four, self-serve for 2 to 20 cards.',
+      },
+    ],
+  },
+  {
+    slug: 'qr-code-business-card',
+    title: 'QR Code Business Cards: How to Make One That Works',
+    description:
+      'A QR code business card opens your details with one phone scan. How to make one people actually scan, where to put it, and the mistakes that break it.',
+    excerpt:
+      'A QR code is the easiest way onto somebody else\'s phone. Most are printed too small, too pale, or pointing at the wrong thing.',
+    date: '2026-10-14',
+    readMins: 7,
+    body: `<p>A QR code business card is a QR code that opens your contact details when somebody points a phone camera at it. The best ones do not hold your details inside the code. They point at a <a href="/blog/what-is-a-digital-business-card">digital business card</a> online, so the person scanning sees your photo, number, email, links and a Save button, and you can change any of it later without reprinting a thing.</p>
+
+<p>Every modern phone reads QR codes with its built-in camera, so nobody needs an app. That makes a QR code the simplest way to get your card onto somebody else's phone from a printed card, a screen, a stand or a slide. This guide covers how they work, how to make one people actually manage to scan, where to put it, and the mistakes that quietly break it.</p>
+
+<h2>How a QR code business card works</h2>
+
+<p>A QR code is a picture of a short piece of text. For a business card, that text is usually one of two things:</p>
+
+<ul>
+<li><strong>Your details themselves</strong>, written into the code as a contact file (a vCard). Scanning offers to save the contact straight away.</li>
+<li><strong>A link to your digital business card.</strong> Scanning opens your card as a web page, where the person can save you, message you on WhatsApp, open your links or book a meeting.</li>
+</ul>
+
+<p>Both work on the day you print them. Only one keeps working afterwards.</p>
+
+<h2>Contact-file codes versus link codes</h2>
+
+<table>
+<thead>
+<tr><th></th><th>vCard code</th><th>Link code</th></tr>
+</thead>
+<tbody>
+<tr><td>New number</td><td>Reprint</td><td>Edit once</td></tr>
+<tr><td>Opens</td><td>A contact</td><td>Your full card</td></tr>
+<tr><td>Scans</td><td>Dense, slower</td><td>Simple, quick</td></tr>
+<tr><td>Tracked</td><td>No</td><td>Yes</td></tr>
+<tr><td>Leads</td><td>No</td><td>Yes</td></tr>
+<tr><td>No signal</td><td>Works</td><td>Needs data</td></tr>
+</tbody>
+</table>
+
+<p>A contact-file code packs everything into the pattern, so a full set of details makes a dense, fiddly code that small or older phone cameras struggle with. Worse, it is frozen: change your mobile number and every printed code hands out the wrong one. A link code holds only a short web address, so it stays simple to read, and what it opens is always your current card. Unless you genuinely need it to work with no signal, point your QR code at a link.</p>
+
+<h2>How to make a QR code business card</h2>
+
+<ol>
+<li><strong>Make your digital business card.</strong> Add your name, role, photo, contact details and links. This is what people see when they scan.</li>
+<li><strong>Choose a short link you will keep.</strong> Something like cardtly.com/card/yourname. The code points at it, so pick one you are happy to print. If you rename it later, Cardtly keeps the old link redirecting, so printed codes still work.</li>
+<li><strong>Style the code.</strong> Pick a colour and decide what goes in the middle: your logo, the Cardtly mark or nothing. Keep the contrast high, as explained below.</li>
+<li><strong>Download the right size.</strong> A small image suits email and slides, a large one posters and PDFs, and a print size or a vector SVG anything printed big. A vector file stays sharp at any size.</li>
+<li><strong>Test it.</strong> Scan it with at least two phones, an iPhone and an Android, from the distance people will really stand.</li>
+</ol>
+
+<p>Every Cardtly card has a QR page that does all of this. It deepens a colour that is too pale to scan reliably, switches on the strongest error correction whenever there is a logo in the middle so the logo cannot stop the code reading, and lets you choose the colour behind your logo. Downloads come in web, large and print sizes, as a vector SVG, or as a ready-made print card with your name under the code.</p>
+
+<h2>Design rules that keep it scannable</h2>
+
+<ul>
+<li><strong>Dark on light.</strong> Phone cameras look for dark squares on a light background. A dark code on white is safest. A pale code, or a light code on a dark background, fails on many phones.</li>
+<li><strong>High contrast.</strong> Your brand colour is fine if it is dark enough. Pale gold, mint and sky blue usually are not, which is why Cardtly deepens a pale colour until it scans.</li>
+<li><strong>A quiet border.</strong> Keep a clear margin of plain background around the code. Text, frames or graphics pressed right up against it confuse scanners.</li>
+<li><strong>Size it for the distance.</strong> A good rule of thumb is that a code scans from about ten times its width. On a business card, 2 cm across is the practical minimum and 2.5 cm is safer. On a banner read from three metres away it needs to be around 30 cm.</li>
+<li><strong>A modest logo.</strong> A logo in the middle works because QR codes carry spare information to survive damage. Keep it small and centred, and never stretch or rotate the code.</li>
+<li><strong>A matte finish.</strong> Gloss, foil and laminate can bounce light straight back into the camera. A matte finish behind the code scans more reliably.</li>
+<li><strong>Say what it does.</strong> "Scan to save my details" gets more scans than a code on its own.</li>
+</ul>
+
+<h2>Where to put your QR code</h2>
+
+<ul>
+<li><strong>The back of a paper card.</strong> Keep the paper cards you still need, and let the code turn each one into your full, current card.</li>
+<li><strong>Your email signature.</strong> Cardtly's signature generator can add your QR code beside your details.</li>
+<li><strong>Video calls.</strong> A branded virtual background with your QR code works on Zoom and Teams, so people on the call can scan you straight off the screen.</li>
+<li><strong>Your last slide.</strong> Leave it up during questions.</li>
+<li><strong>Name badges and expo stands.</strong> Visitors scan without queueing for a card. Our <a href="/blog/trade-show-lead-capture">trade show guide</a> covers turning those scans into leads.</li>
+<li><strong>Vehicles, shopfronts and site boards.</strong> Anywhere people stand still for a few seconds.</li>
+<li><strong>Quotes and invoices.</strong> So a customer can save the person who quoted them.</li>
+</ul>
+
+<h2>Know where your scans come from</h2>
+
+<p>A printed code is only worth its space if people use it. Cardtly puts a small marker on the link inside each code it makes, so your analytics show how people arrived: a scan of your QR code, a tap of your NFC card, the QR in your email signature, the one on your virtual background, or a card you sent on WhatsApp. That tells you whether the code on your stand, your slides or your vehicle is actually earning its place.</p>
+
+<h2>QR code or NFC?</h2>
+
+<p>Both, ideally. A QR code works with any camera, from whatever distance you print it for, and costs nothing to add to things you already print. An <a href="/nfc">NFC card</a> is quicker face to face: a tap with no aiming, which feels like handing over a business card. Both open the same digital card, so you use whichever suits the moment. Our comparison of <a href="/blog/nfc-vs-paper-business-cards">NFC and paper business cards</a> covers the trade-offs in more detail, and our checklist on <a href="/blog/best-digital-business-card">choosing the best digital business card</a> covers what else to look for.</p>
+
+<h2>Common mistakes</h2>
+
+<ul>
+<li><strong>Pointing the code at your website's home page.</strong> The person wanted your details, not your company history. Point it at your card.</li>
+<li><strong>Printing a contact-file code, then changing your number.</strong> Every printed copy is now wrong.</li>
+<li><strong>Printing too small or too pale.</strong> If it takes three attempts, most people give up after one.</li>
+<li><strong>Using a QR service that can expire.</strong> Some short-link QR services stop redirecting when an account lapses, or start showing adverts. Your code should point at an address you control.</li>
+<li><strong>Not testing the print.</strong> Scan the printed proof, not just the file on your screen.</li>
+</ul>`,
+    faq: [
+      {
+        q: 'Do people need an app to scan a QR code business card?',
+        a: 'No. The camera app on any recent iPhone or Android phone reads QR codes. The code opens your card in the phone browser, with nothing to install.',
+      },
+      {
+        q: 'Can I change my details after printing the QR code?',
+        a: 'Yes, if the code points at a digital business card rather than holding your details itself. Edit the card and every printed code shows the new version. With Cardtly, even renaming your link keeps the old one redirecting.',
+      },
+      {
+        q: 'What size should a QR code be on a business card?',
+        a: 'At least 2 cm across, and 2.5 cm is safer, with a plain margin around it. As a rule of thumb a code scans from about ten times its width, so codes on stands and banners need to be much larger.',
+      },
+      {
+        q: 'Can I put my logo in the middle of a QR code?',
+        a: 'Yes. QR codes carry spare information so they survive damage, and a small centred logo uses some of it. Cardtly switches on the strongest error correction whenever you add a logo, and you can choose the colour behind it.',
+      },
+      {
+        q: 'Is a QR code business card safe?',
+        a: 'It is as safe as the page it opens. Point it at a card with a provider you trust and a link you control, and only put on the card what you are happy for anyone holding it to see.',
+      },
+    ],
+  },
 ]
 
 export function getPost(slug: string): BlogPost | undefined {
