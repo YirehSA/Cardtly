@@ -5,6 +5,7 @@ import { UserPlan } from '@/types/database'
 import { isPro } from '@/lib/plan'
 import { parseDesign, getAccentHex } from '@/types/design'
 import { CARDTLY_MARK } from '@/lib/og-cardtly-mark'
+import { placeQrSvg, svgImageHref } from '@/lib/qr-svg'
 import {
   Download, Share2, Copy, Check, Printer, ShieldCheck, AlertTriangle,
   Palette, Ban, QrCode, Sparkles, Search, X, Send,
@@ -395,7 +396,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
       const ringMark = plateRing ? `<circle cx="${cx}" cy="${cy}" r="${r + 6 * k + ring}" fill="#ffffff"/>` : ''
       return `${ringMark}<circle cx="${cx}" cy="${cy}" r="${r + 6 * k}" fill="${plateColour}"/>
         <clipPath id="qrLogoClip"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath>
-        <image href="${logo.href}" x="${cx - s / 2}" y="${cy - s / 2}" width="${s}" height="${s}" clip-path="url(#qrLogoClip)" preserveAspectRatio="xMidYMid slice"/>`
+        <image ${svgImageHref(logo.href)} x="${cx - s / 2}" y="${cy - s / 2}" width="${s}" height="${s}" clip-path="url(#qrLogoClip)" preserveAspectRatio="xMidYMid slice"/>`
     }
     const w = shape === 'rectangle' ? base * 3 : base * 2
     const h = shape === 'rectangle' ? base * 1.5 : base * 2
@@ -405,7 +406,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
       ? `<rect x="${x - ring}" y="${y - ring}" width="${pw + ring * 2}" height="${ph + ring * 2}" rx="${r + ring}" fill="#ffffff"/>`
       : ''
     return `${ringMark}<rect x="${x}" y="${y}" width="${pw}" height="${ph}" rx="${r}" fill="${plateColour}"/>
-      <image href="${logo.href}" x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet"/>`
+      <image ${svgImageHref(logo.href)} x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet"/>`
   }
 
   function triggerDownload(href: string, filename: string) {
@@ -437,9 +438,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
       const px = 800
       const [svg, logo] = await Promise.all([qrSvg(px), centreLogoHref()])
       // Nest the vector QR, then lay the logo plate over it.
-      const inner = svg
-        .replace(/^<\?xml[^>]*\?>/, '')
-        .replace('<svg ', `<svg x="0" y="0" width="${px}" height="${px}" `)
+      const inner = placeQrSvg(svg, 0, 0, px)
       const out = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${px}" height="${px}" viewBox="0 0 ${px} ${px}">${inner}${logoSvgMarkup(logo, px)}</svg>`
       const blob = new Blob([out], { type: 'image/svg+xml' })
       triggerDownload(URL.createObjectURL(blob), `${fileBase}-qr.svg`)
@@ -456,9 +455,7 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
     try {
       const px = 400
       const [svg, logo] = await Promise.all([qrSvg(px), centreLogoHref()])
-      const inner = svg
-        .replace(/^<\?xml[^>]*\?>/, '')
-        .replace('<svg ', `<svg x="50" y="40" width="${px}" height="${px}" `)
+      const inner = placeQrSvg(svg, 50, 40, px)
       // The logo sits in the card's coordinate space, so shift it by the QR's
       // offset rather than re-deriving it.
       const logoLayer = logo
