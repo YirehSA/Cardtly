@@ -205,6 +205,13 @@ export interface CardDesign {
    *  already says it. Display only: the saved contact, share text, booking
    *  and lead capture still carry the company. Defaults to on. */
   showCompany?: boolean
+  /** Show the Book a meeting button. Off for a client that does not take
+   *  meetings through the card (2026-10-15). Turning it off takes away every
+   *  way a visitor reaches the booking form: the shared button, Circuit's
+   *  "Book a slot", and a Context recommendation to book. Part of the design,
+   *  so a company's look and its design lock carry it to every card wearing
+   *  it. Defaults to on. */
+  showBooking?: boolean
   /** The section headings under the card: Certifications, Links / More,
    *  Gallery, and a template's own section titles (Get In Touch, Connect,
    *  Correspondence, Elsewhere). Defaults to the palette's muted text. */
@@ -389,6 +396,7 @@ export const DEFAULT_DESIGN: CardDesign = {
   bioSize: 100,
   bioColor: undefined,
   showCompany: true,
+  showBooking: true,
   sectionHeadingColor: undefined,
   captionColor: undefined,
   bodySize: 'medium',

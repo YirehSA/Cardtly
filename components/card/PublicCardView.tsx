@@ -1805,6 +1805,9 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
   // Shared prop bundles
   const shared: Shared = { card, isPro, accentHex, bg, font, cardEffect, design }
   const bottomProps: BottomProps = { card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context: showFullProfile ? null : activeContext,
+    // Book a meeting switched off in Design. omitBooking also drops a Context
+    // recommendation to book, so the card offers no way into the form at all.
+    omitBooking: design.showBooking === false,
     contextControls: contextAudiences.length ? {
       audiences: contextAudiences,
       selected: activeContext,
@@ -3050,7 +3053,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                 beside it - two Book buttons on one card is worse than none. */}
             {(isPro || card.slug) && (
               <div style={{ marginTop: 30, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
-                {isPro && (
+                {isPro && design.showBooking !== false && (
                   <div style={{ flex: '1 1 180px', minWidth: 160 }}>
                     <p style={{
                       margin: '0 0 10px', fontSize: 15, fontWeight: 800, letterSpacing: '0.06em',

@@ -423,6 +423,31 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
       {/* ── BUTTON TAB ──────────────────────────────────────────── */}
       <div className="space-y-8" style={{ display: activeTab === 'button' ? 'block' : 'none' }}>
 
+      {/* Book a meeting on or off (2026-10-15). Not every client takes
+          meetings through the card, and the button was on every Pro card with
+          no way to remove it. Off also removes Circuit's "Book a slot" and a
+          Context recommendation to book. */}
+      <div>
+        <label className="block text-sm font-semibold mb-1">Book a meeting button</label>
+        <p className="text-xs text-muted-foreground mb-3">
+          Lets people ask for a meeting straight from your card. Turn it off if you do not take bookings this way.
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={() => update({ showBooking: true })}
+            aria-pressed={design.showBooking !== false}
+            className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition ${design.showBooking !== false ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
+            On
+          </button>
+          <button
+            onClick={() => update({ showBooking: false })}
+            aria-pressed={design.showBooking === false}
+            className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-medium transition ${design.showBooking === false ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-border hover:border-foreground/20'}`}>
+            Off
+          </button>
+        </div>
+      </div>
+
       {/* Save Contact button colours */}
       <div>
         <label className="block text-sm font-semibold mb-1">Save Contact button</label>

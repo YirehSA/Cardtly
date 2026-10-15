@@ -62,6 +62,9 @@ interface Props {
   galleryItems: PickItem[]
   socialItems: PickItem[]
   bookingAvailable: boolean
+  /** Why booking is unavailable, when it is: switched off in Design rather
+   *  than a template with its own booking button. */
+  bookingSwitchedOff?: boolean
   /** Which sections this card actually has content for, so the editor can say
    *  so without pretending an empty one will appear. */
   populated: Record<ContextSection, boolean>
@@ -142,7 +145,7 @@ function fromDraft(d: DraftAudience) {
 
 export default function ContextEditor({
   target, targetLabel, enabled, audiences, defaultAudience,
-  links, galleryItems, socialItems, bookingAvailable, populated, isOrg, teamWide, beta, previewCards = [], cardSlug = null,
+  links, galleryItems, socialItems, bookingAvailable, bookingSwitchedOff = false, populated, isOrg, teamWide, beta, previewCards = [], cardSlug = null,
 }: Props) {
   const router = useRouter()
   // WHICH CARD THE PREVIEW RENDERS. Preview state, not configuration, so it is
@@ -391,6 +394,7 @@ export default function ContextEditor({
             socialItems={socialItems}
             links={links}
             bookingAvailable={bookingAvailable}
+            bookingSwitchedOff={bookingSwitchedOff}
             populated={populated}
             isOrg={isOrg}
             cardSlug={cardSlug}
@@ -540,7 +544,7 @@ function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: 
 function AudienceRow({
   row, expanded, onToggleExpand, onEnabled, onLabel, onMove, onHide, onCta, onPicks,
   galleryItems, socialItems,
-  links, bookingAvailable, populated, isOrg, cardSlug,
+  links, bookingAvailable, bookingSwitchedOff, populated, isOrg, cardSlug,
 }: {
   row: DraftAudience
   expanded: boolean
@@ -555,6 +559,7 @@ function AudienceRow({
   socialItems: PickItem[]
   links: LinkOption[]
   bookingAvailable: boolean
+  bookingSwitchedOff: boolean
   populated: Record<ContextSection, boolean>
   isOrg: boolean
   cardSlug: string | null
@@ -717,7 +722,7 @@ function AudienceRow({
             items={socialItems} />
 
           <CtaPicker
-            row={row} links={links} bookingAvailable={bookingAvailable} isOrg={isOrg} onCta={onCta}
+            row={row} links={links} bookingAvailable={bookingAvailable} bookingSwitchedOff={bookingSwitchedOff} isOrg={isOrg} onCta={onCta}
           />
         </div>
       )}
@@ -923,10 +928,11 @@ function CollectionPicker({ row, collection, items, isOrg, onPicks }: {
   )
 }
 
-function CtaPicker({ row, links, bookingAvailable, isOrg, onCta }: {
+function CtaPicker({ row, links, bookingAvailable, bookingSwitchedOff, isOrg, onCta }: {
   row: DraftAudience
   links: LinkOption[]
   bookingAvailable: boolean
+  bookingSwitchedOff: boolean
   isOrg: boolean
   onCta: (c: ContextCta | null) => void
 }) {
@@ -997,12 +1003,15 @@ function CtaPicker({ row, links, bookingAvailable, isOrg, onCta }: {
           onChange={() => onCta({ kind: 'booking', index: null, label: row.cta?.label ?? null })}
           label={bookingAvailable
             ? 'Book a meeting'
-            : 'Book a meeting (your design already has its own booking button)'} />
+            : bookingSwitchedOff
+              ? 'Book a meeting (switched off on this card)'
+              : 'Book a meeting (your design already has its own booking button)'} />
 
         {!bookingAvailable && (
           <p className="text-[11px] text-muted-foreground pl-7">
-            Your card design puts its own booking button near the top, so Context cannot add a
-            second one. Every other recommended action still works for this audience.
+            {bookingSwitchedOff
+              ? 'The Book a meeting button is switched off in Design, on the Button tab. Turn it on there to recommend it here. Every other recommended action still works for this audience.'
+              : 'Your card design puts its own booking button near the top, so Context cannot add a second one. Every other recommended action still works for this audience.'}
           </p>
         )}
 

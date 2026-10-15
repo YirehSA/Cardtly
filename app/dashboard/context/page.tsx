@@ -156,9 +156,15 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
   // An organisation runs the same Context across members who may be on
   // different templates, so there is no single answer there and the picker says
   // so rather than guessing.
+  //
+  // And not when the card has Book a meeting switched off in Design: the card
+  // drops a booking recommendation then, so offering one here would be the
+  // same dead button.
+  const sourceDesign = parseDesign(sourceRow?.color_theme)
+  const bookingSwitchedOff = selected.table !== 'organizations' && sourceDesign.showBooking === false
   const bookingAvailable = selected.table === 'organizations'
     ? true
-    : templateOffersBooking(parseDesign(sourceRow?.color_theme).templateId)
+    : templateOffersBooking(sourceDesign.templateId) && !bookingSwitchedOff
 
   // WHICH CARD THE PREVIEW RENDERS.
   //
@@ -290,6 +296,7 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
         galleryItems={galleryItems}
         socialItems={socialItems}
         bookingAvailable={bookingAvailable}
+        bookingSwitchedOff={bookingSwitchedOff}
         populated={populated}
         isOrg={isTeamWide}
         teamWide={isTeamWide}
