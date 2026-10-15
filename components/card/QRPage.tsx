@@ -49,7 +49,6 @@ interface QrPrefs {
   logoChoice?: LogoChoice
   logoShape?: LogoShape
   colour?: ColourId
-  size?: number
   plate?: PlateId
   plateCustom?: string
 }
@@ -140,11 +139,10 @@ function loadImage(src: string, crossOrigin?: string): Promise<HTMLImageElement>
   })
 }
 
-const SIZES = [
-  { px: 512,  label: 'Web',   hint: 'email, slides' },
-  { px: 1024, label: 'Large', hint: 'posters, PDFs' },
-  { px: 2048, label: 'Print', hint: 'signage, banners' },
-]
+// One size for the image download (Andre, 2026-10-15). The Web / Large / Print
+// picker was a choice nobody needed to make: 1024px covers email, slides and
+// most print, and anything bigger is what the vector file is for.
+const PNG_SIZE = 1024
 
 export default function QRPage({ cards, defaultCardId, plan }: Props) {
   const initial = useMemo(() => loadPrefs(), [])
@@ -187,7 +185,6 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
   const [logoChoice, setLogoChoice] = useState<LogoChoice>(initial.logoChoice || 'cardtly')
   const [logoShape, setLogoShape] = useState<LogoShape>(initial.logoShape || 'square')
   const [colour, setColour] = useState<ColourId>(initial.colour || 'classic')
-  const [size, setSize] = useState<number>(initial.size || 1024)
   const [plate, setPlate] = useState<PlateId>(initial.plate || 'white')
   const [plateCustom, setPlateCustom] = useState<string>(isHex6(initial.plateCustom) ? initial.plateCustom : '#000000')
   const [generating, setGenerating] = useState(false)
@@ -238,8 +235,8 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
   const qrUrl = `${cardUrl}?s=qr`
 
   useEffect(() => {
-    savePrefs({ selectedId, logoChoice, logoShape, colour, size, plate, plateCustom })
-  }, [selectedId, logoChoice, logoShape, colour, size, plate, plateCustom])
+    savePrefs({ selectedId, logoChoice, logoShape, colour, plate, plateCustom })
+  }, [selectedId, logoChoice, logoShape, colour, plate, plateCustom])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -424,9 +421,9 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
     setBusy(true)
     try {
       const off = document.createElement('canvas')
-      await drawQR(off, size)
-      triggerDownload(off.toDataURL('image/png'), `${fileBase}-qr-${size}.png`)
-      toast.success(`PNG downloaded at ${size}px`)
+      await drawQR(off, PNG_SIZE)
+      triggerDownload(off.toDataURL('image/png'), `${fileBase}-qr-${PNG_SIZE}.png`)
+      toast.success(`PNG downloaded at ${PNG_SIZE}px`)
     } catch {
       toast.error('Could not export the PNG')
     } finally {
@@ -818,21 +815,12 @@ export default function QRPage({ cards, defaultCardId, plan }: Props) {
               <Download className="w-4 h-4 text-muted-foreground" />
               <h2 className="text-sm font-semibold">{cards.length > 1 ? '4. ' : '3. '}Download it</h2>
             </div>
-            <p className="text-xs text-muted-foreground mb-3">Bigger is better for print. Not sure? Large is a safe bet.</p>
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {SIZES.map(s => (
-                <button key={s.px} onClick={() => setSize(s.px)}
-                  className={`rounded-xl border-2 py-2 px-2 text-center transition ${size === s.px ? 'border-primary bg-primary/5' : 'border-border hover:border-foreground/20'}`}>
-                  <span className="text-xs font-semibold block">{s.label}</span>
-                  <span className="text-[11px] text-muted-foreground block">{s.hint}</span>
-                </button>
-              ))}
-            </div>
+            <p className="text-xs text-muted-foreground mb-3">Ready for email, slides and most print.</p>
             <div className="space-y-2">
               <button onClick={downloadPNG} disabled={!qrReady || busy}
                 className="w-full flex items-center justify-center gap-2 bg-foreground text-background px-5 py-3 rounded-xl text-sm font-semibold hover:bg-foreground/90 transition disabled:opacity-50">
                 <Download className="w-4 h-4" />
-                Download image ({size}px)
+                Download image ({PNG_SIZE}px)
               </button>
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={downloadSVG} disabled={!qrReady || busy}
