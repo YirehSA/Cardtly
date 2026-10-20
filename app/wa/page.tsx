@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import WhatsAppBridge from './WhatsAppBridge'
 
-// The WhatsApp button in a lead or meeting-request email lands here, and this
-// page opens the WhatsApp app. See waBridgeLink in lib/whatsapp for why an
-// email cannot link to the app directly.
+// The WhatsApp button in emails sent before the number was sealed into the
+// path lands here, with the number after the #. Today's emails go to
+// /wa/<token> instead. See lib/wa-bridge.
 
 export const metadata: Metadata = {
   title: 'Opening WhatsApp',

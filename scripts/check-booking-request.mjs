@@ -8,8 +8,12 @@
 //   2. The emails printed 2026-10-20 and left details out. Both are rendered
 //      here and every detail the visitor gave must be in them, escaped.
 //   3. "Confirm on WhatsApp" opened WhatsApp's web page in the mail app's
-//      browser. Email buttons now go through cardtly.com/wa, with the number
-//      after the # so no server ever logs it, and that page opens the app.
+//      browser. Email buttons now go through cardtly.com/wa, which opens the
+//      app on a phone and WhatsApp's own page on a computer.
+//   4. A client still could not reply on WhatsApp (2026-10-20): scanners such
+//      as Mimecast rewrite links, and the number rode after a #. It is now
+//      sealed into the path, so no server logs it in plain and a changed link
+//      is refused.
 //
 // Run: node scripts/check-booking-request.mjs
 
@@ -24,10 +28,10 @@ const bad = (msg) => { console.error(`  FAIL ${msg}`); fail++ }
 const read = (p) => { try { return readFileSync(p, 'utf8').replace(/\r/g, '') } catch { return '' } }
 
 const out = mkdtempSync(join(tmpdir(), 'booking-'))
-let F, E, W
+let F, E, W, B
 try {
   execFileSync(process.execPath,
-    ['node_modules/typescript/bin/tsc', 'lib/booking-format.ts', 'lib/booking-email.ts', 'lib/whatsapp.ts', '--outDir', out,
+    ['node_modules/typescript/bin/tsc', 'lib/booking-format.ts', 'lib/booking-email.ts', 'lib/whatsapp.ts', 'lib/wa-bridge.ts', '--outDir', out,
      '--module', 'es2020', '--target', 'es2020', '--moduleResolution', 'node', '--skipLibCheck'],
     { stdio: 'pipe' })
   for (const f of readdirSync(out).filter(f => f.endsWith('.js'))) {
@@ -37,6 +41,7 @@ try {
   F = await import(pathToFileURL(join(out, 'booking-format.mjs')).href)
   E = await import(pathToFileURL(join(out, 'booking-email.mjs')).href)
   W = await import(pathToFileURL(join(out, 'whatsapp.mjs')).href)
+  B = await import(pathToFileURL(join(out, 'wa-bridge.mjs')).href)
 } catch (e) {
   console.error('check-booking-request: could not compile the booking libraries')
   console.error(String(e.stdout || e.message).slice(0, 600))
@@ -72,7 +77,12 @@ eq(F.formatBookingTime(null, 'Africa/Johannesburg'), 'Any time', 'no time chosen
 eq(F.formatSentAt(new Date('2026-10-20T12:05:00Z')), '20 October 2026, 14:05', 'when it was sent, in SAST')
 
 // ── 3. The emails carry everything, escaped ─────────────────────────────────
-const wa = W.waBridgeLink('082 552 3367', 'Hi Thandi, thanks for your meeting request')
+// A fixed key and address, so this runs the same here and in a Vercel build
+// that has the real ones. Restored afterwards.
+const savedEnv = { WA_LINK_SECRET: process.env.WA_LINK_SECRET, SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL }
+const setEnv = (vals) => { for (const [k, v] of Object.entries(vals)) { if (v === undefined) delete process.env[k]; else process.env[k] = v } }
+setEnv({ WA_LINK_SECRET: 'check-booking-request', NEXT_PUBLIC_APP_URL: 'https://cardtly.com' })
+const wa = B.waBridgeLink('082 552 3367', 'Hi Thandi, thanks for your meeting request')
 const details = {
   requesterName: 'Thandi <b>Nkosi</b>',
   requesterEmail: 'thandi@example.co.za',
@@ -108,7 +118,7 @@ mustHave(owner, 'owner', [
   ['the card it came in on', 'Lenny Govender, Sales Manager, Acme &amp; Sons'],
   ['a link to the card', 'href="https://cardtly.com/card/lenny-govender"'],
   ['when it was sent', '20 October 2026, 14:05 (South African time)'],
-  ['the WhatsApp button through cardtly.com/wa', 'href="https://cardtly.com/wa#phone=27825523367&amp;text='],
+  ['the WhatsApp button through cardtly.com/wa', `href="${wa}"`],
   ['the team note', 'Team Contacts'],
 ])
 mustHave(asker, 'requester', [
@@ -130,12 +140,26 @@ eq(owner.subject, 'Meeting request from Thandi <b>Nkosi</b>: Tue 20 Oct, 17:30',
 if (/[\r\n]/.test(E.ownerBookingEmail({ ...details, requesterName: 'A\r\nBcc: x@y.z' }).subject)) bad('a line break in a name reached the subject line')
 const anyTime = E.ownerBookingEmail({ ...details, time: null, requesterPhone: null, whatsappUrl: null, notes: null })
 if (!anyTime.html.includes('Any time') || !anyTime.html.includes('Not given') || !anyTime.html.includes('No note added')) bad('an optional detail left blank is not said to be blank')
-if (anyTime.html.includes('wa#')) bad('a WhatsApp button appears with no phone number')
+if (anyTime.html.includes('/wa/') || anyTime.html.includes('wa#')) bad('a WhatsApp button appears with no phone number')
 
 // ── 4. The WhatsApp links ───────────────────────────────────────────────────
 eq(W.waAppLink('082 552 3367', 'Hi'), 'whatsapp://send?phone=27825523367&text=Hi', 'the app link')
-if (W.waAppLink('123', 'x') !== null || W.waBridgeLink('', 'x') !== null) bad('a link was made for an unusable number')
-if (!/^https:\/\/cardtly\.com\/wa#phone=27825523367&text=/.test(wa || '')) bad(`the email link must carry the number after the #, so no server logs it: ${wa}`)
+if (W.waAppLink('123', 'x') !== null || B.waBridgeLink('', 'x') !== null) bad('a link was made for an unusable number')
+// A plain path of URL-safe characters: nothing for a link scanner to lose.
+if (!/^https:\/\/cardtly\.com\/wa\/[A-Za-z0-9_-]{40,}$/.test(wa || '')) bad(`the email link must be cardtly.com/wa/<token>: ${wa}`)
+if (/825523367/.test(wa || '')) bad('the email link shows the phone number in plain, where server logs would keep it')
+const token = (wa || '').split('/wa/')[1] || ''
+const opened = B.openWaTarget(token)
+eq(opened?.phone, '27825523367', 'the number back out of the link')
+eq(opened?.text, 'Hi Thandi, thanks for your meeting request', 'the message back out of the link')
+const raw = Buffer.from(token, 'base64url'); raw[14] ^= 1
+if (B.openWaTarget(raw.toString('base64url')) !== null) bad('a changed link was opened, which could point the chat at a different number')
+if (B.openWaTarget('') !== null || B.openWaTarget('not a token!') !== null) bad('junk was opened as a link')
+setEnv({ WA_LINK_SECRET: 'another-key' })
+if (B.openWaTarget(token) !== null) bad('a link sealed with another key was opened')
+setEnv({ WA_LINK_SECRET: undefined, SUPABASE_SERVICE_ROLE_KEY: undefined })
+if (!/^https:\/\/cardtly\.com\/wa#phone=27825523367&text=/.test(B.waBridgeLink('082 552 3367', 'Hi') || '')) bad('with no key the email must still get a working (# form) WhatsApp button')
+setEnv(savedEnv)
 
 // ── 5. Wiring ───────────────────────────────────────────────────────────────
 const modal = read('components/card/BookingModal.tsx')
@@ -148,10 +172,16 @@ if (!/ownerBookingEmail\(details\)/.test(route) || !/requesterBookingEmail\(deta
 if (!/whatsappUrl: waBridgeLink\(/.test(route)) bad('the meeting email\'s WhatsApp button must go through cardtly.com/wa')
 const lead = read('lib/lead-notify.ts')
 if (/waLink\(/.test(lead) || !/waBridgeLink\(/.test(lead)) bad('the lead email\'s WhatsApp button must go through cardtly.com/wa')
+if (!/from '@\/lib\/wa-bridge'/.test(route) || !/from '@\/lib\/wa-bridge'/.test(lead)) bad('email WhatsApp buttons must come from lib/wa-bridge')
+if (/from 'crypto'|require\('crypto'\)|waBridgeLink/.test(read('lib/whatsapp.ts').replace(/^\s*\/\/.*$/gm, ''))) bad('lib/whatsapp is imported in the browser, so the sealing must stay in lib/wa-bridge')
 const bridge = read('app/wa/WhatsAppBridge.tsx')
-if (!/window\.location\.hash/.test(bridge) || /searchParams|location\.search/.test(bridge)) bad('/wa must read the number from the #, never the query string')
-if (!/whatsapp:\/\/send/.test(bridge) || !/scheme=whatsapp/.test(bridge)) bad('/wa must open the app (whatsapp://, or an intent on Android)')
-if (!/robots: \{ index: false/.test(read('app/wa/page.tsx'))) bad('/wa must stay out of search results')
+if (!/window\.location\.hash/.test(bridge) || /searchParams|location\.search/.test(bridge)) bad('/wa must read older links from the #, never the query string')
+if (!/whatsapp:\/\/send/.test(bridge) || !/scheme=whatsapp/.test(bridge)) bad('/wa must open the app on a phone (whatsapp://, or an intent on Android)')
+if (!/device === 'computer'\) return webUrl\(t\)/.test(bridge) || !/d === 'computer'\) window\.location\.replace\(webUrl\(t\)\)/.test(bridge)) bad('/wa must send a computer to wa.me, not whatsapp://, which a PC with no WhatsApp app cannot open')
+const sealedPage = read('app/wa/[token]/page.tsx')
+if (!/openWaTarget\(token\)/.test(sealedPage)) bad('/wa/<token> must open the sealed number on the server')
+if (!/referrer: 'no-referrer'/.test(sealedPage)) bad('/wa/<token> must not send its token on to wa.me')
+for (const p of ['app/wa/page.tsx', 'app/wa/[token]/page.tsx']) if (!/robots: \{ index: false/.test(read(p))) bad(`${p} must stay out of search results`)
 const contact = read('components/dashboard/ContactCard.tsx'), send = read('components/card/SendCardToPhone.tsx')
 if (!/isNativeApp\(\) \? waAppLink\(/.test(contact)) bad('a contact\'s WhatsApp button must open the app inside the Cardtly app')
 if (!/native \? waAppLink\(parsed\.digits, text\)/.test(send)) bad('Send card to a number must open the WhatsApp app inside the Cardtly app')
@@ -160,4 +190,4 @@ if (fail) {
   console.error(`check-booking-request: ${fail} problem(s)`)
   process.exit(1)
 }
-console.log('check-booking-request: ok (every hour and quarter-hour, date and time checked on the server, both emails carry every detail escaped, WhatsApp buttons open the app)')
+console.log('check-booking-request: ok (every hour and quarter-hour, date and time checked on the server, both emails carry every detail escaped, WhatsApp buttons sealed into the path and open the app)')

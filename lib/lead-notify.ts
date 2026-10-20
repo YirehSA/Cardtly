@@ -1,5 +1,5 @@
 import { Resend } from 'resend'
-import { waBridgeLink } from '@/lib/whatsapp'
+import { waBridgeLink } from '@/lib/wa-bridge'
 import { FROM_EMAIL } from '@/lib/email'
 import { resolveTeamAdminEmails, type CardOwner } from '@/lib/card-owner'
 

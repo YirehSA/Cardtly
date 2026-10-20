@@ -37,19 +37,9 @@ export function waAppLink(phone: string | null | undefined, text?: string): stri
   return `whatsapp://send?phone=${d}${text ? `&text=${encodeURIComponent(text)}` : ''}`
 }
 
-// For an EMAIL. Most mail apps refuse to open a whatsapp:// link, so an email
-// button goes to cardtly.com/wa, which opens the app from a tap (see
-// app/wa). The number and the message ride in the # part of the address,
-// which a browser never sends to a server, so neither Cardtly nor its host
-// logs a lead's phone number. Null when the number is unusable.
-export function waBridgeLink(phone: string | null | undefined, text?: string): string | null {
-  const d = toIntlDigits(phone || '')
-  if (d.length < 9) return null
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com').replace(/\/$/, '')
-  const params = new URLSearchParams({ phone: d })
-  if (text) params.set('text', text)
-  return `${appUrl}/wa#${params.toString()}`
-}
+// For an EMAIL, use waBridgeLink in lib/wa-bridge instead. It is server-only
+// (it seals the number with node crypto), and this file is also imported in
+// the browser.
 
 // Opens WhatsApp with a message pre-filled and NO recipient, so the person
 // tapping picks who it goes to. Crucially, that includes themselves:
