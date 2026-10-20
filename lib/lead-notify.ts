@@ -1,5 +1,5 @@
 import { Resend } from 'resend'
-import { waLink } from '@/lib/whatsapp'
+import { waBridgeLink } from '@/lib/whatsapp'
 import { FROM_EMAIL } from '@/lib/email'
 import { resolveTeamAdminEmails, type CardOwner } from '@/lib/card-owner'
 
@@ -59,7 +59,9 @@ async function send(
   lead: LeadDetails
 ): Promise<void> {
   const firstName = lead.name.split(' ')[0]
-  const wa = waLink(lead.phone, `Hi ${firstName}, thanks for reaching out via my Cardtly card.`)
+  // Through cardtly.com/wa, which opens the WhatsApp app: a wa.me link in an
+  // email opened WhatsApp's web page in the mail app's browser instead.
+  const wa = waBridgeLink(lead.phone, `Hi ${firstName}, thanks for reaching out via my Cardtly card.`)
 
   const answersBlock = lead.answers?.length
     ? `<div style="background:#f6f6f6;border-radius:12px;padding:18px;margin-bottom:16px">

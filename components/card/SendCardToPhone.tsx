@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { Capacitor } from '@capacitor/core'
+import { waAppLink } from '@/lib/whatsapp'
 import { X, Send, MessageCircle, MessageSquare, Copy, Check, Smartphone, ChevronRight } from 'lucide-react'
 import {
   normaliseMsisdn, whatsappHref, smsHref, smsCost, defaultNote,
@@ -78,6 +80,12 @@ export function SendCardModal({ open, onClose, cardUrl, cardName, company }: Pro
     try { localStorage.setItem(NOTE_KEY, note) } catch {}
 
     if (channel === 'whatsapp') {
+      // In the Cardtly app a wa.me link goes to the phone's browser, not to
+      // WhatsApp, so open the app by its own address (see waAppLink).
+      let native = false
+      try { native = Capacitor.isNativePlatform() } catch {}
+      const app = native ? waAppLink(parsed.digits, text) : null
+      if (app) { window.location.href = app; return }
       // A new tab, because wa.me hands off to the app and leaving the
       // dashboard behind means the next send is one tap away.
       const win = window.open(whatsappHref(parsed.digits, text), '_blank', 'noopener,noreferrer')

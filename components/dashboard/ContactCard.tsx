@@ -9,7 +9,8 @@ import {
 } from 'lucide-react'
 import AddToPhoneButton from './AddToPhoneButton'
 import ShareContactButton from './ShareContactButton'
-import { waLink } from '@/lib/whatsapp'
+import { waLink, waAppLink } from '@/lib/whatsapp'
+import { isNativeApp } from '@/lib/capacitor'
 
 export interface ContactRow {
   id: string
@@ -268,9 +269,17 @@ export default function ContactCard({ contact, viaLabel }: { contact: ContactRow
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {(() => {
-          const wa = waLink(contact.phone, `Hi ${contact.name?.split(' ')[0] || 'there'}, great to connect via my Cardtly card.`)
+          const waText = `Hi ${contact.name?.split(' ')[0] || 'there'}, great to connect via my Cardtly card.`
+          const wa = waLink(contact.phone, waText)
           return wa ? (
             <a href={wa} target="_blank" rel="noopener noreferrer"
+              // In the Cardtly app a wa.me link is handed to the phone's
+              // browser, not to WhatsApp. Open the app by its own address
+              // there instead. See waAppLink.
+              onClick={e => {
+                const app = isNativeApp() ? waAppLink(contact.phone, waText) : null
+                if (app) { e.preventDefault(); window.location.href = app }
+              }}
               className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition"
               style={{ background: 'rgba(37,211,102,0.12)', color: '#25D366' }}>
               <MessageCircle className="w-3 h-3" />Message them

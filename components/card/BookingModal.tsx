@@ -5,6 +5,10 @@ import { createPortal } from 'react-dom'
 import { Calendar, X, Loader2, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useIsPreview, PREVIEW_SUBMIT_NOTICE } from '@/lib/card-surface'
+import { BOOKING_MINUTES } from '@/lib/booking-format'
+
+// Every hour of the day, 00 to 23.
+const HOURS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'))
 
 interface Props {
   open: boolean
@@ -27,7 +31,12 @@ export default function BookingModal({ open, onClose, cardId, cardName, accentHe
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [date, setDate] = useState('')
-  const [time, setTime] = useState('')
+  // An hour and a minute from lists, not the browser's time box. That box
+  // could not reach every time on some phones and refused a half-typed time
+  // with "invalid value", blocking the whole form (2026-10-20). '' is any time.
+  const [hour, setHour] = useState('')
+  const [minute, setMinute] = useState('00')
+  const time = hour ? `${hour}:${minute}` : ''
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
@@ -62,6 +71,8 @@ export default function BookingModal({ open, onClose, cardId, cardName, accentHe
           requester_phone: phone || undefined,
           preferred_date: date,
           preferred_time: time || undefined,
+          // The visitor's own clock, so the email can say whose 09:00 it is.
+          time_zone: (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone } catch { return undefined } })(),
           notes: notes || undefined,
         }),
       })
@@ -79,8 +90,11 @@ export default function BookingModal({ open, onClose, cardId, cardName, accentHe
     }
   }
 
-  // Tomorrow as the minimum date so people don't book for today
-  const today = new Date().toISOString().slice(0, 10)
+  // Today, on the visitor's own calendar, as the earliest date. toISOString
+  // gave the UTC date, which before 02:00 in South Africa is still yesterday.
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const fieldStyle: React.CSSProperties = { background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.1)', colorScheme: 'dark' }
 
   // Rendered through a portal to document.body. The public card has
   // tilt transforms and backdrop-filters on ancestor elements, which
@@ -149,20 +163,34 @@ export default function BookingModal({ open, onClose, cardId, cardName, accentHe
                 placeholder="Your phone (optional)"
                 className="w-full px-3 py-2.5 rounded-xl border text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition"
                 style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.1)' }} />
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-white/50 mb-1.5">Preferred date</label>
-                  <input required type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                    min={today}
-                    className="w-full px-3 py-2.5 rounded-xl border text-sm text-white focus:outline-none focus:border-white/30 transition"
-                    style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.1)' }} />
+              <div>
+                <label htmlFor="booking-date" className="block text-xs text-white/50 mb-1.5">Preferred date</label>
+                {/* colorScheme dark, so the calendar icon and the picker it
+                    opens are drawn for a dark form rather than black on black. */}
+                <input id="booking-date" required type="date" value={date} onChange={(e) => setDate(e.target.value)}
+                  min={today}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm text-white focus:outline-none focus:border-white/30 transition"
+                  style={fieldStyle} />
+              </div>
+              <div>
+                <label htmlFor="booking-hour" className="block text-xs text-white/50 mb-1.5">Preferred time</label>
+                <div className="flex items-center gap-2">
+                  <select id="booking-hour" value={hour} onChange={(e) => setHour(e.target.value)}
+                    aria-label="Hour"
+                    className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border text-sm text-white focus:outline-none focus:border-white/30 transition"
+                    style={fieldStyle}>
+                    <option value="" style={{ background: '#0a0a0a' }}>Any time</option>
+                    {HOURS.map(h => <option key={h} value={h} style={{ background: '#0a0a0a' }}>{h}</option>)}
+                  </select>
+                  <span className="text-white/40 text-sm" aria-hidden="true">:</span>
+                  <select value={minute} onChange={(e) => setMinute(e.target.value)}
+                    aria-label="Minutes" disabled={!hour}
+                    className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border text-sm text-white focus:outline-none focus:border-white/30 transition disabled:opacity-40"
+                    style={fieldStyle}>
+                    {BOOKING_MINUTES.map(m => <option key={m} value={m} style={{ background: '#0a0a0a' }}>{m}</option>)}
+                  </select>
                 </div>
-                <div>
-                  <label className="block text-xs text-white/50 mb-1.5">Preferred time</label>
-                  <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border text-sm text-white focus:outline-none focus:border-white/30 transition"
-                    style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.1)' }} />
-                </div>
+                <p className="text-[11px] text-white/40 mt-1.5">24-hour time, on your own clock.</p>
               </div>
               <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
                 placeholder="What's it about? (optional)"

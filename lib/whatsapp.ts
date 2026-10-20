@@ -22,6 +22,35 @@ export function waLink(phone: string | null | undefined, text?: string): string 
   return text ? `${base}?text=${encodeURIComponent(text)}` : base
 }
 
+// THE APP ITSELF, NOT A WEB PAGE ABOUT IT.
+//
+// wa.me is a web address, and plenty of places treat it as one. Inside the
+// Cardtly Android app it is not a Cardtly page, so Capacitor hands it to the
+// phone's browser; tapped in Gmail or Outlook on a phone it opens in their
+// built-in browser. Either way the card owner lands on WhatsApp's "Continue to
+// chat" web page instead of in the chat (Andre, 2026-10-20). whatsapp://send
+// is the app's own address: the phone opens WhatsApp, or WhatsApp Business,
+// directly. Null when the number is unusable.
+export function waAppLink(phone: string | null | undefined, text?: string): string | null {
+  const d = toIntlDigits(phone || '')
+  if (d.length < 9) return null
+  return `whatsapp://send?phone=${d}${text ? `&text=${encodeURIComponent(text)}` : ''}`
+}
+
+// For an EMAIL. Most mail apps refuse to open a whatsapp:// link, so an email
+// button goes to cardtly.com/wa, which opens the app from a tap (see
+// app/wa). The number and the message ride in the # part of the address,
+// which a browser never sends to a server, so neither Cardtly nor its host
+// logs a lead's phone number. Null when the number is unusable.
+export function waBridgeLink(phone: string | null | undefined, text?: string): string | null {
+  const d = toIntlDigits(phone || '')
+  if (d.length < 9) return null
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com').replace(/\/$/, '')
+  const params = new URLSearchParams({ phone: d })
+  if (text) params.set('text', text)
+  return `${appUrl}/wa#${params.toString()}`
+}
+
 // Opens WhatsApp with a message pre-filled and NO recipient, so the person
 // tapping picks who it goes to. Crucially, that includes themselves:
 // WhatsApp's "Message yourself" chat is a normal contact in the picker.

@@ -15,13 +15,19 @@ export interface CardOwner {
   personalCardId: string | null
   teamCardId: string | null
   cardName: string
+  /** The card's job title, company and link, so a lead email can say which
+   *  card it came in on. Empty when the card has none. */
+  cardTitle: string
+  cardCompany: string
+  cardSlug: string
   // De-duplicated inboxes to notify (card display email + claimed
   // account email). Empty if the card has no reachable email.
   ownerEmails: string[]
 }
 
 const EMPTY: CardOwner = {
-  found: false, isTeam: false, personalCardId: null, teamCardId: null, cardName: '', ownerEmails: [],
+  found: false, isTeam: false, personalCardId: null, teamCardId: null, cardName: '',
+  cardTitle: '', cardCompany: '', cardSlug: '', ownerEmails: [],
 }
 
 // `id` may be a personal card id OR a team card id - we detect which.
@@ -43,7 +49,7 @@ export async function resolveCardOwner(admin: any, id: string): Promise<CardOwne
   // Personal card first.
   const { data: personal } = await admin
     .from('cards')
-    .select('id, name, email, user_id')
+    .select('id, name, email, user_id, title, company, slug')
     .eq('id', id)
     .maybeSingle()
 
@@ -58,6 +64,9 @@ export async function resolveCardOwner(admin: any, id: string): Promise<CardOwne
       personalCardId: personal.id,
       teamCardId: null,
       cardName: personal.name || '',
+      cardTitle: personal.title || '',
+      cardCompany: personal.company || '',
+      cardSlug: personal.slug || '',
       ownerEmails: [...emails],
     }
   }
@@ -65,7 +74,7 @@ export async function resolveCardOwner(admin: any, id: string): Promise<CardOwne
   // Team card.
   const { data: team } = await admin
     .from('team_cards')
-    .select('id, name, email, user_id, organization_id')
+    .select('id, name, email, user_id, organization_id, title, company, slug')
     .eq('id', id)
     .maybeSingle()
 
@@ -80,6 +89,9 @@ export async function resolveCardOwner(admin: any, id: string): Promise<CardOwne
       personalCardId: null,
       teamCardId: team.id,
       cardName: team.name || '',
+      cardTitle: team.title || '',
+      cardCompany: team.company || '',
+      cardSlug: team.slug || '',
       ownerEmails: [...emails],
     }
   }
