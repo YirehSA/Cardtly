@@ -38,7 +38,7 @@ export interface Reseller {
   nfc_blank_cents: number
   nfc_printed_cents: number
   nfc_shipping_cents: number
-  status: 'active' | 'suspended'
+  status: 'active' | 'suspended' | 'ended'
   notes: string | null
   created_at: string
 }
@@ -92,7 +92,9 @@ export async function requireReseller(): Promise<{ user: { id: string; email?: s
 /** Writes are refused while Cardtly has suspended the reseller. Reading stays
  *  open, so they can still see what they owe. */
 export function writable(reseller: Reseller): Fail | null {
-  return reseller.status === 'active' ? null
+  if (reseller.status === 'active') return null
+  return reseller.status === 'ended'
+    ? fail('Your reseller account has ended, so nothing can be changed. Your invoices are still here.', 403)
     : fail('Your reseller account is on hold, so nothing can be changed right now. Contact Cardtly at hello@cardtly.com.', 403)
 }
 

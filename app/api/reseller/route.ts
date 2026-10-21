@@ -5,6 +5,7 @@ import {
 } from '@/lib/reseller'
 import { invoiceOutstanding } from '@/lib/billing-docs'
 import { sastMonth, monthLabel, seatsSold } from '@/lib/reseller-pricing'
+import { syncResellerFreeCard } from '@/lib/reseller-comp'
 
 // The reseller's own page: their pool, their clients, their NFC orders and
 // their invoices. Every query is scoped to the reseller this login runs, which
@@ -15,7 +16,15 @@ export const runtime = 'nodejs'
 export async function GET() {
   const gate = await requireReseller()
   if ('error' in gate) return gate.error
-  const { reseller, db } = gate
+  const { reseller, db, user } = gate
+
+  // Only the main login's card is free, so only they are told it is. Read
+  // only: the admin side and the daily run make it so.
+  let ownCardFree = false
+  try {
+    const free = await syncResellerFreeCard(db, reseller, { dryRun: true })
+    ownCardFree = free.userId === user.id && (free.state === 'free' || free.state === 'already_free')
+  } catch { /* not shown */ }
 
   const month = sastMonth(new Date())
   const [clients, usage, orders, invoices] = await Promise.all([
@@ -34,6 +43,7 @@ export async function GET() {
   const monthSeats = (usage.data || []).reduce((n: number, u: any) => n + (Number(u.peak_seats) || 0), 0)
 
   return NextResponse.json({
+    ownCardFree,
     reseller: {
       name: reseller.name,
       status: reseller.status,

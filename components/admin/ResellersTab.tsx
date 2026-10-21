@@ -225,7 +225,8 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
     return true
   }
 
-  const suspended = r.status !== 'active'
+  const suspended = r.status === 'suspended'
+  const ended = r.status === 'ended'
 
   return (
     <div className="rounded-xl border" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
@@ -234,6 +235,7 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
           <p className="font-semibold text-white text-sm flex items-center gap-2">
             {r.name}
             {suspended && <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>On hold</span>}
+            {ended && <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ background: 'rgba(148,163,184,0.15)', color: '#94a3b8' }}>Ended</span>}
           </p>
           <p className="text-xs" style={{ color: muted }}>
             {r.sold} of {r.seat_pool} seats sold · {r.clients.length} client{r.clients.length === 1 ? '' : 's'} · {money(r.seat_price_cents)}/seat
@@ -390,6 +392,16 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
               A price change applies to the next invoice drafted. Invoices already issued keep the price they were issued at.
             </p>
             <div className="flex items-center justify-between gap-2 mt-3 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
+              {ended ? (
+                <button onClick={() => {
+                  if (!confirm(`Restart ${r.name} as a reseller? Their page opens again and their own card becomes free again.`)) return
+                  patch('restart', { action: 'restart' }, `${r.name} is a reseller again`)
+                }} disabled={!!busy}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>
+                  Restart reseller
+                </button>
+              ) : (<>
               <button onClick={() => {
                 const to = suspended ? 'active' : 'suspended'
                 if (!confirm(suspended
@@ -401,6 +413,15 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
                 style={suspended ? { background: 'rgba(34,197,94,0.12)', color: '#22c55e' } : { background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
                 {suspended ? 'Take off hold' : 'Put on hold'}
               </button>
+              <button onClick={() => {
+                if (!confirm(`End ${r.name} as a reseller?\n\nTheir page becomes read-only (their invoices stay there), their own card stops being free, and the last month they had seats live in is still invoiced on the 1st.\n\nAny clients still on their bill must be cancelled, or moved to another billing mode under Teams, first.`)) return
+                patch('end', { action: 'end' }, `${r.name} has ended as a reseller`)
+              }} disabled={!!busy}
+                className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(148,163,184,0.12)', color: '#cbd5e1' }}>
+                End reseller
+              </button>
+              </>)}
+              </div>
               <button onClick={() => patch('save', {
                 action: 'update', seat_pool: Number(edit.seat_pool),
                 seat_price_cents: toCents(edit.seat), nfc_blank_cents: toCents(edit.blank),
@@ -417,6 +438,21 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
           {/* Logins */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: muted }}>Logins</p>
+            {r.freeCard && (
+              <div className="flex items-start gap-2 text-xs rounded-lg px-3 py-2 mb-2 flex-wrap"
+                style={{ background: r.freeCard.state === 'paying' ? 'rgba(245,158,11,0.08)' : 'rgba(34,197,94,0.06)',
+                  border: `1px solid ${r.freeCard.state === 'paying' ? 'rgba(245,158,11,0.3)' : 'rgba(34,197,94,0.22)'}` }}>
+                <span className="flex-1 min-w-[200px]" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                  <strong className="text-white">Free card, {r.freeCard.email}:</strong> {r.freeCard.text}
+                </span>
+                {(r.freeCard.state === 'pending' || r.freeCard.state === 'paying') && !ended && (
+                  <button onClick={() => patch('free', { action: 'sync_free_card' }, 'Checked')} disabled={!!busy}
+                    className="px-2.5 py-1 rounded-lg font-semibold" style={{ background: 'rgba(255,255,255,0.08)', color: '#fff' }}>
+                    Check again
+                  </button>
+                )}
+              </div>
+            )}
             <div className="space-y-1">
               {r.logins.map((l: any) => (
                 <div key={l.user_id} className="flex items-center gap-2 text-xs rounded-lg px-3 py-2" style={{ background: 'rgba(255,255,255,0.03)' }}>

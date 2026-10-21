@@ -15,8 +15,9 @@ interface Client {
   cardsMade: number; ownerEmail: string | null; createdAt: string | null; offBill: boolean
 }
 interface Data {
+  ownCardFree?: boolean
   reseller: {
-    name: string; status: 'active' | 'suspended'; seatPool: number; seatPriceCents: number
+    name: string; status: 'active' | 'suspended' | 'ended'; seatPool: number; seatPriceCents: number
     nfcBlankCents: number; nfcPrintedCents: number; nfcShippingCents: number; invoicesReady: boolean
   }
   sold: number
@@ -114,12 +115,19 @@ export default function ResellerPanel() {
         <p className="page-subtitle mt-1.5">
           Give seats to your clients and charge them what you like. Cardtly invoices you {randCents(r.seatPriceCents)} a seat each month.
         </p>
+        {data.ownCardFree && (
+          <p className="text-sm mt-2 inline-flex items-center gap-1.5 text-emerald-500">
+            <Check className="w-4 h-4" />Your own Cardtly card is free while you are a reseller.
+          </p>
+        )}
       </div>
 
       {onHold && (
         <div className="rounded-xl px-4 py-3 text-sm flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-600">
           <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          Your reseller account is on hold, so clients and orders cannot be changed right now. Your clients&apos; cards are not affected. Contact Cardtly at hello@cardtly.com.
+          {r.status === 'ended'
+            ? 'Your reseller account has ended, so clients and orders can no longer be changed. Your invoices are still here.'
+            : <>Your reseller account is on hold, so clients and orders cannot be changed right now. Your clients&apos; cards are not affected. Contact Cardtly at hello@cardtly.com.</>}
         </div>
       )}
 

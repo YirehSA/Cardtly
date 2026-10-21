@@ -6,6 +6,7 @@ import { sendResellerWelcome, sendResellerApproved } from '@/lib/reseller-invite
 import { listResellerClients, poolClients } from '@/lib/reseller'
 import { draftResellerMonth, rebuildResellerMonth } from '@/lib/reseller-billing'
 import { sastMonth, previousMonth, monthLabel, seatsSold, RESELLER_DEFAULTS } from '@/lib/reseller-pricing'
+import { syncResellerFreeCard, FREE_CARD_TEXT } from '@/lib/reseller-comp'
 
 // Admin: the resellers, their pools and prices, their clients, and what they
 // are being billed. See migration 094 and lib/reseller-billing.
@@ -117,8 +118,12 @@ export async function GET() {
     const seatsIn = (month: string) => (usage.data || [])
       .filter((u: any) => u.reseller_id === r.id && u.month === month)
       .reduce((n: number, u: any) => n + (Number(u.peak_seats) || 0), 0)
+    // Read only: the GET reports, the writes below make it so.
+    let freeCard: any = null
+    try { freeCard = await syncResellerFreeCard(db, r, { dryRun: true }) } catch { /* shown as unknown */ }
     return {
       ...r,
+      freeCard: freeCard ? { ...freeCard, text: FREE_CARD_TEXT[freeCard.state as keyof typeof FREE_CARD_TEXT] } : null,
       logins,
       clients,
       sold: seatsSold(poolClients(clients)),
@@ -223,6 +228,9 @@ export async function POST(request: Request) {
   }
 
   const linked = await linkLogin(db, reseller, email, new URL(request.url).origin, !!application)
+  // Their own card is free while they are a reseller (lib/reseller-comp).
+  const free = await syncResellerFreeCard(db, reseller).catch(() => null)
+  const freeNote = free ? ` ${FREE_CARD_TEXT[free.state]}` : ''
   await auditLog(db, {
     actorUserId: gate.user.id, actorEmail: gate.user.email,
     action: application ? 'approve_reseller_application' : 'create_reseller', targetEmail: email,
@@ -231,7 +239,7 @@ export async function POST(request: Request) {
   if ('error' in linked) {
     return NextResponse.json({ reseller, warning: `Reseller saved, but the login was not linked: ${linked.error}` })
   }
-  return NextResponse.json({ reseller, warning: linked.note })
+  return NextResponse.json({ reseller, warning: linked.note + freeNote })
 }
 
 export async function PATCH(request: Request) {
@@ -302,7 +310,8 @@ export async function PATCH(request: Request) {
       await db.from('billing_clients').update(c).eq('id', reseller.billing_client_id)
     }
     await audit('update_reseller', patch)
-    return NextResponse.json({ ok: true })
+    const free = await syncResellerFreeCard(db, { ...reseller, ...patch }).catch(() => null)
+    return NextResponse.json({ ok: true, ...(free && free.state === 'paying' ? { warning: FREE_CARD_TEXT.paying } : {}) })
   }
 
   if (body.action === 'add_login') {
@@ -311,13 +320,55 @@ export async function PATCH(request: Request) {
     const linked = await linkLogin(db, reseller, email, origin)
     if ('error' in linked) return NextResponse.json({ error: linked.error }, { status: 400 })
     await audit('reseller_add_login', { email })
+    await syncResellerFreeCard(db, reseller).catch(() => null)
     return NextResponse.json({ ok: true, warning: linked.note })
   }
 
   if (body.action === 'remove_login') {
     await db.from('reseller_members').delete().eq('reseller_id', reseller.id).eq('user_id', String(body.user_id || ''))
     await audit('reseller_remove_login', { user_id: body.user_id })
+    // Removing the main login ends its free card.
+    await syncResellerFreeCard(db, reseller).catch(() => null)
     return NextResponse.json({ ok: true })
+  }
+
+  // Ending a reseller: they stop being one. Not a delete, which would take
+  // their invoices and seat history with it. Refused while clients are still on
+  // their bill, because those teams would carry on being billed to a reseller
+  // that no longer exists. Cancel them on the reseller's page, or move them to
+  // another billing mode under Teams, first.
+  if (body.action === 'end') {
+    const onBill = (await listResellerClients(db, reseller.id)).filter(c => !c.offBill && c.state !== 'cancelled')
+    if (onBill.length) {
+      return NextResponse.json({
+        error: `${reseller.name} still has ${onBill.length} client${onBill.length === 1 ? '' : 's'} on their bill (${onBill.slice(0, 3).map(c => c.name).join(', ')}${onBill.length > 3 ? '...' : ''}). Cancel them, or move them to another billing mode under Teams, first.`,
+      }, { status: 409 })
+    }
+    const at = new Date().toISOString()
+    const { error } = await db.from('resellers').update({ status: 'ended', ended_at: at, updated_at: at }).eq('id', reseller.id)
+    if (error) {
+      const missing = /resellers_status_check|ended_at/.test(error.message || '')
+      return NextResponse.json({ error: missing ? 'Ending a reseller needs migration 096. Run it in Supabase, then try again.' : (error.message || 'Could not save.') }, { status: missing ? 503 : 500 })
+    }
+    const free = await syncResellerFreeCard(db, { ...reseller, status: 'ended' }).catch(() => null)
+    await audit('end_reseller', { free_card: free?.state || null })
+    return NextResponse.json({ ok: true, warning: 'Their page is now read-only, their own card is no longer free, and any month they still had seats live in is invoiced on the 1st as usual.' })
+  }
+
+  if (body.action === 'restart') {
+    if (reseller.status !== 'ended') return NextResponse.json({ error: 'Only an ended reseller can be restarted.' }, { status: 409 })
+    const at = new Date().toISOString()
+    const { error } = await db.from('resellers').update({ status: 'active', ended_at: null, updated_at: at }).eq('id', reseller.id)
+    if (error) return NextResponse.json({ error: error.message || 'Could not save.' }, { status: 500 })
+    const free = await syncResellerFreeCard(db, { ...reseller, status: 'active' }).catch(() => null)
+    await audit('restart_reseller', { free_card: free?.state || null })
+    return NextResponse.json({ ok: true, ...(free ? { warning: FREE_CARD_TEXT[free.state] } : {}) })
+  }
+
+  if (body.action === 'sync_free_card') {
+    const free = await syncResellerFreeCard(db, reseller)
+    await audit('reseller_sync_free_card', { state: free.state })
+    return NextResponse.json({ ok: true, state: free.state, warning: FREE_CARD_TEXT[free.state] })
   }
 
   if (body.action === 'draft_month') {

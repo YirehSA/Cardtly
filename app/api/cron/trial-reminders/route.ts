@@ -334,9 +334,14 @@ export async function GET(request: Request) {
   let resellers: any = null
   try {
     const { recordAllResellerSeats, draftResellerInvoices } = await import('@/lib/reseller-billing')
+    const { syncAllResellerFreeCards } = await import('@/lib/reseller-comp')
     const seats = await recordAllResellerSeats(admin)
     const drafts = await draftResellerInvoices(admin)
-    resellers = { seats, drafts }
+    // A reseller's own card is free while they are one: make it so for any
+    // whose Paystack subscription has since been cancelled, and stop it for
+    // any that ended.
+    const freeCards = await syncAllResellerFreeCards(admin)
+    resellers = { seats, drafts, freeCards }
   } catch (e: any) {
     resellers = { error: e?.message || 'reseller pass failed' }
   }
