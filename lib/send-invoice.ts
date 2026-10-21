@@ -73,8 +73,13 @@ export async function sendInvoiceEmail(
     .from('credit_notes').select('total_cents').eq('invoice_id', invoice.id).eq('status', 'issued')
   const credited = (credits || []).reduce((n: number, c: any) => n + (c.total_cents || 0), 0)
   const outstanding = invoiceOutstanding(invoice.total_cents || 0, invoice.paid_cents || 0, credited)
+  // Settled by money (not only by a credit note), and not a reminder: the
+  // email says thank you instead of asking to be paid.
+  const paidInFull = !opts.reminder && outstanding === 0 && (invoice.paid_cents || 0) > 0
 
   const { subject, html } = renderInvoiceEmail({
+    paidInFull,
+    paidFormatted: paidInFull ? formatMoney(invoice.paid_cents || 0, invoice.currency || 'ZAR') : null,
     number: invoice.number,
     clientName: invoice.to_snapshot?.name || 'there',
     totalFormatted: formatMoney(invoice.total_cents, invoice.currency || 'ZAR'),

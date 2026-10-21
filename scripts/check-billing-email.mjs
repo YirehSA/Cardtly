@@ -188,6 +188,22 @@ const base = {
   if (!hostile.html.includes('&lt;img')) bad('the signer name was not escaped')
 }
 
+// ── A paid invoice is a thank-you, not a bill ─────────────────────────────
+// Sent at the end of Payment received. Asking somebody who has just paid to
+// "use INV-... as your payment reference" reads as if the money went missing.
+{
+  const { subject, html } = M.renderInvoiceEmail({ ...base, paidInFull: true, clientName: 'Acme <b>Ltd</b>', message: 'Thanks <script>x</script>' })
+  if (!/^Paid: invoice INV-2026-1001/.test(subject)) bad(`a paid invoice's subject does not say it is paid: "${subject}"`)
+  if (/payment reference|BANKING DETAILS|63174887712/i.test(html)) bad('a paid invoice email still asks to be paid (banking details or payment reference)')
+  if (/Due<\/td>/.test(html)) bad('a paid invoice email still shows a due date')
+  if (!/Nothing/.test(html)) bad('a paid invoice email does not say nothing is owing')
+  if (/<script|<b>Ltd/.test(html)) bad('the paid invoice email did not escape the client name or note')
+  const credited = M.renderInvoiceEmail({ ...base, paidInFull: true, paidFormatted: 'R4 000.00' })
+  if (!credited.html.includes('R4 000.00')) bad('a paid invoice email shows the total instead of what was paid when a credit covered the rest')
+  const ordinary = M.renderInvoiceEmail(base)
+  if (/^Paid/.test(ordinary.subject)) bad('an unpaid invoice email says it is paid')
+}
+
 // Quotes are not emailed from the system at all, so there is no template to
 // check. The guard against one coming back lives in check-quote-access.
 if (typeof M.renderQuoteEmail === 'function') {

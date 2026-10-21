@@ -27,8 +27,11 @@ export async function GET() {
   const monthStart = `${todayIso.slice(0, 7)}-01`
 
   const { data: invoices, error } = await db
-    .from('invoices').select('id, status, total_cents, paid_cents, due_at, recurring_id')
+    .from('invoices').select('id, status, total_cents, paid_cents, due_at, recurring_id, from_quote_id')
   if (error) return migrationMissing()
+  // A signed quote stays 'accepted' after it becomes an invoice, so "ready to
+  // invoice" has to leave out the ones that already are.
+  const invoicedQuotes = new Set((invoices || []).map((i: any) => i.from_quote_id).filter(Boolean))
 
   const ids = (invoices || []).map((i: any) => i.id)
   const [{ data: credits }, { data: quotes }, { data: receipts }, { data: schedules }, { data: clients }] =
@@ -84,7 +87,10 @@ export async function GET() {
 
   let quotesOut = 0, quotesOutValue = 0, quotesAccepted = 0, quotesAcceptedValue = 0
   for (const q of quotes || []) {
-    if (q.status === 'accepted') { quotesAccepted++; quotesAcceptedValue += q.total_cents || 0; continue }
+    if (q.status === 'accepted') {
+      if (!invoicedQuotes.has(q.id)) { quotesAccepted++; quotesAcceptedValue += q.total_cents || 0 }
+      continue
+    }
     if (!['issued', 'sent'].includes(q.status)) continue
     if (isQuoteExpired(q, today)) continue
     quotesOut++

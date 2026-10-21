@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Plus, Save, X, FileText, Send, Trash2, Lock, Link2, ArrowRight, UserPlus, Pencil } from 'lucide-react'
+import { Loader2, Plus, Save, X, FileText, Send, Trash2, Lock, Link2, ArrowRight, UserPlus, Pencil, HandCoins } from 'lucide-react'
 import { Section, inputClass, inputStyle, grad } from '../shared'
 import { money, toCents, toRands, Empty, fmtDate } from './shared'
 
@@ -46,7 +46,7 @@ function Pill({ status }: { status: string }) {
     style={{ background: `${m.colour}1f`, color: m.colour, border: `1px solid ${m.colour}55` }}>{m.label}</span>
 }
 
-export default function QuotesTab() {
+export default function QuotesTab({ onPaid }: { onPaid?: (quoteId: string) => void } = {}) {
   const [loading, setLoading] = useState(true)
   const [unavailable, setUnavailable] = useState<string | null>(null)
   const [quotes, setQuotes] = useState<Quote[]>([])
@@ -503,6 +503,15 @@ export default function QuotesTab() {
                         ? { background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.4)' }
                         : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.7)' }}>
                       Extend
+                    </button>
+                  )}
+                  {/* The client paid: Payment received makes the invoice, the
+                      team and the rest from here, in the right order. */}
+                  {onPaid && ['issued', 'sent', 'accepted'].includes(q.status) && (
+                    <button onClick={() => onPaid(q.id)} title="They paid: set everything up from this quote"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
+                      style={{ background: 'hsl(var(--accent) / 0.18)', color: '#fff', border: '1px solid hsl(var(--accent) / 0.5)' }}>
+                      <HandCoins className="w-3.5 h-3.5" />Paid
                     </button>
                   )}
                   {q.display_status === 'accepted' && (

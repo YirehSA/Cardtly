@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin, adminDb, migrationMissing } from '@/lib/admin-api'
-import { allocationPlan, statusAfterPayment, unallocatedCents } from '@/lib/billing-docs'
+import { allocationPlan, statusAfterPayment, unallocatedCents, invoiceOutstanding, formatMoney } from '@/lib/billing-docs'
 import { applyPrepaidPeriod } from '@/lib/prepaid'
 
 // Money in, then money allocated.
@@ -27,6 +27,64 @@ async function creditsFor(db: any, invoiceIds: string[]): Promise<Record<string,
   const out: Record<string, number> = {}
   for (const c of data || []) out[c.invoice_id] = (out[c.invoice_id] || 0) + (c.total_cents || 0)
   return out
+}
+
+/** Allocations as a request sends them, cleaned. */
+function allocationsFrom(raw: unknown): Array<{ invoiceId: string; amountCents: number }> {
+  return (Array.isArray(raw) ? raw : [])
+    .map((a: any) => ({ invoiceId: String(a?.invoice_id || ''), amountCents: Math.round(Number(a?.amount_cents)) }))
+    .filter(a => a.invoiceId && Number.isFinite(a.amountCents) && a.amountCents > 0)
+}
+
+/**
+ * Can this money go on these invoices? A sentence saying why not, or null.
+ *
+ * Each invoice must be this client's, issued (a draft has no number and owes
+ * nothing yet), and still owe at least what is put on it. Paying an invoice
+ * more than it owes would read as paid while the extra vanished from the
+ * client's account; the extra belongs on the receipt as unapplied cash.
+ * When a receipt is being re-allocated, what it already put on an invoice
+ * counts as owing again.
+ */
+async function allocationProblem(
+  db: any,
+  clientId: string | null,
+  allocations: Array<{ invoiceId: string; amountCents: number }>,
+  excludeReceiptId?: string,
+): Promise<string | null> {
+  if (!allocations.length) return null
+  if (!clientId) return 'Say which client this payment is from before putting it on an invoice.'
+  const ids = [...new Set(allocations.map(a => a.invoiceId))]
+  const { data: invoices } = await db
+    .from('invoices').select('id, number, client_id, status, total_cents, paid_cents').in('id', ids)
+  const byId = Object.fromEntries((invoices || []).map((i: any) => [i.id, i]))
+
+  const mine: Record<string, number> = {}
+  if (excludeReceiptId) {
+    const { data: rows } = await db
+      .from('billing_payments').select('invoice_id, amount_cents').eq('receipt_id', excludeReceiptId)
+    for (const r of rows || []) mine[r.invoice_id] = (mine[r.invoice_id] || 0) + (r.amount_cents || 0)
+  }
+  const credited = await creditsFor(db, ids)
+
+  const asked: Record<string, number> = {}
+  for (const a of allocations) asked[a.invoiceId] = (asked[a.invoiceId] || 0) + a.amountCents
+
+  for (const id of ids) {
+    const inv = byId[id]
+    if (!inv) return 'One of those invoices no longer exists. Reload and choose again.'
+    const name = inv.number || 'That draft'
+    if (inv.client_id !== clientId) return `${name} belongs to a different client, so this payment cannot settle it.`
+    if (inv.status === 'draft') return `${name} is still a draft. Issue it first, then put the payment on it.`
+    if (['cancelled', 'written_off'].includes(inv.status)) return `${name} is ${inv.status.replace('_', ' ')}, so nothing can be paid on it.`
+    const owing = invoiceOutstanding(inv.total_cents || 0, (inv.paid_cents || 0) - (mine[id] || 0), credited[id] || 0)
+    if (asked[id] > owing) {
+      return owing > 0
+        ? `${name} only has ${formatMoney(owing)} left to pay, not ${formatMoney(asked[id])}. Put ${formatMoney(owing)} on it; the rest stays on the client's account as unapplied.`
+        : `${name} has nothing left to pay.`
+    }
+  }
+  return null
 }
 
 async function restatus(db: any, invoiceIds: string[]) {
@@ -107,6 +165,20 @@ export async function POST(request: Request) {
   const method = METHODS.includes(body?.method) ? body.method : 'eft'
 
   const db = adminDb()
+
+  // THE INVOICES IT PAID, named. Checked before anything is written, so a
+  // payment that cannot go where it was sent is refused whole rather than
+  // recorded and left unallocated behind the error.
+  const named = allocationsFrom(body?.allocations)
+  if (named.length) {
+    const sum = named.reduce((n, a) => n + a.amountCents, 0)
+    if (sum > amount) {
+      return NextResponse.json({ error: `That puts ${formatMoney(sum)} on invoices from a payment of ${formatMoney(amount)}.` }, { status: 400 })
+    }
+    const problem = await allocationProblem(db, body.client_id || null, named)
+    if (problem) return NextResponse.json({ error: problem }, { status: 400 })
+  }
+
   const { data: receipt, error } = await db.from('billing_receipts').insert({
     client_id: body.client_id || null,
     amount_cents: amount,
@@ -120,6 +192,21 @@ export async function POST(request: Request) {
   if (error) {
     if (/relation .* does not exist/i.test(error.message || '')) return migrationMissing('Payments')
     return NextResponse.json({ error: error.message || 'Could not record the payment' }, { status: 500 })
+  }
+
+  if (named.length) {
+    const result: { error?: NextResponse } = await applyAllocations(db, receipt, named, gate.user.id)
+    if (result.error) {
+      // Recorded but not placed (two people allocating at once). Say so, and
+      // hand back the receipt so the screen can place it instead of loading
+      // the same bank line a second time.
+      const reason = await result.error.json().catch(() => ({}))
+      return NextResponse.json({
+        error: `The payment was recorded, but could not be put on the invoice: ${reason?.error || 'unknown error'}. Allocate it from Payments.`,
+        receipt,
+      }, { status: 409 })
+    }
+    return NextResponse.json({ receipt, allocated: named.reduce((n, a) => n + a.amountCents, 0) })
   }
 
   // "Allocate the obvious way" is a convenience, never an assumption: it only
@@ -151,7 +238,38 @@ export async function PUT(request: Request) {
 
   const db = adminDb()
   const plan = await propose(db, body.client_id, amount, body.exclude_receipt_id)
-  return NextResponse.json(plan)
+  return NextResponse.json({ ...plan, open: await openFor(db, body.client_id, body.exclude_receipt_id) })
+}
+
+/**
+ * Every invoice this client still owes on, so the person allocating can pick
+ * the one that was actually paid. The suggestion above only reaches as far as
+ * the money goes, oldest first, which hid the very invoice a client named in
+ * their reference whenever an older one was still open.
+ */
+async function openFor(db: any, clientId: string, excludeReceiptId?: string) {
+  const { data: invoices } = await db
+    .from('invoices')
+    .select('id, number, due_at, issued_at, total_cents, paid_cents, status')
+    .eq('client_id', clientId)
+    .in('status', ['issued', 'sent', 'part_paid', 'overdue', 'paid'])
+    .order('issued_at', { ascending: true })
+
+  const mine: Record<string, number> = {}
+  if (excludeReceiptId) {
+    const { data: rows } = await db
+      .from('billing_payments').select('invoice_id, amount_cents').eq('receipt_id', excludeReceiptId)
+    for (const r of rows || []) mine[r.invoice_id] = (mine[r.invoice_id] || 0) + (r.amount_cents || 0)
+  }
+  const credited = await creditsFor(db, (invoices || []).map((i: any) => i.id))
+  return (invoices || [])
+    .map((i: any) => ({
+      invoice_id: i.id, invoice_number: i.number, due_at: i.due_at, status: i.status,
+      total_cents: i.total_cents,
+      outstanding_cents: invoiceOutstanding(i.total_cents || 0, (i.paid_cents || 0) - (mine[i.id] || 0), credited[i.id] || 0),
+    }))
+    // A paid invoice is listed only when it is this receipt that paid it.
+    .filter((i: any) => i.outstanding_cents > 0)
 }
 
 /** Allocate an existing receipt across invoices. */
@@ -163,19 +281,34 @@ export async function PATCH(request: Request) {
   if (!body?.receipt_id) return NextResponse.json({ error: 'Which payment?' }, { status: 400 })
 
   const db = adminDb()
-  const { data: receipt } = await db
+  let { data: receipt } = await db
     .from('billing_receipts').select('*').eq('id', body.receipt_id).maybeSingle()
   if (!receipt) return NextResponse.json({ error: 'No such payment' }, { status: 404 })
 
-  const allocations = (Array.isArray(body.allocations) ? body.allocations : [])
-    .map((a: any) => ({ invoiceId: String(a.invoice_id), amountCents: Math.round(Number(a.amount_cents)) }))
-    .filter((a: any) => a.invoiceId && Number.isFinite(a.amountCents) && a.amountCents > 0)
+  const allocations = allocationsFrom(body.allocations)
 
   const sum = allocations.reduce((n: number, a: any) => n + a.amountCents, 0)
   if (sum > receipt.amount_cents) {
     return NextResponse.json({
-      error: `That allocates more than was received. Payment is ${receipt.amount_cents} cents, allocations total ${sum}.`,
+      error: `That puts ${formatMoney(sum)} on invoices from a payment of ${formatMoney(receipt.amount_cents)}.`,
     }, { status: 400 })
+  }
+
+  // WHOSE IT IS, for a deposit recorded before anybody knew. Only ever filled
+  // in, never changed: moving a receipt that already pays somebody's invoices
+  // to another client would leave those invoices paid by a stranger.
+  const namedClient = typeof body.client_id === 'string' && body.client_id ? body.client_id : null
+  if (namedClient && receipt.client_id && namedClient !== receipt.client_id) {
+    return NextResponse.json({ error: 'This payment is already on another client\'s account.' }, { status: 409 })
+  }
+  const clientId = receipt.client_id || namedClient
+  const problem = await allocationProblem(db, clientId, allocations, receipt.id)
+  if (problem) return NextResponse.json({ error: problem }, { status: 400 })
+  if (namedClient && !receipt.client_id) {
+    const { data: named, error: nErr } = await db.from('billing_receipts')
+      .update({ client_id: namedClient }).eq('id', receipt.id).is('client_id', null).select('*').maybeSingle()
+    if (nErr || !named) return NextResponse.json({ error: 'Could not put this payment on that client. Reload and try again.' }, { status: 409 })
+    receipt = named
   }
 
   // Replaced wholesale: re-allocating a receipt is a correction, and leaving

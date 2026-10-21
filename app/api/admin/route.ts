@@ -1024,8 +1024,10 @@ export async function POST(request: Request) {
     // team is live and they do not pay for the card some other way
     // (lib/owner-team-card). Without it the owner's card sat outside the team
     // and went offline when their signup trial ended (JETOUR, 2026-10-07).
+    let savedOrgId: string | null = null
     {
       const { data: saved } = await admin.from('organizations').select('id').eq('admin_user_id', ownerId).maybeSingle()
+      savedOrgId = saved?.id || null
       if (saved?.id) {
         const moved = await settleOwnerCard(admin, saved.id)
         if (moved?.ok) notes.push(`The owner's own card was moved into the team as one of its ${seats} seats, at the same link.${moved.error ? ` ${moved.error}` : ''}`)
@@ -1035,6 +1037,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
+      // The Payment received screen links the billing client to this next.
+      organization_id: savedOrgId,
       ...(notes.length ? { warning: notes.join(' ') } : {}),
     })
   }

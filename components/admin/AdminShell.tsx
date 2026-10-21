@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   Users as UsersIcon, Building2, Handshake, Ticket, UserCog, CalendarClock, PhoneCall, Mail,
   Network, Wifi, Flag, ScrollText, Receipt, FileSignature, RefreshCw, Banknote,
-  Contact, SlidersHorizontal, Wallet, Search, Menu, X, ArrowLeft, CornerDownLeft, Sun, ChevronDown,
+  Contact, SlidersHorizontal, Wallet, Search, Menu, X, ArrowLeft, CornerDownLeft, Sun, ChevronDown, HandCoins,
 } from 'lucide-react'
 import { matchesAllWords } from './shared'
 import type { AdminUserRow, AdminOrgRow } from '@/lib/admin-data'
@@ -29,7 +29,7 @@ import type { AdminUserRow, AdminOrgRow } from '@/lib/admin-data'
 export const TABS = [
   'overview', 'users', 'teams', 'resellers', 'trials',
   'reps', 'meetings', 'calls', 'emails', 'networking',
-  'accounting', 'invoices', 'quotes', 'recurring', 'payments', 'clients', 'billing',
+  'received', 'accounting', 'invoices', 'quotes', 'recurring', 'payments', 'clients', 'billing',
   'nfc', 'reports', 'activity',
 ] as const
 export type Tab = typeof TABS[number]
@@ -57,6 +57,7 @@ export const SECTIONS: SectionDef[] = [
     { id: 'networking', label: 'Networking', icon: Network, desc: 'LinkedIn and networking-event outreach.', keywords: 'linkedin events networking' },
   ] },
   { id: 'money', label: 'Money', icon: Banknote, items: [
+    { id: 'received', label: 'Payment received', icon: HandCoins, desc: 'A client paid by EFT. Step by step from the money in the bank to a paid invoice and a live team.', keywords: 'eft paid payment received allocate setup onboard new client team quote accepted' },
     { id: 'accounting', label: 'Money overview', icon: Wallet, desc: 'What is owed, what is late and what came in this month.', keywords: 'accounting finance books owed overdue' },
     { id: 'invoices', label: 'Invoices', icon: Receipt, desc: 'Draft, approve, send and chase invoices.', keywords: 'invoice bill owed overdue tax' },
     { id: 'quotes', label: 'Quotes', icon: FileSignature, desc: 'Quotes out with clients, and turning accepted ones into invoices.', keywords: 'quote quotation proposal' },

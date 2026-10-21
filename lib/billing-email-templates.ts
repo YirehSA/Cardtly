@@ -142,6 +142,11 @@ export interface InvoiceEmailInput {
   reminderStage?: { stage: number; isFinal: boolean; daysOverdue: number } | null
   /** A note typed by whoever is sending it. Plain text; escaped here. */
   message?: string | null
+  /** Paid in full: the email is a thank-you with the paid invoice attached,
+   *  not a request for money. No banking details, no due date, nothing owing. */
+  paidInFull?: boolean
+  /** What was received, when a credit note covered the rest of the total. */
+  paidFormatted?: string | null
   from: { legalName?: string; regNumber?: string | null; email?: string | null }
   bank?: {
     bankName?: string | null; accountName?: string | null; accountNumber?: string | null
@@ -159,10 +164,34 @@ export interface InvoiceEmailInput {
  */
 export function renderInvoiceEmail({
   number, clientName, totalFormatted, dueDate, outstandingFormatted,
-  isReminder, reminderStage, message, from, bank,
+  isReminder, reminderStage, message, from, bank, paidInFull, paidFormatted,
 }: InvoiceEmailInput): { subject: string; html: string } {
-  const tone = isReminder && reminderStage ? reminderTone(reminderStage) : null
   const n = escapeHtml(number)
+
+  // Paid: a receipt, not a bill. Asking somebody who has just paid to "use
+  // INV-... as your payment reference" reads like we lost their money.
+  if (paidInFull) {
+    return {
+      subject: `Paid: invoice ${number} from Cardtly`,
+      html: wrapDocument(`
+      <h1 style="font-size:21px;margin:0 0 4px">Thank you, invoice ${n} is paid</h1>
+      <p style="color:#666;font-size:14px;margin:0 0 20px">
+        Hello ${escapeHtml(clientName)}, we have received your payment. The paid invoice is attached as a PDF for your records.
+      </p>
+      ${message ? `<p style="color:#444;font-size:14px;margin:0 0 20px;white-space:pre-wrap">${escapeHtml(message)}</p>` : ''}
+      <table style="border-collapse:collapse;margin:0 0 20px">
+        <tr><td style="color:#888;font-size:13px;padding:2px 12px 2px 0">Invoice</td>
+            <td style="font-size:13px;font-weight:600">${n}</td></tr>
+        <tr><td style="color:#888;font-size:13px;padding:2px 12px 2px 0">Paid</td>
+            <td style="font-size:13px;font-weight:600">${escapeHtml(paidFormatted || totalFormatted)}</td></tr>
+        <tr><td style="color:#888;font-size:13px;padding:2px 12px 2px 0">Still owing</td>
+            <td style="font-size:13px;font-weight:600">Nothing</td></tr>
+      </table>
+    `, from),
+    }
+  }
+
+  const tone = isReminder && reminderStage ? reminderTone(reminderStage) : null
   const owing = outstandingFormatted && outstandingFormatted !== totalFormatted
   const rows: string[] = []
   if (bank?.accountNumber) {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Plus, Save, X, FileText, Send, Trash2, Lock, Mail, Undo2 } from 'lucide-react'
+import { Loader2, Plus, Save, X, FileText, Send, Trash2, Lock, Mail, Undo2, HandCoins } from 'lucide-react'
 import { Section, inputClass, inputStyle, grad } from '../shared'
 import { money, toCents, toRands, StatusPill, Empty, fmtDate } from './shared'
 import OverdueQueue from './OverdueQueue'
@@ -34,7 +34,7 @@ const FILTERS = [
   { id: 'all', label: 'Everything' },
 ]
 
-export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void } = {}) {
+export default function InvoicesTab({ onAddClient, onPaid }: { onAddClient?: () => void; onPaid?: (invoiceId: string) => void } = {}) {
   const [loading, setLoading] = useState(true)
   const [unavailable, setUnavailable] = useState<string | null>(null)
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -614,6 +614,15 @@ export default function InvoicesTab({ onAddClient }: { onAddClient?: () => void 
                 )}
               </div>
               <div className="flex items-center gap-1">
+                {/* The client paid: Payment received records it, puts it on
+                    this invoice and switches their team on, in one go. */}
+                {onPaid && ['draft', 'issued', 'sent', 'part_paid', 'overdue'].includes(inv.status) && (
+                  <button onClick={() => onPaid(inv.id)} title="They paid this: record it and set everything up"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
+                    style={{ background: 'hsl(var(--accent) / 0.18)', color: '#fff', border: '1px solid hsl(var(--accent) / 0.5)' }}>
+                    <HandCoins className="w-3.5 h-3.5" />Paid
+                  </button>
+                )}
                 <a href={`/api/admin/billing/invoices/pdf?id=${inv.id}`} target="_blank" rel="noreferrer"
                   title="PDF" className="p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
                   <FileText className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.6)' }} />

@@ -21,6 +21,7 @@ import QuotesTab from './billing/QuotesTab'
 import RecurringTab from './billing/RecurringTab'
 import AccountingHub from './billing/AccountingHub'
 import PaymentsTab from './billing/PaymentsTab'
+import PaymentFlow, { type FlowStart } from './billing/PaymentFlow'
 import ResellersTab from './ResellersTab'
 import { AdminShell, PageHeader, JumpPalette, NeedsYou, isTab, type Tab, type Badges, type Attention } from './AdminShell'
 import { Stat, Section, StatusPill, STATUS_META, grad, inputClass, inputStyle, fmtDate, fmtWhen, randFmt, AdminSearch, matchesAllWords } from './shared'
@@ -154,6 +155,9 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
   // Which rep the Calendar tab should open on, set by "See in calendar" over on
   // the Reps tab. null means everyone.
   const [calendarRep, setCalendarRep] = useState<string | null>(null)
+  // The quote or invoice Payment received should open on, when it was reached
+  // from that document's "Paid" button rather than from the sidebar.
+  const [flowStart, setFlowStart] = useState<FlowStart>(null)
 
   // Every mutation refetches from the server. The old dashboard patched local
   // state instead, so the stats and view counts went stale the moment you
@@ -191,8 +195,9 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
   // The screen is in the address (?tab=), pushed rather than navigated: the
   // switch stays instant because every screen's data is already here, and Back,
   // refresh and bookmarks still land on the right screen.
-  function go(next: Tab, opts: { keepSearch?: boolean } = {}) {
+  function go(next: Tab, opts: { keepSearch?: boolean; flow?: FlowStart } = {}) {
     if (next !== tab && !opts.keepSearch) { setQ(''); setExpanded(null) }
+    setFlowStart(opts.flow || null)
     setTab(next)
     try {
       const url = next === 'overview' ? '/admin' : `/admin?tab=${next}`
@@ -245,7 +250,7 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
       invoices: { n: money.overdueCount || 0, tone: 'red' as const, title: 'Overdue invoices' },
       recurring: { n: money.recurring?.awaitingApproval || 0, tone: 'amber' as const, title: 'Recurring drafts waiting for approval' },
       resellers: { n: (money.resellerDrafts || 0) + (money.resellerApplications || 0), tone: 'amber' as const, title: 'Reseller applications to review and invoices to approve' },
-      quotes: { n: money.quotes?.accepted || 0, tone: 'green' as const, title: 'Accepted quotes ready to invoice' },
+      received: { n: money.quotes?.accepted || 0, tone: 'green' as const, title: 'Signed quotes: set each one up here when its payment lands' },
     } : {}),
   }
 
@@ -300,12 +305,12 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
       detail: 'Worth a call before it lapses.',
     },
     money?.quotes?.accepted > 0 && {
-      key: 'quotes', tone: 'green', action: 'Invoice them', onClick: () => go('quotes'),
-      title: `${plural(money.quotes.accepted, 'quote')} accepted, ${rand(money.quotes.acceptedValueCents)}`,
-      detail: 'Ready to turn into invoices.',
+      key: 'quotes', tone: 'green', action: 'Set up', onClick: () => go('received'),
+      title: `${plural(money.quotes.accepted, 'quote')} signed, ${rand(money.quotes.acceptedValueCents)}`,
+      detail: 'When the money lands, Payment received makes the invoice, the team and the rest in one go.',
     },
     money?.unappliedCents > 0 && {
-      key: 'unapplied', tone: 'blue', action: 'Allocate', onClick: () => go('payments'),
+      key: 'unapplied', tone: 'blue', action: 'Put it on an invoice', onClick: () => go('received'),
       title: `${rand(money.unappliedCents)} received and not allocated`,
       detail: 'Money in the bank that settles no invoice yet.',
     },
@@ -652,9 +657,14 @@ ${r.email} will be able to sign in and log their meetings. If that address has n
 
         {tab === 'resellers' && <ResellersTab />}
         {tab === 'nfc' && <NfcTab orders={nfcOrders} run={run} loading={loading} />}
+        {tab === 'received' && (
+          <PaymentFlow users={users} orgs={orgs} start={flowStart}
+            onDone={() => { router.refresh(); loadMoney() }}
+            onOpen={(t) => go(t)} />
+        )}
         {tab === 'accounting' && <AccountingHub onOpen={(t) => go(t)} />}
-        {tab === 'quotes' && <QuotesTab />}
-        {tab === 'invoices' && <InvoicesTab onAddClient={() => go('clients')} />}
+        {tab === 'quotes' && <QuotesTab onPaid={(id) => go('received', { flow: { kind: 'quote', id } })} />}
+        {tab === 'invoices' && <InvoicesTab onAddClient={() => go('clients')} onPaid={(id) => go('received', { flow: { kind: 'invoice', id } })} />}
         {tab === 'recurring' && <RecurringTab />}
         {tab === 'payments' && <PaymentsTab />}
         {tab === 'clients' && <ClientsTab />}
