@@ -91,7 +91,23 @@ export async function GET() {
     quotesOutValue += q.total_cents || 0
   }
 
+  // Reseller drafts (seat months and NFC orders) waiting for approval, so the
+  // admin can say so beside Resellers. Read tolerantly: before migration 094
+  // there are no reseller tables, and the rest of this must still answer.
+  let resellerDrafts = 0
+  try {
+    const draftIds = new Set((invoices || []).filter((i: any) => i.status === 'draft').map((i: any) => i.id))
+    if (draftIds.size) {
+      const [{ data: months }, { data: orders }] = await Promise.all([
+        db.from('reseller_invoices').select('invoice_id'),
+        db.from('reseller_nfc_orders').select('invoice_id'),
+      ])
+      for (const r of [...(months || []), ...(orders || [])]) if (r.invoice_id && draftIds.has(r.invoice_id)) resellerDrafts++
+    }
+  } catch { /* no reseller tables yet */ }
+
   return NextResponse.json({
+    resellerDrafts,
     outstandingCents: outstanding,
     overdueCents: overdue,
     overdueCount,

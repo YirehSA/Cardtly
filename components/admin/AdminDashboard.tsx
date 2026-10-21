@@ -5,10 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
-  Users as UsersIcon, Building2, Loader2, Trash2, Mail, MailCheck,
-  KeyRound, Lock, Shield, Sparkles, ChevronDown, ChevronUp, ExternalLink, Megaphone,
-  ScrollText, Wifi, AlertTriangle, CalendarClock, PhoneCall, LayoutGrid, UserCog, Banknote, Ticket, Flag,
-  Receipt, Contact, SlidersHorizontal, FileSignature, RefreshCw, Handshake,
+  Building2, Loader2, Trash2, Mail, MailCheck,
+  KeyRound, Lock, Shield, Sparkles, ChevronDown, ChevronUp, ExternalLink, Megaphone, CalendarClock,
 } from 'lucide-react'
 import TeamsTab from './TeamsTab'
 import TrialsTab from './TrialsTab'
@@ -24,6 +22,7 @@ import RecurringTab from './billing/RecurringTab'
 import AccountingHub from './billing/AccountingHub'
 import PaymentsTab from './billing/PaymentsTab'
 import ResellersTab from './ResellersTab'
+import { AdminShell, PageHeader, JumpPalette, NeedsYou, isTab, type Tab, type Badges, type Attention } from './AdminShell'
 import { Stat, Section, StatusPill, STATUS_META, grad, inputClass, inputStyle, fmtDate, fmtWhen, randFmt, AdminSearch, matchesAllWords } from './shared'
 import { NFC_STATUSES, NFC_STATUS_COLORS, NFC_STATUS_LABELS, type NfcStatus } from '@/lib/nfc'
 import type { AdminUserRow, AdminOrgRow, UserStatus, TrialCodeRow } from '@/lib/admin-data'
@@ -71,64 +70,8 @@ interface Props {
   announcement: any | null
 }
 
-// as const so ?tab= can be checked against it rather than trusted: an unknown
-// value opens Overview instead of rendering nothing at all.
-const TABS = ['overview', 'users', 'teams', 'resellers', 'trials', 'reps', 'meetings', 'calls', 'emails', 'networking', 'nfc', 'accounting', 'quotes', 'invoices', 'recurring', 'payments', 'clients', 'billing', 'reports', 'activity'] as const
-type Tab = typeof TABS[number]
-
-// Eleven tabs in one row was eleven things to read before doing anything, and
-// it was about to become sixteen once quotes, invoices, payments and statements
-// arrive. So they are grouped by the job being done rather than left flat.
-//
-// The GROUP is the navigation; the tab inside it is the detail. Which group is
-// open is DERIVED from the open tab rather than stored beside it, because two
-// pieces of state that have to agree are two pieces of state that eventually
-// do not: /admin?tab=meetings from the sidebar has to land on Calendar with
-// Sales lit up, and nothing has to remember to do that.
-const GROUPS: { id: string; label: string; icon: any; tabs: Tab[] }[] = [
-  { id: 'overview',   label: 'Overview',   icon: LayoutGrid,     tabs: ['overview'] },
-  { id: 'customers',  label: 'Customers',  icon: UsersIcon,      tabs: ['users', 'teams', 'resellers', 'trials'] },
-  { id: 'sales',      label: 'Sales',      icon: UserCog,        tabs: ['reps', 'meetings', 'calls', 'emails', 'networking'] },
-  { id: 'accounting', label: 'Accounting', icon: Banknote,       tabs: ['accounting', 'quotes', 'invoices', 'recurring', 'payments', 'clients', 'billing'] },
-  { id: 'operations', label: 'Operations', icon: Wifi,           tabs: ['nfc', 'reports', 'activity'] },
-]
-
-const TAB_META: Record<Tab, { label: string; icon: any }> = {
-  overview: { label: 'Overview',   icon: LayoutGrid },
-  users:    { label: 'Users',      icon: UsersIcon },
-  teams:    { label: 'Teams',      icon: Building2 },
-  resellers:{ label: 'Resellers',  icon: Handshake },
-  trials:   { label: 'Trials',     icon: Ticket },
-  reps:     { label: 'Reps',       icon: UserCog },
-  meetings: { label: 'Calendar',   icon: CalendarClock },
-  calls:    { label: 'Call log',   icon: PhoneCall },
-  emails:   { label: 'Email log',  icon: Mail },
-  networking:{ label: 'Networking',icon: UsersIcon },
-  nfc:      { label: 'NFC orders', icon: Wifi },
-  accounting:{ label: 'Overview',  icon: LayoutGrid },
-  quotes:   { label: 'Quotes',     icon: FileSignature },
-  invoices: { label: 'Invoices',   icon: Receipt },
-  recurring:{ label: 'Recurring',  icon: RefreshCw },
-  payments: { label: 'Payments',   icon: Banknote },
-  clients:  { label: 'Clients',    icon: Contact },
-  billing:  { label: 'Settings',   icon: SlidersHorizontal },
-  reports:  { label: 'Reports',    icon: Flag },
-  activity: { label: 'Activity',   icon: ScrollText },
-}
-
-// The same hues AccountingHub uses for its blocks, so a screen looks the same
-// on the way in as it did on the card that led there.
-const ACCOUNTING_HUE: Partial<Record<Tab, string>> = {
-  accounting: '#ffffff',
-  quotes: '#a855f7',
-  invoices: '#3b82f6',
-  recurring: '#06b6d4',
-  payments: '#22c55e',
-  clients: '#f59e0b',
-  billing: '#94a3b8',
-}
-
-const groupOf = (t: Tab) => GROUPS.find(g => g.tabs.includes(t)) || GROUPS[0]
+// The screens, the sidebar that lists them, Today and the Ctrl K search all
+// live in AdminShell. This file keeps what each screen shows.
 type Filter = 'all' | UserStatus | 'admins' | 'unconfirmed'
 
 const FILTERS: { id: Filter; label: string }[] = [
@@ -197,12 +140,13 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
   //
   // Checked against the list rather than trusted, so an unknown value opens
   // Overview instead of rendering nothing at all.
-  const [tab, setTab] = useState<Tab>(
-    (TABS as readonly string[]).includes(initialTab || '') ? (initialTab as Tab) : 'overview'
-  )
-  // Derived, never stored. See the comment on GROUPS.
-  const openGroup = groupOf(tab)
+  const [tab, setTab] = useState<Tab>(isTab(initialTab) ? initialTab : 'overview')
   const [q, setQ] = useState('')
+  const [jumpOpen, setJumpOpen] = useState(false)
+  // The money figures for Today and the sidebar counts. Fetched, not passed
+  // in, because they come from the billing tables the page does not load.
+  const [money, setMoney] = useState<any | null>(null)
+  const [moneyLoading, setMoneyLoading] = useState(true)
   const [filter, setFilter] = useState<Filter>('all')
   const [sort, setSort] = useState<SortId>('joined')
   const [loading, setLoading] = useState<string | null>(null)
@@ -239,8 +183,133 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
     if (data?.warning) toast(data.warning, { icon: '⚠️', duration: 11000 })
     else toast.success(okMsg)
     router.refresh()
+    loadMoney()
     return true
   }
+
+  // ── Getting around ────────────────────────────────────────────────────────
+  // The screen is in the address (?tab=), pushed rather than navigated: the
+  // switch stays instant because every screen's data is already here, and Back,
+  // refresh and bookmarks still land on the right screen.
+  function go(next: Tab, opts: { keepSearch?: boolean } = {}) {
+    if (next !== tab && !opts.keepSearch) { setQ(''); setExpanded(null) }
+    setTab(next)
+    try {
+      const url = next === 'overview' ? '/admin' : `/admin?tab=${next}`
+      if (window.location.pathname + window.location.search !== url) window.history.pushState(null, '', url)
+    } catch { /* the screen still changes */ }
+    window.scrollTo({ top: 0 })
+  }
+
+  useEffect(() => {
+    const onPop = () => {
+      const t = new URLSearchParams(window.location.search).get('tab')
+      setTab(isTab(t) ? t : 'overview')
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  // Ctrl K (Cmd K on a Mac) opens search from anywhere, even inside a field.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setJumpOpen(o => !o) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  async function loadMoney() {
+    try {
+      const res = await fetch('/api/admin/billing/summary', { cache: 'no-store' })
+      const d = await res.json().catch(() => null)
+      setMoney(res.ok ? d : null)
+    } catch {
+      setMoney(null)
+    } finally {
+      setMoneyLoading(false)
+    }
+  }
+  useEffect(() => { loadMoney() }, [])
+
+  function openUsers(f: Filter) { go('users'); setFilter(f); setQ('') }
+
+  // Beside each screen in the sidebar: how many things there are waiting on
+  // you. Red is a card offline or money late, amber is a job to do.
+  const badges: Badges = {
+    users: { n: stats.expired, tone: 'red', title: 'Cards offline' },
+    trials: { n: stats.expiring, tone: 'amber', title: 'Trials ending within 7 days' },
+    teams: { n: stats.teamTrialsLapsed + stats.debitOrdersToCollect, tone: 'amber', title: 'Team trials lapsed and debit orders to load' },
+    nfc: { n: stats.openNfcOrders, tone: 'amber', title: 'Open NFC orders' },
+    ...(money ? {
+      invoices: { n: money.overdueCount || 0, tone: 'red' as const, title: 'Overdue invoices' },
+      recurring: { n: money.recurring?.awaitingApproval || 0, tone: 'amber' as const, title: 'Recurring drafts waiting for approval' },
+      resellers: { n: money.resellerDrafts || 0, tone: 'amber' as const, title: 'Reseller invoices waiting for approval' },
+      quotes: { n: money.quotes?.accepted || 0, tone: 'green' as const, title: 'Accepted quotes ready to invoice' },
+    } : {}),
+  }
+
+  const rand = (cents: number) => randFmt(Math.round((cents || 0) / 100))
+  const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
+
+  // Today's list. Most urgent first: a card that does not open, then money.
+  const attention: Attention[] = [
+    stats.expired > 0 && {
+      key: 'expired', tone: 'red', action: 'See them', onClick: () => openUsers('expired'),
+      title: `${plural(stats.expired, 'card is', 'cards are')} offline right now`,
+      detail: 'Their trial ended, so their link shows a 404 to anyone they hand it to.',
+    },
+    money?.overdueCount > 0 && {
+      key: 'overdue', tone: 'red', action: 'Chase', onClick: () => go('invoices'),
+      title: `${plural(money.overdueCount, 'invoice')} overdue, ${rand(money.overdueCents)}`,
+      detail: 'Past the due date and still owing.',
+    },
+    stats.teamTrialsLapsed > 0 && {
+      key: 'team-trials', tone: 'amber', action: 'Open Teams', onClick: () => go('teams'),
+      title: `${plural(stats.teamTrialsLapsed, 'team trial')} lapsed`,
+      detail: 'Their cards still work and nothing is billed until you convert them.',
+    },
+    stats.debitOrdersToCollect > 0 && {
+      key: 'debit', tone: 'amber', action: 'Open Teams', onClick: () => go('teams'),
+      title: `${plural(stats.debitOrdersToCollect, 'debit order')} to load, ${randFmt(stats.debitOrderRandDue)}`,
+      detail: 'Nothing collects these automatically.',
+    },
+    money?.invoices?.draftCount > 0 && {
+      key: 'drafts', tone: 'amber', action: 'Approve', onClick: () => go(money.recurring?.awaitingApproval ? 'recurring' : 'invoices'),
+      title: `${plural(money.invoices.draftCount, 'draft invoice')} waiting for approval`,
+      detail: money.resellerDrafts ? `${money.resellerDrafts} of them for resellers, under Resellers.` : 'A draft has no number until it is approved.',
+    },
+    stats.openNfcOrders > 0 && {
+      key: 'nfc', tone: 'amber', action: 'Open orders', onClick: () => go('nfc'),
+      title: `${plural(stats.openNfcOrders, 'NFC order')} to work on`,
+      detail: 'Invoice, make or ship.',
+    },
+    stats.expiring > 0 && {
+      key: 'expiring', tone: 'amber', action: 'See them', onClick: () => openUsers('expiring'),
+      title: `${plural(stats.expiring, 'trial')} ending this week`,
+      detail: 'Their cards go offline when it does, unless they pay or you extend.',
+    },
+    stats.teamTrialsEnding > 0 && {
+      key: 'team-ending', tone: 'blue', action: 'Open Teams', onClick: () => go('teams'),
+      title: `${plural(stats.teamTrialsEnding, 'team trial')} ending this week`,
+      detail: 'Worth a call before it lapses.',
+    },
+    money?.quotes?.accepted > 0 && {
+      key: 'quotes', tone: 'green', action: 'Invoice them', onClick: () => go('quotes'),
+      title: `${plural(money.quotes.accepted, 'quote')} accepted, ${rand(money.quotes.acceptedValueCents)}`,
+      detail: 'Ready to turn into invoices.',
+    },
+    money?.unappliedCents > 0 && {
+      key: 'unapplied', tone: 'blue', action: 'Allocate', onClick: () => go('payments'),
+      title: `${rand(money.unappliedCents)} received and not allocated`,
+      detail: 'Money in the bank that settles no invoice yet.',
+    },
+    stats.suspendedTeams > 0 && {
+      key: 'suspended', tone: 'blue', action: 'Open Teams', onClick: () => go('teams'),
+      title: `${plural(stats.suspendedTeams, 'team')} suspended`,
+      detail: 'Their cards show your notice.',
+    },
+  ].filter(Boolean) as Attention[]
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -297,157 +366,42 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
   }, [])
 
   return (
-    <div className="min-h-screen p-4 sm:p-6" style={{ background: '#0a0a0a' }}>
-      <div className="max-w-7xl mx-auto space-y-5">
+    <>
+    <AdminShell tab={tab} onGo={(t) => go(t)} badges={badges} onSearch={() => setJumpOpen(true)}
+      meta={`${stats.totalUsers} users · ${stats.totalCards} cards · ${orgs.length} teams`}>
 
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Cardtly admin</h1>
-            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              {stats.totalUsers} users · {stats.totalCards} cards · {orgs.length} teams
-            </p>
-          </div>
-          <Link href="/dashboard" className="text-sm px-3 py-2 rounded-lg transition hover:bg-white/10"
-            style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)' }}>
-            Back to dashboard
-          </Link>
-        </div>
-
-        {/* The one thing that needs saying loudly: whose card is dark. */}
-        {stats.expired > 0 && (
-          <button onClick={() => { setTab('users'); setFilter('expired'); setQ('') }}
-            className="w-full text-left rounded-lg p-4 flex items-center gap-3 transition hover:opacity-90"
-            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)' }}>
-            <AlertTriangle className="w-5 h-5 flex-shrink-0" style={{ color: '#ef4444' }} />
-            <div>
-              <p className="font-bold text-sm" style={{ color: '#ef4444' }}>
-                {stats.expired} {stats.expired === 1 ? 'card is' : 'cards are'} offline right now
-              </p>
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                Their trial ended, so their public link 404s for anyone they hand it to. Click to see them.
-              </p>
-            </div>
-          </button>
-        )}
-
-        {/* Teams needing a human. Nothing enforces either of these, so if
-            this is not said here it is not said anywhere. */}
-        {(stats.teamTrialsLapsed > 0 || stats.teamTrialsEnding > 0 || stats.debitOrdersToCollect > 0) && (
-          <button onClick={() => setTab('teams')}
-            className="w-full text-left rounded-lg p-4 flex items-center gap-3 transition hover:opacity-90"
-            style={{ background: 'rgba(245,158,11,0.09)', border: '1px solid rgba(245,158,11,0.4)' }}>
-            <Banknote className="w-5 h-5 flex-shrink-0" style={{ color: '#f59e0b' }} />
-            <div>
-              <p className="font-bold text-sm" style={{ color: '#f59e0b' }}>
-                {[
-                  stats.teamTrialsLapsed > 0 ? `${stats.teamTrialsLapsed} team trial${stats.teamTrialsLapsed === 1 ? '' : 's'} lapsed` : null,
-                  stats.teamTrialsEnding > 0 ? `${stats.teamTrialsEnding} ending this week` : null,
-                  stats.debitOrdersToCollect > 0 ? `${stats.debitOrdersToCollect} debit order${stats.debitOrdersToCollect === 1 ? '' : 's'} to load (${randFmt(stats.debitOrderRandDue)})` : null,
-                ].filter(Boolean).join(' · ')}
-              </p>
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                Their cards are still live and still free. Nothing collects a debit order automatically. Click to sort it.
-              </p>
-            </div>
-          </button>
-        )}
-
-        {/* Two rows: the job, then the detail within it. */}
-        <div className="space-y-2">
-          <div className="flex gap-1.5 flex-wrap">
-            {GROUPS.map(g => {
-              const Icon = g.icon
-              const active = openGroup.id === g.id
-              // How many things in this group want attention, so a group that
-              // is collapsed still says there is something behind it.
-              const badge = g.tabs.reduce((n, t) => n + (t === 'nfc' ? stats.openNfcOrders : 0), 0)
-              return (
-                <button key={g.id} onClick={() => setTab(g.tabs[0])}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition"
-                  style={active
-                    ? { background: grad, color: '#fff' }
-                    : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <Icon className="w-4 h-4" />
-                  {g.label}
-                  {!active && badge > 0 && (
-                    <span className="px-1.5 rounded text-[10px] font-bold" style={{ background: 'rgba(245,158,11,0.25)', color: '#f59e0b' }}>
-                      {badge}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Only shown when the group has more than one thing in it. A single
-              sub-tab under its own name is a row that says nothing twice. */}
-          {openGroup.tabs.length > 1 && (
-            <div className="flex gap-1 flex-wrap items-center pl-1">
-              {openGroup.tabs.map(id => {
-                const { label, icon: Icon } = TAB_META[id]
-                const active = tab === id
-                // Inside Accounting the active pill takes the colour of the
-                // screen it opens, so the six money screens stay recognisable
-                // as a set rather than reading like six settings pages.
-                const hue = ACCOUNTING_HUE[id]
-                if (hue) {
-                  return (
-                    <button key={id} onClick={() => setTab(id)}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition"
-                      style={active
-                        ? { background: `${hue}22`, color: hue, border: `1px solid ${hue}66` }
-                        : { background: 'transparent', color: 'rgba(255,255,255,0.55)', border: '1px solid transparent' }}>
-                      <Icon className="w-3.5 h-3.5" />
-                      {label}
-                    </button>
-                  )
-                }
-                return (
-                  <button key={id} onClick={() => setTab(id)}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition"
-                    style={active
-                      ? { background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)' }
-                      // 0.55, not 0.45. At 0.45 an inactive sub-tab measured
-                      // 4.50:1 against the panel, sitting exactly on the AA
-                      // line, and these replaced tabs that were well clear of
-                      // it. Being quieter than the active one must not mean
-                      // being harder to read.
-                      : { background: 'transparent', color: 'rgba(255,255,255,0.55)', border: '1px solid transparent' }}>
-                    <Icon className="w-3.5 h-3.5" />
-                    {label}
-                    {id === 'nfc' && stats.openNfcOrders > 0 && (
-                      <span className="px-1.5 rounded text-[10px] font-bold" style={{ background: 'rgba(245,158,11,0.25)', color: '#f59e0b' }}>
-                        {stats.openNfcOrders}
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </div>
+        <PageHeader tab={tab} />
 
         {tab === 'overview' && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Stat
-                label="MRR (Paystack)"
-                value={stats.mrrRand == null ? '?' : randFmt(stats.mrrRand)}
-                colour="#22c55e"
-                hint={stats.mrrError
-                  ? `Could not reach Paystack: ${stats.mrrError}`
-                  : 'Summed from the real amounts Paystack is billing. Team seats are NOT included: nothing bills orgs through a subscription, so counting them would invent money.'}
-              />
-              <Stat label="Paying" value={stats.paying} colour="#22c55e" hint="Live Paystack subscription" />
-              <Stat label="Comped" value={stats.comped} colour="#0ea5e9" hint="Free Pro we granted. Not revenue." />
-              <Stat label="Cards offline" value={stats.expired} colour="#ef4444" warn={stats.expired > 0} hint="Trial ended: their public card 404s" />
+          <div className="space-y-6">
+            <NeedsYou items={attention} loadingMoney={moneyLoading} />
+
+            {/* Each figure opens the list behind it. */}
+            <div className="space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: 'rgba(255,255,255,0.4)' }}>Customers</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Stat
+                  label="MRR (Paystack)"
+                  value={stats.mrrRand == null ? '?' : randFmt(stats.mrrRand)}
+                  colour="#22c55e"
+                  hint={stats.mrrError
+                    ? `Could not reach Paystack: ${stats.mrrError}`
+                    : 'Summed from the real amounts Paystack is billing. Team seats are NOT included: nothing bills orgs through a subscription, so counting them would invent money.'}
+                />
+                {([
+                  ['paying', <Stat key="p" label="Paying" value={stats.paying} colour="#22c55e" hint="Live Paystack subscription" />],
+                  ['comped', <Stat key="c" label="Comped" value={stats.comped} colour="#0ea5e9" hint="Free Pro we granted. Not revenue." />],
+                  ['expired', <Stat key="e" label="Cards offline" value={stats.expired} colour="#ef4444" warn={stats.expired > 0} hint="Trial ended: their public card 404s" />],
+                  ['expiring', <Stat key="x" label="Expiring in 7d" value={stats.expiring} colour="#f59e0b" />],
+                  ['trial', <Stat key="t" label="On trial" value={stats.trialing} colour="#a855f7" />],
+                  ['member', <Stat key="m" label="Team members" value={stats.members} colour="#f472b6" hint="Access via their org, not a personal trial" />],
+                  ['all', <Stat key="a" label="Total users" value={stats.totalUsers} />],
+                ] as const).map(([f, stat]) => (
+                  <button key={f} onClick={() => openUsers(f)} className="text-left rounded-lg transition hover:brightness-125">{stat}</button>
+                ))}
+              </div>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Stat label="Expiring in 7d" value={stats.expiring} colour="#f59e0b" />
-              <Stat label="On trial" value={stats.trialing} colour="#a855f7" />
-              <Stat label="Team members" value={stats.members} colour="#f472b6" hint="Access via their org, not a personal trial" />
-              <Stat label="Total users" value={stats.totalUsers} />
-            </div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] -mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>Cards</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Stat label="Cards" value={stats.totalCards} />
               <Stat label="Team cards" value={stats.totalTeamCards} />
@@ -526,7 +480,7 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
                 getting nothing looks like a bug rather than a fact, so when
                 the search matches an unclaimed card, say where it lives. */}
             {q.trim() && matchingTeamCards.length > 0 && (
-              <button onClick={() => setTab('teams')}
+              <button onClick={() => go('teams', { keepSearch: true })}
                 className="w-full text-left rounded-xl p-3 flex items-start gap-2.5 transition hover:opacity-90"
                 style={{ background: 'rgba(236,72,153,0.08)', border: '1px solid rgba(236,72,153,0.3)' }}>
                 <Building2 className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#f472b6' }} />
@@ -558,7 +512,7 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
 
         {tab === 'teams' && (
           <TeamsTab orgs={orgs} users={users} teamCards={teamCards} reps={reps} loading={loading}
-            query={q} onQuery={setQ} onShowCustomers={() => setTab('users')}
+            query={q} onQuery={setQ} onShowCustomers={() => go('users', { keepSearch: true })}
             onAssignRep={(orgId, repId) => run(`reporg-${orgId}`, { action: 'assign_rep', org_id: orgId, rep_id: repId }, repId ? 'Team linked to rep' : 'Rep unlinked')}
             onMarkCollected={(orgId) => run(`collect-${orgId}`, { action: 'mark_collected', org_id: orgId }, 'Recorded as collected today')}
             onDept={(action, body, key, msg) => run(key, { action, ...body }, msg)}
@@ -605,7 +559,7 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
 
         {tab === 'reps' && (
           <RepsTab reps={reps} loading={loading}
-            onOpenCalendar={(r) => { setCalendarRep(r.id); setTab('meetings') }}
+            onOpenCalendar={(r) => { setCalendarRep(r.id); go('meetings') }}
             onLinkLogin={(r) => {
               if (!confirm(`Give ${r.name} a Cardtly login?
 
@@ -693,17 +647,22 @@ ${r.email} will be able to sign in and log their meetings. If that address has n
 
         {tab === 'resellers' && <ResellersTab />}
         {tab === 'nfc' && <NfcTab orders={nfcOrders} run={run} loading={loading} />}
-        {tab === 'accounting' && <AccountingHub onOpen={setTab} />}
+        {tab === 'accounting' && <AccountingHub onOpen={(t) => go(t)} />}
         {tab === 'quotes' && <QuotesTab />}
-        {tab === 'invoices' && <InvoicesTab onAddClient={() => setTab('clients')} />}
+        {tab === 'invoices' && <InvoicesTab onAddClient={() => go('clients')} />}
         {tab === 'recurring' && <RecurringTab />}
         {tab === 'payments' && <PaymentsTab />}
         {tab === 'clients' && <ClientsTab />}
         {tab === 'billing' && <BillingTab />}
         {tab === 'reports' && <ReportsTab />}
         {tab === 'activity' && <ActivityTab audit={audit} />}
-      </div>
-    </div>
+    </AdminShell>
+
+    <JumpPalette open={jumpOpen} onClose={() => setJumpOpen(false)} users={users} orgs={orgs}
+      onGo={(t) => go(t)}
+      onUser={(u) => { go('users'); setFilter('all'); setQ(u.email); setExpanded(u.id) }}
+      onTeam={(o) => { go('teams'); setQ(o.name) }} />
+    </>
   )
 }
 
