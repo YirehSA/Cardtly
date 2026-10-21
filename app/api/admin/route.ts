@@ -5,6 +5,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { isAdminUser, FOUNDER_ADMIN_USER_ID } from '@/lib/admin-check'
 import { sendPasswordResetEmail } from '@/lib/password-reset'
 import { auditLog } from '@/lib/admin-audit'
+import { logSubscriptionChange } from '@/lib/subscription-audit'
 import { cancelSubscriptionsFor, subscriptionCodeOf, isBillablePaystackSub } from '@/lib/paystack'
 import { NFC_STATUSES } from '@/lib/nfc'
 import { ORG_BILLING_MODES, MAX_SELF_SERVE_SEATS, orgBillingStartsInDays } from '@/lib/org-billing'
@@ -90,6 +91,68 @@ export async function POST(request: Request) {
       action: 'activate_pro', targetUserId: user_id, targetEmail: email,
       detail: { superseded: (existing || []).length, forced: !!force },
     })
+    return NextResponse.json({ success: true })
+  }
+
+  // Cancel a FAILED Paystack subscription, and nothing else.
+  //
+  // A subscription whose charge failed sits at past_due here and 'attention'
+  // at Paystack, which keeps retrying it. After the grace days it no longer
+  // gives access, so the account reads as expired and had no cancel button at
+  // all (andre@yireh.co.za, 2026-10-21), yet Paystack could still take money.
+  // It also holds back a reseller's free card (lib/reseller-comp), which is
+  // never given while Paystack can still charge.
+  //
+  // Deliberately not deactivate_pro: that cancels every row the account has,
+  // including a comp or a reseller's free card. This touches only the failed
+  // Paystack rows, and only after Paystack confirms it has stopped them.
+  if (action === 'cancel_failed_paystack') {
+    const { user_id, email } = body
+    if (!user_id) return NextResponse.json({ error: 'user_id required' }, { status: 400 })
+    const { data: rows } = await admin.from('whop_subscriptions').select('*').eq('user_id', user_id).eq('status', 'past_due')
+    const failed = (rows || []).filter((s: any) => !s.metadata?.comped && String(s.plan_id || '').startsWith('paystack'))
+    if (!failed.length) return NextResponse.json({ error: 'This account has no failed Paystack subscription.' }, { status: 404 })
+
+    const payer = failed[0].email || email
+    const r = await cancelSubscriptionsFor(payer, subscriptionCodeOf(failed[0]))
+    if (!r.ok) {
+      await auditLog(admin, {
+        actorUserId: user?.id, actorEmail: user?.email, action: 'cancel_failed_paystack', targetUserId: user_id, ok: false,
+        detail: { stage: 'paystack_cancel', email: payer, error: r.error },
+      })
+      return NextResponse.json({
+        error: `Paystack did not confirm the cancellation (${r.error}). Nothing was changed. Cancel it in the Paystack dashboard, then try again.`,
+      }, { status: 502 })
+    }
+
+    const at = new Date().toISOString()
+    await admin.from('whop_subscriptions').update({ status: 'cancelled', updated_at: at }).in('id', failed.map((s: any) => s.id))
+    for (const s of failed) {
+      await logSubscriptionChange(admin, {
+        change: 'cancelled', userId: user_id, email: payer, actorUserId: user?.id, actorEmail: user?.email,
+        source: 'admin', reason: 'failed Paystack subscription cancelled', before: s, after: { ...s, status: 'cancelled' },
+      })
+    }
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email, action: 'cancel_failed_paystack', targetUserId: user_id,
+      detail: { email: payer, paystack_cancelled: r.cancelled, rows: failed.length },
+    })
+
+    // If this login runs a reseller, its free card can now be given.
+    try {
+      const { data: member } = await admin.from('reseller_members').select('reseller_id').eq('user_id', user_id).maybeSingle()
+      if (member?.reseller_id) {
+        const { data: reseller } = await admin.from('resellers').select('*').eq('id', member.reseller_id).maybeSingle()
+        if (reseller) {
+          const { syncResellerFreeCard, FREE_CARD_TEXT } = await import('@/lib/reseller-comp')
+          const free = await syncResellerFreeCard(admin, reseller, { actorUserId: user?.id })
+          if (free.userId === user_id) {
+            return NextResponse.json({ success: true, warning: `Cancelled at Paystack. ${FREE_CARD_TEXT[free.state]}` })
+          }
+        }
+      }
+    } catch { /* the daily run picks it up */ }
+
     return NextResponse.json({ success: true })
   }
 

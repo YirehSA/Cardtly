@@ -45,6 +45,9 @@ export interface AdminUserRow {
   views: number
   remindersSent: string[]
   repId: string | null
+  /** A failed Paystack subscription Paystack can still retry, on an account
+   *  that does not read as paying. Offered a Cancel subscription of its own. */
+  paystackPastDue?: boolean
 }
 
 export interface TrialCodeRow {
@@ -205,6 +208,14 @@ export async function loadAdminData(admin: any) {
     if (s.status !== 'active') continue
     if (!subBy[s.user_id]) subBy[s.user_id] = s
   }
+  // A Paystack subscription whose charge failed. It no longer gives access
+  // once the grace days pass, so the account reads as expired, but Paystack
+  // keeps it and can still retry the charge. Admin has to be able to cancel
+  // it, and a reseller's free card waits until somebody does (lib/reseller-comp).
+  const paystackPastDue = new Set<string>()
+  for (const s of subscriptions || []) {
+    if (s.status === 'past_due' && !s.metadata?.comped && String(s.plan_id || '').startsWith('paystack')) paystackPastDue.add(s.user_id)
+  }
 
   const cardBy: Record<string, any> = {}
   for (const c of cards || []) if (c.user_id && !cardBy[c.user_id]) cardBy[c.user_id] = c
@@ -279,6 +290,9 @@ export async function loadAdminData(admin: any) {
       views: card?.view_count || 0,
       remindersSent: remindersBy[u.id] || [],
       repId: p.rep_id || null,
+      // Only worth saying when they are not already shown as paying, whose
+      // row has its own Cancel subscription.
+      paystackPastDue: status !== 'paying' && paystackPastDue.has(u.id),
     }
   })
 

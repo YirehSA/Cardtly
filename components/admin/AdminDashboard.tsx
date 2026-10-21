@@ -829,6 +829,22 @@ function UserRow({ u, expanded, onToggle, run, loading, reps }: {
               </button>
             )}
 
+            {/* A failed Paystack subscription on an account that no longer
+                reads as paying. Paystack can still retry the charge, so it
+                gets its own cancel, which leaves any comp alone. */}
+            {u.paystackPastDue && (
+              <button disabled={loading === `failed-${u.id}`}
+                title="Paystack still holds a subscription for this account whose charge failed, and may retry it."
+                onClick={() => {
+                  if (!confirm(`Cancel ${u.email}'s failed Paystack subscription?\n\nPaystack is told first and stops retrying the charge. Their access does not change: the failed payment already ended it. Any free Pro or reseller card on the account is not touched.`)) return
+                  run(`failed-${u.id}`, { action: 'cancel_failed_paystack', user_id: u.id, email: u.email }, 'Failed Paystack subscription cancelled')
+                }}
+                className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10 disabled:opacity-40"
+                style={{ border: '1px solid rgba(245,158,11,0.45)', color: '#f59e0b' }}>
+                {loading === `failed-${u.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Cancel failed Paystack subscription'}
+              </button>
+            )}
+
             {reps.length > 0 && (
               <select
                 value={u.repId || ''}

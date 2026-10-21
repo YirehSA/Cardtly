@@ -158,6 +158,18 @@ if (!/syncResellerFreeCard\(db, reseller, \{ dryRun: true \}\)/.test(read('app/a
 const mig = read('supabase/migrations/096_reseller_ended.sql').split('\n').map(l => l.replace(/--.*$/, '')).join('\n')
 if (!/check \(status in \('active', 'suspended', 'ended'\)\)/.test(mig)) bad("migration 096 must allow 'ended' and keep active and suspended")
 
+// A failed Paystack subscription can be cancelled on its own, without
+// taking any comp or reseller card with it.
+const adminRoute = read('app/api/admin/route.ts')
+const failedBlock = (/action === 'cancel_failed_paystack'[\s\S]*?return NextResponse\.json\(\{ success: true \}\)/.exec(adminRoute) || [])[0] || ''
+if (!failedBlock) bad('admin has no way to cancel a failed Paystack subscription')
+else {
+  if (!/\.eq\('status', 'past_due'\)/.test(failedBlock) || !/!s\.metadata\?\.comped && String\(s\.plan_id \|\| ''\)\.startsWith\('paystack'\)/.test(failedBlock)) bad('cancelling a failed Paystack subscription must touch only failed Paystack rows')
+  if (failedBlock.indexOf('cancelSubscriptionsFor(') > failedBlock.indexOf(".update({ status: 'cancelled'")) bad('Paystack must confirm the cancellation before our rows change')
+  if (!/logSubscriptionChange\(/.test(failedBlock)) bad('cancelling a failed Paystack subscription must be logged')
+}
+if (!/u\.paystackPastDue && \(/.test(read('components/admin/AdminDashboard.tsx'))) bad('the Users list must offer to cancel a failed Paystack subscription')
+
 if (fail) {
   console.error(`check-reseller-comp: ${fail} problem(s)`)
   process.exit(1)

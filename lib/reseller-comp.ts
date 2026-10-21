@@ -140,7 +140,7 @@ export const FREE_CARD_TEXT: Record<FreeCardState, string> = {
   free: 'Their own card is free while they are a reseller.',
   pending: 'Their own card becomes free at the next save or daily run.',
   already_free: 'Their own card is already free (comped by hand), so nothing more was needed.',
-  paying: 'Paystack still bills or retries their own subscription, so their card was not made free. Cancel the subscription under Users and it switches to free at the next save or daily run.',
+  paying: 'Paystack still bills or retries their own subscription, so their card was not made free. Under Users, use "Cancel failed Paystack subscription" (or "Cancel subscription" if they are still paying), then Check again.',
   no_login: 'No login is linked to the reseller\'s main email yet, so there is no card to make free.',
   off: 'The reseller has ended, so their card is no longer free.',
 }
