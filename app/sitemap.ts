@@ -38,6 +38,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     { url: `${BASE}/about`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/contact`, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE}/resellers`, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${BASE}/signup`, changeFrequency: 'monthly', priority: 0.8 },
     // Only advertise /promotions to Google while it actually resolves;
     // it 404s when the programme is paused.

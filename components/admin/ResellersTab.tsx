@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Plus, Save, X, ChevronDown, ChevronUp, Send, RefreshCw, UserPlus, Trash2, FileText } from 'lucide-react'
+import { Loader2, Plus, Save, X, ChevronDown, ChevronUp, Send, RefreshCw, UserPlus, Trash2, FileText, Check, Inbox, Undo2 } from 'lucide-react'
 import { Section, Stat, inputClass, inputStyle, grad, fmtDate } from './shared'
 import { money, toCents, toRands, StatusPill as InvoicePill } from './billing/shared'
+import { addressLine } from '@/lib/reseller-application'
 
 // Resellers: companies that sell Cardtly to their own clients. Cardtly gives
 // each a seat pool, it hands seats to client teams from its own page, and on
@@ -24,6 +25,24 @@ const STATE_TONE: Record<string, string> = { live: '#22c55e', paused: '#f59e0b',
 const BLANK = {
   name: '', legal_name: '', contact_name: '', email: '', phone: '', address: '', vat_number: '',
   seat_pool: '100', seat: '70.00', blank: '50.00', printed: '125.00', shipping: '100.00', notes: '',
+  // Set when the form was opened from an application, which approving it
+  // closes in the same step (see POST /api/admin/resellers).
+  application_id: '',
+}
+
+/** The New reseller form, filled in from an application. */
+function fromApplication(a: any): typeof BLANK {
+  const notes = [
+    `From the website application of ${fmtDate(a.created_at)}.`,
+    a.registration_number ? `Reg no ${a.registration_number}.` : null,
+    `${a.business_type}. Expects ${a.expected_clients} clients${a.expected_seats ? `, ${a.expected_seats} cards` : ''}. Printing: ${a.printing}.`,
+  ].filter(Boolean).join(' ')
+  return {
+    ...BLANK,
+    name: a.trading_name || '', legal_name: a.registered_name || '', contact_name: a.contact_name || '',
+    email: a.email || '', phone: a.phone || '', address: addressLine(a), vat_number: a.vat_number || '',
+    notes, application_id: a.id,
+  }
 }
 
 async function call(method: 'POST' | 'PATCH', body: Record<string, any>) {
@@ -65,11 +84,21 @@ export default function ResellersTab() {
   const [adding, setAdding] = useState<typeof BLANK | null>(null)
   const [open, setOpen] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  // Applications from cardtly.com/resellers. null until migration 095 is run,
+  // when the section says so instead of the whole tab failing.
+  const [applications, setApplications] = useState<any[] | null>(null)
+  const [appsNote, setAppsNote] = useState<string | null>(null)
 
   async function load() {
-    const res = await fetch('/api/admin/resellers', { cache: 'no-store' })
+    const [res, appsRes] = await Promise.all([
+      fetch('/api/admin/resellers', { cache: 'no-store' }),
+      fetch('/api/admin/reseller-applications', { cache: 'no-store' }),
+    ])
     const data = await res.json().catch(() => ({}))
+    const apps = await appsRes.json().catch(() => ({}))
     setLoading(false)
+    if (appsRes.ok) { setApplications(apps.applications || []); setAppsNote(null) }
+    else { setApplications(null); setAppsNote(apps?.error || 'Could not load applications') }
     if (!res.ok) { setUnavailable(data?.error || 'Could not load resellers'); return }
     setUnavailable(null)
     setList(data.resellers || [])
@@ -85,10 +114,11 @@ export default function ResellersTab() {
       seat_pool: Number(adding.seat_pool),
       seat_price_cents: toCents(adding.seat), nfc_blank_cents: toCents(adding.blank),
       nfc_printed_cents: toCents(adding.printed), nfc_shipping_cents: toCents(adding.shipping),
+      ...(adding.application_id ? { application_id: adding.application_id } : {}),
     })
     setBusy(null)
     if (!ok) { toast.error(data?.error || 'That did not save'); return }
-    toast.success(`${adding.name} added. ${data.warning || ''}`)
+    toast.success(`${adding.name} ${adding.application_id ? 'approved and set up' : 'added'}. ${data.warning || ''}`)
     setAdding(null)
     setOpen(data.reseller?.id || null)
     load()
@@ -112,6 +142,9 @@ export default function ResellersTab() {
         <Stat label="Drafts to approve" value={drafts} colour="#f59e0b" warn={drafts > 0} />
       </div>
 
+      <ApplicationsSection applications={applications} note={appsNote} reload={load}
+        onApprove={(a) => { setAdding(fromApplication(a)); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
+
       <div className="flex justify-end">
         <button onClick={() => setAdding({ ...BLANK })}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: grad, color: '#fff' }}>
@@ -120,7 +153,10 @@ export default function ResellersTab() {
       </div>
 
       {adding && (
-        <Section title="New reseller" sub="They get a login and an email to choose a password. Invoices go to the billing details below."
+        <Section title={adding.application_id ? `Approve ${adding.name || 'this application'}` : 'New reseller'}
+          sub={adding.application_id
+            ? 'Filled in from their application. Set their seat pool and prices, then create: they get a login and an email to choose a password.'
+            : 'They get a login and an email to choose a password. Invoices go to the billing details below.'}
           right={<button onClick={() => setAdding(null)}><X className="w-4 h-4" style={{ color: faint }} /></button>}>
           <div className="grid sm:grid-cols-2 gap-3">
             {([
@@ -151,7 +187,7 @@ export default function ResellersTab() {
           <div className="flex justify-end mt-4">
             <button onClick={create} disabled={busy === 'create' || !adding.name.trim() || !adding.email.trim()}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40" style={{ background: grad, color: '#fff' }}>
-              {busy === 'create' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}Create reseller
+              {busy === 'create' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}{adding.application_id ? 'Approve and create reseller' : 'Create reseller'}
             </button>
           </div>
         </Section>
@@ -406,5 +442,140 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
         </div>
       )}
     </div>
+  )
+}
+
+// ── Applications from the website ─────────────────────────────────────────
+
+function ApplicationsSection({ applications, note, reload, onApprove }: {
+  applications: any[] | null; note: string | null; reload: () => void; onApprove: (a: any) => void
+}) {
+  const [showDone, setShowDone] = useState(false)
+  const [declining, setDeclining] = useState<string | null>(null)
+  const [declineNote, setDeclineNote] = useState('')
+  const [notify, setNotify] = useState(true)
+  const [busy, setBusy] = useState<string | null>(null)
+
+  if (!applications) {
+    return note ? <p className="text-xs" style={{ color: faint }}>{note}</p> : null
+  }
+  const pending = applications.filter(a => a.status === 'pending')
+  const done = applications.filter(a => a.status !== 'pending')
+
+  async function patch(id: string, body: Record<string, any>, ok: string) {
+    setBusy(id)
+    const res = await fetch('/api/admin/reseller-applications', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...body }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setBusy(null)
+    if (!res.ok || data?.error) { toast.error(data?.error || 'That did not save'); return }
+    toast.success(`${ok}${data.warning ? ` ${data.warning}` : ''}`)
+    setDeclining(null); setDeclineNote('')
+    reload()
+  }
+
+  const detail = (k: string, v: any) => v ? (
+    <div className="min-w-0">
+      <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: faint }}>{k}</p>
+      <p className="text-xs text-white break-words">{v}</p>
+    </div>
+  ) : null
+
+  return (
+    <Section title="Applications" sub="From cardtly.com/resellers. Approve to set them up with a login, or decline."
+      right={<span className="text-xs font-semibold px-2 py-1 rounded-lg" style={pending.length
+        ? { background: 'rgba(245,158,11,0.15)', color: '#f59e0b' } : { background: 'rgba(255,255,255,0.05)', color: muted }}>
+        {pending.length ? `${pending.length} to review` : 'All reviewed'}</span>}>
+      {pending.length === 0 && (
+        <p className="text-sm flex items-center gap-2" style={{ color: muted }}><Inbox className="w-4 h-4" />Nothing waiting. New applications show up here, and in Today.</p>
+      )}
+      <div className="space-y-3">
+        {pending.map(a => (
+          <div key={a.id} className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.25)' }}>
+            <div className="flex items-start gap-3 flex-wrap">
+              <div className="flex-1 min-w-[200px]">
+                <p className="font-semibold text-white">{a.trading_name}</p>
+                <p className="text-xs" style={{ color: muted }}>{a.business_type} · {a.city}, {a.province} · applied {fmtDate(a.created_at)}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => onApprove(a)} disabled={!!busy}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: grad, color: '#fff' }}>
+                  <Check className="w-3.5 h-3.5" />Approve
+                </button>
+                <button onClick={() => { setDeclining(declining === a.id ? null : a.id); setDeclineNote(''); setNotify(true) }} disabled={!!busy}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
+                  Decline
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {detail('Contact', `${a.contact_name}${a.contact_role ? `, ${a.contact_role}` : ''}`)}
+              {detail('Email', <a href={`mailto:${a.email}`} className="underline">{a.email}</a>)}
+              {detail('Phone', <a href={`tel:${String(a.phone).replace(/[^\d+]/g, '')}`} className="underline">{a.phone}</a>)}
+              {detail('Website', a.website ? <a href={/^https?:\/\//.test(a.website) ? a.website : `https://${a.website}`} target="_blank" rel="noreferrer" className="underline">{a.website}</a> : null)}
+              {detail('Registered name', a.registered_name)}
+              {detail('Registration no', a.registration_number)}
+              {detail('VAT no', a.vat_number)}
+              {detail('Address', addressLine(a))}
+              {detail('Clients in 6 months', a.expected_clients)}
+              {detail('Cards in year one', a.expected_seats)}
+              {detail('NFC printing', a.printing)}
+              {detail('Heard about us', a.heard_about)}
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: faint }}>Their clients and how they would sell</p>
+              <p className="text-xs whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.75)' }}>{a.pitch}</p>
+            </div>
+            {declining === a.id && (
+              <div className="rounded-lg p-3 space-y-2" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(239,68,68,0.3)' }}>
+                <textarea rows={2} value={declineNote} onChange={e => setDeclineNote(e.target.value)}
+                  placeholder="Why, for our own records. Never sent to them."
+                  className={inputClass} style={inputStyle} />
+                <label className="flex items-center gap-2 text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                  <input type="checkbox" checked={notify} onChange={e => setNotify(e.target.checked)} />
+                  Email them a polite no
+                </label>
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setDeclining(null)} className="px-3 py-1.5 rounded-lg text-xs" style={{ color: muted }}>Keep it</button>
+                  <button onClick={() => patch(a.id, { action: 'decline', note: declineNote, notify }, `${a.trading_name} declined.`)}
+                    disabled={busy === a.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: '#ef4444', color: '#fff' }}>
+                    {busy === a.id && <Loader2 className="w-3 h-3 animate-spin" />}Decline{notify ? ' and email' : ''}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {done.length > 0 && (
+        <div className="mt-4">
+          <button onClick={() => setShowDone(v => !v)} className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: muted }}>
+            {showDone ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            Earlier applications ({done.length})
+          </button>
+          {showDone && (
+            <div className="space-y-1 mt-2">
+              {done.map(a => (
+                <div key={a.id} className="flex items-center gap-3 text-xs rounded-lg px-3 py-2 flex-wrap" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <span className="text-white flex-1 min-w-[160px]">{a.trading_name}</span>
+                  <span style={{ color: faint }}>{a.email}</span>
+                  <span style={{ color: a.status === 'approved' ? '#22c55e' : '#ef4444' }}>{a.status}{a.decided_at ? ` ${fmtDate(a.decided_at)}` : ''}</span>
+                  {a.decision_note && <span className="w-full" style={{ color: faint }}>Note: {a.decision_note}</span>}
+                  {a.status === 'declined' && (
+                    <button onClick={() => patch(a.id, { action: 'reopen' }, `${a.trading_name} is back in the queue.`)} disabled={!!busy}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)' }}>
+                      <Undo2 className="w-3 h-3" />Reopen
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </Section>
   )
 }

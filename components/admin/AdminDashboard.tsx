@@ -244,7 +244,7 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
     ...(money ? {
       invoices: { n: money.overdueCount || 0, tone: 'red' as const, title: 'Overdue invoices' },
       recurring: { n: money.recurring?.awaitingApproval || 0, tone: 'amber' as const, title: 'Recurring drafts waiting for approval' },
-      resellers: { n: money.resellerDrafts || 0, tone: 'amber' as const, title: 'Reseller invoices waiting for approval' },
+      resellers: { n: (money.resellerDrafts || 0) + (money.resellerApplications || 0), tone: 'amber' as const, title: 'Reseller applications to review and invoices to approve' },
       quotes: { n: money.quotes?.accepted || 0, tone: 'green' as const, title: 'Accepted quotes ready to invoice' },
     } : {}),
   }
@@ -278,6 +278,11 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
       key: 'drafts', tone: 'amber', action: 'Approve', onClick: () => go(money.recurring?.awaitingApproval ? 'recurring' : 'invoices'),
       title: `${plural(money.invoices.draftCount, 'draft invoice')} waiting for approval`,
       detail: money.resellerDrafts ? `${money.resellerDrafts} of them for resellers, under Resellers.` : 'A draft has no number until it is approved.',
+    },
+    money?.resellerApplications > 0 && {
+      key: 'reseller-apps', tone: 'amber', action: 'Review', onClick: () => go('resellers'),
+      title: `${plural(money.resellerApplications, 'reseller application')} to review`,
+      detail: 'From cardtly.com/resellers. Approve to set them up, or decline.',
     },
     stats.openNfcOrders > 0 && {
       key: 'nfc', tone: 'amber', action: 'Open orders', onClick: () => go('nfc'),

@@ -106,8 +106,18 @@ export async function GET() {
     }
   } catch { /* no reseller tables yet */ }
 
+  // Applications from cardtly.com/resellers waiting for a decision. Tolerant
+  // for the same reason: they arrive with migration 095.
+  let resellerApplications = 0
+  try {
+    const { count, error: aErr } = await db.from('reseller_applications')
+      .select('id', { count: 'exact', head: true }).eq('status', 'pending')
+    if (!aErr) resellerApplications = count || 0
+  } catch { /* no applications table yet */ }
+
   return NextResponse.json({
     resellerDrafts,
+    resellerApplications,
     outstandingCents: outstanding,
     overdueCents: overdue,
     overdueCount,

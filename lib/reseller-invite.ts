@@ -61,6 +61,31 @@ export async function sendResellerWelcome(
   return { ok: true }
 }
 
+/** For an approved applicant who already has a Cardtly login, so gets no
+ *  set-your-password email: their application is approved, and where to go. */
+export async function sendResellerApproved(email: string, resellerName: string, origin: string): Promise<OwnerInviteResult> {
+  const resendKey = process.env.RESEND_API_KEY
+  if (!resendKey) return { ok: false, reason: 'config', error: 'Email is not configured' }
+  const { error } = await new Resend(resendKey).emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    subject: `${resellerName} is approved as a Cardtly reseller`,
+    html: `
+      <div style="font-family:system-ui,-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#111;background:#ffffff">
+        <h1 style="font-size:22px;margin:0 0 8px">You are approved</h1>
+        <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 20px">
+          ${esc(resellerName)} is now a Cardtly reseller. Sign in with your usual Cardtly login and open <strong>Reseller</strong> in your dashboard to add your first client.
+        </p>
+        <a href="${origin}/login"
+          style="display:inline-block;background:linear-gradient(135deg,#00d4ff,#7c3aed,#ec4899);color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 28px;border-radius:12px">
+          Sign in
+        </a>
+      </div>
+    `,
+  })
+  return error ? { ok: false, reason: 'send', error: 'Could not send the email' } : { ok: true }
+}
+
 function esc(s: any): string {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }

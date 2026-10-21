@@ -120,7 +120,7 @@ export default function PrivacyPage() {
             How we collect, use and protect personal information, written to meet the Protection of Personal Information Act (POPIA).
           </p>
           <p className="text-sm mt-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            Last updated: 23 September 2026
+            Last updated: 21 October 2026
           </p>
         </div>
       </section>
@@ -179,6 +179,7 @@ export default function PrivacyPage() {
             <p><B>Team account information.</B> For organisations: the organisation&apos;s details, its companies and departments, which fields are locked, the cards issued to staff, and any sales activity that staff choose to record in the activity log (the company, contact and subject of an email, LinkedIn contact or networking event).</p>
             <p><B>Payment information.</B> Card payments are handled by Paystack. We never see or store your card number. We keep your subscription status, a Paystack customer reference, and the email used for billing. Organisations invoiced directly also have their invoices, quotes and billing contact stored with us.</p>
             <p><B>Physical NFC card orders.</B> If you order a physical card, we store your name, delivery address and phone number so that it can be made and delivered.</p>
+            <p><B>Reseller applications.</B> If you apply to resell Cardtly, we store the business and contact details you send us (your business name, registration and VAT numbers, address, contact person, email, phone and what you tell us about your plans) so that we can review the application and, if we approve it, set up and invoice your reseller account. A reseller sees the names, seats and admin email address of the client teams it creates, and the names, titles and card links of their staff when ordering printed NFC cards for them.</p>
             <p><B>AI features.</B> If you use the bio writer, the details you give it are sent to generate a suggestion. If you scan a paper business card, the photograph is sent to be read, and the details on it are returned to you as a contact. Both are processed by OpenAI (see section 7).</p>
             <p><B>Cookies and similar storage.</B> We use first-party cookies to keep you signed in and to remember your settings, and your browser&apos;s local storage to avoid counting the same card view twice. We do not use advertising cookies or third-party tracking cookies on our website.</p>
             <p><B>The mobile apps.</B> See section 13.</p>
@@ -192,6 +193,7 @@ export default function PrivacyPage() {
                 ['Creating your account and publishing your card', 'Needed to provide the service you signed up for'],
                 ['Storing and showing you the contacts your card captures', 'Needed to provide the service, as your operator'],
                 ['Taking payment and managing subscriptions', 'Needed to provide the service'],
+                ['Reviewing an application to become a reseller, and running an approved reseller account', 'You ask us to, and it is needed for the agreement that follows'],
                 ['Service emails such as password resets, trial reminders, payment notices and new-lead alerts', 'Needed to provide the service'],
                 ['Showing you views, taps and saves on your own card', 'Needed to provide the service'],
                 ['Recording signup location, and preventing fraud and abuse', 'Our legitimate interest in running a secure service'],

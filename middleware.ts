@@ -112,6 +112,7 @@ export const config = {
     '/teams',
     '/network',
     '/promotions',
+    '/resellers',
     '/upgrade/:path*',
     // Refresh the Supabase session on authenticated API routes so
     // long-running tabs don't hit "Unauthorized" when their access

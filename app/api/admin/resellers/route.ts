@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireAdmin, adminDb } from '@/lib/admin-api'
 import { auditLog } from '@/lib/admin-audit'
 import { findUserByEmail } from '@/lib/department-perms'
-import { sendResellerWelcome } from '@/lib/reseller-invite'
+import { sendResellerWelcome, sendResellerApproved } from '@/lib/reseller-invite'
 import { listResellerClients, poolClients } from '@/lib/reseller'
 import { draftResellerMonth, rebuildResellerMonth } from '@/lib/reseller-billing'
 import { sastMonth, previousMonth, monthLabel, seatsSold, RESELLER_DEFAULTS } from '@/lib/reseller-pricing'
@@ -30,7 +30,7 @@ const isEmail = (s: string) => /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(s)
 
 /** A login for this reseller: an existing account, or a new one with a
  *  set-your-password email. */
-async function linkLogin(db: any, reseller: any, email: string, origin: string): Promise<{ ok: true; note: string } | { error: string }> {
+async function linkLogin(db: any, reseller: any, email: string, origin: string, fromApplication = false): Promise<{ ok: true; note: string } | { error: string }> {
   const existing = await findUserByEmail(db, email)
   let userId: string
   let created = false
@@ -54,7 +54,17 @@ async function linkLogin(db: any, reseller: any, email: string, origin: string):
     if (error) return { error: error.message || 'Could not link the login' }
   }
 
-  if (!created) return { ok: true, note: `${email} already had a Cardtly login, so they sign in as usual and will find Reseller in their dashboard.` }
+  if (!created) {
+    // An applicant who already had a login gets no password email, so tell
+    // them they were approved and where to look.
+    if (fromApplication) {
+      const sent = await sendResellerApproved(email, reseller.name, origin)
+      return { ok: true, note: sent.ok
+        ? `${email} already had a Cardtly login, and has been emailed that they are approved.`
+        : `${email} already had a Cardtly login, but the approval email did not send. Let them know they can sign in.` }
+    }
+    return { ok: true, note: `${email} already had a Cardtly login, so they sign in as usual and will find Reseller in their dashboard.` }
+  }
   const sent = await sendResellerWelcome(email, reseller.name, Number(reseller.seat_pool) || 0, origin)
   return {
     ok: true,
@@ -149,6 +159,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Prices must be amounts of R0 or more.' }, { status: 400 })
   }
 
+  // Approving an application from cardtly.com/resellers: only one that is
+  // still pending, so two admins clicking Approve cannot make two resellers.
+  let application: any = null
+  if (body.application_id) {
+    const { data } = await db.from('reseller_applications').select('*').eq('id', String(body.application_id)).maybeSingle()
+    if (!data) return NextResponse.json({ error: 'That application no longer exists.' }, { status: 404 })
+    if (data.status !== 'pending') return NextResponse.json({ error: `That application is already ${data.status}.` }, { status: 409 })
+    // Claimed before anything is created: the update only matches while it is
+    // still pending, so a second Approve at the same moment finds nothing.
+    const at = new Date().toISOString()
+    const { data: claimed } = await db.from('reseller_applications')
+      .update({ status: 'approved', decided_by: gate.user.id, decided_at: at, updated_at: at })
+      .eq('id', data.id).eq('status', 'pending').select('id')
+    if (!claimed?.length) return NextResponse.json({ error: 'That application was just decided by someone else.' }, { status: 409 })
+    application = data
+  }
+  // If creating the reseller fails after the claim, the application goes back
+  // to pending rather than reading as approved with no reseller behind it.
+  const release = async () => {
+    if (application) await db.from('reseller_applications').update({ status: 'pending', decided_by: null, decided_at: null }).eq('id', application.id)
+  }
+
   const str = (v: unknown, n = 300) => String(v ?? '').trim().slice(0, n) || null
   const { data: client, error: cErr } = await db.from('billing_clients').insert({
     name: str(body.legal_name, 160) || name,
@@ -159,7 +191,10 @@ export async function POST(request: Request) {
     vat_number: str(body.vat_number, 40),
     notes: 'Reseller. Invoiced monthly for seats sold and for NFC orders.',
   }).select('id').maybeSingle()
-  if (cErr || !client) return NextResponse.json({ error: `Could not create the billing client: ${cErr?.message || 'unknown'}` }, { status: 500 })
+  if (cErr || !client) {
+    await release()
+    return NextResponse.json({ error: `Could not create the billing client: ${cErr?.message || 'unknown'}` }, { status: 500 })
+  }
 
   const { data: reseller, error: rErr } = await db.from('resellers').insert({
     name,
@@ -176,17 +211,22 @@ export async function POST(request: Request) {
   }).select('*').maybeSingle()
   if (rErr || !reseller) {
     await db.from('billing_clients').delete().eq('id', client.id)
+    await release()
     const missing = /resellers/.test(rErr?.message || '')
     return NextResponse.json({
       error: missing ? 'Resellers are not set up on this database yet. Run migration 094.' : `Could not create the reseller: ${rErr?.message || 'unknown'}`,
     }, { status: missing ? 503 : 500 })
   }
 
-  const linked = await linkLogin(db, reseller, email, new URL(request.url).origin)
+  if (application) {
+    await db.from('reseller_applications').update({ reseller_id: reseller.id }).eq('id', application.id)
+  }
+
+  const linked = await linkLogin(db, reseller, email, new URL(request.url).origin, !!application)
   await auditLog(db, {
     actorUserId: gate.user.id, actorEmail: gate.user.email,
-    action: 'create_reseller', targetEmail: email,
-    detail: { reseller_id: reseller.id, name, seat_pool: pool, seat_price_cents: seat },
+    action: application ? 'approve_reseller_application' : 'create_reseller', targetEmail: email,
+    detail: { reseller_id: reseller.id, name, seat_pool: pool, seat_price_cents: seat, application_id: application?.id || null },
   })
   if ('error' in linked) {
     return NextResponse.json({ reseller, warning: `Reseller saved, but the login was not linked: ${linked.error}` })

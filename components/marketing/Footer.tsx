@@ -78,6 +78,7 @@ export default function Footer() {
             <FooterLinkList items={[
               { href: '/about',             label: 'About us' },
               { href: '/contact',           label: 'Contact' },
+              { href: '/resellers',         label: 'Become a reseller' },
               { href: '/privacy',           label: 'Privacy policy' },
               { href: '/terms',             label: 'Terms of service' },
               ...(PROMOS_ENABLED ? [{ href: '/promotions/terms', label: 'Promotion rules' }] : []),
