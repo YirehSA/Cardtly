@@ -22,7 +22,8 @@ const tabsBlock = /export const TABS = \[([\s\S]*?)\] as const/.exec(shell)?.[1]
 const tabs = [...tabsBlock.matchAll(/'([a-z_]+)'/g)].map(m => m[1])
 if (tabs.length < 15) bad(`TABS could not be read from AdminShell (found ${tabs.length})`)
 
-const sectionIds = [...shell.matchAll(/\{ id: '([a-z_]+)', label: '[^']+', icon: /g)].map(m => m[1])
+// Screens only: a screen has a desc, a section heading has items.
+const sectionIds = [...shell.matchAll(/\{ id: '([a-z_]+)', label: '[^']+', icon: \w+, desc: /g)].map(m => m[1])
 for (const t of tabs) {
   if (!sectionIds.includes(t)) bad(`"${t}" is a screen but is not in the sidebar (SECTIONS), so nobody can reach it`)
   if (!dash.includes(`tab === '${t}'`)) bad(`"${t}" is in the sidebar but AdminDashboard never renders it`)

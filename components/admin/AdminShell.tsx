@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   Users as UsersIcon, Building2, Handshake, Ticket, UserCog, CalendarClock, PhoneCall, Mail,
   Network, Wifi, Flag, ScrollText, Receipt, FileSignature, RefreshCw, Banknote,
-  Contact, SlidersHorizontal, Wallet, Search, Menu, X, ArrowLeft, CornerDownLeft, Sun,
+  Contact, SlidersHorizontal, Wallet, Search, Menu, X, ArrowLeft, CornerDownLeft, Sun, ChevronDown,
 } from 'lucide-react'
 import { matchesAllWords } from './shared'
 import type { AdminUserRow, AdminOrgRow } from '@/lib/admin-data'
@@ -37,26 +37,26 @@ export type Tab = typeof TABS[number]
 export const isTab = (s: unknown): s is Tab => typeof s === 'string' && (TABS as readonly string[]).includes(s)
 
 interface Item { id: Tab; label: string; icon: any; desc: string; keywords?: string }
-interface SectionDef { id: string; label: string; items: Item[] }
+interface SectionDef { id: string; label: string; icon?: any; items: Item[] }
 
 export const SECTIONS: SectionDef[] = [
   { id: 'home', label: '', items: [
     { id: 'overview', label: 'Today', icon: Sun, desc: 'What needs you right now, and how Cardtly is doing.', keywords: 'home overview dashboard attention' },
   ] },
-  { id: 'customers', label: 'Customers', items: [
+  { id: 'customers', label: 'Customers', icon: UsersIcon, items: [
     { id: 'users', label: 'Users', icon: UsersIcon, desc: 'Every account: who pays, who is on a trial, and whose card is offline.', keywords: 'people accounts customers members email' },
     { id: 'teams', label: 'Teams', icon: Building2, desc: 'Company teams: seats, billing mode, departments and their owners.', keywords: 'companies organisations orgs seats departments enterprise debit order' },
     { id: 'resellers', label: 'Resellers', icon: Handshake, desc: 'Agencies that resell Cardtly: their seat pools, clients and monthly invoices.', keywords: 'agency partner pool marketing' },
     { id: 'trials', label: 'Trials and codes', icon: Ticket, desc: 'Trials about to end, and the codes that start them.', keywords: 'trial codes expiring extend' },
   ] },
-  { id: 'sales', label: 'Sales', items: [
+  { id: 'sales', label: 'Sales', icon: UserCog, items: [
     { id: 'reps', label: 'Reps', icon: UserCog, desc: 'Your sales reps, the clients they signed and their commission.', keywords: 'commission payout sales' },
     { id: 'meetings', label: 'Calendar', icon: CalendarClock, desc: 'Every rep\'s meetings in one calendar.', keywords: 'meetings appointments calendar' },
     { id: 'calls', label: 'Call log', icon: PhoneCall, desc: 'Calls the reps logged, and how they went.', keywords: 'phone calls' },
     { id: 'emails', label: 'Email log', icon: Mail, desc: 'Outreach emails the reps sent.', keywords: 'outreach email' },
     { id: 'networking', label: 'Networking', icon: Network, desc: 'LinkedIn and networking-event outreach.', keywords: 'linkedin events networking' },
   ] },
-  { id: 'money', label: 'Money', items: [
+  { id: 'money', label: 'Money', icon: Banknote, items: [
     { id: 'accounting', label: 'Money overview', icon: Wallet, desc: 'What is owed, what is late and what came in this month.', keywords: 'accounting finance books owed overdue' },
     { id: 'invoices', label: 'Invoices', icon: Receipt, desc: 'Draft, approve, send and chase invoices.', keywords: 'invoice bill owed overdue tax' },
     { id: 'quotes', label: 'Quotes', icon: FileSignature, desc: 'Quotes out with clients, and turning accepted ones into invoices.', keywords: 'quote quotation proposal' },
@@ -65,7 +65,7 @@ export const SECTIONS: SectionDef[] = [
     { id: 'clients', label: 'Billing clients', icon: Contact, desc: 'Who Cardtly invoices, with statements of account.', keywords: 'clients billing statement accounts' },
     { id: 'billing', label: 'Billing settings', icon: SlidersHorizontal, desc: 'Company details, banking, VAT, terms, signatures and reminders.', keywords: 'settings banking bank vat terms company signature reminders' },
   ] },
-  { id: 'operations', label: 'Operations', items: [
+  { id: 'operations', label: 'Operations', icon: Wifi, items: [
     { id: 'nfc', label: 'NFC orders', icon: Wifi, desc: 'Card orders from customers: invoice, make, ship.', keywords: 'nfc cards print orders shipping tracking' },
     { id: 'reports', label: 'Reported cards', icon: Flag, desc: 'Cards people reported, and how long each has waited.', keywords: 'reports moderation flagged impersonation abuse' },
     { id: 'activity', label: 'Activity log', icon: ScrollText, desc: 'Everything an admin changed, newest first.', keywords: 'audit log history changes' },
@@ -86,8 +86,22 @@ const BG = '#0a0a0a'
 const PANEL = '#0f0f10'
 const LINE = 'rgba(255,255,255,0.08)'
 
-function NavPanel({ tab, onGo, badges, onSearch, meta, onClose }: {
+// What a folded section has waiting: the total, in the most urgent colour
+// among its screens. Red outranks amber outranks green outranks blue.
+const TONE_RANK: Record<BadgeTone, number> = { red: 0, amber: 1, green: 2, blue: 3 }
+function sectionBadge(s: SectionDef, badges: Badges): Badge | null {
+  const hits = s.items.map(i => badges[i.id]).filter((b): b is Badge => !!b && b.n > 0)
+  if (!hits.length) return null
+  const tone = hits.reduce((t, b) => (TONE_RANK[b.tone] < TONE_RANK[t] ? b.tone : t), hits[0].tone)
+  return { n: hits.reduce((n, b) => n + b.n, 0), tone }
+}
+
+const sectionOf = (t: Tab) => SECTIONS.find(s => s.items.some(i => i.id === t))?.id || 'home'
+const OPEN_KEY = 'cardtly-admin-nav-open'
+
+function NavPanel({ tab, onGo, badges, onSearch, meta, onClose, open, onToggle }: {
   tab: Tab; onGo: (t: Tab) => void; badges: Badges; onSearch: () => void; meta?: string; onClose?: () => void
+  open: Record<string, boolean>; onToggle: (id: string) => void
 }) {
   return (
     <>
@@ -114,41 +128,72 @@ function NavPanel({ tab, onGo, badges, onSearch, meta, onClose }: {
         </button>
       </div>
 
-      <nav aria-label="Admin" className="flex-1 overflow-y-auto px-3 py-3 space-y-5"
+      <nav aria-label="Admin" className="flex-1 overflow-y-auto px-3 py-3 space-y-2"
         style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.14) transparent' }}>
-        {SECTIONS.map(s => (
-          <div key={s.id}>
-            {s.label && (
-              <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: 'rgba(255,255,255,0.38)' }}>{s.label}</p>
-            )}
-            <ul className="space-y-0.5">
-              {s.items.map(it => {
-                const active = tab === it.id
-                const badge = badges[it.id]
-                const Icon = it.icon
-                return (
-                  <li key={it.id}>
-                    <button onClick={() => onGo(it.id)} aria-current={active ? 'page' : undefined}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition ${active ? 'font-semibold' : 'font-medium hover:bg-white/[0.05]'}`}
-                      style={active
-                        ? { background: 'rgba(255,255,255,0.08)', color: '#fff', boxShadow: `inset 3px 0 0 ${accent}` }
-                        : { color: 'rgba(255,255,255,0.62)' }}>
-                      <Icon className="w-4 h-4 flex-shrink-0" style={active ? { color: accent } : undefined} />
-                      <span className="flex-1 text-left truncate">{it.label}</span>
-                      {badge && badge.n > 0 && (
-                        <span title={badge.title}
-                          className="min-w-[22px] text-center px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums"
-                          style={{ background: `${TONE[badge.tone]}24`, color: TONE[badge.tone] }}>
-                          {badge.n > 99 ? '99+' : badge.n}
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        ))}
+        {SECTIONS.map(s => {
+          // Today has no heading and is always shown. Every other section
+          // folds away under its heading, and says what is waiting inside
+          // while it is folded, so closing one never hides a problem.
+          const foldable = !!s.label
+          const isOpen = !foldable || !!open[s.id]
+          const waiting = sectionBadge(s, badges)
+          const listId = `admin-nav-${s.id}`
+          return (
+            <div key={s.id} className={foldable ? 'pt-1' : 'pb-1'}>
+              {foldable && (
+                <button onClick={() => onToggle(s.id)} aria-expanded={isOpen} aria-controls={listId}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition hover:bg-white/[0.05]">
+                  {s.icon && <s.icon className="w-4 h-4 flex-shrink-0" style={{ color: isOpen ? accent : 'rgba(255,255,255,0.5)' }} />}
+                  <span className="flex-1 text-left text-[13px] font-semibold"
+                    style={{ color: isOpen ? '#fff' : 'rgba(255,255,255,0.75)' }}>{s.label}</span>
+                  {!isOpen && waiting && (
+                    <span title={`${waiting.n} waiting in ${s.label}`}
+                      className="min-w-[22px] text-center px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums"
+                      style={{ background: `${TONE[waiting.tone]}24`, color: TONE[waiting.tone] }}>
+                      {waiting.n > 99 ? '99+' : waiting.n}
+                    </span>
+                  )}
+                  <ChevronDown className="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200 motion-reduce:transition-none"
+                    style={{ color: 'rgba(255,255,255,0.4)', transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }} />
+                </button>
+              )}
+              {/* Folds with a grid-rows transition so it slides rather than
+                  jumps. While folded the items leave the tab order and the
+                  reading order, not just the screen. */}
+              <div id={listId}
+                className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+                aria-hidden={!isOpen}>
+                <ul className={`space-y-0.5 overflow-hidden ${foldable ? 'ml-[19px] pl-2 border-l' : ''}`}
+                  style={foldable ? { borderColor: LINE, marginTop: isOpen ? 2 : 0 } : undefined}>
+                  {s.items.map(it => {
+                    const active = tab === it.id
+                    const badge = badges[it.id]
+                    const Icon = it.icon
+                    return (
+                      <li key={it.id}>
+                        <button onClick={() => onGo(it.id)} aria-current={active ? 'page' : undefined} tabIndex={isOpen ? undefined : -1}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition ${active ? 'font-semibold' : 'font-medium hover:bg-white/[0.05]'}`}
+                          style={active
+                            ? { background: 'rgba(255,255,255,0.08)', color: '#fff', boxShadow: `inset 3px 0 0 ${accent}` }
+                            : { color: 'rgba(255,255,255,0.62)' }}>
+                          <Icon className="w-4 h-4 flex-shrink-0" style={active ? { color: accent } : undefined} />
+                          <span className="flex-1 text-left truncate">{it.label}</span>
+                          {badge && badge.n > 0 && (
+                            <span title={badge.title}
+                              className="min-w-[22px] text-center px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums"
+                              style={{ background: `${TONE[badge.tone]}24`, color: TONE[badge.tone] }}>
+                              {badge.n > 99 ? '99+' : badge.n}
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            </div>
+          )
+        })}
       </nav>
 
       <div className="px-3 py-3 flex-shrink-0" style={{ borderTop: `1px solid ${LINE}` }}>
@@ -168,6 +213,29 @@ export function AdminShell({ tab, onGo, badges, onSearch, meta, children }: {
 }) {
   const [drawer, setDrawer] = useState(false)
 
+  // Which sections are unfolded. Starts with only the one you are in; after
+  // that this browser remembers what you opened and closed. The section the
+  // open screen belongs to is always unfolded, so arriving at a screen by
+  // search or from Today never leaves its place in the sidebar hidden.
+  const [open, setOpen] = useState<Record<string, boolean>>(() => ({ [sectionOf(tab)]: true }))
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(OPEN_KEY) || 'null')
+      if (saved && typeof saved === 'object') setOpen(o => ({ ...saved, ...o }))
+    } catch { /* first visit, or storage blocked */ }
+  }, [])
+  useEffect(() => {
+    const sec = sectionOf(tab)
+    setOpen(o => (o[sec] ? o : { ...o, [sec]: true }))
+  }, [tab])
+  function toggle(id: string) {
+    setOpen(o => {
+      const next = { ...o, [id]: !o[id] }
+      try { window.localStorage.setItem(OPEN_KEY, JSON.stringify(next)) } catch { /* not remembered, still works */ }
+      return next
+    })
+  }
+
   useEffect(() => {
     if (!drawer) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDrawer(false) }
@@ -180,7 +248,7 @@ export function AdminShell({ tab, onGo, badges, onSearch, meta, children }: {
   return (
     <div className="min-h-screen" style={{ background: BG }}>
       <aside className="hidden lg:flex fixed inset-y-0 left-0 z-30 w-[264px] flex-col" style={{ background: PANEL, borderRight: `1px solid ${LINE}` }}>
-        <NavPanel tab={tab} onGo={onGo} badges={badges} onSearch={onSearch} meta={meta} />
+        <NavPanel tab={tab} onGo={onGo} badges={badges} onSearch={onSearch} meta={meta} open={open} onToggle={toggle} />
       </aside>
 
       {/* Below lg the sidebar becomes a drawer behind a menu button. */}
@@ -200,7 +268,7 @@ export function AdminShell({ tab, onGo, badges, onSearch, meta, children }: {
         <div className="lg:hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Admin menu">
           <div className="absolute inset-0 bg-black/60" onClick={() => setDrawer(false)} />
           <aside className="absolute inset-y-0 left-0 w-[290px] max-w-[86vw] flex flex-col" style={{ background: PANEL, borderRight: `1px solid ${LINE}` }}>
-            <NavPanel tab={tab} badges={badges} meta={meta}
+            <NavPanel tab={tab} badges={badges} meta={meta} open={open} onToggle={toggle}
               onGo={(t) => { setDrawer(false); onGo(t) }}
               onSearch={() => { setDrawer(false); onSearch() }}
               onClose={() => setDrawer(false)} />
