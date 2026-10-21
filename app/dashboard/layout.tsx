@@ -5,6 +5,7 @@ import { getUserPlan } from '@/lib/plan-server'
 import { isAdminUser } from '@/lib/admin-check'
 import { getManagedDepartments, getOwnedOrgs } from '@/lib/department-perms'
 import { getRepForUser } from '@/lib/rep-access'
+import { getResellerForUser } from '@/lib/reseller'
 import { isIosApp, iosAppAdmits } from '@/lib/app-platform'
 import { ThemeProvider } from '@/components/dashboard/ThemeProvider'
 import { PlatformProvider } from '@/components/dashboard/PlatformProvider'
@@ -33,7 +34,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
-  const [plan, { data: card }, isAdmin, managedDepts, noticeSeen, archivedCards, rep] = await Promise.all([
+  const [plan, { data: card }, isAdmin, managedDepts, noticeSeen, archivedCards, rep, reseller] = await Promise.all([
     getUserPlan(user.id),
     // select('*') for color_theme, which the shell reads to take the
     // dashboard's accent from this person's own card.
@@ -86,6 +87,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
     // inside rep-access, since reps.user_id arrives with migration 047 and this
     // layout renders every dashboard page.
     getRepForUser(deptAdmin, user.id, user.email),
+    // Does this login run a reseller? Only then is the Reseller page offered.
+    // At the end for the same reason as the rep lookup above, and tolerant
+    // inside lib/reseller, since its tables arrive with migration 094.
+    getResellerForUser(deptAdmin, user.id),
   ])
   const [managedDeptsList, ownedOrgsList] = managedDepts
   // Show the Departments link to anyone who manages a department OR owns a
@@ -125,6 +130,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Read once here and shared with every client component below, so nothing in
   // the dashboard has to render a purchase button and then take it away again.
   const iosApp = await isIosApp()
+
+  // Never in the iOS app: the Reseller page is Cardtly's prices to resellers,
+  // and /dashboard/reseller is on IOS_BLOCKED_ROUTES.
+  const isReseller = !!reseller && !iosApp
 
   // THE iOS APP IS FOR COMPANY TEAMS ONLY (App Review, 3.1.1 and 3.1.3(c),
   // 2026-09-30; the reasoning is on iosAppAdmits in lib/app-platform). Someone
@@ -188,6 +197,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           showTeamCards={showTeamCards}
           teamTabLabel={teamTabLabel}
           isRep={isRep}
+          isReseller={isReseller}
           userName={card?.name || ''}
           userEmail={user.email || ''}
         />
@@ -218,7 +228,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <HeartbeatPing />
         <FreshOnReturn />
         <AnnouncementModal />
-        <MobileBottomNav isAdmin={isAdmin} isPro={isPro} managesDepartments={managesDepartments} showTeamCards={showTeamCards} isRep={isRep} teamTabLabel={teamTabLabel} />
+        <MobileBottomNav isAdmin={isAdmin} isPro={isPro} managesDepartments={managesDepartments} showTeamCards={showTeamCards} isRep={isRep} isReseller={isReseller} teamTabLabel={teamTabLabel} />
       </div>
       </PlatformProvider>
     </ThemeProvider>

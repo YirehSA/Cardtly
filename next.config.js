@@ -96,6 +96,8 @@ const nextConfig = {
   outputFileTracingIncludes: {
     '/api/admin/billing/**': ['./node_modules/pdfkit/js/standard-fonts/**'],
     '/api/cron/trial-reminders': ['./node_modules/pdfkit/js/standard-fonts/**'],
+    // A reseller downloads their own invoices as PDFs.
+    '/api/reseller/**': ['./node_modules/pdfkit/js/standard-fonts/**'],
   },
 }
 

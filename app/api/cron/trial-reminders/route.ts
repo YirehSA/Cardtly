@@ -327,6 +327,20 @@ export async function GET(request: Request) {
     recurring = { error: e?.message || 'recurring pass failed' }
   }
 
+  // Resellers ride along too. Record every live client's seats against this
+  // month first, then draft last month's invoice for each reseller. Drafts
+  // only, claimed per reseller per month, so a second run bills nobody twice
+  // and a missed 1st is picked up the next day. See lib/reseller-billing.
+  let resellers: any = null
+  try {
+    const { recordAllResellerSeats, draftResellerInvoices } = await import('@/lib/reseller-billing')
+    const seats = await recordAllResellerSeats(admin)
+    const drafts = await draftResellerInvoices(admin)
+    resellers = { seats, drafts }
+  } catch (e: any) {
+    resellers = { error: e?.message || 'reseller pass failed' }
+  }
+
   // Overdue invoices. Marking them is unconditional - an invoice a day late IS
   // overdue and should read that way long before anybody emails about it.
   // SENDING is off unless somebody has turned it on, because a chaser is still
@@ -366,6 +380,7 @@ export async function GET(request: Request) {
     considered: queue.length,
     webhooks,
     recurring,
+    resellers,
     overdue,
     ...(blocked.length ? { blocked } : {}),
     ops,

@@ -5,6 +5,7 @@ import { getUserPlan } from '@/lib/plan-server'
 import { getPrimaryCard } from '@/lib/card-server'
 import SettingsTabs, { type TeamBilling } from '@/components/settings/SettingsTabs'
 import { orgEntitlesMembers, orgPaidUntilDaysLeft, orgTrialDaysLeft, orgBillingStartsInDays } from '@/lib/org-billing'
+import { managedByFor } from '@/lib/reseller'
 
 interface CardSummary {
   id: string
@@ -104,6 +105,7 @@ export default async function SettingsPage() {
         billingStartsInDays: orgBillingStartsInDays(org.billing_period, org.billing_starts_on || null),
         seats: isOwner ? org.max_seats ?? null : null,
         used: isOwner ? used ?? null : null,
+        managedBy: (await managedByFor(admin, org))?.name ?? null,
       }
     }
   }

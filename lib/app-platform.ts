@@ -39,6 +39,8 @@ export const IOS_BLOCKED_ROUTES = [
   '/dashboard/upgrade', '/pricing', '/upgrade',
   '/', '/about', '/features', '/how-it-works', '/nfc', '/blog', '/teams',
   '/signup', '/network', '/promotions',
+  // The reseller page: Cardtly prices for resellers, and their invoices.
+  '/dashboard/reseller',
 ] as const
 
 /** Exact match for '/', prefix match for the rest. */

@@ -43,6 +43,9 @@ export interface TeamBilling {
   billingStartsInDays: number | null
   seats: number | null
   used: number | null
+  /** The reseller that sold the team, when one did. Seats and billing are
+   *  theirs to talk about, so no Cardtly price is shown. */
+  managedBy?: string | null
 }
 
 type Tab = 'profile' | 'security' | 'billing' | 'danger'
@@ -499,6 +502,8 @@ function TeamCover({ team }: { team: TeamBilling }) {
     lines.push(<>{who} is on a team trial until <strong className="text-foreground">{formatDay(team.trialEndsAt)}</strong>{team.trialDaysLeft != null && team.trialDaysLeft >= 0 ? `, ${days(team.trialDaysLeft)} from today` : ''}.</>)
   } else if (team.isOwner && team.mode === 'debit_order') {
     lines.push(<>{who} is billed by debit order{team.billingStartsOn && team.billingStartsInDays != null && team.billingStartsInDays > 0 ? <>, starting <strong className="text-foreground">{formatDay(team.billingStartsOn)}</strong></> : ''}.</>)
+  } else if (team.isOwner && team.mode === 'reseller') {
+    lines.push(<>{who}&apos;s plan is managed by <strong className="text-foreground">{team.managedBy || 'your reseller'}</strong>. Speak to them about seats and billing.</>)
   } else if (team.isOwner && team.mode === 'comp') {
     lines.push(<>{who} is on Cardtly at no charge.</>)
   } else if (team.isOwner && (team.mode === 'monthly' || team.mode === 'yearly')) {

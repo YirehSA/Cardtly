@@ -6,7 +6,7 @@ import { useTheme } from './ThemeProvider'
 import {
   CreditCard, BarChart2, Mail, Monitor, Users,
   Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi, Building2, Shield, ScanLine, ClipboardList,
-  Layers, Network, CalendarClock, FileSignature,
+  Layers, Network, CalendarClock, FileSignature, Handshake,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -40,6 +40,9 @@ const TEAM_TAB = { href: '/dashboard/team', label: 'Team Cards', icon: Building2
 const MEETINGS_TAB = { href: '/dashboard/meetings', label: 'Activity Log', icon: CalendarClock }
 // Reps quote, and that is the whole of their access to the books.
 const QUOTES_TAB = { href: '/dashboard/quotes', label: 'Quotes', icon: FileSignature }
+// Only a reseller's login sees this: their seat pool, clients, NFC orders and
+// invoices. Never in the iOS app (see the layout).
+const RESELLER_TAB = { href: '/dashboard/reseller', label: 'Reseller', icon: Handshake }
 
 interface SidebarProps {
   isPro: boolean
@@ -50,13 +53,14 @@ interface SidebarProps {
   teamTabLabel?: string
   showTeamCards?: boolean
   isRep?: boolean
+  isReseller?: boolean
   userName: string
   userEmail: string
 }
 
 const grad = 'hsl(var(--accent))'
 
-export default function Sidebar({ isPro, isAdmin = false, managesDepartments = false, showTeamCards = true, isRep = false, teamTabLabel, userName, userEmail }: SidebarProps) {
+export default function Sidebar({ isPro, isAdmin = false, managesDepartments = false, showTeamCards = true, isRep = false, isReseller = false, teamTabLabel, userName, userEmail }: SidebarProps) {
   const pathname = usePathname()
   const { theme, toggle } = useTheme()
   // Lead capture (contact popup + questionnaire) is standard on Pro. The
@@ -74,6 +78,7 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
     // behind it.
     ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers }] : []),
     ...(isRep ? [MEETINGS_TAB, QUOTES_TAB] : []),
+    ...(isReseller ? [RESELLER_TAB] : []),
   ]
   const router = useRouter()
   const supabase = createClient()

@@ -77,6 +77,10 @@ interface Props {
   // Both empty for a flat organisation, and the filter hides itself.
   companies?: Array<{ id: string; name: string }>
   companyByDept?: Record<string, string>
+  /** Set when a reseller sold this team. The client pays the reseller at the
+   *  reseller's own price, so nothing here may show a Cardtly price or a way
+   *  to pay Cardtly: seats and billing are the reseller's to talk about. */
+  managedBy?: { name: string; email: string | null } | null
 }
 
 const inputClass = "w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
@@ -89,7 +93,7 @@ const SEAT_PRICE = 97
 const MAX_SELF_SERVE_SEATS = 20
 const SEAT_TIERS = Array.from({ length: MAX_SELF_SERVE_SEATS - 1 }, (_, i) => i + 2) as readonly number[]
 
-export default function TeamDashboard({ user, org: initialOrg, teamCards: initialCards, leadCounts, importTargets, companies = [], companyByDept = {}, iosApp = false }: Props) {
+export default function TeamDashboard({ user, org: initialOrg, teamCards: initialCards, leadCounts, importTargets, companies = [], companyByDept = {}, iosApp = false, managedBy = null }: Props) {
   const searchParams = useSearchParams()
   const status = searchParams.get('status')
 
@@ -549,6 +553,27 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
     )
   }
 
+  // A reseller's client whose team is switched off. The setup screen below is
+  // a Cardtly price list and a Paystack checkout, and paying Cardtly directly
+  // would leave the team on the reseller's bill as well.
+  if (managedBy && org && !org.business_plan_active) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-4">
+        <h1 className="font-display text-2xl font-bold flex items-center gap-2">
+          <Users className="w-6 h-6" />Team Cards
+        </h1>
+        <div className="bg-card border border-border rounded-lg p-6">
+          <p className="text-sm">
+            {org.name} is switched off. Your plan is managed by <strong>{managedBy.name}</strong>: speak to them to switch it back on.
+          </p>
+          {managedBy.email && (
+            <a href={`mailto:${managedBy.email}`} className="inline-block text-sm mt-3 underline">{managedBy.email}</a>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   if (!org || !org.business_plan_active) {
     return (
       <div className="max-w-2xl mx-auto space-y-8">
@@ -769,7 +794,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                   <Plus className="w-4 h-4" />Add card
                 </button>
               )}
-              {tab === 'billing' && !iosApp && (
+              {tab === 'billing' && !iosApp && !managedBy && (
                 <button onClick={() => setShowAddSeats(p => !p)}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
                   style={{ background: 'hsl(var(--accent))' }}>
@@ -861,7 +886,9 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           ['people', 'People', Users, cards.length || null],
           ['integrations', 'Integrations', Network, null],
           ...(iosApp ? [] : [['billing', 'Billing', CreditCard, null] as const]),
-        ] as const).map(([id, label, Icon, count]) => {
+        // Nor for a reseller's client: what they pay is between them and the
+        // reseller, and every line on that tab is a Cardtly price.
+        ] as const).filter(([id]) => !(managedBy && id === 'billing')).map(([id, label, Icon, count]) => {
           const active = tab === id
           return (
             <button key={id} onClick={() => setTab(id)}
@@ -884,7 +911,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
       </div>
 
       {/* Add seats panel */}
-      {tab === 'billing' && showAddSeats && !iosApp && (
+      {tab === 'billing' && showAddSeats && !iosApp && !managedBy && (
         <div className="bg-card border border-border rounded-lg p-5 space-y-4">
           <p className="font-semibold text-sm">Upgrade seat plan</p>
           <div className="flex items-center gap-4 flex-wrap">
@@ -917,7 +944,9 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           <Users className="w-4 h-4 flex-shrink-0" />
           {/* In the app this states the fact and stops: adding seats is a
               purchase, and the app offers none (Guideline 3.1.1). */}
-          {iosApp
+          {managedBy
+            ? `All ${seatsTotal} seats are in use. Ask ${managedBy.name} for more seats.`
+            : iosApp
             ? `All ${seatsTotal} seats are in use.`
             : `All ${seatsTotal} seats are in use. Add more seats to create additional cards.`}
         </div>
@@ -1438,7 +1467,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
       )}
 
       {/* Plan summary. Quotes the monthly price, so never in the iOS app. */}
-      {tab === 'billing' && !iosApp && (
+      {tab === 'billing' && !iosApp && !managedBy && (
       <div className="bg-card border border-border rounded-lg p-5 flex items-center justify-between flex-wrap gap-4">
         <div className="text-sm">
           <p className="font-semibold">{org.name} · Team plan</p>

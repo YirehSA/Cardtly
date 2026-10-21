@@ -8,7 +8,7 @@ import {
   Users as UsersIcon, Building2, Loader2, Trash2, Mail, MailCheck,
   KeyRound, Lock, Shield, Sparkles, ChevronDown, ChevronUp, ExternalLink, Megaphone,
   ScrollText, Wifi, AlertTriangle, CalendarClock, PhoneCall, LayoutGrid, UserCog, Banknote, Ticket, Flag,
-  Receipt, Contact, SlidersHorizontal, FileSignature, RefreshCw,
+  Receipt, Contact, SlidersHorizontal, FileSignature, RefreshCw, Handshake,
 } from 'lucide-react'
 import TeamsTab from './TeamsTab'
 import TrialsTab from './TrialsTab'
@@ -23,6 +23,7 @@ import QuotesTab from './billing/QuotesTab'
 import RecurringTab from './billing/RecurringTab'
 import AccountingHub from './billing/AccountingHub'
 import PaymentsTab from './billing/PaymentsTab'
+import ResellersTab from './ResellersTab'
 import { Stat, Section, StatusPill, STATUS_META, grad, inputClass, inputStyle, fmtDate, fmtWhen, randFmt, AdminSearch, matchesAllWords } from './shared'
 import { NFC_STATUSES, NFC_STATUS_COLORS, NFC_STATUS_LABELS, type NfcStatus } from '@/lib/nfc'
 import type { AdminUserRow, AdminOrgRow, UserStatus, TrialCodeRow } from '@/lib/admin-data'
@@ -72,7 +73,7 @@ interface Props {
 
 // as const so ?tab= can be checked against it rather than trusted: an unknown
 // value opens Overview instead of rendering nothing at all.
-const TABS = ['overview', 'users', 'teams', 'trials', 'reps', 'meetings', 'calls', 'emails', 'networking', 'nfc', 'accounting', 'quotes', 'invoices', 'recurring', 'payments', 'clients', 'billing', 'reports', 'activity'] as const
+const TABS = ['overview', 'users', 'teams', 'resellers', 'trials', 'reps', 'meetings', 'calls', 'emails', 'networking', 'nfc', 'accounting', 'quotes', 'invoices', 'recurring', 'payments', 'clients', 'billing', 'reports', 'activity'] as const
 type Tab = typeof TABS[number]
 
 // Eleven tabs in one row was eleven things to read before doing anything, and
@@ -86,7 +87,7 @@ type Tab = typeof TABS[number]
 // Sales lit up, and nothing has to remember to do that.
 const GROUPS: { id: string; label: string; icon: any; tabs: Tab[] }[] = [
   { id: 'overview',   label: 'Overview',   icon: LayoutGrid,     tabs: ['overview'] },
-  { id: 'customers',  label: 'Customers',  icon: UsersIcon,      tabs: ['users', 'teams', 'trials'] },
+  { id: 'customers',  label: 'Customers',  icon: UsersIcon,      tabs: ['users', 'teams', 'resellers', 'trials'] },
   { id: 'sales',      label: 'Sales',      icon: UserCog,        tabs: ['reps', 'meetings', 'calls', 'emails', 'networking'] },
   { id: 'accounting', label: 'Accounting', icon: Banknote,       tabs: ['accounting', 'quotes', 'invoices', 'recurring', 'payments', 'clients', 'billing'] },
   { id: 'operations', label: 'Operations', icon: Wifi,           tabs: ['nfc', 'reports', 'activity'] },
@@ -96,6 +97,7 @@ const TAB_META: Record<Tab, { label: string; icon: any }> = {
   overview: { label: 'Overview',   icon: LayoutGrid },
   users:    { label: 'Users',      icon: UsersIcon },
   teams:    { label: 'Teams',      icon: Building2 },
+  resellers:{ label: 'Resellers',  icon: Handshake },
   trials:   { label: 'Trials',     icon: Ticket },
   reps:     { label: 'Reps',       icon: UserCog },
   meetings: { label: 'Calendar',   icon: CalendarClock },
@@ -689,6 +691,7 @@ ${r.email} will be able to sign in and log their meetings. If that address has n
           />
         )}
 
+        {tab === 'resellers' && <ResellersTab />}
         {tab === 'nfc' && <NfcTab orders={nfcOrders} run={run} loading={loading} />}
         {tab === 'accounting' && <AccountingHub onOpen={setTab} />}
         {tab === 'quotes' && <QuotesTab />}

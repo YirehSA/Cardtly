@@ -6,11 +6,17 @@
 // deliberately free, and defaulting everything to 'monthly' is what made the
 // dashboard report R6,499 of revenue that will never be collected.
 
-export const ORG_BILLING_MODES = ['monthly', 'yearly', 'debit_order', 'prepaid', 'comp', 'trial'] as const
+export const ORG_BILLING_MODES = ['monthly', 'yearly', 'debit_order', 'prepaid', 'reseller', 'comp', 'trial'] as const
 export type OrgBillingMode = (typeof ORG_BILLING_MODES)[number]
 
 export const MAX_SELF_SERVE_SEATS = 20
 export const SEAT_PRICE_RAND = 97
+// What a reseller pays Cardtly per seat unless agreed otherwise. The real
+// figure is per reseller (resellers.seat_price_cents); this is only for the
+// admin's revenue estimate. Kept equal to RESELLER_DEFAULTS in
+// lib/reseller-pricing by scripts/check-resellers, because this file is
+// compiled alone by check-prepaid and cannot import it.
+export const RESELLER_SEAT_RAND = 70
 
 export const BILLING_MODE_META: Record<OrgBillingMode, {
   label: string
@@ -45,6 +51,13 @@ export const BILLING_MODE_META: Record<OrgBillingMode, {
     short: 'Prepaid',
     colour: '#14b8a6',
     desc: 'Pays in advance by invoice for a set period: 3, 6, 12 months or more. Goes live when the invoice is marked paid, and every paid invoice adds its months to the paid-until date. Nothing goes offline when the period ends: it flags here and you send the next invoice.',
+    isRevenue: true,
+  },
+  reseller: {
+    label: 'Through a reseller',
+    short: 'Reseller',
+    colour: '#ec4899',
+    desc: 'Sold by a reseller, who pays Cardtly for every seat live in a month (see Resellers). The client pays the reseller, never us, so the team is shown no Cardtly prices. Created from the reseller\'s own page, not here.',
     isRevenue: true,
   },
   comp: {
@@ -228,5 +241,6 @@ export function isOrgBillingMode(s: unknown): s is OrgBillingMode {
 export function orgMonthlyRand(maxSeats: number, mode: OrgBillingMode | string | null): number {
   if (!isOrgBillingMode(mode) || !BILLING_MODE_META[mode].isRevenue) return 0
   if (mode === 'yearly') return Math.round((maxSeats * SEAT_PRICE_RAND * 10) / 12) // 2 months free
+  if (mode === 'reseller') return maxSeats * RESELLER_SEAT_RAND
   return maxSeats * SEAT_PRICE_RAND
 }

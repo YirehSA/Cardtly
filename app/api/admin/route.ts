@@ -766,6 +766,12 @@ export async function POST(request: Request) {
     if (billing === 'trial' && !trial_ends_at) {
       return NextResponse.json({ error: 'A team trial needs an end date, otherwise it is just a comp' }, { status: 400 })
     }
+    // A reseller's client is made from the reseller's own page, which ties it
+    // to the reseller whose invoice it goes on. Made here it would be on
+    // nobody's bill. Editing one that already exists is fine (checked below).
+    if (billing === 'reseller' && wantsNewOwner) {
+      return NextResponse.json({ error: 'Reseller clients are created by the reseller, from their Reseller page. Pick another billing mode here.' }, { status: 400 })
+    }
     if (seats > MAX_SELF_SERVE_SEATS && (billing === 'monthly' || billing === 'yearly')) {
       return NextResponse.json({
         error: `${seats} seats is above the ${MAX_SELF_SERVE_SEATS}-seat Paystack limit. Set billing to Debit order (Enterprise) or Comped.`,
@@ -832,7 +838,13 @@ export async function POST(request: Request) {
 
     // maybeSingle, not single: single throws on zero rows, and the error was
     // discarded, so this only worked by accident.
-    const { data: existing } = await admin.from('organizations').select('id, business_plan_active').eq('admin_user_id', ownerId).maybeSingle()
+    // select('*') rather than naming reseller_id, which arrives with migration
+    // 094: naming a missing column would return nothing, and this would then
+    // insert a second team for the same owner.
+    const { data: existing } = await admin.from('organizations').select('*').eq('admin_user_id', ownerId).maybeSingle()
+    if (billing === 'reseller' && !existing?.reseller_id) {
+      return NextResponse.json({ error: 'Only a team a reseller sold can be on reseller billing. Pick another billing mode.' }, { status: 400 })
+    }
 
     // Seats cannot be cut below the cards that already exist. Nothing deletes
     // cards to fit a smaller number, so the org would just sit over its cap:

@@ -9,7 +9,7 @@ import {
   Home, CreditCard, QrCode, BarChart2,
   Users, Mail, Monitor, Wifi, Building2, Settings as SettingsIcon,
   Sun, Moon, LogOut, Shield, ScanLine, ClipboardList,
-  ChevronUp, X, Network, Layers, CalendarClock, FileSignature } from 'lucide-react'
+  ChevronUp, X, Network, Layers, CalendarClock, FileSignature, Handshake } from 'lucide-react'
 
 // Mobile-only bottom tab bar. Replaces the hamburger + slide-out
 // sidebar pattern on small screens. 4 most-used destinations sit in
@@ -77,6 +77,8 @@ const MEETINGS_TAB: Tab = { href: '/dashboard/meetings', label: 'Activity Log', 
 // the sidebar, because check-nav compares the conditions and not just the
 // destinations.
 const QUOTES_TAB: Tab = { href: '/dashboard/quotes', label: 'Quotes', icon: FileSignature }
+// Only a reseller's login sees this. Same guard as the sidebar.
+const RESELLER_TAB: Tab = { href: '/dashboard/reseller', label: 'Reseller', icon: Handshake }
 
 interface Props {
   isAdmin?: boolean
@@ -85,9 +87,10 @@ interface Props {
   teamTabLabel?: string
   showTeamCards?: boolean
   isRep?: boolean
+  isReseller?: boolean
 }
 
-export default function MobileBottomNav({ isAdmin = false, isPro = false, managesDepartments = false, showTeamCards = true, isRep = false, teamTabLabel }: Props) {
+export default function MobileBottomNav({ isAdmin = false, isPro = false, managesDepartments = false, showTeamCards = true, isRep = false, isReseller = false, teamTabLabel }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const { theme, toggle } = useTheme()
@@ -106,6 +109,7 @@ export default function MobileBottomNav({ isAdmin = false, isPro = false, manage
     // department head on a phone had no way to reach the page at all.
     ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers }] : []),
     ...(isRep ? [MEETINGS_TAB, QUOTES_TAB] : []),
+    ...(isReseller ? [RESELLER_TAB] : []),
     ...(isAdmin ? [
       { href: '/admin', label: 'Admin', icon: Shield },
       // Same shortcut as the sidebar, deep-linked to the tab. Kept in step by

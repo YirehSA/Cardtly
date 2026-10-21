@@ -84,14 +84,26 @@ export async function POST(request: Request) {
     // to leave one behind and every retry inserted another. Two rows was
     // enough to lock the admin out of their own team entirely, so reuse the
     // attempt they already started instead of stacking up new ones.
+    // select('*') so reseller_id is read when migration 094 has run and nothing
+    // breaks when it has not. Naming a missing column returns no row, and this
+    // would then start a second team.
     const { data: existing } = await admin
       .from('organizations')
-      .select('id, business_plan_active')
+      .select('*')
       .eq('admin_user_id', user.id)
       .order('business_plan_active', { ascending: false })
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle()
+
+    // A reseller's client pays the reseller. Paying Cardtly here as well would
+    // charge them twice and leave the team on the reseller's invoice.
+    if (existing?.reseller_id && existing?.billing_period === 'reseller') {
+      return NextResponse.json(
+        { error: 'Your team plan is managed by your reseller. Speak to them to switch it back on.' },
+        { status: 400 }
+      )
+    }
 
     if (existing?.business_plan_active) {
       return NextResponse.json(
@@ -453,6 +465,9 @@ export async function POST(request: Request) {
     const { org_id, new_seat_count } = body
     const { data: org } = await admin.from('organizations').select('*').eq('id', org_id).eq('admin_user_id', user.id).single()
     if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+    if (org.reseller_id && org.billing_period === 'reseller') {
+      return NextResponse.json({ error: 'Your seats come from your reseller. Ask them for more.' }, { status: 400 })
+    }
 
     const planCode = getPlanCode(new_seat_count)
     if (!planCode) return NextResponse.json({ error: `Teams are 2 to ${MAX_SELF_SERVE_SEATS} seats. For more than ${MAX_SELF_SERVE_SEATS}, talk to us about Enterprise.` }, { status: 400 })
