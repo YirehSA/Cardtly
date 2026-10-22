@@ -6,7 +6,7 @@ import { useTheme } from './ThemeProvider'
 import {
   CreditCard, BarChart2, Mail, Monitor, Users,
   Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi, Building2, Shield, ScanLine, ClipboardList,
-  Layers, Network, CalendarClock, FileSignature, Handshake,
+  Layers, Network, CalendarClock, FileSignature, Handshake, HeartHandshake,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -38,6 +38,8 @@ const TEAM_TAB = { href: '/dashboard/team', label: 'Team Cards', icon: Building2
 // calendar - renaming it would break every bookmark and every link already sent
 // to a rep, to change a word nobody sees.
 const MEETINGS_TAB = { href: '/dashboard/meetings', label: 'Activity Log', icon: CalendarClock }
+// The teams a rep signed and how their cards are doing: after sales.
+const MY_TEAMS_TAB = { href: '/dashboard/my-teams', label: 'My Teams', icon: HeartHandshake }
 // Reps quote, and that is the whole of their access to the books.
 const QUOTES_TAB = { href: '/dashboard/quotes', label: 'Quotes', icon: FileSignature }
 // Only a reseller's login sees this: their seat pool, clients, NFC orders and
@@ -77,7 +79,7 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
     // Only a department manager sees this. Their whole scoped surface lives
     // behind it.
     ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers }] : []),
-    ...(isRep ? [MEETINGS_TAB, QUOTES_TAB] : []),
+    ...(isRep ? [MY_TEAMS_TAB, MEETINGS_TAB, QUOTES_TAB] : []),
     ...(isReseller ? [RESELLER_TAB] : []),
   ]
   const router = useRouter()

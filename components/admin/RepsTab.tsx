@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { UserCog, Loader2, Plus, X, Check, TrendingUp, Users as UsersIcon, Building2, Trash2, CalendarRange, CalendarClock, Banknote } from 'lucide-react'
+import { UserCog, Loader2, Plus, X, Check, TrendingUp, Users as UsersIcon, Building2, Trash2, CalendarRange, CalendarClock, Banknote, HeartHandshake } from 'lucide-react'
 import { Section, randFmt, fmtDate, inputClass, inputStyle, grad } from './shared'
 import type { RepStats } from '@/lib/reps'
 import { statusMeta, outcomeMeta } from '@/lib/rep-meetings'
@@ -165,6 +165,13 @@ export default function RepsTab({ reps, onSave, onDelete, onLinkLogin, onRecordP
                         style={{ border: '1px solid rgba(14,165,233,0.35)', color: '#0ea5e9' }}>
                         <CalendarClock className="w-3 h-3" />Calendar
                       </button>
+                      {/* What the rep sees on My Teams: their teams, worst
+                          first, with the reason each needs a call. */}
+                      <a href={`/dashboard/my-teams?rep=${r.id}`} title={`See ${r.name}'s teams the way they see them`}
+                        className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10"
+                        style={{ border: '1px solid rgba(34,197,94,0.35)', color: '#22c55e' }}>
+                        <HeartHandshake className="w-3 h-3" />Their teams
+                      </a>
                       <button onClick={() => openEdit(r)}
                         className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10"
                         style={{ border: '1px solid rgba(168,85,247,0.35)', color: '#a855f7' }}>
