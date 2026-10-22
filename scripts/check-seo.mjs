@@ -34,7 +34,7 @@ const blogSlugs = [...readFileSync(new URL('../app/blog/posts.ts', import.meta.u
 
 const PAGES = ['/', '/features', '/network', '/pricing', '/nfc', '/how-it-works', '/blog',
   ...blogSlugs,
-  '/about', '/contact', '/terms', '/privacy', '/signup']
+  '/about', '/contact', '/terms', '/privacy', '/trust', '/paia', '/signup']
 const pick = (h, re) => (h.match(re)?.[1] || '').replace(/&amp;/g,'&').replace(/&#x27;|&apos;/g,"'").replace(/&quot;/g,'"').trim()
 const pad = (s, n) => String(s).padEnd(n).slice(0, n)
 

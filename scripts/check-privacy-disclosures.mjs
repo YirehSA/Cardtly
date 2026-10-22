@@ -16,6 +16,11 @@
 // reason. There is no third option, and a new host fails the build until
 // somebody makes the choice deliberately.
 //
+// Since 2026-10-22 the trust page (app/trust) and the PAIA manual (app/paia)
+// repeat parts of the policy for procurement readers. They must name every
+// provider the policy names, carry no claim the policy has retracted, and
+// never say Cardtly holds a certification it does not.
+//
 // Run: node scripts/check-privacy-disclosures.mjs
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'fs'
@@ -39,11 +44,18 @@ const visible = (s) => s
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .split(LF).filter(l => !/^\s*\/\//.test(l)).join(LF)
 
+const TRUST = 'app/trust/page.tsx'
+const PAIA = 'app/paia/page.tsx'
+
 const privacyRaw = read(PRIVACY)
 const termsRaw = read(TERMS)
-if (!privacyRaw || !termsRaw) { bad('a legal page is missing'); process.exit(1) }
+const trustRaw = read(TRUST)
+const paiaRaw = read(PAIA)
+if (!privacyRaw || !termsRaw || !trustRaw || !paiaRaw) { bad('a legal page is missing'); process.exit(1) }
 const privacy = visible(privacyRaw)
 const terms = visible(termsRaw)
+const trust = visible(trustRaw)
+const paia = visible(paiaRaw)
 
 // ── 1. Known services: the code signal, and the name the policy must use ────
 const pkg = JSON.parse(read('package.json') || '{}')
@@ -130,8 +142,59 @@ const REGRESSIONS = [
   [/(sign in|sign-in|log in) with google|google sign-in/i, 'mentions Google sign-in. It does not exist; Google appears in the policy only for Wallet, Firebase and Play.'],
 ]
 for (const [re, why] of REGRESSIONS) {
-  if (re.test(privacy)) bad(`${PRIVACY} ${why}`)
+  for (const [file, src] of [[PRIVACY, privacy], [TRUST, trust], [PAIA, paia]]) {
+    if (re.test(src)) bad(`${file} ${why}`)
+  }
 }
+
+// ── 3a. No claim Cardtly cannot back ────────────────────────────────────────
+//
+// A competitor's trust page listed SOC 2 and ISO 27001 as "actively
+// preparing", which a buyer skimming reads as certified. Cardtly holds none of
+// these, our own security notes in this public repo say so, and a tender
+// answer that contradicts them is found out. The platforms' certifications
+// (Supabase, Vercel, Paystack) are described as theirs, which these allow.
+const CLAIMS = [
+  [/\b(cardtly is|we are)\s+(now\s+|fully\s+)?(iso|soc|pci|certified|audited)/i, 'says Cardtly is certified or audited. It is not; only the platforms it runs on are.'],
+  [/preparing for (an? )?(soc|iso)/i, 'says Cardtly is preparing for SOC 2 or ISO 27001. Nothing is under way, so this reads as a claim of progress that does not exist.'],
+  [/standard contractual clauses/i, 'mentions standard contractual clauses. Nothing on file shows Cardtly has signed them; the claim was removed from the policy on 2026-09-23.'],
+  [/penetration test|pen test/i, 'mentions a penetration test. None has been done.'],
+  [/(our own|we offer|we provide|cardtly offers)\s+(two-factor|2fa|multi-factor)/i, 'offers two-factor sign-in of our own. There is none; Microsoft sign-in carries the organisation\'s own MFA.'],
+]
+for (const [re, why] of CLAIMS) {
+  for (const [file, src] of [[PRIVACY, privacy], [TERMS, terms], [TRUST, trust], [PAIA, paia]]) {
+    if (re.test(src)) bad(`${file} ${why}`)
+  }
+}
+
+// ── 3b. The trust page and the PAIA manual name every provider ─────────────
+//
+// Section 7 of the policy is the list; its provider cells are the only bold
+// elements on that page with a key. A provider added there and not here makes
+// the trust page's "complete list" untrue, and the PAIA manual's recipients
+// section (PAIA s51(1)(c)) incomplete.
+const providers = [...privacyRaw.matchAll(/<B key="[a-z]">([^<]+)<\/B>/g)].map(m => m[1])
+if (providers.length < 5) bad(`could not read the provider list from section 7 of ${PRIVACY} (found ${providers.length}).`)
+for (const name of providers) {
+  if (!trust.includes(`'${name}'`)) bad(`${TRUST} does not list ${name}, which section 7 of the privacy policy names. The trust page calls its list complete.`)
+  if (!paia.includes(name)) bad(`${PAIA} does not name ${name} among the recipients of personal information, which section 7 of the privacy policy does.`)
+}
+
+// ── 3c. One set of company details ──────────────────────────────────────────
+//
+// The trust page and the PAIA manual read them from lib/company.ts; the policy
+// and the terms spell them out. All four must agree with what the invoices
+// print (billing_settings).
+const company = read('lib/company.ts') || ''
+for (const key of ['regNumber', 'address', 'phone', 'email']) {
+  const value = company.match(new RegExp(`${key}: '([^']+)'`))?.[1]
+  if (!value) { bad(`lib/company.ts has no ${key}.`); continue }
+  if (key === 'email') continue // the policy names it; the terms need not
+  for (const [file, src] of [[PRIVACY, privacy], [TERMS, terms]]) {
+    if (!src.includes(value)) bad(`${file} does not show the company ${key} "${value}" from lib/company.ts. Change billing_settings, lib/company.ts and both legal pages together.`)
+  }
+}
+if (!privacy.includes(company.match(/email: '([^']+)'/)?.[1] || '\u0000')) bad(`${PRIVACY} no longer names the Information Officer's email from lib/company.ts.`)
 // The terms must describe cancellation the way the product actually does it.
 // For months they said "cancel from your account settings" when Settings sent
 // people to the contact page; self-service cancellation was then built
@@ -168,7 +231,7 @@ const blockedBlock = platform.match(/IOS_BLOCKED_ROUTES\s*=\s*\[([\s\S]*?)\]/)
 const blocked = blockedBlock ? [...blockedBlock[1].matchAll(/'([^']+)'/g)].map(m => m[1]).filter(r => r !== '/') : []
 if (blocked.length === 0) bad('could not read IOS_BLOCKED_ROUTES from lib/app-platform.ts, so the legal pages cannot be checked against it.')
 
-for (const [file, src] of [[PRIVACY, privacy], [TERMS, terms]]) {
+for (const [file, src] of [[PRIVACY, privacy], [TERMS, terms], [TRUST, trust], [PAIA, paia]]) {
   const prices = [...src.matchAll(/R\s?\d[\d ]*(?:[.,]\d+)?/g)]
     .map(m => m[0])
     .filter(p => !/R1000/.test(p)) // the liability cap in terms section 12
@@ -190,6 +253,6 @@ if (fail) {
 const named = SERVICES.filter(s => s.present).map(s => s.name)
 console.log(
   `check-privacy-disclosures: every service the code uses is named in the privacy policy (${named.join(', ')}), ` +
-  `${hosts.size} outbound hosts accounted for, no retracted statement has come back, and neither legal page carries a price ` +
-  'or a link the iOS app blocks.',
+  `${hosts.size} outbound hosts accounted for, no retracted statement has come back, the trust page and PAIA manual name all ` +
+  `${providers.length} providers and claim no certification, and no legal page carries a price or a link the iOS app blocks.`,
 )

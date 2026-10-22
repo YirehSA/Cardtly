@@ -68,7 +68,7 @@ else for (const [who, a, want] of admits) {
 const routes = [
   ['/signup', true], ['/signup/confirm', true], ['/network', true], ['/promotions', true],
   ['/team/claim/abc123', false], ['/login', false], ['/dashboard', false], ['/card/someone', false],
-  ['/privacy', false], ['/terms', false], ['/delete-account', false], ['/forgot-password', false], ['/reset-password', false],
+  ['/privacy', false], ['/terms', false], ['/trust', false], ['/paia', false], ['/delete-account', false], ['/forgot-password', false], ['/reset-password', false],
 ]
 for (const [path, want] of routes) {
   if (P.isIosBlockedPath(path) !== want) {

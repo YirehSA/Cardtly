@@ -47,6 +47,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       : []),
     { url: `${BASE}/terms`, changeFrequency: 'yearly', priority: 0.2 },
     { url: `${BASE}/privacy`, changeFrequency: 'yearly', priority: 0.2 },
+    // Procurement teams search for a vendor's trust page by name.
+    { url: `${BASE}/trust`, changeFrequency: 'monthly', priority: 0.4 },
+    { url: `${BASE}/paia`, changeFrequency: 'yearly', priority: 0.2 },
   ]
 
   // Pull public card slugs with the service-role client - RLS blocks

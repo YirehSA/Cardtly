@@ -120,7 +120,7 @@ export default function PrivacyPage() {
             How we collect, use and protect personal information, written to meet the Protection of Personal Information Act (POPIA).
           </p>
           <p className="text-sm mt-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            Last updated: 21 October 2026
+            Last updated: 22 October 2026
           </p>
         </div>
       </section>
@@ -178,6 +178,7 @@ export default function PrivacyPage() {
             <p><B>Details people submit through a card.</B> When a visitor saves your contact and shares their own, fills in a lead form, requests a meeting, or answers a questionnaire, we store what they submit (typically their name, email, phone number, company and message) so that you can follow up.</p>
             <p><B>Team account information.</B> For organisations: the organisation&apos;s details, its companies and departments, which fields are locked, the cards issued to staff, and any sales activity that staff choose to record in the activity log (the company, contact and subject of an email, LinkedIn contact or networking event).</p>
             <p><B>Payment information.</B> Card payments are handled by Paystack. We never see or store your card number. We keep your subscription status, a Paystack customer reference, and the email used for billing. Organisations invoiced directly also have their invoices, quotes and billing contact stored with us.</p>
+            <p><B>Accepting a quote or signing a purchase order.</B> When someone accepts a quote through the link we send, we record the name and email address they type, when they accepted, and the IP address and browser it came from, as evidence of the acceptance. A purchase order signed through its link records the same, plus the signer&apos;s job title and the signature they draw.</p>
             <p><B>Physical NFC card orders.</B> If you order a physical card, we store your name, delivery address and phone number so that it can be made and delivered.</p>
             <p><B>Reseller applications.</B> If you apply to resell Cardtly, we store the business and contact details you send us (your business name, registration and VAT numbers, address, contact person, email, phone and what you tell us about your plans) so that we can review the application and, if we approve it, set up and invoice your reseller account. A reseller sees the names, seats and admin email address of the client teams it creates, and the names, titles and card links of their staff when ordering printed NFC cards for them.</p>
             <p><B>AI features.</B> If you use the bio writer, the details you give it are sent to generate a suggestion. If you scan a paper business card, the photograph is sent to be read, and the details on it are returned to you as a contact. Both are processed by OpenAI (see section 7).</p>

@@ -81,6 +81,8 @@ export default function Footer() {
               { href: '/resellers',         label: 'Become a reseller' },
               { href: '/privacy',           label: 'Privacy policy' },
               { href: '/terms',             label: 'Terms of service' },
+              { href: '/trust',             label: 'Trust centre' },
+              { href: '/paia',              label: 'PAIA manual' },
               ...(PROMOS_ENABLED ? [{ href: '/promotions/terms', label: 'Promotion rules' }] : []),
             ]} />
           </div>
