@@ -227,6 +227,13 @@ for (const key of ['regNumber', 'address', 'phone', 'email']) {
   }
 }
 if (!privacy.includes(company.match(/email: '([^']+)'/)?.[1] || '\u0000')) bad(`${PRIVACY} no longer names the Information Officer's email from lib/company.ts.`)
+// The schema address, in parts, must be the same place as COMPANY.address.
+const companyAddress = company.match(/address: '([^']+)'/)?.[1] || ''
+const schemaSrc = read('lib/seo-schema.ts') || ''
+for (const key of ['streetAddress', 'addressLocality', 'addressRegion']) {
+  const part = schemaSrc.match(new RegExp(`${key}: '([^']+)'`))?.[1]
+  if (!part || !companyAddress.includes(part)) bad(`lib/seo-schema.ts gives ${key} "${part}", which is not part of the company address "${companyAddress}" in lib/company.ts. Search results and the legal pages would name different places.`)
+}
 // The terms must describe cancellation the way the product actually does it.
 // For months they said "cancel from your account settings" when Settings sent
 // people to the contact page; self-service cancellation was then built

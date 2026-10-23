@@ -27,6 +27,16 @@ export const SITE_URL = 'https://www.cardtly.com'
 const SITE = SITE_URL
 const ORG_ID = `${SITE}/#organization`
 
+/** COMPANY.address, in the parts schema wants. Kept in step with it by
+ *  scripts/check-privacy-disclosures. */
+const COMPANY_ADDRESS = {
+  '@type': 'PostalAddress',
+  streetAddress: '119 Pretoria Road',
+  addressLocality: 'Benoni',
+  addressRegion: 'Gauteng',
+  addressCountry: 'ZA',
+}
+
 export interface Faq { q: string; a: string }
 
 /** Who Cardtly is. One entity, emitted once per page from the root layout.
@@ -47,7 +57,11 @@ export function organization() {
     description:
       'Cardtly is a digital business card platform for individuals, teams and companies. Cards are shared by NFC tap, QR code or link, and a company can brand and control every employee card centrally.',
     slogan: 'Your card. One tap away.',
-    address: { '@type': 'PostalAddress', addressCountry: 'ZA' },
+    // The published registered address (see localBusiness below). No
+    // postalCode: billing_settings has none, so the Rich Results Test lists it
+    // as an optional field missing until one is added there.
+    address: COMPANY_ADDRESS,
+    telephone: COMPANY_TEL,
     // Built in South Africa, used anywhere. Saying South Africa alone told
     // every assistant this was a local-only product.
     areaServed: 'Worldwide',
@@ -94,13 +108,7 @@ export function localBusiness() {
     description: 'Digital business cards for teams and companies, shared by NFC tap, QR code or link, with NFC cards delivered across South Africa.',
     telephone: COMPANY_TEL,
     email: 'hello@cardtly.com',
-    address: {
-      '@type': 'PostalAddress',
-      streetAddress: '119 Pretoria Road',
-      addressLocality: 'Benoni',
-      addressRegion: 'Gauteng',
-      addressCountry: 'ZA',
-    },
+    address: COMPANY_ADDRESS,
     areaServed: { '@type': 'Country', name: 'South Africa' },
     parentOrganization: { '@id': ORG_ID },
   }
