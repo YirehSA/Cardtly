@@ -1,8 +1,11 @@
-// The home page's SoftwareApplication node.
+import { graph, localBusiness, SITE_URL } from '@/lib/seo-schema'
+
+// The home page's SoftwareApplication and LocalBusiness nodes.
 //
 // Organization and WebSite used to live here too, which meant they appeared on
 // the home page and nowhere else. They are emitted from the root layout now,
-// so every page carries the entity; this file describes the product.
+// so every page carries the entity; this file describes the product, and the
+// business at its address for local results.
 
 const APP = {
   '@context': 'https://schema.org',
@@ -10,7 +13,7 @@ const APP = {
   name: 'Cardtly',
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web, Android',
-  url: 'https://cardtly.com',
+  url: SITE_URL,
   description:
     'Create and share a digital business card with NFC tap, QR code, or link. Track views, update anytime, manage team cards.',
   // Explicit capability list so AI answers to "what can Cardtly do"
@@ -54,6 +57,10 @@ export default function StructuredData() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(APP) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(graph(localBusiness())) }}
       />
     </>
   )

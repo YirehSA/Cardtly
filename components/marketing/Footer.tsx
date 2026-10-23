@@ -1,6 +1,7 @@
 import Link from 'next/link'
-import { Linkedin, Instagram, Facebook } from 'lucide-react'
+import { Linkedin, Instagram, Facebook, Phone } from 'lucide-react'
 import { PROMOS_ENABLED } from '@/lib/promos'
+import { COMPANY, COMPANY_TEL } from '@/lib/company'
 import FooterLinkList from './FooterLinkList'
 
 // Cardtly's own social profiles. These URLs are the SAME strings that go in
@@ -42,7 +43,7 @@ export default function Footer() {
           <div className="md:col-span-2">
             <Link href="/" aria-label="Cardtly home" className="flex items-center gap-2.5 mb-4 w-fit hover:opacity-80 transition">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/cardtly-icon.png" alt="Cardtly logo" className="w-9 h-9 rounded-full" />
+              <img src="/cardtly-icon.png" alt="Cardtly logo" width={36} height={36} className="w-9 h-9 rounded-full" />
               <span className="font-black text-lg tracking-tight"
                 style={{ background: 'linear-gradient(90deg, #00d4ff, #7c3aed, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 Cardtly
@@ -51,6 +52,15 @@ export default function Footer() {
             <p className="text-sm leading-relaxed max-w-xs" style={{ color: BODY }}>
               The digital business card built for South Africa. Share who you are with a tap, a scan, or a link. For everyone.
             </p>
+            {/* One tap to dial from a phone. The number is the one the legal
+                pages and invoices print (lib/company.ts), in international
+                form for the link so it dials from anywhere. */}
+            <a href={`tel:${COMPANY_TEL}`}
+              className="inline-flex items-center gap-2 mt-4 min-h-11 text-sm transition hover:text-white"
+              style={{ color: BODY }}>
+              <Phone className="w-4 h-4" aria-hidden="true" />
+              Call us on {COMPANY.phone}
+            </a>
           </div>
 
           {/* Product - keyword-bearing anchors help Google understand
@@ -65,6 +75,7 @@ export default function Footer() {
               { href: '/pricing',       label: 'Digital business card pricing' },
               { href: '/blog',          label: 'Digital business card blog' },
               { href: '/teams',         label: 'Digital business cards for teams' },
+              { href: '/teams/south-africa', label: 'Team cards in South Africa' },
               ...(PROMOS_ENABLED ? [{ href: '/promotions', label: 'Win prizes 🏆' }] : []),
               { href: '/nfc',           label: 'NFC business cards 🇿🇦' },
               { href: '/signup',        label: 'Sign up' },

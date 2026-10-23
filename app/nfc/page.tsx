@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
-import { graph, faqPage, breadcrumb } from '@/lib/seo-schema'
+import { graph, faqPage, breadcrumb, SITE_URL } from '@/lib/seo-schema'
 import FaqSection from '@/components/marketing/FaqSection'
 import Footer from '@/components/marketing/Footer'
 import { Wifi, ArrowRight, Check, Smartphone, Zap, Shield, Package } from 'lucide-react'
@@ -34,9 +34,9 @@ const NFC_PRODUCT_SCHEMA = {
   // brand badge with a note to swap it for a real product photo once we had
   // one - we do now, so search results show the actual card rather than a logo.
   image: [
-    'https://cardtly.com/nfc-samples/yireh-front.jpg',
-    'https://cardtly.com/nfc-samples/cardtly-front.jpg',
-    'https://cardtly.com/nfc-samples/sicon-front.jpg',
+    `${SITE_URL}/nfc-samples/yireh-front.jpg`,
+    `${SITE_URL}/nfc-samples/cardtly-front.jpg`,
+    `${SITE_URL}/nfc-samples/sicon-front.jpg`,
   ],
   description:
     'Physical NFC business card linked to your Cardtly digital business card. Tap any modern smartphone to share your details instantly - no app required.',
@@ -62,9 +62,9 @@ const NFC_PRODUCT_SCHEMA = {
         shippingRate: { '@type': 'MonetaryAmount', value: String(NFC_SHIPPING_RAND), currency: 'ZAR' },
         shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'ZA' },
       },
-      url: 'https://cardtly.com/nfc',
+      url: `${SITE_URL}/nfc`,
     })),
-    url: 'https://cardtly.com/nfc',
+    url: `${SITE_URL}/nfc`,
   },
 }
 

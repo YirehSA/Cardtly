@@ -66,7 +66,7 @@ else for (const [who, a, want] of admits) {
 }
 
 const routes = [
-  ['/signup', true], ['/signup/confirm', true], ['/network', true], ['/promotions', true],
+  ['/signup', true], ['/signup/confirm', true], ['/network', true], ['/promotions', true], ['/teams/south-africa', true],
   ['/team/claim/abc123', false], ['/login', false], ['/dashboard', false], ['/card/someone', false],
   ['/privacy', false], ['/terms', false], ['/trust', false], ['/paia', false], ['/delete-account', false], ['/forgot-password', false], ['/reset-password', false],
 ]

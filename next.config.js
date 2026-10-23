@@ -63,11 +63,13 @@ const nextConfig = {
       "object-src 'none'",
       "form-action 'self'",
       "frame-ancestors 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      // Google Analytics (lib/analytics), on the marketing pages once its ID is
+      // set: the tag from googletagmanager, the hits to google-analytics.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com",
+      "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://*.google-analytics.com https://www.googletagmanager.com",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.paystack.co",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.paystack.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com",
       "media-src 'self' data: blob:",
       "worker-src 'self' blob:",
       "frame-src 'self'",

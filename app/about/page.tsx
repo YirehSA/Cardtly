@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
-import { graph, breadcrumb } from '@/lib/seo-schema'
+import { graph, breadcrumb, SITE_URL } from '@/lib/seo-schema'
 import Footer from '@/components/marketing/Footer'
 import { ArrowRight, Heart, Zap, Globe, Users } from 'lucide-react'
 
@@ -31,7 +31,7 @@ const VALUES = [
 
 export default function AboutPage() {
   const jsonLd = graph(
-    { '@type': 'AboutPage', url: 'https://cardtly.com/about', name: 'About Cardtly' },
+    { '@type': 'AboutPage', url: `${SITE_URL}/about`, name: 'About Cardtly' },
     breadcrumb([{ name: 'About', path: '/about' }]),
   )
 

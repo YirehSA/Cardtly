@@ -6,6 +6,7 @@ import Footer from '@/components/marketing/Footer'
 import Reveal from '@/components/marketing/Reveal'
 import { ArrowLeft, ArrowRight, Clock } from 'lucide-react'
 import { POSTS, getPost } from '../posts'
+import { SITE_URL } from '@/lib/seo-schema'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 const gradText: React.CSSProperties = {
@@ -54,7 +55,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const post = getPost(slug)
   if (!post) notFound()
 
-  const url = `https://cardtly.com/blog/${post.slug}`
+  const url = `${SITE_URL}/blog/${post.slug}`
   const related = POSTS.filter(p => p.slug !== post.slug).slice(0, 3)
 
   const articleLd = {
@@ -69,12 +70,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     // Per-post, drawn by /api/og/blog/[slug]. This was the Cardtly logo on
     // every post, which gives Google nothing to distinguish one article from
     // another and nothing worth showing in a result.
-    image: `https://cardtly.com/api/og/blog/${post.slug}`,
-    author: { '@type': 'Organization', name: 'Cardtly', url: 'https://cardtly.com' },
+    image: `${SITE_URL}/api/og/blog/${post.slug}`,
+    author: { '@type': 'Organization', name: 'Cardtly', url: SITE_URL },
     publisher: {
       '@type': 'Organization',
       name: 'Cardtly',
-      logo: { '@type': 'ImageObject', url: 'https://cardtly.com/cardtly-icon.png' },
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/cardtly-icon.png` },
     },
   }
 

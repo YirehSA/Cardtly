@@ -15,3 +15,6 @@ export const COMPANY = {
   informationOfficer: 'Andre Nel',
   email: 'andre@cardtly.com',
 } as const
+
+/** The telephone number in international form, for tel: links. */
+export const COMPANY_TEL = '+27' + COMPANY.phone.replace(/\D/g, '').replace(/^0/, '')

@@ -91,6 +91,15 @@ export default function TeamsSection() {
                 Works with NFC cards too - order a set for the whole team.
               </p>
             </div>
+            {/* The home page's link to the page that answers the search
+                "digital business cards for teams south africa"; the anchor text
+                is that phrase on purpose. */}
+            <p className="mt-5 text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              Buying for a South African company? See{' '}
+              <Link href="/teams/south-africa" className="underline transition hover:text-white">
+                digital business cards for teams in South Africa
+              </Link>.
+            </p>
           </div>
 
           {/* Visual: three on-brand member cards */}

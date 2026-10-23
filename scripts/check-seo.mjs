@@ -4,7 +4,7 @@ import { readFileSync } from 'fs'
 // Needs a running server, so it cannot be a build gate like check-facts. With
 // no argument it audits production, which is the copy Google actually indexes:
 //
-//   npm run check:seo                              -> https://cardtly.com
+//   npm run check:seo                              -> https://www.cardtly.com
 //   npm run check:seo -- http://localhost:60617    -> a dev server
 //
 // It used to default to localhost:3000, and that is how it came to audit a
@@ -19,7 +19,7 @@ import { readFileSync } from 'fs'
 // faults - "Privacy Policy | Cardtly" is correct at 24 characters and should
 // stay that way.
 
-const BASE = (process.argv[2] || 'https://cardtly.com').replace(/\/$/, '')
+const BASE = (process.argv[2] || 'https://www.cardtly.com').replace(/\/$/, '')
 
 // Keep-alive sockets left open when the process exits trip a libuv assertion on
 // Windows, which surfaces as exit code 127 instead of the intended 1.
@@ -32,7 +32,7 @@ const GET = url => fetch(url, { redirect: 'follow', headers: { connection: 'clos
 const blogSlugs = [...readFileSync(new URL('../app/blog/posts.ts', import.meta.url), 'utf8')
   .matchAll(/slug: '([^']+)'/g)].map(m => '/blog/' + m[1])
 
-const PAGES = ['/', '/features', '/network', '/pricing', '/nfc', '/how-it-works', '/blog',
+const PAGES = ['/', '/features', '/teams', '/teams/south-africa', '/network', '/pricing', '/nfc', '/how-it-works', '/blog',
   ...blogSlugs,
   '/about', '/contact', '/terms', '/privacy', '/trust', '/paia', '/signup']
 const pick = (h, re) => (h.match(re)?.[1] || '').replace(/&amp;/g,'&').replace(/&#x27;|&apos;/g,"'").replace(/&quot;/g,'"').trim()
@@ -49,7 +49,7 @@ async function main() {
   }
   if (!/Cardtly/i.test(home)) {
     const title = (home.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] || '(no title)').trim()
-    console.error(`check-seo: ${BASE} is not Cardtly. Its home page is titled "${title}".\n\nAuditing it would produce a page of meaningless failures. Pass the right URL:\n  npm run check:seo -- http://localhost:<port>\n  npm run check:seo -- https://cardtly.com`)
+    console.error(`check-seo: ${BASE} is not Cardtly. Its home page is titled "${title}".\n\nAuditing it would produce a page of meaningless failures. Pass the right URL:\n  npm run check:seo -- http://localhost:<port>\n  npm run check:seo -- https://www.cardtly.com`)
     return 1
   }
   console.log(`check-seo: auditing ${BASE}\n`)

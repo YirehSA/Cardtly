@@ -110,6 +110,9 @@ export const config = {
     '/blog/:path*',
     '/pricing',
     '/teams',
+    // /teams/south-africa quotes prices too; the block is a prefix match, but
+    // a path this list does not match never reaches it.
+    '/teams/:path*',
     '/network',
     '/promotions',
     '/resellers',

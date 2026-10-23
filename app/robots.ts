@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { SITE_URL } from '@/lib/seo-schema'
 
 // Crawl rules. Public marketing + card pages are fair game; everything
 // behind auth or transactional is blocked so crawl budget goes to
@@ -41,7 +42,7 @@ export default function robots(): MetadataRoute.Robots {
       // Explicit welcome for AI crawlers (same access as everyone).
       { userAgent: AI_CRAWLERS, allow: '/', disallow: DISALLOW },
     ],
-    sitemap: 'https://cardtly.com/sitemap.xml',
-    host: 'https://cardtly.com',
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   }
 }

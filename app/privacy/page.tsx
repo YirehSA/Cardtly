@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
+import { GA_ENABLED } from '@/lib/analytics'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy: How We Handle Your Data',
@@ -120,7 +121,7 @@ export default function PrivacyPage() {
             How we collect, use and protect personal information, written to meet the Protection of Personal Information Act (POPIA).
           </p>
           <p className="text-sm mt-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            Last updated: 22 October 2026
+            Last updated: 23 October 2026
           </p>
         </div>
       </section>
@@ -182,7 +183,16 @@ export default function PrivacyPage() {
             <p><B>Physical NFC card orders.</B> If you order a physical card, we store your name, delivery address and phone number so that it can be made and delivered.</p>
             <p><B>Reseller applications.</B> If you apply to resell Cardtly, we store the business and contact details you send us (your business name, registration and VAT numbers, address, contact person, email, phone and what you tell us about your plans) so that we can review the application and, if we approve it, set up and invoice your reseller account. A reseller sees the names, seats and admin email address of the client teams it creates, and the names, titles and card links of their staff when ordering printed NFC cards for them.</p>
             <p><B>AI features.</B> If you use the bio writer, the details you give it are sent to generate a suggestion. If you scan a paper business card, the photograph is sent to be read, and the details on it are returned to you as a contact. Both are processed by OpenAI (see section 7).</p>
-            <p><B>Cookies and similar storage.</B> We use first-party cookies to keep you signed in and to remember your settings, and your browser&apos;s local storage to avoid counting the same card view twice. We do not use advertising cookies or third-party tracking cookies on our website.</p>
+            {/* GA_ENABLED is true exactly when the Google tag is live
+                (lib/analytics), so this says what the site does in both states. */}
+            {GA_ENABLED ? (
+              <>
+                <p><B>Cookies and similar storage.</B> We use first-party cookies to keep you signed in and to remember your settings, and your browser&apos;s local storage to avoid counting the same card view twice. We do not use advertising cookies.</p>
+                <p><B>Visits to our marketing pages.</B> On our marketing pages, such as the home page, pricing, our articles and the sign-up page, we use Google Analytics to count visits and see which pages lead to sign-ups. It sets its own cookies and receives the address of the page (without anything after a question mark), your device type, browser and screen size, the site that sent you, and the IP address your visit comes from, which Google uses to estimate your city and states it does not store. For visitors in the European Economic Area, the United Kingdom and Switzerland it runs without cookies. Advertising features are switched off. <B>Google Analytics does not run on cards, in the dashboard, on quotes or purchase orders, or in the mobile apps.</B></p>
+              </>
+            ) : (
+              <p><B>Cookies and similar storage.</B> We use first-party cookies to keep you signed in and to remember your settings, and your browser&apos;s local storage to avoid counting the same card view twice. We do not use advertising cookies or third-party tracking cookies on our website.</p>
+            )}
             <p><B>The mobile apps.</B> See section 13.</p>
           </Section>
 
@@ -199,6 +209,7 @@ export default function PrivacyPage() {
                 ['Showing you views, taps and saves on your own card', 'Needed to provide the service'],
                 ['Recording signup location, and preventing fraud and abuse', 'Our legitimate interest in running a secure service'],
                 ['Improving the product from patterns across many accounts', 'Our legitimate interest'],
+                ...(GA_ENABLED ? [['Counting visits to our marketing pages, and which lead to sign-ups', 'Our legitimate interest']] : []),
                 ['The AI bio writer and card scanning', 'You choose to use them each time'],
                 ['Keeping records the law requires', 'Legal obligation'],
               ]}
@@ -248,7 +259,9 @@ export default function PrivacyPage() {
                 [<B key="r">Resend</B>, 'Sends our email, from hello@cardtly.com', 'Recipient address and the content of the email'],
                 [<B key="o">OpenAI</B>, 'The AI bio writer and paper card scanning', 'What you give the bio writer; the photograph of a card you scan'],
                 [<B key="i">ipapi.co</B>, 'Signup location lookup', 'The IP address a new account was created from'],
-                [<B key="g">Google</B>, 'Google Wallet passes; Firebase Analytics in the Android app; Google Play', 'A card’s public details when a visitor chooses to save it to Google Wallet; app usage and device data from the Android app'],
+                [<B key="g">Google</B>,
+                  `Google Wallet passes; Firebase Analytics in the Android app; Google Play${GA_ENABLED ? '; Google Analytics on our marketing pages' : ''}`,
+                  `A card’s public details when a visitor chooses to save it to Google Wallet; app usage and device data from the Android app${GA_ENABLED ? '; visits to our marketing pages, as section 3 describes' : ''}`],
                 [<B key="a">Apple</B>, 'App Store', 'What Apple collects under its own terms when you install the iOS app'],
                 [<B key="m">Microsoft</B>, 'Sign in with Microsoft, if you choose it', 'Your sign-in, which you complete on Microsoft’s own page under your or your organisation’s Microsoft terms. It sends us your name and email address'],
               ]}

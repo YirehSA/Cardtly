@@ -15,10 +15,19 @@
 // are attached to <html> in app/layout, so a card's font-family can be
 // `var(--font-roboto)` and be certain the face exists.
 //
-// THE COST IS NOT WHAT IT LOOKS LIKE. Twenty families are DECLARED, but a
-// browser only downloads a font file when something on the page is painted
-// with it, so a card in Montserrat fetches Montserrat and nothing else. What
-// this does cost is build time, once, which is the right place to pay it.
+// THE COST IS NOT WHAT IT LOOKS LIKE, as long as nothing is preloaded. Twenty
+// families are DECLARED, but a browser only downloads a font file when
+// something on the page is painted with it, so a card in Montserrat fetches
+// Montserrat and nothing else. What this does cost is build time, once, which
+// is the right place to pay it.
+//
+// preload: false on every call is what makes that true. next/font preloads by
+// default, and because these are declared in the root layout, every page on
+// the site, the home page and every card included, opened with 23 font
+// preloads in its head: every weight of every family, fetched before the page
+// could use any of them. Found by an SEO audit on 2026-10-23. Without the
+// preload a face still loads the moment a card uses it, with display: swap
+// covering the gap.
 //
 // WEIGHTS ARE EXPLICIT on every family. The templates ask for 800 and 900 in
 // places; a family that only shipped 400 would have the browser synthesising a
@@ -39,31 +48,31 @@ import {
 } from 'next/font/google'
 
 // The four that were listed and never loaded.
-const inter = Inter({ subsets: ['latin'], display: 'swap', weight: ['400', '600', '700', '900'], variable: '--font-inter' })
-const dmSans = DM_Sans({ subsets: ['latin'], display: 'swap', weight: ['400', '700'], variable: '--font-dm-sans' })
-const nunito = Nunito({ subsets: ['latin'], display: 'swap', weight: ['400', '600', '700', '900'], variable: '--font-nunito' })
-const firaCode = Fira_Code({ subsets: ['latin'], display: 'swap', weight: ['400', '600', '700'], variable: '--font-fira-code' })
+const inter = Inter({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '600', '700', '900'], variable: '--font-inter' })
+const dmSans = DM_Sans({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '700'], variable: '--font-dm-sans' })
+const nunito = Nunito({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '600', '700', '900'], variable: '--font-nunito' })
+const firaCode = Fira_Code({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '600', '700'], variable: '--font-fira-code' })
 
 // The fifteen added, chosen by how widely they are actually used rather than
 // by taste: these are the top of Google Fonts by usage, filtered to faces that
 // suit a name and a job title. Display faces that cannot set a paragraph
 // (Bebas Neue, Oswald) are paired with a body font in types/design rather than
 // left to wreck a bio.
-const roboto = Roboto({ subsets: ['latin'], display: 'swap', weight: ['400', '500', '700', '900'], variable: '--font-roboto' })
-const openSans = Open_Sans({ subsets: ['latin'], display: 'swap', weight: ['400', '600', '700', '800'], variable: '--font-open-sans' })
-const montserrat = Montserrat({ subsets: ['latin'], display: 'swap', weight: ['400', '600', '700', '900'], variable: '--font-montserrat' })
-const lato = Lato({ subsets: ['latin'], display: 'swap', weight: ['400', '700', '900'], variable: '--font-lato' })
-const poppins = Poppins({ subsets: ['latin'], display: 'swap', weight: ['400', '600', '700'], variable: '--font-poppins' })
-const raleway = Raleway({ subsets: ['latin'], display: 'swap', weight: ['400', '600', '700', '900'], variable: '--font-raleway' })
-const oswald = Oswald({ subsets: ['latin'], display: 'swap', weight: ['400', '600', '700'], variable: '--font-oswald' })
-const playfair = Playfair_Display({ subsets: ['latin'], display: 'swap', weight: ['400', '700', '900'], variable: '--font-playfair' })
-const merriweather = Merriweather({ subsets: ['latin'], display: 'swap', weight: ['400', '700', '900'], variable: '--font-merriweather' })
-const lora = Lora({ subsets: ['latin'], display: 'swap', weight: ['400', '600', '700'], variable: '--font-lora' })
-const workSans = Work_Sans({ subsets: ['latin'], display: 'swap', weight: ['400', '600', '700', '900'], variable: '--font-work-sans' })
-const rubik = Rubik({ subsets: ['latin'], display: 'swap', weight: ['400', '600', '700', '900'], variable: '--font-rubik' })
-const quicksand = Quicksand({ subsets: ['latin'], display: 'swap', weight: ['400', '600', '700'], variable: '--font-quicksand' })
-const bebas = Bebas_Neue({ subsets: ['latin'], display: 'swap', weight: ['400'], variable: '--font-bebas' })
-const josefin = Josefin_Sans({ subsets: ['latin'], display: 'swap', weight: ['400', '600', '700'], variable: '--font-josefin' })
+const roboto = Roboto({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '500', '700', '900'], variable: '--font-roboto' })
+const openSans = Open_Sans({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '600', '700', '800'], variable: '--font-open-sans' })
+const montserrat = Montserrat({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '600', '700', '900'], variable: '--font-montserrat' })
+const lato = Lato({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '700', '900'], variable: '--font-lato' })
+const poppins = Poppins({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '600', '700'], variable: '--font-poppins' })
+const raleway = Raleway({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '600', '700', '900'], variable: '--font-raleway' })
+const oswald = Oswald({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '600', '700'], variable: '--font-oswald' })
+const playfair = Playfair_Display({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '700', '900'], variable: '--font-playfair' })
+const merriweather = Merriweather({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '700', '900'], variable: '--font-merriweather' })
+const lora = Lora({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '600', '700'], variable: '--font-lora' })
+const workSans = Work_Sans({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '600', '700', '900'], variable: '--font-work-sans' })
+const rubik = Rubik({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '600', '700', '900'], variable: '--font-rubik' })
+const quicksand = Quicksand({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '600', '700'], variable: '--font-quicksand' })
+const bebas = Bebas_Neue({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400'], variable: '--font-bebas' })
+const josefin = Josefin_Sans({ subsets: ['latin'], display: 'swap', preload: false, weight: ['400', '600', '700'], variable: '--font-josefin' })
 
 /** Every card font variable, for the <html> className.
  *

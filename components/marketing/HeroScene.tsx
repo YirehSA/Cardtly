@@ -630,8 +630,14 @@ export default function HeroScene() {
           <picture>
             <source media="(max-aspect-ratio: 3/5)" srcSet="/hero/poster-portrait.webp" />
             <source media="(max-aspect-ratio: 1/1)" srcSet="/hero/poster-tall.webp" />
+            {/* width and height are the wide file's own pixels, for the browser's
+                aspect-ratio reservation; .hero-poster sizes it to the stage, so
+                they never change how it is laid out. The alt describes the
+                picture, which is the first thing a visitor sees. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img id="hero-poster" className="hero-poster" alt=""
+            <img id="hero-poster" className="hero-poster"
+              alt="A smartphone beside a Cardtly NFC business card"
+              width={1408} height={863}
               src="/hero/poster-wide.webp" fetchPriority="high" />
           </picture>
 

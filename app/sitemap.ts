@@ -3,6 +3,7 @@ import type { MetadataRoute } from 'next'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { POSTS } from './blog/posts'
 import { planFromTrial } from '@/lib/plan-server'
+import { SITE_URL } from '@/lib/seo-schema'
 
 // Sitemap: static marketing pages + every public card page.
 // Card pages are included deliberately - each one is an indexable
@@ -14,7 +15,9 @@ import { planFromTrial } from '@/lib/plan-server'
 // Regenerated at most once a day; new cards appear on the next pass.
 export const revalidate = 86400
 
-const BASE = 'https://cardtly.com'
+// The served host. cardtly.com redirects to www, so listing it made every URL
+// in this file a redirect for the crawler to follow.
+const BASE = SITE_URL
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
@@ -23,6 +26,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // The team and company page: the highest-value commercial query on the
     // site, so it sits with the other primary pages rather than below them.
     { url: `${BASE}/teams`, changeFrequency: 'monthly', priority: 0.9 },
+    // The answer to "digital business cards for teams south africa".
+    { url: `${BASE}/teams/south-africa`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${BASE}/pricing`, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE}/nfc`, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE}/network`, changeFrequency: 'monthly', priority: 0.9 },

@@ -1,3 +1,4 @@
+import { SITE_URL } from '@/lib/seo-schema'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
     title: 'Business Networking Directory for SA Companies | Cardtly',
     description:
       'Search businesses by company, industry or job title, see who works there, and open their card. Included with Cardtly Pro.',
-    url: 'https://cardtly.com/network',
+    url: `${SITE_URL}/network`,
     type: 'website',
   },
 }

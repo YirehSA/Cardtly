@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { FileText, Scale, BookOpen, Trash2, ClipboardCheck } from 'lucide-react'
 import LegalPage, { Section, B, A, Table, sectionStyle } from '@/components/marketing/LegalPage'
 import { COMPANY } from '@/lib/company'
+import { GA_ENABLED } from '@/lib/analytics'
 
 export const metadata: Metadata = {
   title: 'Trust Centre: Security, POPIA and Compliance',
@@ -41,7 +42,9 @@ const PROVIDERS: [string, string][] = [
   ['Resend', 'Sends our email'],
   ['OpenAI', 'The AI bio writer and paper card scanning, only when someone uses them'],
   ['ipapi.co', 'Looks up the city a new account signed up from'],
-  ['Google', 'Google Wallet passes, Firebase Analytics in the Android app, and Google Play'],
+  ['Google', GA_ENABLED
+    ? 'Google Wallet passes, Firebase Analytics in the Android app, Google Play, and Google Analytics on our marketing pages (never on cards)'
+    : 'Google Wallet passes, Firebase Analytics in the Android app, and Google Play'],
   ['Apple', 'The App Store'],
   ['Microsoft', 'Sign in with Microsoft, for those who choose it'],
 ]

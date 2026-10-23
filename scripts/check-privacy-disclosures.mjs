@@ -78,6 +78,8 @@ const SERVICES = [
   // script cannot see it - and a flag guessed from here is how the security
   // docs came to call a live button "switched off".
   { name: 'Microsoft', present: existsSync('components/auth/MicrosoftSignIn.tsx') },
+  // Loaded as a script tag, not fetch(), so the host scan below cannot see it.
+  { name: 'Google Analytics', present: existsSync('components/GoogleAnalytics.tsx') },
 ]
 
 // ── 2. Every outbound host the server code calls ────────────────────────────
@@ -178,6 +180,36 @@ if (providers.length < 5) bad(`could not read the provider list from section 7 o
 for (const name of providers) {
   if (!trust.includes(`'${name}'`)) bad(`${TRUST} does not list ${name}, which section 7 of the privacy policy names. The trust page calls its list complete.`)
   if (!paia.includes(name)) bad(`${PAIA} does not name ${name} among the recipients of personal information, which section 7 of the privacy policy does.`)
+}
+
+// ── 3b2. Google Analytics stays where the policy says it is ────────────────
+//
+// The policy promises that a card visitor cannot be followed between cards and
+// that the iOS app has no third-party analytics. GA's client id on a card page,
+// or the tag inside the app, would break both. So: an allowlist of marketing
+// paths with no product route on it, the app check, advertising denied, page
+// views sent by hand, the tag rendered only when switched on, and the policy's
+// disclosure tied to the same switch.
+if (existsSync('components/GoogleAnalytics.tsx')) {
+  const ga = read('components/GoogleAnalytics.tsx') || ''
+  const lib = read('lib/analytics.ts') || ''
+  const layout = read('app/layout.tsx') || ''
+  const paths = [...(lib.match(/ANALYTICS_PATHS\s*=\s*\[([\s\S]*?)\]/)?.[1] || '').matchAll(/'([^']+)'/g)].map(m => m[1])
+  if (!paths.length) bad('could not read ANALYTICS_PATHS from lib/analytics.ts.')
+  for (const p of paths) {
+    if (/^\/(card|dashboard|login|admin|po|quote|team|wa|api|invoice|r)(\/|$)/.test(p)) {
+      bad(`lib/analytics.ts lets Google Analytics run on ${p}. It is for the marketing pages only: cards, the dashboard and signed documents are promised untracked.`)
+    }
+  }
+  if (!/isNativePlatform/.test(ga) || !/IOS_APP_UA_TAG/.test(ga)) bad('components/GoogleAnalytics.tsx no longer refuses to load inside the Cardtly apps. The policy says the iOS app has no third-party analytics.')
+  if (!/ga-disable-/.test(ga)) bad('components/GoogleAnalytics.tsx no longer switches GA off when a visitor moves from a marketing page to a card or the dashboard.')
+  if (!/ad_storage: 'denied'/.test(ga) || /ad_storage: 'granted'/.test(ga)) bad('components/GoogleAnalytics.tsx no longer denies advertising storage. The policy says we do not use advertising cookies; change the policy first.')
+  if (!/send_page_view: false/.test(ga)) bad('components/GoogleAnalytics.tsx lets the tag send its own page views, which can report a card or dashboard address before the component sees the navigation.')
+  if (!/\{GA_ENABLED && <GoogleAnalytics \/>\}/.test(layout)) bad('app/layout.tsx renders GoogleAnalytics without the GA_ENABLED switch, so the tag could run while the policy says it does not.')
+  for (const [file, raw] of [[PRIVACY, privacyRaw], [TRUST, trustRaw]]) {
+    if (!/GA_ENABLED/.test(raw)) bad(`${file} no longer ties its Google Analytics wording to GA_ENABLED, so it can say the opposite of what the site does.`)
+  }
+  if (!/Google Analytics does not run on cards/.test(privacy)) bad(`${PRIVACY} no longer says Google Analytics does not run on cards, the dashboard or the apps.`)
 }
 
 // ── 3c. One set of company details ──────────────────────────────────────────

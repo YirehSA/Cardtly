@@ -118,7 +118,7 @@ export default function Navbar() {
           {/* 72px does not fit a 4rem bar, so the mark comes down with it.
               Sized rather than scaled: transform:scale would leave the original
               footprint in the layout and the row would not actually compact. */}
-          <img src="/cardtly-icon.png" alt="Cardtly logo"
+          <img src="/cardtly-icon.png" alt="Cardtly logo" width={72} height={72}
             className={`rounded-full transition-all duration-300 group-hover:scale-105 ${stuck ? 'w-11 h-11' : 'w-[72px] h-[72px]'}`} />
         </Link>
 

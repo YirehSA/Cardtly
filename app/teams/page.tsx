@@ -1,3 +1,4 @@
+import { SITE_URL } from '@/lib/seo-schema'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
@@ -54,7 +55,7 @@ export const metadata: Metadata = {
     title: 'Digital Business Cards for Teams & Companies',
     description:
       'One branded card for every employee, controlled by the company. Group and department structure, locked brand fields, seat billing and analytics.',
-    url: 'https://cardtly.com/teams',
+    url: `${SITE_URL}/teams`,
     type: 'website',
   },
 }
@@ -292,7 +293,7 @@ export default function TeamsPage() {
         name: 'Cardtly for Teams',
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Web, Android',
-        url: 'https://cardtly.com/teams',
+        url: `${SITE_URL}/teams`,
         description:
           'Digital business card platform for teams and companies. Central brand control, group and department structure, seat billing, bulk import and per-card analytics.',
         offers: {
@@ -300,7 +301,7 @@ export default function TeamsPage() {
           price: String(SEAT_PRICE_RAND),
           priceCurrency: 'ZAR',
           category: 'per seat per month',
-          url: 'https://cardtly.com/pricing',
+          url: `${SITE_URL}/pricing`,
         },
         featureList: [
           'Central brand control across every employee card',
@@ -312,7 +313,7 @@ export default function TeamsPage() {
           'Lead capture with a shared company contacts list',
           'NFC tap, QR code and link sharing',
         ],
-        publisher: { '@type': 'Organization', name: 'Cardtly', url: 'https://cardtly.com' },
+        publisher: { '@type': 'Organization', name: 'Cardtly', url: SITE_URL },
       },
       {
         '@type': 'FAQPage',
@@ -325,8 +326,8 @@ export default function TeamsPage() {
       {
         '@type': 'BreadcrumbList',
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Cardtly', item: 'https://cardtly.com' },
-          { '@type': 'ListItem', position: 2, name: 'For teams', item: 'https://cardtly.com/teams' },
+          { '@type': 'ListItem', position: 1, name: 'Cardtly', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'For teams', item: `${SITE_URL}/teams` },
         ],
       },
     ],

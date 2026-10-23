@@ -7,7 +7,9 @@ import CapacitorBackButton from '@/components/CapacitorBackButton'
 import CapacitorDeepLinks from '@/components/CapacitorDeepLinks'
 import CapacitorSessionRefresh from '@/components/CapacitorSessionRefresh'
 import ReferralCapture from '@/components/ReferralCapture'
-import { graph, organization, webSite } from '@/lib/seo-schema'
+import GoogleAnalytics from '@/components/GoogleAnalytics'
+import { GA_ENABLED } from '@/lib/analytics'
+import { graph, organization, webSite, SITE_URL } from '@/lib/seo-schema'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -42,7 +44,10 @@ export const metadata: Metadata = {
   },
   description:
     'Give every employee a branded digital business card the company controls. Share by NFC tap, QR code or link, with no app for the recipient. Central brand control, group and department structure, seat billing and per-card analytics. Used worldwide, built in South Africa.',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com'),
+  // The served host, not NEXT_PUBLIC_APP_URL: that is cardtly.com in production,
+  // which redirects, so every relative canonical resolved to a redirecting
+  // address. See SITE_URL in lib/seo-schema.
+  metadataBase: new URL(SITE_URL),
   keywords: [
     'digital business card',
     'digital business cards for teams',
@@ -115,6 +120,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ReferralCapture />
         <CapacitorDeepLinks />
         <CapacitorSessionRefresh />
+        {/* Off until NEXT_PUBLIC_GA_MEASUREMENT_ID is set, and then only on the
+            marketing pages and never in the apps: lib/analytics. */}
+        {GA_ENABLED && <GoogleAnalytics />}
       </body>
     </html>
   )

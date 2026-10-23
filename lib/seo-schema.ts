@@ -10,7 +10,21 @@
 // <script type="application/ld+json"> rendered on the server. AI crawlers do
 // not run JavaScript, so schema injected on the client is schema nobody sees.
 
-const SITE = 'https://cardtly.com'
+import { COMPANY, COMPANY_TEL } from '@/lib/company'
+
+/** The address the site is actually served from, and so the one every
+ *  canonical, sitemap entry and schema URL must name.
+ *
+ *  This was https://cardtly.com, which Vercel answers with a temporary (307)
+ *  redirect to www. So the home page's canonical pointed at an address that
+ *  does not serve it, every sitemap URL cost the crawler a redirect, and the
+ *  Organization @id named a URL that redirects. www is the real host: the
+ *  Android and iOS apps load it (capacitor.config.ts server.url), so it is not
+ *  the one to move. Product links people already hold - cardtly.com/card/...
+ *  printed on NFC cards and QR codes - keep working through the redirect and
+ *  are left alone. */
+export const SITE_URL = 'https://www.cardtly.com'
+const SITE = SITE_URL
 const ORG_ID = `${SITE}/#organization`
 
 export interface Faq { q: string; a: string }
@@ -58,6 +72,37 @@ export function organization() {
       url: `${SITE}/contact`,
       availableLanguage: ['en'],
     },
+  }
+}
+
+/** Cardtly as a business at a place, which is what map and local results read.
+ *
+ *  Every value is one the company already publishes: the legal pages print the
+ *  address and telephone (ECTA s43), taken from billing_settings, the record
+ *  the invoices print. No postal code, opening hours or coordinates, because
+ *  that record has none, and a guessed one is worse than a missing one. Change
+ *  billing_settings, lib/company.ts and this together. */
+export function localBusiness() {
+  return {
+    '@type': 'LocalBusiness',
+    '@id': `${SITE}/#localbusiness`,
+    name: 'Cardtly',
+    legalName: COMPANY.name,
+    url: SITE,
+    logo: `${SITE}/cardtly-icon.png`,
+    image: `${SITE}/cardtly-icon.png`,
+    description: 'Digital business cards for teams and companies, shared by NFC tap, QR code or link, with NFC cards delivered across South Africa.',
+    telephone: COMPANY_TEL,
+    email: 'hello@cardtly.com',
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: '119 Pretoria Road',
+      addressLocality: 'Benoni',
+      addressRegion: 'Gauteng',
+      addressCountry: 'ZA',
+    },
+    areaServed: { '@type': 'Country', name: 'South Africa' },
+    parentOrganization: { '@id': ORG_ID },
   }
 }
 
