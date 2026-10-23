@@ -54,6 +54,9 @@ export function organization() {
     name: 'Cardtly',
     url: SITE,
     logo: `${SITE}/cardtly-icon.png`,
+    // With an address and telephone, Google also reads this node as a local
+    // business, and asks for an image there.
+    image: `${SITE}/cardtly-icon.png`,
     description:
       'Cardtly is a digital business card platform for individuals, teams and companies. Cards are shared by NFC tap, QR code or link, and a company can brand and control every employee card centrally.',
     slogan: 'Your card. One tap away.',
