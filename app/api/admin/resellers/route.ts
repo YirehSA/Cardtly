@@ -4,7 +4,7 @@ import { auditLog } from '@/lib/admin-audit'
 import { findUserByEmail } from '@/lib/department-perms'
 import { sendResellerWelcome, sendResellerApproved } from '@/lib/reseller-invite'
 import { listResellerClients, poolClients } from '@/lib/reseller'
-import { draftResellerMonth, rebuildResellerMonth } from '@/lib/reseller-billing'
+import { draftResellerMonth, rebuildResellerMonth, estimateResellerMonth, resellerPrices } from '@/lib/reseller-billing'
 import { sastMonth, previousMonth, monthLabel, seatsSold, RESELLER_DEFAULTS } from '@/lib/reseller-pricing'
 import { syncResellerFreeCard, FREE_CARD_TEXT } from '@/lib/reseller-comp'
 
@@ -19,6 +19,14 @@ function cents(raw: unknown, fallback: number): number | null {
   if (raw === undefined || raw === null || raw === '') return fallback
   const n = Math.round(Number(raw))
   return Number.isFinite(n) && n >= 0 && n <= 100_000_00 ? n : null
+}
+
+/** The yearly seat price: blank means "twelve times the monthly", stored as
+ *  null; anything else must be an amount. undefined when it is not valid. */
+function yearCents(raw: unknown): number | null | undefined {
+  if (raw === undefined || raw === null || raw === '') return null
+  const n = Math.round(Number(raw))
+  return Number.isFinite(n) && n >= 0 && n <= 100_000_00 ? n : undefined
 }
 
 function wholeSeats(raw: unknown, fallback: number): number | null {
@@ -121,14 +129,17 @@ export async function GET() {
     // Read only: the GET reports, the writes below make it so.
     let freeCard: any = null
     try { freeCard = await syncResellerFreeCard(db, r, { dryRun: true }) } catch { /* shown as unknown */ }
+    // Worked out as the invoice will be, yearly clients included.
+    const estimate = await estimateResellerMonth(db, r, thisMonth)
     return {
       ...r,
+      yearlyCents: resellerPrices(r).yearlyCents,
       freeCard: freeCard ? { ...freeCard, text: FREE_CARD_TEXT[freeCard.state as keyof typeof FREE_CARD_TEXT] } : null,
       logins,
       clients,
       sold: seatsSold(poolClients(clients)),
       billingClient: (billingClients.data || []).find((c: any) => c.id === r.billing_client_id) || null,
-      thisMonth: { month: thisMonth, label: monthLabel(thisMonth), seats: seatsIn(thisMonth), cents: seatsIn(thisMonth) * (Number(r.seat_price_cents) || 0) },
+      thisMonth: { month: thisMonth, label: monthLabel(thisMonth), seats: estimate.seats, cents: estimate.cents },
       lastMonth: { month: lastMonth, label: monthLabel(lastMonth), seats: seatsIn(lastMonth) },
       months: (claims.data || []).filter((c: any) => c.reseller_id === r.id).map((c: any) => ({
         month: c.month, label: monthLabel(c.month), invoice: c.invoice_id ? invoiceById[c.invoice_id] || null : null,
@@ -159,8 +170,9 @@ export async function POST(request: Request) {
   const blank = cents(body.nfc_blank_cents, RESELLER_DEFAULTS.nfcBlankCents)
   const printed = cents(body.nfc_printed_cents, RESELLER_DEFAULTS.nfcPrintedCents)
   const shipping = cents(body.nfc_shipping_cents, RESELLER_DEFAULTS.nfcShippingCents)
+  const yearly = yearCents(body.seat_price_year_cents)
   if (pool === null) return NextResponse.json({ error: 'The seat pool is a whole number.' }, { status: 400 })
-  if (seat === null || blank === null || printed === null || shipping === null) {
+  if (seat === null || blank === null || printed === null || shipping === null || yearly === undefined) {
     return NextResponse.json({ error: 'Prices must be amounts of R0 or more.' }, { status: 400 })
   }
 
@@ -209,6 +221,9 @@ export async function POST(request: Request) {
     billing_client_id: client.id,
     seat_pool: pool,
     seat_price_cents: seat,
+    // Only written when one is agreed, so a reseller can still be made before
+    // migration 097 added the column.
+    ...(yearly !== null ? { seat_price_year_cents: yearly } : {}),
     nfc_blank_cents: blank,
     nfc_printed_cents: printed,
     nfc_shipping_cents: shipping,
@@ -284,6 +299,13 @@ export async function PATCH(request: Request) {
       if (v === null) return NextResponse.json({ error: 'Prices must be amounts of R0 or more.' }, { status: 400 })
       patch[key] = v
     }
+    if ('seat_price_year_cents' in body) {
+      const v = yearCents(body.seat_price_year_cents)
+      if (v === undefined) return NextResponse.json({ error: 'Prices must be amounts of R0 or more.' }, { status: 400 })
+      // Unchanged and blank: leave the column alone, so saving other details
+      // still works before migration 097.
+      if (!(v === null && (reseller.seat_price_year_cents ?? null) === null)) patch.seat_price_year_cents = v
+    }
     if ('seat_pool' in body) {
       const pool = wholeSeats(body.seat_pool, reseller.seat_pool)
       if (pool === null) return NextResponse.json({ error: 'The seat pool is a whole number.' }, { status: 400 })
@@ -296,7 +318,12 @@ export async function PATCH(request: Request) {
       patch.seat_pool = pool
     }
     const { error } = await db.from('resellers').update(patch).eq('id', reseller.id)
-    if (error) return NextResponse.json({ error: error.message || 'Could not save.' }, { status: 500 })
+    if (error) {
+      if (/seat_price_year_cents/.test(error.message || '')) {
+        return NextResponse.json({ error: 'A yearly price needs migration 097. Run it in Supabase, then save again.' }, { status: 503 })
+      }
+      return NextResponse.json({ error: error.message || 'Could not save.' }, { status: 500 })
+    }
     // The billing client follows the name, contact and phone, so the next
     // invoice is addressed correctly. Issued ones keep their frozen copy.
     if (reseller.billing_client_id) {

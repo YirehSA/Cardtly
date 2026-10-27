@@ -7,10 +7,11 @@ import { findUserByEmail } from '@/lib/department-perms'
 import { orgSlugPrefix } from '@/lib/card-slug'
 import { sendTeamOwnerWelcome } from '@/lib/team-owner-invite'
 import { settleOwnerCard } from '@/lib/owner-team-card'
-import { createDraftInvoice, recordClientSeats } from '@/lib/reseller-billing'
+import { createDraftInvoice, recordClientSeats, resellerYears } from '@/lib/reseller-billing'
 import {
-  clientState, fitsPool, nfcOrderLines, nfcOrderTotalCents, nfcUnitCents, randCents,
-  MAX_NFC_ORDER, type PoolClient, type ResellerClientState, type ResellerNfcKind,
+  clientState, fitsPool, nfcOrderLines, nfcOrderTotalCents, nfcUnitCents, randCents, cleanTerm, currentYear,
+  sastMonth, monthLabel, addMonths,
+  MAX_NFC_ORDER, type PoolClient, type ResellerClientState, type ResellerNfcKind, type ResellerTerm,
 } from '@/lib/reseller-pricing'
 
 // A reseller and the client teams it sells. Everything here runs with the
@@ -35,6 +36,8 @@ export interface Reseller {
   billing_client_id: string | null
   seat_pool: number
   seat_price_cents: number
+  /** Null until a yearly price is agreed: twelve times seat_price_cents. */
+  seat_price_year_cents?: number | null
   nfc_blank_cents: number
   nfc_printed_cents: number
   nfc_shipping_cents: number
@@ -54,6 +57,12 @@ export interface ResellerClient {
   /** True when the team is no longer on this reseller's bill, because an
    *  admin moved it to another billing mode. Shown, never counted. */
   offBill: boolean
+  /** How the reseller sells it. */
+  term: ResellerTerm
+  /** The paid year that covers this month, or the next one already billed:
+   *  YYYY-MM-01 for its first and last months. Null when none is. */
+  paidFrom: string | null
+  paidTo: string | null
 }
 
 type Fail = { error: string; status: number }
@@ -117,16 +126,30 @@ export async function listResellerClients(db: any, resellerId: string): Promise<
     } catch { return null }
   }))
 
-  return list.map((o: any, i: number) => ({
-    id: o.id,
-    name: o.name || 'Client',
-    seats: Math.max(0, Number(o.max_seats) || 0),
-    state: clientState(o),
-    cardsMade: made[o.id] || 0,
-    ownerEmail: emails[i],
-    createdAt: o.created_at || null,
-    offBill: o.billing_period !== 'reseller',
-  }))
+  // How far each yearly client is paid. A failure here only hides the dates.
+  const paid = await resellerYears(db, resellerId).catch(() => ({ years: [], extras: [] }))
+  const years = 'error' in paid ? [] : paid.years
+  const month = sastMonth(new Date())
+
+  return list.map((o: any, i: number) => {
+    const year = currentYear(
+      years.filter((y: any) => y.organization_id === o.id).map((y: any) => ({ startMonth: y.start_month, endMonth: y.end_month })),
+      month,
+    )
+    return {
+      id: o.id,
+      name: o.name || 'Client',
+      seats: Math.max(0, Number(o.max_seats) || 0),
+      state: clientState(o),
+      cardsMade: made[o.id] || 0,
+      ownerEmail: emails[i],
+      createdAt: o.created_at || null,
+      offBill: o.billing_period !== 'reseller',
+      term: cleanTerm(o.reseller_term) || 'monthly',
+      paidFrom: year?.startMonth || null,
+      paidTo: year?.endMonth || null,
+    }
+  })
 }
 
 /** What counts against the pool: clients still on this reseller's bill. */
@@ -152,7 +175,7 @@ async function ownedClient(db: any, reseller: Reseller, orgId: string): Promise<
 
 /** A new client team, live straight away, with its admin's login. */
 export async function createResellerClient(db: any, reseller: Reseller, input: {
-  company?: unknown; ownerEmail?: unknown; seats?: unknown
+  company?: unknown; ownerEmail?: unknown; seats?: unknown; term?: unknown
 }, origin: string): Promise<{ ok: true; orgId: string; notes: string[] } | Fail> {
   const blocked = writable(reseller)
   if (blocked) return blocked
@@ -160,9 +183,12 @@ export async function createResellerClient(db: any, reseller: Reseller, input: {
   const company = String(input.company ?? '').trim().slice(0, 120)
   const email = String(input.ownerEmail ?? '').trim().toLowerCase()
   const seats = cleanSeats(input.seats)
+  // Monthly unless the reseller says otherwise, as every client was before.
+  const term = input.term === undefined || input.term === null || input.term === '' ? 'monthly' : cleanTerm(input.term)
   if (!company) return fail('Type the client\'s company name.')
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)) return fail(`"${email}" does not look like an email address.`)
   if (!seats) return fail(`Seats are a whole number from 1 to ${MAX_CLIENT_SEATS}.`)
+  if (!term) return fail('Choose monthly or yearly.')
 
   const clients = await listResellerClients(db, reseller.id)
   const fit = fitsPool(reseller.seat_pool, poolClients(clients), seats)
@@ -200,8 +226,14 @@ export async function createResellerClient(db: any, reseller: Reseller, input: {
     business_plan_active: true,
     reseller_id: reseller.id,
     card_slug_prefix: orgSlugPrefix(company),
+    // Only written when yearly, so a monthly client can still be made before
+    // migration 097 added the column.
+    ...(term === 'yearly' ? { reseller_term: 'yearly' } : {}),
   }).select('*').maybeSingle()
   if (orgErr || !org) {
+    if (/reseller_term/.test(orgErr?.message || '')) {
+      return fail('Selling a client yearly is not switched on yet. Choose monthly for now, or ask Cardtly.', 503)
+    }
     return fail(`Could not create the team: ${orgErr?.message || 'unknown error'}.`
       + (createdAccount ? ` The login for ${email} was made and will be reused if you try again.` : ''), 500)
   }
@@ -248,6 +280,50 @@ export async function setClientSeats(db: any, reseller: Reseller, orgId: string,
   if (error || !saved) return fail(error?.message || 'Could not save the seats.', 500)
   await recordClientSeats(db, saved)
   return { ok: true }
+}
+
+/** Sell a client monthly or yearly from now on. See lib/reseller-pricing for
+ *  what each means on the invoice; the note returned says it for this client. */
+export async function setClientTerm(db: any, reseller: Reseller, orgId: string, raw: unknown): Promise<{ ok: true; note: string } | Fail> {
+  const blocked = writable(reseller)
+  if (blocked) return blocked
+  const term = cleanTerm(raw)
+  if (!term) return fail('Choose monthly or yearly.')
+  const org = await ownedClient(db, reseller, orgId)
+  if (!org) return fail('That client is not one of yours.', 404)
+  if (org.billing_period !== 'reseller') return fail('Cardtly now bills this team directly, so it is managed by Cardtly.')
+
+  const name = org.name || 'This client'
+  const month = sastMonth(new Date())
+  const paid = await resellerYears(db, reseller.id)
+  const years = 'error' in paid ? [] : paid.years.filter(y => y.organization_id === org.id)
+  const year = currentYear(years.map(y => ({ startMonth: y.start_month, endMonth: y.end_month })), month)
+
+  if ((cleanTerm(org.reseller_term) || 'monthly') === term) return { ok: true, note: `${name} is already ${term}.` }
+
+  const { data: saved, error } = await db.from('organizations')
+    .update({ reseller_term: term, updated_at: new Date().toISOString() }).eq('id', org.id).select('*').maybeSingle()
+  if (error || !saved) {
+    if (/reseller_term/.test(error?.message || '')) return fail('Selling a client yearly is not switched on yet. Ask Cardtly.', 503)
+    return fail(error?.message || 'Could not save.', 500)
+  }
+  // The month is recorded with its new term straight away, so the invoice
+  // drafted on the 1st bills it the way it is now sold.
+  await recordClientSeats(db, saved)
+
+  let note: string
+  if (term === 'yearly') {
+    note = year
+      ? `${name} is paid up to ${monthLabel(year.endMonth)}, and renews yearly from ${monthLabel(addMonths(year.endMonth, 1))}.`
+      : clientState(saved) !== 'live'
+      ? `${name} is now yearly. Its first year starts in the month you switch it back on.`
+      : `${name} is now yearly: ${monthLabel(month)} to ${monthLabel(addMonths(month, 11))} is billed on your next Cardtly invoice, in place of this month.`
+  } else {
+    note = year
+      ? `${name} stays paid up to ${monthLabel(year.endMonth)}, and is billed monthly from ${monthLabel(addMonths(year.endMonth, 1))}.`
+      : `${name} is now monthly, from ${monthLabel(month)}.`
+  }
+  return { ok: true, note }
 }
 
 /** Pause (cards show a notice and the team loses Pro), switch back on, or

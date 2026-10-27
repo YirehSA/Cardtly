@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import {
   requireReseller, listResellerClients, poolClients, createResellerClient,
-  setClientSeats, setClientState, resendClientWelcome, placeResellerNfcOrder,
+  setClientSeats, setClientState, setClientTerm, resendClientWelcome, placeResellerNfcOrder,
 } from '@/lib/reseller'
 import { invoiceOutstanding } from '@/lib/billing-docs'
 import { sastMonth, monthLabel, seatsSold } from '@/lib/reseller-pricing'
+import { estimateResellerMonth, resellerPrices } from '@/lib/reseller-billing'
 import { syncResellerFreeCard } from '@/lib/reseller-comp'
 
 // The reseller's own page: their pool, their clients, their NFC orders and
@@ -27,9 +28,11 @@ export async function GET() {
   } catch { /* not shown */ }
 
   const month = sastMonth(new Date())
-  const [clients, usage, orders, invoices] = await Promise.all([
+  const [clients, estimate, orders, invoices] = await Promise.all([
     listResellerClients(db, reseller.id),
-    db.from('reseller_seat_months').select('organization_id, peak_seats').eq('reseller_id', reseller.id).eq('month', month),
+    // What this month comes to so far, worked out as the invoice will be:
+    // monthly clients for the month, yearly ones for their year if it starts now.
+    estimateResellerMonth(db, reseller, month),
     db.from('reseller_nfc_orders').select('*').eq('reseller_id', reseller.id).order('created_at', { ascending: false }).limit(100),
     reseller.billing_client_id
       // Never drafts: until Cardtly approves one it is not an invoice.
@@ -40,15 +43,16 @@ export async function GET() {
   ])
 
   const sold = seatsSold(poolClients(clients))
-  const monthSeats = (usage.data || []).reduce((n: number, u: any) => n + (Number(u.peak_seats) || 0), 0)
 
   return NextResponse.json({
     ownCardFree,
+    month,
     reseller: {
       name: reseller.name,
       status: reseller.status,
       seatPool: reseller.seat_pool,
       seatPriceCents: reseller.seat_price_cents,
+      seatPriceYearCents: resellerPrices(reseller).yearlyCents,
       nfcBlankCents: reseller.nfc_blank_cents,
       nfcPrintedCents: reseller.nfc_printed_cents,
       nfcShippingCents: reseller.nfc_shipping_cents,
@@ -57,7 +61,7 @@ export async function GET() {
     sold,
     left: Math.max(0, reseller.seat_pool - sold),
     clients,
-    thisMonth: { label: monthLabel(month), seats: monthSeats, cents: monthSeats * (Number(reseller.seat_price_cents) || 0) },
+    thisMonth: { label: monthLabel(month), seats: estimate.seats, cents: estimate.cents },
     nfcOrders: (orders.data || []).map((o: any) => ({
       id: o.id, kind: o.kind, quantity: o.quantity, total_cents: o.total_cents, client_name: o.client_name,
       status: o.status, tracking_number: o.tracking_number, created_at: o.created_at,
@@ -85,10 +89,12 @@ export async function POST(request: Request) {
   switch (body.action) {
     case 'add_client':
       return reply(await createResellerClient(db, reseller, {
-        company: body.company, ownerEmail: body.owner_email, seats: body.seats,
+        company: body.company, ownerEmail: body.owner_email, seats: body.seats, term: body.term,
       }, origin))
     case 'set_seats':
       return reply(await setClientSeats(db, reseller, String(body.org_id || ''), body.seats))
+    case 'set_term':
+      return reply(await setClientTerm(db, reseller, String(body.org_id || ''), body.term))
     case 'set_state':
       return reply(await setClientState(db, reseller, String(body.org_id || ''), body.to, body.message))
     case 'resend_welcome':

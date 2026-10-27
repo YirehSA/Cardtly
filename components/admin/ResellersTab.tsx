@@ -25,6 +25,9 @@ const STATE_TONE: Record<string, string> = { live: '#22c55e', paused: '#f59e0b',
 const BLANK = {
   name: '', legal_name: '', contact_name: '', email: '', phone: '', address: '', vat_number: '',
   seat_pool: '100', seat: '70.00', blank: '50.00', printed: '125.00', shipping: '100.00', notes: '',
+  // Blank until a yearly price is agreed: the invoice then uses twelve times
+  // the monthly price (lib/reseller-pricing yearlySeatCents).
+  seat_year: '',
   // Set when the form was opened from an application, which approving it
   // closes in the same step (see POST /api/admin/resellers).
   application_id: '',
@@ -68,6 +71,25 @@ async function approveAndSend(invoiceId: string, what: string): Promise<boolean>
   if (!sent.ok || s?.error) { toast.error(`Issued, but not emailed: ${s?.error || 'unknown error'}. Send it from Invoices.`); return true }
   toast.success('Issued and emailed')
   return true
+}
+
+/** What a blank yearly price comes to: twelve times the monthly one. */
+const yearPlaceholder = (monthly: string) => {
+  const n = Number(String(monthly).replace(/[^\d.]/g, ''))
+  return Number.isFinite(n) && n > 0 ? (n * 12).toFixed(2) : '12 x monthly'
+}
+
+const TERM_TEXT = (c: any, thisMonth: string) => {
+  if (c.offBill) return ''
+  const paid = c.paidTo && c.paidTo >= thisMonth ? ` to ${monthName(c.paidTo)}` : ''
+  if (c.term === 'yearly') return paid ? `yearly, paid${paid}` : 'yearly, next invoice'
+  return paid ? `monthly after yearly${paid}` : 'monthly'
+}
+
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const monthName = (m: string) => {
+  const hit = /^(\d{4})-(\d{2})/.exec(m || '')
+  return hit ? `${MONTH_NAMES[Number(hit[2]) - 1]} ${hit[1]}` : m
 }
 
 const field = (label: string, input: React.ReactNode, wide = false) => (
@@ -114,6 +136,7 @@ export default function ResellersTab() {
       seat_pool: Number(adding.seat_pool),
       seat_price_cents: toCents(adding.seat), nfc_blank_cents: toCents(adding.blank),
       nfc_printed_cents: toCents(adding.printed), nfc_shipping_cents: toCents(adding.shipping),
+      seat_price_year_cents: adding.seat_year.trim() ? toCents(adding.seat_year) : null,
       ...(adding.application_id ? { application_id: adding.application_id } : {}),
     })
     setBusy(null)
@@ -138,7 +161,7 @@ export default function ResellersTab() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Stat label="Resellers" value={list.length} />
         <Stat label="Seats sold" value={list.reduce((n, r) => n + (r.sold || 0), 0)} colour="#ec4899" />
-        <Stat label="This month so far" value={money(totalMonth)} colour="#22c55e" hint="Every seat live this month, at each reseller's price. Invoiced on the 1st." />
+        <Stat label="This month so far" value={money(totalMonth)} colour="#22c55e" hint="Monthly clients' seats live this month, and yearly terms starting this month, at each reseller's prices. Invoiced on the 1st." />
         <Stat label="Drafts to approve" value={drafts} colour="#f59e0b" warn={drafts > 0} />
       </div>
 
@@ -175,6 +198,9 @@ export default function ResellersTab() {
               onChange={e => setAdding({ ...adding, seat_pool: e.target.value })} />)}
             {field('Per seat per month (R)', <input className={inputClass} style={inputStyle} value={adding.seat}
               onChange={e => setAdding({ ...adding, seat: e.target.value })} />)}
+            {field('Per seat per year (R)', <input className={inputClass} style={inputStyle} value={adding.seat_year}
+              placeholder={`${yearPlaceholder(adding.seat)} (12 months)`}
+              onChange={e => setAdding({ ...adding, seat_year: e.target.value })} />)}
             {field('Blank NFC card (R)', <input className={inputClass} style={inputStyle} value={adding.blank}
               onChange={e => setAdding({ ...adding, blank: e.target.value })} />)}
             {field('Printed NFC card (R)', <input className={inputClass} style={inputStyle} value={adding.printed}
@@ -206,7 +232,9 @@ export default function ResellersTab() {
 
 function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; onToggle: () => void; reload: () => void }) {
   const [edit, setEdit] = useState(() => ({
-    seat_pool: String(r.seat_pool), seat: toRands(r.seat_price_cents), blank: toRands(r.nfc_blank_cents),
+    seat_pool: String(r.seat_pool), seat: toRands(r.seat_price_cents),
+    seat_year: r.seat_price_year_cents === null || r.seat_price_year_cents === undefined ? '' : toRands(r.seat_price_year_cents),
+    blank: toRands(r.nfc_blank_cents),
     printed: toRands(r.nfc_printed_cents), shipping: toRands(r.nfc_shipping_cents),
     contact_name: r.contact_name || '', phone: r.phone || '', notes: r.notes || '',
     address: r.billingClient?.address || '', vat_number: r.billingClient?.vat_number || '',
@@ -238,7 +266,7 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
             {ended && <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ background: 'rgba(148,163,184,0.15)', color: '#94a3b8' }}>Ended</span>}
           </p>
           <p className="text-xs" style={{ color: muted }}>
-            {r.sold} of {r.seat_pool} seats sold · {r.clients.length} client{r.clients.length === 1 ? '' : 's'} · {money(r.seat_price_cents)}/seat
+            {r.sold} of {r.seat_pool} seats sold · {r.clients.length} client{r.clients.length === 1 ? '' : 's'} · {money(r.seat_price_cents)}/seat a month · {money(r.yearlyCents ?? r.seat_price_cents * 12)}/seat a year
           </p>
         </div>
         <div className="text-right">
@@ -308,6 +336,7 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
                   <div key={c.id} className="flex items-center gap-3 text-xs rounded-lg px-3 py-2 flex-wrap" style={{ background: 'rgba(255,255,255,0.03)' }}>
                     <span className="text-white flex-1 min-w-[140px]">{c.name}</span>
                     <span style={{ color: c.offBill ? '#0ea5e9' : STATE_TONE[c.state] }}>{c.offBill ? 'Billed by Cardtly' : c.state}</span>
+                    {!c.offBill && <span style={{ color: c.term === 'yearly' ? '#a78bfa' : muted }}>{TERM_TEXT(c, r.thisMonth.month)}</span>}
                     <span className="tabular-nums" style={{ color: muted }}>{c.cardsMade}/{c.seats} cards</span>
                     <span style={{ color: faint }}>{c.ownerEmail || ''}</span>
                   </div>
@@ -369,8 +398,11 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
             <div className="grid sm:grid-cols-4 gap-3">
               {field('Seat pool', <input type="number" min={r.sold} className={inputClass} style={inputStyle} value={edit.seat_pool}
                 onChange={e => setEdit({ ...edit, seat_pool: e.target.value })} />)}
-              {field('Per seat (R)', <input className={inputClass} style={inputStyle} value={edit.seat}
+              {field('Per seat, month (R)', <input className={inputClass} style={inputStyle} value={edit.seat}
                 onChange={e => setEdit({ ...edit, seat: e.target.value })} />)}
+              {field('Per seat, year (R)', <input className={inputClass} style={inputStyle} value={edit.seat_year}
+                placeholder={`${yearPlaceholder(edit.seat)} (12 months)`} title="Blank means twelve times the monthly price"
+                onChange={e => setEdit({ ...edit, seat_year: e.target.value })} />)}
               {field('Blank card (R)', <input className={inputClass} style={inputStyle} value={edit.blank}
                 onChange={e => setEdit({ ...edit, blank: e.target.value })} />)}
               {field('Printed card (R)', <input className={inputClass} style={inputStyle} value={edit.printed}
@@ -390,6 +422,7 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
             </div>
             <p className="text-[11px] mt-2" style={{ color: faint }}>
               A price change applies to the next invoice drafted. Invoices already issued keep the price they were issued at.
+              The yearly price is what a client sold yearly is billed for twelve months upfront; left blank, it is twelve times the monthly price.
             </p>
             <div className="flex items-center justify-between gap-2 mt-3 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">
@@ -426,6 +459,7 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
                 action: 'update', seat_pool: Number(edit.seat_pool),
                 seat_price_cents: toCents(edit.seat), nfc_blank_cents: toCents(edit.blank),
                 nfc_printed_cents: toCents(edit.printed), nfc_shipping_cents: toCents(edit.shipping),
+                seat_price_year_cents: edit.seat_year.trim() ? toCents(edit.seat_year) : null,
                 contact_name: edit.contact_name, phone: edit.phone, notes: edit.notes,
                 address: edit.address, vat_number: edit.vat_number,
               }, 'Saved')} disabled={!!busy}

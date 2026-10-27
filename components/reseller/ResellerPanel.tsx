@@ -5,7 +5,10 @@ import { toast } from 'sonner'
 import {
   Building2, Plus, Loader2, Wifi, Receipt, Pause, Play, XCircle, Mail, Download, Check, AlertTriangle, X,
 } from 'lucide-react'
-import { randCents, nfcOrderTotalCents, type ResellerClientState, type ResellerNfcKind } from '@/lib/reseller-pricing'
+import {
+  randCents, nfcOrderTotalCents, monthLabel, monthsInclusive, addMonths, YEAR_MONTHS,
+  type ResellerClientState, type ResellerNfcKind, type ResellerTerm,
+} from '@/lib/reseller-pricing'
 
 // The reseller's own page. Everything comes from /api/reseller, which scopes
 // every read and write to the reseller this login runs.
@@ -13,11 +16,15 @@ import { randCents, nfcOrderTotalCents, type ResellerClientState, type ResellerN
 interface Client {
   id: string; name: string; seats: number; state: ResellerClientState
   cardsMade: number; ownerEmail: string | null; createdAt: string | null; offBill: boolean
+  term: ResellerTerm; paidFrom: string | null; paidTo: string | null
 }
 interface Data {
   ownCardFree?: boolean
+  /** This month in SAST, YYYY-MM-01. */
+  month: string
   reseller: {
     name: string; status: 'active' | 'suspended' | 'ended'; seatPool: number; seatPriceCents: number
+    seatPriceYearCents: number
     nfcBlankCents: number; nfcPrintedCents: number; nfcShippingCents: number; invoicesReady: boolean
   }
   sold: number
@@ -113,7 +120,8 @@ export default function ResellerPanel() {
         <p className="section-label">Reseller</p>
         <h1 className="page-title mt-1.5">{r.name}</h1>
         <p className="page-subtitle mt-1.5">
-          Give seats to your clients and charge them what you like. Cardtly invoices you {randCents(r.seatPriceCents)} a seat each month.
+          Give seats to your clients and charge them what you like. Sell each client monthly or yearly: Cardtly invoices
+          you {randCents(r.seatPriceCents)} a seat a month, or {randCents(r.seatPriceYearCents)} a seat for a year paid upfront.
         </p>
         {data.ownCardFree && (
           <p className="text-sm mt-2 inline-flex items-center gap-1.5 text-emerald-500">
@@ -169,9 +177,21 @@ export default function ResellerPanel() {
 
 // ── Clients ─────────────────────────────────────────────────────────────────
 
+/** How a client is billed, in a line: "Monthly", or "Yearly, paid to September 2027". */
+function termLine(c: Client, month: string): string {
+  if (c.term === 'monthly') {
+    return c.paidTo && c.paidTo >= month
+      ? `Monthly from ${monthLabel(addMonths(c.paidTo, 1))} (yearly paid to ${monthLabel(c.paidTo)})`
+      : 'Monthly'
+  }
+  if (!c.paidTo) return c.state === 'live' ? 'Yearly, first year on your next invoice' : 'Yearly, starts when switched on'
+  return `Yearly, paid to ${monthLabel(c.paidTo)}`
+}
+
 function ClientsSection({ data, onHold, reload }: { data: Data; onHold: boolean; reload: () => Promise<void> }) {
+  const r = data.reseller
   const [adding, setAdding] = useState(false)
-  const [form, setForm] = useState({ company: '', owner_email: '', seats: '5' })
+  const [form, setForm] = useState<{ company: string; owner_email: string; seats: string; term: ResellerTerm }>({ company: '', owner_email: '', seats: '5', term: 'monthly' })
   const [busy, setBusy] = useState<string | null>(null)
   const [seatEdits, setSeatEdits] = useState<Record<string, string>>({})
 
@@ -181,13 +201,42 @@ function ClientsSection({ data, onHold, reload }: { data: Data; onHold: boolean;
     setBusy(null)
     if (!ok) { toast.error(d?.error || 'That did not save'); return }
     toast.success(`${form.company} is live. ${(d.notes || []).join(' ')}`)
-    setForm({ company: '', owner_email: '', seats: '5' })
+    setForm({ company: '', owner_email: '', seats: '5', term: 'monthly' })
     setAdding(false)
+    await reload()
+  }
+
+  async function setTerm(c: Client, term: ResellerTerm) {
+    const end = c.paidTo && c.paidTo >= data.month ? c.paidTo : null
+    const question = term === 'yearly'
+      ? end
+        ? `Sell ${c.name} yearly again?\n\nThey are paid up to ${monthLabel(end)}, and renew for a year at ${randCents(r.seatPriceYearCents)} a seat from ${monthLabel(addMonths(end, 1))}.`
+        : `Sell ${c.name} yearly?\n\nYour next Cardtly invoice bills ${c.seats} seat${c.seats === 1 ? '' : 's'} at ${randCents(r.seatPriceYearCents)} for ${monthLabel(data.month)} to ${monthLabel(addMonths(data.month, YEAR_MONTHS - 1))}, in place of this month. Seats added during the year are billed for the months it has left.`
+      : end
+        ? `Sell ${c.name} monthly?\n\nTheir year is paid, so nothing changes until it ends. From ${monthLabel(addMonths(end, 1))} they are billed ${randCents(r.seatPriceCents)} a seat a month.`
+        : `Sell ${c.name} monthly?\n\nFrom ${monthLabel(data.month)} they are billed ${randCents(r.seatPriceCents)} a seat a month.`
+    if (!confirm(question)) return
+    setBusy(`term-${c.id}`)
+    const { ok, data: d } = await post({ action: 'set_term', org_id: c.id, term })
+    setBusy(null)
+    if (!ok) { toast.error(d?.error || 'That did not save'); return }
+    toast.success(d.note || 'Saved')
     await reload()
   }
 
   async function saveSeats(c: Client) {
     const seats = Number(seatEdits[c.id])
+    // Seats added to a year that is already paid are billed straight away, for
+    // the months it has left. Say what that comes to before it happens.
+    if (c.term === 'yearly' || c.paidTo) {
+      const end = c.paidTo && c.paidTo >= data.month ? c.paidTo : null
+      if (end && seats > c.seats) {
+        const months = monthsInclusive(data.month, end)
+        const each = Math.round(r.seatPriceYearCents * months / YEAR_MONTHS)
+        const more = seats - c.seats
+        if (!confirm(`Add ${more} seat${more === 1 ? '' : 's'} to ${c.name}?\n\nTheir year is paid to ${monthLabel(end)}, so your next Cardtly invoice bills the extra seats for the ${months} month${months === 1 ? '' : 's'} left: ${randCents(each)} each, ${randCents(each * more)} in all. Any seats they had earlier in the year are not billed again.`)) return
+      }
+    }
     setBusy(`seats-${c.id}`)
     const { ok, data: d } = await post({ action: 'set_seats', org_id: c.id, seats })
     setBusy(null)
@@ -198,10 +247,17 @@ function ClientsSection({ data, onHold, reload }: { data: Data; onHold: boolean;
   }
 
   async function setState(c: Client, to: ResellerClientState) {
+    // A paid year is paid: pausing or cancelling inside it refunds nothing, and
+    // switching back on inside it costs nothing.
+    const yearEnd = c.paidTo && c.paidTo >= data.month ? c.paidTo : null
     const question = to === 'paused'
-      ? `Pause ${c.name}?\n\nTheir cards stay up with a notice, and their team loses its Pro features until you switch them back on. They keep their ${c.seats} seats. A paused month is not billed.`
+      ? `Pause ${c.name}?\n\nTheir cards stay up with a notice, and their team loses its Pro features until you switch them back on. They keep their ${c.seats} seats. ${yearEnd ? `Their year is paid to ${monthLabel(yearEnd)} and is not extended by the pause.` : 'A paused month is not billed.'}`
       : to === 'cancelled'
-      ? `Cancel ${c.name}?\n\nTheir cards stop working and their ${c.seats} seats go back to your pool. If they were live at any time this month, this month is still billed.`
+      ? `Cancel ${c.name}?\n\nTheir cards stop working and their ${c.seats} seats go back to your pool. ${yearEnd ? `Their year was paid to ${monthLabel(yearEnd)}; nothing is refunded, and it is not renewed.` : 'If they were live at any time this month, this month is still billed.'}`
+      : yearEnd
+      ? `Switch ${c.name} back on? Their cards work again straight away. Their year is paid to ${monthLabel(yearEnd)}, so nothing more is billed until then.`
+      : c.term === 'yearly'
+      ? `Switch ${c.name} back on? Their cards work again straight away, and a new year starts this month on your next Cardtly invoice.`
       : `Switch ${c.name} back on? Their cards work again straight away, and this month is billed.`
     if (!confirm(question)) return
     setBusy(`state-${c.id}`)
@@ -221,6 +277,7 @@ function ClientsSection({ data, onHold, reload }: { data: Data; onHold: boolean;
   }
 
   const seatsWanted = Math.max(0, Math.floor(Number(form.seats)) || 0)
+  const yearEnd = monthLabel(addMonths(data.month, YEAR_MONTHS - 1))
 
   return (
     <div className="space-y-4">
@@ -261,9 +318,30 @@ function ClientsSection({ data, onHold, reload }: { data: Data; onHold: boolean;
                 onChange={e => setForm(f => ({ ...f, seats: e.target.value }))} />
             </label>
           </div>
+          <div>
+            <span className="text-xs font-medium text-muted-foreground">How you sell it</span>
+            <div className="grid sm:grid-cols-2 gap-2 mt-1.5" role="radiogroup" aria-label="How you sell it">
+              {([
+                ['monthly', 'Monthly', `${randCents(r.seatPriceCents)} a seat a month, invoiced on the 1st`],
+                ['yearly', 'Yearly', `${randCents(r.seatPriceYearCents)} a seat for 12 months, invoiced upfront`],
+              ] as const).map(([t, label, hint]) => {
+                const on = form.term === t
+                return (
+                  <button key={t} type="button" role="radio" aria-checked={on} onClick={() => setForm(f => ({ ...f, term: t }))}
+                    className={`text-left px-4 py-3 rounded-xl border transition ${on ? 'border-transparent' : 'border-border hover:bg-muted'}`}
+                    style={on ? { background: 'hsl(var(--accent) / 0.12)', boxShadow: `inset 0 0 0 1.5px ${accent}` } : undefined}>
+                    <span className="block text-sm font-semibold">{label}</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">{hint}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
           <p className="text-xs text-muted-foreground">
             The team goes live straight away and their admin gets an email to choose a password.
-            {seatsWanted > 0 && ` Adds ${randCents(seatsWanted * data.reseller.seatPriceCents)} a month to your Cardtly invoice.`}
+            {seatsWanted > 0 && (form.term === 'yearly'
+              ? ` Adds ${randCents(seatsWanted * r.seatPriceYearCents)} to your next Cardtly invoice, for ${monthLabel(data.month)} to ${yearEnd}.`
+              : ` Adds ${randCents(seatsWanted * r.seatPriceCents)} a month to your Cardtly invoice.`)}
           </p>
           <div className="flex justify-end">
             <button onClick={add} disabled={busy === 'add' || !form.company.trim() || !form.owner_email.trim() || seatsWanted < 1}
@@ -295,7 +373,20 @@ function ClientsSection({ data, onHold, reload }: { data: Data; onHold: boolean;
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {c.cardsMade} of {c.seats} cards made{c.ownerEmail ? ` · admin ${c.ownerEmail}` : ''}
                   </p>
+                  {!c.offBill && <p className="text-xs mt-0.5">{termLine(c, data.month)}</p>}
                 </div>
+
+                {!c.offBill && c.state !== 'cancelled' && (
+                  <label className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Billing</span>
+                    <select value={c.term} disabled={onHold || busy === `term-${c.id}`}
+                      onChange={e => setTerm(c, e.target.value as ResellerTerm)}
+                      className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm">
+                      <option value="monthly">Monthly</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                  </label>
+                )}
 
                 {!c.offBill && c.state !== 'cancelled' && (
                   <div className="flex items-center gap-2">

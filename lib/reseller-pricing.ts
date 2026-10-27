@@ -10,6 +10,19 @@
 //     reseller's seat price (R70 unless agreed otherwise).
 //   - NFC cards are invoiced straight away: blank (the reseller prints) or
 //     printed by Cardtly, plus that reseller's shipping amount per order.
+//
+// MONTHLY OR YEARLY (Andre, 2026-10-27: "They must have the option to sell
+// their cards as yearly or monthly. We need to know what those are so we can
+// invoice correctly."). Each client is sold one way or the other:
+//   - Monthly is the rule above.
+//   - Yearly is twelve months paid upfront, at the reseller's yearly seat
+//     price, on the invoice for the month the year starts. The months it
+//     covers are never billed monthly as well.
+//   - Seats added during a paid year are billed for the months that year has
+//     left, so every seat renews on the same date. Seats taken away are not
+//     refunded: the year was paid.
+//   - A yearly client renews into a new year in the month after its year
+//     ends. Switching it to monthly takes effect once the paid year is over.
 
 export const RESELLER_DEFAULTS = {
   seatPriceCents: 7000,
@@ -57,6 +70,21 @@ export function monthLabel(month: string): string {
   return p ? `${MONTHS[p.m - 1]} ${p.y}` : String(month)
 }
 
+/** `n` months on (or back, when negative), as YYYY-MM-01. */
+export function addMonths(month: string, n: number): string {
+  const p = parseMonth(month)
+  if (!p) return month
+  const i = p.y * 12 + (p.m - 1) + Math.trunc(n)
+  return `${Math.floor(i / 12)}-${pad((i % 12) + 1)}-01`
+}
+
+/** How many months from `from` to `to`, counting both. 0 when `to` is earlier. */
+export function monthsInclusive(from: string, to: string): number {
+  const a = parseMonth(from), b = parseMonth(to)
+  if (!a || !b) return 0
+  return Math.max(0, (b.y * 12 + b.m) - (a.y * 12 + a.m) + 1)
+}
+
 // ── A client team's state ───────────────────────────────────────────────────
 /** Cancelled when it is switched off, paused when suspended, otherwise live.
  *  Only a live client is billed; live and paused clients hold pool seats. */
@@ -98,6 +126,105 @@ export function seatInvoiceLines(rows: SeatMonthRow[], seatPriceCents: number, m
       qty: r.seats,
       unitPriceCents: Math.round(seatPriceCents),
     }))
+}
+
+// ── Monthly or yearly ───────────────────────────────────────────────────────
+export type ResellerTerm = 'monthly' | 'yearly'
+export const YEAR_MONTHS = 12
+
+export const TERM_LABEL: Record<ResellerTerm, string> = { monthly: 'Monthly', yearly: 'Yearly' }
+
+export function cleanTerm(raw: unknown): ResellerTerm | null {
+  return raw === 'monthly' || raw === 'yearly' ? raw : null
+}
+
+/** Cardtly's price to the reseller for one seat for a year: the reseller's own
+ *  yearly price once one is set, otherwise twelve times the monthly price, so
+ *  a reseller nobody has agreed a yearly price with pays the same either way. */
+export function yearlySeatCents(monthlyCents: number, yearlyCents?: number | null): number {
+  const set = yearlyCents === null || yearlyCents === undefined ? NaN : Number(yearlyCents)
+  return Number.isFinite(set) && set >= 0 ? Math.round(set) : Math.round((Number(monthlyCents) || 0) * YEAR_MONTHS)
+}
+
+/** One client's seats in the month being billed, and how it was sold then. */
+export interface MonthClientRow { orgId: string; clientName: string | null; seats: number; term: ResellerTerm }
+
+/** A year a client has already been billed for, from an earlier month. */
+export interface PaidYear {
+  orgId: string
+  startMonth: string
+  /** The last month the year covers. */
+  endMonth: string
+  /** Seats billed when the year began, plus every extra billed since. */
+  coveredSeats: number
+}
+
+export interface MonthBill {
+  lines: InvoiceLine[]
+  /** Years this month's invoice begins. */
+  newYears: Array<{ orgId: string; clientName: string | null; startMonth: string; endMonth: string; seats: number; unitCents: number }>
+  /** Seats added to a year that was already paid, billed for the months it has left. */
+  extras: Array<{ orgId: string; yearStart: string; month: string; seats: number; months: number; unitCents: number }>
+}
+
+const seatWord = (n: number) => `${n} seat${n === 1 ? '' : 's'}`
+
+/** Everything one month's invoice carries, client by client, sorted by name.
+ *
+ *  `years` are the years billed by EARLIER months. A client inside one of them
+ *  is not billed for the month; only seats above what that year already
+ *  covers are, for the months it has left. A yearly client with no year
+ *  covering the month starts one here. Everyone else is billed the month. */
+export function resellerMonthBill(
+  month: string,
+  rows: MonthClientRow[],
+  years: PaidYear[],
+  prices: { monthlyCents: number; yearlyCents: number },
+): MonthBill {
+  const out: MonthBill = { lines: [], newYears: [], extras: [] }
+  const label = monthLabel(month)
+  const clients = rows
+    .map(r => ({ ...r, name: (r.clientName || '').trim() || 'Client', seats: Math.max(0, Math.floor(Number(r.seats)) || 0) }))
+    .filter(r => r.seats > 0)
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  for (const c of clients) {
+    const year = years.find(y => y.orgId === c.orgId && y.startMonth <= month && month <= y.endMonth)
+    if (year) {
+      const more = c.seats - Math.max(0, Math.floor(year.coveredSeats) || 0)
+      if (more <= 0) continue
+      const months = monthsInclusive(month, year.endMonth)
+      const unitCents = Math.round(prices.yearlyCents * months / YEAR_MONTHS)
+      out.lines.push({
+        description: `${c.name}: ${seatWord(more)} added to the yearly plan, ${label} to ${monthLabel(year.endMonth)} (${months} of ${YEAR_MONTHS} months)`,
+        qty: more, unitPriceCents: unitCents,
+      })
+      out.extras.push({ orgId: c.orgId, yearStart: year.startMonth, month, seats: more, months, unitCents })
+      continue
+    }
+    if (c.term === 'yearly') {
+      const endMonth = addMonths(month, YEAR_MONTHS - 1)
+      const unitCents = Math.round(prices.yearlyCents)
+      out.lines.push({
+        description: `${c.name}: Cardtly Pro yearly, ${seatWord(c.seats)}, ${label} to ${monthLabel(endMonth)}`,
+        qty: c.seats, unitPriceCents: unitCents,
+      })
+      out.newYears.push({ orgId: c.orgId, clientName: c.clientName, startMonth: month, endMonth, seats: c.seats, unitCents })
+      continue
+    }
+    out.lines.push({
+      description: `${c.name}: Cardtly Pro, ${seatWord(c.seats)}, ${label}`,
+      qty: c.seats, unitPriceCents: Math.round(prices.monthlyCents),
+    })
+  }
+  return out
+}
+
+/** The year that covers `month` for a client, or the latest one still to come. */
+export function currentYear<T extends { startMonth: string; endMonth: string }>(years: T[], month: string): T | null {
+  return years
+    .filter(y => y.endMonth >= month)
+    .sort((a, b) => a.startMonth.localeCompare(b.startMonth))[0] || null
 }
 
 // ── NFC orders ──────────────────────────────────────────────────────────────

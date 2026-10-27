@@ -10,6 +10,11 @@
 //      and cannot pay Cardtly directly while on the reseller's bill.
 //   5. The reseller page is out of the iOS app, and every reseller route is
 //      scoped to the reseller the login runs.
+//   6. Monthly or yearly (Andre, 2026-10-27). A yearly client is billed twelve
+//      months upfront in the month its year starts and nothing more inside it,
+//      seats added mid-year are billed for the months left, the year renews
+//      the month after it ends, and a yearly price left blank is twelve times
+//      the monthly one.
 //
 // Run: node scripts/check-resellers.mjs
 
@@ -91,12 +96,60 @@ eq(lines[0]?.description, 'Acme: Cardtly Pro, 5 seats, October 2026', 'lines sor
 eq(lines[1]?.qty, 10, 'a line\'s quantity is its seats')
 eq(lines[1]?.unitPriceCents, 7000, 'a line is priced at the reseller\'s seat price')
 
+// ── 2b. Monthly or yearly, as numbers ───────────────────────────────────────
+eq(P.addMonths('2026-10-01', 11), '2027-09-01', 'eleven months on from October')
+eq(P.addMonths('2026-01-01', -1), '2025-12-01', 'a month back from January')
+eq(P.monthsInclusive('2027-02-01', '2027-09-01'), 8, 'February to September, both counted')
+eq(P.monthsInclusive('2027-10-01', '2027-09-01'), 0, 'a range that ends before it starts')
+eq(P.yearlySeatCents(7000, null), 84000, 'a yearly price left blank is twelve times the monthly')
+eq(P.yearlySeatCents(7000, 70000), 70000, 'a yearly price that is set is used as it is')
+eq(P.yearlySeatCents(7000, 0), 0, 'a yearly price of R0 is a price, not a blank')
+eq(P.cleanTerm('yearly'), 'yearly', 'yearly is a term')
+eq(P.cleanTerm('weekly'), null, 'weekly is not')
+
+const YP = { monthlyCents: 7000, yearlyCents: 70000 }
+{
+  const b = P.resellerMonthBill('2026-10-01', [
+    { orgId: 'm', clientName: 'Monthly Co', seats: 4, term: 'monthly' },
+    { orgId: 'y', clientName: 'Yearly Co', seats: 10, term: 'yearly' },
+  ], [], YP)
+  eq(b.lines.length, 2, 'one line each for a monthly and a new yearly client')
+  eq(b.lines[0]?.description, 'Monthly Co: Cardtly Pro, 4 seats, October 2026', 'the monthly line is unchanged')
+  eq(b.lines[1]?.description, 'Yearly Co: Cardtly Pro yearly, 10 seats, October 2026 to September 2027', 'the yearly line names the twelve months it covers')
+  eq(b.lines[1]?.unitPriceCents, 70000, 'a yearly seat is billed at the yearly price')
+  eq(b.newYears.length, 1, 'the yearly client begins a year')
+  eq(b.newYears[0]?.endMonth, '2027-09-01', 'a year begun in October ends in September')
+}
+const paidYear = [{ orgId: 'y', startMonth: '2026-10-01', endMonth: '2027-09-01', coveredSeats: 10 }]
+{
+  const inside = P.resellerMonthBill('2026-11-01', [{ orgId: 'y', clientName: 'Yearly Co', seats: 10, term: 'yearly' }], paidYear, YP)
+  eq(inside.lines.length, 0, 'a month inside a paid year bills nothing')
+  const fewer = P.resellerMonthBill('2027-01-01', [{ orgId: 'y', clientName: 'Yearly Co', seats: 6, term: 'yearly' }], paidYear, YP)
+  eq(fewer.lines.length, 0, 'fewer seats inside a paid year are not refunded or billed')
+  const more = P.resellerMonthBill('2027-02-01', [{ orgId: 'y', clientName: 'Yearly Co', seats: 12, term: 'yearly' }], paidYear, YP)
+  eq(more.lines.length, 1, 'seats added inside a paid year are billed')
+  eq(more.lines[0]?.qty, 2, 'only the seats above what the year covered')
+  eq(more.lines[0]?.unitPriceCents, Math.round(70000 * 8 / 12), 'for the eight months the year has left, February to September')
+  if (!/2 seats added to the yearly plan, February 2027 to September 2027 \(8 of 12 months\)/.test(more.lines[0]?.description || '')) bad(`the added-seats line does not say what it covers: ${more.lines[0]?.description}`)
+  eq(more.extras[0]?.months, 8, 'the extra is recorded with its months')
+  const switched = P.resellerMonthBill('2027-03-01', [{ orgId: 'y', clientName: 'Yearly Co', seats: 10, term: 'monthly' }], paidYear, YP)
+  eq(switched.lines.length, 0, 'switching to monthly inside a paid year bills nothing until the year ends')
+  const after = P.resellerMonthBill('2027-10-01', [{ orgId: 'y', clientName: 'Yearly Co', seats: 10, term: 'monthly' }], paidYear, YP)
+  eq(after.lines[0]?.unitPriceCents, 7000, 'after the paid year a client switched to monthly is billed monthly')
+  const renew = P.resellerMonthBill('2027-10-01', [{ orgId: 'y', clientName: 'Yearly Co', seats: 11, term: 'yearly' }], paidYear, YP)
+  eq(renew.newYears[0]?.startMonth, '2027-10-01', 'a yearly client renews the month after its year ends')
+  eq(renew.lines[0]?.qty, 11, 'the renewal bills the seats live in the renewal month')
+}
+eq(P.currentYear([{ startMonth: '2026-10-01', endMonth: '2027-09-01' }], '2027-09-01')?.endMonth, '2027-09-01', 'the last month of a year is still inside it')
+eq(P.currentYear([{ startMonth: '2026-10-01', endMonth: '2027-09-01' }], '2027-10-01'), null, 'the month after a year is outside it')
+
 // ── 3. The billing against a fake database ──────────────────────────────────
 function fakeDb() {
   const t = {
     billing_settings: [{ id: true, vat_number: null, vat_rate_bp: 1500 }],
     organizations: [], resellers: [], reseller_seat_months: [], reseller_invoices: [],
     invoices: [], invoice_lines: [], document_events: [],
+    reseller_client_years: [], reseller_year_extras: [],
   }
   const failNext = { invoices: false }
   let seq = 0
@@ -147,8 +200,9 @@ function fakeDb() {
     rpc: async (name, a) => {
       if (name !== 'reseller_record_seats') return { error: { message: 'unknown rpc' } }
       const row = t.reseller_seat_months.find(r => r.reseller_id === a.p_reseller && r.organization_id === a.p_org && r.month === a.p_month)
-      if (row) { row.peak_seats = Math.max(row.peak_seats, a.p_seats); row.client_name = a.p_client_name ?? row.client_name }
-      else t.reseller_seat_months.push({ reseller_id: a.p_reseller, organization_id: a.p_org, month: a.p_month, peak_seats: Math.max(0, a.p_seats), client_name: a.p_client_name })
+      const term = a.p_term === 'yearly' ? 'yearly' : 'monthly'
+      if (row) { row.peak_seats = Math.max(row.peak_seats, a.p_seats); row.client_name = a.p_client_name ?? row.client_name; row.term = term }
+      else t.reseller_seat_months.push({ reseller_id: a.p_reseller, organization_id: a.p_org, month: a.p_month, peak_seats: Math.max(0, a.p_seats), client_name: a.p_client_name, term })
       return { error: null }
     },
   }
@@ -213,6 +267,68 @@ if (!frozen.error) bad('an issued invoice was rewritten')
 const orphan = await R.draftResellerMonth(fakeDb(), { ...reseller, billing_client_id: null }, '2026-10-01')
 if (!orphan.error) bad('a reseller with no billing client was drafted for')
 
+// A yearly client through a whole year, against the fake database.
+{
+  const y = fakeDb()
+  const res = { id: 'ry', name: 'Year Agency', billing_client_id: 'bcy', seat_price_cents: 7000, seat_price_year_cents: 70000 }
+  y.t.resellers.push(res)
+  const client = { id: 'oy', name: 'Annual Ltd', max_seats: 10, billing_period: 'reseller', reseller_id: 'ry', business_plan_active: true, reseller_term: 'yearly' }
+  const at = (iso) => new Date(iso)
+  const total = () => y.t.invoices.at(-1)?.total_cents
+
+  await R.recordClientSeats(y, client, at('2026-10-10T08:00:00Z'))
+  eq(y.t.reseller_seat_months[0]?.term, 'yearly', 'a yearly client\'s month is recorded as yearly')
+  const oct = await R.draftResellerMonth(y, res, '2026-10-01')
+  if (!oct.invoiceId) bad(`the first yearly month did not draft: ${oct.error || oct.skipped}`)
+  eq(total(), 10 * 70000, 'October bills ten seats for a year at the yearly price')
+  eq(y.t.reseller_client_years.length, 1, 'the year is recorded with the invoice')
+  eq(y.t.reseller_client_years[0]?.end_month, '2027-09-01', 'the recorded year ends in September')
+
+  await R.recordClientSeats(y, client, at('2026-11-10T08:00:00Z'))
+  const nov = await R.draftResellerMonth(y, res, '2026-11-01')
+  if (!nov.skipped) bad('a month inside a paid year produced an invoice')
+  eq(y.t.invoices.length, 1, 'no second invoice inside the paid year')
+
+  await R.recordClientSeats(y, { ...client, max_seats: 13 }, at('2027-02-10T08:00:00Z'))
+  const feb = await R.draftResellerMonth(y, res, '2027-02-01')
+  if (!feb.invoiceId) bad(`seats added mid-year were not billed: ${feb.error || feb.skipped}`)
+  eq(total(), 3 * Math.round(70000 * 8 / 12), 'February bills the three added seats for the eight months left')
+  eq(y.t.reseller_year_extras.length, 1, 'the added seats are recorded against the year')
+
+  await R.recordClientSeats(y, { ...client, max_seats: 13 }, at('2027-03-10T08:00:00Z'))
+  const mar = await R.draftResellerMonth(y, res, '2027-03-01')
+  if (!mar.skipped) bad('seats already added to the year were billed again the next month')
+
+  // A rebuild of February takes its extras back and writes them again, once.
+  y.t.reseller_invoices = y.t.reseller_invoices.filter(c => c.month !== '2027-03-01')
+  y.t.reseller_seat_months.find(r => r.month === '2027-02-01').peak_seats = 14
+  const reb = await R.rebuildResellerMonth(y, res, '2027-02-01')
+  if (!reb.invoiceId) bad(`a yearly month could not be rebuilt: ${reb.error}`)
+  eq(y.t.reseller_year_extras.length, 1, 'a rebuild does not double the seats added to the year')
+  eq(y.t.reseller_year_extras[0]?.seats, 4, 'a rebuild records the new count of added seats')
+
+  // A rebuild is refused once a later month has been drafted from it.
+  y.t.reseller_invoices.push({ reseller_id: 'ry', month: '2027-03-01', invoice_id: null })
+  const blocked = await R.rebuildResellerMonth(y, res, '2027-02-01')
+  if (!blocked.error) bad('a month was rebuilt after a later month had been drafted from its yearly seats')
+
+  await R.recordClientSeats(y, { ...client, max_seats: 12 }, at('2027-10-10T08:00:00Z'))
+  const renew = await R.draftResellerMonth(y, res, '2027-10-01')
+  if (!renew.invoiceId) bad(`the year did not renew: ${renew.error || renew.skipped}`)
+  eq(total(), 12 * 70000, 'October 2027 renews the client for a year at the seats it has then')
+  eq(y.t.reseller_client_years.length, 2, 'the renewal is a second recorded year')
+
+  // A failed invoice gives back the year it would have begun.
+  const z = fakeDb()
+  z.t.resellers.push(res)
+  await R.recordClientSeats(z, client, at('2026-10-10T08:00:00Z'))
+  z.failNext.invoices = true
+  const lost = await R.draftResellerMonth(z, res, '2026-10-01')
+  if (!lost.error) bad('a failed yearly draft was reported as a success')
+  eq(z.t.reseller_client_years.length, 0, 'a failed draft does not leave a year behind it')
+  eq(z.t.reseller_invoices.length, 0, 'a failed yearly draft releases its claim')
+}
+
 // ── 4. Wiring ───────────────────────────────────────────────────────────────
 const code = (s) => s.split('\n').map(l => l.replace(/--.*$/, '')).join('\n')
 const mig = code(read('supabase/migrations/094_resellers.sql'))
@@ -221,6 +337,15 @@ if (!/check \(billing_period in \('monthly', 'yearly', 'debit_order', 'comp', 't
 if (!/greatest\(public\.reseller_seat_months\.peak_seats, excluded\.peak_seats\)/.test(mig)) bad('reseller_record_seats must only ever raise a month\'s count')
 if (!/revoke all on function public\.reseller_record_seats[^;]*from public, anon, authenticated/.test(mig)) bad('reseller_record_seats must not be callable from the browser')
 if (!/primary key \(reseller_id, month\)/.test(mig)) bad('reseller_invoices must have one row per reseller per month')
+const mig97 = code(read('supabase/migrations/097_reseller_yearly.sql'))
+if (!mig97) bad('migration 097 (monthly or yearly) is missing')
+if (!/revoke all on function public\.reseller_record_seats\(uuid, uuid, date, integer, text, text\) from public, anon, authenticated/.test(mig97)) bad('097\'s reseller_record_seats must not be callable from the browser')
+if (!/greatest\(public\.reseller_seat_months\.peak_seats, excluded\.peak_seats\)/.test(mig97)) bad('097\'s reseller_record_seats must still only ever raise a month\'s count')
+for (const t of ['reseller_client_years', 'reseller_year_extras']) {
+  if (!new RegExp(`alter table public\\.${t} enable row level security`).test(mig97)) bad(`${t} must have RLS on`)
+}
+if (!/unique \(organization_id, start_month\)/.test(mig97)) bad('a client can begin only one year in a month')
+if (!/case 'set_term':/.test(read('app/api/reseller/route.ts'))) bad('a reseller cannot change how a client is sold')
 
 const td = read('components/team/TeamDashboard.tsx')
 const managedReturn = td.indexOf('if (managedBy && org && !org.business_plan_active) {')
@@ -260,4 +385,4 @@ if (fail) {
   console.error(`check-resellers: ${fail} problem(s)`)
   process.exit(1)
 }
-console.log('check-resellers: ok (R70/R50/R125/R100, SAST months, a month\'s count only rises, one draft per reseller per month, clients see no Cardtly price, out of the iOS app)')
+console.log('check-resellers: ok (R70/R50/R125/R100, SAST months, a month\'s count only rises, one draft per reseller per month, yearly billed upfront and not again inside the year, mid-year seats for the months left, clients see no Cardtly price, out of the iOS app)')
