@@ -100,6 +100,7 @@ if (!/support\.block === 'ios-app'\)\) return null/.test(button)) bad('NfcWriteB
 
 const page = read('app/dashboard/nfc/page.tsx')
 if (!/memoryKey=\{`team:\$\{org\.id\}`\}/.test(page)) bad("the NFC page has no team writer for a team's owner")
+if (!/getManagedDepartments\(admin, user\.id\)\)\.filter\(d => !d\.viaOwner\)/.test(page) || !/\.in\('department_id', managed\.map/.test(page)) bad('the NFC page has no writer for a department manager\'s cards')
 if (!/NfcWriteButton/.test(read('components/admin/TeamsTab.tsx'))) bad('Admin, Teams has no Write NFC cards button')
 if (!/NfcWriteButton/.test(read('components/admin/AdminDashboard.tsx'))) bad('Admin, NFC orders has no Write button')
 

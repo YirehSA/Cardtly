@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
 import { getPrimaryCard } from '@/lib/card-server'
+import { getManagedDepartments } from '@/lib/department-perms'
 import NFCOrderPage from '@/components/nfc/NFCOrderPage'
 import NFCWriteCard from '@/components/nfc/NFCWriteCard'
 import ProGate from '@/components/card/ProGate'
@@ -62,6 +63,22 @@ export default async function NFCPage() {
         .order('name')
     : { data: [] }
 
+  // A department manager writes the cards in the departments they run
+  // (lib/department-perms, sub-departments included). The owner already has
+  // the whole team above, so this is only for managers who do not own it.
+  const managed = (await getManagedDepartments(admin, user.id)).filter(d => !d.viaOwner)
+  const { data: deptCardRows } = managed.length
+    ? await admin
+        .from('team_cards')
+        .select('id, name, title, slug, organization_id')
+        .in('department_id', managed.map(d => d.id))
+        .eq('is_active', true)
+        .order('name')
+    : { data: [] }
+  const deptCards = (deptCardRows || []).filter((c: any) => c.slug)
+  const deptOrgId = deptCards[0]?.organization_id
+  const deptName = managed.length === 1 ? managed[0].name : 'your departments'
+
   const cardName = (card as any)?.name || ''
   const ownCards = (card as any)?.slug ? [{ id: (card as any).id, name: cardName || 'Your card', slug: (card as any).slug }] : []
   const staff = (teamCards || []).filter((c: any) => c.slug).map((c: any) => ({ id: c.id, name: c.name || c.slug, title: c.title || null, slug: c.slug }))
@@ -77,6 +94,14 @@ export default async function NFCPage() {
         <NFCWriteCard cards={staff} memoryKey={`team:${org.id}`} explainWhenUnsupported
           heading="Write your team's NFC cards" buttonLabel={`Write team cards (${staff.length})`}
           blurb="Put each person's card onto a blank NFC card, one after the other. The list remembers which are done, so you can stop and carry on later." />
+      )}
+      {deptCards.length > 0 && (
+        <NFCWriteCard
+          cards={deptCards.map((c: any) => ({ id: c.id, name: c.name || c.slug, title: c.title || null, slug: c.slug }))}
+          memoryKey={`team:${deptOrgId}`} explainWhenUnsupported
+          heading={managed.length === 1 ? `Write ${deptName}'s NFC cards` : "Write your departments' NFC cards"}
+          buttonLabel={`Write cards (${deptCards.length})`}
+          blurb={`Put each person in ${deptName} onto a blank NFC card, one after the other. The list remembers which are done, so you can stop and carry on later.`} />
       )}
       {/* Above the order form on purpose: seeing what the printing actually
           looks like is what makes someone order, so it comes before the form
