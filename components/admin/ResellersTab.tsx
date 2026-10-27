@@ -6,6 +6,7 @@ import { Loader2, Plus, Save, X, ChevronDown, ChevronUp, Send, RefreshCw, UserPl
 import { Section, Stat, inputClass, inputStyle, grad, fmtDate } from './shared'
 import { money, toCents, toRands, StatusPill as InvoicePill } from './billing/shared'
 import { addressLine } from '@/lib/reseller-application'
+import NfcWriteButton from '@/components/nfc/NfcWriteButton'
 
 // Resellers: companies that sell Cardtly to their own clients. Cardtly gives
 // each a seat pool, it hands seats to client teams from its own page, and on
@@ -369,7 +370,17 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
                       Ship to {o.ship_to?.name}, {o.ship_to?.phone} · {o.ship_to?.address}, {o.ship_to?.city} {o.ship_to?.province} {o.ship_to?.postalCode}
                     </p>
                     {Array.isArray(o.cards) && o.cards.length > 0 && (
-                      <p style={{ color: faint }}>Cards: {o.cards.map((c: any) => `${c.name}${c.slug ? ` (/card/${c.slug})` : ''}`).join(', ')}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="flex-1 min-w-[180px]" style={{ color: faint }}>Cards: {o.cards.map((c: any) => `${c.name}${c.slug ? ` (/card/${c.slug})` : ''}`).join(', ')}</p>
+                        {/* Printed orders: each card written with its person's
+                            link before it is posted (NfcWriteSession). */}
+                        <NfcWriteButton
+                          cards={o.cards.map((c: any, i: number) => ({ id: `${o.id}:${c.slug || i}`, name: c.name || c.slug, title: c.title || null, slug: c.slug }))}
+                          memoryKey={`reseller-order:${o.id}`} heading={`${o.client_name || r.name}: NFC cards`}
+                          label={`Write ${o.cards.length} card${o.cards.length === 1 ? '' : 's'}`}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition hover:bg-white/10"
+                          style={{ border: '1px solid rgba(14,165,233,0.4)', color: '#0ea5e9' }} />
+                      </div>
                     )}
                     {o.notes && <p style={{ color: muted, whiteSpace: 'pre-wrap' }}>Notes: {o.notes}</p>}
                     <div className="flex items-center gap-2 flex-wrap">

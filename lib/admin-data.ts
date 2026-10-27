@@ -168,7 +168,7 @@ export async function loadAdminData(admin: any) {
     listAllUsers(admin),
     admin.from('whop_subscriptions').select('*').order('created_at', { ascending: false }),
     admin.from('cards').select('id, name, slug, user_id, view_count, created_at'),
-    admin.from('team_cards').select('id, name, slug, user_id, organization_id, department_id, view_count, claimed_at, created_at'),
+    admin.from('team_cards').select('id, name, title, slug, is_active, user_id, organization_id, department_id, view_count, claimed_at, created_at'),
     admin.from('organizations').select('*').order('created_at', { ascending: false }),
     admin.from('nfc_orders').select('*').order('created_at', { ascending: false }),
     // Was: fetch every contact row to call .length on it.

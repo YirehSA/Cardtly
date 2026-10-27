@@ -9,6 +9,7 @@ import {
   KeyRound, Lock, Shield, Sparkles, ChevronDown, ChevronUp, ExternalLink, Megaphone, CalendarClock,
 } from 'lucide-react'
 import TeamsTab from './TeamsTab'
+import NfcWriteButton from '@/components/nfc/NfcWriteButton'
 import TrialsTab from './TrialsTab'
 import ExpiryBoard from './ExpiryBoard'
 import RepsTab from './RepsTab'
@@ -992,6 +993,16 @@ function NfcTab({ orders, run, loading }: { orders: any[]; run: any; loading: st
                     style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }}>
                     Save tracking
                   </button>
+                  {/* Write the order's cards with its link before posting
+                      them, from an Android phone (NfcWriteSession). */}
+                  {o.card_slug && (
+                    <NfcWriteButton
+                      cards={[{ id: o.id, name: o.name_on_card || o.card_slug, title: o.title_on_card || null, slug: o.card_slug, copies: o.quantity || 1 }]}
+                      memoryKey={`order:${o.id}`} heading={`NFC order: ${o.name_on_card || o.card_slug}`}
+                      label={`Write ${o.quantity > 1 ? `${o.quantity} cards` : 'card'}`}
+                      className="text-[11px] px-2 py-1 rounded-lg font-semibold transition hover:bg-white/10 flex items-center gap-1"
+                      style={{ border: '1px solid rgba(14,165,233,0.4)', color: '#0ea5e9' }} />
+                  )}
                 </div>
               </div>
             )

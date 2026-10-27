@@ -62,14 +62,22 @@ export default async function NFCPage() {
         .order('name')
     : { data: [] }
 
-  const cardUrl = (card as any)?.slug
-    ? `https://cardtly.com/${(card as any).slug}`
-    : 'https://cardtly.com'
   const cardName = (card as any)?.name || ''
+  const ownCards = (card as any)?.slug ? [{ id: (card as any).id, name: cardName || 'Your card', slug: (card as any).slug }] : []
+  const staff = (teamCards || []).filter((c: any) => c.slug).map((c: any) => ({ id: c.id, name: c.name || c.slug, title: c.title || null, slug: c.slug }))
 
   return (
     <>
-      <NFCWriteCard cardUrl={cardUrl} cardName={cardName} />
+      <NFCWriteCard cards={ownCards} memoryKey={`card:${(card as any)?.id || 'none'}`}
+        heading="Write to your own NFC tag" buttonLabel="Write to NFC tag"
+        blurb={`Already have blank NFC tags, stickers or cards? Tap below, then hold one against the back of your phone to put ${cardName ? `${cardName}'s` : 'your'} card on it.`} />
+      {/* A team's blank cards, written one after another (NfcWriteSession).
+          Shown on a computer too, saying to open it on an Android phone. */}
+      {org && staff.length > 0 && (
+        <NFCWriteCard cards={staff} memoryKey={`team:${org.id}`} explainWhenUnsupported
+          heading="Write your team's NFC cards" buttonLabel={`Write team cards (${staff.length})`}
+          blurb="Put each person's card onto a blank NFC card, one after the other. The list remembers which are done, so you can stop and carry on later." />
+      )}
       {/* Above the order form on purpose: seeing what the printing actually
           looks like is what makes someone order, so it comes before the form
           rather than after it. */}

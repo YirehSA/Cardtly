@@ -7,6 +7,7 @@ import { Section, randFmt, fmtDate, inputClass, inputStyle, grad, AdminSearch, m
 import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, DEFAULT_ENTERPRISE_FREE_DAYS, orgMonthlyRand, orgBillingStartsInDays, PREPAID_RENEWAL_NOTICE_DAYS, type OrgBillingMode } from '@/lib/org-billing'
 import type { AdminOrgRow, AdminUserRow } from '@/lib/admin-data'
 import type { RepStats } from '@/lib/reps'
+import NfcWriteButton from '@/components/nfc/NfcWriteButton'
 
 interface Form {
   userId: string
@@ -510,6 +511,21 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
                         departments={o.departments}
                         onMove={(cardId, deptId) => onDept('move_card_to_department', { team_card_id: cardId, department_id: deptId }, `movecard-${cardId}`, deptId ? 'Card moved' : 'Card moved to org level')}
                         loading={loading} />
+                      {/* Writing this team's blank NFC cards before they are
+                          posted, from an Android phone (NfcWriteSession). */}
+                      {(() => {
+                        const live = teamCards.filter((c: any) => c.organization_id === o.id && c.is_active !== false && c.slug)
+                        return live.length > 0 && (
+                          <div className="mb-3">
+                            <NfcWriteButton
+                              cards={live.map((c: any) => ({ id: c.id, name: c.name || c.slug, title: c.title || null, slug: c.slug }))}
+                              memoryKey={`team:${o.id}`} heading={`${o.name}: NFC cards`}
+                              label={`Write NFC cards (${live.length})`}
+                              className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10 flex items-center gap-1.5"
+                              style={{ border: '1px solid rgba(14,165,233,0.4)', color: '#0ea5e9' }} />
+                          </div>
+                        )
+                      })()}
 
                       <DepartmentsSection org={o} users={users} onDept={onDept} loading={loading} />
 
