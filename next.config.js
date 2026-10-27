@@ -95,6 +95,23 @@ const nextConfig = {
     ]
   },
 
+  // NFC tags written by the app before 847d689 carry
+  // https://cardtly.com/<slug>?s=nfc, which was never a page (lib/nfc-tag), and
+  // a tag in someone's wallet cannot be recalled. Send them on to the card.
+  // Only with the ?s=nfc marker, which nothing else puts on a top-level path,
+  // so no real page is ever redirected. The query passes through, so the tap
+  // is still counted as an NFC tap.
+  async redirects() {
+    return [
+      {
+        source: '/:slug([a-zA-Z0-9-]{1,120})',
+        has: [{ type: 'query', key: 's', value: 'nfc' }],
+        destination: '/card/:slug',
+        permanent: false,
+      },
+    ]
+  },
+
   outputFileTracingIncludes: {
     '/api/admin/billing/**': ['./node_modules/pdfkit/js/standard-fonts/**'],
     '/api/cron/trial-reminders': ['./node_modules/pdfkit/js/standard-fonts/**'],

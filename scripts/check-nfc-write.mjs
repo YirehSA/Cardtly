@@ -104,5 +104,11 @@ if (!/getManagedDepartments\(admin, user\.id\)\)\.filter\(d => !d\.viaOwner\)/.t
 if (!/NfcWriteButton/.test(read('components/admin/TeamsTab.tsx'))) bad('Admin, Teams has no Write NFC cards button')
 if (!/NfcWriteButton/.test(read('components/admin/AdminDashboard.tsx'))) bad('Admin, NFC orders has no Write button')
 
+// Tags already written with the old 404 link still reach the card.
+const config = read('next.config.js')
+const redirect = config.slice(config.indexOf('async redirects()'), config.indexOf('outputFileTracingIncludes'))
+if (!/source: '\/:slug\(/.test(redirect) || !/destination: '\/card\/:slug'/.test(redirect)) bad('old NFC tags (cardtly.com/<slug>?s=nfc) are not redirected to /card/<slug>')
+if (!/has: \[\{ type: 'query', key: 's', value: 'nfc' \}\]/.test(redirect)) bad('the old-tag redirect is not limited to ?s=nfc, so it would catch real pages')
+
 if (fail) { console.error(`check-nfc-write: ${fail} problem${fail === 1 ? '' : 's'}`); process.exit(1) }
 console.log('check-nfc-write: ok')
