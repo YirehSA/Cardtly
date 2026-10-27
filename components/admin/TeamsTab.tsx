@@ -264,7 +264,11 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
               const meta = BILLING_MODE_META[o.billingMode]
               return (
                 <div key={o.id} className="rounded-xl border" style={{ borderColor: o.suspendedAt ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.08)', background: o.suspendedAt ? 'rgba(245,158,11,0.04)' : 'rgba(255,255,255,0.02)' }}>
-                  <div className="flex items-stretch">
+                  {/* Phone: name on top, the four numbers in a row of their own
+                      underneath, the flag in the corner. Wider: one line. It used
+                      to be one line everywhere, which on a phone squeezed the
+                      numbers against a full-height flag column. */}
+                  <div className="relative">
                   {/* The whole row is the edit trigger, and nothing said so -
                       seats and billing mode were already editable here, but
                       with no visible affordance nobody found them. The chevron
@@ -272,15 +276,16 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
                   <button onClick={() => openEdit(o)}
                     title={`Edit ${o.name}: seats, billing mode, notes`}
                     aria-expanded={editing === o.id}
-                    className="flex-1 min-w-0 text-left p-3.5 flex items-center gap-3 flex-wrap hover:bg-white/[0.03] transition rounded-l-xl">
+                    className="w-full text-left p-3.5 pr-14 flex flex-col sm:flex-row sm:items-center gap-3 hover:bg-white/[0.03] transition rounded-xl">
+                    <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                       style={{ background: 'rgba(236,72,153,0.14)', border: '1px solid rgba(236,72,153,0.3)' }}>
                       <Building2 className="w-4 h-4" style={{ color: '#f472b6' }} />
                     </div>
 
-                    <div className="flex-1 min-w-[180px]">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-white text-sm">{o.name}</p>
+                        <p className="font-semibold text-white text-sm break-words min-w-0">{o.name}</p>
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
                           title={meta.desc}
                           style={{ background: `${meta.colour}1f`, color: meta.colour, border: `1px solid ${meta.colour}55` }}>
@@ -294,38 +299,41 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
                           </span>
                         )}
                       </div>
-                      <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{o.adminEmail || o.adminUserId.slice(0, 8)}</p>
+                      <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>{o.adminEmail || o.adminUserId.slice(0, 8)}</p>
                       {matchedVia[o.id] && (
-                        <p className="text-[11px] mt-0.5" style={{ color: '#a78bfa' }}>Matched card: {matchedVia[o.id]}</p>
+                        <p className="text-[11px] mt-0.5 truncate" style={{ color: '#a78bfa' }}>Matched card: {matchedVia[o.id]}</p>
                       )}
+                    </div>
                     </div>
 
                     {/* Counted from real team_cards rows. organizations.used_seats
                         exists but nothing maintains it, so it is ignored. */}
-                    <div className="flex items-center gap-4 text-xs">
-                      <div className="text-center">
-                        <p className="font-bold text-white text-sm">{o.maxSeats}</p>
-                        <p style={{ color: 'rgba(255,255,255,0.35)' }}>seats</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="font-bold text-sm" style={{ color: o.cardsCreated > o.maxSeats ? '#ef4444' : '#fff' }}>{o.cardsCreated}</p>
-                        <p style={{ color: 'rgba(255,255,255,0.35)' }}>created</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="font-bold text-sm" style={{ color: '#22c55e' }}>{o.cardsClaimed}</p>
-                        <p style={{ color: 'rgba(255,255,255,0.35)' }}>claimed</p>
+                    <div className="flex items-center gap-x-4 gap-y-2 flex-wrap text-xs">
+                      <div className="grid grid-cols-4 gap-2 w-full sm:w-auto sm:flex sm:gap-4">
+                        <div className="text-center">
+                          <p className="font-bold text-white text-sm tabular-nums">{o.maxSeats}</p>
+                          <p style={{ color: 'rgba(255,255,255,0.35)' }}>seats</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-bold text-sm tabular-nums" style={{ color: o.cardsCreated > o.maxSeats ? '#ef4444' : '#fff' }}>{o.cardsCreated}</p>
+                          <p style={{ color: 'rgba(255,255,255,0.35)' }}>created</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-bold text-sm tabular-nums" style={{ color: '#22c55e' }}>{o.cardsClaimed}</p>
+                          <p style={{ color: 'rgba(255,255,255,0.35)' }}>claimed</p>
+                        </div>
+                        <div className="text-center sm:min-w-[70px]">
+                          <p className="font-bold text-sm whitespace-nowrap" style={{ color: o.isRevenue ? '#22c55e' : 'rgba(255,255,255,0.3)' }}>
+                            {o.isRevenue ? randFmt(o.monthlyRand) : 'free'}
+                          </p>
+                          <p className="whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.35)' }}>{o.isRevenue ? '/month' : 'not billed'}</p>
+                        </div>
                       </div>
                       <span className="inline-flex items-center gap-1 text-[11px] font-semibold whitespace-nowrap"
                         style={{ color: 'rgba(255,255,255,0.45)' }}>
                         <Pencil className="w-3 h-3" />
                         {editing === o.id ? 'Close' : 'Seats & billing'}
                       </span>
-                      <div className="text-center min-w-[70px]">
-                        <p className="font-bold text-sm" style={{ color: o.isRevenue ? '#22c55e' : 'rgba(255,255,255,0.3)' }}>
-                          {o.isRevenue ? randFmt(o.monthlyRand) : 'free'}
-                        </p>
-                        <p style={{ color: 'rgba(255,255,255,0.35)' }}>{o.isRevenue ? '/month' : 'not billed'}</p>
-                      </div>
                     </div>
                   </button>
 
@@ -342,8 +350,9 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
                     }}
                     disabled={loading === `susp-${o.id}`}
                     title={o.suspendedAt ? 'Flagged. Click to lift.' : 'Flag this team until they pay. Their cards keep working, with a notice.'}
-                    className="px-3.5 flex items-center justify-center transition hover:bg-white/5 disabled:opacity-40 border-l"
-                    style={{ borderColor: 'rgba(255,255,255,0.06)', color: o.suspendedAt ? '#f59e0b' : 'rgba(255,255,255,0.25)' }}>
+                    aria-label={o.suspendedAt ? `Lift the flag on ${o.name}` : `Flag ${o.name}`}
+                    className="absolute top-2 right-2 sm:top-1/2 sm:-translate-y-1/2 w-11 h-11 rounded-lg flex items-center justify-center transition hover:bg-white/5 disabled:opacity-40"
+                    style={{ color: o.suspendedAt ? '#f59e0b' : 'rgba(255,255,255,0.25)' }}>
                     {loading === `susp-${o.id}`
                       ? <Loader2 className="w-4 h-4 animate-spin" />
                       : <Flag className="w-4 h-4" fill={o.suspendedAt ? '#f59e0b' : 'none'} />}
@@ -510,7 +519,7 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
                         cards={teamCards.filter((c: any) => c.organization_id === o.id)}
                         departments={o.departments}
                         onMove={(cardId, deptId) => onDept('move_card_to_department', { team_card_id: cardId, department_id: deptId }, `movecard-${cardId}`, deptId ? 'Card moved' : 'Card moved to org level')}
-                        loading={loading} />
+                        loading={loading} emailOf={emailByUser} />
                       {/* Writing this team's blank NFC cards before they are
                           posted, from an Android phone (NfcWriteSession). */}
                       {(() => {
@@ -688,7 +697,7 @@ function TeamForm({ form, setForm, users, onSave, busy, showUserPicker }: {
       )}
 
       <div className="flex gap-3 flex-wrap items-end">
-        <div className="flex-1 min-w-[170px]">
+        <div className="w-full sm:w-auto sm:flex-1 sm:min-w-[170px]">
           <label className="text-[11px] font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Company name</label>
           <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             className={inputClass} style={inputStyle} placeholder="Acme (Pty) Ltd" />
@@ -699,7 +708,7 @@ function TeamForm({ form, setForm, users, onSave, busy, showUserPicker }: {
           <input type="number" min={1} value={form.seats} onChange={e => setForm(f => ({ ...f, seats: e.target.value }))}
             className={inputClass} style={inputStyle} />
         </div>
-        <div className="min-w-[190px]">
+        <div className="flex-1 min-w-[150px] sm:flex-none sm:min-w-[190px]">
           <label className="text-[11px] font-semibold block mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Billing</label>
           <select value={form.mode} onChange={e => setForm(f => ({ ...f, mode: e.target.value as OrgBillingMode }))}
             className={inputClass} style={inputStyle}>
@@ -939,11 +948,13 @@ function SuspendControl({ org, onSuspend, busy }: {
 // open: it just has nobody signed in behind it yet. That distinction is the
 // whole point of showing this, because "invited but never claimed" is the
 // state you actually want to chase.
-function TeamMembers({ cards, departments, onMove, loading }: {
+function TeamMembers({ cards, departments, onMove, loading, emailOf }: {
   cards: any[]
   departments: AdminOrgRow['departments']
   onMove: (cardId: string, deptId: string | null) => Promise<boolean>
   loading: string | null
+  /** Sign-in email by user id, for who holds a claimed card. */
+  emailOf: Record<string, string>
 }) {
   if (!cards.length) {
     return (
@@ -965,15 +976,28 @@ function TeamMembers({ cards, departments, onMove, loading }: {
       </p>
       <div className="space-y-1">
         {cards.map(c => (
-          <div key={c.id} className="flex items-center gap-2.5 text-xs rounded-lg px-2.5 py-1.5"
+          // Phone: who and their views on the first line, the controls on a
+          // second. Wider: one line. One line everywhere squeezed the name to
+          // a single letter and pushed the views off the edge of the screen.
+          <div key={c.id} className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs rounded-lg px-2.5 py-2"
             style={{ background: 'rgba(255,255,255,0.02)' }}>
-            {c.user_id
-              ? <UserCheck className="w-3 h-3 flex-shrink-0" style={{ color: '#22c55e' }} />
-              : <MailQuestion className="w-3 h-3 flex-shrink-0" style={{ color: '#f59e0b' }} />}
-            <span className="text-white truncate max-w-[130px]">{c.name || 'Unnamed'}</span>
-            <span className="truncate max-w-[140px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              {c.user_id ? 'claimed' : `invited ${c.email || '(no email)'}`}
+            <div className="flex items-center gap-2 min-w-0 flex-1 basis-[55%] sm:basis-auto">
+              {c.user_id
+                ? <UserCheck className="w-3 h-3 flex-shrink-0" style={{ color: '#22c55e' }} />
+                : <MailQuestion className="w-3 h-3 flex-shrink-0" style={{ color: '#f59e0b' }} />}
+              <div className="min-w-0">
+                <p className="text-white truncate">{c.name || 'Unnamed'}</p>
+                <p className="truncate text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  {c.user_id
+                    ? (emailOf[c.user_id] || 'Signed in')
+                    : `Invited ${c.invite_email || '(no email)'}, never signed in`}
+                </p>
+              </div>
+            </div>
+            <span className="tabular-nums shrink-0 text-right sm:order-last sm:w-16" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              {c.view_count || 0} views
             </span>
+            <div className="flex items-center gap-2 flex-wrap min-w-0 basis-full sm:basis-auto pl-5 sm:pl-0">
             {/* The link the invitee would have clicked, for a card nobody has
                 accepted yet. Testing an import otherwise means reaching into
                 somebody else's inbox, and it answers "they never got the
@@ -986,7 +1010,8 @@ function TeamMembers({ cards, departments, onMove, loading }: {
                 value={c.department_id || ''}
                 disabled={loading === `movecard-${c.id}`}
                 onChange={e => onMove(c.id, e.target.value || null)}
-                className="text-[11px] px-1.5 py-0.5 rounded"
+                aria-label={`Department for ${c.name || 'this card'}`}
+                className="text-[11px] px-1.5 py-1 rounded max-w-[220px] min-w-0 sm:w-[190px]"
                 style={{ ...inputStyle, border: `1px solid ${c.department_id ? 'hsl(var(--accent) / 0.4)' : 'rgba(255,255,255,0.1)'}`, color: c.department_id ? '#a78bfa' : 'rgba(255,255,255,0.4)' }}>
                 <option value="" style={{ background: '#1a1a1a' }}>No department</option>
                 {/* Companies are not offered: a card sits in a department,
@@ -1002,14 +1027,13 @@ function TeamMembers({ cards, departments, onMove, loading }: {
             )}
             {c.slug && (
               <a href={`/card/${c.slug}`} target="_blank" rel="noreferrer"
-                className="ml-auto flex items-center gap-1 transition hover:text-white"
+                title={`cardtly.com/card/${c.slug}`}
+                className="flex items-center gap-1 min-w-0 sm:w-52 transition hover:text-white"
                 style={{ color: 'rgba(255,255,255,0.4)' }}>
-                /{c.slug} <ExternalLink className="w-3 h-3" />
+                <span className="truncate">/card/{c.slug}</span> <ExternalLink className="w-3 h-3 shrink-0" />
               </a>
             )}
-            <span className="tabular-nums w-14 text-right" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              {c.view_count || 0} views
-            </span>
+            </div>
           </div>
         ))}
       </div>
@@ -1049,7 +1073,7 @@ function DepartmentsSection({ org, users, onDept, loading }: {
           {org.departments.map(d => (
             <div key={d.id} className="rounded-lg px-2.5 py-2" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-semibold text-white">{d.name}</span>
+                <span className="text-xs font-semibold text-white break-words min-w-0">{d.name}</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}>
                   {d.cardCount} card{d.cardCount === 1 ? '' : 's'}
                 </span>
@@ -1066,7 +1090,8 @@ function DepartmentsSection({ org, users, onDept, loading }: {
                   if (!confirm(`Delete the "${d.name}" department?\n\nIts ${d.cardCount} card${d.cardCount === 1 ? '' : 's'} are NOT deleted; they fall back to the company look.`)) return
                   onDept('delete_department', { department_id: d.id }, `deldept-${d.id}`, 'Department deleted')
                 }}
-                  className="text-[11px] p-1 rounded transition hover:bg-white/10" style={{ color: 'rgba(239,68,68,0.7)' }}>
+                  aria-label={`Delete the ${d.name} department`}
+                  className="text-[11px] p-2 -m-1 rounded transition hover:bg-white/10" style={{ color: 'rgba(239,68,68,0.7)' }}>
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -1075,7 +1100,7 @@ function DepartmentsSection({ org, users, onDept, loading }: {
               {d.managers.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {d.managers.map(m => (
-                    <span key={m.userId} className="text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1" style={{ background: 'rgba(168,85,247,0.12)', color: '#a78bfa' }}>
+                    <span key={m.userId} className="text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 min-w-0 max-w-full break-all" style={{ background: 'rgba(168,85,247,0.12)', color: '#a78bfa' }}>
                       {m.email || m.userId.slice(0, 8)}
                       <button onClick={() => onDept('set_dept_manager', { department_id: d.id, user_id: m.userId, manage: false }, `mgr-${d.id}-${m.userId}`, 'Manager removed')}
                         className="hover:text-white"><X className="w-2.5 h-2.5" /></button>
@@ -1115,14 +1140,14 @@ function DepartmentsSection({ org, users, onDept, loading }: {
 
       <div className="flex gap-2">
         <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="New department name, e.g. Sales"
-          className={inputClass} style={inputStyle} />
+          className={`${inputClass} min-w-0 flex-1`} style={inputStyle} />
         <button
           disabled={!newName.trim() || loading === `newdept-${org.id}`}
           onClick={async () => {
             const ok = await onDept('create_department', { org_id: org.id, name: newName.trim() }, `newdept-${org.id}`, `${newName.trim()} added`)
             if (ok) setNewName('')
           }}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-40"
+          className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-40"
           style={{ background: grad }}>
           {loading === `newdept-${org.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
           Add

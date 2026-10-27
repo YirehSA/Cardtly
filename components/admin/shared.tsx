@@ -102,8 +102,10 @@ export function Section({ title, sub, children, right }: {
 }) {
   return (
     <div className="rounded-lg border p-4 sm:p-5" style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.08)' }}>
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div>
+      {/* Wraps so a screen's buttons drop under its title on a phone instead
+          of pushing the page wider than the screen. */}
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+        <div className="min-w-0">
           <h2 className="font-bold text-white">{title}</h2>
           {sub && <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{sub}</p>}
         </div>
