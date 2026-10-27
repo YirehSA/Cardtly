@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle, Flag, ExternalLink, MailQuestion, UserCheck, UserPlus, Layers, UserCog, Palette, Pencil } from 'lucide-react'
+import { Building2, Loader2, AlertTriangle, Check, Plus, X, CalendarClock, Banknote, PauseCircle, PlayCircle, Flag, ExternalLink, MailQuestion, UserCheck, UserPlus, Layers, UserCog, Palette, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Section, randFmt, fmtDate, inputClass, inputStyle, grad, AdminSearch, matchesAllWords } from './shared'
 import { ORG_BILLING_MODES, BILLING_MODE_META, MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND, DEFAULT_ENTERPRISE_FREE_DAYS, orgMonthlyRand, orgBillingStartsInDays, PREPAID_RENEWAL_NOTICE_DAYS, type OrgBillingMode } from '@/lib/org-billing'
@@ -544,6 +544,10 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
                       <p className="text-[11px] mt-2.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
                         Created {fmtDate(o.createdAt)}. Dropping below {o.cardsCreated} seats blocks this team from adding cards.
                       </p>
+                      <DeleteTeam org={o} busy={loading === `delorg-${o.id}`}
+                        onDelete={async () => {
+                          if (await onDept('delete_org', { org_id: o.id }, `delorg-${o.id}`, `${o.name} deleted`)) setEditing(null)
+                        }} />
                     </div>
                   )}
                 </div>
@@ -803,6 +807,38 @@ function TeamForm({ form, setForm, users, onSave, busy, showUserPicker }: {
           {seats} seats is above the {MAX_SELF_SERVE_SEATS}-seat Paystack limit. Switch billing to Debit order (Enterprise) or Comped.
         </p>
       )}
+    </div>
+  )
+}
+
+// Deleting a team. Only an empty one: the server has the full rules
+// (lib/team-delete) and refuses anything still billed. A team with cards
+// shows the button greyed with the reason, so the way out is in front of you.
+function DeleteTeam({ org, busy, onDelete }: { org: AdminOrgRow; busy: boolean; onDelete: () => void }) {
+  const reason = org.cardsCreated > 0
+    ? `Only an empty team can be deleted. This one has ${org.cardsCreated} card${org.cardsCreated === 1 ? '' : 's'}: move or delete them first, or suspend it.`
+    : org.billingMode === 'reseller'
+      ? 'Its reseller cancels it from their own page, so it is not deleted here.'
+      : null
+  const depts = org.departments.length
+  return (
+    <div className="mt-3 pt-3 border-t flex items-center justify-between gap-3 flex-wrap" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+      <p className="text-[11px] flex-1 min-w-[200px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        {reason || 'Empty team. Deleting it keeps the owner\'s login and their own card.'}
+      </p>
+      <button disabled={busy || !!reason}
+        onClick={() => {
+          const ownCard = org.ownerPersonalCards.length > 0 && !org.ownerHasOwnSubscription
+            ? '\n\nTheir own card may be on Pro only because of this team. If nothing else keeps it live (a subscription, a comp, being a reseller), it goes offline. You are told straight after.'
+            : ''
+          if (!confirm(`Delete ${org.name}?\n\nIt has no cards, so no card link stops working.${depts ? ` Its ${depts} department${depts === 1 ? '' : 's'} go${depts === 1 ? 'es' : ''} with it.` : ''} ${org.adminEmail || 'The owner'} keeps their login and their own card. Invoices already issued are kept.${ownCard}\n\nThis cannot be undone.`)) return
+          onDelete()
+        }}
+        className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10 disabled:opacity-40 flex items-center gap-1.5"
+        style={{ border: '1px solid rgba(239,68,68,0.4)', color: '#ef4444' }}>
+        {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+        Delete team
+      </button>
     </div>
   )
 }

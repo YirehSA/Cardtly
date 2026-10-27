@@ -16,6 +16,9 @@ import { sendTeamOwnerWelcome } from '@/lib/team-owner-invite'
 import { movePersonalCardIntoTeam, SETTINGS_ONLY, describeColumns } from '@/lib/move-card-to-team'
 import { settleOwnerCard } from '@/lib/owner-team-card'
 import { resetTeamAnalytics } from '@/lib/team-analytics'
+import { teamDeleteBlocker } from '@/lib/team-delete'
+import { latestSubscriptionFor, subscriptionState, getUserPlan } from '@/lib/plan-server'
+import { isPro } from '@/lib/plan'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -550,6 +553,82 @@ export async function POST(request: Request) {
       detail: { org_id, message: message || null },
     })
     return NextResponse.json({ success: true })
+  }
+
+  // Delete an empty team that nothing bills (lib/team-delete). Its departments
+  // go with it; the owner's login, their own card and issued invoices stay.
+  // Every check fails closed: if one cannot be read, nothing is deleted.
+  if (action === 'delete_org') {
+    const { org_id } = body
+    if (!org_id) return NextResponse.json({ error: 'Which team?' }, { status: 400 })
+    const { data: org, error: orgErr } = await admin.from('organizations').select('*').eq('id', org_id).maybeSingle()
+    if (orgErr) return NextResponse.json({ error: `Could not read the team: ${orgErr.message}` }, { status: 500 })
+    if (!org) return NextResponse.json({ error: 'That team no longer exists.' }, { status: 404 })
+
+    const count = async (table: string, column: string, value: string) => {
+      const { count: n, error } = await admin.from(table).select('id', { count: 'exact', head: true }).eq(column, value)
+      if (error) throw new Error(`Could not check ${table.replace(/_/g, ' ')}: ${error.message}`)
+      return n || 0
+    }
+    let facts
+    let depts: string[] = []
+    let managers = 0
+    try {
+      // A self-serve team's subscription sits on its owner (lib/owner-team-card).
+      let paystackStillCharging = false
+      if (org.whop_membership_id) {
+        const sub = await latestSubscriptionFor(admin, org.admin_user_id)
+        paystackStillCharging = subscriptionState(sub as any).serves
+      }
+      facts = {
+        cards: await count('team_cards', 'organization_id', org_id),
+        billingPeriod: org.billing_period || null,
+        resellerId: org.reseller_id || null,
+        paystackStillCharging,
+        recurringSchedules: await count('recurring_schedules', 'organization_id', org_id),
+      }
+      const { data: d, error: dErr } = await admin.from('departments').select('id').eq('organization_id', org_id)
+      if (dErr) throw new Error(`Could not check departments: ${dErr.message}`)
+      depts = (d || []).map((x: { id: string }) => x.id)
+      if (depts.length) {
+        const { count: m, error: mErr } = await admin.from('department_managers').select('id', { count: 'exact', head: true }).in('department_id', depts)
+        if (mErr) throw new Error(`Could not check department managers: ${mErr.message}`)
+        managers = m || 0
+      }
+    } catch (e: any) {
+      return NextResponse.json({ error: `${e?.message || 'Could not check the team'}. Nothing was deleted.` }, { status: 500 })
+    }
+    const blocked = teamDeleteBlocker(facts)
+    if (blocked) return NextResponse.json({ error: blocked }, { status: 409 })
+
+    // Keys and webhooks are keyed by org_id with no cascade we can rely on.
+    for (const table of ['api_keys', 'webhooks']) {
+      const { error } = await admin.from(table).delete().eq('org_id', org_id)
+      if (error) return NextResponse.json({ error: `Could not remove the team's ${table.replace('_', ' ')}: ${error.message}. The team was not deleted.` }, { status: 500 })
+    }
+    // Departments and their managers cascade with the team.
+    const { error: delErr } = await admin.from('organizations').delete().eq('id', org_id)
+    if (delErr) return NextResponse.json({ error: `Could not delete the team: ${delErr.message}` }, { status: 500 })
+
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email, action: 'delete_org',
+      targetUserId: org.admin_user_id || null,
+      detail: { org_id, name: org.name, max_seats: org.max_seats, billing_period: org.billing_period, departments: depts.length, managers },
+    })
+
+    // The owner keeps their own card, but this team may have been the only
+    // thing keeping it on Pro (lib/plan-server). Say so now, not when they call.
+    const notes: string[] = []
+    if (org.admin_user_id) {
+      const { count: own } = await admin.from('cards').select('id', { count: 'exact', head: true }).eq('user_id', org.admin_user_id)
+      const plan = own ? await getUserPlan(org.admin_user_id).catch(() => null) : null
+      if (plan && !isPro(plan)) {
+        const { data: who } = await admin.auth.admin.getUserById(org.admin_user_id)
+        notes.push(`${who?.user?.email || 'The owner'}'s own card was covered by this team and has nothing else keeping it live, so it is offline now. Comp them, or make them a reseller, to bring it back.`)
+      }
+    }
+    if (managers) notes.push(`${managers} department manager${managers === 1 ? ' was' : 's were'} removed with it.`)
+    return NextResponse.json({ success: true, ...(notes.length ? { warning: `${org.name} deleted. ${notes.join(' ')}` } : {}) })
   }
 
   // Record that a debit-order team was actually collected from.
