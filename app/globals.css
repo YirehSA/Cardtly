@@ -378,9 +378,12 @@
   }
 
   /* Panels arriving in sequence rather than all at once. 40ms apart is enough
-     to read as deliberate and short enough that the page is never waiting. */
+     to read as deliberate and short enough that the page is never waiting.
+     Backwards, not both: a fill that holds translateY(0) afterwards makes
+     each panel the frame for every position: fixed window inside it, and
+     Home's send and tap-to-share windows then opened under the bottom bar. */
   .stagger > * {
-    animation: fade-up 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: fade-up 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
   }
   .stagger > *:nth-child(1) { animation-delay: 0ms }
   .stagger > *:nth-child(2) { animation-delay: 40ms }
@@ -533,13 +536,16 @@
 
   /* Page-level fade-in used when navigating between dashboard routes.
      Subtler than .animate-fade-up so it doesn't feel disruptive on
-     every click. */
+     every click. Backwards, not both, for the reason given at .stagger:
+     held after the fade, the transform made this wrapper the frame for
+     every fixed window on the page, and on a phone NFC Cards opened its
+     write window far below the screen. */
   @keyframes fade-in-page {
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: translateY(0); }
   }
   .animate-fade-in-page {
-    animation: fade-in-page 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: fade-in-page 0.3s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   }
 
   /* Public card entrance choreography. Each element layers a small
