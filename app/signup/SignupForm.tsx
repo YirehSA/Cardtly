@@ -114,9 +114,15 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
   async function onSubmit(data: FormData) {
     setLoading(true)
 
+    // The name and company ride along as user metadata. With email
+    // confirmation on, signUp returns no session, so the profile and card
+    // inserts below are refused and the first card used to be named after the
+    // email address. Metadata is stored with the account itself, so whichever
+    // path makes the card later can read it (lib/account-setup, signupDetails).
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
+      options: { data: { full_name: data.name, company: data.company || null } },
     })
 
     if (authError || !authData.user) {

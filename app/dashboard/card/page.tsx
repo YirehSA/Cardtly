@@ -4,6 +4,7 @@ import { getUserPlan } from '@/lib/plan-server'
 import { redirect } from 'next/navigation'
 import CardEditor from '@/components/card/CardEditor'
 import { userOrgSlugPrefix, newPersonalCardSlug } from '@/lib/card-slug-server'
+import { signupDetails } from '@/lib/account-setup'
 import { ownerTeamNeedingCard, settleOwnerCard, createOwnerTeamCard } from '@/lib/owner-team-card'
 
 export const metadata = { title: 'My Card' }
@@ -82,12 +83,19 @@ export default async function CardPage() {
   const slugPrefix = await userOrgSlugPrefix(admin, user.id)
 
   if (!card) {
-    const firstName = user.email?.split('@')[0] || 'user'
+    // Named with what they typed at sign-up (lib/account-setup). With email
+    // confirmation on, this is where nearly every first card is made, and it
+    // used to take the email's local part as the name, their company dropped.
+    // The company also leads the link when no team prefix applies,
+    // matching the "Claim cardtly.com/card/..." the signup form promised.
+    const { data: profile } = await admin
+      .from('profiles').select('name').eq('user_id', user.id).maybeSingle()
+    const { name: displayName, company } = signupDetails(user, profile?.name)
     // A fourth copy of the slug rule used to live right here, inline: the
     // email local-part plus five random characters. That is where slugs like
     // "andre-gqapw" came from - a company owner's own card, the one most
     // likely to be handed to a customer, published under a random string.
-    const slug = await newPersonalCardSlug(admin, slugPrefix, firstName)
+    const slug = await newPersonalCardSlug(admin, slugPrefix || company, displayName)
     const { data: newCard, error: insertError } = await admin
       .from('cards')
       // assigned_user_id is what stops the card being archived on sight.
@@ -103,7 +111,8 @@ export default async function CardPage() {
       .insert({
         user_id: user.id,
         assigned_user_id: user.id,
-        name: firstName,
+        name: displayName,
+        company,
         email: user.email,
         slug,
         is_primary: true,
@@ -124,6 +133,15 @@ export default async function CardPage() {
       )
     }
     card = newCard
+
+    // The signup form's own profile insert is refused the same way, so the
+    // database's empty row is all there is and Settings shows a blank "Full
+    // name". Fill it while we know the name; never over one they have set.
+    if (profile && !String(profile.name || '').trim()) {
+      const { error: nameError } = await admin
+        .from('profiles').update({ name: displayName }).eq('user_id', user.id)
+      if (nameError) console.error('Could not fill profile name for user', user.id, nameError)
+    }
   }
 
   return <CardEditor card={card} plan={plan} userId={user.id} slugPrefix={slugPrefix} />

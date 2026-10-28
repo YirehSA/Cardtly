@@ -13,6 +13,29 @@ import { ownerTeamNeedingCard, createOwnerTeamCard } from '@/lib/owner-team-card
 // person signing in again, an account created by an invitation, and a genuine
 // first arrival all look alike from here.
 
+// The name and company a person gave us, for naming their first card.
+//
+// The signup form stores both as user metadata, the only thing it writes that
+// survives an email confirmation (its own profile and card inserts run with no
+// session then, and are refused). Microsoft sends the name in a few shapes
+// depending on how the tenant is set up. The profile's name, when someone has
+// set one, comes next, and the local part of the address is the last resort:
+// it beats an empty card, but it is how first cards ended up named after the
+// email address.
+export function signupDetails(
+  user: { email?: string | null; user_metadata?: Record<string, any> | null },
+  profileName?: string | null,
+): { name: string; company: string | null } {
+  const meta = user.user_metadata || {}
+  const name: string =
+    meta.full_name || meta.name ||
+    [meta.given_name, meta.family_name].filter(Boolean).join(' ').trim() ||
+    String(profileName || '').trim() ||
+    (user.email ? user.email.split('@')[0] : 'My card')
+  const company = typeof meta.company === 'string' && meta.company.trim() ? meta.company.trim() : null
+  return { name, company }
+}
+
 export function buildSlug(name: string, company?: string): string {
   const clean = (s: string) =>
     s.toLowerCase().trim().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-')
@@ -77,13 +100,7 @@ export async function ensureAccountReady(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
 
-  const meta = user.user_metadata || {}
-  // Microsoft sends name in a few shapes depending on how the tenant is set
-  // up; falling back to the local part of the address beats an empty card.
-  const displayName: string =
-    meta.full_name || meta.name ||
-    [meta.given_name, meta.family_name].filter(Boolean).join(' ').trim() ||
-    (user.email ? user.email.split('@')[0] : 'My card')
+  const { name: displayName, company } = signupDetails(user)
 
   // The profiles row usually exists already: something in the database
   // creates one when the auth user appears, with no name in it. Measured on
@@ -136,7 +153,7 @@ export async function ensureAccountReady(
     }
   }
 
-  const slug = await findFreeSlug(admin, buildSlug(displayName))
+  const slug = await findFreeSlug(admin, buildSlug(displayName, company || undefined))
 
   // assigned_user_id is what stops the card being archived on sight. A BEFORE
   // trigger, assert_card_assignment_consistency, sets archived = true when it
@@ -147,6 +164,7 @@ export async function ensureAccountReady(
     user_id: user.id,
     assigned_user_id: user.id,
     name: displayName,
+    company,
     email: user.email ?? null,
     slug,
     is_primary: true,
