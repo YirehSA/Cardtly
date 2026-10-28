@@ -63,23 +63,27 @@ function OnlySomeTemplates({ applies, control, children }: {
   )
 }
 
+// An invented person, so no real customer and nobody at Cardtly is the face in
+// every account's template picker, or in the how-to videos that film it. The
+// photo is a Pexels-licensed portrait and the logo was drawn for these samples;
+// both ship in public/samples/picker. Same person as the how-to videos' demo card.
 const PICKER_SAMPLE_FORM = {
-  name: 'Tio Geldenhuys',
-  title: 'Co-Founder',
-  company: 'Cardtly',
-  bio: 'Helping teams generate more leads and secure more meetings.',
-  email: 'tio@cardtly.com',
-  phone: '+27 62 460 7440',
+  name: 'Zanele Mokoena',
+  title: 'Interior Designer',
+  company: 'Fernhill Studio',
+  bio: 'Calm, liveable homes for busy families across Johannesburg.',
+  email: 'zanele@fernhillstudio.co.za',
+  phone: '+27 82 000 0147',
   work_phone: '',
-  whatsapp: '+27624607440',
-  address: 'Benoni, Gauteng',
-  website: 'https://www.cardtly.com/',
-  profile_image_url: 'https://xdrvryzsfrvfekntszcj.supabase.co/storage/v1/object/public/card-images/e32fd093-310a-490e-8d3c-68b7795afd6a/1784647251097.webp',
-  company_logo_url: 'https://xdrvryzsfrvfekntszcj.supabase.co/storage/v1/object/public/company-logos/86ee397a-55a8-4664-9855-1f5bf42f25a4/1784625815181.webp',
-  certifications: 'NFC, Networking',
-  linkedin_url: 'https://www.linkedin.com/company/cardtly/',
-  instagram_url: 'https://www.instagram.com/cardtlydigital/',
-  link_1_title: 'See how it works', link_1_url: 'https://www.cardtly.com/features',
+  whatsapp: '+27820000147',
+  address: 'Johannesburg, Gauteng',
+  website: 'https://fernhillstudio.co.za/',
+  profile_image_url: '/samples/picker/zanele.webp',
+  company_logo_url: '/samples/picker/fernhill-studio.webp',
+  certifications: 'Interior design, Space planning',
+  linkedin_url: '',
+  instagram_url: '',
+  link_1_title: 'Book a consultation', link_1_url: 'https://fernhillstudio.co.za/book',
   link_2_title: '',         link_2_url: '',
   link_3_title: '',         link_3_url: '',
 }
