@@ -7,7 +7,7 @@ import { ArrowRight, Clock } from 'lucide-react'
 import { POSTS } from './posts'
 
 export const metadata: Metadata = {
-  title: 'Blog — Digital Business Card Guides & Tips',
+  title: 'Blog: Digital Business Card Guides and Tips',
   description:
     'Guides on digital and NFC business cards: what they are, how to make one free, NFC vs paper, and using digital business cards in South Africa.',
   alternates: { canonical: '/blog' },

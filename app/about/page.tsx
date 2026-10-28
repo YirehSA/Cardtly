@@ -24,8 +24,8 @@ const gradText: React.CSSProperties = {
 
 const VALUES = [
   { icon: Zap,   title: 'Simple by design',   desc: 'We believe the best tools get out of the way. Cardtly is fast to set up, easy to share, and effortless to maintain.' },
-  { icon: Globe, title: 'Built for everyone',  desc: 'Whether you\'re a freelancer, a corporate executive, a student, or a street vendor — if you want to connect with people, Cardtly works for you.' },
-  { icon: Heart, title: 'Proudly South African', desc: 'We built Cardtly in South Africa, for South Africa first — then the world. ZAR pricing, local support, global product.' },
+  { icon: Globe, title: 'Built for everyone',  desc: 'Whether you\'re a freelancer, a corporate executive, a student, or a street vendor: if you want to connect with people, Cardtly works for you.' },
+  { icon: Heart, title: 'Proudly South African', desc: 'We built Cardtly in South Africa, for South Africa first, then the world. ZAR pricing, local support, global product.' },
   { icon: Users, title: 'Community first',     desc: 'We listen to our users. The features we build come directly from real conversations with real people who use Cardtly every day.' },
 ]
 
@@ -95,13 +95,13 @@ export default function AboutPage() {
                 Cardtly started with a simple frustration. We kept handing out paper business cards at events, only to wonder if anyone ever called. The cards sat in pockets, got thrown away, went out of date when numbers changed, and gave us zero insight into whether networking was actually working.
               </p>
               <p>
-                So we built something better. A card that lives on a link. One that updates instantly, shows you who viewed it, and lets people save your contact with a single tap — no paper, no printing, no waste.
+                So we built something better. A card that lives on a link. One that updates instantly, shows you who viewed it, and lets people save your contact with a single tap: no paper, no printing, no waste.
               </p>
               <p>
                 We built Cardtly in South Africa, and we priced it for South Africa. Too many great SaaS tools price out the African market entirely. We don\'t. Cardtly is from R97 a card per month, a price that respects what people actually earn.
               </p>
               <p>
-                We are just getting started. The roadmap is full and the community is growing. If you have an idea, a complaint, or just want to say hello — we actually read our inbox.
+                We are just getting started. The roadmap is full and the community is growing. If you have an idea, a complaint, or just want to say hello, we actually read our inbox.
               </p>
             </div>
           </div>

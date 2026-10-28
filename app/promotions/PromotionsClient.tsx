@@ -50,7 +50,7 @@ export default function PromotionsClient({ initialFilled, initialRemaining, tota
     if (!referralUrl) return
     if (navigator.share) {
       navigator.share({
-        title: 'Cardtly — Get a digital business card',
+        title: 'Cardtly: get a digital business card',
         text: "I'm using Cardtly. Join with my link and we both win.",
         url: referralUrl,
       }).catch(() => {})

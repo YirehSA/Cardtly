@@ -3,32 +3,41 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, ChevronDown } from 'lucide-react'
 import { getNativePlatform } from '@/lib/capacitor'
 import { isIosBlockedPath } from '@/lib/app-platform'
 
-const LINKS = [
-  { href: '/',              label: 'Home' },
-  { href: '/features',      label: 'Features' },
-  { href: '/teams',         label: 'For teams' },
-  { href: '/network',       label: 'Network' },
-  { href: '/how-it-works', label: 'How it works' },
-  { href: '/nfc',           label: 'NFC Cards', badge: '🇿🇦' },
-  { href: '/pricing',       label: 'Pricing' },
+// Five things in the bar, the rest under More (2026-10-29). Eleven links at
+// one weight, with Home beside a logo that already goes home, read as a wall:
+// the bar ran edge to edge, "Sign in" sat jammed against "Contact", and from
+// 1024 to 1280 it did not fit at all. What people come to buy goes in the bar;
+// what they come to read goes under More.
+const PRIMARY = [
+  { href: '/features',  label: 'Features' },
+  { href: '/teams',     label: 'For teams' },
+  { href: '/nfc',       label: 'NFC Cards' },
+  { href: '/pricing',   label: 'Pricing' },
   // Hidden in the iOS app with the other selling pages (IOS_BLOCKED_ROUTES).
-  { href: '/resellers',     label: 'Resellers' },
-  { href: '/blog',          label: 'Blog' },
-  { href: '/about',         label: 'About' },
-  { href: '/contact',       label: 'Contact' },
+  { href: '/resellers', label: 'Resellers' },
+]
+
+const MORE = [
+  { href: '/how-it-works', label: 'How it works' },
+  { href: '/network',      label: 'Network' },
+  { href: '/blog',         label: 'Blog' },
+  { href: '/about',        label: 'About' },
+  { href: '/contact',      label: 'Contact' },
 ]
 
 export default function Navbar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreRef = useRef<HTMLDivElement>(null)
 
   // Every route that sells or quotes a price is dropped inside the iOS app -
-  // which is most of the marketing site, since the home page alone says
-  // "R97 a card a month" three times.
+  // which is most of the marketing site, since the home page alone quotes the
+  // price three times.
   //
   // Detected in the browser rather than on the server, unlike the dashboard:
   // the marketing pages are static, and reading the request header to hide nav
@@ -38,11 +47,28 @@ export default function Navbar() {
   // dashboard, not a purchase mechanism.
   const [iosApp, setIosApp] = useState(false)
   useEffect(() => { setIosApp(getNativePlatform() === 'ios') }, [])
-  const links = iosApp ? LINKS.filter(l => !isIosBlockedPath(l.href)) : LINKS
+  const allowed = (l: { href: string }) => !iosApp || !isIosBlockedPath(l.href)
+  const primary = PRIMARY.filter(allowed)
+  const more = MORE.filter(allowed)
+  const inMore = more.some(l => pathname === l.href || pathname?.startsWith(l.href + '/'))
 
   // The logo goes home, and home is blocked. Inside the app it goes to the
   // dashboard, which is what tapping the logo in an app should do anyway.
   const logoHref = iosApp ? '/dashboard' : '/'
+
+  // More closes on a page change, a click anywhere else, and Escape.
+  useEffect(() => { setMoreOpen(false); setOpen(false) }, [pathname])
+  useEffect(() => {
+    if (!moreOpen) return
+    const away = (e: MouseEvent) => { if (!moreRef.current?.contains(e.target as Node)) setMoreOpen(false) }
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setMoreOpen(false) }
+    document.addEventListener('mousedown', away)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('mousedown', away)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [moreOpen])
 
   // TWO STATES: over the hero, and everywhere else.
   //
@@ -52,40 +78,20 @@ export default function Navbar() {
   // So the bar is transparent and tall while the hero is behind it, and solid
   // and compact once it is not.
   //
-  // WHAT COUNTS AS "PAST THE HERO" is measured, not guessed. The hero is a
-  // 6.4-viewport section with a sticky stage, so a fixed scroll threshold would
-  // either fire immediately, while the scene is still the backdrop, or wait for
-  // a number that is wrong on every other page. Instead the bar looks for
-  // #hero-scroll and asks where its bottom edge is: while that edge is below
-  // the bar, the hero is what is behind the bar. On a page with no hero there
-  // is nothing to be transparent over, so it goes solid on the first pixel of
-  // scroll.
+  // WHAT COUNTS AS "PAST THE HERO" is measured, not guessed: the bar looks for
+  // #hero-scroll and asks where its bottom edge is. On a page with no hero
+  // there is nothing to be transparent over, so it goes solid on the first
+  // pixel of scroll.
   //
-  // pt-4 gives the bar air above it, at every width. It was lg:pt-4 for one
-  // commit, desktop only, and that was worse than it looked: the header was
-  // then 5rem on phones and 6rem from lg up, and the hero reserves room for
-  // this header BY HAND, so a breakpoint here needed a matching breakpoint in
-  // HeroScene.tsx and the two could drift apart silently. Padding at every size
-  // makes the header one number again.
-  //
-  // It is still one number in two files. --ct-header in HeroScene.tsx has to
-  // match the AT-REST height, 6rem, or the headline goes back under the bar.
-  // The compact height is free: by the time it applies, the hero is behind you.
-  // A ref rather than an id, deliberately. The hero's bundled script looks for
-  // an element called #site-head and toggles its own is-stuck class on it - that
-  // is the demo page's header, not this one. Giving this bar that id would hand
-  // a third party a class on our nav and a second scroll listener to drive it,
-  // for a rule that does not exist in our stylesheet.
+  // The at-rest height is one number in two files: --ct-header in
+  // HeroScene.tsx has to match it (6rem: pt-4 plus h-20), or the headline goes
+  // back under the bar. A ref rather than an id, deliberately: the hero's
+  // bundled script toggles a class on any #site-head.
   const barRef = useRef<HTMLElement>(null)
   const [stuck, setStuck] = useState(false)
   useEffect(() => {
-    // Read straight off the event, with no rAF wrapper around it.
-    //
-    // The wrapper is the reflex, and here it buys nothing: scroll events are
-    // dispatched during the rendering steps, so the browser already delivers at
-    // most one per frame. Coalescing something that is coalesced adds a frame of
-    // lag to the one transition anybody will notice, and it hides the work from
-    // anything that drives the page without painting it.
+    // Read straight off the event: scroll events already arrive at most once a
+    // frame, and a rAF wrapper only adds a frame of lag.
     const read = () => {
       const hero = document.getElementById('hero-scroll')
       const barBottom = barRef.current?.getBoundingClientRect().height ?? 96
@@ -102,6 +108,12 @@ export default function Navbar() {
     }
   }, [pathname])
 
+  const linkClass = 'px-3.5 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap'
+  const linkStyle = (active: boolean) => ({
+    color: active ? '#fff' : 'rgba(255,255,255,0.62)',
+    background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
+  })
+
   return (
     <header
       ref={barRef}
@@ -111,46 +123,61 @@ export default function Navbar() {
         backdropFilter: 'blur(20px)',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
       } : undefined}>
-      <div className={`max-w-7xl mx-auto px-6 flex items-center justify-between transition-[height] duration-300 ${stuck ? 'h-16' : 'h-20'}`}>
-        {/* Logo only - the badge carries the wordmark inside it, so no
-            text next to it. 72px = double the old 36px mark; the bar
-            grew h-16 -> h-20 to give it room. */}
-        <Link href={logoHref} className="flex items-center group" aria-label="Cardtly home">
+      <div className={`max-w-7xl mx-auto px-6 flex items-center gap-6 transition-[height] duration-300 ${stuck ? 'h-16' : 'h-20'}`}>
+        {/* Logo only - the badge carries the wordmark inside it. Sized rather
+            than scaled when the bar compacts, so the row really does shrink. */}
+        <Link href={logoHref} className="flex items-center group shrink-0" aria-label="Cardtly home">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {/* 72px does not fit a 4rem bar, so the mark comes down with it.
-              Sized rather than scaled: transform:scale would leave the original
-              footprint in the layout and the row would not actually compact. */}
           <img src="/cardtly-icon.png" alt="Cardtly logo" width={72} height={72}
             className={`rounded-full transition-all duration-300 group-hover:scale-105 ${stuck ? 'w-11 h-11' : 'w-[72px] h-[72px]'}`} />
         </Link>
 
-        {/* Desktop nav.
-            xl, not lg. Nine links plus a 72px logo plus two buttons needed about
-            980px, and this once unfolded at md (768px), so the row was wider
-            than the window and Sign up sat off the right-hand edge: the "button
-            was cut off due to layout" Apple's reviewer reported on an iPad. It
-            moved to lg for nine links. Ten (Network, Contact) already overran
-            1024 by about 100px and eleven (Resellers, 2026-10-28) by 190, so
-            the bar now unfolds at 1280, where eleven links need about 1150px of
-            the 1232 there is. Below that it is the menu button, as on a phone.
-            px-3 until 2xl keeps it inside 1280; px-4 needs about 90px more. */}
-        <nav className="hidden xl:flex items-center gap-1">
-          {links.map((link) => {
-            const { href, label } = link
-            const active = pathname === href
+        {/* Desktop nav, centred between the logo and the buttons. Six items
+            need about 560px, so it fits from 1024 (lg) with room to breathe. */}
+        <nav aria-label="Main" className="hidden lg:flex flex-1 items-center justify-center gap-1">
+          {primary.map(({ href, label }) => {
+            const active = pathname === href || !!pathname?.startsWith(href + '/')
             return (
-              <Link key={href} href={href}
-                className="px-3 2xl:px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 whitespace-nowrap"
-                style={{ color: active ? '#fff' : 'rgba(255,255,255,0.55)', background: active ? 'rgba(255,255,255,0.08)' : 'transparent' }}>
-                {label}{link.badge && <span className="text-xs">{link.badge}</span>}
+              <Link key={href} href={href} className={`${linkClass} hover:text-white`} style={linkStyle(active)}
+                aria-current={active ? 'page' : undefined}>
+                {label}
               </Link>
             )
           })}
+          {more.length > 0 && (
+            <div ref={moreRef} className="relative">
+              <button type="button" onClick={() => setMoreOpen(o => !o)}
+                aria-expanded={moreOpen} aria-haspopup="true"
+                className={`${linkClass} inline-flex items-center gap-1 hover:text-white`}
+                style={linkStyle(inMore || moreOpen)}>
+                More
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${moreOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+              </button>
+              {/* Always in the page, shown or hidden by class, so the links are
+                  in the HTML for search engines as well as for people. */}
+              <div className={`${moreOpen ? 'block' : 'hidden'} absolute right-0 top-full mt-2 w-52 rounded-xl p-1.5`}
+                style={{ background: 'rgba(14,12,22,0.97)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 16px 40px rgba(0,0,0,0.5)', backdropFilter: 'blur(20px)' }}>
+                {more.map(({ href, label }) => {
+                  const active = pathname === href || !!pathname?.startsWith(href + '/')
+                  return (
+                    <Link key={href} href={href} onClick={() => setMoreOpen(false)}
+                      aria-current={active ? 'page' : undefined}
+                      className="flex items-center min-h-11 px-3 rounded-lg text-sm font-medium transition-colors hover:bg-white/[0.06] hover:text-white"
+                      style={{ color: active ? '#fff' : 'rgba(255,255,255,0.72)' }}>
+                      {label}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </nav>
 
         {/* CTA */}
-        <div className="hidden xl:flex items-center gap-3 shrink-0">
-          <Link href="/login" className="text-sm font-medium transition" style={{ color: 'rgba(255,255,255,0.6)' }}>
+        <div className="hidden lg:flex items-center gap-2 shrink-0">
+          <Link href="/login"
+            className="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors hover:text-white hover:bg-white/[0.06]"
+            style={{ color: 'rgba(255,255,255,0.75)' }}>
             Sign in
           </Link>
           {/* No signing up in the iOS app: it is for company teams, whose
@@ -164,29 +191,32 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile toggle. The icon stays 20px; the BUTTON is 44 square, which
-            is the touch minimum. It was the icon's own 20x20 and nothing more,
-            so opening the navigation on a phone needed a precise press on the
-            single smallest target on the site. -mr-2.5 pulls the new padding
-            back out so the icon sits where it always did. */}
+        {/* Mobile toggle. The icon stays 20px; the button is the 44px touch
+            minimum. -mr-2.5 pulls the padding back so the icon sits on the edge. */}
         <button onClick={() => setOpen(p => !p)} aria-label={open ? 'Close menu' : 'Open menu'}
-          aria-expanded={open} className="xl:hidden text-white w-11 h-11 shrink-0 -mr-2.5 grid place-items-center rounded-lg">
+          aria-expanded={open} className="lg:hidden ml-auto text-white w-11 h-11 shrink-0 -mr-2.5 grid place-items-center rounded-lg">
           {open ? <X className="w-5 h-5" aria-hidden="true" /> : <Menu className="w-5 h-5" aria-hidden="true" />}
         </button>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile menu: everything, the buying pages first. */}
       {open && (
-        <div className="xl:hidden px-6 pb-6 pt-2 space-y-1" style={{ background: 'rgba(0,0,0,0.95)' }}>
-          {links.map(({ href, label, badge }) => (
-            <Link key={href} href={href} onClick={() => setOpen(false)}
-              className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition">
-              {label}{badge && <span className="text-xs">{badge}</span>}
-            </Link>
+        <div className="lg:hidden px-6 pb-6 pt-2 max-h-[calc(100dvh-5rem)] overflow-y-auto" style={{ background: 'rgba(0,0,0,0.95)' }}>
+          {[primary, more].filter(g => g.length > 0).map((group, g) => (
+            <div key={g} className={`space-y-1 ${g > 0 ? 'mt-2 pt-2 border-t border-white/10' : ''}`}>
+              {group.map(({ href, label }) => (
+                <Link key={href} href={href} onClick={() => setOpen(false)}
+                  aria-current={pathname === href ? 'page' : undefined}
+                  className="flex items-center px-4 py-3 rounded-xl text-sm font-medium transition hover:text-white hover:bg-white/5"
+                  style={{ color: pathname === href ? '#fff' : 'rgba(255,255,255,0.72)' }}>
+                  {label}
+                </Link>
+              ))}
+            </div>
           ))}
-          <div className="pt-3 flex flex-col gap-2">
+          <div className="pt-4 flex flex-col gap-2">
             <Link href="/login" onClick={() => setOpen(false)}
-              className="block text-center py-2.5 rounded-xl text-sm font-medium border border-white/10 text-white/60">
+              className="block text-center py-2.5 rounded-xl text-sm font-medium border border-white/10 text-white/70">
               Sign in
             </Link>
             {!iosApp && (
