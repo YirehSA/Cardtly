@@ -93,6 +93,15 @@ const SEAT_PRICE = 97
 const MAX_SELF_SERVE_SEATS = 20
 const SEAT_TIERS = Array.from({ length: MAX_SELF_SERVE_SEATS - 1 }, (_, i) => i + 2) as readonly number[]
 
+// How a team not on Paystack is billed, in the customer's words.
+const INVOICED_BILLING: Record<string, string> = {
+  debit_order: 'billed by debit order',
+  prepaid: 'prepaid by invoice',
+  reseller: 'billed by your reseller',
+  comp: 'on the house',
+  trial: 'on a free trial',
+}
+
 export default function TeamDashboard({ user, org: initialOrg, teamCards: initialCards, leadCounts, importTargets, companies = [], companyByDept = {}, iosApp = false, managedBy = null }: Props) {
   const searchParams = useSearchParams()
   const status = searchParams.get('status')
@@ -179,6 +188,9 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
   const [showImport, setShowImport] = useState(false)
   // Which of the three jobs this page does the admin is here for.
   const [tab, setTab] = useState<'people' | 'integrations' | 'billing'>('people')
+  // Paystack self-serve (monthly or yearly, or a team from before billing
+  // modes existed). Only these buy seats here; anything else is billed by Cardtly.
+  const selfServe = !initialOrg?.billing_period || initialOrg.billing_period === 'monthly' || initialOrg.billing_period === 'yearly'
   const [newCard, setNewCard] = useState({ name: '', title: '', email: '', phone: '', company: '' })
   const [copyFromId, setCopyFromId] = useState<string>('')
 
@@ -603,7 +615,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { label: 'Per card/month', value: `R${SEAT_PRICE}`, sub: 'ZAR, billed monthly' },
-            { label: 'Plans from', value: '5', sub: 'cards, scale to 50' },
+            { label: 'Cards per team', value: '2 to 20', sub: 'more on Enterprise' },
             { label: 'Admin controls', value: '100%', sub: 'You manage all cards' },
           ].map(({ label, value, sub }) => (
             <div key={label} className="bg-card border border-border rounded-lg p-4 text-center">
@@ -637,7 +649,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
               },
               {
                 t: 'You build the cards, your team does not',
-                d: 'Create each person from this dashboard: name, title, email, phone. Copy one card’s look to the next so everybody matches.',
+                d: 'Create each person from this dashboard: name, title, email, phone. Set the team look once and every card wears it, so everybody matches.',
               },
               {
                 t: 'Each card is live the moment you save it',
@@ -794,7 +806,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                   <Plus className="w-4 h-4" />Add card
                 </button>
               )}
-              {tab === 'billing' && !iosApp && !managedBy && (
+              {tab === 'billing' && !iosApp && !managedBy && selfServe && (
                 <button onClick={() => setShowAddSeats(p => !p)}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
                   style={{ background: 'hsl(var(--accent))' }}>
@@ -911,7 +923,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
       </div>
 
       {/* Add seats panel */}
-      {tab === 'billing' && showAddSeats && !iosApp && !managedBy && (
+      {tab === 'billing' && showAddSeats && !iosApp && !managedBy && selfServe && (
         <div className="bg-card border border-border rounded-lg p-5 space-y-4">
           <p className="font-semibold text-sm">Upgrade seat plan</p>
           <div className="flex items-center gap-4 flex-wrap">
@@ -1466,14 +1478,18 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
         </div>
       )}
 
-      {/* Plan summary. Quotes the monthly price, so never in the iOS app. */}
+      {/* Plan summary. Quotes the monthly price, so never in the iOS app.
+          Only a self-serve team pays the seat price through Paystack; an
+          invoiced, debit-order, comped or trial team was shown that price and
+          a Paystack upgrade it must never use, so it gets how it is billed. */}
       {tab === 'billing' && !iosApp && !managedBy && (
       <div className="bg-card border border-border rounded-lg p-5 flex items-center justify-between flex-wrap gap-4">
         <div className="text-sm">
           <p className="font-semibold">{org.name} · Team plan</p>
           <p className="text-muted-foreground text-xs mt-0.5">
-            {seatsTotal} seats · R{seatsTotal * SEAT_PRICE}/month
-            {org.billing_period && ` · ${org.billing_period} billing`}
+            {selfServe
+              ? <>{seatsTotal} seats · R{seatsTotal * SEAT_PRICE}/month{org.billing_period && ` · ${org.billing_period} billing`}</>
+              : <>{seatsTotal} seats · {INVOICED_BILLING[org.billing_period || ''] || 'billed by Cardtly'}. To change your seats, <a href="/contact" className="underline">contact Cardtly</a>.</>}
           </p>
         </div>
         <a href="/dashboard/settings"

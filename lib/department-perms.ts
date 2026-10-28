@@ -39,6 +39,8 @@ export interface ManagedDept {
   // columns are simply absent until it is applied by hand.
   inherit_brand?: boolean | null
   inherit_brand_locked?: boolean | null
+  // Migration 059: the card this department's look follows, if any.
+  brand_source?: unknown
 }
 
 // Every department this user may manage, resolved once.
@@ -118,6 +120,14 @@ export async function getManagedDepartments(admin: any, userId: string): Promise
       parent_id: d.parent_id ?? null,
       kind: (d.kind === 'company' ? 'company' : 'department'),
       slug_segment: d.slug_segment ?? null,
+      // Passed through, not just declared above. They were left out of this
+      // copy, so the departments page always read them as missing: every
+      // department showed as wearing the look from above and unlocked, and a
+      // look that follows a card never said whose. Undefined (not false) when
+      // the migration is not applied, which the page already treats as before.
+      inherit_brand: d.inherit_brand,
+      inherit_brand_locked: d.inherit_brand_locked,
+      brand_source: d.brand_source ?? null,
     })
   }
   return out

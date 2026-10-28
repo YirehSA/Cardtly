@@ -55,6 +55,29 @@ export default function TeamBrandPanel({ orgId, orgName, brand, hasBrand, totalC
     setBusy(false)
   }
 
+  async function stopFollowing() {
+    const whose = lookSource?.own ? 'your card' : `${lookSource?.name || 'that card'}’s card`
+    if (!window.confirm(`Stop following ${whose}?\n\nThe team keeps the look exactly as it is now. Later changes to ${whose} will no longer reach the team.`)) return
+    setBusy(true)
+    try {
+      const res = await fetch('/api/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'unlink_brand_source', org_id: orgId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success) {
+        toast.success('The team look no longer follows a card. It stays exactly as it is.')
+        router.refresh()
+      } else {
+        toast.error(data.error || 'Could not stop following')
+      }
+    } catch {
+      toast.error('Network error. Please try again.')
+    }
+    setBusy(false)
+  }
+
   async function applyAll(value: boolean) {
     // Both directions rewrite every card in the company at once, and there is
     // no undo. "Remove from all" in particular throws away each member's
@@ -155,6 +178,14 @@ export default function TeamBrandPanel({ orgId, orgName, brand, hasBrand, totalC
               className="inline-flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold border border-border hover:bg-muted transition disabled:opacity-60">
               Remove from all
             </button>
+            {/* Departments could stop following a card and the company look
+                could not, though the API has always supported it. */}
+            {lookSource && (
+              <button onClick={stopFollowing} disabled={busy}
+                className="inline-flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold border border-border hover:bg-muted transition disabled:opacity-60">
+                Stop following
+              </button>
+            )}
           </>
         )}
       </div>
@@ -165,7 +196,7 @@ export default function TeamBrandPanel({ orgId, orgName, brand, hasBrand, totalC
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
           <p className="font-semibold mb-0.5">Your brand is saved, but no card is using it</p>
           <p className="text-muted-foreground">
-            Each card has its own switch and it starts off. Use &ldquo;Apply to all cards&rdquo; above, or
+            Each card has its own switch, and every one of them is off. Use &ldquo;Apply to all cards&rdquo; above, or
             turn people on one at a time in{' '}
             <a href="/dashboard/team" className="underline hover:text-foreground">Team Cards</a>.
           </p>

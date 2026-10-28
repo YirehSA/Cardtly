@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { revokeTeamCard } from '@/lib/team-revoke'
 
 // POST /api/team/revoke
 // Body: { card_id: string }
@@ -64,34 +65,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
   }
 
-  // Clear ownership + invite fields, and take the card off the air.
-  //
-  // is_active: false is the important half. Revoking used to sever the member
-  // link and leave the card published, so an offboarded employee's name,
-  // photo, email and phone carried on being served at their public URL and in
-  // the vCard download, indefinitely, to anyone who had ever tapped their NFC
-  // card. Removing someone's access has to mean their details stop being
-  // handed out, which is both what an admin pressing this expects and what
-  // POPIA requires on offboarding.
-  //
-  // The card content is still preserved, so the admin keeps managing it and
-  // can re-issue it to a replacement: inviting somebody sets is_active back to
-  // true. The row is not deleted, so the slug survives for the next holder.
-  const { error } = await admin
-    .from('team_cards')
-    .update({
-      user_id: null,
-      claimed_at: null,
-      invite_email: null,
-      invite_token: null,
-      invite_sent_at: null,
-      is_active: false,
-    } as any)
-    .eq('id', card_id)
-
+  // Clear ownership and invite fields, and take the card off the air
+  // (lib/team-revoke, shared with a department head's Revoke).
+  const { error } = await revokeTeamCard(admin, card_id)
   if (error) {
     console.error('revoke update error', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })

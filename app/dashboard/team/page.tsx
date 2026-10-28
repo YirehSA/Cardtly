@@ -103,11 +103,13 @@ export default async function TeamPage() {
       const { data: theirOrg } = await admin
         .from('organizations').select('name').eq('id', managed[0].organization_id).maybeSingle()
 
+      // Offline (revoked) cards too: they still hold a seat, and the head
+      // gives them to whoever replaces the person who left. Filtering them out
+      // made a revoked card vanish from the one screen that can re-issue it.
       const { data: myCards } = await admin
         .from('team_cards')
         .select('*')
         .in('department_id', deptIds)
-        .eq('is_active', true)
         .order('created_at', { ascending: true })
 
       const counts = await leadCountsByCard(admin, (myCards || []).map((c: any) => c.id))
@@ -160,6 +162,7 @@ export default async function TeamPage() {
             company: c.company,
             profileImageUrl: c.profile_image_url || null,
             claimed: !!c.claimed_at,
+            isActive: c.is_active !== false,
             // Who was invited and took it up. Not the account's own address,
             // which may differ - but it is the address the head sent it to,
             // which is the one they recognise.

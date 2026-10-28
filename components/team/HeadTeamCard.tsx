@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import {
   Eye, Inbox, ExternalLink, Loader2, UserCheck, Clock, Send,
-  Sparkles, Network, ClipboardList, Info, Pencil, Building2, Mail, Phone,
+  Sparkles, Network, ClipboardList, Info, Pencil, Building2, Mail, Phone, PowerOff,
 } from 'lucide-react'
 
 // One person's card, as their department head sees it.
@@ -33,6 +33,8 @@ export type HeadCard = {
   company: string | null
   profileImageUrl: string | null
   claimed: boolean
+  /** False once revoked: offline, holding its seat for whoever is next. */
+  isActive: boolean
   claimedEmail: string | null
   inviteEmail: string | null
   views: number
@@ -63,6 +65,9 @@ export default function HeadTeamCard({
   // trip. Reverted on failure.
   const [brand, setBrand] = useState(card.useTeamBrand)
   const [listed, setListed] = useState(card.listedInNetwork)
+  // Giving the card to somebody: never invited, revoked, or a wrong address.
+  const [inviting, setInviting] = useState(false)
+  const [inviteTo, setInviteTo] = useState('')
 
   async function call(key: string, body: object, ok: string): Promise<boolean> {
     setBusy(key)
@@ -137,27 +142,64 @@ export default function HeadTeamCard({
             <button
               disabled={busy === 'revoke'}
               onClick={async () => {
-                if (!confirm(`Remove ${card.name || 'this person'} from the team?\n\nTheir public card stops working straight away, so their details are no longer shown to anyone who opens the link or taps their NFC card.\n\nThe card itself is kept and the seat is freed. The leads they captured stay with the company.`)) return
-                if (await call('revoke', { action: 'remove_member', team_card_id: card.id }, 'Removed from the team')) onChanged()
+                if (!confirm(`Remove ${card.name || 'this person'} from the team?\n\nTheir public card goes offline straight away, so their details are no longer shown to anyone who opens the link or taps their NFC card.\n\nThe card is kept, with its link, QR code and NFC cards, so you can give it to whoever replaces them. The leads they captured stay with the company.`)) return
+                if (await call('revoke', { action: 'revoke_member', team_card_id: card.id }, 'Removed from the team. Their card is offline.')) onChanged()
               }}
               className="text-[11px] font-bold uppercase tracking-wider shrink-0" style={{ color: '#22c55e' }}>
               {busy === 'revoke' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Revoke'}
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2"
-            style={{ borderColor: 'rgba(245,158,11,0.35)', background: 'rgba(245,158,11,0.08)' }}>
-            <span className="text-xs inline-flex items-center gap-1.5 min-w-0" style={{ color: '#f59e0b' }}>
-              <Clock className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">{card.inviteEmail ? `Invited ${card.inviteEmail}` : 'Not invited yet'}</span>
-            </span>
-            {card.inviteEmail && (
-              <button
-                disabled={busy === 'resend'}
-                onClick={() => call('resend', { action: 'resend_invite', team_card_id: card.id }, 'Invite sent again')}
-                className="text-[11px] font-bold uppercase tracking-wider shrink-0 inline-flex items-center gap-1" style={{ color: '#f59e0b' }}>
-                {busy === 'resend' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Send className="w-3 h-3" />Resend</>}
-              </button>
+          <div className="rounded-xl border px-3 py-2 space-y-2"
+            style={!card.isActive
+              ? { borderColor: 'rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.06)' }
+              : { borderColor: 'rgba(245,158,11,0.35)', background: 'rgba(245,158,11,0.08)' }}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs inline-flex items-center gap-1.5 min-w-0" style={{ color: !card.isActive ? '#ef4444' : '#f59e0b' }}>
+                {!card.isActive ? <PowerOff className="w-3.5 h-3.5 shrink-0" /> : <Clock className="w-3.5 h-3.5 shrink-0" />}
+                <span className="truncate">
+                  {!card.isActive ? 'Offline. Give it to someone new' : card.inviteEmail ? `Invited ${card.inviteEmail}` : 'Not invited yet'}
+                </span>
+              </span>
+              <span className="inline-flex items-center gap-3 shrink-0">
+                {card.isActive && card.inviteEmail && (
+                  <button
+                    disabled={busy === 'resend'}
+                    onClick={() => call('resend', { action: 'resend_invite', team_card_id: card.id }, 'Invite sent again')}
+                    className="text-[11px] font-bold uppercase tracking-wider inline-flex items-center gap-1" style={{ color: '#f59e0b' }}>
+                    {busy === 'resend' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Send className="w-3 h-3" />Resend</>}
+                  </button>
+                )}
+                {!inviting && (
+                  <button onClick={() => { setInviting(true); setInviteTo(card.isActive ? (card.inviteEmail || '') : '') }}
+                    className="text-[11px] font-bold uppercase tracking-wider inline-flex items-center gap-1"
+                    style={{ color: !card.isActive ? '#ef4444' : '#f59e0b' }}>
+                    <Mail className="w-3 h-3" />{card.inviteEmail && card.isActive ? 'Change' : 'Invite'}
+                  </button>
+                )}
+              </span>
+            </div>
+            {inviting && (
+              <form className="flex gap-2" onSubmit={async e => {
+                e.preventDefault()
+                if (await call('invite', { action: 'invite_to_card', team_card_id: card.id, email: inviteTo }, `Invite sent to ${inviteTo.trim()}`)) {
+                  setInviting(false)
+                  onChanged()
+                }
+              }}>
+                <input type="email" required autoFocus value={inviteTo} onChange={e => setInviteTo(e.target.value)}
+                  placeholder="their@email.com" aria-label="Email address to invite"
+                  className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-border bg-background text-xs" />
+                <button type="submit" disabled={busy === 'invite' || !inviteTo.trim()}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
+                  style={{ background: 'hsl(var(--accent))' }}>
+                  {busy === 'invite' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Send invite'}
+                </button>
+                <button type="button" onClick={() => setInviting(false)}
+                  className="px-2 py-1.5 rounded-lg text-xs text-muted-foreground hover:bg-muted">
+                  Cancel
+                </button>
+              </form>
             )}
           </div>
         )}
@@ -217,7 +259,7 @@ export default function HeadTeamCard({
           {/* Delete is the company admin's. Saying so beats a button that
               always refuses, and it explains why rather than just refusing. */}
           <span className="text-[11px] text-muted-foreground ml-auto inline-flex items-center gap-1"
-            title="Revoke removes the person and frees the seat. Deleting the card would destroy the leads it captured, which belong to the company, so only the main admin can do that.">
+            title="Revoke takes the card off the person and keeps it, with its link, for whoever replaces them. Deleting the card would destroy the leads it captured, which belong to the company, so only the main admin can do that.">
             <Info className="w-3 h-3" />Only admin can delete
           </span>
         </div>

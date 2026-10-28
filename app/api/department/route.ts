@@ -7,7 +7,8 @@ import { parseBrandSource, verifyBrandSource, hydrateBrandSources } from '@/lib/
 import { LOCK_GROUP_IDS } from '@/lib/team-locks'
 import { getManagedDepartments, canManageDepartment, cardDepartment, isOrgOwner, ownsOrgOfDepartment, findUserByEmail, getOwnedOrgs } from '@/lib/department-perms'
 import { newInviteToken, sendTeamInvite } from '@/lib/team-invite'
-import { newTeamCardSlug, orgIndustry } from '@/lib/card-slug-server'
+import { newTeamCardSlug, newTeamPersonSlug, orgIndustry } from '@/lib/card-slug-server'
+import { revokeTeamCard } from '@/lib/team-revoke'
 import { slugifyPart, isReservedSlug } from '@/lib/card-slug'
 
 // The department manager's own endpoint, separate from /api/admin (which is
@@ -377,8 +378,12 @@ export async function POST(request: Request) {
     }
 
     const token = newInviteToken()
-    const [slug, industry] = await Promise.all([
+    // The person's half of /card/<company>/<person> too. Add card and bulk
+    // import always set it, but a card invited from a department never did,
+    // so its company address was "not found".
+    const [slug, slugPerson, industry] = await Promise.all([
       newTeamCardSlug(admin, dept.organization_id, name || 'card'),
+      newTeamPersonSlug(admin, dept.organization_id, name || 'card'),
       orgIndustry(admin, dept.organization_id),
     ])
     const { data: card, error } = await admin.from('team_cards').insert({
@@ -386,6 +391,7 @@ export async function POST(request: Request) {
       department_id,
       name: name || '',
       slug,
+      slug_person: slugPerson,
       // Inherits the company's industry rather than starting blank.
       ...(industry ? { industry } : {}),
       // Wears the department brand by default; that is the whole point of
@@ -452,8 +458,9 @@ export async function POST(request: Request) {
     const { data: me } = await admin.from('profiles').select('name').eq('user_id', user.id).maybeSingle()
     const displayName = (me?.name || user.email?.split('@')[0] || 'My card').trim()
 
-    const [ownSlug, ownIndustry] = await Promise.all([
+    const [ownSlug, ownSlugPerson, ownIndustry] = await Promise.all([
       newTeamCardSlug(admin, dept.organization_id, displayName),
+      newTeamPersonSlug(admin, dept.organization_id, displayName),
       orgIndustry(admin, dept.organization_id),
     ])
 
@@ -463,6 +470,7 @@ export async function POST(request: Request) {
       name: displayName,
       email: user.email,
       slug: ownSlug,
+      slug_person: ownSlugPerson,
       // Inherits the company's industry rather than starting blank.
       ...(ownIndustry ? { industry: ownIndustry } : {}),
       use_team_brand: true,
@@ -496,6 +504,61 @@ export async function POST(request: Request) {
     const { data: me } = await admin.from('profiles').select('name').eq('user_id', user.id).maybeSingle()
     const sent = await sendTeamInvite({ to: card.invite_email, orgName: org?.name || 'the team', inviterName: me?.name || user.email || 'Your team manager', cardName: card.name || 'your team card', token })
     return NextResponse.json({ success: true, emailed: sent.ok })
+  }
+
+  // ── Take a claimed card back from somebody who has left ───────────────────
+  // The head's Revoke. Same as the owner's (lib/team-revoke): the card goes
+  // offline at once and is kept, with its link, for whoever replaces them.
+  if (action === 'revoke_member') {
+    const { team_card_id } = body
+    if (!team_card_id) return NextResponse.json({ error: 'team_card_id required' }, { status: 400 })
+    const loc = await cardDepartment(admin, team_card_id)
+    if (!loc?.departmentId || !(await canManageDepartment(admin, user.id, loc.departmentId))) {
+      return NextResponse.json({ error: 'You do not manage that card' }, { status: 403 })
+    }
+    const { data: card } = await admin.from('team_cards').select('claimed_at').eq('id', team_card_id).maybeSingle()
+    if (!card) return NextResponse.json({ error: 'Card not found' }, { status: 404 })
+    if (!card.claimed_at) return NextResponse.json({ error: 'Nobody has claimed this card, so there is nothing to revoke.' }, { status: 409 })
+    const { error } = await revokeTeamCard(admin, team_card_id)
+    if (error) return NextResponse.json({ error: `Could not revoke it: ${error}` }, { status: 500 })
+    return NextResponse.json({ success: true })
+  }
+
+  // ── Give an unclaimed card to somebody ─────────────────────────────────────
+  // For a card nobody was invited to yet, or one revoked from somebody who
+  // left: the replacement gets the same link, QR code and printed NFC card.
+  // Mirrors the owner's /api/team/invite, scoped to the head's departments.
+  if (action === 'invite_to_card') {
+    const { team_card_id, email } = body
+    if (!team_card_id) return NextResponse.json({ error: 'team_card_id required' }, { status: 400 })
+    const to = String(email || '').trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      return NextResponse.json({ error: 'A valid email is required to invite someone' }, { status: 400 })
+    }
+    const loc = await cardDepartment(admin, team_card_id)
+    if (!loc?.departmentId || !(await canManageDepartment(admin, user.id, loc.departmentId))) {
+      return NextResponse.json({ error: 'You do not manage that card' }, { status: 403 })
+    }
+    const { data: card } = await admin.from('team_cards').select('id, name, invite_email, invite_token, organization_id, claimed_at').eq('id', team_card_id).maybeSingle()
+    if (!card) return NextResponse.json({ error: 'Card not found' }, { status: 404 })
+    if (card.claimed_at) return NextResponse.json({ error: 'Somebody already holds this card. Revoke it first.' }, { status: 409 })
+
+    // A new address gets a new link, so an earlier invitation to somebody else
+    // stops working.
+    const token = card.invite_token && card.invite_email === to ? card.invite_token : newInviteToken()
+    const { error } = await admin.from('team_cards').update({
+      invite_email: to,
+      invite_token: token,
+      invite_sent_at: new Date().toISOString(),
+      // Back on the air for its next holder (a revoked card is offline).
+      is_active: true,
+    } as any).eq('id', team_card_id)
+    if (error) return NextResponse.json({ error: `Could not invite them: ${error.message}` }, { status: 500 })
+
+    const { data: org } = await admin.from('organizations').select('name').eq('id', card.organization_id).maybeSingle()
+    const { data: me } = await admin.from('profiles').select('name').eq('user_id', user.id).maybeSingle()
+    const sent = await sendTeamInvite({ to, orgName: org?.name || 'the team', inviterName: me?.name || user.email || 'Your team manager', cardName: card.name || 'your team card', token })
+    return NextResponse.json({ success: true, emailed: sent.ok, emailError: sent.ok ? undefined : sent.error })
   }
 
   // ── Remove a member ───────────────────────────────────────────────────────

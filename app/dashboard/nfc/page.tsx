@@ -79,13 +79,33 @@ export default async function NFCPage() {
   const deptOrgId = deptCards[0]?.organization_id
   const deptName = managed.length === 1 ? managed[0].name : 'your departments'
 
-  const cardName = (card as any)?.name || ''
-  const ownCards = (card as any)?.slug ? [{ id: (card as any).id, name: cardName || 'Your card', slug: (card as any).slug }] : []
+  // The person's own team card. A team member's card lives in the team, not
+  // in cards, so reading only the personal card gave a member no way to write
+  // their own tag and an order form that said there was no card to order.
+  const { data: myTeamCards } = await admin
+    .from('team_cards')
+    .select('id, name, title, company, slug')
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+  const mine = (myTeamCards || []).filter((c: any) => c.slug)
+
+  const cardName = (card as any)?.name || mine[0]?.name || ''
+  const ownCards = [
+    ...((card as any)?.slug ? [{ id: (card as any).id, name: (card as any).name || 'Your card', slug: (card as any).slug }] : []),
+    ...mine.map((c: any) => ({ id: c.id, name: c.name || 'Your team card', title: c.title || null, slug: c.slug })),
+  ]
   const staff = (teamCards || []).filter((c: any) => c.slug).map((c: any) => ({ id: c.id, name: c.name || c.slug, title: c.title || null, slug: c.slug }))
+  // Cards this person can order: the owner's whole team as before, plus their
+  // own team card when it is not already in that list.
+  const orderable = [
+    ...(teamCards || []),
+    ...mine.filter((c: any) => !(teamCards || []).some((t: any) => t.id === c.id)),
+  ]
 
   return (
     <>
-      <NFCWriteCard cards={ownCards} memoryKey={`card:${(card as any)?.id || 'none'}`}
+      <NFCWriteCard cards={ownCards} memoryKey={`own:${user.id}`}
         heading="Write to your own NFC tag" buttonLabel="Write to NFC tag"
         blurb={`Already have blank NFC tags, stickers or cards? Tap below, then hold one against the back of your phone to put ${cardName ? `${cardName}'s` : 'your'} card on it.`} />
       {/* A team's blank cards, written one after another (NfcWriteSession).
@@ -111,7 +131,7 @@ export default async function NFCPage() {
         card={card as any}
         user={{ id: user.id, email: user.email || '' }}
         previousOrders={orders || []}
-        teamCards={teamCards || []}
+        teamCards={orderable}
         samples={availableSamples()}
       />
     </>
