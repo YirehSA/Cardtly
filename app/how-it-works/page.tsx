@@ -81,7 +81,7 @@ const STEPS = [
 // against: every card is Pro, at R97 a card a month.
 const PLAN_FEATURES = [
   'Your own card URL at cardtly.com/card/you',
-  '12 card templates',
+  '16 card templates',
   'Custom accent colour and fonts',
   'Job title, bio, address, WhatsApp',
   'Up to 10 custom link buttons',
@@ -204,7 +204,7 @@ export default function HowItWorksPage() {
             <h2 className="text-4xl font-black tracking-tight mb-3">
               One plan. <span style={gradText}>Everything included.</span>
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.45)' }}>Every feature on one card, for R97 a month.</p>
+            <p style={{ color: 'rgba(255,255,255,0.45)' }}>Every feature on one card, from R97 a month.</p>
           </div>
           <GeoPricing plan={PLAN_FEATURES} />
         </div>

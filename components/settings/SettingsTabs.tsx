@@ -478,7 +478,7 @@ function SecurityTab({ user, supabase }: { user: Props['user']; supabase: any })
 }
 
 const PRO_FEATURES = [
-  '12 card templates', 'Custom accent colour', 'Custom links and social profiles',
+  '16 card templates', 'Custom accent colour', 'Custom links and social profiles',
   'Gallery and media', 'Analytics dashboard', 'Email signature generator',
   'Virtual background generator', 'Contact form and leads', 'QR code with your logo',
 ]

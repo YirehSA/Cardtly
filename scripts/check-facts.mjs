@@ -131,8 +131,10 @@ const COUNT_CLAIMS = [
     re: /(\d+)\s+(?:custom\s+)?link(?:\s+button)?s/gi },
   { what: 'gallery images', actual: maxImages,
     re: /(?:gallery of up to|up to)\s+(\d+)\s+(?:gallery\s+)?(?:images|photos)/gi },
+  // "card templates" too: "12 card templates" sat on the pricing page, the
+  // upgrade page and Settings, Billing while the rule only knew "designed".
   { what: 'templates', actual: templateCount,
-    re: /(\d+)\s+(?:designed\s+)?templates/gi },
+    re: /(\d+)\s+(?:designed\s+|card\s+)?templates/gi },
   // The stats bar on the home page splits the number away from the word, so
   // the prose rule above cannot see it. That is exactly where "12 designed
   // templates" survived a sweep that fixed every sentence on the site.
@@ -140,9 +142,20 @@ const COUNT_CLAIMS = [
     re: /n:\s*'(\d+)'[^}]*label:\s*'Designed templates'/gi },
 ]
 
-for (const file of MARKETING) {
+// The plan lists a customer reads inside the product say the same things as
+// the pricing page and went wrong the same way (12 templates, 5 links, 6
+// photos), so the counts are checked there too. Only the counts: the price and
+// free-tier rules below are about marketing copy.
+const PLAN_LISTS = [
+  ...marketingFiles('components/upgrade'),
+  ...marketingFiles('components/settings'),
+  ...marketingFiles('components/team'),
+]
+
+for (const file of [...MARKETING, ...PLAN_LISTS]) {
   let text
-  try { text = read(file) } catch { continue }
+  // Comments out of the product files: they record what the copy used to say.
+  try { text = PLAN_LISTS.includes(file) ? read(file).replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ') : read(file) } catch { continue }
   for (const { what, actual, re } of COUNT_CLAIMS) {
     re.lastIndex = 0
     let m
@@ -263,6 +276,13 @@ for (const file of MARKETING) {
     const n = priceNumber(m[1])
     if (!priceIsPlausible(n)) {
       note(`${file} quotes R${n} as a recurring price; SEAT_PRICE_RAND is ${seatPrice} (R${seatPrice * 10} a year, about R${annualMonthly} a month on the annual plan).`)
+    }
+    // The website says "from R97" (Andre, 2026-10-28): resellers and
+    // Enterprise sell at their own prices, so R97 is where it starts, not
+    // what everybody pays. A sum worked from it ("at the starting price of
+    // R97") and "the same R97" are fine.
+    if (n === seatPrice && !/(?:from|starting price of|same)\s*(?:<[^>]+>)?\s*$/i.test(text.slice(Math.max(0, m.index - 40), m.index))) {
+      note(`${file} states the card price as plain "R${seatPrice}" ("${text.slice(Math.max(0, m.index - 30), m.index + 25).replace(/\s+/g, ' ').trim()}"). The website says "from R${seatPrice}".`)
     }
   }
 

@@ -30,12 +30,12 @@ const YEARLY_PER_MONTH = Math.round(YEARLY / 12)
 // this list while the editor has only ever offered five, and the gallery was
 // undersold at five when it takes six.
 const PRO_FEATURES = [
-  '12 card templates',
+  '16 card templates',
   'Your own colours and fonts',
   'Bio, job title, address and WhatsApp',
-  'Up to 5 custom link buttons',
+  'Up to 10 custom link buttons',
   'Your social media profiles',
-  'Up to 6 gallery photos',
+  'Up to 10 gallery photos',
   'Certifications and awards',
   'Analytics - opens, taps and leads',
   'Email signature generator',

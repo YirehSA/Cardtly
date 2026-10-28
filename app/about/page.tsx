@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   // it. absolute skips the template; this is 51.
   title: { absolute: 'About Cardtly | Digital Business Cards, South Africa' },
   description:
-    'Cardtly is a South African digital business card platform out to retire the paper card. Rand pricing, local NFC delivery, and R97 a card a month.',
+    'Cardtly is a South African digital business card platform out to retire the paper card. Rand pricing, local NFC delivery, and from R97 a card a month.',
   alternates: { canonical: '/about' },
 }
 
@@ -98,7 +98,7 @@ export default function AboutPage() {
                 So we built something better. A card that lives on a link. One that updates instantly, shows you who viewed it, and lets people save your contact with a single tap — no paper, no printing, no waste.
               </p>
               <p>
-                We built Cardtly in South Africa, and we priced it for South Africa. Too many great SaaS tools price out the African market entirely. We don\'t. Cardtly is R97 a card per month, a price that respects what people actually earn.
+                We built Cardtly in South Africa, and we priced it for South Africa. Too many great SaaS tools price out the African market entirely. We don\'t. Cardtly is from R97 a card per month, a price that respects what people actually earn.
               </p>
               <p>
                 We are just getting started. The roadmap is full and the community is growing. If you have an idea, a complaint, or just want to say hello — we actually read our inbox.

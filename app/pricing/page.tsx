@@ -26,9 +26,9 @@ const YEAR_PRICE_RAND = SEAT_PRICE_RAND * 10
 const TRIAL_DAYS = 7
 
 export const metadata: Metadata = {
-  title: `Digital Business Card Pricing, R${SEAT_PRICE_RAND} a Month`,
+  title: `Digital Business Card Pricing, from R${SEAT_PRICE_RAND} a Month`,
   description:
-    `Free for ${TRIAL_DAYS} days, no credit card. Then R${SEAT_PRICE_RAND} per card a month or R${YEAR_PRICE_RAND} a year. Teams of 2 to ${MAX_SELF_SERVE_SEATS} seats at R${SEAT_PRICE_RAND} each. NFC cards from R150.`,
+    `Free for ${TRIAL_DAYS} days, no credit card. Then from R${SEAT_PRICE_RAND} per card a month or R${YEAR_PRICE_RAND} a year. Teams of 2 to ${MAX_SELF_SERVE_SEATS} seats from R${SEAT_PRICE_RAND} each. NFC cards from R150.`,
   alternates: { canonical: '/pricing' },
 }
 
@@ -56,7 +56,7 @@ const LILAC = '#a78bfa'                // brand purple that passes as text
 const MINT = '#34d399'
 
 const PRO = [
-  '12 card templates',
+  '16 card templates',
   'Custom accent colour and fonts',
   'Job title, bio, address, WhatsApp',
   'Up to 10 custom link buttons',
@@ -100,9 +100,9 @@ const ENTERPRISE = [
 const FAQS = [
   // The trial answer is new. Everything it says is already true and already
   // stated on the blog; it simply was not on the page where people decide.
-  { q: `Is there a free trial?`, a: `Yes. Every signup gets ${TRIAL_DAYS} days of the full product with no credit card required: a customisable card, all three sharing methods, analytics, a contacts CRM and lead capture. Nothing is held back during the trial and nothing is charged if you walk away. After the ${TRIAL_DAYS} days it is R${SEAT_PRICE_RAND} a month to keep the card live.` },
+  { q: `Is there a free trial?`, a: `Yes. Every signup gets ${TRIAL_DAYS} days of the full product with no credit card required: a customisable card, all three sharing methods, analytics, a contacts CRM and lead capture. Nothing is held back during the trial and nothing is charged if you walk away. After the ${TRIAL_DAYS} days it is from R${SEAT_PRICE_RAND} a month to keep the card live.` },
   { q: `What does R${SEAT_PRICE_RAND} include?`, a: 'Everything. One card, every Cardtly feature: templates, custom branding, analytics, lead capture, meeting booking, WhatsApp follow-up, the paper card scanner and Excel export. There is no cut-down version.' },
-  { q: 'Is there a team plan?', a: `Yes, and you can set it up yourself right now. Teams run from 2 to ${MAX_SELF_SERVE_SEATS} seats at R${SEAT_PRICE_RAND} a seat per month, with locked company branding, email invites, and one admin dashboard. Need more than ${MAX_SELF_SERVE_SEATS} seats? That is Enterprise, and we bill it by debit order.` },
+  { q: 'Is there a team plan?', a: `Yes, and you can set it up yourself right now. Teams run from 2 to ${MAX_SELF_SERVE_SEATS} seats from R${SEAT_PRICE_RAND} a seat per month, with locked company branding, email invites, and one admin dashboard. Need more than ${MAX_SELF_SERVE_SEATS} seats? That is Enterprise, and we bill it by debit order.` },
   { q: `What happens above ${MAX_SELF_SERVE_SEATS} seats?`, a: 'You move to Enterprise. Same product, but billed by debit order instead of a card, with invoicing that suits your finance team. Talk to us and we will set it up.' },
   { q: 'Can I cancel anytime?', a: 'Yes. Cancel whenever you like, no lock-in and no cancellation fee. You keep Pro until the end of the period you have paid for.' },
   // Worded to match the Terms ("We do not refund part periods, except where
@@ -165,7 +165,7 @@ export default function PricingPage() {
 
             <p className="animate-fade-up-delayed text-lg xl:text-xl leading-relaxed max-w-xl mx-auto lg:mx-0 mb-8"
               style={{ color: BODY }}>
-              Then R{SEAT_PRICE_RAND} a card per month, whether it is just you or your whole team. No feature tiers,
+              Then from R{SEAT_PRICE_RAND} a card per month, whether it is just you or your whole team. No feature tiers,
               no surprises, with every feature included.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
@@ -192,8 +192,8 @@ export default function PricingPage() {
                 "≈ £4.50 a month, charged in rand (ZAR)". Enterprise is quoted,
                 so it has no figure to convert. */}
             {[
-              { k: `R${SEAT_PRICE_RAND}`, v: 'Individual: per card, per month', per: ' a month, ' },
-              { k: `R${SEAT_PRICE_RAND} / seat`, v: `Pro Teams: 2 to ${MAX_SELF_SERVE_SEATS} seats, one invoice`, per: ' a seat a month, ' },
+              { k: `From R${SEAT_PRICE_RAND}`, v: 'Individual: per card, per month', per: ' a month, ' },
+              { k: `From R${SEAT_PRICE_RAND} / seat`, v: `Pro Teams: 2 to ${MAX_SELF_SERVE_SEATS} seats, one invoice`, per: ' a seat a month, ' },
               { k: `${MAX_SELF_SERVE_SEATS + 1}+ seats`, v: 'Enterprise: quoted on your seat count', per: null },
             ].map(({ k, v, per }) => (
               <div key={v} className="rounded-2xl p-5"
@@ -249,6 +249,7 @@ export default function PricingPage() {
             <div className="relative">
               <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: LILAC }}>Teams</p>
               <div className="flex items-end gap-2 mb-1">
+                <span className="text-base pb-1.5" style={{ color: DIM }}>From</span>
                 <span className="text-5xl font-black">R{SEAT_PRICE_RAND}</span>
                 <span className="text-base pb-1" style={{ color: DIM }}>/ seat / month</span>
               </div>
@@ -372,7 +373,7 @@ export default function PricingPage() {
             Arm your team with <span style={gradText}>Cardtly.</span>
           </h2>
           <p className="mb-8" style={{ color: BODY }}>
-            Free for {TRIAL_DAYS} days, then R{SEAT_PRICE_RAND} a card. Set up in minutes, cancel any time.
+            Free for {TRIAL_DAYS} days, then from R{SEAT_PRICE_RAND} a card. Set up in minutes, cancel any time.
             <PriceEstimate zar={SEAT_PRICE_RAND} suffix=" a card a month." className="block mt-2 text-sm" />
             <RandChargeNote className="block text-xs" />
           </p>

@@ -29,6 +29,7 @@ export default function GeoPricing({ plan }: GeoPricingProps) {
           <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#7c3aed' }}>Pro</p>
 
           <div className="flex items-end gap-2 mb-1">
+            <span className="text-base pb-1.5" style={{ color: 'rgba(255,255,255,0.45)' }}>From</span>
             <span className="text-5xl font-black" style={{ background: grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               R97
             </span>

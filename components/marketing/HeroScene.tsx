@@ -663,7 +663,7 @@ export default function HeroScene() {
                   two children, the estimate would sit a flex gap away from
                   the price instead of reading as part of the same line. */}
               <Tick className="tick-price">
-                <span>R{SEAT_PRICE_RAND} a card a month<PriceEstimate zar={SEAT_PRICE_RAND} prefix=" (" suffix=")" /></span>
+                <span>From R{SEAT_PRICE_RAND} a card a month<PriceEstimate zar={SEAT_PRICE_RAND} prefix=" (" suffix=")" /></span>
               </Tick>
             </div>
           </div>

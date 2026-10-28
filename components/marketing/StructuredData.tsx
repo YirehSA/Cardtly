@@ -46,7 +46,7 @@ const APP = {
       name: 'Teams',
       price: '97',
       priceCurrency: 'ZAR',
-      description: 'R97 per seat per month, 2 to 20 seats, with locked company branding and one admin dashboard.',
+      description: 'From R97 per seat per month, 2 to 20 seats, with locked company branding and one admin dashboard.',
     },
   ],
 }

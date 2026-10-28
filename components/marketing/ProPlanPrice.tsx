@@ -62,6 +62,7 @@ export default function ProPlanPrice() {
       </div>
 
       <div className="flex items-end gap-2 mb-1">
+        <span className="text-base pb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>From</span>
         <span className="text-5xl font-black">R{isYearly ? YEAR : MONTH}</span>
         {/* The suffix says what you are buying and was the least readable text
             in the block at 3.1:1. */}

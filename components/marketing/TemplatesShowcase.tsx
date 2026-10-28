@@ -101,7 +101,7 @@ export default function TemplatesShowcase() {
           <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-3">
             One card.{' '}
             <span style={{ background: grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-              Twelve vibes.
+              Sixteen vibes.
             </span>
           </h2>
           <p className="text-base max-w-xl mx-auto" style={{ color: 'rgba(255,255,255,0.55)' }}>

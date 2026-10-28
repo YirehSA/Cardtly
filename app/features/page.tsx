@@ -417,7 +417,7 @@ const GROUPS: Group[] = [
       },
       {
         icon: Users, title: 'Per seat, change any time', tier: 'Team',
-        desc: 'R97 per card a month. Add seats as you hire; a card you have not handed out yet sits ready with an invite against it, so a new starter is live on their first morning.',
+        desc: 'From R97 per card a month. Add seats as you hire; a card you have not handed out yet sits ready with an invite against it, so a new starter is live on their first morning.',
         how: 'Add cards from the team dashboard and invite people whenever you are ready.',
       },
       {
@@ -501,7 +501,7 @@ const GROUPS: Group[] = [
 const FAQS = [
   {
     q: 'Is Cardtly free?',
-    a: 'Cardtly is R97 per card per month, or R970 a year, and every feature is included. No credit card is needed to create your card and set it up. Teams are R97 a seat from 2 to 20 seats, and Enterprise above that is billed by debit order.',
+    a: 'Cardtly is from R97 per card per month, or R970 a year, and every feature is included. No credit card is needed to create your card and set it up. Teams are from R97 a seat, for 2 to 20 seats, and Enterprise above that is billed by debit order.',
   },
   {
     q: 'What is a digital business card?',
@@ -699,7 +699,7 @@ export default function FeaturesPage() {
               <div className="flex-1 min-w-[260px]">
                 <h2 className="text-2xl md:text-3xl font-black tracking-tight mb-2">Cardtly for teams</h2>
                 <p className="text-base leading-relaxed mb-5 max-w-2xl" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                  Roll out one brand across the whole company, decide exactly which parts people may not change, and give each department a head who runs their own team. R97 per card a month.
+                  Roll out one brand across the whole company, decide exactly which parts people may not change, and give each department a head who runs their own team. From R97 per card a month.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-6 max-w-xl">
                   {['Lock only what you choose', 'Departments with their own head', 'Their name, photo and title stay theirs', 'Reporting and leads per rep', 'One brand, or one per department', 'Add seats as you hire'].map(t => (

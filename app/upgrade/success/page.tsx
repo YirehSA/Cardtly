@@ -45,11 +45,11 @@ export default async function UpgradeSuccessPage({
             </p>
             <div className="space-y-2.5">
               {[
-                '12 card templates — go to My Card to switch',
-                'Analytics — see who viewed your card',
-                'Email signature — generate yours now',
-                'Virtual background — for Zoom & Teams',
-                'Contact form — capture leads from your card',
+                '16 card templates: go to My Card to switch',
+                'Analytics: see who viewed your card',
+                'Email signature: generate yours now',
+                'Virtual background: for Zoom & Teams',
+                'Contact form: capture leads from your card',
                 'QR code with your own logo',
               ].map(item => (
                 <p key={item} className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>✓ {item}</p>

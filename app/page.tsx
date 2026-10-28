@@ -65,7 +65,7 @@ const COMPANY_CONTROLS = [
   { icon: BarChart2, colour: '#7c3aed', title: 'Reporting per person',
     desc: 'Views, taps, link clicks and saved contacts for each rep, and every lead they capture in one place. You see who is actually being opened.' },
   { icon: Users, colour: '#06b6d4', title: 'Per seat, change any time',
-    desc: 'R97 per card a month. Add people as you hire, and a card you have not handed out yet waits with an invite against it.' },
+    desc: 'From R97 per card a month. Add people as you hire, and a card you have not handed out yet waits with an invite against it.' },
 ]
 
 // Synchronous pre-paint script.
@@ -145,12 +145,12 @@ export const metadata = {
   // Kept under ~155 characters so Google shows the whole line rather than
   // cutting it mid-sentence.
   description:
-    'One branded digital business card per rep. Tap to share, capture leads into your contacts, see which reps get opened. R97 a card a month.',
+    'One branded digital business card per rep. Tap to share, capture leads into your contacts, see which reps get opened. From R97 a card a month.',
   alternates: { canonical: '/' },
   openGraph: {
     title: 'Digital Business Cards for Teams | Cardtly',
     description:
-      'One branded card per rep. Tap to share, capture leads automatically, track what happens next. R97 a card a month, NFC cards delivered across South Africa.',
+      'One branded card per rep. Tap to share, capture leads automatically, track what happens next. From R97 a card a month, NFC cards delivered across South Africa.',
   },
 }
 
@@ -201,7 +201,9 @@ export default function HomePage() {
                 per month" and "A card a month" - which is the same price said
                 twice, and read as a mistake because it is one. */}
             {[
-              { n: `R${SEAT_PRICE_RAND}`, label: 'Per card, per month', estimate: true },
+              // "From" smaller than the figure: at full size it overran its quarter
+              // of the row at 1024 and on a phone.
+              { n: `R${SEAT_PRICE_RAND}`, pre: 'From', label: 'Per card, per month', estimate: true },
               { n: '16',       label: 'Designed templates' },
               // Not "20 seats per team". Twenty is the ceiling on self-serve
               // Paystack billing, not a limit on the product: above it a team
@@ -210,7 +212,7 @@ export default function HomePage() {
               // team could ever be, which undersells it badly.
               { n: 'Unlimited', label: 'Seats with Enterprise' },
               { n: '5–7 days', label: 'NFC card delivery, SA' },
-            ].map(({ n, label, estimate }, i) => (
+            ].map(({ n, pre, label, estimate }: { n: string; pre?: string; label: string; estimate?: boolean }, i) => (
               <Reveal key={label} delay={i * 90}>
                 <div className="text-center">
                   {/* nowrap: "5-7 days" was breaking after the number and
@@ -222,7 +224,11 @@ export default function HomePage() {
                       only looked right above about 1200px, which is why nobody
                       on a desktop ever saw it. 48px until xl needs 202px and
                       fits from 1024 up. */}
-                  <p className="text-4xl md:text-5xl xl:text-6xl font-black tracking-tight whitespace-nowrap" style={gradText}>{n}</p>
+                  {/* text-3xl on a phone: at 36px "Unlimited" needs about 175px of
+                      a 155px half-row on a 390px screen and was cut off. */}
+                  <p className="text-3xl sm:text-4xl md:text-5xl xl:text-6xl font-black tracking-tight whitespace-nowrap" style={gradText}>
+                    {pre && <><span className="text-lg md:text-xl xl:text-2xl font-bold tracking-normal">{pre}</span>{' '}</>}{n}
+                  </p>
                   <p className="text-xs md:text-sm mt-2 uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.45)' }}>{label}</p>
                   {/* Outside the rand zone only: the price in the visitor's own
                       currency, and that the charge stays in rand. Renders
@@ -746,7 +752,7 @@ export default function HomePage() {
                 </Link>
               </div>
               <p className="text-xs mt-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                Free trial on request · Cancel anytime · R{SEAT_PRICE_RAND} a card a month
+                Free trial on request · Cancel anytime · From R{SEAT_PRICE_RAND} a card a month
                 <PriceEstimate zar={SEAT_PRICE_RAND} suffix=" a month." className="block mt-1.5" />
                 <RandChargeNote className="block" />
               </p>

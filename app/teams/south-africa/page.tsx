@@ -53,7 +53,7 @@ const PANEL = 'rgba(255,255,255,0.03)'
 const POINTS = [
   {
     icon: Banknote, title: 'Priced in rand',
-    text: `R${SEAT_PRICE_RAND} per card per month in South African rand, billed monthly or annually. Every card carries every feature, so the price never depends on what a team switches on.`,
+    text: `From R${SEAT_PRICE_RAND} per card per month in South African rand, billed monthly or annually. Every card carries every feature, so the price never depends on what a team switches on.`,
   },
   {
     icon: CreditCard, title: 'Pay by card or EFT',
@@ -80,7 +80,7 @@ const POINTS = [
 const FAQ: Array<{ q: string; a: string }> = [
   {
     q: 'How much do digital business cards for teams cost in South Africa?',
-    a: `Cardtly is R${SEAT_PRICE_RAND} per card per month in South African rand, billed monthly or annually, and every card has the full feature set. Teams of 2 to ${MAX_SELF_SERVE_SEATS} cards are self-serve and pay by card. Above ${MAX_SELF_SERVE_SEATS} seats the arrangement is quoted and invoiced. Physical NFC cards are optional and separate: R150 each for the standard design or R200 for one designed around your brand, once off, plus R100 shipping per order, delivered within South Africa.`,
+    a: `Cardtly is from R${SEAT_PRICE_RAND} per card per month in South African rand, billed monthly or annually, and every card has the full feature set. Teams of 2 to ${MAX_SELF_SERVE_SEATS} cards are self-serve and pay by card. Above ${MAX_SELF_SERVE_SEATS} seats the arrangement is quoted and invoiced. Physical NFC cards are optional and separate: R150 each for the standard design or R200 for one designed around your brand, once off, plus R100 shipping per order, delivered within South Africa.`,
   },
   {
     q: 'Can a South African company pay by EFT?',
@@ -159,7 +159,7 @@ export default function TeamsSouthAfricaPage() {
 
             <dl className="grid grid-cols-3 gap-3 mt-10 pt-8" style={{ borderTop: `1px solid ${HAIR}` }}>
               {[
-                { v: `R${SEAT_PRICE_RAND}`, l: 'per card, per month' },
+                { v: `From R${SEAT_PRICE_RAND}`, l: 'per card, per month' },
                 { v: '5 to 7 days', l: 'NFC card delivery, SA' },
                 { v: 'POPIA', l: 'operator agreement' },
               ].map(s => (

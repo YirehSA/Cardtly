@@ -123,7 +123,7 @@ const NFC_FAQ = [
   },
   {
     q: 'What does an NFC business card cost?',
-    a: 'R150 for the standard design, which puts your logo and colours on the Cardtly layout, or R200 for a custom design built around your brand instead. Both include the artwork and a proof before anything is printed. Shipping is R100 per order rather than per card, so ordering ten cards for a team costs the same to ship as ordering one, and delivery is 5 to 7 business days within South Africa. The card is a once-off purchase and is separate from the Cardtly subscription, which is R97 per card per month.',
+    a: 'R150 for the standard design, which puts your logo and colours on the Cardtly layout, or R200 for a custom design built around your brand instead. Both include the artwork and a proof before anything is printed. Shipping is R100 per order rather than per card, so ordering ten cards for a team costs the same to ship as ordering one, and delivery is 5 to 7 business days within South Africa. The card is a once-off purchase and is separate from the Cardtly subscription, which is from R97 per card per month.',
   },
   {
     q: 'Do I need an NFC card to use Cardtly?',
@@ -406,7 +406,7 @@ const NFC_FAQ = [
             Sign up <ArrowRight className="w-4 h-4" />
           </Link>
           <p className="text-xs mt-4" style={{ color: 'rgba(255,255,255,0.25)' }}>
-            R97 a card a month · Order your NFC card
+            From R97 a card a month · Order your NFC card
           </p>
         </div>
       </section>

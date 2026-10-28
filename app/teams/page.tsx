@@ -94,7 +94,7 @@ const FAQ: Array<{ q: string; a: string }> = [
   },
   {
     q: 'What does it cost for a team?',
-    a: `Cardtly is R${SEAT_PRICE_RAND} per card per month in South African rand, billed monthly or annually. Teams of 2 to ${MAX_SELF_SERVE_SEATS} cards are self-serve: an administrator buys seats and issues cards without talking to anyone. Above ${MAX_SELF_SERVE_SEATS} seats the arrangement is quoted, because that is where invoicing, purchase orders and rollout support usually matter more than a checkout page. Every card carries the full feature set. There is no cut-down tier where analytics or lead capture are held back, so the price does not change according to which features a team turns on. Physical NFC cards are separate and optional: R150 each for the standard design or R200 for one designed around your brand, once off, plus R100 shipping per order rather than per card, and those ship within South Africa only. The digital cards themselves have no such limit.`,
+    a: `Cardtly is from R${SEAT_PRICE_RAND} per card per month in South African rand, billed monthly or annually. Teams of 2 to ${MAX_SELF_SERVE_SEATS} cards are self-serve: an administrator buys seats and issues cards without talking to anyone. Above ${MAX_SELF_SERVE_SEATS} seats the arrangement is quoted, because that is where invoicing, purchase orders and rollout support usually matter more than a checkout page. Every card carries the full feature set. There is no cut-down tier where analytics or lead capture are held back, so the price does not change according to which features a team turns on. Physical NFC cards are separate and optional: R150 each for the standard design or R200 for one designed around your brand, once off, plus R100 shipping per order rather than per card, and those ship within South Africa only. The digital cards themselves have no such limit.`,
   },
   {
     q: 'How do employees get their cards?',
@@ -389,7 +389,7 @@ export default function TeamsPage() {
                   so the hero has something scannable under the buttons. */}
               <dl className="grid grid-cols-3 gap-3 mt-10 pt-8" style={{ borderTop: `1px solid ${HAIR}` }}>
                 {[
-                  { v: `R${SEAT_PRICE_RAND}`, l: 'per card, per month' },
+                  { v: `From R${SEAT_PRICE_RAND}`, l: 'per card, per month' },
                   { v: `2 to ${MAX_SELF_SERVE_SEATS}`, l: 'seats, self-serve' },
                   { v: '3 levels', l: 'group, company, dept' },
                 ].map(s => (
@@ -544,7 +544,7 @@ export default function TeamsPage() {
               <div className="grid lg:grid-cols-[1fr_auto] gap-10 items-center">
                 <div>
                   <SectionHead kicker="Pricing" title="What it costs">
-                    R{SEAT_PRICE_RAND} per card per month, billed monthly or annually. Teams of 2 to{' '}
+                    From R{SEAT_PRICE_RAND} per card per month, billed monthly or annually. Teams of 2 to{' '}
                     {MAX_SELF_SERVE_SEATS} cards are self-serve. Above {MAX_SELF_SERVE_SEATS} seats the
                     arrangement is quoted, because that is where invoicing, purchase orders and rollout
                     support matter more than a checkout page. Every card carries the full feature set, so
@@ -567,12 +567,12 @@ export default function TeamsPage() {
                   style={{ background: PANEL, border: '1px solid rgba(124,58,237,0.35)' }}
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: DIM }}>
-                    Per card
+                    From
                   </p>
                   <p className="font-display text-5xl font-bold mt-2" style={gradText}>
                     R{SEAT_PRICE_RAND}
                   </p>
-                  <p className="text-xs mt-1" style={{ color: DIM }}>per month</p>
+                  <p className="text-xs mt-1" style={{ color: DIM }}>per card, per month</p>
                   <div className="mt-5 pt-5 space-y-2 text-left" style={{ borderTop: `1px solid ${HAIR}` }}>
                     {['Every feature included', 'No cut-down tier', 'Monthly or annual'].map(l => (
                       <p key={l} className="flex items-center gap-2 text-xs" style={{ color: BODY }}>
