@@ -260,7 +260,7 @@ function ProfileTab({ user, profile, card, supabase }: { user: Props['user']; pr
             </div>
             {slugError && <p className="text-xs text-destructive mt-1.5">{slugError}</p>}
             <p className="text-xs text-muted-foreground mt-1.5">
-              Use your name or company. e.g. <span className="font-mono">andre-nel</span> or <span className="font-mono">andre-yireh</span>. Old links still work.
+              Use your name or company. e.g. <span className="font-mono">thandi-nkosi</span> or <span className="font-mono">nkosi-design</span>. Old links still work.
             </p>
           </div>
         )}
