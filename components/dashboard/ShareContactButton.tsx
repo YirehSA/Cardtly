@@ -90,7 +90,7 @@ export default function ShareContactButton({ contact }: Props) {
       // silently, and telling them beats a button that does nothing.
       try {
         await navigator.clipboard.writeText(text)
-        toast.success('Details copied — paste them into any chat')
+        toast.success('Details copied. Paste them into any chat.')
       } catch {
         toast.error('Could not open WhatsApp. Allow pop-ups and try again.')
       }

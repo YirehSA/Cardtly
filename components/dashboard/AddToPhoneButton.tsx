@@ -40,7 +40,7 @@ export default function AddToPhoneButton({ contact }: Props) {
       toast.success(
         r.method === 'native' ? 'Added to your phone contacts'
         : r.method === 'share' ? 'Choose Contacts to save it'
-        : 'Contact downloaded — open it to add'
+        : 'Contact downloaded. Open it to add.'
       )
     } else if (r.reason === 'denied') {
       toast.error('Contacts permission denied')
