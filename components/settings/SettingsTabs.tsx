@@ -244,7 +244,9 @@ function ProfileTab({ user, profile, card, supabase }: { user: Props['user']; pr
         {card && (
           <div>
             <label className="block text-sm font-medium mb-1.5">Card URL</label>
-            <div className="flex gap-2">
+            {/* On phones Update takes its own line: the input would not shrink, and
+                pushed the button off a 390 px screen. */}
+            <div className="flex flex-wrap sm:flex-nowrap gap-2">
               <div className="flex items-center px-3 py-2.5 rounded-l-lg border border-r-0 border-border bg-muted text-sm text-muted-foreground whitespace-nowrap">
                 cardtly.com/card/
               </div>
@@ -253,10 +255,10 @@ function ProfileTab({ user, profile, card, supabase }: { user: Props['user']; pr
                 value={slug}
                 onChange={e => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setSlugError(''); setSlugSuccess(false) }}
                 placeholder="your-name"
-                className="flex-1 px-4 py-2.5 rounded-r-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
+                className="flex-1 min-w-0 px-4 py-2.5 rounded-r-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
               />
               <button onClick={saveSlug} disabled={slugSaving || !slug || slug === card.slug}
-                className="px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap" style={{ background: 'hsl(var(--accent))' }}>
+                className="w-full sm:w-auto px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 whitespace-nowrap" style={{ background: 'hsl(var(--accent))' }}>
                 {slugSaving ? 'Saving...' : slugSuccess ? '✓ Saved' : 'Update'}
               </button>
             </div>
