@@ -688,12 +688,12 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Company name</label>
             <input value={orgName} onChange={e => setOrgName(e.target.value)}
-              placeholder="Yireh Business Solutions" className={inputClass} />
+              placeholder="Nkosi Design" className={inputClass} />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-2">
-              Number of cards — <span className="text-foreground font-bold">{seatCount} cards × R{SEAT_PRICE} = R{seatCount * SEAT_PRICE}/month</span>
+              Number of cards: <span className="text-foreground font-bold">{seatCount} cards × R{SEAT_PRICE} = R{seatCount * SEAT_PRICE}/month</span>
             </label>
             {/* Tier buttons - only the seat counts Paystack has plans for */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -720,7 +720,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
           <div className="space-y-2">
             {[
               'All 16 card templates for every team member',
-              'Admin dashboard — you create and manage all cards',
+              'Admin dashboard: you create and manage all cards',
               'Each card gets its own public URL and QR code',
               'Analytics, email signature, virtual background per card',
               'Add more seats anytime',
@@ -752,7 +752,7 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
             className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50" style={{ background: 'hsl(var(--accent))' }}>
             {loading
               ? <><Loader2 className="w-4 h-4 animate-spin" />Redirecting to payment...</>
-              : <><CreditCard className="w-4 h-4" />Pay R{seatCount * SEAT_PRICE}/month — {resuming ? 'Finish setup' : 'Start team plan'}</>}
+              : <><CreditCard className="w-4 h-4" />Pay R{seatCount * SEAT_PRICE}/month · {resuming ? 'Finish setup' : 'Start team plan'}</>}
           </button>
         </div>
       </div>
