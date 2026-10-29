@@ -47,18 +47,20 @@ function exampleColumns(routes: boolean): Array<{ header: string; key: ExampleKe
     : base
 }
 
+// Invented throughout, as every owner sees them: example.com addresses, numbers in the
+// 082 000 01.. style of the demo cards, and the same made-up company as the Settings hint.
 function exampleRows(routes: boolean): Array<Record<ExampleKey, string>> {
   return [
     {
-      name: 'Thabo Nkosi', email: 'thabo@company.co.za', title: 'Site Manager',
-      phone: '082 123 4567',
-      company: routes ? 'Vistio' : 'TBCo Roofing',
+      name: 'Thabo Nkosi', email: 'thabo@example.com', title: 'Site Manager',
+      phone: '082 000 0101',
+      company: 'Nkosi Design',
       department: 'Site Management',
     },
     {
-      name: 'Sarah Botha', email: 'sarah@company.co.za', title: 'Sales Director',
-      phone: '083 987 6543',
-      company: routes ? 'Cardtly' : 'TBCo Roofing',
+      name: 'Sarah Botha', email: 'sarah@example.com', title: 'Sales Director',
+      phone: '082 000 0102',
+      company: routes ? 'Nkosi Build' : 'Nkosi Design',
       department: 'Sales',
     },
   ]
