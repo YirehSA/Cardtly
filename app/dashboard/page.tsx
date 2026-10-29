@@ -354,7 +354,9 @@ export default async function DashboardPage() {
             </Link>
           </div>
 
-          <div className="p-5 grid sm:grid-cols-[minmax(0,180px)_1fr] gap-5 items-start">
+          {/* grid-cols-1 (minmax(0, 1fr)) on phones: an automatic column grows to fit the
+              long card link below, which cannot wrap, and pushed the buttons past the panel. */}
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-[minmax(0,180px)_minmax(0,1fr)] gap-5 items-start">
             {/* Mini preview */}
             <div className="rounded-lg overflow-hidden mx-auto w-full max-w-[180px] border border-border bg-background">
               <div className="h-1" style={{ background: accentHex }} />
