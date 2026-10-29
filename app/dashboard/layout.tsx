@@ -165,15 +165,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // company's colour. Asked for only in that case, so the common path costs
   // nothing extra, and tolerantly, because a colour is the last thing that
   // should be able to stop every dashboard page rendering.
+  //
+  // The same team card names them in the sidebar. Without it, every member,
+  // and every owner whose card moved into their team, was "Your Name".
   let brandSource: string | null = (card as any)?.color_theme ?? null
-  if (!brandSource) {
+  let teamCardName: string | null = null
+  if (!brandSource || !card) {
     try {
       const teamCard = await getMemberTeamCard<Record<string, any>>(user.id, '*')
       if (teamCard) {
-        const resolved = (await withResolvedBrand(deptAdmin, [teamCard]))[0]
-        brandSource = (resolved as any)?.color_theme ?? null
+        teamCardName = teamCard.name || null
+        if (!brandSource) {
+          const resolved = (await withResolvedBrand(deptAdmin, [teamCard]))[0]
+          brandSource = (resolved as any)?.color_theme ?? null
+        }
       }
-    } catch { /* leave the default palette in place */ }
+    } catch { /* leave the default palette and name in place */ }
   }
   const brandVars = brandThemeStyle(brandSource ? getAccentHex(parseDesign(brandSource)) : null)
 
@@ -198,7 +205,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           teamTabLabel={teamTabLabel}
           isRep={isRep}
           isReseller={isReseller}
-          userName={card?.name || ''}
+          userName={card?.name || teamCardName || ''}
           userEmail={user.email || ''}
         />
         <main className="min-h-screen transition-all duration-300 lg:[padding-left:calc(var(--sidebar-width)+var(--shell-gap)*2)]">
