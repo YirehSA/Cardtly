@@ -86,7 +86,7 @@ export default async function VirtualBGPage() {
   const allCards: any[] = [
     ...(personalCard ? [{ ...personalCard, _type: 'personal', _label: `${personalCard.name} (My card)` }] : []),
     ...(memberCard ? [{ ...memberCard, _type: 'team', _label: `${memberCard.name} (My card)` }] : []),
-    ...(teamCards || []).map(c => ({ ...c, _type: 'team', _label: `${c.name}${c.title ? ` — ${c.title}` : ''}` })),
+    ...(teamCards || []).map(c => ({ ...c, _type: 'team', _label: `${c.name}${c.title ? `, ${c.title}` : ''}` })),
   ]
 
   if (allCards.length === 0) {

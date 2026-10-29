@@ -456,7 +456,7 @@ export default function VirtualBGBuilder({ cards, defaultCardId }: Props) {
           )}
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
-          Preview scaled down — download is full 1920×1080
+          Preview scaled down. The download is full 1920×1080.
         </p>
       </div>
 
