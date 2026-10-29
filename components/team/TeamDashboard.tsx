@@ -1190,7 +1190,9 @@ export default function TeamDashboard({ user, org: initialOrg, teamCards: initia
                           <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
                             style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.25)' }}>
                             <UserCheck className="w-3.5 h-3.5" />
-                            <span className="flex-1 truncate">Claimed by {card.invite_email}</span>
+                            {/* A card claimed without an invite (an owner's own card moved into
+                                the team) has no invite email to name. */}
+                            <span className="flex-1 truncate">{card.invite_email ? `Claimed by ${card.invite_email}` : 'Claimed'}</span>
                             <button onClick={() => revokeMember(card.id, card.invite_email)}
                               disabled={actioningCardId === card.id}
                               title="Remove this member's access. Card is preserved; admin keeps managing it."
