@@ -45,7 +45,7 @@ export default async function SettingsPage() {
   // user_id, which is the session's, so this shows them nothing but their own.
   const { data: sub } = await admin
     .from('whop_subscriptions')
-    .select('subscription_tier, status, created_at, billing_cycle, seats')
+    .select('subscription_tier, status, created_at, billing_cycle, seats, metadata')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -130,7 +130,13 @@ export default async function SettingsPage() {
       profile={{ fullName: profile?.name || (card as any)?.name || '' }}
       plan={plan}
       team={team}
-      subscription={sub || null}
+      // metadata stays on the server (it can hold Paystack codes); the page
+      // needs only whether the row is free Pro, which admin comps mark there.
+      subscription={sub ? {
+        subscription_tier: sub.subscription_tier, status: sub.status, created_at: sub.created_at,
+        billing_cycle: sub.billing_cycle, seats: sub.seats,
+        comped: sub.billing_cycle === 'comp' || !!sub.metadata?.comped,
+      } : null}
       card={(card as any) || null}
     />
   )

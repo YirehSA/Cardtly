@@ -23,6 +23,8 @@ interface Props {
     created_at: string
     billing_cycle: string | null
     seats: number | null
+    /** Free Pro: billing_cycle 'comp', or an admin "Activate Pro" row (monthly, metadata.comped). */
+    comped?: boolean
   } | null
   /** Every card this person holds, for the primary-card picker. */
   myCards?: PickerCard[]
@@ -540,7 +542,9 @@ function billingState(plan: UserPlan, subscription: Props['subscription']) {
   // button for nothing, and warn on the danger tab that deleting their account
   // cancels a subscription that is not theirs.
   if (plan.viaTeam) return 'team' as const
-  if (subscription?.billing_cycle === 'comp') return 'comped' as const
+  // Admin "Activate Pro" writes billing_cycle 'monthly' with metadata.comped,
+  // and checking only 'comp' told those accounts they paid through Paystack.
+  if (subscription?.billing_cycle === 'comp' || subscription?.comped) return 'comped' as const
   return 'paid' as const
 }
 
