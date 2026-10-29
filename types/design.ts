@@ -779,7 +779,7 @@ export function templateOffersBooking(templateId: TemplateId | string | null | u
 export const TEMPLATES: TemplateConfig[] = [
   { id: 'classic',   name: 'Classic',   description: 'Centred, clean and professional',    proOnly: false, defaultBgMode: 'dark',  previewGradient: 'from-gray-900 to-gray-800' },
   { id: 'modern',    name: 'Modern',    description: 'Left-aligned, bold typography',       proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-slate-900 to-slate-800' },
-  { id: 'bold',      name: 'Bold',      description: 'Split hero — photo left, name right', proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-indigo-900 to-purple-900' },
+  { id: 'bold',      name: 'Bold',      description: 'Split hero: photo left, name right', proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-indigo-900 to-purple-900' },
   { id: 'minimal',   name: 'Minimal',   description: 'Vibrant icons on pure black or white', proOnly: true, defaultBgMode: 'dark',  previewGradient: 'from-black to-purple-950' },
   { id: 'executive', name: 'Executive', description: 'Magazine hero with bold diagonals',   proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-zinc-950 to-red-950' },
   { id: 'creative',  name: 'Creative',  description: 'Radial glow, accent avatar ring',     proOnly: true,  defaultBgMode: 'dark',  previewGradient: 'from-violet-950 to-fuchsia-950' },
