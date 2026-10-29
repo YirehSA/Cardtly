@@ -6,6 +6,7 @@ import CardFeatureToggles from '@/components/questionnaire/CardFeatureToggles'
 import { resolveAddonTargets } from '@/lib/addon-target'
 import { getUserPlan } from '@/lib/plan-server'
 import { isIosApp } from '@/lib/app-platform'
+import { MAX_QUESTIONNAIRES, MAX_QUESTIONS } from '@/lib/questionnaire'
 import { ClipboardList, User, Users, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 
@@ -224,7 +225,8 @@ function Header() {
         Lead capture
       </h1>
       <p className="text-muted-foreground text-sm mt-0.5">
-        What your card asks visitors for. Build up to 3 forms (5 questions each) and choose which one is live.
+        {/* From the limits the builder and the save route enforce, so this can never say 3 again. */}
+        What your card asks visitors for. Build up to {MAX_QUESTIONNAIRES} forms ({MAX_QUESTIONS} questions each) and choose which one is live.
       </p>
     </div>
   )
