@@ -139,7 +139,15 @@ export default function DepartmentManager({ departments, ownedOrgs, myCards = []
 
       {/* First-run guide for a company admin with nothing yet */}
       {isCompanyAdmin && departments.length === 0 ? (
-        <FirstRun ownedOrgs={ownedOrgs} call={call} loading={loading} />
+        <>
+          <FirstRun ownedOrgs={ownedOrgs} call={call} loading={loading} />
+          {/* Company rules need no departments. They were drawn only below the
+              org chart, so a team that never made one could lock nothing, while
+              the Team brand page sent its owner here to do it. */}
+          {ownedOrgs.map(org => (
+            <CompanyRules key={org.id} org={org} call={call} loading={loading} />
+          ))}
+        </>
       ) : (
         <>
           {/* The structure, walked one level at a time. The indented list this
@@ -314,7 +322,7 @@ function CompanyRules({ org, call, loading, hasCompanies = false }: {
                 call(key,
                   { action: 'set_org_locks', org_id: org.id,
                     locked: next ? [...locked, g.id] : locked.filter(id => id !== g.id) },
-                  next ? `${g.label} locked across the group` : `${g.label} unlocked across the group`)
+                  `${g.label} ${next ? 'locked' : 'unlocked'} across the ${hasCompanies ? 'group' : 'company'}`)
               }
             />
           )
