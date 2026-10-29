@@ -139,7 +139,12 @@ export default function CardScanner() {
       website: form.website, address: form.address,
     })
     if (r.ok) {
-      toast.success(r.method === 'native' ? 'Added to your phone contacts' : 'Contact downloaded — open it to add')
+      // The same three outcomes, in the same words, as AddToPhoneButton in Contacts.
+      toast.success(
+        r.method === 'native' ? 'Added to your phone contacts'
+        : r.method === 'share' ? 'Choose Contacts to save it'
+        : 'Contact downloaded. Open it to add.'
+      )
     } else if (r.reason === 'denied') {
       toast.error('Contacts permission denied')
     } else {
