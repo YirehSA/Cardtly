@@ -6,7 +6,7 @@ import { BRAND_FIELDS } from '@/lib/team-brand'
 import { parseBrandSource, verifyBrandSource, hydrateBrandSources } from '@/lib/brand-source'
 import { LOCK_GROUP_IDS } from '@/lib/team-locks'
 import { getManagedDepartments, canManageDepartment, cardDepartment, isOrgOwner, ownsOrgOfDepartment, findUserByEmail, getOwnedOrgs } from '@/lib/department-perms'
-import { newInviteToken, sendTeamInvite } from '@/lib/team-invite'
+import { newInviteToken, sendTeamInvite, inviterNameFor } from '@/lib/team-invite'
 import { newTeamCardSlug, newTeamPersonSlug, orgIndustry } from '@/lib/card-slug-server'
 import { revokeTeamCard } from '@/lib/team-revoke'
 import { slugifyPart, isReservedSlug } from '@/lib/card-slug'
@@ -403,9 +403,8 @@ export async function POST(request: Request) {
     }).select('id, name').single()
     if (error) return NextResponse.json({ error: `Could not create the card: ${error.message}` }, { status: 500 })
 
-    const { data: me } = await admin.from('profiles').select('name').eq('user_id', user.id).maybeSingle()
     const sent = await sendTeamInvite({
-      to, orgName: org?.name || 'the team', inviterName: me?.name || user.email || 'Your team manager',
+      to, orgName: org?.name || 'the team', inviterName: await inviterNameFor(admin, user, 'Your team manager'),
       cardName: card.name || 'your team card', token,
     })
     return NextResponse.json({ success: true, card_id: card.id, emailed: sent.ok, emailError: sent.ok ? undefined : sent.error })
@@ -501,8 +500,7 @@ export async function POST(request: Request) {
     await admin.from('team_cards').update({ invite_sent_at: new Date().toISOString() }).eq('id', team_card_id)
 
     const { data: org } = await admin.from('organizations').select('name').eq('id', card.organization_id).maybeSingle()
-    const { data: me } = await admin.from('profiles').select('name').eq('user_id', user.id).maybeSingle()
-    const sent = await sendTeamInvite({ to: card.invite_email, orgName: org?.name || 'the team', inviterName: me?.name || user.email || 'Your team manager', cardName: card.name || 'your team card', token })
+    const sent = await sendTeamInvite({ to: card.invite_email, orgName: org?.name || 'the team', inviterName: await inviterNameFor(admin, user, 'Your team manager'), cardName: card.name || 'your team card', token })
     return NextResponse.json({ success: true, emailed: sent.ok })
   }
 
@@ -556,8 +554,7 @@ export async function POST(request: Request) {
     if (error) return NextResponse.json({ error: `Could not invite them: ${error.message}` }, { status: 500 })
 
     const { data: org } = await admin.from('organizations').select('name').eq('id', card.organization_id).maybeSingle()
-    const { data: me } = await admin.from('profiles').select('name').eq('user_id', user.id).maybeSingle()
-    const sent = await sendTeamInvite({ to, orgName: org?.name || 'the team', inviterName: me?.name || user.email || 'Your team manager', cardName: card.name || 'your team card', token })
+    const sent = await sendTeamInvite({ to, orgName: org?.name || 'the team', inviterName: await inviterNameFor(admin, user, 'Your team manager'), cardName: card.name || 'your team card', token })
     return NextResponse.json({ success: true, emailed: sent.ok, emailError: sent.ok ? undefined : sent.error })
   }
 

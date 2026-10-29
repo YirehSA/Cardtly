@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { newInviteToken, claimUrlFor, sendInviteEmail } from '@/lib/team-invite'
+import { newInviteToken, claimUrlFor, sendInviteEmail, inviterNameFor } from '@/lib/team-invite'
 
 // POST /api/team/invite
 // Body: { card_id: string, email: string, resend?: boolean }
@@ -71,13 +71,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
   }
 
-  // Resolve the inviting admin's name for the email body
-  const { data: adminProfile } = await admin
-    .from('profiles')
-    .select('name')
-    .eq('user_id', user.id)
-    .maybeSingle()
-  const inviterName = (adminProfile as any)?.name || user.email || 'A team admin'
+  // The inviting admin's name for the email body (lib/team-invite)
+  const inviterName = await inviterNameFor(admin, user)
 
   // Token reuse rule:
   //   * resend with the SAME email -> keep the existing token so the

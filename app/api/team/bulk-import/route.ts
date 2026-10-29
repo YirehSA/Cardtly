@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { newTeamCardSlug, newTeamPersonSlug, orgIndustry } from '@/lib/card-slug-server'
 import { checkRows, type ImportRow } from '@/lib/csv-import'
-import { newInviteToken, claimUrlFor, sendInviteEmail } from '@/lib/team-invite'
+import { newInviteToken, claimUrlFor, sendInviteEmail, inviterNameFor } from '@/lib/team-invite'
 
 // POST /api/team/bulk-import
 // Body: { org_id, rows: ImportRow[], send_invites: boolean, copy_from_id?: string }
@@ -218,10 +218,6 @@ export async function POST(request: Request) {
   })
 }
 
-async function inviterNameFor(admin: any, user: { id: string; email?: string | null }): Promise<string> {
-  const { data } = await admin.from('profiles').select('name').eq('user_id', user.id).maybeSingle()
-  return data?.name || user.email || 'A team admin'
-}
 
 /**
  * Branding copied off an existing card, so an imported cohort looks like the

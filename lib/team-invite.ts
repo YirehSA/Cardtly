@@ -125,6 +125,33 @@ export async function sendTeamInvite(opts: {
   return { ok: sent, error }
 }
 
+/**
+ * Who an invite says it is from: "{name} has added you to {team}".
+ *
+ * Every sender used profile.name, then their email address. Sign-up keeps the
+ * name as account metadata and leaves profile.name empty, so most invites
+ * (60 of 92 accounts on 2026-10-29) named the sender by their email. Now the
+ * profile, then the name they signed up with, then their own card (personal,
+ * else the team card they hold), and never the email address.
+ */
+export async function inviterNameFor(
+  admin: any,
+  user: { id: string; user_metadata?: Record<string, any> | null },
+  fallback = 'Your team admin',
+): Promise<string> {
+  const named = (s: unknown) => (typeof s === 'string' && s.trim() ? s.trim() : null)
+  const { data: profile } = await admin.from('profiles').select('name').eq('user_id', user.id).maybeSingle()
+  const meta = user.user_metadata || {}
+  const known = named(profile?.name) || named(meta.full_name) || named(meta.name)
+  if (known) return known
+  for (const table of ['cards', 'team_cards']) {
+    const { data: card } = await admin.from(table).select('name').eq('user_id', user.id)
+      .order('created_at', { ascending: true }).limit(1).maybeSingle()
+    if (named(card?.name)) return named(card?.name)!
+  }
+  return fallback
+}
+
 export function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
