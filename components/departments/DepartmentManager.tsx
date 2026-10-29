@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -285,6 +285,27 @@ function GroupCompanies({ org, companies, call, loading }: {
   )
 }
 
+// The list of locks a switch saves. Each switch saves the whole list, and it was
+// built from the page as it loaded: the page refreshes only after a save, so the
+// next switch sent a list without the one before, and locks were lost while the
+// switches still showed them on (video 27, 2026-10-29). Kept here instead,
+// changed the moment a switch flips, put back if the save fails, and started
+// again from the server only for a different company or department (re-reading
+// it after every save would let a slow refresh undo the switch just flipped).
+function useLockList(fromServer: string[] | null | undefined, owner: string) {
+  const [list, setList] = useState<string[]>(fromServer || [])
+  useEffect(() => { setList(fromServer || []) }, [owner]) // eslint-disable-line react-hooks/exhaustive-deps
+  async function flip(id: string, next: boolean, save: (list: string[]) => Promise<boolean>) {
+    const before = list
+    const after = next ? [...before.filter(x => x !== id), id] : before.filter(x => x !== id)
+    setList(after)
+    const ok = await save(after)
+    if (!ok) setList(before)
+    return ok
+  }
+  return { list, flip }
+}
+
 // ── Company-wide locks (org admin) ──────────────────────────────────────────
 function CompanyRules({ org, call, loading, hasCompanies = false }: {
   org: OwnedOrg; call: (k: string, b: object, m: string) => Promise<boolean>; loading: string | null
@@ -292,7 +313,7 @@ function CompanyRules({ org, call, loading, hasCompanies = false }: {
   // database and two different words to the person reading the screen.
   hasCompanies?: boolean
 }) {
-  const locked = org.lockedFields || []
+  const { list: locked, flip } = useLockList(org.lockedFields, org.id)
   const key = `orglocks-${org.id}`
   return (
     <div className="rounded-lg border border-border bg-card p-5">
@@ -318,11 +339,10 @@ function CompanyRules({ org, call, loading, hasCompanies = false }: {
               disabled={loading === key}
               label={g.label}
               hint={on ? g.hint : hasCompanies ? 'Each company decides' : 'Each person can change their own'}
-              onChange={next =>
+              onChange={next => flip(g.id, next, list =>
                 call(key,
-                  { action: 'set_org_locks', org_id: org.id,
-                    locked: next ? [...locked, g.id] : locked.filter(id => id !== g.id) },
-                  `${g.label} ${next ? 'locked' : 'unlocked'} across the ${hasCompanies ? 'group' : 'company'}`)
+                  { action: 'set_org_locks', org_id: org.id, locked: list },
+                  `${g.label} ${next ? 'locked' : 'unlocked'} across the ${hasCompanies ? 'group' : 'company'}`))
               }
             />
           )
@@ -662,8 +682,9 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards: a
   // Everything a lock could apply to, whether this team set it or the company
   // did. The count in the section header has to match what the tiles show, and
   // the tiles show the union.
+  const deptLocks = useLockList(dept.lockedFields, dept.id)
   const lockedCount = LOCK_GROUPS.filter(g =>
-    (dept.lockedFields || []).includes(g.id) || orgLocks.includes(g.id)).length
+    deptLocks.list.includes(g.id) || orgLocks.includes(g.id)).length
 
   // Absent columns mean the pre-063 behaviour: inheriting, and not locked.
   const inheritOn = dept.inheritBrand !== false
@@ -1003,7 +1024,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards: a
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 divide-y sm:divide-y-0 divide-border">
           {LOCK_GROUPS.map(g => {
-            const own = (dept.lockedFields || []).includes(g.id)
+            const own = deptLocks.list.includes(g.id)
             // A company-wide lock already applies to this team - the save
             // endpoint unions the two sets. This row used to read only the
             // department's own list, so anything the company had locked showed
@@ -1024,13 +1045,11 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards: a
                   : undefined}
                 label={g.label}
                 hint={own ? g.hint : 'Anyone in this team can change this'}
-                onChange={next => {
-                  const list = dept.lockedFields || []
-                  return call(`locks-${dept.id}`,
-                    { action: 'set_locks', department_id: dept.id,
-                      locked: next ? [...list, g.id] : list.filter(id => id !== g.id) },
-                    next ? `${g.label} locked` : `${g.label} unlocked`)
-                }}
+                onChange={next => deptLocks.flip(g.id, next, list =>
+                  call(`locks-${dept.id}`,
+                    { action: 'set_locks', department_id: dept.id, locked: list },
+                    next ? `${g.label} locked` : `${g.label} unlocked`))
+                }
               />
             )
           })}
