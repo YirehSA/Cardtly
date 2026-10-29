@@ -748,7 +748,7 @@ export default function EmailSignatureBuilder({ cards, defaultCardId }: Props) {
           </div>
 
                     <p className="text-xs text-muted-foreground mt-3 text-center">
-            Preview is approximate — email clients may render slightly differently
+            Preview is approximate. Email clients may show it slightly differently.
           </p>
         </div>
       </div>

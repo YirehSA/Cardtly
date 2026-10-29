@@ -97,7 +97,7 @@ export default async function EmailSignaturePage() {
   const allCards: SignatureCard[] = [
     ...(personalCard ? [{ ...(personalCard as SignatureCard), _type: 'personal', _label: `${personalCard.name} (My card)` }] : []),
     ...(memberCard ? [{ ...(memberCard as SignatureCard), _type: 'team', _label: `${memberCard.name} (My card)` }] : []),
-    ...(teamCards || []).map(c => ({ ...(c as unknown as SignatureCard), _type: 'team', _label: `${c.name}${c.title ? ` — ${c.title}` : ''}` })),
+    ...(teamCards || []).map(c => ({ ...(c as unknown as SignatureCard), _type: 'team', _label: `${c.name}${c.title ? `, ${c.title}` : ''}` })),
   ]
 
   if (allCards.length === 0) {
