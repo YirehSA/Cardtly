@@ -470,7 +470,7 @@ function FirstRun({ ownedOrgs, call, loading }: {
             </div>
             <div className="flex gap-2 flex-wrap">
               <input value={name} onChange={e => setName(e.target.value)}
-                placeholder={isCompany ? 'TBCo Roofing' : 'Sales'}
+                placeholder={isCompany ? 'Nkosi Build' : 'Sales'}
                 onKeyDown={e => { if (e.key === 'Enter') create() }}
                 className="flex-1 min-w-[180px] px-4 py-3 rounded-xl border border-border bg-background text-base" />
               <button disabled={!name.trim() || busy} onClick={create}
@@ -821,7 +821,7 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards: a
                 </button>
               )}
               <button title="Delete department" className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400"
-                onClick={() => { if (confirm(`Delete "${dept.name}"?\n\nIts ${dept.cards.length} card${dept.cards.length === 1 ? '' : 's'} are NOT deleted — they go back to the company look.`)) { call(`deldept-${dept.id}`, { action: 'delete_department', department_id: dept.id }, 'Department deleted').then(ok => { if (ok && onBack) onBack() }) } }}>
+                onClick={() => { if (confirm(`Delete "${dept.name}"?\n\nIts ${dept.cards.length} card${dept.cards.length === 1 ? '' : 's'} are NOT deleted. They go back to the company look.`)) { call(`deldept-${dept.id}`, { action: 'delete_department', department_id: dept.id }, 'Department deleted').then(ok => { if (ok && onBack) onBack() }) } }}>
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>

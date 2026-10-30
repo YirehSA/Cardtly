@@ -171,6 +171,11 @@ export default function OrgChart({ departments, ownedOrgs, rollup, onManage }: {
   // ── The promoted node ─────────────────────────────────────────────────────
   const headline = focus ? focus.name : (org?.name || 'My teams')
   const tone = LEVEL[level]
+  // The top of a single business is that business. "Group" is the word for an
+  // organisation holding companies, and a team of one company was headed
+  // "Group" all the same (video 28, 2026-10-30).
+  const topIsGroup = level === 'group' && hasHierarchy
+  const topLabel = level === 'group' && !hasHierarchy ? LEVEL.company.label : tone.label
   const roll = focus ? rollup[focus.id] : null
   const totalPeople = focus
     ? (roll?.people ?? focus.cards.length)
@@ -202,9 +207,9 @@ export default function OrgChart({ departments, ownedOrgs, rollup, onManage }: {
       <div className="flex flex-col items-center">
         <div className="w-full max-w-xl rounded-lg p-5 text-center relative overflow-hidden border border-border bg-card">
           <div className="flex items-center justify-center gap-2 mb-1 text-muted-foreground">
-            {level === 'group' ? <Layers className="w-4 h-4" /> : <Building2 className="w-4 h-4" />}
+            {topIsGroup ? <Layers className="w-4 h-4" /> : <Building2 className="w-4 h-4" />}
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">
-              {tone.label}
+              {topLabel}
             </span>
           </div>
           <h2 className="font-display text-2xl font-bold leading-tight break-words">{headline}</h2>
@@ -407,7 +412,7 @@ function childrenHeading(level: Level, hasHierarchy: boolean, count: number, par
   if (level === 'company') {
     return {
       title: count === 1 ? 'The department in this company' : 'The departments in this company',
-      body: 'These are the teams inside ' + parentName + ' - sales, admin, a branch, whatever fits. People\u2019s cards belong to a department, never straight to the company. Click one to see its people.',
+      body: 'These are the teams inside ' + parentName + ': sales, admin, a branch, whatever fits. People\u2019s cards belong to a department, never straight to the company. Click one to see its people.',
     }
   }
   return {
