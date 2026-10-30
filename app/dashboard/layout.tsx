@@ -168,13 +168,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
   //
   // The same team card names them in the sidebar. Without it, every member,
   // and every owner whose card moved into their team, was "Your Name".
+  //
+  // And it says whether they are in the Network: the "You're listed" notice
+  // read the personal card only, so every member was told they were listed,
+  // even with their own switch or their company's switched off.
   let brandSource: string | null = (card as any)?.color_theme ?? null
   let teamCardName: string | null = null
+  let teamCardListed = false
   if (!brandSource || !card) {
     try {
       const teamCard = await getMemberTeamCard<Record<string, any>>(user.id, '*')
       if (teamCard) {
         teamCardName = teamCard.name || null
+        teamCardListed = !teamCard.hide_from_network && !teamCard.org_hide_from_network
         if (!brandSource) {
           const resolved = (await withResolvedBrand(deptAdmin, [teamCard]))[0]
           brandSource = (resolved as any)?.color_theme ?? null
@@ -225,7 +231,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             {/* One-time: the Network lists people by default, so it only works
                 as a fair deal if they are actually told. Not shown to anyone
                 who has already switched their listing off. */}
-            {!noticeSeen && !(card as any)?.hide_from_network && <NetworkNotice />}
+            {!noticeSeen && (card ? !(card as any).hide_from_network : teamCardListed) && <NetworkNotice />}
             <div className="animate-fade-in-page">
               {children}
             </div>
