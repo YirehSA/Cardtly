@@ -180,7 +180,7 @@ export const POSTS: BlogPost[] = [
 <li>Pick one of the 16 templates and add your details, links, and logo.</li>
 <li>Share your card by link, QR, or NFC, and start saving contacts.</li>
 </ol>
-<p>Analytics, lead capture and the AI card scanner are all in the 7 days, and keeping them is from R97 a month. If you run a team, the Teams plan keeps everyone on-brand from R97 per card. There is also an Android app on Google Play, with iOS on the way. Ready to begin? <a href="/signup">Create your card</a> and share it today.</p>`,
+<p>Analytics, lead capture and the AI card scanner are all in the 7 days, and keeping them is from R97 a month. If you run a team, the Teams plan keeps everyone on-brand from R97 per card. There is also an Android app on Google Play, and an iPhone and iPad app on the App Store for company teams. Ready to begin? <a href="/signup">Create your card</a> and share it today.</p>`,
     faq: [
       { q: 'What is a digital business card?', a: 'A digital business card is an online version of your contact details that opens in any web browser when you share it by tap, QR code, or link. The person receiving it can save your details to their phone without downloading an app.' },
       { q: 'How much does a digital business card cost in South Africa?', a: 'Cardtly is from R97 a month, billed in rand through Paystack. Every signup gets 7 days first with no credit card required. An optional physical NFC card is R150 once-off, or R200 designed around your brand, plus R100 shipping within South Africa.' },

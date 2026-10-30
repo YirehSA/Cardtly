@@ -13,7 +13,8 @@ A digital business card is an online profile that replaces a paper business card
 - Free trial: available on request, by way of a trial code. No credit card is required to create a card.
 - Teams: 2 to 20 cards self-serve from R97 per card a month. Above 20, contact Cardtly for an enterprise arrangement.
 - NFC card: an optional physical tap-to-share card, in two designs. Standard is R150 a card: your logo and colours on the Cardtly layout. Custom is R200 a card: designed around your brand instead. Both include artwork and proofing. Shipping is R100 per order in South Africa, not per card. Delivered in 5 to 7 business days, South Africa only.
-- Android app on Google Play (com.cardtly.app). iOS not yet released.
+- Android app on Google Play (com.cardtly.app).
+- iPhone and iPad app on the App Store (https://apps.apple.com/app/id6794360395), for company teams: team owners, department managers and people holding a team card. Individuals use the website or the Android app.
 
 ## Main features
 
