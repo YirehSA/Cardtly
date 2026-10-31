@@ -75,7 +75,7 @@ async function downloadReport(month: string) {
   // ---- Summary ---------------------------------------------------------------
   const sum = wb.addWorksheet('Summary')
   sum.columns = [{ width: 36 }, { width: 16 }]
-  banner(sum, `${report.orgName} - team report`, subtitle, 2)
+  banner(sum, `${report.orgName} team report`, subtitle, 2)
   headerRow(sum, 4, ['Measure', report.monthLabel])
   const t = report.totals
   const measures: Array<[string, number | string]> = [
