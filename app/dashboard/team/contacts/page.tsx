@@ -5,7 +5,6 @@ import { Users, ArrowLeft } from 'lucide-react'
 import PageHeader from '@/components/dashboard/PageHeader'
 import Link from 'next/link'
 import ContactsList from '@/components/dashboard/ContactsList'
-import ExportContactsButton from '@/components/dashboard/ExportContactsButton'
 
 export const metadata = { title: 'Team Contacts' }
 
@@ -77,14 +76,8 @@ export default async function TeamContactsPage() {
         rows={tagged as any}
         emptyTitle="Your team has not captured anyone yet"
         emptyDescription="When someone fills in the form on any team card, books a meeting or answers a questionnaire, they land here alongside the team member who met them."
-        headerAction={
-          <ExportContactsButton
-            contacts={tagged as any}
-            filename="cardtly-team-contacts"
-            orgName={org.name}
-            ownerLabel="Team Member"
-          />
-        }
+        // The list's own export button, so it exports what the filter shows.
+        exportOptions={{ filename: 'cardtly-team-contacts', orgName: org.name, ownerLabel: 'Team Member' }}
       />
     </div>
   )

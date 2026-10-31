@@ -13,8 +13,12 @@ interface Props {
   // admin can pull up one person's leads without reading the whole team's.
   rows: (ContactRow & { _via?: string | null })[]
   ownerName?: string
-  // Rendered above the results when set, e.g. the team export button.
+  // Rendered above the results when set, in place of the export button.
   headerAction?: React.ReactNode
+  // The export button's own settings (the team view's file name, banner and
+  // owner column). The button always exports the list as filtered: the team
+  // page used to hand it every lead, so "Thandeka (4)" exported the whole team.
+  exportOptions?: { filename?: string; orgName?: string; ownerLabel?: string }
   emptyTitle?: string
   emptyDescription?: string
 }
@@ -26,7 +30,7 @@ function daysAgo(n: number): number {
   return d.getTime()
 }
 
-export default function ContactsList({ rows, ownerName, headerAction, emptyTitle, emptyDescription }: Props) {
+export default function ContactsList({ rows, ownerName, headerAction, exportOptions, emptyTitle, emptyDescription }: Props) {
   const [query, setQuery] = useState('')
   const [source, setSource] = useState('all')
   const [member, setMember] = useState('all')
@@ -185,7 +189,7 @@ export default function ContactsList({ rows, ownerName, headerAction, emptyTitle
                 ? `${rows.length} ${rows.length === 1 ? 'person' : 'people'}, newest first`
                 : `Showing ${filtered.length} of ${rows.length}`}
             </p>
-            {headerAction ?? <ExportContactsButton contacts={filtered as any} ownerName={ownerName} />}
+            {headerAction ?? <ExportContactsButton contacts={filtered as any} ownerName={ownerName} {...exportOptions} />}
           </div>
           <div className="space-y-3">
             {filtered.map(contact => (

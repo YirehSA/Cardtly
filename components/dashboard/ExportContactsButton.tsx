@@ -114,7 +114,7 @@ export default function ExportContactsButton({
       // Row 1 - title banner spanning every column.
       ws.mergeCells(1, 1, 1, lastCol)
       const title = ws.getCell(1, 1)
-      title.value = orgName ? `${orgName} - Contacts` : 'Cardtly Contacts Export'
+      title.value = orgName ? `${orgName} contacts` : 'Cardtly Contacts Export'
       title.font = { name: 'Calibri', size: 18, bold: true, color: { argb: BRAND.white } }
       title.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 }
       title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRAND.bannerBg } }
