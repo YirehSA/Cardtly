@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Users, Copy, Share2, ExternalLink } from 'lucide-react'
+import { possessive } from '@/lib/possessive'
 
 interface Mate {
   id: string
@@ -55,7 +56,7 @@ export default function TeammatesCard() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `${mate.name} — digital business card`,
+          title: `${possessive(mate.name || 'Teammate')} digital business card`,
           url,
         })
       } catch {
