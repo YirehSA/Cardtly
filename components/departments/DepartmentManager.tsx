@@ -13,13 +13,15 @@ import PageHeader from '@/components/dashboard/PageHeader'
 interface Card {
   id: string; name: string | null; slug: string | null; claimed: boolean
   inviteEmail: string | null; views30d: number; leads: number; viewCount: number; brand: Record<string, any>
+  // An invite was actually sent. Unclaimed is not the same as invited.
+  invited?: boolean
   // Which lead-capture form this card shows: use_team_questionnaire=false means
   // none; assignedFormId picks a specific form; neither means the org default.
   useTeamQuestionnaire?: boolean | null
   assignedFormId?: string | null
 }
 interface LeadForm { id: string; title?: string; questions: any[] }
-interface Head { userId: string; email: string | null }
+interface Head { userId: string; email: string | null; name?: string | null }
 interface Dept {
   id: string; name: string; organizationId: string; isOwner: boolean
   // Hierarchy. An organisation that has not opted in has parentId null and
@@ -831,8 +833,9 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards: a
             <div className="flex flex-wrap gap-2 mb-3">
               {dept.heads.map(h => (
                 <span key={h.userId} className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full bg-muted">
-                  <Avatar label={h.email || 'head'} color="#a855f7" size={22} />
-                  <span className="text-xs font-medium">{h.email || h.userId.slice(0, 8)}</span>
+                  <Avatar label={h.name || h.email || 'head'} color="#a855f7" size={22} />
+                  <span className="text-xs font-medium">{h.name || h.email || h.userId.slice(0, 8)}</span>
+                  {h.name && h.email && <span className="text-[11px] text-muted-foreground">{h.email}</span>}
                   <button onClick={() => call(`rmhead-${dept.id}-${h.userId}`, { action: 'remove_head', department_id: dept.id, user_id: h.userId }, 'Head removed')}
                     className="text-muted-foreground hover:text-foreground"><X className="w-3 h-3" /></button>
                 </span>
@@ -1118,11 +1121,17 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards: a
           <div className="space-y-1.5">
             {dept.cards.map((c, i) => (
               <div key={c.id} className="flex items-center gap-3 rounded-xl px-3 py-2.5 border border-border">
-                <Avatar label={c.name || c.inviteEmail || '?'} color={c.claimed ? '#22c55e' : '#f59e0b'} size={32} />
+                {/* Three states, as on Team Cards. Every unclaimed card used to
+                    read "Invited", including cards nobody had invited. */}
+                <Avatar label={c.name || c.inviteEmail || '?'} color={c.claimed ? '#22c55e' : c.invited ? '#f59e0b' : '#94a3b8'} size={32} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{c.name || (c.inviteEmail || 'Unnamed')}</p>
-                  <p className="text-[11px] flex items-center gap-1.5" style={{ color: c.claimed ? '#22c55e' : '#f59e0b' }}>
-                    {c.claimed ? <><Check className="w-3 h-3" />Joined</> : <><Mail className="w-3 h-3" />Invited{c.inviteEmail ? ` · ${c.inviteEmail}` : ''}</>}
+                  <p className="text-[11px] flex items-center gap-1.5" style={{ color: c.claimed ? '#22c55e' : c.invited ? '#f59e0b' : 'hsl(var(--muted-foreground))' }}>
+                    {c.claimed
+                      ? <><Check className="w-3 h-3" />Joined</>
+                      : c.invited
+                        ? <><Mail className="w-3 h-3" />Invited{c.inviteEmail ? ` · ${c.inviteEmail}` : ''}</>
+                        : <>Not invited yet</>}
                   </p>
                 </div>
                 <span className="text-[11px] text-muted-foreground hidden sm:block tabular-nums">{c.views30d} views</span>

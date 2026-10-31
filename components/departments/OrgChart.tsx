@@ -18,7 +18,7 @@ interface Card {
   id: string; name: string | null; slug: string | null; claimed: boolean
   inviteEmail: string | null; views30d: number; leads: number; viewCount: number
 }
-interface Head { userId: string; email: string | null }
+interface Head { userId: string; email: string | null; name?: string | null }
 interface Dept {
   id: string; name: string; organizationId: string; isOwner: boolean
   parentId?: string | null
@@ -279,7 +279,7 @@ export default function OrgChart({ departments, ownedOrgs, rollup, onManage }: {
                         <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground truncate max-w-full">
                           <ShieldCheck className="w-3 h-3 shrink-0" style={{ color: c.solid }} />
                           <span className="truncate">
-                            {d.heads.length === 1 ? (d.heads[0].email?.split('@')[0] || 'head') : `${d.heads.length} heads`}
+                            {d.heads.length === 1 ? (d.heads[0].name || d.heads[0].email?.split('@')[0] || 'head') : `${d.heads.length} heads`}
                           </span>
                         </span>
                       ) : d.isOwner ? (

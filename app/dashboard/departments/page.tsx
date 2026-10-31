@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getManagedDepartments, getOwnedOrgs } from '@/lib/department-perms'
 import { extractBrand } from '@/lib/team-brand'
 import { parseBrandSource } from '@/lib/brand-source'
+import { inviterNameFor } from '@/lib/team-invite'
 import DepartmentManager from '@/components/departments/DepartmentManager'
 
 export const metadata = { title: 'My departments' }
@@ -59,8 +60,16 @@ export default async function DepartmentsPage() {
   const leadsByCard: Record<string, number> = {}
   for (const c of leads || []) if (c.team_card_id) leadsByCard[c.team_card_id] = (leadsByCard[c.team_card_id] || 0) + 1
 
-  const headsByDept: Record<string, { userId: string; email: string | null }[]> = {}
-  for (const h of heads || []) (headsByDept[h.department_id] ||= []).push({ userId: h.user_id, email: emailById[h.user_id] || null })
+  // Heads by name, with the email beside it. The org chart showed the part of
+  // the address before the @, and Who's in charge the whole address with its
+  // initials (video 29, 2026-10-31). The same lookup the invite emails use.
+  const usersById = Object.fromEntries((authList?.data?.users || []).map((u: any) => [u.id, u]))
+  const headIds = [...new Set((heads || []).map((h: any) => h.user_id as string))].filter(id => usersById[id])
+  const nameById: Record<string, string> = Object.fromEntries(
+    await Promise.all(headIds.map(async id => [id, await inviterNameFor(admin, usersById[id], '')])))
+
+  const headsByDept: Record<string, { userId: string; email: string | null; name: string | null }[]> = {}
+  for (const h of heads || []) (headsByDept[h.department_id] ||= []).push({ userId: h.user_id, email: emailById[h.user_id] || null, name: nameById[h.user_id] || null })
 
   // Names for any look that follows a card, so the page can say "following
   // Andre Nel" rather than showing a uuid. Read tolerantly: brand_source
@@ -113,6 +122,8 @@ export default async function DepartmentsPage() {
     heads: headsByDept[d.id] || [],
     cards: (cards || []).filter((c: any) => c.department_id === d.id).map((c: any) => ({
       id: c.id, name: c.name, slug: c.slug, claimed: !!c.claimed_at, inviteEmail: c.invite_email || null,
+      // Sent, not just addressed: the same rule as Team Cards (getInviteStatus).
+      invited: !!(c.invite_sent_at && c.invite_email),
       views30d: views30d[c.id] || 0, leads: leadsByCard[c.id] || 0, viewCount: c.view_count || 0, brand: extractBrand(c),
       // Which lead-capture form this card shows, for the per-card picker.
       useTeamQuestionnaire: c.use_team_questionnaire,
