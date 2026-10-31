@@ -196,7 +196,7 @@ function LoginForm({ iosApp }: { iosApp: boolean }) {
 export default function LoginPageClient({ iosApp }: { iosApp: boolean }) {
   return (
     <div className="min-h-screen flex" style={{ background: '#050510' }}>
-      {/* Left — branding */}
+      {/* Left: branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
         style={{ background: 'rgba(255,255,255,0.02)', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
 
@@ -229,7 +229,7 @@ export default function LoginPageClient({ iosApp }: { iosApp: boolean }) {
               { icon: '🪪', text: 'Digital business card with your own URL' },
               { icon: '📊', text: 'See who viewed your card and when' },
               { icon: '✉️', text: 'Email signature generated instantly' },
-              { icon: <Wifi className="w-4 h-4" style={{ color: '#00d4ff' }} />, text: 'NFC cards — tap to share in person' },
+              { icon: <Wifi className="w-4 h-4" style={{ color: '#00d4ff' }} />, text: 'NFC cards: tap to share in person' },
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-3 text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
                 <span className="text-base">{item.icon}</span>
@@ -246,7 +246,7 @@ export default function LoginPageClient({ iosApp }: { iosApp: boolean }) {
         </div>
       </div>
 
-      {/* Right — form.
+      {/* Right: form.
           overflow-hidden because the glow below is a fixed 400px wide and is
           centred on this container. On a phone the container is 375px, so the
           glow runs from -12px to 388px and drags 13px of horizontal scroll onto
