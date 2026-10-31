@@ -158,8 +158,8 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
   const [aiBioOpen, setAiBioOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   function copyLink() {
-    if (!card.slug) return
-    navigator.clipboard.writeText(`https://cardtly.com/card/${card.slug}`)
+    if (!savedSlug) return
+    navigator.clipboard.writeText(`https://cardtly.com/card/${savedSlug}`)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -473,7 +473,10 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
     setSaving(false)
   }
 
-  const cardUrl = card.slug ? `/card/${card.slug}` : null
+  // The link as it is now. card.slug is the one the page loaded with, so after
+  // "Update URL" the header, Copy and "View live card" all kept the old address
+  // until a reload (video 33, 2026-10-31).
+  const cardUrl = savedSlug ? `/card/${savedSlug}` : null
 
   return (
     <div className="flex flex-col xl:flex-row gap-6 max-w-7xl mx-auto">
