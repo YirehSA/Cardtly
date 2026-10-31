@@ -170,7 +170,7 @@ export default function PricingPage() {
               no surprises, with every feature included.
             </p>
             {/* Web-only (RULES.md 1): /pricing is a page the iPhone app never opens. */}
-            <WatchHow videos={['21']} pathname="/pricing" variant="site" className="justify-center lg:justify-start mb-6" />
+            <WatchHow videos={['21']} pathname="/pricing" variant="site" className="text-center lg:text-left mb-6" />
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Link href="/signup"
                 className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:scale-[1.03]"

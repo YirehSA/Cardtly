@@ -19,9 +19,59 @@ import { isIosBlockedPath } from '@/lib/app-platform'
 import { HOWTO_DATA, BUNNY_LIBRARY } from '@/lib/howto-videos-data'
 
 export type HowToPlays = 'anywhere' | 'not-ios' | 'web-only'
-export type HowToGroup = 'card' | 'sharing' | 'leads' | 'team' | 'managers' | 'members' | 'apps' | 'selling' | 'resellers'
+// The topics follow the sections of the series (howto-videos/VIDEO_LIST.md), so the How-to page reads in the
+// series' own order, 01 to 44, top to bottom.
+export type HowToGroup = 'card' | 'sharing' | 'leads' | 'more' | 'team' | 'managers' | 'members' | 'visitors' | 'apps' | 'selling' | 'resellers'
 
 interface Rule { group: HowToGroup; plays: HowToPlays; androidAppOnly?: boolean }
+
+// Words people search the How-to page with, beyond the title.
+const KEYWORDS: Record<string, string> = {
+  '01': 'create make new start set up first card',
+  '02': 'design links photos colours template look button',
+  '03': 'photo logo picture frame crop zoom',
+  '05': 'ai bio about write',
+  '06': 'share link whatsapp sms send number',
+  '07': 'qr code download print colours logo',
+  '08': 'google wallet',
+  '09': 'tap share nfc phone android',
+  '10': 'nfc write sticker tag card',
+  '11': 'email signature outlook gmail',
+  '12': 'background zoom teams video call virtual',
+  '13': 'leads form questions capture share back',
+  '14': 'contacts export follow up save csv',
+  '15': 'scan paper business card camera',
+  '16': 'analytics views stats opens numbers',
+  '17': 'booking meeting calendar book appointment',
+  '18': 'context audiences personalise first impression',
+  '20': 'settings password link address data delete account',
+  '21': 'pro upgrade trial code pay subscribe',
+  '22': 'order printed nfc cards',
+  '23': 'team set up start company',
+  '24': 'add people excel spreadsheet import staff employees',
+  '25': 'invite claim email send',
+  '26': 'brand look logo colours team design',
+  '27': 'lock rules company fields',
+  '28': 'departments companies org chart structure',
+  '29': 'manager head department boss',
+  '30': 'team analytics report monthly',
+  '31': 'leads team all',
+  '32': 'nfc write team cards',
+  '33': 'leaves revoke hand on remove staff',
+  '34': 'crm webhook api integration it',
+  '35': 'own card join team owner',
+  '36': 'microsoft sign in office 365 outlook login',
+  '37': 'my team manager page',
+  '38': 'claim invite join password',
+  '39': 'team card change edit locked',
+  '40': 'teammate share colleague',
+  '41': 'visitor opens save contact share back',
+  '42': 'designs templates sixteen look',
+  '43': 'android app widget home screen',
+  '44': 'iphone app ios apple',
+  '45': 'reseller client seats',
+  '46': 'reseller nfc invoice pay',
+}
 
 const RULES: Record<string, Rule> = {
   '01': { group: 'card', plays: 'anywhere' },
@@ -40,9 +90,9 @@ const RULES: Record<string, Rule> = {
   '14': { group: 'leads', plays: 'anywhere' },
   '15': { group: 'leads', plays: 'anywhere' },
   '16': { group: 'leads', plays: 'anywhere' },
-  '17': { group: 'card', plays: 'anywhere' },
-  '18': { group: 'card', plays: 'anywhere' },
-  '20': { group: 'card', plays: 'anywhere' },
+  '17': { group: 'more', plays: 'anywhere' },
+  '18': { group: 'more', plays: 'anywhere' },
+  '20': { group: 'more', plays: 'anywhere' },
   '21': { group: 'selling', plays: 'web-only' },
   '22': { group: 'selling', plays: 'web-only' },
   '23': { group: 'selling', plays: 'web-only' },
@@ -65,8 +115,8 @@ const RULES: Record<string, Rule> = {
   '38': { group: 'members', plays: 'anywhere' },
   '39': { group: 'members', plays: 'anywhere' },
   '40': { group: 'members', plays: 'anywhere' },
-  '41': { group: 'sharing', plays: 'anywhere' },
-  '42': { group: 'card', plays: 'anywhere' },
+  '41': { group: 'visitors', plays: 'anywhere' },
+  '42': { group: 'visitors', plays: 'anywhere' },
   '43': { group: 'apps', plays: 'not-ios' },
   '44': { group: 'apps', plays: 'anywhere' },
   '45': { group: 'resellers', plays: 'web-only' },
@@ -83,11 +133,12 @@ export interface HowToVideo {
   group: HowToGroup
   plays: HowToPlays
   androidAppOnly: boolean
+  keywords: string
 }
 
 export const HOWTO_VIDEOS: HowToVideo[] = HOWTO_DATA
   .filter(d => RULES[d.n])
-  .map(d => ({ ...d, ...RULES[d.n], androidAppOnly: !!RULES[d.n].androidAppOnly }))
+  .map(d => ({ ...d, ...RULES[d.n], androidAppOnly: !!RULES[d.n].androidAppOnly, keywords: KEYWORDS[d.n] || '' }))
 
 export function howToVideo(n: string): HowToVideo | undefined {
   return HOWTO_VIDEOS.find(v => v.n === n)
@@ -112,9 +163,11 @@ export const GROUP_TITLES: Record<HowToGroup, string> = {
   card: 'Your card',
   sharing: 'Sharing your card',
   leads: 'Leads and contacts',
+  more: 'More for your card',
   team: 'Running your team',
   managers: 'Managing a department',
   members: 'Your team card',
+  visitors: 'When someone opens your card',
   apps: 'The apps',
   selling: 'Plans and printed cards',
   resellers: 'Reselling Cardtly',
@@ -131,25 +184,40 @@ export interface Who {
   ownTeamCardId?: string | null
 }
 
-/** The groups for the How-to page, the ones for this person's role first.
- *  Web-only groups never appear there. */
-export function howToGroups(who: Who): HowToGroup[] {
-  const first: HowToGroup[] = who.ownsTeam ? ['team', 'managers']
-    : who.managesDepartment ? ['managers', 'members']
-    : who.teamMember ? ['members']
-    : ['card']
-  const all: HowToGroup[] = ['card', 'sharing', 'leads', 'members', 'managers', 'team', 'apps']
-  return [...first, ...all.filter(g => !first.includes(g))]
+/** The How-to page's topics, always in this order, so a video is always where it was. Web-only topics never
+ *  appear there. */
+export const HOWTO_GROUPS: HowToGroup[] = ['card', 'sharing', 'leads', 'more', 'team', 'managers', 'members', 'visitors', 'apps']
+
+/** "Start here" on the How-to page: the first videos for this person's role. */
+export function startHere(who: Who): string[] {
+  const picks = who.ownsTeam ? ['24', '25', '26', '28']
+    : who.managesDepartment ? ['28', '37', '39', '40']
+    : who.teamMember ? ['06', '38', '39', '40']
+    : ['01', '02', '06', '07']
+  return inOrder(picks)
 }
 
-/** Which videos a dashboard page offers, in the order shown. */
+/** Videos in the series' order, by number. */
+const inOrder = (ns: string[]) => [...ns].sort()
+
+/** Does a video match what was typed on the How-to page? Every word must be found. */
+export function matches(v: HowToVideo, query: string): boolean {
+  const hay = `${v.title} ${v.keywords} ${GROUP_TITLES[v.group]}`.toLowerCase()
+  return query.toLowerCase().split(/\s+/).filter(Boolean).every(w => hay.includes(w))
+}
+
+/** Which videos a dashboard page offers, in the series' order. */
 export function howToForPage(pathname: string, who: Who): string[] {
+  return inOrder(pageVideos(pathname, who))
+}
+
+function pageVideos(pathname: string, who: Who): string[] {
   const p = pathname.replace(/\/+$/, '') || '/'
   if (p === '/dashboard') {
     if (who.teamMember && !who.ownsTeam) return ['39', '40', '08', '09']
     return who.hasCard ? ['06', '08', '09'] : ['01']
   }
-  if (p === '/dashboard/card') return who.teamMember && !who.ownsTeam ? ['39'] : ['02', '03', '05', '17', '42']
+  if (p === '/dashboard/card') return who.teamMember && !who.ownsTeam ? ['39'] : ['01', '02', '03', '05', '17', '42']
   if (p.startsWith('/dashboard/team/card/')) {
     const own = !!who.ownTeamCardId && p.split('/')[4] === who.ownTeamCardId
     return own ? (who.ownsTeam ? ['35'] : ['39']) : ['33']

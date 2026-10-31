@@ -61,7 +61,7 @@ export default async function ClaimPage({ params }: Props) {
           </p>
         </div>
 
-        <WatchHow videos={['38']} pathname="/team/claim" variant="site" className="justify-center mb-6" />
+        <WatchHow videos={['38']} pathname="/team/claim" variant="site" className="text-center mb-6" />
 
         <ClaimForm
           token={token}
