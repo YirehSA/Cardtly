@@ -63,10 +63,10 @@ export default async function DepartmentsPage() {
   // Heads by name, with the email beside it. The org chart showed the part of
   // the address before the @, and Who's in charge the whole address with its
   // initials (video 29, 2026-10-31). The same lookup the invite emails use.
-  const usersById = Object.fromEntries((authList?.data?.users || []).map((u: any) => [u.id, u]))
-  const headIds = [...new Set((heads || []).map((h: any) => h.user_id as string))].filter(id => usersById[id])
+  const usersById: Record<string, any> = Object.fromEntries((authList?.data?.users || []).map((u: any) => [u.id, u]))
+  const headIds: string[] = Array.from(new Set<string>((heads || []).map((h: any) => h.user_id))).filter(id => usersById[id])
   const nameById: Record<string, string> = Object.fromEntries(
-    await Promise.all(headIds.map(async id => [id, await inviterNameFor(admin, usersById[id], '')])))
+    await Promise.all(headIds.map(async id => [id, await inviterNameFor(admin, usersById[id], '')] as const)))
 
   const headsByDept: Record<string, { userId: string; email: string | null; name: string | null }[]> = {}
   for (const h of heads || []) (headsByDept[h.department_id] ||= []).push({ userId: h.user_id, email: emailById[h.user_id] || null, name: nameById[h.user_id] || null })
