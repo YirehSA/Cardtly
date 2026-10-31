@@ -43,8 +43,11 @@ const STATE_META: Record<ResellerClientState, { label: string; tone: string }> =
   paused: { label: 'Paused', tone: '#f59e0b' },
   cancelled: { label: 'Cancelled', tone: '#94a3b8' },
 }
+// An order starts as awaiting_payment while its invoice is still a draft nobody
+// has sent (lib/reseller placeResellerNfcOrder), so the label does not claim an
+// invoice went out: the Invoices tab never lists drafts.
 const ORDER_STATUS: Record<string, string> = {
-  awaiting_payment: 'Invoice sent, waiting for payment',
+  awaiting_payment: 'Waiting for payment',
   paid: 'Paid, in the queue',
   in_production: 'Being made',
   shipped: 'Shipped',
