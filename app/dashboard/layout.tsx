@@ -177,11 +177,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let brandSource: string | null = (card as any)?.color_theme ?? null
   let teamCardName: string | null = null
   let teamCardListed = false
+  let teamCardId: string | null = null
   if (!brandSource || !card) {
     try {
       const teamCard = await getMemberTeamCard<Record<string, any>>(user.id, '*')
       if (teamCard) {
         teamCardName = teamCard.name || null
+        teamCardId = teamCard.id || null
         teamCardListed = !teamCard.hide_from_network && !teamCard.org_hide_from_network
         if (!brandSource) {
           const resolved = (await withResolvedBrand(deptAdmin, [teamCard]))[0]
@@ -199,6 +201,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     managesDepartment: managedDeptsList.some((d: any) => !d.viaOwner),
     teamMember: plan.viaTeam === true && ownedOrgsList.length === 0,
     hasCard: !!card || !!teamCardName,
+    ownTeamCardId: teamCardId,
   }
 
   return (

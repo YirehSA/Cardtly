@@ -126,6 +126,9 @@ export interface Who {
   /** Holds a card in a team they do not own. */
   teamMember: boolean
   hasCard: boolean
+  /** Their own card in a team, if they have one: its editor is /dashboard/team/card/<id>, the same page an owner
+   *  edits anybody's card on. */
+  ownTeamCardId?: string | null
 }
 
 /** The groups for the How-to page, the ones for this person's role first.
@@ -147,7 +150,10 @@ export function howToForPage(pathname: string, who: Who): string[] {
     return who.hasCard ? ['06', '08', '09'] : ['01']
   }
   if (p === '/dashboard/card') return who.teamMember && !who.ownsTeam ? ['39'] : ['02', '03', '05', '17', '42']
-  if (p.startsWith('/dashboard/team/card/')) return ['33']
+  if (p.startsWith('/dashboard/team/card/')) {
+    const own = !!who.ownTeamCardId && p.split('/')[4] === who.ownTeamCardId
+    return own ? (who.ownsTeam ? ['35'] : ['39']) : ['33']
+  }
   const simple: Record<string, string[]> = {
     '/dashboard/qr': ['07'],
     '/dashboard/analytics': ['16', '41'],
