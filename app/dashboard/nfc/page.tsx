@@ -9,6 +9,7 @@ import NFCWriteCard from '@/components/nfc/NFCWriteCard'
 import ProGate from '@/components/card/ProGate'
 import NFCSamplesSection from '@/components/nfc/NFCSamplesSection'
 import { availableSamples } from '@/lib/nfc-samples'
+import { possessive } from '@/lib/possessive'
 
 export const metadata = { title: 'NFC Cards' }
 
@@ -119,7 +120,7 @@ export default async function NFCPage() {
         <NFCWriteCard
           cards={deptCards.map((c: any) => ({ id: c.id, name: c.name || c.slug, title: c.title || null, slug: c.slug }))}
           memoryKey={`team:${deptOrgId}`} explainWhenUnsupported
-          heading={managed.length === 1 ? `Write ${deptName}'s NFC cards` : "Write your departments' NFC cards"}
+          heading={managed.length === 1 ? `Write ${possessive(deptName)} NFC cards` : "Write your departments' NFC cards"}
           buttonLabel={`Write cards (${deptCards.length})`}
           blurb={`Put each person in ${deptName} onto a blank NFC card, one after the other. The list remembers which are done, so you can stop and carry on later.`} />
       )}

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { LOCK_GROUPS } from '@/lib/team-locks'
+import { possessive } from '@/lib/possessive'
 import Toggle from '@/components/ui/Toggle'
 import OrgChart from '@/components/departments/OrgChart'
 import { Layers, Palette, Loader2, UserPlus, X, ExternalLink, Eye, Users, Check, RefreshCw, Building2, Crown, Plus, Pencil, Trash2, ShieldCheck, ArrowRight, Sparkles, Mail, ChevronLeft, Lock, LockOpen, Link2 } from 'lucide-react'
@@ -999,8 +1000,8 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards: a
               disabled={loading === `inheritlock-${dept.id}`}
               label="Lock this choice"
               hint={inheritLocked
-                ? `Only you can change it. ${dept.name}'s own manager cannot.`
-                : `${dept.name}'s own manager can switch this either way.`}
+                ? `Only you can change it. ${possessive(dept.name)} own manager cannot.`
+                : `${possessive(dept.name)} own manager can switch this either way.`}
               onChange={next => call(`inheritlock-${dept.id}`,
                 { action: 'set_brand_inheritance_lock', department_id: dept.id, locked: next },
                 next ? 'Locked. Only you can change it now.' : 'Unlocked. Their manager can change it.')}
