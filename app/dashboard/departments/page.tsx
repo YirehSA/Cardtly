@@ -142,9 +142,13 @@ export default async function DepartmentsPage() {
   // so a new department, whose people have not built anything yet, could not
   // be given any look at all.
   const { data: orgRows } = orgIds.length
-    ? await admin.from('organizations').select('id, brand, addons').in('id', orgIds)
+    ? await admin.from('organizations').select('id, brand, addons, locked_fields').in('id', orgIds)
     : { data: [] }
   const orgBrandById = Object.fromEntries((orgRows || []).map((o: any) => [o.id, o.brand || {}]))
+  // The company's own locks, for a head as much as an owner. They came only
+  // with ownedOrgs, so a head saw "0 of 13 locked" and every lock open while
+  // the company had locked four (video 29, 2026-10-31).
+  const orgLocksById: Record<string, string[]> = Object.fromEntries((orgRows || []).map((o: any) => [o.id, o.locked_fields || []]))
   // The org's lead-capture form library, so a head can allocate a form to each
   // of their cards. Only forms with questions, and only when the add-on is on.
   const orgFormsById: Record<string, { id: string; title?: string; questions: any[] }[]> = Object.fromEntries(
@@ -202,6 +206,7 @@ export default async function DepartmentsPage() {
         ...d,
         viewerHasCard: hasCardInOrg.has(d.organizationId),
         orgBrand: orgBrandById[d.organizationId] || {},
+        orgLocks: orgLocksById[d.organizationId] || [],
         forms: orgFormsById[d.organizationId] || [],
       }))}
       ownedOrgs={ownedOrgs}

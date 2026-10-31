@@ -46,6 +46,8 @@ interface Dept {
   viewerHasCard?: boolean
   // The company look, offered as a starting point for this department.
   orgBrand?: Record<string, any>
+  // The company's locks, which apply here whoever is looking.
+  orgLocks?: string[]
   // The org's lead-capture form library, for the per-card form picker.
   forms?: LeadForm[]
 }
@@ -121,7 +123,7 @@ export default function DepartmentManager({ departments, ownedOrgs, myCards = []
         dept={selected}
         accent={accentFor(idxOf(selected.id))}
         departments={departments}
-        orgLocks={ownedOrgs.find(o => o.id === selected.organizationId)?.lockedFields || []}
+        orgLocks={ownedOrgs.find(o => o.id === selected.organizationId)?.lockedFields || selected.orgLocks || []}
         myCards={myCards}
         onBack={canGoBack ? () => setSelId(null) : undefined}
         call={call} loading={loading} />
@@ -1042,9 +1044,12 @@ function DepartmentDetail({ dept, accent, departments, orgLocks = [], myCards: a
                 on={own || fromCompany}
                 disabled={loading === `locks-${dept.id}` || fromCompany}
                 disabledReason={fromCompany
-                  ? (isGroup
-                    ? 'Locked for the whole group. Change it in Group rules, on the Departments overview.'
-                    : 'Locked for the whole company. Change it in Company rules, on the Departments overview.')
+                  ? (!dept.isOwner
+                    // A head cannot reach the rules, so they are not sent there.
+                    ? `Locked for the whole ${isGroup ? 'group' : 'company'}. Only the owner can change it.`
+                    : isGroup
+                      ? 'Locked for the whole group. Change it in Group rules, on the Departments overview.'
+                      : 'Locked for the whole company. Change it in Company rules, on the Departments overview.')
                   : undefined}
                 label={g.label}
                 hint={own ? g.hint : 'Anyone in this team can change this'}
