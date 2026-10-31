@@ -102,7 +102,7 @@ export function WatchHow({ videos, pathname, variant = 'app', className = '' }: 
           <Play className="w-3 h-3 text-white fill-white ml-px" />
         </span>
         <span className="truncate">
-          Watch how{one ? <span className="font-medium">: {one.title}</span> : <span className="font-medium opacity-80"> · {list.length} videos</span>}
+          Watch how<span className="font-medium opacity-80"> · {one ? one.title : `${list.length} videos`}</span>
         </span>
         {one
           ? <span className="tabular-nums font-medium opacity-60 shrink-0">{lengthLabel(one.seconds)}</span>
@@ -142,7 +142,7 @@ export function PageHowTo({ who }: { who: Who }) {
 
 function VideoCard({ v, onPlay, big = false }: { v: HowToVideo; onPlay: (v: HowToVideo) => void; big?: boolean }) {
   return (
-    <button onClick={() => onPlay(v)} className="group text-left">
+    <button onClick={() => onPlay(v)} className="group text-left flex flex-col justify-start">
       <span className="relative block rounded-xl overflow-hidden ring-1 ring-border group-hover:ring-2 transition">
         <Thumb v={v} className="w-full aspect-video transition duration-300 group-hover:scale-[1.03]" />
         <span className="absolute left-2 bottom-2 grid place-items-center w-8 h-8 rounded-full shadow-lg transition group-hover:scale-110"
@@ -186,7 +186,7 @@ export function HowToLibrary({ who }: { who: Who }) {
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
         </label>
         {!q && (
-          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+          <div className="flex gap-1.5 overflow-x-auto sm:flex-wrap sm:overflow-visible pb-1 -mx-1 px-1">
             <button onClick={() => setTopic('all')} className={pill(topic === 'all')} style={topic === 'all' ? { background: accent } : undefined}>
               All <span className="opacity-70 tabular-nums">{shown.length}</span>
             </button>
