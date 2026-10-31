@@ -9,7 +9,7 @@ import {
   Home, CreditCard, QrCode, BarChart2,
   Users, Mail, Monitor, Wifi, Building2, Settings as SettingsIcon,
   Sun, Moon, LogOut, Shield, ScanLine, ClipboardList,
-  ChevronUp, X, Network, Layers, CalendarClock, FileSignature, Handshake, HeartHandshake } from 'lucide-react'
+  ChevronUp, X, Network, Layers, CalendarClock, FileSignature, Handshake, HeartHandshake, PlayCircle } from 'lucide-react'
 
 // Mobile-only bottom tab bar. Replaces the hamburger + slide-out
 // sidebar pattern on small screens. 4 most-used destinations sit in
@@ -62,6 +62,7 @@ const MORE_TABS: Tab[] = [
   { href: '/dashboard/email-signature',  label: 'Email Signature', icon: Mail         },
   { href: '/dashboard/virtual-bg',       label: 'Virtual BG',      icon: Monitor      },
   { href: '/dashboard/nfc',              label: 'NFC Cards',       icon: Wifi         },
+  { href: '/dashboard/how-to',           label: 'How-to',          icon: PlayCircle   },
   { href: '/dashboard/settings',         label: 'Settings',        icon: SettingsIcon },
 ]
 

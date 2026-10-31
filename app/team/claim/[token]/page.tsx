@@ -1,6 +1,7 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import ClaimForm from './ClaimForm'
+import { WatchHow } from '@/components/howto/HowTo'
 
 export const metadata = { title: 'Join your team' }
 
@@ -59,6 +60,8 @@ export default async function ClaimPage({ params }: Props) {
             Your digital business card is ready. Set a password to sign in to Cardtly.
           </p>
         </div>
+
+        <WatchHow videos={['38']} pathname="/team/claim" variant="site" className="justify-center mb-6" />
 
         <ClaimForm
           token={token}

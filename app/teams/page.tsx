@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
 import Footer from '@/components/marketing/Footer'
 import Reveal from '@/components/marketing/Reveal'
+import { WatchHow } from '@/components/howto/HowTo'
 import { SEAT_PRICE_RAND, MAX_SELF_SERVE_SEATS } from '@/lib/org-billing'
 import {
   ArrowRight, Check, Building2, Lock, UserPlus, BarChart2, FileUp,
@@ -367,6 +368,8 @@ export default function TeamsPage() {
                 or link, and the recipient saves the details without installing an app.
               </p>
 
+              {/* Web-only (RULES.md 1): /teams is a page the iPhone app never opens. */}
+              <WatchHow videos={['23']} pathname="/teams" variant="site" className="mt-6" />
               <div className="flex flex-wrap gap-3 mt-8">
                 <Link
                   href="/signup"

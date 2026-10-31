@@ -72,7 +72,8 @@ const nextConfig = {
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.paystack.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com",
       "media-src 'self' data: blob:",
       "worker-src 'self' blob:",
-      "frame-src 'self'",
+      // Bunny Stream's player, for the how-to videos (lib/howto-videos).
+      "frame-src 'self' https://iframe.mediadelivery.net",
     ].join('; ')
 
     return [

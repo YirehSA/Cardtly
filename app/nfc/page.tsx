@@ -6,6 +6,7 @@ import FaqSection from '@/components/marketing/FaqSection'
 import Footer from '@/components/marketing/Footer'
 import { Wifi, ArrowRight, Check, Smartphone, Zap, Shield, Package } from 'lucide-react'
 import CardSamples from '@/components/marketing/CardSamples'
+import { WatchHow } from '@/components/howto/HowTo'
 import { availableSamples } from '@/lib/nfc-samples'
 
 export const metadata: Metadata = {
@@ -168,6 +169,8 @@ const NFC_FAQ = [
                 A physical NFC business card that opens your full digital business card with a single tap. No scanning, no typing, no app. Just tap and connect.
               </p>
 
+              {/* Web-only (RULES.md 1): /nfc is a page the iPhone app never opens. */}
+              <WatchHow videos={['22']} pathname="/nfc" variant="site" className="mb-6" />
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
                 <Link href="/signup"
                   className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:opacity-90"

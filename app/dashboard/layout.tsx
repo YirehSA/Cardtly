@@ -24,6 +24,8 @@ import CompanyTeamsOnly from '@/components/dashboard/CompanyTeamsOnly'
 import { withResolvedBrand } from '@/lib/resolve-card-brand'
 import { parseDesign, getAccentHex } from '@/types/design'
 import { brandThemeStyle } from '@/lib/brand-theme'
+import { PageHowTo } from '@/components/howto/HowTo'
+import type { Who } from '@/lib/howto-videos'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -190,6 +192,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
   const brandVars = brandThemeStyle(brandSource ? getAccentHex(parseDesign(brandSource)) : null)
 
+  // Who this is, for the how-to videos each page offers (lib/howto-videos).
+  // A department head is someone who runs a department in a team they do not own.
+  const howToWho: Who = {
+    ownsTeam: ownedOrgsList.length > 0,
+    managesDepartment: managedDeptsList.some((d: any) => !d.viaOwner),
+    teamMember: plan.viaTeam === true && ownedOrgsList.length === 0,
+    hasCard: !!card || !!teamCardName,
+  }
+
   return (
     <ThemeProvider>
       <PlatformProvider iosApp={iosApp}>
@@ -233,6 +244,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 who has already switched their listing off. */}
             {!noticeSeen && (card ? !(card as any).hide_from_network : teamCardListed) && <NetworkNotice />}
             <div className="animate-fade-in-page">
+              {/* "Watch how": the page's own how-to videos, if it has any. */}
+              <PageHowTo who={howToWho} />
               {children}
             </div>
           </div>

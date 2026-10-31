@@ -6,7 +6,7 @@ import { useTheme } from './ThemeProvider'
 import {
   CreditCard, BarChart2, Mail, Monitor, Users,
   Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi, Building2, Shield, ScanLine, ClipboardList,
-  Layers, Network, CalendarClock, FileSignature, Handshake, HeartHandshake,
+  Layers, Network, CalendarClock, FileSignature, Handshake, HeartHandshake, PlayCircle,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -27,6 +27,7 @@ const NAV = [
   { href: '/dashboard/email-signature', label: 'Email Signature', icon: Mail },
   { href: '/dashboard/virtual-bg',      label: 'Virtual BG',      icon: Monitor },
   { href: '/dashboard/nfc',             label: 'NFC Cards',       icon: Wifi },
+  { href: '/dashboard/how-to',          label: 'How-to',          icon: PlayCircle },
   { href: '/dashboard/settings',        label: 'Settings',        icon: Settings },
 ]
 
