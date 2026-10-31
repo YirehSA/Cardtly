@@ -55,7 +55,7 @@ interface Props {
 type Color = 'black' | 'white'
 type Step = 'design' | 'shipping' | 'confirm'
 
-// Pricing — ZAR. Card price is fixed at R150 each; shipping is an
+// Pricing: ZAR. Card price is fixed at R150 each; shipping is an
 // up-front estimate of R100 anywhere in SA (actual depends on
 // destination, finalised on the invoice).
 const SHIPPING_ESTIMATE = NFC_SHIPPING_RAND
@@ -182,7 +182,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
           <Wifi className="w-5 h-5 rotate-90" style={{ color: text }} />
         </div>
 
-        {/* Logo — full colour, no filter */}
+        {/* Logo: full colour, no filter */}
         {card?.company_logo_url ? (
           <div className="absolute top-5 left-5">
             <img src={card.company_logo_url}
@@ -197,7 +197,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
           </div>
         )}
 
-        {/* Name and title — bottom left */}
+        {/* Name and title: bottom left */}
         <div className="absolute bottom-5 left-5">
           <p className="font-bold text-base leading-tight" style={{ color: text }}>
             {nameOnCard || 'Your Name'}
@@ -209,7 +209,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
           )}
         </div>
 
-        {/* Cardtly branding — bottom right */}
+        {/* Cardtly branding: bottom right */}
         <div className="absolute bottom-5 right-5">
           <p className="text-xs font-bold" style={{ color: subtext }}>Cardtly</p>
         </div>
@@ -402,7 +402,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
       {/* Main content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* Left — preview */}
+        {/* Left: preview */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Card preview</p>
@@ -434,7 +434,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
           </div>
         </div>
 
-        {/* Right — order form */}
+        {/* Right: order form */}
         <div className="space-y-6">
 
           {/* Step indicator */}
@@ -451,7 +451,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
             ))}
           </div>
 
-          {/* Step 1 — Design details */}
+          {/* Step 1: Design details */}
           {step === 'design' && (
             <div className="bg-card border border-border rounded-lg p-6 space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
@@ -515,7 +515,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
                     <div className="mt-3 rounded-xl border p-3" style={{ borderColor: 'var(--border)' }}>
                       <p className="text-xs font-semibold mb-2">
                         {NFC_TIERS[tier].label}: a card we printed
-                        <span className="text-muted-foreground font-normal"> — {sample.name}, {sample.role}</span>
+                        <span className="text-muted-foreground font-normal"> for {sample.name}, {sample.role}</span>
                       </p>
                       <div className="grid grid-cols-2 gap-2">
                         {[{ src: sample.front, label: 'Front' }, { src: sample.back, label: 'Back' }].map(side => (
@@ -638,7 +638,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
             </div>
           )}
 
-          {/* Step 2 — Shipping */}
+          {/* Step 2: Shipping */}
           {step === 'shipping' && (
             <div className="bg-card border border-border rounded-lg p-6 space-y-4">
               <h2 className="font-semibold flex items-center gap-2">
@@ -683,7 +683,7 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
             </div>
           )}
 
-          {/* Step 3 — Confirm & pay */}
+          {/* Step 3: Confirm & pay */}
           {step === 'confirm' && (
             <div className="bg-card border border-border rounded-lg p-6 space-y-5">
               <h2 className="font-semibold flex items-center gap-2">
@@ -767,9 +767,9 @@ export default function NFCOrderPage({ card, user, previousOrders, teamCards = [
                 'Premium NFC-enabled PVC card',
                 'Front: Logo, full name, job title',
                 'Back: QR code linking to your Cardtly card',
-                'Works with any iPhone or Android — no app needed',
+                'Works with any iPhone or Android, no app needed',
                 'Tap once to share your full digital card',
-                'One card, unlimited taps — lasts for years',
+                'One card, unlimited taps. Lasts for years',
               ].map(item => (
                 <div key={item} className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: accentHex }} />

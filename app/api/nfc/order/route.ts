@@ -11,7 +11,7 @@ const ADMIN_EMAIL = 'info@yireh.co.za'
 
 function buildOrderRow(line: any): string {
   const name = line.nameOnCard || ''
-  const title = line.titleOnCard ? ' — ' + line.titleOnCard : ''
+  const title = line.titleOnCard ? ', ' + line.titleOnCard : ''
   const color = (line.color || 'black').charAt(0).toUpperCase() + (line.color || 'black').slice(1)
   const qty = String(line.quantity || 1)
   return '<tr style="border-bottom:1px solid #eee;"><td style="padding:8px 0;">' + name + title + '</td><td style="padding:8px 0;text-align:center;">' + color + '</td><td style="padding:8px 0;text-align:right;">' + qty + '</td></tr>'
@@ -90,8 +90,8 @@ export async function POST(request: Request) {
     await resend.emails.send({
       from: FROM_EMAIL,
       to: ADMIN_EMAIL,
-      subject: 'New NFC Order — ' + user.email + ' (' + cardCount + ')',
-      html: '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;"><div style="background:linear-gradient(135deg,#00d4ff,#7c3aed,#ec4899);padding:24px;border-radius:12px 12px 0 0;"><h1 style="color:white;margin:0;">New NFC Card Order</h1><p style="color:rgba(255,255,255,0.8);margin:4px 0 0;">' + orderDate + '</p></div><div style="background:#f8f8f8;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;"><p><strong>Customer:</strong> ' + user.email + '</p>' + orderTable + '<p style="margin-top:16px;"><strong>Ship to:</strong> ' + shipTo + '</p><div style="margin-top:20px;padding:16px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;"><strong>Send invoice to ' + user.email + '</strong><p style="margin:8px 0 0;">' + tier.label + ' &mdash; ' + totalCards + ' &times; R' + tier.price + ' = R' + (tier.price * totalCards) + ', plus R' + NFC_SHIPPING_RAND + ' shipping.<br><strong>Total R' + (tier.price * totalCards + NFC_SHIPPING_RAND) + '</strong></p></div></div></div>',
+      subject: 'New NFC Order: ' + user.email + ' (' + cardCount + ')',
+      html: '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;"><div style="background:linear-gradient(135deg,#00d4ff,#7c3aed,#ec4899);padding:24px;border-radius:12px 12px 0 0;"><h1 style="color:white;margin:0;">New NFC Card Order</h1><p style="color:rgba(255,255,255,0.8);margin:4px 0 0;">' + orderDate + '</p></div><div style="background:#f8f8f8;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;"><p><strong>Customer:</strong> ' + user.email + '</p>' + orderTable + '<p style="margin-top:16px;"><strong>Ship to:</strong> ' + shipTo + '</p><div style="margin-top:20px;padding:16px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;"><strong>Send invoice to ' + user.email + '</strong><p style="margin:8px 0 0;">' + tier.label + ': ' + totalCards + ' &times; R' + tier.price + ' = R' + (tier.price * totalCards) + ', plus R' + NFC_SHIPPING_RAND + ' shipping.<br><strong>Total R' + (tier.price * totalCards + NFC_SHIPPING_RAND) + '</strong></p></div></div></div>',
     })
 
     await resend.emails.send({
