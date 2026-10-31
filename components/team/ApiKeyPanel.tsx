@@ -79,7 +79,7 @@ export default function ApiKeyPanel({ orgId }: { orgId: string }) {
 
       {adding && (
         <div className="rounded-xl border border-border p-3 space-y-2">
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="What is it for? e.g. BluWave sync"
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="What is it for? e.g. CRM sync"
             className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" />
           <div className="flex gap-2">
             <button disabled={busy === 'create'}

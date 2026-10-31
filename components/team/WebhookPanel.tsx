@@ -111,7 +111,7 @@ export default function WebhookPanel({ orgId }: { orgId: string }) {
           </div>
           <div>
             <label className="text-xs font-medium block mb-1">Name it, so you know which is which</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. BluWave"
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Sales CRM"
               className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm" />
           </div>
           <div>
@@ -184,12 +184,12 @@ A POST, Content-Type: application/json, with a body like this:
   "lead": {
     "id": "uuid",
     "name": "Thabo Nkosi",
-    "email": "thabo@example.co.za",
-    "phone": "082 111 2222",
-    "work_phone": "021 555 0000",
+    "email": "thabo@example.com",
+    "phone": "082 000 0101",
+    "work_phone": "021 000 0000",
     "company": "Nkosi Ltd",
     "title": "Director",
-    "website": "nkosi.co.za",
+    "website": "example.com",
     "address": "1 Main Rd",
     "message": "Please call me",
     "source": "card_form",
@@ -197,8 +197,8 @@ A POST, Content-Type: application/json, with a body like this:
     "captured_at": "2026-08-27T10:00:00Z"
   },
   "card": {
-    "id": "uuid", "name": "Andre Nel",
-    "slug": "andre-nel", "url": "https://www.cardtly.com/card/andre-nel",
+    "id": "uuid", "name": "Thandi Nkosi",
+    "slug": "thandi-nkosi", "url": "https://www.cardtly.com/card/thandi-nkosi",
     "type": "team"
   },
   "organization": { "id": "uuid", "name": "Our Company" }
