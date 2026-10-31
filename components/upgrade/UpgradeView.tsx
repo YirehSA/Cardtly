@@ -37,7 +37,7 @@ const PRO_FEATURES = [
   'Your social media profiles',
   'Up to 10 gallery photos',
   'Certifications and awards',
-  'Analytics - opens, taps and leads',
+  'Analytics: opens, taps and leads',
   'Email signature generator',
   'Virtual background for Zoom and Teams',
   'Contact form and lead capture',
@@ -133,7 +133,7 @@ export default function UpgradeView({ state, trialDaysLeft, graceDaysLeft = 0 }:
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               You already have everything below, and you have not been charged. Subscribe before it
-              ends and nothing changes - your card stays live on the same link.
+              ends and nothing changes: your card stays live on the same link.
             </p>
           </div>
         </div>
@@ -204,7 +204,7 @@ export default function UpgradeView({ state, trialDaysLeft, graceDaysLeft = 0 }:
                 </span>
                 <span className="text-xs font-bold px-2 py-0.5 rounded-full"
                   style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
-                  Save R{YEARLY_SAVING} - {MONTHS_FREE} months free
+                  Save R{YEARLY_SAVING}, {MONTHS_FREE} months free
                 </span>
               </div>
             )}
@@ -245,9 +245,9 @@ export default function UpgradeView({ state, trialDaysLeft, graceDaysLeft = 0 }:
             {loading
               ? <><Loader2 className="w-5 h-5 animate-spin" />Taking you to payment...</>
               : <><Zap className="w-5 h-5" />
-                  {state === 'expired' ? `Pay ${price} - bring my card back`
-                    : state === 'past_due' ? `Pay ${price} - keep my card live`
-                    : `Pay ${price} - go Pro`}
+                  {state === 'expired' ? `Pay ${price} · Bring my card back`
+                    : state === 'past_due' ? `Pay ${price} · Keep my card live`
+                    : `Pay ${price} · Go Pro`}
                   <ArrowRight className="w-5 h-5" /></>
             }
           </button>
