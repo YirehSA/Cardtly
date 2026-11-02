@@ -116,6 +116,7 @@ const guarded = [
   ['{ended ? (isAdmin && (', "action: 'restart'", 400],
   ['{isAdmin && <button onClick={() => {\n                if (!confirm(`End ', "action: 'end'", 700],
   ['{isAdmin && (r.freeCard.state', "action: 'sync_free_card'", 300],
+  ['{isAdmin && <button onClick={() => {\n                if (!confirm(`Delete ', "{ action: 'delete' }", 700],
   ['{isAdmin && <button onClick={() => { if (confirm(`Remove ', "action: 'remove_login'", 300],
   ['{isAdmin && <div className="flex items-center gap-2 mt-2">', "action: 'add_login'", 700],
   ['{isAdmin && (\n                  <button onClick={() => onApprove(a)}', 'onApprove(a)', 200],

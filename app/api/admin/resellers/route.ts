@@ -8,6 +8,7 @@ import { draftResellerMonth, rebuildResellerMonth, estimateResellerMonth, resell
 import { sastMonth, previousMonth, monthLabel, seatsSold, RESELLER_DEFAULTS } from '@/lib/reseller-pricing'
 import { syncResellerFreeCard, FREE_CARD_TEXT } from '@/lib/reseller-comp'
 import { requireResellerProgramme, managerMay, adminOnly } from '@/lib/reseller-programme'
+import { resellerDeleteBlocker, neverIssued, LIVE_NFC_STATUSES, type ResellerDeleteFacts } from '@/lib/reseller-delete'
 
 // Admin: the resellers, their pools and prices, their clients, and what they
 // are being billed. See migration 094 and lib/reseller-billing.
@@ -275,7 +276,7 @@ export async function PATCH(request: Request) {
   if (gate.role === 'manager' && !managerMay(body.action)) {
     return adminOnly(({
       add_login: "add or remove a reseller's logins", remove_login: "add or remove a reseller's logins",
-      end: 'end or restart a reseller', restart: 'end or restart a reseller',
+      end: 'end or restart a reseller', restart: 'end or restart a reseller', delete: 'delete a reseller',
       draft_month: 'draft reseller invoices', sync_free_card: "change a reseller's free card",
     } as Record<string, string>)[String(body.action)] || 'do that')
   }
@@ -406,6 +407,118 @@ export async function PATCH(request: Request) {
     const free = await syncResellerFreeCard(db, { ...reseller, status: 'ended' }).catch(() => null)
     await audit('end_reseller', { free_card: free?.state || null })
     return NextResponse.json({ ok: true, warning: 'Their page is now read-only, their own card is no longer free, and any month they still had seats live in is invoiced on the 1st as usual.' })
+  }
+
+  // Delete a reseller that never had any books (lib/reseller-delete). Every
+  // check fails closed: if one cannot be read, nothing is deleted. Admin only:
+  // not on MANAGER_RESELLER_ACTIONS.
+  if (body.action === 'delete') {
+    const read = async (what: string, q: any): Promise<{ rows: any[]; n: number }> => {
+      const { data, error, count } = await q
+      if (error) throw new Error(`Could not check ${what}: ${error.message}`)
+      return { rows: data || [], n: count || 0 }
+    }
+    const howMany = (what: string, table: string, column: string, value: string | string[]) => {
+      const q = db.from(table).select('*', { count: 'exact', head: true })
+      return read(what, Array.isArray(value) ? q.in(column, value) : q.eq(column, value)).then(r => r.n)
+    }
+    let teams: any[] = []
+    let invoices: any[] = []
+    let facts: ResellerDeleteFacts
+    try {
+      teams = (await read('its client teams', db.from('organizations').select('id, name, billing_period, admin_user_id').eq('reseller_id', reseller.id))).rows
+      let teamsWithCards = 0
+      let teamsWithSchedules = 0
+      for (const t of teams.filter(t => t.billing_period === 'reseller')) {
+        if (await howMany('team cards', 'team_cards', 'organization_id', t.id)) teamsWithCards++
+        if (await howMany('recurring schedules', 'recurring_schedules', 'organization_id', t.id)) teamsWithSchedules++
+      }
+      const nfc = (await read('NFC orders', db.from('reseller_nfc_orders').select('status, invoice_id').eq('reseller_id', reseller.id))).rows
+      const months = (await read('monthly invoices', db.from('reseller_invoices').select('invoice_id').eq('reseller_id', reseller.id))).rows
+      const byId = new Map<string, any>()
+      const linked = [...nfc, ...months].map(x => x.invoice_id).filter(Boolean)
+      if (linked.length) {
+        for (const i of (await read('invoices', db.from('invoices').select('id, number, status').in('id', linked))).rows) byId.set(i.id, i)
+      }
+      if (reseller.billing_client_id) {
+        for (const i of (await read('invoices', db.from('invoices').select('id, number, status').eq('client_id', reseller.billing_client_id))).rows) byId.set(i.id, i)
+      }
+      invoices = [...byId.values()]
+      const ids = invoices.map(i => i.id)
+      let moneyRecords = 0
+      if (ids.length) {
+        moneyRecords += await howMany('payments', 'billing_payments', 'invoice_id', ids)
+        moneyRecords += await howMany('credit notes', 'credit_notes', 'invoice_id', ids)
+      }
+      if (reseller.billing_client_id) {
+        for (const [what, table] of [['quotes', 'quotes'], ['receipts', 'billing_receipts'], ['purchase orders', 'purchase_orders'], ['recurring schedules', 'recurring_schedules']]) {
+          moneyRecords += await howMany(what, table, 'client_id', reseller.billing_client_id)
+        }
+      }
+      facts = {
+        teamsWithCards, teamsWithSchedules, moneyRecords,
+        issuedInvoices: invoices.filter(i => !neverIssued(i)).length,
+        liveNfcOrders: nfc.filter(o => (LIVE_NFC_STATUSES as readonly string[]).includes(o.status)).length,
+      }
+    } catch (e: any) {
+      return NextResponse.json({ error: `${e?.message || 'Could not check the reseller'}. Nothing was deleted.` }, { status: 500 })
+    }
+    const blocked = resellerDeleteBlocker(facts)
+    if (blocked) return NextResponse.json({ error: `${reseller.name} cannot be deleted. ${blocked}` }, { status: 409 })
+
+    // The free card first, while its logins still exist, and checked: once the
+    // reseller is gone nothing would ever withdraw a comp left behind.
+    try {
+      await syncResellerFreeCard(db, { ...reseller, status: 'ended' }, { actorUserId: gate.user.id })
+    } catch { /* checked just below */ }
+    const { data: leftOver, error: compErr } = await db.from('whop_subscriptions').select('id')
+      .eq('status', 'active').eq('metadata->>reason', 'reseller').eq('metadata->>reseller_id', reseller.id)
+    if (compErr || leftOver?.length) {
+      return NextResponse.json({ error: `${reseller.name}'s free card could not be withdrawn, so nothing was deleted. Try again.` }, { status: 500 })
+    }
+
+    // Its empty client teams. Teams Cardtly bills itself stay, unlinked by the
+    // foreign key when the reseller goes.
+    const emptyTeams = teams.filter(t => t.billing_period === 'reseller')
+    for (const t of emptyTeams) {
+      for (const table of ['api_keys', 'webhooks']) {
+        const { error } = await db.from(table).delete().eq('org_id', t.id)
+        if (error) return NextResponse.json({ error: `Could not remove ${t.name}'s ${table.replace('_', ' ')}: ${error.message}. ${reseller.name} was not deleted; its free card is already withdrawn.` }, { status: 500 })
+      }
+      const { error } = await db.from('organizations').delete().eq('id', t.id)
+      if (error) return NextResponse.json({ error: `Could not delete the client team ${t.name}: ${error.message}. ${reseller.name} was not deleted; its free card is already withdrawn.` }, { status: 500 })
+    }
+
+    // The reseller. Logins, seat counts, monthly claims, NFC orders and paid
+    // years cascade with it; applications keep their history.
+    const { error: delErr } = await db.from('resellers').delete().eq('id', reseller.id)
+    if (delErr) return NextResponse.json({ error: `Could not delete ${reseller.name}: ${delErr.message}` }, { status: 500 })
+
+    // Then the paperwork nobody ever saw: invoices that never got a number,
+    // and the billing client once nothing else points at it.
+    const notes: string[] = []
+    if (invoices.length) {
+      const { error } = await db.from('invoices').delete().in('id', invoices.map(i => i.id))
+      if (error) notes.push(`Its ${invoices.length} unissued invoice${invoices.length === 1 ? '' : 's'} could not be removed (${error.message}); they stay under Invoices as cancelled.`)
+    }
+    if (reseller.billing_client_id) {
+      const { data: others } = await db.from('resellers').select('id').eq('billing_client_id', reseller.billing_client_id)
+      if (!others?.length) {
+        const { error } = await db.from('billing_clients').delete().eq('id', reseller.billing_client_id)
+        if (error) notes.push(`Its billing client stays under Clients (${error.message}).`)
+      }
+    }
+    const kept = teams.length - emptyTeams.length
+    if (kept) notes.push(`${kept} client team${kept === 1 ? '' : 's'} Cardtly bills itself stay${kept === 1 ? 's' : ''}, no longer linked to them.`)
+
+    await audit('delete_reseller', {
+      name: reseller.name, email: reseller.email, client_teams_deleted: emptyTeams.length, client_teams_kept: kept,
+      invoices_removed: invoices.length, billing_client_id: reseller.billing_client_id || null,
+    })
+    return NextResponse.json({
+      ok: true,
+      warning: `Their logins keep their Cardtly accounts, and their own card is no longer free.${emptyTeams.length ? ` ${emptyTeams.length} empty client team${emptyTeams.length === 1 ? '' : 's'} deleted.` : ''}${notes.length ? ` ${notes.join(' ')}` : ''}`,
+    })
   }
 
   if (body.action === 'restart') {

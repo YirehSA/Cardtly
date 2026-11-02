@@ -474,6 +474,15 @@ function ResellerCard({ r, isAdmin, open, onToggle, reload }: { r: any; isAdmin:
                 End reseller
               </button>}
               </>)}
+              {/* For a reseller that never had any books (lib/reseller-delete).
+                  The route refuses one that has, with the reason. */}
+              {isAdmin && <button onClick={() => {
+                if (!confirm(`Delete ${r.name} completely? This cannot be undone.\n\nOnly for a reseller that never had any books: no invoice ever issued, no cards in its client teams, no NFC order paid for. Otherwise it is refused, and you End it instead.\n\nGoes with it: its logins (their Cardtly accounts stay), its empty client teams, its unissued invoices and its billing client. Their own card stops being free.`)) return
+                patch('delete', { action: 'delete' }, `${r.name} deleted.`)
+              }} disabled={!!busy}
+                className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ border: '1px solid rgba(239,68,68,0.45)', color: '#ef4444' }}>
+                {busy === 'delete' ? 'Deleting...' : 'Delete reseller'}
+              </button>}
               </div>
               <button onClick={() => patch('save', {
                 action: 'update', seat_pool: Number(edit.seat_pool),
