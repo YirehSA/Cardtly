@@ -5,7 +5,7 @@ import { isMissingColumn } from '@/lib/pg-errors'
 import { createClient } from '@/lib/supabase/client'
 import { Card, UserPlan } from '@/types/database'
 import { isPro } from '@/lib/plan'
-import { CardDesign, DEFAULT_DESIGN, parseDesign, serializeDesign, MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES, LINK_SLOTS, IMAGE_SLOTS, linkFieldsFrom, imageFieldsFrom, HERO_ASPECT, GALLERY_ASPECT } from '@/types/design'
+import { CardDesign, DEFAULT_DESIGN, parseDesign, serializeDesign, getAccentHex, MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES, LINK_SLOTS, IMAGE_SLOTS, linkFieldsFrom, imageFieldsFrom, HERO_ASPECT, GALLERY_ASPECT } from '@/types/design'
 import ImageFocusPicker from './ImageFocusPicker'
 import { composeCardSlug, slugifyPart } from '@/lib/card-slug'
 import { toast } from 'sonner'
@@ -15,8 +15,9 @@ import ProGate from './ProGate'
 import ImageUploader from './ImageUploader'
 import {
   Save, ExternalLink, Lock, User, Phone, Link2, Image, Palette, Copy, Check, Sparkles,
-  Camera, MapPin, Plus, Building2, Linkedin, Twitter, Instagram, Facebook, Youtube,
+  Camera, MapPin, Plus, Building2, Linkedin, Twitter, Instagram, Facebook, Youtube, PlayCircle,
 } from 'lucide-react'
+import VideoField from './VideoField'
 import { TikTokGlyph } from '@/components/card/SocialIcons'
 import AIBioModal from './AIBioModal'
 import { isNativeApp } from '@/lib/capacitor'
@@ -130,6 +131,10 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
     ...imageFieldsFrom(card),
     certifications:    card?.certifications || '',
     ...linkFieldsFrom(card),
+    // The video section (migration 099, components/card/VideoField).
+    video_url:         (card as any)?.video_url || '',
+    video_title:       (card as any)?.video_title || '',
+    show_video:        (card as any)?.show_video !== false,
   })
 
   const update = useCallback((field: string, value: string) => {
@@ -255,7 +260,8 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
     if (error && isMissingColumn(error)) {
       for (const key of Object.keys(payload)) {
         const n = Number(key.match(/^image_(\d+)_/)?.[1] ?? 0)
-        if (n > 6 || key === 'hero_image_url') { delete payload[key]; late++ }
+        // The video's three columns arrive with migration 099, the same way.
+        if (n > 6 || key === 'hero_image_url' || key === 'video_url' || key === 'video_title' || key === 'show_video') { delete payload[key]; late++ }
       }
       if (late > 0) ({ data: updated, error } = await write())
     }
@@ -495,6 +501,16 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
               </ProField>
               <ProField label="What you are good at" pro={pro} hint="Separate with commas. These show as little tags on your card.">
                 <Input value={form.certifications} onChange={e => update('certifications', e.target.value)} placeholder="Web Design, SEO, Digital Marketing" disabled={!pro} />
+              </ProField>
+            </Section>
+
+            {/* Its own section on the card, straight under the bio. */}
+            <Section title="A video" colour={TAB_COLOUR.basic} icon={<PlayCircle className="w-4 h-4" />}
+              hint="Paste a link to one video. It plays right on your card, under your intro.">
+              <ProField label="Your video" pro={pro}>
+                <VideoField disabled={!pro} accentHex={getAccentHex(design)}
+                  value={{ video_url: form.video_url, video_title: form.video_title, show_video: form.show_video }}
+                  onChange={v => setForm(prev => ({ ...prev, ...v }))} />
               </ProField>
             </Section>
           </>)}

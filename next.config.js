@@ -67,13 +67,16 @@ const nextConfig = {
       // set: the tag from googletagmanager, the hits to google-analytics.
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://*.google-analytics.com https://www.googletagmanager.com",
+      // The card video's picture (lib/card-video): YouTube and Dailymotion
+      // directly, the others through /api/video/thumb's redirect to their host.
+      "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://*.google-analytics.com https://www.googletagmanager.com https://i.ytimg.com https://i.vimeocdn.com https://*.tiktokcdn.com https://*.tiktokcdn-us.com https://*.tiktokcdn-eu.com https://*.loom.com https://*.wistia.com https://*.wistia.net https://www.dailymotion.com https://*.dmcdn.net",
       "font-src 'self' data:",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.paystack.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com",
       "media-src 'self' data: blob:",
       "worker-src 'self' blob:",
-      // Bunny Stream's player, for the how-to videos (lib/howto-videos).
-      "frame-src 'self' https://iframe.mediadelivery.net",
+      // Bunny Stream's player, for the how-to videos (lib/howto-videos), and
+      // the card video's players (PLAYER_ORIGINS in lib/card-video).
+      "frame-src 'self' https://iframe.mediadelivery.net https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.loom.com https://fast.wistia.net https://www.dailymotion.com",
     ].join('; ')
 
     return [

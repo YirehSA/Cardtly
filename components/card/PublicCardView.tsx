@@ -39,6 +39,7 @@ import {
   type ResolvedContext, type ContextSection, type ContextConfig, type CardPreviewContext,
 } from '@/lib/card-context'
 import ContextSelector from './ContextSelector'
+import CardVideo from './CardVideo'
 
 interface Props {
   card: Card & { _team_card_id?: string }
@@ -1820,6 +1821,17 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
     headingColor: getSectionHeadingColor(design, sectionMutedOn(bg.subtext, design.customBgColor)),
     captionColor: getCaptionColor(design, sectionMutedOn(bg.subtext, design.customBgColor)) }
 
+  // THE VIDEO (lib/card-video, migration 099): its own section, directly under
+  // the bio on every template, and not part of it (Andre, 2026-11-02). Pro,
+  // like the gallery. show_video is the cardholder's switch, so turning it off
+  // keeps the link for later. Each template places it and gives it its own
+  // spacing; scripts/check-card-video holds all sixteen to that.
+  const videoUrl = isPro && (card as any).show_video !== false ? String((card as any).video_url || '').trim() : ''
+  const videoSection = (style?: React.CSSProperties, align: 'left' | 'center' = 'left') => videoUrl ? (
+    <CardVideo key={videoUrl} url={videoUrl} title={(card as any).video_title || null} accentHex={accentHex}
+      headingColor={bottomProps.headingColor} captionColor={bottomProps.captionColor} align={align} style={style} />
+  ) : null
+
   const pageStyle: React.CSSProperties = { minHeight: '100vh', backgroundColor: bg.page, color: bg.text, fontFamily: font.body }
 
   if (design.templateId === 'classic') {
@@ -1911,6 +1923,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               <div className="mt-4"><LogoZone {...shared} /></div>
               {card.bio && <p className="mt-3 leading-relaxed" style={{ textAlign: bioAlignFor(design), color: getBioColor(design, bg.subtext), fontSize: calcBioSize(14, design) }}>{card.bio}</p>}
             </div>
+            {videoSection({ margin: '0 0 28px' }, 'center')}
 
             {/* One panel with hairlines between the rows, not five separate
                 outlined buttons. Three loose buttons is what a free card used
@@ -2035,6 +2048,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             <div className="rounded-full mb-4" style={{ width: 40, height: 3, backgroundColor: accentHex, boxShadow: `0 0 16px ${accentHex}88` }} />
             <LogoZone {...shared} />
             {card.bio && <p style={{ fontSize: calcBioSize(15, design), lineHeight: 1.7, marginBottom: 20, textAlign: bioAlignFor(design), color: bioColor }}>{card.bio}</p>}
+            {videoSection({ marginBottom: 24 })}
             {/* Socials row - centered, UNDER the bio, in brand colours.
                 White icon on the platform's own brand colour, instant
                 recognition vs an accent-tinted row of identical pills. */}
@@ -2093,6 +2107,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           <div className="px-6 py-6">
             <LogoZone {...shared} />
             {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
+            {videoSection({ marginBottom: 24 })}
             <AllContacts {...shared} socialLinks={socialLinks} />
             <BottomSection {...bottomProps} />
           </div>
@@ -2167,6 +2182,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           {isPro && card.title && <p style={{ margin: 0, fontSize: calcTitleSize(15, design), fontWeight: 500, color: getTitleColor(design, titleColor), textAlign: 'center' }}>{card.title}</p>}
           {shownCompany && <p style={{ margin: '4px 0 0', fontSize: calcCompanySize(14, design), color: getCompanyColor(design, muted), textAlign: 'center' }}>{shownCompany}</p>}
           {card.bio && <p style={{ fontSize: calcBioSize(13, design), color: getBioColor(design, muted), textAlign: bioAlignFor(design, 'center'), lineHeight: 1.6, margin: '12px 0 0' }}>{card.bio}</p>}
+          {videoSection({ marginTop: 24 }, 'center')}
           {/* Up to 6 vibrant circular quick-actions (phone, email, linkedin,
               website, twitter/X, facebook). Wraps to a second row on narrow
               phones when 5+ are filled in. */}
@@ -2286,6 +2302,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               </div>
             )}
           </div>
+          {videoSection({ padding: '28px 16px 0' }, 'center')}
           {/* Contact grid */}
           <div style={{ padding: '28px 16px 0' }}>
             <p style={{ margin: '0 0 16px', fontSize: 10, fontWeight: 800, color: getSectionHeadingColor(design, ink), textTransform: 'uppercase', letterSpacing: '0.3em', textAlign: 'center' }}>Get In Touch</p>
@@ -2458,6 +2475,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               fontSize: calcBioSize(15, design), textAlign: bioAlignFor(design), color: getBioColor(design, bg.text), opacity: 0.9,
             }}>{card.bio}</p>
           )}
+          {videoSection({ margin: '24px auto 0', maxWidth: 420 }, 'center')}
 
           {/* Chunky gradient buttons. Every other template in the set draws
               contacts as an outlined row or a tinted tile; these are filled,
@@ -2561,6 +2579,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           <div className="px-6 py-4 pb-10">
             <LogoZone {...shared} />
             {card.bio && <p style={{ fontSize: calcBioSize(14, design), lineHeight: 1.7, marginBottom: 20, textAlign: bioAlignFor(design), color: bioColor }}>{card.bio}</p>}
+            {videoSection({ marginBottom: 24 })}
             {/* Brand-coloured socials row - centred UNDER the bio.
                 Same pattern as Modern. */}
             {socialLinks.length > 0 && (
@@ -2720,6 +2739,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
 
         {/* Everything from here down gets the whole width. */}
         <div style={{ ...column, padding: '24px 24px 28px' }}>
+          {videoSection({ marginBottom: 24 })}
           <AllContacts {...shared} socialLinks={socialLinks} />
           <BottomSection {...bottomProps} />
         </div>
@@ -2851,6 +2871,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               {shownCompany && <p style={{ margin: '0 0 14px', fontSize: calcCompanySize(13, design), color: getCompanyColor(design, bg.subtext) }}>{shownCompany}</p>}
               <LogoZone {...shared} />
               {card.bio && <p className="leading-relaxed" style={{ margin: 0, fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
+              {videoSection({ marginTop: 18 }, 'center')}
 
               {/* Inside the content column, not in a block underneath it.
                   The rail now holds nine chips and the header holds four lines,
@@ -3012,6 +3033,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             {card.bio && (
               <p className="leading-relaxed" style={{ margin: '12px 0 0', fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>
             )}
+            {videoSection({ marginTop: 20 })}
 
             {/* The traces. Every row is drawn the same way - accent at the
                 icon running to companion at the node - rather than alternating
@@ -3257,6 +3279,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
                 }}>{card.bio}</p>
               </div>
             )}
+            {videoSection({ marginBottom: 26 })}
 
             {/* Two columns, with the long values taking a whole row. A street
                 address crushed into half a phone's width truncates to nothing,
@@ -3364,6 +3387,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           <div style={{ height: 2, background: `linear-gradient(90deg, transparent, ${accentHex}, transparent)`, marginBottom: 16, boxShadow: `0 0 12px ${accentHex}, 0 0 30px ${accentHex}66` }} />
           <LogoZone {...shared} />
           {card.bio && <p className="mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, '#6060a0') }}>{card.bio}</p>}
+          {videoSection({ marginBottom: 24 })}
           <div className="space-y-3">
             {[
               card.phone && { icon: <Smartphone className="w-4 h-4" />, label: card.phone, href: `tel:${card.phone}` },
@@ -3660,6 +3684,11 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               <p style={{ margin: 0, fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, '#525252'), lineHeight: 1.7, fontStyle: 'italic' }}>{card.bio}</p>
             </div>
           )}
+          {videoUrl && (
+            <div style={{ backgroundColor: lightArea, padding: '20px 20px 4px' }}>
+              {videoSection(undefined, 'center')}
+            </div>
+          )}
           {/* Footer with custom links / save contact / share / contact form */}
           <div style={{ backgroundColor: lightArea, padding: '8px 20px 24px' }}>
             <BottomSection {...bottomProps} omitCertifications />
@@ -3824,6 +3853,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
             {card.bio && (
               <p style={{ margin: '16px 0 0', textAlign: bioAlignFor(design, 'center'), fontSize: calcBioSize(14, design), color: getBioColor(design, inkSoft), lineHeight: 1.7 }}>{card.bio}</p>
             )}
+            {videoSection({ marginTop: 20 }, 'center')}
 
             {rows.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 22 }}>
@@ -3915,6 +3945,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
               {card.bio.slice(1)}
             </p>
           )}
+          {videoSection({ marginBottom: 28 })}
           {/* Contact list with classical rules */}
           <div style={{ borderTop: `1px solid ${rule}`, paddingTop: 16 }}>
             <p style={{ margin: '0 0 12px', fontSize: 10, fontWeight: 700, color: getSectionHeadingColor(design, muted), textTransform: 'uppercase', letterSpacing: '0.3em' }}>Correspondence</p>
@@ -4108,6 +4139,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
           <div className="px-6 pb-6" style={{ paddingTop: 20 }}>
             <LogoZone {...shared} />
             {card.bio && <p className="text-sm mb-6 leading-relaxed" style={{ fontSize: calcBioSize(14, design), textAlign: bioAlignFor(design), color: getBioColor(design, bg.subtext) }}>{card.bio}</p>}
+            {videoSection({ marginBottom: 24 })}
             <AllContacts {...shared} socialLinks={socialLinks} compact />
             <BottomSection {...bottomProps} primaryLinkCount={3} />
           </div>

@@ -69,6 +69,7 @@ export const TEAM_CARD_COLUMNS = new Set(`
   image_9_link image_10_url image_10_link image_1_title image_2_title
   image_3_title image_4_title image_5_title image_6_title image_7_title
   image_8_title image_9_title image_10_title hero_image_url
+  video_url video_title show_video
 `.trim().split(/\s+/))
 
 // Personal-only columns that only say how the card LOOKED. Losing them changes

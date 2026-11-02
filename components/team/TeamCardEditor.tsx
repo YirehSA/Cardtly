@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
-import { CardDesign, parseDesign, serializeDesign, LINK_SLOTS, IMAGE_SLOTS, MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES, linkFieldsFrom, imageFieldsFrom, HERO_ASPECT, GALLERY_ASPECT, type LinkSlot, type ImageSlot } from '@/types/design'
+import { CardDesign, parseDesign, serializeDesign, getAccentHex, LINK_SLOTS, IMAGE_SLOTS, MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES, linkFieldsFrom, imageFieldsFrom, HERO_ASPECT, GALLERY_ASPECT, type LinkSlot, type ImageSlot } from '@/types/design'
 import ImageFocusPicker from '@/components/card/ImageFocusPicker'
 import { mergeBrand, BRAND_FIELDS } from '@/lib/team-brand'
 import { lockedColumns, LOCK_GROUPS } from '@/lib/team-locks'
@@ -12,6 +12,7 @@ import CardPreview from '@/components/card/CardPreview'
 import DesignPanel from '@/components/card/DesignPanel'
 import ImageUploader from '@/components/card/ImageUploader'
 import AIBioModal from '@/components/card/AIBioModal'
+import VideoField from '@/components/card/VideoField'
 import { Save, ExternalLink, ArrowLeft, User, Phone, Link2, Image, Palette, Copy, Check, Lock, Sparkles, Briefcase } from 'lucide-react'
 import Link from 'next/link'
 
@@ -280,6 +281,10 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
     ...imageFieldsFrom(card),
     certifications:    card.certifications || '',
     ...linkFieldsFrom(card),
+    // The video section (migration 099, components/card/VideoField).
+    video_url:         (card as any).video_url || '',
+    video_title:       (card as any).video_title || '',
+    show_video:        (card as any).show_video !== false,
   })
 
   const update = useCallback((field: string, value: string) => {
@@ -736,6 +741,14 @@ export default function TeamCardEditor({ card, org, userId, role = 'admin', orgB
               <Field label="Certifications / Tags" hint="Comma separated e.g. Sales, Certified, CPA"
                 locked={isLocked('certifications')} lockedBy={lockedByFor('certifications')}>
                 <Input value={shown('certifications')} onChange={e => update('certifications', e.target.value)} placeholder="Sales, Certified, CPA" disabled={isLocked('certifications')} />
+              </Field>
+              {/* Its own section on the card, straight under the bio
+                  (migration 099). This person's own, like the bio: not part of
+                  the design, so adding one never takes the card off the look. */}
+              <Field label="Video" hint="Paste a link to one video. It plays right on the card, under the bio.">
+                <VideoField accentHex={getAccentHex(parseDesign(previewForm.color_theme))}
+                  value={{ video_url: form.video_url, video_title: form.video_title, show_video: form.show_video }}
+                  onChange={v => setForm(prev => ({ ...prev, ...v }))} />
               </Field>
             </>
           )}

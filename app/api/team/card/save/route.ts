@@ -145,7 +145,8 @@ export async function POST(request: Request) {
   if (error && isMissingColumn(error)) {
     for (const key of Object.keys(payload)) {
       const n = Number(key.match(/^link_(\d+)_/)?.[1] ?? key.match(/^image_(\d+)_/)?.[1] ?? 0)
-      if (key === 'youtube' || key === 'tiktok' || key === 'hero_image_url' || (key.startsWith('link_') && n > 5) || (key.startsWith('image_') && n > 6)) {
+      // The video's three columns, from migration 099, wait the same way.
+      if (key === 'youtube' || key === 'tiktok' || key === 'hero_image_url' || key === 'video_url' || key === 'video_title' || key === 'show_video' || (key.startsWith('link_') && n > 5) || (key.startsWith('image_') && n > 6)) {
         delete payload[key]
         late.push(key)
       }
@@ -162,8 +163,9 @@ export async function POST(request: Request) {
     success: true,
     saved: Object.keys(payload).length - 1,
     removed,
-    warning: late.length > 0
-      ? 'Saved. The extra links, photos and the YouTube and TikTok fields need migration 060 before they can be stored.'
-      : null,
+    warning: late.length === 0 ? null
+      : late.every(k => k === 'video_url' || k === 'video_title' || k === 'show_video')
+        ? 'Saved. The video needs migration 099 before it can be stored.'
+        : 'Saved. The extra links, photos and the YouTube and TikTok fields need migration 060 before they can be stored.',
   })
 }
