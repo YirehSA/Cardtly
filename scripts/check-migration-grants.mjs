@@ -131,6 +131,41 @@ for (const f of files) {
   }
 }
 
+// ── A column added to cards needs its own update grant ─────────────────────
+//
+// Migration 084 revoked UPDATE on cards from authenticated and granted it back
+// as an explicit list of the columns that existed then. The personal card
+// editor writes cards from the browser with the user's session, so a column
+// added later and sent by the editor is refused - and Postgres refuses the
+// WHOLE update. 099 added the video columns without a grant and every personal
+// card save failed until 100 granted them (2026-11-02). So every column a
+// migration after 084 adds to cards must appear in a `grant update (...) on
+// public.cards to authenticated` somewhere in the migrations, or be listed
+// here as one only the server writes, with the reason.
+const CARDS_SERVER_ONLY = {
+  // 'column_name': 'why only a server route writes it',
+}
+const cardsGrants = new Set()
+const cardsAdded = [] // [file, column]
+for (const f of files) {
+  if (Number(f.slice(0, 3)) < 84) continue
+  const sql = code(read(join(DIR, f)))
+  for (const m of sql.matchAll(/grant\s+update\s*\(([^)]*)\)\s+on\s+(?:table\s+)?(?:public\.)?"?cards"?\s+to\s+([^;]*);/gi)) {
+    if (m[2].toLowerCase().split(',').map(r => r.trim()).includes('authenticated')) {
+      for (const c of m[1].split(',')) cardsGrants.add(c.trim().replace(/"/g, '').toLowerCase())
+    }
+  }
+  if (Number(f.slice(0, 3)) <= 84) continue
+  for (const st of sql.matchAll(/alter\s+table\s+(?:only\s+)?(?:if\s+exists\s+)?(?:public\.)?"?cards"?\s+([^;]*);/gi)) {
+    for (const c of st[1].matchAll(/add\s+column\s+(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_]*)"?/gi)) cardsAdded.push([f, c[1].toLowerCase()])
+  }
+}
+for (const [f, col] of cardsAdded) {
+  if (!cardsGrants.has(col) && !CARDS_SERVER_ONLY[col]) {
+    bad(`${f} adds cards.${col} but no migration grants it: the card editor writes cards from the browser, so saving a card that sends it is refused whole. Add: grant update (${col}) on public.cards to authenticated; (or list it in CARDS_SERVER_ONLY with the reason).`)
+  }
+}
+
 if (fail) {
   console.error(`${LF}check-migration-grants: ${fail} failure(s).`)
   process.exit(1)

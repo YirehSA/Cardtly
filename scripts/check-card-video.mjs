@@ -146,6 +146,12 @@ if (!/video_url video_title show_video/.test(read('lib/move-card-to-team.ts'))) 
 if (!/key === 'video_url' \|\| key === 'video_title' \|\| key === 'show_video'/.test(read('components/card/CardEditor.tsx'))) bad('saving a personal card fails outright before migration 099 runs')
 if (!/key === 'video_url' \|\| key === 'video_title' \|\| key === 'show_video'/.test(read('app/api/team/card/save/route.ts'))) bad('saving a team card fails outright before migration 099 runs')
 const personal = read('components/card/CardEditor.tsx')
+// 099 shipped without its update grant and every personal card save failed
+// (2026-11-02). The editor now writes the video only when it changed, and a
+// refused video still lets the rest of the card save.
+if (!/for \(const k of VIDEO_KEYS\) if \(payload\[k\] === storedVideo\.current\[k\]\) delete payload\[k\]/.test(personal)) bad('the card editor writes the video on every save, so a problem with it stops every save')
+if (!/if \(error && isPermissionDenied\(error\) && VIDEO_KEYS\.some\(k => k in payload\)\) \{\s*for \(const k of VIDEO_KEYS\) delete payload\[k\]/.test(personal)) bad('a refused video still stops the rest of the card saving')
+if (!/grant update \(video_url, video_title, show_video\) on public\.cards to authenticated;/.test(read('supabase/migrations/100_card_video_grant.sql'))) bad('migration 100 does not grant the card editor the video columns')
 if (!/<VideoField disabled=\{!pro\}/.test(personal) || !/show_video:\s+\(card as any\)\?\.show_video !== false/.test(personal)) bad('the personal editor has no video section, or offers it to a free plan')
 const team = read('components/team/TeamCardEditor.tsx')
 if (!/<VideoField /.test(team) || !/show_video:\s+\(card as any\)\.show_video !== false/.test(team)) bad('the team card editor has no video section')

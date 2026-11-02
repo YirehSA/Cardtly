@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
-import { isMissingColumn } from '@/lib/pg-errors'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { isMissingColumn, isPermissionDenied } from '@/lib/pg-errors'
 import { createClient } from '@/lib/supabase/client'
 import { Card, UserPlan } from '@/types/database'
 import { isPro } from '@/lib/plan'
@@ -36,6 +36,9 @@ type TabId = 'basic' | 'contact' | 'links' | 'media' | 'design'
 
 // One comparable string for "everything the user can change", so unsaved work
 // is detected without tracking each field by hand.
+// The video section's columns (migration 099, components/card/VideoField).
+const VIDEO_KEYS = ['video_url', 'video_title', 'show_video'] as const
+
 function snapshotOf(form: Record<string, unknown>, design: CardDesign): string {
   return JSON.stringify({ form, design })
 }
@@ -141,6 +144,9 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
     setForm(prev => ({ ...prev, [field]: value }))
   }, [])
 
+  // The video as it is stored, so save() only writes it when it changed.
+  const storedVideo = useRef({ video_url: form.video_url, video_title: form.video_title, show_video: form.show_video })
+
   // WHERE A PHOTO IS CROPPED FROM, set by the drag tool under each uploader.
   // Lives in the design JSON, so it travels with color_theme and needs no
   // column of its own. Functional update because two pickers on screen can be
@@ -242,6 +248,12 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
       color_theme: serializeDesign(design),
       updated_at: new Date().toISOString(),
     }
+    // THE VIDEO GOES ONLY WHEN IT CHANGED. Its columns came after migration
+    // 084's column grants, and 099 shipped without the grant, so every save
+    // that sent them was refused whole: nobody could save their card at all
+    // until 100 granted them (2026-11-02). A save that does not touch the video
+    // no longer writes it, so a missing grant can only ever cost the video.
+    for (const k of VIDEO_KEYS) if (payload[k] === storedVideo.current[k]) delete payload[k]
     const write = () => supabase.from('cards').update(payload).eq('id', card.id).select('id')
     let { data: updated, error } = await write()
 
@@ -266,14 +278,27 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
       if (late > 0) ({ data: updated, error } = await write())
     }
 
+    // And when the columns are there but this role may not write them (a grant
+    // missing, as 099's was), save everything else rather than nothing.
+    let videoRefused = false
+    if (error && isPermissionDenied(error) && VIDEO_KEYS.some(k => k in payload)) {
+      for (const k of VIDEO_KEYS) delete payload[k]
+      videoRefused = true
+      ;({ data: updated, error } = await write())
+    }
+
     if (error) toast.error('Failed to save: ' + error.message)
     else if (!updated || updated.length === 0) {
       toast.error('Your changes were not saved. Please refresh and try again, or email andre@cardtly.com.')
     }
     else {
-      toast.success(isFirst ? 'Your card is live! 🎉' : 'Card saved')
-      // Only now is what is on screen genuinely what is stored.
-      setSavedSnapshot(snapshotOf(form, design))
+      if (videoRefused) toast.warning('Card saved, but the video could not be stored yet. Please try again later, or email andre@cardtly.com.', { duration: 9000 })
+      else toast.success(isFirst ? 'Your card is live! 🎉' : 'Card saved')
+      // Only now is what is on screen genuinely what is stored. A video that
+      // did not go stays unsaved, so leaving still warns.
+      const sentVideo = VIDEO_KEYS.filter(k => k in payload)
+      for (const k of sentVideo) (storedVideo.current as any)[k] = (form as any)[k]
+      setSavedSnapshot(snapshotOf({ ...form, ...storedVideo.current }, design))
       if (isFirst) {
         markFirstSaveCelebrated()
         celebrateFirstSave()

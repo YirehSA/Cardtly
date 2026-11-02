@@ -39,6 +39,18 @@ export function isMissingColumn(error: unknown): boolean {
     || /could not find the '.*' column/i.test(message)
 }
 
+/** The role may not write that column: 42501, insufficient_privilege. On cards
+ *  this is a column added after migration 084 without its own
+ *  `grant update (...) on public.cards to authenticated` (099 was, and every
+ *  personal card save failed until 100 granted it). */
+export function isPermissionDenied(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const e = error as { code?: unknown; message?: unknown }
+  if (e.code === '42501') return true
+  const message = typeof e.message === 'string' ? e.message : ''
+  return /permission denied/i.test(message)
+}
+
 /** The table itself is missing: 42P01, undefined_table. A different question
  *  from the column one, and several callers ask both at once. */
 export function isMissingTable(error: unknown): boolean {
