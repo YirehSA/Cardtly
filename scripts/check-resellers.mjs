@@ -369,7 +369,17 @@ if (!/\.eq\('reseller_id', reseller\.id\)\.maybeSingle\(\)/.test(api)) bad('clie
 const pdf = read('app/api/reseller/invoices/pdf/route.ts')
 if (!/requireReseller\(\)/.test(pdf) || !/\.eq\('client_id', reseller\.billing_client_id\)/.test(pdf) || !/invoice\.status === 'draft'/.test(pdf)) bad('a reseller may only download their own issued invoices')
 const adminApi = read('app/api/admin/resellers/route.ts')
-if ((adminApi.match(/const gate = await requireAdmin\(\)/g) || []).length < 3) bad('every admin reseller handler must start with requireAdmin')
+// Since 2026-11-02 the rep who runs the reseller programme may list resellers
+// and change some things (scripts/check-reseller-programme holds which). So:
+// creating one is admin only, and the other two handlers start with the
+// programme gate, which also lets admins in. Never open.
+{
+  const handler = (m) => { const at = adminApi.indexOf(`export async function ${m}(`); return at < 0 ? '' : adminApi.slice(at, at + 400) }
+  if (!/const gate = await requireAdmin\(\)/.test(handler('POST'))) bad('creating a reseller must start with requireAdmin')
+  for (const m of ['GET', 'PATCH']) {
+    if (!/const gate = await (requireAdmin|requireResellerProgramme)\(\)/.test(handler(m))) bad(`the admin reseller ${m} handler must start with requireAdmin or requireResellerProgramme`)
+  }
+}
 
 const lib = read('lib/reseller.ts')
 if (!/billing_period: 'reseller',[\s\S]{0,80}reseller_id: reseller\.id/.test(lib)) bad('a new client must be on this reseller\'s bill')

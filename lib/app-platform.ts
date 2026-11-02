@@ -41,6 +41,10 @@ export const IOS_BLOCKED_ROUTES = [
   '/signup', '/network', '/promotions',
   // The reseller page: Cardtly prices for resellers, and their invoices.
   '/dashboard/reseller',
+  // The reseller programme, for the rep who runs it: the same prices. Listed on
+  // its own because the prefix match stops at a '/', so the line above does
+  // not cover it.
+  '/dashboard/reseller-programme',
   // Applying to resell Cardtly. Selling it is not what the app is for.
   '/resellers',
 ] as const

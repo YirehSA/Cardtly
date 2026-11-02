@@ -12,6 +12,8 @@ export interface RepIdentity {
   id: string
   name: string
   active: boolean
+  /** Runs the reseller programme (migration 098, lib/reseller-programme). */
+  managesResellers: boolean
 }
 
 export function serviceClient() {
@@ -24,7 +26,7 @@ export function serviceClient() {
 // An inactive rep keeps their history but stops being able to add to it - they
 // have left, and their past meetings are still the company's record.
 function identity(row: any): RepIdentity {
-  return { id: row.id, name: row.name, active: row.active !== false }
+  return { id: row.id, name: row.name, active: row.active !== false, managesResellers: row.manages_resellers === true }
 }
 
 /**

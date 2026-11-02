@@ -7,6 +7,7 @@ import { listResellerClients, poolClients } from '@/lib/reseller'
 import { draftResellerMonth, rebuildResellerMonth, estimateResellerMonth, resellerPrices } from '@/lib/reseller-billing'
 import { sastMonth, previousMonth, monthLabel, seatsSold, RESELLER_DEFAULTS } from '@/lib/reseller-pricing'
 import { syncResellerFreeCard, FREE_CARD_TEXT } from '@/lib/reseller-comp'
+import { requireResellerProgramme, managerMay, adminOnly } from '@/lib/reseller-programme'
 
 // Admin: the resellers, their pools and prices, their clients, and what they
 // are being billed. See migration 094 and lib/reseller-billing.
@@ -83,8 +84,10 @@ async function linkLogin(db: any, reseller: any, email: string, origin: string, 
   }
 }
 
+// Read by admins and by the rep who runs the reseller programme
+// (lib/reseller-programme): he sees every reseller, its clients and invoices.
 export async function GET() {
-  const gate = await requireAdmin()
+  const gate = await requireResellerProgramme()
   if ('error' in gate) return gate.error
   const db = adminDb()
 
@@ -176,26 +179,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Prices must be amounts of R0 or more.' }, { status: 400 })
   }
 
-  // Approving an application from cardtly.com/resellers: only one that is
-  // still pending, so two admins clicking Approve cannot make two resellers.
+  // Approving an application from cardtly.com/resellers: the final approval,
+  // so an admin only (requireAdmin above). Usually after the reseller
+  // programme's manager has recommended it; an admin may also approve one still
+  // pending, so nothing waits when he is away (Andre's choice). Only one that is
+  // still undecided, so two admins clicking Approve cannot make two resellers.
   let application: any = null
   if (body.application_id) {
     const { data } = await db.from('reseller_applications').select('*').eq('id', String(body.application_id)).maybeSingle()
     if (!data) return NextResponse.json({ error: 'That application no longer exists.' }, { status: 404 })
-    if (data.status !== 'pending') return NextResponse.json({ error: `That application is already ${data.status}.` }, { status: 409 })
+    if (data.status !== 'pending' && data.status !== 'recommended') return NextResponse.json({ error: `That application is already ${data.status}.` }, { status: 409 })
     // Claimed before anything is created: the update only matches while it is
-    // still pending, so a second Approve at the same moment finds nothing.
+    // still in the status it was read in, so a second Approve at the same
+    // moment finds nothing.
     const at = new Date().toISOString()
     const { data: claimed } = await db.from('reseller_applications')
       .update({ status: 'approved', decided_by: gate.user.id, decided_at: at, updated_at: at })
-      .eq('id', data.id).eq('status', 'pending').select('id')
+      .eq('id', data.id).eq('status', data.status).select('id')
     if (!claimed?.length) return NextResponse.json({ error: 'That application was just decided by someone else.' }, { status: 409 })
     application = data
   }
   // If creating the reseller fails after the claim, the application goes back
-  // to pending rather than reading as approved with no reseller behind it.
+  // to where it was rather than reading as approved with no reseller behind it.
   const release = async () => {
-    if (application) await db.from('reseller_applications').update({ status: 'pending', decided_by: null, decided_at: null }).eq('id', application.id)
+    if (application) await db.from('reseller_applications').update({ status: application.status, decided_by: null, decided_at: null }).eq('id', application.id)
   }
 
   const str = (v: unknown, n = 300) => String(v ?? '').trim().slice(0, n) || null
@@ -258,10 +265,20 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const gate = await requireAdmin()
+  // An admin, or the reseller programme's manager for the actions that are his
+  // (MANAGER_RESELLER_ACTIONS): prices, seat pool, details, on hold, NFC
+  // orders. Checked below once the action is known.
+  const gate = await requireResellerProgramme()
   if ('error' in gate) return gate.error
   const db = adminDb()
   const body = await request.json().catch(() => ({}))
+  if (gate.role === 'manager' && !managerMay(body.action)) {
+    return adminOnly(({
+      add_login: "add or remove a reseller's logins", remove_login: "add or remove a reseller's logins",
+      end: 'end or restart a reseller', restart: 'end or restart a reseller',
+      draft_month: 'draft reseller invoices', sync_free_card: "change a reseller's free card",
+    } as Record<string, string>)[String(body.action)] || 'do that')
+  }
 
   const { data: reseller } = await db.from('resellers').select('*').eq('id', body.id).maybeSingle()
   if (!reseller) return NextResponse.json({ error: 'No such reseller.' }, { status: 404 })
@@ -288,6 +305,11 @@ export async function PATCH(request: Request) {
     }
     if ('status' in body) {
       if (body.status !== 'active' && body.status !== 'suspended') return NextResponse.json({ error: 'Unknown status.' }, { status: 400 })
+      // An ended reseller comes back only through restart, which also gives
+      // their own card back; otherwise a manager could restart one here.
+      if (reseller.status === 'ended' && body.status !== reseller.status) {
+        return NextResponse.json({ error: `${reseller.name} has ended. Restart them as a reseller first.` }, { status: 409 })
+      }
       patch.status = body.status
     }
     for (const [key, fallback] of [
@@ -336,7 +358,11 @@ export async function PATCH(request: Request) {
       if ('legal_name' in body && str(body.legal_name, 160)) c.name = str(body.legal_name, 160)
       await db.from('billing_clients').update(c).eq('id', reseller.billing_client_id)
     }
-    await audit('update_reseller', patch)
+    // What it was as well as what it is now, and who: the programme's manager
+    // changes prices and pools without an admin's OK (Andre's choice), so the
+    // Activity log is where an admin sees each change.
+    const before = Object.fromEntries(Object.keys(patch).filter(k => k !== 'updated_at').map(k => [k, reseller[k] ?? null]))
+    await audit('update_reseller', { ...patch, before, by_role: gate.role })
     const free = await syncResellerFreeCard(db, { ...reseller, ...patch }).catch(() => null)
     return NextResponse.json({ ok: true, ...(free && free.state === 'paying' ? { warning: FREE_CARD_TEXT.paying } : {}) })
   }

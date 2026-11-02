@@ -100,7 +100,13 @@ const field = (label: string, input: React.ReactNode, wide = false) => (
   </label>
 )
 
-export default function ResellersTab() {
+// role 'manager' is the rep who runs the reseller programme, on his own page
+// (/dashboard/reseller-programme, lib/reseller-programme). He sees everything
+// here and changes prices, pools, details, on hold and NFC orders; creating a
+// reseller (the final approval), logins, ending one and every invoice step
+// stay with admins. The routes refuse those too; this only stops offering them.
+export default function ResellersTab({ role = 'admin' }: { role?: 'admin' | 'manager' } = {}) {
+  const isAdmin = role === 'admin'
   const [loading, setLoading] = useState(true)
   const [unavailable, setUnavailable] = useState<string | null>(null)
   const [list, setList] = useState<any[]>([])
@@ -163,20 +169,22 @@ export default function ResellersTab() {
         <Stat label="Resellers" value={list.length} />
         <Stat label="Seats sold" value={list.reduce((n, r) => n + (r.sold || 0), 0)} colour="#ec4899" />
         <Stat label="This month so far" value={money(totalMonth)} colour="#22c55e" hint="Monthly clients' seats live this month, and yearly terms starting this month, at each reseller's prices. Invoiced on the 1st." />
-        <Stat label="Drafts to approve" value={drafts} colour="#f59e0b" warn={drafts > 0} />
+        <Stat label={isAdmin ? 'Drafts to approve' : 'Drafts with Andre or Tio'} value={drafts} colour="#f59e0b" warn={isAdmin && drafts > 0} />
       </div>
 
-      <ApplicationsSection applications={applications} note={appsNote} reload={load}
+      <ApplicationsSection applications={applications} note={appsNote} reload={load} isAdmin={isAdmin}
         onApprove={(a) => { setAdding(fromApplication(a)); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
 
+      {isAdmin && (
       <div className="flex justify-end">
         <button onClick={() => setAdding({ ...BLANK })}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: grad, color: '#fff' }}>
           <Plus className="w-4 h-4" />New reseller
         </button>
       </div>
+      )}
 
-      {adding && (
+      {isAdmin && adding && (
         <Section title={adding.application_id ? `Approve ${adding.name || 'this application'}` : 'New reseller'}
           sub={adding.application_id
             ? 'Filled in from their application. Set their seat pool and prices, then create: they get a login and an email to choose a password.'
@@ -225,13 +233,13 @@ export default function ResellersTab() {
       )}
 
       {list.map(r => (
-        <ResellerCard key={r.id} r={r} open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} reload={load} />
+        <ResellerCard key={r.id} r={r} isAdmin={isAdmin} open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} reload={load} />
       ))}
     </div>
   )
 }
 
-function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; onToggle: () => void; reload: () => void }) {
+function ResellerCard({ r, isAdmin, open, onToggle, reload }: { r: any; isAdmin: boolean; open: boolean; onToggle: () => void; reload: () => void }) {
   const [edit, setEdit] = useState(() => ({
     seat_pool: String(r.seat_pool), seat: toRands(r.seat_price_cents),
     seat_year: r.seat_price_year_cents === null || r.seat_price_year_cents === undefined ? '' : toRands(r.seat_price_year_cents),
@@ -287,13 +295,13 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
           <div className="mt-3">
             <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
               <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: muted }}>Monthly invoices</p>
-              <button onClick={() => patch('draft', { action: 'draft_month', month: r.lastMonth.month }, `${r.lastMonth.label} drafted`)}
+              {isAdmin && <button onClick={() => patch('draft', { action: 'draft_month', month: r.lastMonth.month }, `${r.lastMonth.label} drafted`)}
                 disabled={!!busy || r.months.some((m: any) => m.month === r.lastMonth.month)}
                 title={`Drafts ${r.lastMonth.label} now instead of waiting for the daily run`}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-30"
                 style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.75)' }}>
                 <FileText className="w-3.5 h-3.5" />Draft {r.lastMonth.label} now
-              </button>
+              </button>}
             </div>
             {r.months.length === 0 ? (
               <p className="text-xs" style={{ color: faint }}>Nothing billed yet. The first draft appears on the 1st after a month with seats sold.</p>
@@ -306,7 +314,8 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
                       <span style={{ color: muted }}>{m.invoice.number || 'Draft'}</span>
                       <InvoicePill status={m.invoice.status} />
                       <span className="tabular-nums text-white">{money(m.invoice.total_cents)}</span>
-                      {m.invoice.status === 'draft' && <>
+                      {m.invoice.status === 'draft' && !isAdmin && <span style={{ color: faint }}>Andre or Tio approve it</span>}
+                      {m.invoice.status === 'draft' && isAdmin && <>
                         <button onClick={() => patch(`rebuild-${m.month}`, { action: 'draft_month', month: m.month, rebuild: true }, `${m.label} rebuilt from the current counts`)}
                           disabled={!!busy} title="Refresh the lines from the seat counts as they are now"
                           className="p-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
@@ -359,7 +368,7 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
                       </span>
                       <span className="tabular-nums text-white">{money(o.total_cents)}</span>
                       {o.invoice && <InvoicePill status={o.invoice.status} />}
-                      {o.invoice?.status === 'draft' && (
+                      {o.invoice?.status === 'draft' && isAdmin && (
                         <button onClick={async () => { if (await approveAndSend(o.invoice.id, `${r.name}'s NFC order (${money(o.invoice.total_cents)})`)) reload() }}
                           className="flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold" style={{ background: grad, color: '#fff' }}>
                           <Send className="w-3 h-3" />Approve and send
@@ -437,7 +446,7 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
             </p>
             <div className="flex items-center justify-between gap-2 mt-3 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">
-              {ended ? (
+              {ended ? (isAdmin && (
                 <button onClick={() => {
                   if (!confirm(`Restart ${r.name} as a reseller? Their page opens again and their own card becomes free again.`)) return
                   patch('restart', { action: 'restart' }, `${r.name} is a reseller again`)
@@ -445,7 +454,7 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
                   className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>
                   Restart reseller
                 </button>
-              ) : (<>
+              )) : (<>
               <button onClick={() => {
                 const to = suspended ? 'active' : 'suspended'
                 if (!confirm(suspended
@@ -457,13 +466,13 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
                 style={suspended ? { background: 'rgba(34,197,94,0.12)', color: '#22c55e' } : { background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
                 {suspended ? 'Take off hold' : 'Put on hold'}
               </button>
-              <button onClick={() => {
+              {isAdmin && <button onClick={() => {
                 if (!confirm(`End ${r.name} as a reseller?\n\nTheir page becomes read-only (their invoices stay there), their own card stops being free, and the last month they had seats live in is still invoiced on the 1st.\n\nAny clients still on their bill must be cancelled, or moved to another billing mode under Teams, first.`)) return
                 patch('end', { action: 'end' }, `${r.name} has ended as a reseller`)
               }} disabled={!!busy}
                 className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(148,163,184,0.12)', color: '#cbd5e1' }}>
                 End reseller
-              </button>
+              </button>}
               </>)}
               </div>
               <button onClick={() => patch('save', {
@@ -490,7 +499,7 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
                 <span className="flex-1 min-w-[200px]" style={{ color: 'rgba(255,255,255,0.75)' }}>
                   <strong className="text-white">Free card, {r.freeCard.email}:</strong> {r.freeCard.text}
                 </span>
-                {(r.freeCard.state === 'pending' || r.freeCard.state === 'paying') && !ended && (
+                {isAdmin && (r.freeCard.state === 'pending' || r.freeCard.state === 'paying') && !ended && (
                   <button onClick={() => patch('free', { action: 'sync_free_card' }, 'Checked')} disabled={!!busy}
                     className="px-2.5 py-1 rounded-lg font-semibold" style={{ background: 'rgba(255,255,255,0.08)', color: '#fff' }}>
                     Check again
@@ -502,14 +511,15 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
               {r.logins.map((l: any) => (
                 <div key={l.user_id} className="flex items-center gap-2 text-xs rounded-lg px-3 py-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
                   <span className="text-white flex-1">{l.email || l.user_id}</span>
-                  <button onClick={() => { if (confirm(`Remove ${l.email}'s access to ${r.name}? Their Cardtly login itself is not deleted.`)) patch(`rm-${l.user_id}`, { action: 'remove_login', user_id: l.user_id }, 'Login removed') }}
+                  {isAdmin && <button onClick={() => { if (confirm(`Remove ${l.email}'s access to ${r.name}? Their Cardtly login itself is not deleted.`)) patch(`rm-${l.user_id}`, { action: 'remove_login', user_id: l.user_id }, 'Login removed') }}
                     className="p-1.5 rounded-lg" style={{ background: 'rgba(239,68,68,0.1)' }} title="Remove access">
                     <Trash2 className="w-3.5 h-3.5" style={{ color: '#ef4444' }} />
-                  </button>
+                  </button>}
                 </div>
               ))}
             </div>
-            <div className="flex items-center gap-2 mt-2">
+            {!isAdmin && <p className="text-[11px] mt-2" style={{ color: faint }}>Andre or Tio add and remove logins.</p>}
+            {isAdmin && <div className="flex items-center gap-2 mt-2">
               <input placeholder="Another person's email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
                 className={inputClass} style={inputStyle} />
               <button onClick={async () => { if (await patch('login', { action: 'add_login', email: loginEmail }, 'Login added')) setLoginEmail('') }}
@@ -518,7 +528,7 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
                 style={{ background: 'rgba(255,255,255,0.06)', color: '#fff' }}>
                 <UserPlus className="w-3.5 h-3.5" />Add login
               </button>
-            </div>
+            </div>}
           </div>
         </div>
       )}
@@ -528,20 +538,28 @@ function ResellerCard({ r, open, onToggle, reload }: { r: any; open: boolean; on
 
 // ── Applications from the website ─────────────────────────────────────────
 
-function ApplicationsSection({ applications, note, reload, onApprove }: {
-  applications: any[] | null; note: string | null; reload: () => void; onApprove: (a: any) => void
+// Two steps (lib/reseller-programme): the programme's manager recommends one,
+// then Andre or Tio approve it. An admin may also approve one straight from
+// pending. Recommended ones come first for admins, new ones first for him.
+function ApplicationsSection({ applications, note, reload, onApprove, isAdmin }: {
+  applications: any[] | null; note: string | null; reload: () => void; onApprove: (a: any) => void; isAdmin: boolean
 }) {
   const [showDone, setShowDone] = useState(false)
   const [declining, setDeclining] = useState<string | null>(null)
   const [declineNote, setDeclineNote] = useState('')
   const [notify, setNotify] = useState(true)
+  const [recommending, setRecommending] = useState<string | null>(null)
+  const [recNote, setRecNote] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
 
   if (!applications) {
     return note ? <p className="text-xs" style={{ color: faint }}>{note}</p> : null
   }
-  const pending = applications.filter(a => a.status === 'pending')
-  const done = applications.filter(a => a.status !== 'pending')
+  const isOpen = (a: any) => a.status === 'pending' || a.status === 'recommended'
+  const first = isAdmin ? 'recommended' : 'pending'
+  const pending = applications.filter(isOpen).sort((x, y) => Number(y.status === first) - Number(x.status === first))
+  const recommendedCount = applications.filter(a => a.status === 'recommended').length
+  const done = applications.filter(a => !isOpen(a))
 
   async function patch(id: string, body: Record<string, any>, ok: string) {
     setBusy(id)
@@ -553,6 +571,7 @@ function ApplicationsSection({ applications, note, reload, onApprove }: {
     if (!res.ok || data?.error) { toast.error(data?.error || 'That did not save'); return }
     toast.success(`${ok}${data.warning ? ` ${data.warning}` : ''}`)
     setDeclining(null); setDeclineNote('')
+    setRecommending(null); setRecNote('')
     reload()
   }
 
@@ -564,32 +583,83 @@ function ApplicationsSection({ applications, note, reload, onApprove }: {
   ) : null
 
   return (
-    <Section title="Applications" sub="From cardtly.com/resellers. Approve to set them up with a login, or decline."
+    <Section title="Applications"
+      sub={isAdmin
+        ? 'From cardtly.com/resellers. Recommended ones wait for your final approval; you can also approve a new one straight away, or decline.'
+        : 'From cardtly.com/resellers. Recommend the good ones, or decline. Andre or Tio give the final approval and set up their login.'}
       right={<span className="text-xs font-semibold px-2 py-1 rounded-lg" style={pending.length
         ? { background: 'rgba(245,158,11,0.15)', color: '#f59e0b' } : { background: 'rgba(255,255,255,0.05)', color: muted }}>
-        {pending.length ? `${pending.length} to review` : 'All reviewed'}</span>}>
+        {pending.length
+          ? (isAdmin && recommendedCount ? `${recommendedCount} recommended` : `${pending.length} to review`)
+          : 'All reviewed'}</span>}>
       {pending.length === 0 && (
-        <p className="text-sm flex items-center gap-2" style={{ color: muted }}><Inbox className="w-4 h-4" />Nothing waiting. New applications show up here, and in Today.</p>
+        <p className="text-sm flex items-center gap-2" style={{ color: muted }}><Inbox className="w-4 h-4" />Nothing waiting. New applications show up here{isAdmin ? ', and in Today' : ''}.</p>
       )}
       <div className="space-y-3">
-        {pending.map(a => (
-          <div key={a.id} className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.25)' }}>
+        {pending.map(a => {
+          const rec = a.status === 'recommended'
+          return (
+          <div key={a.id} className="rounded-xl p-4 space-y-3" style={rec
+            ? { background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.3)' }
+            : { background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.25)' }}>
             <div className="flex items-start gap-3 flex-wrap">
               <div className="flex-1 min-w-[200px]">
                 <p className="font-semibold text-white">{a.trading_name}</p>
                 <p className="text-xs" style={{ color: muted }}>{a.business_type} · {a.city}, {a.province} · applied {fmtDate(a.created_at)}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => onApprove(a)} disabled={!!busy}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: grad, color: '#fff' }}>
-                  <Check className="w-3.5 h-3.5" />Approve
-                </button>
-                <button onClick={() => { setDeclining(declining === a.id ? null : a.id); setDeclineNote(''); setNotify(true) }} disabled={!!busy}
+              <div className="flex items-center gap-2 flex-wrap">
+                {isAdmin && (
+                  <button onClick={() => onApprove(a)} disabled={!!busy}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: grad, color: '#fff' }}>
+                    <Check className="w-3.5 h-3.5" />Approve
+                  </button>
+                )}
+                {!isAdmin && !rec && (
+                  <button onClick={() => { setRecommending(recommending === a.id ? null : a.id); setRecNote(''); setDeclining(null) }} disabled={!!busy}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: grad, color: '#fff' }}>
+                    <Check className="w-3.5 h-3.5" />Recommend
+                  </button>
+                )}
+                {!isAdmin && rec && (
+                  <span className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>
+                    Waiting for Andre or Tio
+                  </span>
+                )}
+                {rec && (
+                  <button onClick={() => patch(a.id, { action: 'unrecommend' }, `${a.trading_name} is back with the new ones.`)} disabled={!!busy}
+                    className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)' }}>
+                    <Undo2 className="w-3 h-3" />{isAdmin ? 'Send back' : 'Take back'}
+                  </button>
+                )}
+                <button onClick={() => { setDeclining(declining === a.id ? null : a.id); setDeclineNote(''); setNotify(true); setRecommending(null) }} disabled={!!busy}
                   className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
                   Decline
                 </button>
               </div>
             </div>
+            {rec && (
+              <div className="rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(34,197,94,0.08)', color: 'rgba(255,255,255,0.8)' }}>
+                <p className="font-semibold" style={{ color: '#22c55e' }}>
+                  Recommended{a.recommended_by_name ? ` by ${a.recommended_by_name}` : ''}{a.recommended_at ? ` on ${fmtDate(a.recommended_at)}` : ''}
+                </p>
+                {a.recommendation_note && <p className="mt-1 whitespace-pre-wrap">{a.recommendation_note}</p>}
+              </div>
+            )}
+            {recommending === a.id && (
+              <div className="rounded-lg p-3 space-y-2" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(34,197,94,0.3)' }}>
+                <textarea rows={2} value={recNote} onChange={e => setRecNote(e.target.value)}
+                  placeholder="Why you recommend them, and the pool and prices you have in mind. For Andre and Tio only."
+                  className={inputClass} style={inputStyle} />
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setRecommending(null)} className="px-3 py-1.5 rounded-lg text-xs" style={{ color: muted }}>Not yet</button>
+                  <button onClick={() => patch(a.id, { action: 'recommend', note: recNote }, `${a.trading_name} recommended. Andre and Tio have been emailed.`)}
+                    disabled={busy === a.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: '#22c55e', color: '#fff' }}>
+                    {busy === a.id && <Loader2 className="w-3 h-3 animate-spin" />}Recommend
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {detail('Contact', `${a.contact_name}${a.contact_role ? `, ${a.contact_role}` : ''}`)}
               {detail('Email', <a href={`mailto:${a.email}`} className="underline">{a.email}</a>)}
@@ -628,7 +698,8 @@ function ApplicationsSection({ applications, note, reload, onApprove }: {
               </div>
             )}
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {done.length > 0 && (

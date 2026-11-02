@@ -9,7 +9,7 @@ import {
   Home, CreditCard, QrCode, BarChart2,
   Users, Mail, Monitor, Wifi, Building2, Settings as SettingsIcon,
   Sun, Moon, LogOut, Shield, ScanLine, ClipboardList,
-  ChevronUp, X, Network, Layers, CalendarClock, FileSignature, Handshake, HeartHandshake, PlayCircle } from 'lucide-react'
+  ChevronUp, X, Network, Layers, CalendarClock, FileSignature, Handshake, HeartHandshake, PlayCircle, Store } from 'lucide-react'
 
 // Mobile-only bottom tab bar. Replaces the hamburger + slide-out
 // sidebar pattern on small screens. 4 most-used destinations sit in
@@ -83,6 +83,8 @@ const MY_TEAMS_TAB: Tab = { href: '/dashboard/my-teams', label: 'My Teams', icon
 const QUOTES_TAB: Tab = { href: '/dashboard/quotes', label: 'Quotes', icon: FileSignature }
 // Only a reseller's login sees this. Same guard as the sidebar.
 const RESELLER_TAB: Tab = { href: '/dashboard/reseller', label: 'Reseller', icon: Handshake }
+// Only the rep who runs the reseller programme. Same guard as the sidebar.
+const RESELLER_PROGRAMME_TAB: Tab = { href: '/dashboard/reseller-programme', label: 'Resellers', icon: Store }
 
 interface Props {
   isAdmin?: boolean
@@ -92,9 +94,10 @@ interface Props {
   showTeamCards?: boolean
   isRep?: boolean
   isReseller?: boolean
+  isResellerManager?: boolean
 }
 
-export default function MobileBottomNav({ isAdmin = false, isPro = false, managesDepartments = false, showTeamCards = true, isRep = false, isReseller = false, teamTabLabel }: Props) {
+export default function MobileBottomNav({ isAdmin = false, isPro = false, managesDepartments = false, showTeamCards = true, isRep = false, isReseller = false, isResellerManager = false, teamTabLabel }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const { theme, toggle } = useTheme()
@@ -114,6 +117,7 @@ export default function MobileBottomNav({ isAdmin = false, isPro = false, manage
     ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers }] : []),
     ...(isRep ? [MY_TEAMS_TAB, MEETINGS_TAB, QUOTES_TAB] : []),
     ...(isReseller ? [RESELLER_TAB] : []),
+    ...(isResellerManager ? [RESELLER_PROGRAMME_TAB] : []),
     ...(isAdmin ? [
       { href: '/admin', label: 'Admin', icon: Shield },
       // Same shortcut as the sidebar, deep-linked to the tab. Kept in step by

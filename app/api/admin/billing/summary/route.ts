@@ -115,15 +115,22 @@ export async function GET() {
   // Applications from cardtly.com/resellers waiting for a decision. Tolerant
   // for the same reason: they arrive with migration 095.
   let resellerApplications = 0
+  // Recommended by the reseller programme's manager, waiting for an admin's
+  // final approval (migration 098). Counted apart: that one is the admins' move.
+  let resellerRecommended = 0
   try {
     const { count, error: aErr } = await db.from('reseller_applications')
       .select('id', { count: 'exact', head: true }).eq('status', 'pending')
     if (!aErr) resellerApplications = count || 0
+    const { count: rec, error: rErr } = await db.from('reseller_applications')
+      .select('id', { count: 'exact', head: true }).eq('status', 'recommended')
+    if (!rErr) resellerRecommended = rec || 0
   } catch { /* no applications table yet */ }
 
   return NextResponse.json({
     resellerDrafts,
     resellerApplications,
+    resellerRecommended,
     outstandingCents: outstanding,
     overdueCents: overdue,
     overdueCount,

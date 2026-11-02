@@ -25,6 +25,8 @@ interface Props {
   onDelete: (rep: RepStats) => Promise<boolean>
   onLinkLogin: (rep: RepStats) => Promise<boolean>
   onRecordPayout: (rep: RepStats, paid: boolean) => Promise<boolean>
+  /** Put this rep in charge of the reseller programme, or take it away. */
+  onSetResellerManager: (rep: RepStats, on: boolean) => Promise<boolean>
   /** Jump to the Calendar tab with only this rep showing. The list below is fine
    *  for a glance; a diary is for looking at as a diary. */
   onOpenCalendar: (rep: RepStats) => void
@@ -33,7 +35,7 @@ interface Props {
 
 const EMPTY: Form = { repId: null, name: '', email: '', phone: '', target: '250', rate: '10', day: '25', startedOn: '', notes: '', active: true }
 
-export default function RepsTab({ reps, onSave, onDelete, onLinkLogin, onRecordPayout, onOpenCalendar, loading }: Props) {
+export default function RepsTab({ reps, onSave, onDelete, onLinkLogin, onRecordPayout, onSetResellerManager, onOpenCalendar, loading }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -97,6 +99,10 @@ export default function RepsTab({ reps, onSave, onDelete, onLinkLogin, onRecordP
                       <div className="flex-1 min-w-[160px]">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-semibold text-white text-sm">{r.name}</p>
+                          {r.manages_resellers && (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                              style={{ background: 'rgba(236,72,153,0.12)', color: '#ec4899', border: '1px solid rgba(236,72,153,0.35)' }}>Runs resellers</span>
+                          )}
                           {!r.active && (
                             <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
                               style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>Inactive</span>
@@ -148,7 +154,7 @@ export default function RepsTab({ reps, onSave, onDelete, onLinkLogin, onRecordP
                       </p>
                     </div>
 
-                    <div className="flex gap-2 mt-3">
+                    <div className="flex gap-2 mt-3 flex-wrap">
                       <button onClick={() => setExpanded(expanded === r.id ? null : r.id)}
                         className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10"
                         style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)' }}>
@@ -203,6 +209,24 @@ export default function RepsTab({ reps, onSave, onDelete, onLinkLogin, onRecordP
                     <div className="px-3.5 pb-3.5 pt-1 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                       <RepForm form={form} setForm={setForm} busy={loading === 'rep-save'}
                         onSave={async () => { const ok = await onSave(form); if (ok) setEditing(null) }} />
+
+                      {/* The reseller programme (lib/reseller-programme): a
+                          Resellers page in their own dashboard. */}
+                      <div className="mt-3 pt-3 border-t flex items-start gap-3 flex-wrap" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                        <button
+                          disabled={loading === `repres-${r.id}` || (!r.manages_resellers && (!r.user_id || !r.active))}
+                          onClick={() => onSetResellerManager(r, !r.manages_resellers)}
+                          className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10 disabled:opacity-40"
+                          style={{ border: '1px solid rgba(236,72,153,0.35)', color: '#ec4899' }}>
+                          {loading === `repres-${r.id}` && <Loader2 className="w-3 h-3 animate-spin" />}
+                          {r.manages_resellers ? 'Stop running the reseller programme' : 'Runs the reseller programme'}
+                        </button>
+                        <p className="text-[11px] flex-1 min-w-[200px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                          {!r.manages_resellers && !r.user_id
+                            ? 'Give them a login first.'
+                            : 'Gives them a Resellers page: every reseller, prices, seat pools and details, and applications to recommend. You and Tio still give the final approval, add logins, end resellers and send the invoices.'}
+                        </p>
+                      </div>
 
                       {/* Destructive, so it lives in the panel rather than on
                           the row where the flag sits. Deactivating keeps the

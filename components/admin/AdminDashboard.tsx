@@ -250,7 +250,7 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
     ...(money ? {
       invoices: { n: money.overdueCount || 0, tone: 'red' as const, title: 'Overdue invoices' },
       recurring: { n: money.recurring?.awaitingApproval || 0, tone: 'amber' as const, title: 'Recurring drafts waiting for approval' },
-      resellers: { n: (money.resellerDrafts || 0) + (money.resellerApplications || 0), tone: 'amber' as const, title: 'Reseller applications to review and invoices to approve' },
+      resellers: { n: (money.resellerDrafts || 0) + (money.resellerApplications || 0) + (money.resellerRecommended || 0), tone: 'amber' as const, title: 'Reseller applications to review and invoices to approve' },
       received: { n: money.quotes?.accepted || 0, tone: 'green' as const, title: 'Signed quotes: set each one up here when its payment lands' },
     } : {}),
   }
@@ -285,10 +285,15 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
       title: `${plural(money.invoices.draftCount, 'draft invoice')} waiting for approval`,
       detail: money.resellerDrafts ? `${money.resellerDrafts} of them for resellers, under Resellers.` : 'A draft has no number until it is approved.',
     },
+    money?.resellerRecommended > 0 && {
+      key: 'reseller-recommended', tone: 'amber', action: 'Approve', onClick: () => go('resellers'),
+      title: `${plural(money.resellerRecommended, 'reseller')} recommended, waiting for your approval`,
+      detail: 'Recommended by the reseller programme. Set their seat pool and prices, then approve.',
+    },
     money?.resellerApplications > 0 && {
       key: 'reseller-apps', tone: 'amber', action: 'Review', onClick: () => go('resellers'),
       title: `${plural(money.resellerApplications, 'reseller application')} to review`,
-      detail: 'From cardtly.com/resellers. Approve to set them up, or decline.',
+      detail: 'From cardtly.com/resellers. The reseller programme recommends or declines them first; you can also approve one straight away.',
     },
     stats.openNfcOrders > 0 && {
       key: 'nfc', tone: 'amber', action: 'Open orders', onClick: () => go('nfc'),
@@ -583,6 +588,13 @@ ${r.email} will be able to sign in and log their meetings. If that address has n
                 ? `Delete ${r.name}?\n\n${n} client${n === 1 ? '' : 's'} will be unassigned and the record of who signed them is lost. Their cards and accounts are NOT touched.\n\nUntick "Active" instead if they have just left.`
                 : `Delete ${r.name}?\n\nNo clients are linked, so nothing is lost.`)) return Promise.resolve(false)
               return run(`rep-del-${r.id}`, { action: 'delete_rep', rep_id: r.id }, `${r.name} deleted`)
+            }}
+            onSetResellerManager={(r, on) => {
+              if (!confirm(on
+                ? `Put ${r.name} in charge of the reseller programme?\n\nThey get a Resellers page: every reseller, their prices, seat pools and details, NFC orders, and applications to recommend. Their changes apply straight away and are logged.\n\nYou and Tio still give the final approval, add logins, end resellers and send the invoices.`
+                : `Take the reseller programme away from ${r.name}? Their Resellers page goes.`)) return Promise.resolve(false)
+              return run(`repres-${r.id}`, { action: 'set_reseller_manager', rep_id: r.id, on },
+                on ? `${r.name} now runs the reseller programme` : `${r.name} no longer runs the reseller programme`)
             }}
             onRecordPayout={(r, paid) => {
               if (!confirm(`Record ${r.name}'s commission for ${r.period.label}?\n\n${r.billableCards} cards over target = R${r.commissionRand}.\n\nThis freezes the figure${paid ? ' and marks it PAID' : ''}. It cannot be recalculated later.`)) return Promise.resolve(false)

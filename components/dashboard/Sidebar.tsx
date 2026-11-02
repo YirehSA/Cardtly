@@ -6,7 +6,7 @@ import { useTheme } from './ThemeProvider'
 import {
   CreditCard, BarChart2, Mail, Monitor, Users,
   Settings, QrCode, Sun, Moon, LogOut, Sparkles, Home, Wifi, Building2, Shield, ScanLine, ClipboardList,
-  Layers, Network, CalendarClock, FileSignature, Handshake, HeartHandshake, PlayCircle,
+  Layers, Network, CalendarClock, FileSignature, Handshake, HeartHandshake, PlayCircle, Store,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -46,6 +46,9 @@ const QUOTES_TAB = { href: '/dashboard/quotes', label: 'Quotes', icon: FileSigna
 // Only a reseller's login sees this: their seat pool, clients, NFC orders and
 // invoices. Never in the iOS app (see the layout).
 const RESELLER_TAB = { href: '/dashboard/reseller', label: 'Reseller', icon: Handshake }
+// Only the rep who runs the reseller programme sees this: every reseller,
+// their pools and prices, and applications to recommend. Never in the iOS app.
+const RESELLER_PROGRAMME_TAB = { href: '/dashboard/reseller-programme', label: 'Resellers', icon: Store }
 
 interface SidebarProps {
   isPro: boolean
@@ -57,13 +60,14 @@ interface SidebarProps {
   showTeamCards?: boolean
   isRep?: boolean
   isReseller?: boolean
+  isResellerManager?: boolean
   userName: string
   userEmail: string
 }
 
 const grad = 'hsl(var(--accent))'
 
-export default function Sidebar({ isPro, isAdmin = false, managesDepartments = false, showTeamCards = true, isRep = false, isReseller = false, teamTabLabel, userName, userEmail }: SidebarProps) {
+export default function Sidebar({ isPro, isAdmin = false, managesDepartments = false, showTeamCards = true, isRep = false, isReseller = false, isResellerManager = false, teamTabLabel, userName, userEmail }: SidebarProps) {
   const pathname = usePathname()
   const { theme, toggle } = useTheme()
   // Lead capture (contact popup + questionnaire) is standard on Pro. The
@@ -82,6 +86,7 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
     ...(managesDepartments ? [{ href: '/dashboard/departments', label: 'Departments', icon: Layers }] : []),
     ...(isRep ? [MY_TEAMS_TAB, MEETINGS_TAB, QUOTES_TAB] : []),
     ...(isReseller ? [RESELLER_TAB] : []),
+    ...(isResellerManager ? [RESELLER_PROGRAMME_TAB] : []),
   ]
   const router = useRouter()
   const supabase = createClient()
@@ -146,7 +151,9 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
       <nav className="flex-1 px-3 py-2 overflow-y-auto scrollbar-thin">
         <div className="grid grid-cols-2 gap-1">
           {nav.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+            // href + '/', so /dashboard/reseller-programme does not light up
+            // Reseller as well. Same rule as the mobile bar's isActive.
+            const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
             return (
               <NavTile
                 key={href}

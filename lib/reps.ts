@@ -30,6 +30,8 @@ export interface RepRow {
    *  and the gate on whether they can see the Meetings panel at all. Arrives
    *  with migration 047. */
   user_id?: string | null
+  /** Runs the reseller programme (migration 098, lib/reseller-programme). */
+  manages_resellers?: boolean
 }
 
 export interface CommissionPeriod {

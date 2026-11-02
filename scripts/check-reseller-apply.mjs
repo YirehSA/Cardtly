@@ -9,7 +9,8 @@
 //   3. The page quotes no price (reseller pricing is agreed after approval),
 //      and it is out of the iOS app.
 //   4. Approving claims the application first, so it can only make one
-//      reseller; declining never emails the internal note.
+//      reseller; declining never emails the internal note. (Recommending
+//      before approving, 2026-11-02: scripts/check-reseller-programme.)
 //   5. The privacy policy says what is collected and why.
 //
 // Run: node scripts/check-reseller-apply.mjs
@@ -99,14 +100,20 @@ if (!/\/resellers`/.test(read('app/sitemap.ts'))) bad('/resellers must be in the
 if (!/Reseller applications\.<\/B>/.test(read('app/privacy/page.tsx'))) bad('the privacy policy must say what a reseller application collects and why')
 
 // ── 4. Approving and declining ──────────────────────────────────────────────
+// Since 2026-11-02 an application can be recommended first (pending, then
+// recommended, then approved; scripts/check-reseller-programme covers who may
+// do which). Approving claims it in whichever open state it was read in.
 const resellers = read('app/api/admin/resellers/route.ts')
-if (!/\.eq\('id', data\.id\)\.eq\('status', 'pending'\)\.select\('id'\)/.test(resellers) || !/if \(!claimed\?\.length\)/.test(resellers)) bad('approving must claim the application while it is pending, so it makes one reseller')
-if ((resellers.match(/await release\(\)/g) || []).length < 2) bad('a failed approval must put the application back to pending')
+if (!/data\.status !== 'pending' && data\.status !== 'recommended'/.test(resellers)
+  || !/\.eq\('id', data\.id\)\.eq\('status', data\.status\)\.select\('id'\)/.test(resellers)
+  || !/if \(!claimed\?\.length\)/.test(resellers)) bad('approving must claim the application while it is still open, so it makes one reseller')
+if ((resellers.match(/await release\(\)/g) || []).length < 2) bad('a failed approval must put the application back where it was')
 const apps = read('app/api/admin/reseller-applications/route.ts')
-const declineHtml = (/html: `([\s\S]*?)`,/.exec(apps) || [])[1] || ''
+const declineStep = apps.slice(apps.indexOf("body.action === 'decline'"))
+const declineHtml = (/html: `([\s\S]*?)`,/.exec(declineStep) || [])[1] || ''
 if (!declineHtml) bad('could not find the decline email')
 if (/note|decision_note/.test(declineHtml)) bad('the decline email must never include the internal note')
-if (!/requireAdmin\(\)/.test(apps)) bad('the applications route must be admin only')
+if (!/requireResellerProgramme\(\)/.test(apps) || /createClient\(/.test(apps)) bad('the applications route must be for admins and the programme manager only')
 
 const mig = read('supabase/migrations/095_reseller_applications.sql').split('\n').map(l => l.replace(/--.*$/, '')).join('\n')
 if (!/alter table public\.reseller_applications enable row level security/.test(mig)) bad('reseller_applications must have row level security on')

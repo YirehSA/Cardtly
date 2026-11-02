@@ -3,6 +3,7 @@ import { Resend } from 'resend'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { FROM_EMAIL } from '@/lib/email'
 import { checkApplication, addressLine, MIN_FILL_MS } from '@/lib/reseller-application'
+import { programmeManagerEmails } from '@/lib/reseller-programme'
 
 // The form on cardtly.com/resellers. Public, so it is careful:
 //
@@ -74,10 +75,13 @@ export async function POST(request: Request) {
       `<tr><td style="padding:6px 14px 6px 0;color:#6b7280;font-size:13px;vertical-align:top;white-space:nowrap">${esc(k)}</td><td style="padding:6px 0;font-size:14px;color:#111">${esc(v)}</td></tr>`).join('')
 
     // Best-effort: the application is saved and visible in admin either way.
+    // The rep who runs the reseller programme gets it too: he reviews it first
+    // (lib/reseller-programme).
+    const to = [...new Set([...TO_EMAILS, ...(await programmeManagerEmails(db))])]
     await Promise.allSettled([
       resend.emails.send({
         from: FROM_EMAIL,
-        to: TO_EMAILS,
+        to,
         replyTo: a.email,
         subject: `Reseller application: ${a.trading_name}`,
         html: `

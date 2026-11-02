@@ -701,6 +701,34 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, rep_id: data?.id || rep_id })
   }
 
+  // Put a rep in charge of the reseller programme, or take it away (migration
+  // 098, lib/reseller-programme). Admin only, like everything in this route:
+  // a rep can never switch it on for themselves.
+  if (action === 'set_reseller_manager') {
+    const { rep_id } = body
+    const on = body.on === true
+    if (!rep_id) return NextResponse.json({ error: 'rep_id required' }, { status: 400 })
+    const { data: rep } = await admin.from('reps').select('*').eq('id', rep_id).maybeSingle()
+    if (!rep) return NextResponse.json({ error: 'No such rep.' }, { status: 404 })
+    if (on && !rep.user_id) {
+      return NextResponse.json({ error: `${rep.name} has no Cardtly login yet. Give them one first.` }, { status: 400 })
+    }
+    if (on && rep.active === false) {
+      return NextResponse.json({ error: `${rep.name} is inactive. Tick Active first.` }, { status: 400 })
+    }
+    const { error } = await admin.from('reps')
+      .update({ manages_resellers: on, updated_at: new Date().toISOString() }).eq('id', rep_id)
+    if (error) {
+      const missing = /manages_resellers/.test(error.message || '')
+      return NextResponse.json({ error: missing ? 'This needs migration 098. Run it in Supabase, then try again.' : `Could not save: ${error.message}` }, { status: missing ? 503 : 500 })
+    }
+    await auditLog(admin, {
+      actorUserId: user?.id, actorEmail: user?.email,
+      action: 'set_reseller_manager', detail: { rep_id, name: rep.name, on },
+    })
+    return NextResponse.json({ success: true })
+  }
+
   // Freeze what a rep is owed for a period.
   //
   // This exists because the figure cannot be recomputed later.

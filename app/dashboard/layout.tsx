@@ -137,6 +137,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // and /dashboard/reseller is on IOS_BLOCKED_ROUTES.
   const isReseller = !!reseller && !iosApp
 
+  // The rep who runs the reseller programme gets its page (Andre, 2026-11-02:
+  // Anthony). Not in the iOS app either: /dashboard/reseller-programme is on
+  // IOS_BLOCKED_ROUTES for the same reason. Admins have it in admin.
+  const isResellerManager = !!rep && rep.active && rep.managesResellers && !iosApp
+
   // THE iOS APP IS FOR COMPANY TEAMS ONLY (App Review, 3.1.1 and 3.1.3(c),
   // 2026-09-30; the reasoning is on iosAppAdmits in lib/app-platform). Someone
   // whose access does not come from a company gets a screen saying so, with
@@ -225,6 +230,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           teamTabLabel={teamTabLabel}
           isRep={isRep}
           isReseller={isReseller}
+          isResellerManager={isResellerManager}
           userName={card?.name || teamCardName || ''}
           userEmail={user.email || ''}
         />
@@ -257,7 +263,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <HeartbeatPing />
         <FreshOnReturn />
         <AnnouncementModal />
-        <MobileBottomNav isAdmin={isAdmin} isPro={isPro} managesDepartments={managesDepartments} showTeamCards={showTeamCards} isRep={isRep} isReseller={isReseller} teamTabLabel={teamTabLabel} />
+        <MobileBottomNav isAdmin={isAdmin} isPro={isPro} managesDepartments={managesDepartments} showTeamCards={showTeamCards} isRep={isRep} isReseller={isReseller} isResellerManager={isResellerManager} teamTabLabel={teamTabLabel} />
       </div>
       </PlatformProvider>
     </ThemeProvider>
