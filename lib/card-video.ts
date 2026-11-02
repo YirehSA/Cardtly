@@ -148,11 +148,14 @@ function tiktok(u: URL): VideoRef | null {
   if (!/^\d{15,22}$/.test(id)) return null
   if (user && !/^[A-Za-z0-9._]{1,40}$/.test(user)) user = ''
   const watchUrl = `https://www.tiktok.com/@${user || 'tiktok'}/video/${id}`
+  // timestamp=0 drops the "00:00/00:28" readout from the player's control row.
+  // With it there, the row runs past a player narrower than about 240px and
+  // the fullscreen button is cut off; the card shows TikTok at about 200px.
   return ref('tiktok', id, watchUrl,
-    `https://www.tiktok.com/player/v1/${id}?autoplay=1&rel=0`,
+    `https://www.tiktok.com/player/v1/${id}?autoplay=1&rel=0&timestamp=0`,
     true, [],
     `https://www.tiktok.com/oembed?url=${encodeURIComponent(watchUrl)}`,
-    `https://www.tiktok.com/player/v1/${id}?autoplay=0&rel=0`)
+    `https://www.tiktok.com/player/v1/${id}?autoplay=0&rel=0&timestamp=0`)
 }
 
 function loom(u: URL): VideoRef | null {

@@ -43,8 +43,11 @@ export default function CardVideo({ url, title, accentHex, headingColor, caption
   const thumbs = thumbsFor(video)
   const thumb = thumbs[pick]
   const name = title?.trim() || `${video.label} video`
+  // An upright video at the card's full width would be taller than the phone's
+  // screen, so it is held to about half the screen's height: 210px wide at
+  // most, 180px at least (TikTok's controls need that, lib/card-video).
   const box: React.CSSProperties = video.portrait
-    ? { aspectRatio: '9 / 16', maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }
+    ? { aspectRatio: '9 / 16', maxWidth: 'clamp(180px, calc(50vh * 9 / 16), 210px)', marginLeft: 'auto', marginRight: 'auto' }
     : { aspectRatio: '16 / 9' }
 
   return (

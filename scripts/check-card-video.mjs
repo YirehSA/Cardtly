@@ -84,6 +84,9 @@ const unlisted = V.parseVideoUrl('https://vimeo.com/1084537/ab12cd34ef')
 if (!unlisted || !/h=ab12cd34ef/.test(unlisted.embedUrl)) bad('an unlisted Vimeo video loses the hash it needs to play')
 const tt = V.parseVideoUrl('https://www.tiktok.com/@scout2015/video/6718335390845095173')
 if (!tt?.posterPlayerUrl || !/autoplay=0/.test(tt.posterPlayerUrl)) bad('TikTok, which gives no picture, does not show its own player, not started')
+// The card shows an upright video about 200px wide; TikTok's control row only
+// fits that narrow without its time readout, else fullscreen is cut off.
+if (!tt || ![tt.posterPlayerUrl, tt.embedUrl].every(u => /[?&]timestamp=0\b/.test(u || ''))) bad('the TikTok player keeps its time readout, which pushes its fullscreen button off a card-width player')
 
 const no = [
   '', 'hello', 'javascript:alert(1)', 'data:text/html,<b>x</b>', 'ftp://youtube.com/watch?v=aqz-KE-bpKQ',
