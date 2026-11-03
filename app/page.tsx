@@ -6,7 +6,7 @@ import NativeAppRedirect from '@/components/NativeAppRedirect'
 import { PROMOS_ENABLED } from '@/lib/promos'
 import { SEAT_PRICE_RAND } from '@/lib/org-billing'
 import PriceEstimate, { PriceEstimateLine, RandChargeNote } from '@/components/marketing/PriceEstimate'
-import HeroScene from '@/components/marketing/HeroScene'
+import LeadHero from '@/components/marketing/LeadHero'
 import ThreeWaysToShare from '@/components/marketing/ThreeWaysToShare'
 import TemplatesShowcase from '@/components/marketing/TemplatesShowcase'
 import FeaturedCards from '@/components/marketing/FeaturedCards'
@@ -14,9 +14,8 @@ import FaqSection from '@/components/marketing/FaqSection'
 import StructuredData from '@/components/marketing/StructuredData'
 import TeamsSection from '@/components/marketing/TeamsSection'
 import {
-  Smartphone, Globe, BarChart2, Mail, Monitor, Users, ArrowRight, Wifi, Sparkles, Zap, CalendarDays, ScanLine,
-  FileSpreadsheet, CalendarClock, MessageCircle, Contact, Wallet, UserPlus, ClipboardList, Repeat,
-  Building2, Lock, Palette,
+  Smartphone, Globe, BarChart2, Mail, Monitor, Users, ArrowRight, Wifi, Sparkles, Zap, Check,
+  MessageCircle, Wallet, UserPlus, Inbox, Webhook, Building2, Lock, Palette,
 } from 'lucide-react'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
@@ -32,6 +31,13 @@ const gradText: React.CSSProperties = {
 // quotes that were written for the page rather than said by anyone. Invented
 // reviews on a page that takes payment are not a small thing, and there is a
 // real story to tell without them.
+//
+// Since 2026-11-03 the page sells the back office and treats the card as its
+// face, so the flow is four steps and comes straight after the hero. Every step
+// is shipped: the card form, questionnaire and meeting request (all into
+// contacts), the lead email to the rep with a copy to the department head and
+// the company admin (lib/lead-notify), WhatsApp from the lead, notes, and the
+// per-person team report with its channels (lib/team-analytics).
 const SALES_FLOW = [
   {
     step: 'At the meeting',
@@ -41,29 +47,72 @@ const SALES_FLOW = [
   {
     step: 'The same minute',
     title: 'The lead captures itself',
-    text: 'They fill in the short form on your card and it lands in your contacts, emailed to the rep and copied to whoever runs the team. No business card in a jacket pocket.',
+    text: 'They fill in the short form on the card, answer your questions or ask for a meeting. It lands in your contacts and is emailed to the rep, with a copy to their manager.',
+  },
+  {
+    step: 'That afternoon',
+    title: 'Follow up while it is warm',
+    text: 'Reply on WhatsApp in one tap, from the email or the contact. Add a note, save them to your phone. No business card in a jacket pocket.',
   },
   {
     step: 'The week after',
     title: 'You can see what worked',
-    text: 'Views, taps, link clicks and saves, per person. You find out which reps are getting opened and which links people actually press, instead of guessing.',
+    text: 'Opens, link clicks, saves and leads for each person, and which channel brought them in. You find out who is getting opened instead of guessing.',
   },
 ]
 
+// Everything behind the card, in the order a lead meets it. Every line is a
+// shipped feature (checked 2026-11-03). What is NOT built and must not be added
+// here: tags, a pipeline or lead status, lead scoring, reminders, assigning a
+// lead to someone else, CSV export, and any CRM sync (HubSpot, Salesforce,
+// Zapier, Google Contacts). The weekly digest covers personal cards only.
+const BACK_OFFICE = [
+  { icon: Inbox, colour: '#00d4ff', title: 'Capture',
+    lines: [
+      'A short form on every card',
+      'A two-way exchange when someone saves your details',
+      'Your own questions, a different form per card if you like',
+      'Meeting requests with a date and time',
+      'An AI scan of a paper business card',
+    ] },
+  { icon: MessageCircle, colour: '#22c55e', title: 'Follow up',
+    lines: [
+      'Each lead emailed to the rep the moment it arrives',
+      'A copy to the department head and the company admin',
+      'WhatsApp, email or call in one tap',
+      'Notes on every lead, saved to your phone in one tap',
+    ] },
+  { icon: BarChart2, colour: '#f59e0b', title: 'Report',
+    lines: [
+      'Opens, link clicks, saves and leads for each person',
+      'Which channel brought them: NFC tap, QR, email signature, WhatsApp',
+      'A monthly Excel report for the whole team',
+      'Every lead from every card in one list, filtered by person',
+    ] },
+  { icon: Webhook, colour: '#a78bfa', title: 'Keep and connect',
+    lines: [
+      'Export any list of leads to a branded Excel file',
+      'Webhooks and a read-only API, to send leads on to your own systems',
+      'Someone leaves: switch their card off, keep its leads and its link',
+      'Leads are never sold, and never used for advertising',
+    ] },
+]
+
 // What a company actually controls, which the site never mentioned. Every item
-// here is a shipped feature: departments with heads, the nine choosable lock
-// groups, per-department brand, per-rep reporting and per-seat billing.
+// here is a shipped feature: departments with heads, the thirteen choosable lock
+// groups (lib/team-locks), per-department brand, per-rep reporting and per-seat
+// billing.
 const COMPANY_CONTROLS = [
   { icon: Building2, colour: '#00d4ff', title: 'Departments, each with a head',
-    desc: 'Split the company into Sales, Support, whatever fits. Each department gets a head who runs their own people, invites them and sets their look.' },
+    desc: 'Split the company into Sales, Support, whatever fits. Each department gets a head who runs their own people, sees their leads and sets their look.' },
   { icon: Lock, colour: '#f59e0b', title: 'Lock exactly what you choose',
-    desc: 'Logo, company name, office number, website, address, socials, link buttons, gallery and card design. Lock any of them company-wide, and a department can tighten it further.' },
+    desc: 'Logo, company name, office number, website, address, socials, link buttons, gallery, design, even job titles and bios. Lock any of them company-wide, and a department can tighten it further.' },
   { icon: UserPlus, colour: '#22c55e', title: 'Their details stay theirs',
-    desc: 'Anything you have not locked belongs to the person: name, photo, job title, bio, mobile. Nobody in admin retypes forty phone numbers.' },
+    desc: 'Anything you have not locked belongs to the person: name, photo, mobile and the rest. Nobody in admin retypes forty phone numbers.' },
   { icon: Palette, colour: '#ec4899', title: 'One brand, or one per team',
     desc: 'Set the company look once and apply it to every card at once. A department can carry its own colours on top where it needs to.' },
   { icon: BarChart2, colour: '#7c3aed', title: 'Reporting per person',
-    desc: 'Views, taps, link clicks and saved contacts for each rep, and every lead they capture in one place. You see who is actually being opened.' },
+    desc: 'Opens, link clicks, saves and leads for each rep, and every lead they capture in one place. You see who is actually being opened.' },
   { icon: Users, colour: '#06b6d4', title: 'Per seat, change any time',
     desc: 'From R97 per card a month. Add people as you hire, and a card you have not handed out yet waits with an invite against it.' },
 ]
@@ -145,27 +194,20 @@ export const metadata = {
   // Kept under ~155 characters so Google shows the whole line rather than
   // cutting it mid-sentence.
   description:
-    'One branded digital business card per rep. Tap to share, capture leads into your contacts, see which reps get opened. From R97 a card a month.',
+    'Branded digital business cards with the back office behind them: every lead captured, sent to the rep and reported per person. From R97 a card a month.',
   alternates: { canonical: '/' },
   openGraph: {
     title: 'Digital Business Cards for Teams | Cardtly',
     description:
-      'One branded card per rep. Tap to share, capture leads automatically, track what happens next. From R97 a card a month, NFC cards delivered across South Africa.',
+      'The card is the face. Behind it, every lead is captured, emailed to the rep and their manager, followed up and reported. From R97 a card a month.',
   },
 }
 
-// clip, NOT hidden on the wrapper below, and the hero does not work without it.
-//
-// `overflow-x: hidden` makes the OTHER axis compute to `auto`, which turns that
-// div into a scroll container. The hero's stage is position:sticky, and sticky
-// pins against its nearest SCROLLING ancestor - which became this box rather
-// than the page. The box never scrolls, so the stage never pinned: it scrolled
-// away with its section and left five viewports of black behind it.
-//
-// `overflow-x: clip` clips the same overflow without creating a scroll
-// container - clip and visible are the one pair the spec leaves alone - so
-// overflow-y stays visible and the viewport goes back to being what sticky
-// measures against.
+// clip, NOT hidden on the wrapper below. `overflow-x: hidden` makes the OTHER
+// axis compute to `auto`, which turns that div into a scroll container, and
+// anything position:sticky inside it then pins to a box that never scrolls.
+// The old scroll-driven hero (removed 2026-11-03) went black for five
+// viewports that way. `clip` clips the same overflow without that side effect.
 export default function HomePage() {
   return (
     <div className="overflow-x-clip" style={{ background: '#000', color: '#fff' }}>
@@ -181,9 +223,9 @@ export default function HomePage() {
       <NativeAppRedirect />
       <Navbar />
 
-      {/* The scroll-driven hero. It is 6.4 viewports tall on a desktop and 4
-          on a phone, so everything below it now begins that far down the page. */}
-      <HeroScene />
+      {/* Lead capture first: the card is the face, the back office is what
+          is being sold. Replaced the scroll-driven WebGL hero on 2026-11-03. */}
+      <LeadHero />
 
       {/* ── Social proof bar — bigger, bolder ─────────────────────────────────── */}
       <section className="py-16 border-y" style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
@@ -245,20 +287,22 @@ export default function HomePage() {
       </section>
 
       {/* ── How the sale actually happens ─────────────────────── */}
-      <section className="py-24 px-6">
+      {/* scroll-mt: the hero's "See where leads go" lands here, and the fixed
+          bar would otherwise sit over the heading. */}
+      <section id="lead-flow" className="py-24 px-6 scroll-mt-20">
         <div className="max-w-[1400px] mx-auto">
           <Reveal>
             <div className="text-center mb-16">
               <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#f59e0b' }}>From handshake to sale</p>
               <h2 className="text-4xl md:text-5xl font-black tracking-tight">
-                One card. <span style={gradText}>Three fewer leaks.</span>
+                The card starts it. <span style={gradText}>The back office finishes it.</span>
               </h2>
               <p className="mt-4 max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.5)' }}>
                 Most leads are lost between meeting someone and following up. Here is where Cardtly closes the gap.
               </p>
             </div>
           </Reveal>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
             {SALES_FLOW.map(({ step, title, text }, i) => (
               <Reveal key={title} delay={i * 90} className="h-full">
                 <div className="h-full p-6 rounded-3xl lift-card relative"
@@ -277,15 +321,107 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Cardtly for Teams — the primary audience, so it sits directly under
-             the hero. Locked branding, member-owned details, per-seat billing. */}
+      {/* ── The back office: everything behind the card ────────────────────── */}
+      <section className="py-24 px-6 lg:px-12 relative" style={{ background: 'rgba(255,255,255,0.02)' }}>
+        <div className="absolute top-1/3 left-0 w-[520px] h-[520px] rounded-full blur-[140px] pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(0,212,255,0.08) 0%, transparent 70%)' }} />
+        <div className="max-w-[1400px] mx-auto relative">
+          <Reveal>
+            <div className="text-center mb-16">
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#00d4ff' }}>The back office</p>
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight">
+                Everything <span style={gradText}>behind the card.</span>
+              </h2>
+              <p className="mt-4 max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                The card is what people see. This is what your sales team actually works in: every lead in one place,
+                sent to the right person, followed up and counted.
+              </p>
+            </div>
+          </Reveal>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+            {BACK_OFFICE.map(({ icon: Icon, colour, title, lines }, i) => (
+              <Reveal key={title} delay={i * 80} className="h-full">
+                <div className="h-full p-6 rounded-3xl lift-card"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4"
+                    style={{ background: `${colour}1f`, border: `1px solid ${colour}44`, color: colour }}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-lg mb-3">{title}</h3>
+                  <ul className="space-y-2.5">
+                    {lines.map(line => (
+                      <li key={line} className="flex gap-2.5 text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.62)' }}>
+                        <Check className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: colour }} aria-hidden />
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+          <Reveal className="text-center mt-12">
+            <Link href="/features"
+              className="inline-flex items-center gap-2 text-sm font-semibold transition hover:opacity-80"
+              style={{ color: '#00d4ff' }}>
+              Explore every feature <ArrowRight className="w-4 h-4" />
+            </Link>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── Cardtly for Teams. Locked branding, member-owned details, sharing
+             each other's cards. #teams, for the footer's link. */}
       <TeamsSection />
 
-      {/* Three ways to share */}
-      <ThreeWaysToShare />
+      {/* ── Company controls: departments, locks, per-rep reporting ──────────
+             The reason a company with forty reps buys this instead of telling
+             everyone to make their own card, so it sits with the back office
+             rather than after the card's own features. */}
+      <section className="py-24 px-6 lg:px-12">
+        <div className="max-w-[1400px] mx-auto">
+          <Reveal>
+            <div className="text-center mb-16">
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#00d4ff' }}>Run it properly</p>
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight">
+                Control what matters. <span style={gradText}>Leave the rest to them.</span>
+              </h2>
+              <p className="mt-4 max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                Forty people, one brand, and nobody putting the wrong logo on anything. You decide what is
+                fixed and what each person fills in themselves.
+              </p>
+            </div>
+          </Reveal>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {COMPANY_CONTROLS.map(({ icon: Icon, colour, title, desc }, i) => (
+              <Reveal key={title} delay={i * 70} className="h-full">
+                <div className="h-full p-6 rounded-3xl lift-card"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4"
+                    style={{ background: `${colour}1f`, border: `1px solid ${colour}44`, color: colour }}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">{title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>{desc}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+          <Reveal>
+            <div className="mt-10 text-center">
+              <Link href="/signup"
+                className="group inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition-all hover:scale-[1.03]"
+                style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.45)' }}>
+                Set your team up free
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
+          </Reveal>
+        </div>
+      </section>
 
-      {/* ── Bento features grid ─────────────────────────────────────────────── */}
-      {/* Tinted so the run of Three ways -> Bento -> Real cards is not three
+      {/* ── The face: the card itself ───────────────────────────────────────── */}
+      {/* Tinted so the run of back office -> Teams -> controls -> face is not
           identical black sections back to back. */}
       <section className="py-24 px-6 relative" style={{ background: 'rgba(255,255,255,0.02)' }}>
         <div className="absolute top-1/2 right-0 w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none"
@@ -294,10 +430,13 @@ export default function HomePage() {
         <div className="max-w-[1400px] mx-auto relative">
           <Reveal>
             <div className="text-center mb-16">
-              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#7c3aed' }}>From tap to closed deal</p>
+              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#7c3aed' }}>The face</p>
               <h2 className="text-4xl md:text-5xl font-black tracking-tight">
-                One tap. <span style={gradText}>Every lead captured.</span>
+                A card people <span style={gradText}>actually open.</span>
               </h2>
+              <p className="mt-4 max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                The part your clients see, shared by tap, QR or link, and always up to date.
+              </p>
             </div>
           </Reveal>
 
@@ -354,30 +493,6 @@ export default function HomePage() {
               desc="Change your number once. Updates everywhere. No reprinting."
             />
 
-            {/* Analytics — wider */}
-            <BentoTile
-              span="md:col-span-2"
-              icon={<BarChart2 className="w-5 h-5" />}
-              accent="#f59e0b"
-              title="See what's working"
-              desc="Track every view of your card, by device and over time. Know when your card is pulling its weight."
-              visual={
-                <div className="absolute right-6 top-6 bottom-6 flex items-end gap-1.5 pointer-events-none">
-                  {[40, 65, 50, 80, 55, 90, 75, 100, 70, 85].map((h, i) => (
-                    <div
-                      key={i}
-                      className="w-2 rounded-t"
-                      style={{
-                        height: `${h}%`,
-                        background: `linear-gradient(180deg, #f59e0b, #ec4899)`,
-                        opacity: 0.3 + (i / 10) * 0.7,
-                      }}
-                    />
-                  ))}
-                </div>
-              }
-            />
-
             {/* Email signature */}
             <BentoTile
               icon={<Mail className="w-5 h-5" />}
@@ -394,96 +509,12 @@ export default function HomePage() {
               desc="Branded virtual backgrounds with your name and QR."
             />
 
-            {/* Lead capture — built-in mini-CRM */}
-            <BentoTile
-              icon={<Users className="w-5 h-5" />}
-              accent="#a855f7"
-              title="Capture leads, build your CRM"
-              desc="Visitors share their details through your card and every lead lands in your contacts - a pocket CRM that builds itself."
-            />
-
-            {/* Card content — links, galleries, socials */}
+            {/* Card content: links, galleries, video, socials */}
             <BentoTile
               icon={<Sparkles className="w-5 h-5" />}
               accent="#ec4899"
               title="More than contact details"
-              desc="Photo galleries, custom links, WhatsApp, socials, certifications, even an AI-written bio."
-            />
-
-            {/* Meeting booking from the card */}
-            <BentoTile
-              icon={<CalendarDays className="w-5 h-5" />}
-              accent="#06b6d4"
-              title="Book meetings from your card"
-              desc="Visitors pick a date and time right on your card. You get the request by email and they land in your contacts."
-            />
-
-            {/* Paper card scanner */}
-            <BentoTile
-              icon={<ScanLine className="w-5 h-5" />}
-              accent="#a855f7"
-              title="Scan paper business cards"
-              desc="Snap a photo of someone's paper card and AI pulls out their details, ready to save to your contacts or your phone."
-            />
-
-            {/* WhatsApp follow-up — wider tile with chat visual */}
-            <BentoTile
-              icon={<MessageCircle className="w-5 h-5" />}
-              accent="#25D366"
-              title="Follow up on WhatsApp"
-              desc="Every lead comes with a one-tap WhatsApp button, so you can reply while you're still fresh in their mind. No copying out numbers."
-              visual={
-                <div className="absolute right-6 top-6 bottom-6 hidden lg:flex flex-col justify-center items-end gap-2 pointer-events-none">
-                  <div className="px-4 py-2.5 rounded-2xl rounded-tr-sm text-xs font-medium text-white max-w-[180px]"
-                    style={{ background: '#25D366' }}>
-                    Great meeting you! Here&apos;s my card 👋
-                  </div>
-                  <div className="px-4 py-2.5 rounded-2xl rounded-br-sm text-xs font-medium max-w-[160px]"
-                    style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)' }}>
-                    Thanks! Let&apos;s chat Monday.
-                  </div>
-                </div>
-              }
-            />
-
-            {/* Excel export */}
-            <BentoTile
-              icon={<FileSpreadsheet className="w-5 h-5" />}
-              accent="#0ea5e9"
-              title="Export to Excel in a click"
-              desc="Turn every lead into a clean, colour-branded spreadsheet - names, emails, companies, sources and answers - ready for your CRM or mailing list."
-            />
-
-            {/* Weekly digest */}
-            <BentoTile
-              icon={<CalendarClock className="w-5 h-5" />}
-              accent="#14b8a6"
-              title="Your week, in your inbox"
-              desc="Every Monday we email you how your card performed - views and new leads from the past 7 days - so you always know what's working."
-            />
-
-            {/* Manage contacts */}
-            <BentoTile
-              icon={<Contact className="w-5 h-5" />}
-              accent="#f43f5e"
-              title="Manage your contacts"
-              desc="Edit, tidy and save any lead straight to your phone. Your Cardtly contacts stay organised and always within reach."
-            />
-
-            {/* Reciprocal contact exchange (save-card popup, standard on Pro) */}
-            <BentoTile
-              icon={<Repeat className="w-5 h-5" />}
-              accent="#06b6d4"
-              title="Two-way contact exchange"
-              desc="When someone saves your details, an optional popup invites them to share theirs back, so every handshake becomes a lead in your contacts."
-            />
-
-            {/* Custom questionnaire (webform popup add-on) */}
-            <BentoTile
-              icon={<ClipboardList className="w-5 h-5" />}
-              accent="#f59e0b"
-              title="Custom questionnaire"
-              desc="Add your own short form of up to five questions to your card. Visitors answer, and their responses save with every lead. An optional add-on."
+              desc="Photo galleries, custom links, a video, WhatsApp, socials and certifications."
             />
 
             {/* Add to Google Wallet */}
@@ -492,14 +523,6 @@ export default function HomePage() {
               accent="#22c55e"
               title="Add to Google Wallet"
               desc="Save your card to Google Wallet, one swipe away with your boarding passes. Edit your card and the saved pass updates itself."
-            />
-
-            {/* Share a teammate's card (Teams) */}
-            <BentoTile
-              icon={<UserPlus className="w-5 h-5" />}
-              accent="#ec4899"
-              title="Share a teammate's card"
-              desc="On a team, hand out a colleague's card on the spot. Every teammate's card is one tap away from your dashboard to send by WhatsApp or link."
             />
 
             {/* Custom link (/api/slug, with redirects so old links keep working) */}
@@ -519,17 +542,11 @@ export default function HomePage() {
             />
           </div>
           </Reveal>
-
-          {/* See-all link to the full features page */}
-          <Reveal className="text-center mt-12">
-            <Link href="/features"
-              className="inline-flex items-center gap-2 text-sm font-semibold transition hover:opacity-80"
-              style={{ color: '#7c3aed' }}>
-              Explore every feature <ArrowRight className="w-4 h-4" />
-            </Link>
-          </Reveal>
         </div>
       </section>
+
+      {/* Three ways to share */}
+      <ThreeWaysToShare />
 
       {/* Real cards from real people, refreshed daily. Hides itself
           if there are fewer than 8 opted-in cards in the pool. */}
@@ -537,56 +554,6 @@ export default function HomePage() {
 
       {/* Templates showcase */}
       <TemplatesShowcase />
-
-      {/* Interactive customization demo — extends the templates story:
-          16 templates, and every one is fully editable */}
-
-      {/* ── Company controls: departments, locks, per-rep reporting ──────────
-             None of this was advertised anywhere on the site - not here, not on
-             the features page, and TeamsSection only said "locked company
-             branding" in passing. It is the reason a company with forty reps
-             buys this instead of telling everyone to make their own card. */}
-      <section className="py-24 px-6 lg:px-12">
-        <div className="max-w-[1400px] mx-auto">
-          <Reveal>
-            <div className="text-center mb-16">
-              <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#00d4ff' }}>Run it properly</p>
-              <h2 className="text-4xl md:text-5xl font-black tracking-tight">
-                Control what matters. <span style={gradText}>Leave the rest to them.</span>
-              </h2>
-              <p className="mt-4 max-w-2xl mx-auto" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                Forty people, one brand, and nobody putting the wrong logo on anything. You decide what is
-                fixed and what each person fills in themselves.
-              </p>
-            </div>
-          </Reveal>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {COMPANY_CONTROLS.map(({ icon: Icon, colour, title, desc }, i) => (
-              <Reveal key={title} delay={i * 70} className="h-full">
-                <div className="h-full p-6 rounded-3xl lift-card"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4"
-                    style={{ background: `${colour}1f`, border: `1px solid ${colour}44`, color: colour }}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">{title}</h3>
-                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>{desc}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-          <Reveal>
-            <div className="mt-10 text-center">
-              <Link href="/signup"
-                className="group inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition-all hover:scale-[1.03]"
-                style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.45)' }}>
-                Set your team up free
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </div>
-          </Reveal>
-        </div>
-      </section>
 
       {/* ── How it works — kept simple ──────────────────────────────────────── */}
       <section className="py-24 px-6" style={{ background: 'rgba(255,255,255,0.02)' }}>
@@ -601,9 +568,9 @@ export default function HomePage() {
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { n: '01', title: 'Create your card',   desc: 'Pick a template, fill in your details, choose your colours.' },
-              { n: '02', title: 'Share your link',    desc: 'Your card lives at cardtly.com/yourname. Share it anywhere.' },
-              { n: '03', title: 'Make connections',   desc: 'People scan, save your contact, and you track every interaction.' },
+              { n: '01', title: 'Set up the cards',    desc: 'Pick a template and your colours, then invite your people or make your own card.' },
+              { n: '02', title: 'Hand them out',       desc: 'Tap, QR or link at cardtly.com/card/yourname. Nothing for the other person to install.' },
+              { n: '03', title: 'The leads come in',   desc: 'Captured on the card, emailed to the rep and kept in one place to follow up and report on.' },
             ].map(({ n, title, desc }, i, arr) => (
               <Reveal key={n} delay={i * 90} className="relative text-center">
                 {i < arr.length - 1 && (

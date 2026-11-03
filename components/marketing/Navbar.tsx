@@ -78,27 +78,19 @@ export default function Navbar() {
   // So the bar is transparent and tall while the hero is behind it, and solid
   // and compact once it is not.
   //
-  // WHAT COUNTS AS "PAST THE HERO" is measured, not guessed: the bar looks for
-  // #hero-scroll and asks where its bottom edge is. On a page with no hero
-  // there is nothing to be transparent over, so it goes solid on the first
-  // pixel of scroll.
+  // It goes solid on the first pixel of scroll. (Until 2026-11-03 the home page
+  // had a scroll-driven hero several screens tall, and the bar stayed
+  // transparent until that hero's bottom edge passed under it.)
   //
-  // The at-rest height is one number in two files: --ct-header in
-  // HeroScene.tsx has to match it (6rem: pt-4 plus h-20), or the headline goes
-  // back under the bar. A ref rather than an id, deliberately: the hero's
-  // bundled script toggles a class on any #site-head.
+  // The at-rest height is 6rem (pt-4 plus h-20). The page heroes start below it
+  // by their own top padding (pt-32), so a padding change here needs a look at
+  // them too.
   const barRef = useRef<HTMLElement>(null)
   const [stuck, setStuck] = useState(false)
   useEffect(() => {
     // Read straight off the event: scroll events already arrive at most once a
     // frame, and a rAF wrapper only adds a frame of lag.
-    const read = () => {
-      const hero = document.getElementById('hero-scroll')
-      const barBottom = barRef.current?.getBoundingClientRect().height ?? 96
-      setStuck(hero
-        ? hero.getBoundingClientRect().bottom <= barBottom
-        : window.scrollY > 4)
-    }
+    const read = () => setStuck(window.scrollY > 4)
     read()
     addEventListener('scroll', read, { passive: true })
     addEventListener('resize', read, { passive: true })
