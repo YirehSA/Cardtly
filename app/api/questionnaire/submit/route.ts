@@ -2,6 +2,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { resolveCardOwner } from '@/lib/card-owner'
 import { notifyLeadRecipients } from '@/lib/lead-notify'
+import { isBotSubmission, botResponse, overLong, takeLeadSlot, EMAIL_RE } from '@/lib/lead-guard'
 
 // Public endpoint: a visitor submits a card's custom questionnaire.
 // Saves a contact (source='questionnaire') with the standard fields
@@ -10,6 +11,9 @@ import { notifyLeadRecipients } from '@/lib/lead-notify'
 // booking request. A questionnaire is a lead like any other, and it
 // used to save silently, so the owner only found it if they went
 // looking in the dashboard.
+//
+// Open to anyone, so it sits behind lib/lead-guard: the hidden field, length
+// caps and the rate limits, before anything is read or written.
 export async function POST(request: Request) {
   let body: {
     card_id?: string | null
@@ -18,6 +22,7 @@ export async function POST(request: Request) {
     answers?: { label: string; value: string }[]
   }
   try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid request' }, { status: 400 }) }
+  if (isBotSubmission(body)) return botResponse()
 
   if (!body.name?.trim() || !body.email?.trim()) {
     return NextResponse.json({ error: 'Name and email are required' }, { status: 400 })
@@ -25,6 +30,11 @@ export async function POST(request: Request) {
   if (!body.card_id && !body.team_card_id) {
     return NextResponse.json({ error: 'Missing card reference' }, { status: 400 })
   }
+  if (!EMAIL_RE.test(body.email.trim())) {
+    return NextResponse.json({ error: 'Please check your email address.' }, { status: 400 })
+  }
+  const tooLong = overLong({ name: body.name, email: body.email, phone: body.phone, company: body.company, message: body.message })
+  if (tooLong) return NextResponse.json({ error: tooLong }, { status: 400 })
 
   // Keep only well-formed, non-empty answer pairs.
   const answers = Array.isArray(body.answers)
@@ -38,6 +48,9 @@ export async function POST(request: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
+
+  const limited = await takeLeadSlot(admin, request, body.card_id || body.team_card_id || '')
+  if (limited) return limited
 
   // Resolve the owner from whichever id we were given. This also decides the
   // correct storage column rather than trusting what the client sent, so the

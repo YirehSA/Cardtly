@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { useIsPreview, PREVIEW_SUBMIT_NOTICE } from '@/lib/card-surface'
 import { BOOKING_MINUTES } from '@/lib/booking-format'
 import CaptureNotice from './CaptureNotice'
+import Honeypot from './Honeypot'
 
 // Every hour of the day, 00 to 23.
 const HOURS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'))
@@ -33,6 +34,7 @@ export default function BookingModal({ open, onClose, cardId, cardName, ownerCom
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [hp, setHp] = useState('') // the hidden field (components/card/Honeypot)
   const [date, setDate] = useState('')
   // An hour and a minute from lists, not the browser's time box. That box
   // could not reach every time on some phones and refused a half-typed time
@@ -77,6 +79,7 @@ export default function BookingModal({ open, onClose, cardId, cardName, ownerCom
           // The visitor's own clock, so the email can say whose 09:00 it is.
           time_zone: (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone } catch { return undefined } })(),
           notes: notes || undefined,
+          hp,
         }),
       })
       const data = await res.json()
@@ -153,7 +156,8 @@ export default function BookingModal({ open, onClose, cardId, cardName, ownerCom
               </button>
             </div>
 
-            <form onSubmit={submit} className="p-5 space-y-3">
+            <form onSubmit={submit} className="relative p-5 space-y-3">
+              <Honeypot value={hp} onChange={setHp} />
               <input required value={name} onChange={(e) => setName(e.target.value)}
                 placeholder="Your name"
                 className="w-full px-3 py-2.5 rounded-xl border text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition"

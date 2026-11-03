@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { safeHex, type QuestionnaireConfig } from '@/lib/questionnaire'
 import { useIsPreview, PREVIEW_SUBMIT_NOTICE } from '@/lib/card-surface'
 import CaptureNotice from './CaptureNotice'
+import Honeypot from './Honeypot'
 
 // Custom questionnaire on a public card (add-on). A trigger button
 // that opens a modal: fixed fields (name, email, contact, company),
@@ -41,6 +42,7 @@ export default function QuestionnaireForm({ config, cardId, teamCardId, ownerNam
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [hp, setHp] = useState('') // the hidden field (components/card/Honeypot)
   const [company, setCompany] = useState('')
   const [message, setMessage] = useState('')
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -71,12 +73,17 @@ export default function QuestionnaireForm({ config, cardId, teamCardId, ownerNam
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           card_id: cardId, team_card_id: teamCardId,
-          name: name.trim(), email: email.trim(), phone: phone.trim(), company: company.trim(), message: message.trim(),
+          name: name.trim(), email: email.trim(), phone: phone.trim(), company: company.trim(), message: message.trim(), hp,
           answers: config.questions.map(q => ({ label: q.label, value: answers[q.id] || '' })),
         }),
       })
       if (res.ok) setDone(true)
-      else toast.error('Could not submit. Please try again.')
+      else {
+        // The server's own words when it has some (a bad email, a message that
+        // is too long, too many in a row), rather than one message for all.
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.error || 'Could not submit. Please try again.', { duration: 8000 })
+      }
     } catch {
       toast.error('Network error. Please try again.')
     }
@@ -177,7 +184,8 @@ export default function QuestionnaireForm({ config, cardId, teamCardId, ownerNam
                     </button>
                   </div>
 
-                  <form onSubmit={submit} className="p-5 space-y-3 max-h-[70vh] overflow-y-auto">
+                  <form onSubmit={submit} className="relative p-5 space-y-3 max-h-[70vh] overflow-y-auto">
+                    <Honeypot value={hp} onChange={setHp} />
                     {/* Fixed standard fields */}
                     <input required value={name} onChange={e => setName(e.target.value)} placeholder="Full name" className={field} style={fieldStyle} />
                     <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className={field} style={fieldStyle} />

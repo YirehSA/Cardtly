@@ -6,6 +6,7 @@ import { UserPlus, X, Loader2, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { describeContactError, CONTACT_NETWORK_ERROR } from '@/lib/contact-errors'
 import CaptureNotice from './CaptureNotice'
+import Honeypot from './Honeypot'
 import { contactContextMetadata, type ResolvedContext } from '@/lib/card-context'
 import { useIsPreview, PREVIEW_SUBMIT_NOTICE } from '@/lib/card-surface'
 
@@ -37,6 +38,7 @@ export default function ContactExchangeModal({ open, onClose, ownerName, ownerCo
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [hp, setHp] = useState('') // the hidden field (components/card/Honeypot)
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -61,7 +63,7 @@ export default function ContactExchangeModal({ open, onClose, ownerName, ownerCo
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: name.trim(), email: email.trim(), phone: phone.trim() || null,
+          name: name.trim(), email: email.trim(), phone: phone.trim() || null, hp,
           card_id: cardId, team_card_id: teamCardId,
           // Null unless a Context is active. The API validates it and will
           // never let a failure here cost the lead.
@@ -124,7 +126,8 @@ export default function ContactExchangeModal({ open, onClose, ownerName, ownerCo
                   nothing to announce either. autoComplete lets the phone fill
                   all three in one tap, which matters when this is being done
                   standing up. */}
-              <form onSubmit={submit} className="p-5 space-y-3">
+              <form onSubmit={submit} className="relative p-5 space-y-3">
+                <Honeypot value={hp} onChange={setHp} />
                 <div>
                   <label htmlFor="cx-name" className="block text-xs font-medium text-white/70 mb-1.5">Your name</label>
                   <input id="cx-name" required value={name} onChange={e => setName(e.target.value)} autoComplete="name"

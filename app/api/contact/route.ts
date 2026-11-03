@@ -5,16 +5,21 @@ import { mergeTeamAddons } from '@/lib/addon-target'
 import { enqueueLeadCreated } from '@/lib/webhook-dispatch'
 import { resolveCardOwner } from '@/lib/card-owner'
 import { notifyLeadRecipients } from '@/lib/lead-notify'
+import { isBotSubmission, botResponse, overLong, takeLeadSlot, EMAIL_RE } from '@/lib/lead-guard'
 
 // Public endpoint: a visitor fills in the "share your info" form on a
 // card. We store the lead and email the card owner. Works for both
 // personal and team cards; for team cards the lead is stored under
 // team_card_id so the team admin sees it in Team Contacts.
+//
+// Open to anyone, so it sits behind lib/lead-guard: the hidden field, length
+// caps and the rate limits, in that order, before anything is read or written.
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { card_id, team_card_id, name, email, phone, message } = body
+    if (isBotSubmission(body)) return botResponse()
 
     if (!name || !email) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -22,11 +27,19 @@ export async function POST(request: Request) {
     if (!card_id && !team_card_id) {
       return NextResponse.json({ error: 'Missing card reference' }, { status: 400 })
     }
+    if (typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
+      return NextResponse.json({ error: 'Please check your email address.' }, { status: 400 })
+    }
+    const tooLong = overLong({ name, email, phone, message })
+    if (tooLong) return NextResponse.json({ error: tooLong }, { status: 400 })
 
     const admin = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     ) as any
+
+    const limited = await takeLeadSlot(admin, request, card_id || team_card_id)
+    if (limited) return limited
 
     // Resolve the owner (and the correct storage column) from whichever
     // id we were given.

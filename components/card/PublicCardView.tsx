@@ -32,6 +32,7 @@ import AddToGoogleWalletButton from '@/components/wallet/AddToGoogleWalletButton
 import { isIosAppUA } from '@/lib/app-platform'
 import { describeContactError, CONTACT_NETWORK_ERROR } from '@/lib/contact-errors'
 import CaptureNotice from './CaptureNotice'
+import Honeypot from './Honeypot'
 import {
   readCardContext, readSenderAudience, resolveContext, orderSections, resolveContextCta, visibleLinks, visiblePicks,
   STANDARD_SECTION_ORDER, contextMetadata, contactContextMetadata,
@@ -760,6 +761,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [message, setMessage] = useState('')
+  const [hp, setHp] = useState('') // the hidden field (components/card/Honeypot)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   // The gallery image currently open full-screen, or null. A tall (9:16) image
@@ -816,7 +818,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name, email, phone, message,
+          name, email, phone, message, hp,
           card_id: isTeamCard ? null : card.id,
           team_card_id: isTeamCard ? (card as any)._team_card_id : null,
           // The SELECTION, not the display-gated context: opening the full
@@ -1327,7 +1329,8 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
               <p className="text-sm" style={{ color: bg.subtext }}>Thanks! {card.name.split(' ')[0]} will be in touch.</p>
             </div>
           ) : (
-            <form onSubmit={submitContact} className="rounded-2xl p-5 space-y-3" style={{ backgroundColor: bg.surface, border: `1px solid ${bg.border}` }}>
+            <form onSubmit={submitContact} className="relative rounded-2xl p-5 space-y-3" style={{ backgroundColor: bg.surface, border: `1px solid ${bg.border}` }}>
+              <Honeypot value={hp} onChange={setHp} />
               <h3 className="font-semibold text-sm mb-4" style={{ color: bg.text }}>Share your info with {card.name.split(' ')[0]}</h3>
               {/* Visible labels, not placeholders. A placeholder vanishes the
                   moment somebody types, so a visitor interrupted halfway

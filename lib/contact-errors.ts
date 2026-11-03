@@ -33,6 +33,18 @@ export function describeContactError(status: number, apiError?: string): Contact
     }
   }
 
+  // Too many in a row from this connection (lib/lead-guard). The server's
+  // message says to wait, which is the one thing that helps.
+  if (status === 429) {
+    return { message: apiError || 'Too many messages in a short time. Please wait a few minutes and try again.', detail: raw }
+  }
+
+  // A bad email address or a field that is too long: the server says which,
+  // in words meant for the visitor.
+  if (status === 400 && apiError && /^(Please|That )/.test(apiError)) {
+    return { message: apiError, detail: raw }
+  }
+
   if (status >= 500) {
     return { message: 'Could not send that - please try again in a moment.', detail: raw }
   }

@@ -6,6 +6,7 @@ import { waBridgeLink } from '@/lib/wa-bridge'
 import { FROM_EMAIL } from '@/lib/email'
 import { parseIsoDate, parseHHMM, cleanTimeZone, isPastDate, formatBookingDate, formatBookingTime } from '@/lib/booking-format'
 import { ownerBookingEmail, requesterBookingEmail, type BookingDetails } from '@/lib/booking-email'
+import { isBotSubmission, botResponse, overLong, takeLeadSlot, RECEIPTS_PER_ADDRESS } from '@/lib/lead-guard'
 
 // Public endpoint: a visitor on someone's card submits a meeting
 // request. We store it in the bookings table, fire an email to the
@@ -14,6 +15,13 @@ import { ownerBookingEmail, requesterBookingEmail, type BookingDetails } from '@
 // also want to follow up. Works for personal and team cards; for
 // team cards the contact is stored under team_card_id so the team
 // admin sees it in Team Contacts.
+//
+// Open to anyone, so it sits behind lib/lead-guard: the hidden field, length
+// caps and the rate limits, before anything is read or written. And because
+// this one also emails the address typed into it, the receipt goes to any one
+// address at most RECEIPTS_PER_ADDRESS times a day, so the form cannot be used
+// to mail a stranger through Cardtly. The request itself is still saved and
+// the owner still told.
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -37,6 +45,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
+  if (isBotSubmission(body)) return botResponse()
 
   const { card_id, requester_name, requester_email, requester_phone, notes } = body
 
@@ -46,6 +55,8 @@ export async function POST(request: Request) {
   if (!EMAIL_RE.test(requester_email.trim())) {
     return NextResponse.json({ error: 'Please check your email address.' }, { status: 400 })
   }
+  const tooLong = overLong({ name: requester_name, email: requester_email, phone: requester_phone, message: notes })
+  if (tooLong) return NextResponse.json({ error: tooLong }, { status: 400 })
 
   // The date and time are checked here, not trusted from the form: they are
   // written into two emails and the owner's contacts.
@@ -70,6 +81,9 @@ export async function POST(request: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   ) as any
+
+  const limited = await takeLeadSlot(admin, request, card_id)
+  if (limited) return limited
 
   // Resolve the owner + correct storage column. card_id here may be a
   // personal card id or a team card id - the resolver detects which.
@@ -160,7 +174,19 @@ export async function POST(request: Request) {
   // vanished on refresh - no record, no address to chase, and no way to tell a
   // request that arrived from one that was swallowed. The commonest reason a
   // lead goes cold is the person quietly assuming nothing happened.
-  if (process.env.RESEND_API_KEY) {
+  // How many requests this address has made today, this one included. Past
+  // RECEIPTS_PER_ADDRESS the receipt is skipped. If the count cannot be read
+  // the receipt goes, as it always did.
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  // ilike, so the same address in other capitals counts; its own % and _ are
+  // escaped so they match only themselves.
+  const addressPattern = details.requesterEmail.replace(/[\\%_]/g, c => `\\${c}`)
+  const { count: todaysRequests } = await admin
+    .from('bookings').select('id', { count: 'exact', head: true })
+    .ilike('requester_email', addressPattern).gte('created_at', since)
+  const receiptAllowed = (todaysRequests ?? 0) <= RECEIPTS_PER_ADDRESS
+
+  if (process.env.RESEND_API_KEY && receiptAllowed) {
     try {
       const mail = requesterBookingEmail(details)
       await resend.emails.send({
