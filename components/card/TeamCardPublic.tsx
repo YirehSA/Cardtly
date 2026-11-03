@@ -10,6 +10,7 @@ import { lockedColumnsFor } from '@/lib/team-locks'
 import { hydrateBrandSources, isLookSource } from '@/lib/brand-source'
 import { liveMirror } from '@/lib/questionnaire'
 import { indexById, ancestorChain, resolveBrandChain, type DeptNode } from '@/lib/department-tree'
+import { publicTeamCard } from '@/lib/team-card-public'
 
 // Rendering a team card, shared by both public routes.
 //
@@ -150,8 +151,11 @@ export default async function TeamCardPublic({ teamCard }: { teamCard: any }) {
     }
   }
 
+  // publicTeamCard: PublicCardView is a client component, so everything in
+  // this object is written into the page's HTML. The row's invite token is a
+  // claim on the card (lib/team-card-public).
   const cardShaped = mergeBrand({
-    ...teamCard,
+    ...publicTeamCard(teamCard),
     user_id: null,
     is_primary: true,
     view_count: teamCard.view_count || 0,

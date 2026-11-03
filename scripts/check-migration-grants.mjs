@@ -166,6 +166,49 @@ for (const [f, col] of cardsAdded) {
   }
 }
 
+// ── A column added to team_cards needs its own select grant ────────────────
+//
+// Migration 101 took SELECT on team_cards from anon and authenticated and gave
+// it back as a list of columns, leaving out the invite (lib/team-card-public).
+// A column added afterwards is readable only by the service role until a
+// migration grants it, and anything naming it with the visitor's key or a
+// session is refused whole. So every later column must appear in a
+// `grant select (...) on public.team_cards to anon, authenticated`, or be
+// listed here as one only the server reads. The invite columns are never
+// granted back.
+const TEAM_CARDS_SERVER_ONLY = {
+  // 'column_name': 'why only a server route reads it',
+}
+const TEAM_CARDS_PRIVATE = ['invite_token', 'invite_email', 'invite_sent_at']
+const tcGrants = new Set()
+const tcAdded = []
+for (const f of files) {
+  const num = Number(f.slice(0, 3))
+  if (num < 101) continue
+  const sql = code(read(join(DIR, f)))
+  for (const m of sql.matchAll(/grant\s+select\s*\(([^)]*)\)\s+on\s+(?:table\s+)?(?:public\.)?"?team_cards"?\s+to\s+([^;]*);/gi)) {
+    const roles = m[2].toLowerCase().split(',').map(r => r.trim())
+    for (const c of m[1].split(',').map(c => c.trim().replace(/"/g, '').toLowerCase())) {
+      if (TEAM_CARDS_PRIVATE.includes(c) && (roles.includes('anon') || roles.includes('authenticated'))) {
+        bad(`${f} grants team_cards.${c} to ${roles.join(', ')}. That is the invite: a token is a claim on the card (migration 101).`)
+      }
+      tcGrants.add(c)
+    }
+  }
+  if (/grant\s+select\s+on\s+(?:table\s+)?(?:public\.)?"?team_cards"?\s+to\s+[^;]*\b(anon|authenticated)\b/i.test(sql)) {
+    bad(`${f} grants select on the whole of team_cards to the public roles again, invite columns included. Grant a column list instead (migration 101).`)
+  }
+  if (num <= 101) continue
+  for (const st of sql.matchAll(/alter\s+table\s+(?:only\s+)?(?:if\s+exists\s+)?(?:public\.)?"?team_cards"?\s+([^;]*);/gi)) {
+    for (const c of st[1].matchAll(/add\s+column\s+(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_]*)"?/gi)) tcAdded.push([f, c[1].toLowerCase()])
+  }
+}
+for (const [f, col] of tcAdded) {
+  if (!tcGrants.has(col) && !TEAM_CARDS_SERVER_ONLY[col]) {
+    bad(`${f} adds team_cards.${col} but no migration grants select on it: since 101 the public roles read team_cards column by column. Add: grant select (${col}) on public.team_cards to anon, authenticated; (or list it in TEAM_CARDS_SERVER_ONLY with the reason).`)
+  }
+}
+
 if (fail) {
   console.error(`${LF}check-migration-grants: ${fail} failure(s).`)
   process.exit(1)

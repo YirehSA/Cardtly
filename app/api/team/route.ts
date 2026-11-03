@@ -157,7 +157,7 @@ export async function POST(request: Request) {
     const { data: org } = await admin.from('organizations').select('id, max_seats').eq('id', org_id).eq('admin_user_id', user.id).single()
     if (!org) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
 
-    const { count } = await supabase.from('team_cards').select('*', { count: 'exact', head: true }).eq('organization_id', org_id)
+    const { count } = await admin.from('team_cards').select('id', { count: 'exact', head: true }).eq('organization_id', org_id)
     if ((count || 0) >= org.max_seats) return NextResponse.json({ error: 'Seat limit reached. Upgrade your plan to add more cards.' }, { status: 400 })
 
     const [slug, slugPerson, industry] = await Promise.all([

@@ -60,8 +60,11 @@ export default async function TeamPage() {
     .limit(1)
     .maybeSingle()
 
+  // The service role, scoped by the org this user administers (found above by
+  // admin_user_id). The owner needs invite_email to see who a card is waiting
+  // for, and from migration 101 a signed-in session may not read it.
   const { data: teamCards } = org
-    ? await supabase
+    ? await (createServiceClient() as any)
         .from('team_cards')
         .select('*')
         .eq('organization_id', org.id)

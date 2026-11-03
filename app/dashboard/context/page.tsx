@@ -12,6 +12,7 @@ import { parseDesign, templateOffersBooking, IMAGE_SLOTS, SOCIAL_SLOTS } from '@
 import ContextEditor from '@/components/context/ContextEditor'
 import TargetLink from '@/components/context/TargetLink'
 import { CONTEXT_ENABLED, readStoredContext, type ContextSection } from '@/lib/card-context'
+import { publicTeamCard } from '@/lib/team-card-public'
 
 export const metadata = { title: 'Cardtly Context' }
 
@@ -187,7 +188,9 @@ export default async function ContextPage({ searchParams }: { searchParams: Prom
       // appear in the preview if they would appear on the card. The `context`
       // inside is never read here: previewContext short-circuits the public
       // reader entirely, which is what keeps the kill switch untouched.
-      card: { ...r, addons: mergeTeamAddons(r.addons, selected.addons), _team_card_id: r.id },
+      // publicTeamCard: this goes to the browser, and a preview needs nothing
+      // of the invite (lib/team-card-public).
+      card: { ...publicTeamCard(r), addons: mergeTeamAddons(r.addons, selected.addons), _team_card_id: r.id },
     }))
   } else if (sourceRow) {
     previewCards = [{

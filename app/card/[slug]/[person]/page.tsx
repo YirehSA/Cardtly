@@ -2,6 +2,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import { Metadata } from 'next'
 import TeamCardPublic from '@/components/card/TeamCardPublic'
+import { publicTeamCard } from '@/lib/team-card-public'
 import { indexById, companyOf, type DeptNode } from '@/lib/department-tree'
 
 // /card/<company>/<person>
@@ -108,5 +109,6 @@ export default async function CompanyCardPage({ params }: Props) {
   const { slug: company, person } = await params
   const found = await resolve(company, person)
   if (!found) notFound()
-  return <TeamCardPublic teamCard={found.card as any} />
+  // Without its invite, like the other route (lib/team-card-public).
+  return <TeamCardPublic teamCard={publicTeamCard(found.card) as any} />
 }

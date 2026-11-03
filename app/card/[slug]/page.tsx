@@ -6,12 +6,20 @@ import PublicCardView from '@/components/card/PublicCardView'
 import CardTracker from '@/components/card/CardTracker'
 import ReportCardLink from '@/components/card/ReportCardLink'
 import TeamCardPublic from '@/components/card/TeamCardPublic'
+import { publicTeamCard } from '@/lib/team-card-public'
 import { mergeBrand, resolveTeamBrand } from '@/lib/team-brand'
 import { planFromTrial, subscriptionState, latestSubscriptionFor } from '@/lib/plan-server'
 import { liveMirror } from '@/lib/questionnaire'
 
 interface Props {
   params: Promise<{ slug: string }>
+}
+
+function serviceClient() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  ) as any
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -33,7 +41,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (personalCard) {
     card = personalCard
   } else {
-    const { data: teamCard } = await supabase
+    // The service role for team_cards: from migration 101 the visitor's key
+    // may not read the invite columns, so select('*') with it is refused.
+    const { data: teamCard } = await serviceClient()
       .from('team_cards')
       .select('*')
       .eq('slug', slug)
@@ -155,7 +165,11 @@ export default async function PublicCardPage({ params }: Props) {
   }
 
   // Check team cards — always Pro
-  const { data: teamCard } = await supabase
+  //
+  // The service role, as above, and the same rows the visitor's key saw: every
+  // team card is readable to anon by row, so this changes no card's
+  // visibility. TeamCardPublic strips the invite before anything is rendered.
+  const { data: teamCard } = await serviceClient()
     .from('team_cards')
     .select('*')
     .eq('slug', slug)
@@ -176,7 +190,7 @@ export default async function PublicCardPage({ params }: Props) {
     // Rendering lives in components/card/TeamCardPublic, shared with
     // /card/<company>/<person> so the same card cannot look different
     // depending on which of its two URLs was opened.
-    return <TeamCardPublic teamCard={teamCard as any} />
+    return <TeamCardPublic teamCard={publicTeamCard(teamCard) as any} />
   }
 
   // Check slug redirects
