@@ -6,6 +6,7 @@ import { Calendar, X, Loader2, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useIsPreview, PREVIEW_SUBMIT_NOTICE } from '@/lib/card-surface'
 import { BOOKING_MINUTES } from '@/lib/booking-format'
+import CaptureNotice from './CaptureNotice'
 
 // Every hour of the day, 00 to 23.
 const HOURS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'))
@@ -15,6 +16,8 @@ interface Props {
   onClose: () => void
   cardId: string
   cardName: string
+  /** The owner's company, for the POPIA notice ("Sipho Dlamini at Horizon"). */
+  ownerCompany?: string | null
   accentHex: string
 }
 
@@ -22,7 +25,7 @@ interface Props {
 // Posts to /api/bookings/request which emails the owner via Resend
 // and also drops the requester into the owner's contacts list.
 
-export default function BookingModal({ open, onClose, cardId, cardName, accentHex }: Props) {
+export default function BookingModal({ open, onClose, cardId, cardName, ownerCompany, accentHex }: Props) {
   // A booking request writes a row AND emails the card owner. Sending one from
   // the owner's own dashboard preview would be a meeting request from
   // themselves. See lib/card-surface.ts.
@@ -197,6 +200,10 @@ export default function BookingModal({ open, onClose, cardId, cardName, accentHe
                 rows={3}
                 className="w-full px-3 py-2.5 rounded-xl border text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition resize-none"
                 style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.1)' }} />
+              {/* A meeting request asks for a name, an email and a phone
+                  number, so it says who receives them, like the other two
+                  capture forms (POPIA section 18, components/card/CaptureNotice). */}
+              <CaptureNotice owner={cardName} company={ownerCompany} colour="#ffffff" />
               <button type="submit" disabled={submitting}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50 mt-2"
                 style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)' }}>

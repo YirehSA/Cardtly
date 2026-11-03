@@ -6,6 +6,7 @@ import { ClipboardList, X, Loader2, CheckCircle, ChevronRight } from 'lucide-rea
 import { toast } from 'sonner'
 import { safeHex, type QuestionnaireConfig } from '@/lib/questionnaire'
 import { useIsPreview, PREVIEW_SUBMIT_NOTICE } from '@/lib/card-surface'
+import CaptureNotice from './CaptureNotice'
 
 // Custom questionnaire on a public card (add-on). A trigger button
 // that opens a modal: fixed fields (name, email, contact, company),
@@ -17,6 +18,8 @@ interface Props {
   cardId: string | null
   teamCardId: string | null
   ownerName: string
+  /** The owner's company, for the POPIA notice. */
+  ownerCompany?: string | null
   accentHex: string
   bg: { border: string; subtext: string; text: string }
   /** The card's own button colours, the same ones Save Contact uses. This
@@ -26,7 +29,7 @@ interface Props {
   cardButtonBorder?: string | null
 }
 
-export default function QuestionnaireForm({ config, cardId, teamCardId, ownerName, accentHex, bg, cardButtonBg, cardButtonText, cardButtonBorder }: Props) {
+export default function QuestionnaireForm({ config, cardId, teamCardId, ownerName, ownerCompany, accentHex, bg, cardButtonBg, cardButtonText, cardButtonBorder }: Props) {
   // True when the owner is looking at their own card in the dashboard. See
   // lib/card-surface.ts: a preview must never create a real lead.
   const isPreview = useIsPreview()
@@ -208,6 +211,10 @@ export default function QuestionnaireForm({ config, cardId, teamCardId, ownerNam
                     <div className="pt-2 mt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
                       <textarea value={message} onChange={e => setMessage(e.target.value)} rows={3} placeholder="Message (optional)" className={`${field} resize-none`} style={fieldStyle} />
                     </div>
+
+                    {/* Who receives these answers, like the other capture forms
+                        (POPIA section 18, components/card/CaptureNotice). */}
+                    <CaptureNotice owner={ownerName} company={ownerCompany} colour="#ffffff" />
 
                     <button type="submit" disabled={submitting}
                       className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50 mt-1"

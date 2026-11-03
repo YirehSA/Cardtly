@@ -96,6 +96,20 @@ const nextConfig = {
           { key: 'Content-Security-Policy-Report-Only', value: csp },
         ],
       },
+      // Every card page is kept out of search engines (2026-11-03). A card
+      // carries a person's name, photo, mobile and email, often put there by
+      // their employer, and it is meant for the people it is handed to, not
+      // for a search results page. A header rather than only a meta tag, so
+      // it covers both card routes and the not-found page with one rule.
+      // Crawlers must still be ALLOWED to fetch /card/ in robots.ts: a page
+      // they may not fetch is a page whose noindex they never see.
+      // scripts/check-card-noindex holds this, the meta and the sitemap.
+      {
+        source: '/card/:path*',
+        headers: [
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow, noimageindex, noarchive' },
+        ],
+      },
     ]
   },
 

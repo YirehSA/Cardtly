@@ -8,6 +8,16 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 // country / city / region back to the user's profile so the admin
 // panel can surface "this user signed up from Cape Town" etc.
 //
+// The IP address itself is NOT stored (2026-11-03). It was written to
+// profiles.signup_ip while the privacy policy said it was not; nothing ever
+// read it back, so it stopped rather than the policy changing. Migration 102
+// clears the ones already stored.
+//
+// No sign-in is needed, because with email confirmation on there is no
+// session yet at this point. So the write only touches a profile created in
+// the last hour that has no location yet: a stranger posting somebody else's
+// user_id can no longer overwrite an existing account's location.
+//
 // Failures are non-fatal. The signup flow itself does not depend on
 // this route succeeding.
 
@@ -45,7 +55,7 @@ export async function POST(request: Request) {
           geo = await res.json()
         }
       } catch {
-        // Ignore lookup failures - we still record the IP below.
+        // Ignore lookup failures: the location just stays empty.
       }
     }
 
@@ -55,12 +65,14 @@ export async function POST(request: Request) {
     ) as any
 
     await admin.from('profiles').update({
-      signup_ip: ip || null,
       signup_country: geo.country_name || null,
       signup_country_code: geo.country_code || null,
       signup_city: geo.city || null,
       signup_region: geo.region || null,
-    }).eq('user_id', user_id)
+    })
+      .eq('user_id', user_id)
+      .is('signup_country', null)
+      .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
 
     return NextResponse.json({ success: true })
   } catch {

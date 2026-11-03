@@ -83,7 +83,7 @@ export default function DeleteDataPage() {
               <li>Click <strong className="text-white">Remove</strong>.</li>
               <li>Save the card.</li>
             </ol>
-            <p>The image is deleted from our storage and replaced with a placeholder on your public card.</p>
+            <p>The image comes off your public card straight away and a placeholder takes its place. The file itself is deleted from our storage when you delete your account, or sooner if you ask us to.</p>
           </Section>
 
           <Section title="Delete a card (Pro users with multiple cards)">

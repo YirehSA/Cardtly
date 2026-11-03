@@ -1,18 +1,18 @@
 import { PROMOS_ENABLED } from '@/lib/promos'
 import type { MetadataRoute } from 'next'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { POSTS } from './blog/posts'
-import { planFromTrial } from '@/lib/plan-server'
 import { SITE_URL } from '@/lib/seo-schema'
 
-// Sitemap: static marketing pages + every public card page.
-// Card pages are included deliberately - each one is an indexable
-// page with real content and an OG image, the same long-tail play
-// profile platforms like Linktree use. When someone googles a
-// Cardtly user's name, their card page can rank, which is both a
-// user feature and brand exposure.
+// Sitemap: the marketing pages only.
 //
-// Regenerated at most once a day; new cards appear on the next pass.
+// Card pages are NOT listed, and never should be. Since 2026-11-03 every
+// /card/ page is noindex (next.config.js X-Robots-Tag, and the cards'
+// metadata): a card carries a person's name, photo, mobile number and email,
+// often put there by their employer rather than by them, and a search engine
+// is not who it was handed to. Listing them here as well would ask Google to
+// crawl pages it is told not to index. scripts/check-card-noindex holds it.
+//
+// Regenerated at most once a day.
 export const revalidate = 86400
 
 // The served host. cardtly.com redirects to www, so listing it made every URL
@@ -57,56 +57,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/paia`, changeFrequency: 'yearly', priority: 0.2 },
   ]
 
-  // Pull public card slugs with the service-role client - RLS blocks
-  // anon list queries on these tables. If env vars are missing (local
-  // builds) or the query fails, fall back to static pages only rather
-  // than breaking the sitemap.
-  let cardPages: MetadataRoute.Sitemap = []
-  try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (url && key) {
-      const admin = createAdminClient(url, key) as any
-      const [{ data: cards }, { data: teamCards }, { data: profiles }, { data: subs }] = await Promise.all([
-        admin.from('cards').select('slug, updated_at, user_id').not('slug', 'is', null),
-        admin.from('team_cards').select('slug, updated_at').not('slug', 'is', null).eq('is_active', true),
-        admin.from('profiles').select('user_id, trial_ends_at'),
-        admin.from('whop_subscriptions').select('user_id, subscription_tier, status').eq('status', 'active'),
-      ])
-
-      // A personal card 404s once its owner's trial ends without a
-      // subscription - /card/[slug] calls notFound() in exactly that case. The
-      // sitemap listed every card with a slug regardless, so the first lapsed
-      // trial would have started advertising a dead URL to Google. Apply the
-      // same gate here, including its fail-open behaviour: a missing or
-      // unreadable trial date keeps the card listed rather than dropping it.
-      const trialByUser = new Map<string, string | null>(
-        (profiles || []).map((p: any) => [p.user_id, p.trial_ends_at ?? null])
-      )
-      const paidUsers = new Set(
-        (subs || [])
-          .filter((x: any) => x.subscription_tier === 'pro')
-          .map((x: any) => x.user_id)
-      )
-      const servesPublicly = (c: any) => {
-        if (paidUsers.has(c.user_id)) return true
-        if (!trialByUser.has(c.user_id)) return true      // no profile row: fail open
-        return planFromTrial(trialByUser.get(c.user_id) ?? null).tier !== 'expired'
-      }
-
-      const all = [...(cards || []).filter(servesPublicly), ...(teamCards || [])]
-      cardPages = all
-        .filter((c: any) => c.slug)
-        .map((c: any) => ({
-          url: `${BASE}/card/${c.slug}`,
-          lastModified: c.updated_at ? new Date(c.updated_at) : undefined,
-          changeFrequency: 'weekly' as const,
-          priority: 0.6,
-        }))
-    }
-  } catch {
-    // Sitemap must never 500 - serve static pages on any failure.
-  }
-
-  return [...staticPages, ...cardPages]
+  return staticPages
 }

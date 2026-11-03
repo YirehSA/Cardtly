@@ -121,7 +121,7 @@ export default function PrivacyPage() {
             How we collect, use and protect personal information, written to meet the Protection of Personal Information Act (POPIA).
           </p>
           <p className="text-sm mt-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            Last updated: 23 October 2026
+            Last updated: 3 November 2026
           </p>
         </div>
       </section>
@@ -224,7 +224,13 @@ export default function PrivacyPage() {
               <B>A card is public by its link.</B> Anyone who has your card&apos;s address can see what is on it, exactly as if they had been handed a printed card. Put nothing on a card that you would not print on one. In particular, do not put special personal information (such as health, religion or political views) or information about children on a card.
             </p>
             <p>
-              <B>Cards are listed in the Cardtly Network by default.</B> The Network is a public directory of Cardtly cards. You can remove your card from it at any time in your card settings, and an organisation can remove every card on its team account at once.
+              <B>Cards are kept out of search engines.</B> Every card page asks search engines not to list it or its images, cards are left out of our sitemap, and our robots file asks AI crawlers not to read cards at all. A card is found by the people it is shared with, not by a search for your name. These are instructions that reputable search engines and crawlers follow; we cannot force every crawler on the internet to obey them.
+            </p>
+            <p>
+              <B>Cards are listed in the Cardtly Network by default.</B> The Network is a directory of Cardtly cards that only signed-in Cardtly users can search. You can remove your card from it at any time in your card settings, and an organisation can remove every card on its team account at once.
+            </p>
+            <p>
+              <B>A video on a card comes from its own platform.</B> If a card shows a video, it is played by the platform it is on (YouTube, Vimeo, TikTok, Loom, Wistia or Dailymotion), and that platform receives the visitor&apos;s IP address and browser details when the video&apos;s picture or player loads, and again if they play it. YouTube videos play from YouTube&apos;s privacy-enhanced youtube-nocookie.com address. The platform&apos;s own privacy policy applies to what it receives. We store only the link to the video.
             </p>
             <p>
               <B>Being featured on our home page is opt-in.</B> We only feature a card there if its owner has switched that on.
@@ -325,7 +331,8 @@ export default function PrivacyPage() {
               <li><B>Correct</B> it if it is wrong or incomplete, or <B>delete</B> it.</li>
               <li><B>Object</B> to processing based on our legitimate interest, and to direct marketing.</li>
               <li><B>Withdraw consent</B> where processing is based on consent.</li>
-              <li><B>Complain</B> to the Information Regulator at{' '}
+              <li><B>Complain</B> to the Information Regulator: Woodmead North Office Park, 54 Maxwell Drive, Woodmead, Johannesburg, 2191,{' '}
+                <a className="underline" href="mailto:enquiries@inforegulator.org.za" style={link}>enquiries@inforegulator.org.za</a>,{' '}
                 <a className="underline" href="https://inforegulator.org.za" style={link}>inforegulator.org.za</a>.</li>
             </ul>
             <p>
@@ -361,7 +368,7 @@ export default function PrivacyPage() {
 
           <Section id="marketing" title="12. Emails and direct marketing">
             <p>
-              We send service emails: sign-in and password resets, trial and payment notices, alerts when your card captures a lead or receives a request, and a weekly summary of your card&apos;s activity, which you can unsubscribe from. We do not send marketing newsletters, and we do not pass your details to anyone to market to you.
+              We send service emails: sign-in and password resets, trial and payment notices, alerts when your card captures a lead or receives a request, and, for personal cards, a weekly summary of your card&apos;s activity. We do not send marketing newsletters, and we do not pass your details to anyone to market to you.
             </p>
             <p>
               If you contact the people your card captures, you are responsible for doing so lawfully, including POPIA section 69&apos;s rules on direct marketing by electronic communication.

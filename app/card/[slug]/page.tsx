@@ -7,6 +7,7 @@ import CardTracker from '@/components/card/CardTracker'
 import ReportCardLink from '@/components/card/ReportCardLink'
 import TeamCardPublic from '@/components/card/TeamCardPublic'
 import { publicTeamCard } from '@/lib/team-card-public'
+import { CARD_ROBOTS } from '@/lib/card-robots'
 import { mergeBrand, resolveTeamBrand } from '@/lib/team-brand'
 import { planFromTrial, subscriptionState, latestSubscriptionFor } from '@/lib/plan-server'
 import { liveMirror } from '@/lib/questionnaire'
@@ -51,7 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     if (teamCard) card = teamCard
   }
 
-  if (!card) return { title: 'Card not found' }
+  if (!card) return { title: 'Card not found', robots: CARD_ROBOTS }
 
   const ogTitle = [card.name, card.company].filter(Boolean).join(' — ')
   const description = card.bio || `Connect with ${card.name}${card.title ? `, ${card.title}` : ''}${card.company ? ` at ${card.company}` : ''}`
@@ -71,8 +72,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: ogTitle,
     description,
+    // Not in search engines, by design (next.config.js X-Robots-Tag says the
+    // same for every /card/ address). Link previews in WhatsApp, LinkedIn and
+    // email read the Open Graph tags below and ignore this.
+    robots: CARD_ROBOTS,
     // Canonical strips query params (?t=, utm_) so shared variants
-    // all consolidate ranking signal onto the clean card URL.
+    // all consolidate onto the clean card URL.
     alternates: { canonical: `/card/${slug}` },
     openGraph: {
       title: ogTitle,

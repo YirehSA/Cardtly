@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { Metadata } from 'next'
 import TeamCardPublic from '@/components/card/TeamCardPublic'
 import { publicTeamCard } from '@/lib/team-card-public'
+import { CARD_ROBOTS } from '@/lib/card-robots'
 import { indexById, companyOf, type DeptNode } from '@/lib/department-tree'
 
 // /card/<company>/<person>
@@ -79,7 +80,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // The first segment is the company here, the second the person.
   const { slug: company, person } = await params
   const found = await resolve(company, person)
-  if (!found) return { title: 'Card not found' }
+  if (!found) return { title: 'Card not found', robots: CARD_ROBOTS }
 
   const c = found.card
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com'
@@ -90,8 +91,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
-    // The two-part URL is canonical for a card that has one, so search engines
-    // consolidate on it rather than treating the two forms as duplicates.
+    // Not in search engines, like every card (lib/card-robots).
+    robots: CARD_ROBOTS,
+    // The two-part URL is canonical for a card that has one, so the two forms
+    // are one page rather than duplicates.
     alternates: { canonical: `/card/${company}/${person}` },
     openGraph: {
       title,
