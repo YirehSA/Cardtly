@@ -99,6 +99,11 @@ export async function POST() {
       // constraint turns out to be. team_card_events does cascade (migration
       // 010), so team cards need nothing extra.
       await admin.from('card_events').delete().in('card_id', cardIds)
+      // Meeting requests. Each one also lands in contacts (deleted above), but
+      // /api/bookings/request keeps its own row too: the visitor's name, email,
+      // phone and note. They were left behind while the policy said a deleted
+      // account takes its captured contacts with it (found 2026-11-03).
+      await admin.from('bookings').delete().in('card_id', cardIds)
     }
 
     // Delete any orgs owned by this user and their associated team cards
@@ -109,6 +114,14 @@ export async function POST() {
     const orgIds = (userOrgs || []).map((o: { id: string }) => o.id)
 
     if (orgIds.length > 0) {
+      // A team card's meeting requests are filed under its own id, and
+      // nothing cascades from team_cards to bookings, so they go first.
+      const { data: orgCards } = await admin
+        .from('team_cards')
+        .select('id')
+        .in('organization_id', orgIds)
+      const orgCardIds = (orgCards || []).map((c: { id: string }) => c.id)
+      if (orgCardIds.length > 0) await admin.from('bookings').delete().in('card_id', orgCardIds)
       await admin.from('team_cards').delete().in('organization_id', orgIds)
     }
     await admin.from('organizations').delete().eq('admin_user_id', userId)
