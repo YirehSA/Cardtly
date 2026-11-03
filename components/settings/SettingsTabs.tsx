@@ -6,7 +6,8 @@ import { UserPlan } from '@/types/database'
 import { INDUSTRIES_BY_GROUP } from '@/lib/industries'
 import { toast } from 'sonner'
 import { useEffect } from 'react'
-import { User, Lock, CreditCard, AlertTriangle, Check, Eye, EyeOff, Download, Loader2 } from 'lucide-react'
+import { User, Lock, CreditCard, AlertTriangle, Check, Eye, EyeOff, Download, Loader2, Mail } from 'lucide-react'
+import { EMAIL_KINDS, type EmailKind } from '@/lib/email-kinds'
 import PageHeader from '@/components/dashboard/PageHeader'
 import PrimaryCardPicker, { type PickerCard } from '@/components/settings/PrimaryCardPicker'
 import { useRouter } from 'next/navigation'
@@ -50,11 +51,12 @@ export interface TeamBilling {
   managedBy?: string | null
 }
 
-type Tab = 'profile' | 'security' | 'billing' | 'danger'
+type Tab = 'profile' | 'security' | 'emails' | 'billing' | 'danger'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'profile',  label: 'Profile',    icon: <User className="w-4 h-4" /> },
   { id: 'security', label: 'Security',   icon: <Lock className="w-4 h-4" /> },
+  { id: 'emails',   label: 'Emails',     icon: <Mail className="w-4 h-4" /> },
   { id: 'billing',  label: 'Billing',    icon: <CreditCard className="w-4 h-4" /> },
   { id: 'danger',   label: 'Danger zone', icon: <AlertTriangle className="w-4 h-4" /> },
 ]
@@ -72,9 +74,9 @@ export default function SettingsTabs({ user, profile, plan, subscription, card, 
         subtitle="Your details, your password, your plan."
       />
 
-      {/* Tab bar — 2 columns on mobile so every tab including Danger is
-          visible without scrolling, 4 columns on desktop. */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-muted p-1 rounded-lg">
+      {/* Tab bar: 2 columns on mobile so every tab including Danger is
+          visible without scrolling, all five in a row from sm. */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1 bg-muted p-1 rounded-lg">
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition justify-center ${tab === t.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
@@ -93,6 +95,7 @@ export default function SettingsTabs({ user, profile, plan, subscription, card, 
           </div>
         )}
         {tab === 'security' && <SecurityTab user={user} supabase={supabase} />}
+        {tab === 'emails' && <EmailsTab />}
         {tab === 'billing' && <BillingTab plan={plan} subscription={subscription} team={team} />}
         {tab === 'danger' && (
           <DangerTab user={user} supabase={supabase} router={router}
@@ -477,6 +480,100 @@ function SecurityTab({ user, supabase }: { user: Props['user']; supabase: any })
         </button>
       </div>
 
+    </div>
+  )
+}
+
+// ── Emails tab ─────────────────────────────────────────────────────────────────
+//
+// The scheduled emails a person may switch off (lib/email-kinds), the same
+// choice the unsubscribe link in each of them offers. POPIA section 69 needs
+// the way out; this is the one that does not depend on finding an old email.
+
+function EmailsTab() {
+  const kinds = Object.keys(EMAIL_KINDS) as EmailKind[]
+  const [on, setOn] = useState<Record<string, boolean> | null>(null)
+  const [unavailable, setUnavailable] = useState(false)
+  const [saving, setSaving] = useState<EmailKind | null>(null)
+
+  useEffect(() => {
+    let live = true
+    fetch('/api/account/email-preferences')
+      .then(async r => {
+        const data = await r.json().catch(() => ({}))
+        if (!live) return
+        if (r.ok && data.on) setOn(data.on)
+        else setUnavailable(true)
+      })
+      .catch(() => { if (live) setUnavailable(true) })
+    return () => { live = false }
+  }, [])
+
+  async function toggle(kind: EmailKind, next: boolean) {
+    if (!on) return
+    setSaving(kind)
+    const prev = on[kind]
+    setOn({ ...on, [kind]: next }) // optimistic
+    const res = await fetch('/api/account/email-preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind, on: next }),
+    })
+    if (!res.ok) {
+      setOn(o => (o ? { ...o, [kind]: prev } : o))
+      const data = await res.json().catch(() => ({}))
+      toast.error(data.error || 'Could not save that')
+    } else {
+      toast.success(next ? `${EMAIL_KINDS[kind].title}: on` : `${EMAIL_KINDS[kind].title}: off`)
+    }
+    setSaving(null)
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-semibold text-lg mb-1">Emails we send on a schedule</h2>
+        <p className="text-sm text-muted-foreground">
+          Switch off any of these. Each one also has an unsubscribe link at the bottom.
+        </p>
+      </div>
+
+      {unavailable ? (
+        <p className="text-sm text-muted-foreground">These settings are not available right now. Please try again later.</p>
+      ) : !on ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /> Loading</div>
+      ) : (
+        <div className="space-y-3">
+          {kinds.map(kind => (
+            <div key={kind} className="flex items-start justify-between gap-4 rounded-xl border border-border p-4">
+              <div className="min-w-0">
+                <p className="font-medium text-sm">{EMAIL_KINDS[kind].title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{EMAIL_KINDS[kind].detail}</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={on[kind]}
+                aria-label={EMAIL_KINDS[kind].title}
+                onClick={() => saving !== kind && toggle(kind, !on[kind])}
+                disabled={saving === kind}
+                className="relative shrink-0 inline-flex h-7 w-12 items-center rounded-full transition disabled:opacity-50"
+                style={{ background: on[kind] ? 'hsl(var(--accent))' : 'rgba(120, 120, 120, 0.3)' }}
+              >
+                <span
+                  className="inline-block h-5 w-5 bg-white rounded-full shadow transition-transform"
+                  style={{ transform: on[kind] ? 'translateX(22px)' : 'translateX(4px)' }}
+                />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className="text-xs text-muted-foreground">
+        Lead alerts, meeting requests, invoices, payment notices and sign-in emails always arrive. They are about your leads
+        and your account rather than news from us.
+      </p>
     </div>
   )
 }

@@ -3,11 +3,17 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { denyIfNotCron } from '@/lib/cron-auth'
 import { FROM_EMAIL } from '@/lib/email'
+import { optedOut, listUnsubscribeHeaders, unsubscribeFooterHtml } from '@/lib/email-optout'
 
 // Weekly "your card this week" digest. Triggered by Vercel Cron (see
 // vercel.json). For every card with activity in the last 7 days, emails
 // the owner a short summary of views and new leads - a re-engagement
 // nudge that makes Cardtly feel alive.
+//
+// So it is direct marketing under POPIA section 69, and every one carries an
+// unsubscribe link and List-Unsubscribe headers, and anyone who has opted out
+// is skipped (lib/email-optout). If the opt-out list cannot be read, nothing
+// is sent: a missed summary is better than mailing somebody who said stop.
 //
 // Secured with CRON_SECRET: Vercel Cron sends it as a Bearer token.
 
@@ -30,6 +36,8 @@ export async function GET(request: Request) {
   }
 
   const admin = createAdminClient(url, serviceKey) as any
+  const stopped = await optedOut(admin, 'weekly_summary')
+  if (!stopped) return NextResponse.json({ error: 'Could not read who has unsubscribed, so nothing was sent.' }, { status: 500 })
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
   // Pull cards, the last-7-day view events, and last-7-day leads.
@@ -57,12 +65,14 @@ export async function GET(request: Request) {
     if (v === 0 && l === 0) continue // only email when there's something to report
     const to = emailByUser[card.user_id]
     if (!to) continue
+    if (stopped.has(card.user_id)) continue
 
     const firstName = (card.name || '').split(' ')[0] || 'there'
     try {
       await resend.emails.send({
         from: FROM_EMAIL,
         to,
+        headers: listUnsubscribeHeaders(card.user_id, 'weekly_summary'),
         subject: `Your Cardtly week: ${v} view${v === 1 ? '' : 's'}${l ? `, ${l} new lead${l === 1 ? '' : 's'}` : ''}`,
         html: `
           <div style="font-family:system-ui,-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#111">
@@ -82,6 +92,7 @@ export async function GET(request: Request) {
               ? `<a href="${APP_URL}/dashboard/contacts" style="display:inline-block;background:linear-gradient(135deg,#00d4ff,#7c3aed,#ec4899);color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:13px 26px;border-radius:11px">See your new leads</a>`
               : `<a href="${APP_URL}/dashboard" style="display:inline-block;background:linear-gradient(135deg,#00d4ff,#7c3aed,#ec4899);color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:13px 26px;border-radius:11px">Open your dashboard</a>`}
             <p style="color:#aaa;font-size:12px;margin:28px 0 0">You're getting this because your Cardtly card had activity this week. Sent via Cardtly.</p>
+            ${unsubscribeFooterHtml(card.user_id, 'weekly_summary')}
           </div>
         `,
       })

@@ -5,6 +5,7 @@ import { renderTrialEmail, type TrialEmailKind } from '@/lib/trial-email-templat
 import { denyIfNotCron } from '@/lib/cron-auth'
 import { sendOpsDigest } from '@/lib/ops-digest'
 import { FROM_EMAIL } from '@/lib/email'
+import { optedOut, listUnsubscribeHeaders, unsubscribeFooterHtml } from '@/lib/email-optout'
 import { sendPaymentFailedEmails } from '@/lib/payment-reminders'
 import { expireCancelledSubscriptions } from '@/lib/subscription-expiry'
 import { subscriptionState } from '@/lib/plan-server'
@@ -25,6 +26,13 @@ import { orgEntitlesMembers } from '@/lib/org-billing'
 // week still only gets one 7-day email. See migration 026.
 //
 // Secured with CRON_SECRET (see lib/cron-auth), required in production.
+//
+// Each of these asks for a subscription, so it is direct marketing under POPIA
+// section 69: every one carries an unsubscribe link and List-Unsubscribe
+// headers, and anyone who has switched trial reminders off is skipped before
+// a claim is taken (lib/email-optout). If that list cannot be read, no trial
+// email goes out at all, and the rest of this job (invoices, payment
+// warnings, webhooks) runs as usual.
 
 export const maxDuration = 60
 
@@ -121,6 +129,8 @@ export async function GET(request: Request) {
     if (o.admin_user_id && orgEntitlesMembers(o)) teamMembers.add(o.admin_user_id)
   }
   const sent = new Set((alreadySent || []).map((r: any) => `${r.user_id}:${r.kind}`))
+  const stopped = await optedOut(admin, 'trial_reminders')
+  const unsubscribed = (userId: string) => !stopped || stopped.has(userId)
 
   const cardByUser: Record<string, { name: string | null; slug: string | null; createdAt: string | null }> = {}
   for (const c of (cards || []) as any[]) {
@@ -141,6 +151,7 @@ export async function GET(request: Request) {
     if (!userId) continue
     if (paid.has(userId)) continue        // paying or comped: nothing is ending
     if (teamMembers.has(userId)) continue // covered by their organization
+    if (unsubscribed(userId)) continue    // switched trial reminders off
 
     // No personal card means nothing goes offline, so there is nothing to warn
     // about. Emailing here would be spam.
@@ -203,6 +214,7 @@ export async function GET(request: Request) {
     if (!userId) continue
     if (paid.has(userId)) continue
     if (teamMembers.has(userId)) continue
+    if (unsubscribed(userId)) continue
 
     const card = cardByUser[userId]
     if (!card) continue
@@ -232,6 +244,8 @@ export async function GET(request: Request) {
       ok: true,
       dry_run: true,
       would_send: queue.length,
+      // How many have switched trial reminders off; 'unreadable' means none were sent.
+      unsubscribed: stopped ? stopped.size : 'unreadable',
       breakdown: queue.reduce((a: Record<string, number>, q) => ({ ...a, [q.kind]: (a[q.kind] || 0) + 1 }), {}),
       recipients: queue.map(q => ({ to: q.to, kind: q.kind, daysLeft: q.daysLeft })),
       payments: await sendPaymentFailedEmails(admin, resendKey, true),
@@ -262,8 +276,8 @@ export async function GET(request: Request) {
     }
 
     try {
-      const { subject, html } = renderTrialEmail(q)
-      await resend.emails.send({ from: FROM_EMAIL, to: q.to, subject, html })
+      const { subject, html } = renderTrialEmail({ ...q, unsubscribeHtml: unsubscribeFooterHtml(q.userId, 'trial_reminders') })
+      await resend.emails.send({ from: FROM_EMAIL, to: q.to, subject, html, headers: listUnsubscribeHeaders(q.userId, 'trial_reminders') })
       delivered++
     } catch (e) {
       // Release the claim so tomorrow's run tries again. Missing someone's
@@ -383,6 +397,7 @@ export async function GET(request: Request) {
     delivered,
     failed: failed.length,
     considered: queue.length,
+    unsubscribed: stopped ? stopped.size : 'unreadable',
     webhooks,
     recurring,
     resellers,

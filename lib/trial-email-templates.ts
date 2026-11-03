@@ -24,18 +24,22 @@ export interface TrialEmailInput {
    *  on a trial by the time the card went down, and "your trial has ended"
    *  told them something untrue. */
   endedBecause?: 'trial' | 'subscription'
+  /** The unsubscribe line for this person (lib/email-optout), placed under
+   *  the footer. POPIA section 69: every one of these needs a way out. */
+  unsubscribeHtml?: string
 }
 
 const BTN =
   'display:inline-block;background:linear-gradient(135deg,#00d4ff,#7c3aed,#ec4899);color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:13px 26px;border-radius:11px'
 
-function wrap(inner: string): string {
+function wrap(inner: string, unsubscribeHtml = ''): string {
   return `<div style="font-family:system-ui,-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#111">${inner}
     <p style="color:#aaa;font-size:12px;margin:28px 0 0">You're getting this because you have a Cardtly card. Sent via Cardtly.</p>
+    ${unsubscribeHtml}
   </div>`
 }
 
-export function renderTrialEmail({ kind, firstName, slug, daysLeft, endedBecause = 'trial' }: TrialEmailInput): { subject: string; html: string } {
+export function renderTrialEmail({ kind, firstName, slug, daysLeft, endedBecause = 'trial', unsubscribeHtml = '' }: TrialEmailInput): { subject: string; html: string } {
   const name = escapeHtml(firstName)
   const cardUrl = escapeHtml(slug ? `cardtly.com/card/${slug}` : 'your card link')
 
@@ -59,7 +63,7 @@ export function renderTrialEmail({ kind, firstName, slug, daysLeft, endedBecause
         <p style="color:#666;font-size:14px;margin:0 0 24px">
           You have ${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} to try everything. R97 a month keeps it live after that, on the same link.
         </p>
-        <a href="${APP_URL}/card/${escapeHtml(slug || '')}" style="${BTN}">See my card</a>`),
+        <a href="${APP_URL}/card/${escapeHtml(slug || '')}" style="${BTN}">See my card</a>`, unsubscribeHtml),
     }
   }
 
@@ -74,7 +78,7 @@ export function renderTrialEmail({ kind, firstName, slug, daysLeft, endedBecause
         <p style="color:#666;font-size:14px;margin:0 0 24px">
           Nothing has been deleted. Your design, your details and every contact you captured are exactly where you left them. Subscribe and your card goes back live on the same link.
         </p>
-        <a href="${APP_URL}/dashboard/upgrade" style="${BTN}">Put my card back online, R97/month</a>`),
+        <a href="${APP_URL}/dashboard/upgrade" style="${BTN}">Put my card back online, R97/month</a>`, unsubscribeHtml),
     }
   }
 
@@ -89,7 +93,7 @@ export function renderTrialEmail({ kind, firstName, slug, daysLeft, endedBecause
         <p style="color:#666;font-size:14px;margin:0 0 24px">
           R97 a month keeps it live, on the same link, with everything you have built.
         </p>
-        <a href="${APP_URL}/dashboard/upgrade" style="${BTN}">Keep my card live</a>`),
+        <a href="${APP_URL}/dashboard/upgrade" style="${BTN}">Keep my card live</a>`, unsubscribeHtml),
     }
   }
 
@@ -103,7 +107,7 @@ export function renderTrialEmail({ kind, firstName, slug, daysLeft, endedBecause
       <p style="color:#666;font-size:14px;margin:0 0 24px">
         R97 a month keeps everything exactly as it is: the same link, your design, your contacts, every feature. Nothing to redo.
       </p>
-      <a href="${APP_URL}/dashboard/upgrade" style="${BTN}">Subscribe for R97/month</a>`),
+      <a href="${APP_URL}/dashboard/upgrade" style="${BTN}">Subscribe for R97/month</a>`, unsubscribeHtml),
   }
 }
 

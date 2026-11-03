@@ -368,7 +368,7 @@ export default function PrivacyPage() {
 
           <Section id="marketing" title="12. Emails and direct marketing">
             <p>
-              We send service emails: sign-in and password resets, trial and payment notices, alerts when your card captures a lead or receives a request, and, for personal cards, a weekly summary of your card&apos;s activity. We do not send marketing newsletters, and we do not pass your details to anyone to market to you.
+              We send service emails: sign-in and password resets, payment notices and invoices, and alerts when your card captures a lead or receives a request. We also send two emails on our own schedule: trial reminders, and, for personal cards, a weekly summary of your card&apos;s activity. <B>Every one of those two carries an unsubscribe link, and both can be switched off at any time in Settings, Emails.</B> Switching them off does not stop the service emails, which are about your leads and your account. We do not send marketing newsletters, and we do not pass your details to anyone to market to you.
             </p>
             <p>
               If you contact the people your card captures, you are responsible for doing so lawfully, including POPIA section 69&apos;s rules on direct marketing by electronic communication.
