@@ -52,11 +52,13 @@ export function isPermissionDenied(error: unknown): boolean {
 }
 
 /** The table itself is missing: 42P01, undefined_table. A different question
- *  from the column one, and several callers ask both at once. */
+ *  from the column one, and several callers ask both at once. PGRST205 is the
+ *  same thing refused earlier: PostgREST checks its schema cache and answers
+ *  "Could not find the table" before any SQL is sent. */
 export function isMissingTable(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
   const e = error as { code?: unknown; message?: unknown }
-  if (e.code === '42P01') return true
+  if (e.code === '42P01' || e.code === 'PGRST205') return true
   const message = typeof e.message === 'string' ? e.message : ''
   return /relation .* does not exist/i.test(message)
 }

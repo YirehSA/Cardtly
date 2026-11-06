@@ -37,10 +37,16 @@ export default async function MeetingsPage() {
   const calls: LoggedCall[] = callRes.ok ? (callRes.calls as LoggedCall[]) : []
   const activities: LoggedActivity[] = activityRes.ok ? (activityRes.activities as LoggedActivity[]) : []
 
+  // Only the number, for the tab. The board fetches its own rows when it opens.
+  // Null before migration 105, which reads as none.
+  const { count: prospectCount } = await admin
+    .from('rep_prospects').select('id', { count: 'exact', head: true }).eq('rep_id', rep.id)
+
   return (
     <RepWorkspace
       repName={rep.name} active={rep.active}
       meetings={meetings} calls={calls} activities={activities}
+      prospectCount={prospectCount ?? 0}
     />
   )
 }

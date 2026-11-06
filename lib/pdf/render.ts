@@ -1,6 +1,7 @@
 import { pdf } from '@react-pdf/renderer'
 import { invoiceDocument, type DocView } from './invoice-document'
 import { CARDTLY_LOGO_DATA_URI, CARDTLY_QR_DATA_URI, CARDTLY_SWOOSH_DATA_URI } from './logo'
+import type { PdfNode } from './nodes'
 
 // Node only. @react-pdf needs Node streams and pdfkit's font files, so every
 // route that calls this must declare `export const runtime = 'nodejs'` or it
@@ -23,8 +24,13 @@ export async function renderDocumentPdf(d: DocView): Promise<Buffer> {
     stationery: d.stationery ?? { qr: CARDTLY_QR_DATA_URI, swoosh: CARDTLY_SWOOSH_DATA_URI },
   }
 
+  return renderPdfTree(invoiceDocument(withLogo))
+}
+
+/** Any document tree to a PDF. See the note above on skipping the reconciler. */
+export async function renderPdfTree(tree: PdfNode): Promise<Buffer> {
   const instance: any = pdf()
-  instance.container.document = invoiceDocument(withLogo)
+  instance.container.document = tree
 
   const stream = await instance.toBuffer()
   return await new Promise<Buffer>((resolve, reject) => {

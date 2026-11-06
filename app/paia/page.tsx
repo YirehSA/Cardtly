@@ -231,6 +231,7 @@ export default function PaiaPage() {
           rows={[
             ['Account holders', 'Name, email address, password stored only as a one-way hash, how they sign in, the approximate city, region and country they signed up from, subscription and billing records'],
             ['People on cards, including team staff', 'What is on the card: name, job title, company, phone and WhatsApp numbers, email, address, website, bio, photographs, logos, links and social profiles'],
+            ['Businesses approached about reselling Cardtly', 'The company, contact person, role, business email address and phone number, where those details were found, and what was said. Do-not-contact requests are kept so that they are honoured'],
             ['People who view a card', 'That a card was opened or tapped, which link or button was used, device type, browser and operating system, and the referring site. No IP address is stored'],
             ['People who share details through a card', 'What they submit, typically name, email, phone number, company and message, and meeting requests and questionnaire answers'],
             ['Organisations’ billing contacts and signatories', 'Contact details, invoices and quotes. For an accepted quote or a signed purchase order, the signer’s name and email address, the time, and the IP address and browser used, and on a purchase order their job title and drawn signature'],

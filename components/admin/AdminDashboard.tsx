@@ -34,6 +34,7 @@ import type { LoggedCall } from '@/lib/rep-calls'
 import type { LoggedActivity } from '@/lib/rep-activities'
 import CallLog from '@/components/calls/CallLog'
 import OutreachTab from '@/components/admin/OutreachTab'
+import ProspectsBoard from '@/components/prospects/ProspectsBoard'
 import { ADMIN_SKIN } from '@/components/calendar/shared'
 
 interface Stats {
@@ -156,6 +157,7 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
   // Which rep the Calendar tab should open on, set by "See in calendar" over on
   // the Reps tab. null means everyone.
   const [calendarRep, setCalendarRep] = useState<string | null>(null)
+  const [prospectRep, setProspectRep] = useState<string | null>(null)
   // The quote or invoice Payment received should open on, when it was reached
   // from that document's "Paid" button rather than from the sidebar.
   const [flowStart, setFlowStart] = useState<FlowStart>(null)
@@ -576,6 +578,7 @@ export default function AdminDashboard({ initialTab, users, orgs, cards, teamCar
         {tab === 'reps' && (
           <RepsTab reps={reps} loading={loading}
             onOpenCalendar={(r) => { setCalendarRep(r.id); go('meetings') }}
+            onOpenProspects={(r) => { setProspectRep(r.id); go('prospects') }}
             onLinkLogin={(r) => {
               if (!confirm(`Give ${r.name} a Cardtly login?
 
@@ -667,6 +670,10 @@ ${r.email} will be able to sign in and log their meetings. If that address has n
             reps={reps.map(r => ({ id: r.id, name: r.name }))}
           />
         )}
+
+        {/* Fetched when opened rather than with the rest of the admin page: it
+            is hundreds of rows, and most visits to admin never come here. */}
+        {tab === 'prospects' && <ProspectsBoard key={prospectRep || 'all'} skin={ADMIN_SKIN} adminView initialRep={prospectRep} />}
 
         {tab === 'resellers' && <ResellersTab />}
         {tab === 'nfc' && <NfcTab orders={nfcOrders} run={run} loading={loading} />}

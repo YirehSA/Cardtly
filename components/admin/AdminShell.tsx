@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
-  Users as UsersIcon, Building2, Handshake, Ticket, UserCog, CalendarClock, PhoneCall, Mail,
+  Users as UsersIcon, Building2, Handshake, Ticket, UserCog, Target, CalendarClock, PhoneCall, Mail,
   Network, Wifi, Flag, ScrollText, Receipt, FileSignature, RefreshCw, Banknote,
   Contact, SlidersHorizontal, Wallet, Search, Menu, X, ArrowLeft, CornerDownLeft, Sun, ChevronDown, HandCoins,
 } from 'lucide-react'
@@ -28,7 +28,7 @@ import type { AdminUserRow, AdminOrgRow } from '@/lib/admin-data'
 
 export const TABS = [
   'overview', 'users', 'teams', 'resellers', 'trials',
-  'reps', 'meetings', 'calls', 'emails', 'networking',
+  'reps', 'prospects', 'meetings', 'calls', 'emails', 'networking',
   'received', 'accounting', 'invoices', 'quotes', 'recurring', 'payments', 'clients', 'billing',
   'nfc', 'reports', 'activity',
 ] as const
@@ -51,6 +51,7 @@ export const SECTIONS: SectionDef[] = [
   ] },
   { id: 'sales', label: 'Sales', icon: UserCog, items: [
     { id: 'reps', label: 'Reps', icon: UserCog, desc: 'Your sales reps, the clients they signed and their commission.', keywords: 'commission payout sales' },
+    { id: 'prospects', label: 'Prospects', icon: Target, desc: 'The companies reps are working towards becoming resellers: lists, calls, emails, follow-ups and exports.', keywords: 'prospecting leads outreach mail merge spreadsheet excel reseller lists follow up' },
     { id: 'meetings', label: 'Calendar', icon: CalendarClock, desc: 'Every rep\'s meetings in one calendar.', keywords: 'meetings appointments calendar' },
     { id: 'calls', label: 'Call log', icon: PhoneCall, desc: 'Calls the reps logged, and how they went.', keywords: 'phone calls' },
     { id: 'emails', label: 'Email log', icon: Mail, desc: 'Outreach emails the reps sent.', keywords: 'outreach email' },

@@ -135,6 +135,8 @@ const nextConfig = {
     '/api/cron/trial-reminders': ['./node_modules/pdfkit/js/standard-fonts/**'],
     // A reseller downloads their own invoices as PDFs.
     '/api/reseller/**': ['./node_modules/pdfkit/js/standard-fonts/**'],
+    // A rep's prospect list as a PDF.
+    '/api/prospects/**': ['./node_modules/pdfkit/js/standard-fonts/**'],
   },
 }
 

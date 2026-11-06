@@ -3,9 +3,11 @@
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import {
-  CalendarClock, PhoneCall, Mail, Users, Plus, ChevronLeft, ChevronRight,
+  CalendarClock, PhoneCall, Mail, Users, Plus, ChevronLeft, ChevronRight, Target,
 } from 'lucide-react'
 import MeetingsView from '@/components/rep/MeetingsView'
+import ProspectsBoard from '@/components/prospects/ProspectsBoard'
+import { useIosApp } from '@/components/dashboard/PlatformProvider'
 import CallLog from '@/components/calls/CallLog'
 import ActivityLog from '@/components/activities/ActivityLog'
 import ActivityForm, {
@@ -23,6 +25,10 @@ import {
 
 // The rep's Activity Log: everything they did to win work, in one place.
 //
+// PROSPECTS, first, for a rep with lists loaded: who to contact next. Marking
+// someone there writes the other tabs, so a rep working from it never opens the
+// forms below. Never in the iOS app, which does not sell Cardtly to resellers.
+//
 // FOUR TABS, TWO SHAPES. Calendar and Call log keep the views they already had
 // - a month grid and a call list - because they answer different questions and
 // squashing them into one table would lose both. Email and Networking are the
@@ -34,7 +40,7 @@ import {
 // click around is a card nobody trusts. The period picker governs them, and it
 // is always on screen for the same reason.
 
-type Tab = 'calendar' | 'calls' | 'email' | 'networking'
+type Tab = 'prospects' | 'calendar' | 'calls' | 'email' | 'networking'
 
 /** Which kinds each activity tab covers. A connection made on LinkedIn and one
  *  made at a breakfast are the same job, so they share a tab. */
@@ -49,18 +55,21 @@ const PERIODS: { id: CalendarView; label: string }[] = [
   { id: 'list', label: 'All' },
 ]
 
-export default function RepWorkspace({ repName, active, meetings, calls, activities: initialActivities }: {
+export default function RepWorkspace({ repName, active, meetings, calls, activities: initialActivities, prospectCount = 0 }: {
   repName: string
   active: boolean
   meetings: CalendarMeeting[]
   calls: LoggedCall[]
   activities: LoggedActivity[]
+  prospectCount?: number
 }) {
   const mounted = useMounted()
   const now = useNow()
   const ink = useInk()
 
-  const [tab, setTab] = useState<Tab>('email')
+  const iosApp = useIosApp()
+  const [prospects, setProspects] = useState(prospectCount)
+  const [tab, setTab] = useState<Tab>(prospectCount > 0 && !iosApp ? 'prospects' : 'email')
   const [activities, setActivities] = useState<LoggedActivity[]>(initialActivities)
   const [period, setPeriod] = useState<CalendarView>('month')
   const [anchor, setAnchor] = useState<Date>(() => new Date())
@@ -114,6 +123,7 @@ export default function RepWorkspace({ repName, active, meetings, calls, activit
     id: Tab; label: string; icon: React.ReactNode; count: number
     hue: { bright: string; deep: string }
   }[] = [
+    ...(iosApp ? [] : [{ id: 'prospects' as Tab, label: 'Prospects', icon: <Target className="w-4 h-4" />, count: prospects, hue: INK.amber }]),
     { id: 'calendar', label: 'Calendar', icon: <CalendarClock className="w-4 h-4" />, count: meetings.length, hue: INK.sky },
     { id: 'calls', label: 'Call log', icon: <PhoneCall className="w-4 h-4" />, count: calls.length, hue: INK.green },
     {
@@ -268,6 +278,7 @@ export default function RepWorkspace({ repName, active, meetings, calls, activit
         })}
       </div>
 
+      {tab === 'prospects' && <ProspectsBoard skin={APP_SKIN} onCount={setProspects} />}
       {tab === 'calendar' && <MeetingsView repName={repName} active={active} initial={meetings} />}
       {tab === 'calls' && <CallLog calls={calls} endpoint="/api/rep/calls" skin={APP_SKIN} canWrite={active} />}
       {(tab === 'email' || tab === 'networking') && (
