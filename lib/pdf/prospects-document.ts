@@ -50,7 +50,7 @@ const shortDate = (d: string | null) => {
 
 /** The core PDF fonts cover Western European text only, so anything beyond that
  *  (an emoji pasted into a note) would print as a wrong glyph. It is dropped. */
-const safe = (v: string | null | undefined) => String(v ?? '').replace(/[^\u0009\u000a -ÿ–—‘’“”…]/g, '')
+const safe = (v: string | null | undefined) => String(v ?? '').replace(/[^\u0009\u000a\u0020-\u00ff\u2013\u2014\u2018\u2019\u201c\u201d\u2026]/g, '')
 
 export function prospectsDocument(opts: {
   rows: Prospect[]
