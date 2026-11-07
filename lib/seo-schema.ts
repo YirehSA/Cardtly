@@ -34,8 +34,14 @@ const COMPANY_ADDRESS = {
   streetAddress: '119 Pretoria Road',
   addressLocality: 'Benoni',
   addressRegion: 'Gauteng',
+  // From the verified Google Business Profile. billing_settings has no postal
+  // code, so this is the one part of the address not in COMPANY.address.
+  postalCode: '1501',
   addressCountry: 'ZA',
 }
+
+/** Cardtly's verified Google Business Profile, by Google's own place id. */
+const GOOGLE_MAPS_URL = 'https://www.google.com/maps?cid=14709397660837993102'
 
 export interface Faq { q: string; a: string }
 
@@ -60,9 +66,7 @@ export function organization() {
     description:
       'Cardtly is a digital business card platform for individuals, teams and companies. Cards are shared by NFC tap, QR code or link, and a company can brand and control every employee card centrally.',
     slogan: 'Your card. One tap away.',
-    // The published registered address (see localBusiness below). No
-    // postalCode: billing_settings has none, so the Rich Results Test lists it
-    // as an optional field missing until one is added there.
+    // The published registered address (see localBusiness below).
     address: COMPANY_ADDRESS,
     telephone: COMPANY_TEL,
     // Built in South Africa, used anywhere. Saying South Africa alone told
@@ -96,9 +100,10 @@ export function organization() {
  *
  *  Every value is one the company already publishes: the legal pages print the
  *  address and telephone (ECTA s43), taken from billing_settings, the record
- *  the invoices print. No postal code, opening hours or coordinates, because
- *  that record has none, and a guessed one is worse than a missing one. Change
- *  billing_settings, lib/company.ts and this together. */
+ *  the invoices print, plus the postal code and map link from the verified
+ *  Google Business Profile. No opening hours or coordinates, because neither
+ *  record has settled ones, and a guessed one is worse than a missing one.
+ *  Change billing_settings, lib/company.ts and this together. */
 export function localBusiness() {
   return {
     '@type': 'LocalBusiness',
@@ -112,6 +117,7 @@ export function localBusiness() {
     telephone: COMPANY_TEL,
     email: 'hello@cardtly.com',
     address: COMPANY_ADDRESS,
+    hasMap: GOOGLE_MAPS_URL,
     areaServed: { '@type': 'Country', name: 'South Africa' },
     parentOrganization: { '@id': ORG_ID },
   }
