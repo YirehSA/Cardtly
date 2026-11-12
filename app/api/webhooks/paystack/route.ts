@@ -5,6 +5,7 @@ import crypto from 'crypto'
 import { logSubscriptionChange } from '@/lib/subscription-audit'
 import { disableSubscriptionCodes, findActivePaystackSubs } from '@/lib/paystack'
 import { paystackCancellation } from '@/lib/subscription-cancel'
+import { completeBundlePayment, isBundleTransaction, txMetadata } from '@/lib/pro-bundle-server'
 
 export async function POST(request: Request) {
   try {
@@ -30,11 +31,27 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     ) as any
 
+    // The Pro year + NFC card bundle (R999). It is a one-off payment, not a
+    // plan charge, and it carries a card order and sets up next year's
+    // renewal, so it must not fall into the plain activation below, which
+    // would write it as an ordinary yearly plan with no card and no renewal.
+    // Completion is once-only, shared with /upgrade/verify. A failure answers
+    // 500 so Paystack sends the event again.
+    if (event.event === 'charge.success' && isBundleTransaction(event.data)) {
+      const done = await completeBundlePayment(admin, event.data, 'paystack_webhook')
+      if (!done.ok) {
+        console.error('Paystack bundle completion failed:', done.error)
+        return NextResponse.json({ error: 'Bundle not completed' }, { status: 500 })
+      }
+      const bundleUser = txMetadata(event.data).user_id
+      if (bundleUser) await markReferralPaid(admin, bundleUser)
+    }
+
     // Successful charge - keep Pro active. Delete-then-insert because
     // whop_subscriptions has no unique constraint on user_id, so the
     // upsert(..., { onConflict: 'user_id' }) form errors out and
     // silently leaves the user on Free.
-    if (event.event === 'charge.success') {
+    else if (event.event === 'charge.success') {
       const { customer, metadata, subscription_code, amount, paid_at } = event.data
       const userId = metadata?.user_id
 
@@ -133,46 +150,7 @@ export async function POST(request: Request) {
           // subscription is the important part.
         }
 
-        // Promotions: if this user was referred by someone, mark
-        // the referral as 'paid' and grant the referrer an entry
-        // (also idempotent, also capped at 10). The 30-day-paid
-        // verification will be enforced later by a daily cron;
-        // for now we treat first paid as eligible.
-        try {
-          const { data: referralRow } = await admin
-            .from('referrals')
-            .select('id, referrer_user_id, became_paid_at')
-            .eq('referred_user_id', userId)
-            .maybeSingle()
-
-          if (referralRow && !referralRow.became_paid_at) {
-            await admin.from('referrals').update({
-              status: 'paid',
-              became_paid_at: new Date().toISOString(),
-            }).eq('id', referralRow.id)
-
-            // Referral tracking above still runs while promos are
-            // paused (it's just attribution data, and it's worth having
-            // whenever we decide what to do next). Only the draw entry,
-            // which is the actual prize mechanic, is gated.
-            if (PROMOS_ENABLED) {
-              const referrerEntryKey = `referral:${referralRow.id}`
-              const { count: refEntryCount } = await admin
-                .from('promo_entries')
-                .select('id', { count: 'exact', head: true })
-                .eq('user_id', referralRow.referrer_user_id)
-              if ((refEntryCount ?? 0) < 10) {
-                await admin.from('promo_entries').insert({
-                  user_id: referralRow.referrer_user_id,
-                  source: 'referral',
-                  idempotency_key: referrerEntryKey,
-                })
-              }
-            }
-          }
-        } catch {
-          // Same - don't fail the webhook on entry-grant errors
-        }
+        await markReferralPaid(admin, userId)
       } else {
         // No user_id in the metadata. That metadata is attached when the
         // customer first checks out, so every later charge on the same
@@ -323,6 +301,49 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Webhook error:', error)
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
+  }
+}
+
+// Promotions: if this user was referred by someone, mark the referral as
+// 'paid' and grant the referrer an entry (also idempotent, also capped at 10).
+// The 30-day-paid verification will be enforced later by a daily cron; for
+// now we treat first paid as eligible. Shared by plan payments and the bundle,
+// and safe to call twice: a referral already marked paid is left alone.
+async function markReferralPaid(admin: any, userId: string) {
+  try {
+    const { data: referralRow } = await admin
+      .from('referrals')
+      .select('id, referrer_user_id, became_paid_at')
+      .eq('referred_user_id', userId)
+      .maybeSingle()
+
+    if (referralRow && !referralRow.became_paid_at) {
+      await admin.from('referrals').update({
+        status: 'paid',
+        became_paid_at: new Date().toISOString(),
+      }).eq('id', referralRow.id)
+
+      // Referral tracking above still runs while promos are
+      // paused (it's just attribution data, and it's worth having
+      // whenever we decide what to do next). Only the draw entry,
+      // which is the actual prize mechanic, is gated.
+      if (PROMOS_ENABLED) {
+        const referrerEntryKey = `referral:${referralRow.id}`
+        const { count: refEntryCount } = await admin
+          .from('promo_entries')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', referralRow.referrer_user_id)
+        if ((refEntryCount ?? 0) < 10) {
+          await admin.from('promo_entries').insert({
+            user_id: referralRow.referrer_user_id,
+            source: 'referral',
+            idempotency_key: referrerEntryKey,
+          })
+        }
+      }
+    }
+  } catch {
+    // Don't fail the webhook on entry-grant errors
   }
 }
 

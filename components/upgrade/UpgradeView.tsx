@@ -5,6 +5,8 @@ import { Check, Zap, ArrowRight, Loader2, ShieldCheck, Clock, AlertCircle } from
 import { toast } from 'sonner'
 import PriceEstimate, { RandChargeNote } from '@/components/marketing/PriceEstimate'
 import TrialCodeBox from './TrialCodeBox'
+import BundleCheckout from './BundleCheckout'
+import { BUNDLE_PRICE_RAND, bundleRenewalRand } from '@/lib/pro-bundle'
 
 const grad = 'hsl(var(--accent))'
 const gradText: React.CSSProperties = {
@@ -50,11 +52,16 @@ interface Props {
   trialDaysLeft: number
   /** past_due only: days of the payment grace window left. */
   graceDaysLeft?: number
+  /** The person's own card, to fill in the name and title for the NFC card. */
+  card?: { name: string | null; title: string | null } | null
+  /** Arrived from /dashboard/upgrade/bundle: show the bundle form open. */
+  openBundle?: boolean
 }
 
-export default function UpgradeView({ state, trialDaysLeft, graceDaysLeft = 0 }: Props) {
+export default function UpgradeView({ state, trialDaysLeft, graceDaysLeft = 0, card = null, openBundle = false }: Props) {
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly')
   const [loading, setLoading] = useState(false)
+  const [bundleOpen, setBundleOpen] = useState(openBundle)
 
   const price = billing === 'monthly' ? `R${MONTHLY}` : `R${YEARLY}`
 
@@ -258,6 +265,46 @@ export default function UpgradeView({ state, trialDaysLeft, graceDaysLeft = 0 }:
           </div>
         </div>
       </div>
+
+      {/* The Pro year + NFC card bundle. Not offered to someone already on
+          Pro: a second subscription would bill them twice (the server refuses
+          it too, in lib/pro-bundle-server). */}
+      {state !== 'paid' && (
+        <div id="bundle" className="rounded-xl border border-border scroll-mt-24"
+          style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.04), rgba(236,72,153,0.04))' }}>
+          <div className="p-6 sm:p-8">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#7c3aed' }}>
+                  Pro for a year + NFC card
+                </p>
+                <div className="flex items-end gap-2">
+                  <span className="text-4xl font-bold">R{BUNDLE_PRICE_RAND}</span>
+                  <span className="text-muted-foreground pb-1">today</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1 max-w-md">
+                  12 months of Pro and a printed NFC card in either design, delivered to you. Then
+                  R{bundleRenewalRand()} a year, cancel whenever.
+                </p>
+              </div>
+              {!bundleOpen && (
+                <button onClick={() => setBundleOpen(true)}
+                  className="flex items-center gap-2 px-5 min-h-11 rounded-lg text-sm font-semibold border border-border hover:bg-muted transition">
+                  Choose this <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            {bundleOpen && (
+              <div className="mt-6">
+                <BundleCheckout
+                  defaultName={card?.name || ''}
+                  defaultTitle={card?.title || ''}
+                  ctaPrefix={state === 'expired' ? 'Bring my card back' : state === 'past_due' ? 'Keep my card live' : undefined} />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <p className="text-center text-sm text-muted-foreground">
         Already paying?{' '}

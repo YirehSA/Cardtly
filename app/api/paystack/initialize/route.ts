@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-
-// Paystack Plan Codes
-const PLANS = {
-  monthly: 'PLN_lkf7hy3v4mp8w3u',
-  yearly:  'PLN_knxb0ve4dn1h6uk',
-}
+import { PAYSTACK_PLAN_CODES as PLANS } from '@/lib/paystack'
 
 const AMOUNTS = {
   monthly: 9700,   // R97 in kobo

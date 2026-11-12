@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { logSubscriptionChange } from '@/lib/subscription-audit'
+import { completeBundlePayment, isBundleTransaction } from '@/lib/pro-bundle-server'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -30,6 +31,14 @@ export async function GET(request: Request) {
     // be refused silently: Paystack would take the money, the redirect would
     // look successful, and the customer would still be on a trial.
     const supabase = createServiceClient() as any
+
+    // A bundle payment (Pro year + NFC card) must never be written here as a
+    // plain plan: it carries a card order and next year's renewal.
+    if (isBundleTransaction(data.data)) {
+      const done = await completeBundlePayment(supabase, data.data, 'paystack_verify')
+      if (!done.ok) console.error('bundle completion via /api/paystack/verify failed; the webhook will retry:', done.error)
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/upgrade/success?plan=yearly&bundle=1`)
+    }
 
     // Delete any existing subscription row for this user, then insert
     // the fresh one. Avoids the .upsert({...}, { onConflict: 'user_id' })

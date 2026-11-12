@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { logSubscriptionChange } from '@/lib/subscription-audit'
+import { completeBundlePayment, isBundleTransaction } from '@/lib/pro-bundle-server'
 
 export default async function VerifyPage({
   searchParams,
@@ -22,6 +23,7 @@ export default async function VerifyPage({
   // OUTSIDE the try, fall through to a top-level redirect, and only
   // catch the actual fetch/db errors.
   let verified = false
+  let bundle = false
   try {
     const response = await fetch(`https://api.paystack.co/transaction/verify/${ref}`, {
       headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
@@ -34,14 +36,6 @@ export default async function VerifyPage({
     }
 
     const transaction = data.data
-    const now = new Date()
-    const periodEnd = new Date(now)
-
-    if (billingPlan === 'yearly') {
-      periodEnd.setFullYear(periodEnd.getFullYear() + 1)
-    } else {
-      periodEnd.setMonth(periodEnd.getMonth() + 1)
-    }
 
     // Service-role client - whop_subscriptions RLS blocks user-scoped
     // inserts, and only the server should be flipping users to Pro.
@@ -50,43 +44,65 @@ export default async function VerifyPage({
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     ) as any
 
-    // Delete-then-insert instead of upsert. whop_subscriptions has no
-    // unique constraint on user_id, so .upsert({...}, { onConflict:
-    // 'user_id' }) throws "no unique constraint matching the ON
-    // CONFLICT specification" and silently leaves the user on Free.
-    const { data: prior } = await admin
-      .from('whop_subscriptions').select('*').eq('user_id', user_id).maybeSingle()
+    if (isBundleTransaction(transaction)) {
+      // The Pro year + NFC card bundle (R999) completes its own way: the card
+      // order, the year of Pro and next year's renewal, once only however
+      // many times this payment is reported. The user and the plan come from
+      // the payment itself, not from this URL. If it fails here the webhook
+      // completes it, and the money has been taken either way, so the
+      // customer goes to the success page rather than a failure screen.
+      bundle = true
+      const done = await completeBundlePayment(admin, transaction, 'paystack_verify')
+      if (!done.ok) console.error('bundle completion on return from Paystack failed; the webhook will retry:', done.error)
+      verified = true
+    } else {
+      const now = new Date()
+      const periodEnd = new Date(now)
 
-    await admin.from('whop_subscriptions').delete().eq('user_id', user_id)
-    await admin.from('whop_subscriptions').insert({
-      user_id,
-      email: transaction.customer.email,
-      plan_id: `paystack_${billingPlan}`,
-      subscription_tier: 'pro',
-      billing_cycle: billingPlan,
-      status: 'active',
-      receipt_id: ref,
-      membership_id: transaction.subscription_code || ref,
-      seats: 1,
-      metadata: {
-        paystack_reference: ref,
-        paystack_subscription_code: transaction.subscription_code,
-        amount: transaction.amount,
-        currency: transaction.currency,
-        period_end: periodEnd.toISOString(),
-        paid_at: transaction.paid_at,
-      },
-    })
+      if (billingPlan === 'yearly') {
+        periodEnd.setFullYear(periodEnd.getFullYear() + 1)
+      } else {
+        periodEnd.setMonth(periodEnd.getMonth() + 1)
+      }
 
-    await logSubscriptionChange(admin, {
-      change: 'activated', userId: user_id, email: transaction.customer.email,
-      source: 'paystack_verify', reason: 'returned from Paystack checkout',
-      before: prior,
-      after: { plan_id: `paystack_${billingPlan}`, status: 'active',
-               subscription_tier: 'pro', billing_cycle: billingPlan, seats: 1 },
-    })
+      // Delete-then-insert instead of upsert. whop_subscriptions has no
+      // unique constraint on user_id, so .upsert({...}, { onConflict:
+      // 'user_id' }) throws "no unique constraint matching the ON
+      // CONFLICT specification" and silently leaves the user on Free.
+      const { data: prior } = await admin
+        .from('whop_subscriptions').select('*').eq('user_id', user_id).maybeSingle()
 
-    verified = true
+      await admin.from('whop_subscriptions').delete().eq('user_id', user_id)
+      await admin.from('whop_subscriptions').insert({
+        user_id,
+        email: transaction.customer.email,
+        plan_id: `paystack_${billingPlan}`,
+        subscription_tier: 'pro',
+        billing_cycle: billingPlan,
+        status: 'active',
+        receipt_id: ref,
+        membership_id: transaction.subscription_code || ref,
+        seats: 1,
+        metadata: {
+          paystack_reference: ref,
+          paystack_subscription_code: transaction.subscription_code,
+          amount: transaction.amount,
+          currency: transaction.currency,
+          period_end: periodEnd.toISOString(),
+          paid_at: transaction.paid_at,
+        },
+      })
+
+      await logSubscriptionChange(admin, {
+        change: 'activated', userId: user_id, email: transaction.customer.email,
+        source: 'paystack_verify', reason: 'returned from Paystack checkout',
+        before: prior,
+        after: { plan_id: `paystack_${billingPlan}`, status: 'active',
+                 subscription_tier: 'pro', billing_cycle: billingPlan, seats: 1 },
+      })
+
+      verified = true
+    }
   } catch (err) {
     // NEXT_REDIRECT is the internal exception next/navigation throws to
     // trigger the redirect - rethrow it so the redirect actually happens.
@@ -94,11 +110,12 @@ export default async function VerifyPage({
       throw err
     }
     console.error('Paystack verify page error:', err)
+    if (bundle) redirect('/upgrade/success?plan=yearly&bundle=1')
     redirect('/upgrade/cancel?reason=server_error')
   }
 
   if (verified) {
-    redirect(`/upgrade/success?plan=${billingPlan}`)
+    redirect(bundle ? '/upgrade/success?plan=yearly&bundle=1' : `/upgrade/success?plan=${billingPlan}`)
   }
   redirect('/upgrade/cancel?reason=server_error')
 }

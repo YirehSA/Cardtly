@@ -36,6 +36,7 @@ import CallLog from '@/components/calls/CallLog'
 import OutreachTab from '@/components/admin/OutreachTab'
 import ProspectsBoard from '@/components/prospects/ProspectsBoard'
 import { ADMIN_SKIN } from '@/components/calendar/shared'
+import { BUNDLE_PRICE_RAND } from '@/lib/pro-bundle'
 
 interface Stats {
   totalUsers: number; paying: number; comped: number; members: number
@@ -964,6 +965,13 @@ function NfcTab({ orders, run, loading }: { orders: any[]; run: any; loading: st
                     style={{ background: `${colour}1f`, color: colour, border: `1px solid ${colour}55` }}>
                     {NFC_STATUS_LABELS[st] || st}
                   </span>
+                  {/* Paid inside the Pro year + card bundle: no invoice to send. */}
+                  {o.bundle && (
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                      style={{ background: 'rgba(167,139,250,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.35)' }}>
+                      R{BUNDLE_PRICE_RAND} bundle, paid
+                    </span>
+                  )}
                   <div className="flex-1 min-w-[180px]">
                     <p className="text-sm text-white font-medium">{o.full_name || o.email || o.id.slice(0, 8)}</p>
                     <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
@@ -977,9 +985,12 @@ function NfcTab({ orders, run, loading }: { orders: any[]; run: any; loading: st
                 {/* Shipping detail. select('*') already loaded this and the old
                     UI showed only city/province, so fulfilling an order meant
                     opening the database. */}
-                {(o.address_line1 || o.city) && (
+                {/* The order rows name these shipping_address, shipping_city
+                    and so on. This read address_line1 and city, which they
+                    have never had, so no order showed where to send it. */}
+                {(o.shipping_address || o.shipping_city || o.address_line1 || o.city) && (
                   <p className="text-[11px] mt-2 rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.5)' }}>
-                    {[o.address_line1, o.address_line2, o.city, o.province, o.postal_code].filter(Boolean).join(', ')}
+                    {[o.shipping_address || o.address_line1, o.address_line2, o.shipping_city || o.city, o.shipping_province || o.province, o.shipping_postal_code || o.postal_code].filter(Boolean).join(', ')}
                     {o.phone ? ` · ${o.phone}` : ''}
                   </p>
                 )}

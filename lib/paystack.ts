@@ -18,6 +18,13 @@
 
 const PAYSTACK_API = 'https://api.paystack.co'
 
+/** The Pro plans on the Paystack account. Read 2026-11-12: monthly bills R97
+ *  (9700) monthly, yearly bills R970 (97000) annually, both in ZAR. */
+export const PAYSTACK_PLAN_CODES = {
+  monthly: 'PLN_lkf7hy3v4mp8w3u',
+  yearly: 'PLN_knxb0ve4dn1h6uk',
+} as const
+
 // Paystack subscription statuses that can still produce a charge. 'active'
 // bills on its next date; 'attention' had a charge fail and keeps retrying it.
 // Anything else - 'non-renewing', 'completed', 'cancelled' - will not bill

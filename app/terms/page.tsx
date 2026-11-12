@@ -91,7 +91,7 @@ export default function TermsPage() {
             The agreement between you and Cardtly.
           </p>
           <p className="text-sm mt-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            Last updated: 23 September 2026
+            Last updated: 12 November 2026
           </p>
         </div>
       </section>
@@ -133,6 +133,9 @@ export default function TermsPage() {
             </p>
             <p>
               <B>After the trial, a paid subscription is needed for each card</B> to keep it live. Subscriptions are charged in advance, per card, monthly or yearly depending on the plan you choose, through our payment processor Paystack, at the fees published on our website when you subscribe. By subscribing you authorise Paystack to charge your payment method at the start of each billing period until you cancel.
+            </p>
+            <p>
+              <B>A yearly subscription bought together with an NFC card</B> as one package is paid once, upfront, for the first year and the card. From the second year it continues as an ordinary yearly subscription, charged at the start of each year at the yearly price that applied when you bought the package, until you cancel. No further card is included in the renewals.
             </p>
             <p>
               <B>Currency.</B> Every charge is made in South African rand (ZAR), wherever you are. Any figure we show in another currency is an estimate for convenience only. If your card was issued outside South Africa, your bank converts the rand amount at its own exchange rate and may add its own fee, which we do not control or receive.
