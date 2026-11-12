@@ -12,6 +12,7 @@ import PageHeader from '@/components/dashboard/PageHeader'
 import PrimaryCardPicker, { type PickerCard } from '@/components/settings/PrimaryCardPicker'
 import { useRouter } from 'next/navigation'
 import { useIosApp } from '@/components/dashboard/PlatformProvider'
+import { BUNDLE_NAME, bundleRenewalRand } from '@/lib/pro-bundle'
 
 interface Props {
   user: { id: string; email: string }
@@ -26,6 +27,8 @@ interface Props {
     seats: number | null
     /** Free Pro: billing_cycle 'comp', or an admin "Activate Pro" row (monthly, metadata.comped). */
     comped?: boolean
+    /** Bought as the Pro year + NFC card package: when the paid year ends. */
+    bundleUntil?: string | null
   } | null
   /** Every card this person holds, for the primary-card picker. */
   myCards?: PickerCard[]
@@ -800,6 +803,15 @@ function BillingTab({ plan, subscription, team = null }: { plan: UserPlan; subsc
 
       {state === 'paid' && !cancelledUntil && (
         <div className="pt-2 border-t border-border">
+          {/* The R999 package says what it is and what the year covers, rather
+              than reading like any yearly plan. Not in the iOS app, which
+              names no prices (Guideline 3.1.1). */}
+          {subscription?.bundleUntil && !iosApp && (
+            <p className="text-sm mb-2">
+              <span className="font-semibold">{BUNDLE_NAME}</span>: paid until {formatDay(subscription.bundleUntil)}, then
+              R{bundleRenewalRand()} a year until you cancel.
+            </p>
+          )}
           <p className="text-sm text-muted-foreground mb-3">
             Billed {subscription?.billing_cycle === 'monthly' ? 'monthly' : subscription?.billing_cycle || 'monthly'} in ZAR via Paystack
             {subscription?.seats && subscription.seats > 1 ? `, for ${subscription.seats} seats` : ''}.

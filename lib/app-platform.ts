@@ -39,6 +39,8 @@ export const IOS_BLOCKED_ROUTES = [
   '/dashboard/upgrade', '/pricing', '/upgrade',
   '/', '/about', '/features', '/how-it-works', '/nfc', '/blog', '/teams',
   '/signup', '/network', '/promotions',
+  // The R999 package page: a price and a way to buy.
+  '/package',
   // The reseller page: Cardtly prices for resellers, and their invoices.
   '/dashboard/reseller',
   // The reseller programme, for the rep who runs it: the same prices. Listed on

@@ -13,6 +13,7 @@ import { getStoredReferralCode, clearReferralCode } from '@/lib/referral'
 import { getStoredTrialCode, clearTrialCode } from '@/lib/trial-code-link'
 import PriceEstimate, { RandChargeNote } from '@/components/marketing/PriceEstimate'
 import { SEAT_PRICE_RAND } from '@/lib/org-billing'
+import { BUNDLE_NAME, BUNDLE_PRICE_RAND } from '@/lib/pro-bundle'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 const gradText: React.CSSProperties = {
@@ -83,7 +84,11 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
   // account - the only difference is where the person lands afterwards, so
   // somebody who already wants to buy is not made to walk through a trial
   // first. Never 'pay' on iOS, where that button does not exist.
-  const [intent, setIntent] = useState<'trial' | 'pay' | 'team'>('trial')
+  const [intent, setIntent] = useState<'trial' | 'pay' | 'team' | 'package'>('trial')
+  // Arrived from an offer for the R999 package (/signup?package=1): the main
+  // button leads to the package form instead. Never on iOS, where nothing is
+  // sold.
+  const [packageMode, setPackageMode] = useState(false)
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
@@ -105,11 +110,13 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
   // "claim your card" CTA (/signup?name=Jane+Doe). window read in
   // an effect because this page is prerendered server-side.
   useEffect(() => {
-    const prefill = new URLSearchParams(window.location.search).get('name')
+    const params = new URLSearchParams(window.location.search)
+    const prefill = params.get('name')
     if (prefill && prefill.trim().length >= 2) {
       setValue('name', prefill.trim())
     }
-  }, [setValue])
+    if (params.get('package') === '1' && !iosApp) setPackageMode(true)
+  }, [setValue, iosApp])
 
   async function onSubmit(data: FormData) {
     setLoading(true)
@@ -236,6 +243,7 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
       const destination =
         iosApp ? '/dashboard'
         : intent === 'pay' ? '/dashboard/upgrade'
+        : intent === 'package' ? '/dashboard/upgrade/bundle'
         : intent === 'team' ? '/dashboard/team'
         : '/dashboard'
       router.push(destination)
@@ -382,8 +390,13 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
                 <ArrowLeft className="w-4 h-4" />
                 Use a different email
               </button>
+              {intent === 'package' && (
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                  Once you have confirmed, sign in and you go straight to your {BUNDLE_NAME} package.
+                </p>
+              )}
               <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                Already confirmed? <Link href="/login" className="text-white font-medium hover:underline">Sign in</Link>
+                Already confirmed? <Link href={intent === 'package' ? '/login?redirectTo=/dashboard/upgrade/bundle' : '/login'} className="text-white font-medium hover:underline">Sign in</Link>
               </p>
             </div>
           ) : (
@@ -491,7 +504,7 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
                 iOS is exactly the button that was here before. */}
             <button
               type="submit"
-              onClick={() => setIntent(iosApp ? 'trial' : 'pay')}
+              onClick={() => setIntent(iosApp ? 'trial' : packageMode ? 'package' : 'pay')}
               disabled={loading}
               className="group w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold text-white transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               style={{ background: grad, boxShadow: '0 8px 30px rgba(124,58,237,0.4)' }}
@@ -500,6 +513,9 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
                 <><Loader2 className="w-4 h-4 animate-spin" /> Creating your card...</>
               ) : iosApp ? (
                 <>{liveSlug ? `Claim cardtly.com/card/${liveSlug.slice(0, 24)}${liveSlug.length > 24 ? '…' : ''}` : 'Create your card'}
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" /></>
+              ) : packageMode ? (
+                <>Continue to the R{BUNDLE_PRICE_RAND} package
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" /></>
               ) : (
                 // Outside the rand zone the button carries the estimate too,
@@ -567,7 +583,7 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
 
           <p className="text-center text-sm mt-4" style={{ color: 'rgba(255,255,255,0.45)' }}>
             Already have an account?{' '}
-            <Link href="/login" className="text-white font-medium hover:underline">
+            <Link href={packageMode ? '/login?redirectTo=/dashboard/upgrade/bundle' : '/login'} className="text-white font-medium hover:underline">
               Sign in
             </Link>
           </p>

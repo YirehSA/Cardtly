@@ -23,11 +23,11 @@
 
 import { Resend } from 'resend'
 import { FROM_EMAIL } from '@/lib/email'
-import { esc } from '@/lib/booking-email'
+import { SITE_URL } from '@/lib/seo-schema'
+import { bundleAdminEmail, bundleCustomerEmail, type BundleEmailInput } from '@/lib/pro-bundle-email'
 import { logSubscriptionChange } from '@/lib/subscription-audit'
 import { isMissingColumn } from '@/lib/pg-errors'
 import { PAYSTACK_PLAN_CODES, disableSubscriptionCodes, findActivePaystackSubs } from '@/lib/paystack'
-import { NFC_TIERS } from '@/lib/nfc-pricing'
 import {
   BUNDLE_ACTION, BUNDLE_PRICE_RAND, bundleRenewalDate, bundleRenewalRand, parseBundleOrder, type BundleOrder,
 } from '@/lib/pro-bundle'
@@ -155,8 +155,6 @@ async function createRenewal(tx: any, startDate: Date): Promise<{ ok: true; code
     return { ok: false, error: e?.message || 'Could not reach Paystack' }
   }
 }
-
-const day = (d: Date) => d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Johannesburg' })
 
 /**
  * Turn a successful bundle payment into Pro for a year, a paid card order and
@@ -330,60 +328,47 @@ export async function completeBundlePayment(
     after: { plan_id: 'paystack_yearly', status: 'active', subscription_tier: 'pro', billing_cycle: 'yearly', seats: 1 },
   }).catch(() => {})
 
-  // 4. Tell the admin to print and ship, and the customer what they bought.
-  await sendBundleEmails({ email, order, meta, reference, renewsOn, renewal }).catch(e => console.error('bundle emails failed', e))
+  // 4. Tell Cardtly that this is the package and a card has to be made and
+  // shipped, and tell the customer what they bought and what happens next.
+  // Both built in lib/pro-bundle-email.
+  const emailInput: BundleEmailInput = {
+    customerEmail: email,
+    order,
+    rawOrder: meta.order,
+    cardUrl: meta.card_slug ? `${SITE_URL}/card/${encodeURIComponent(meta.card_slug)}` : null,
+    reference,
+    orderId: inserted?.id || null,
+    paidOn: paidAt,
+    proUntil: renewsOn,
+    renewal,
+  }
+  await sendBundleEmails(emailInput).catch(e => console.error('bundle emails failed', e))
 
   return { ok: true, first: true }
 }
 
-async function sendBundleEmails(p: {
-  email: string
-  order: BundleOrder | null
-  meta: any
-  reference: string
-  renewsOn: Date
-  renewal: { ok: true; code: string | null } | { ok: false; error: string }
-}) {
+async function sendBundleEmails(input: BundleEmailInput) {
   if (!process.env.RESEND_API_KEY) return
   const resend = new Resend(process.env.RESEND_API_KEY)
-  const o = p.order
-  const tier = o ? NFC_TIERS[o.tier] : null
-  const colour = o ? o.colour.charAt(0).toUpperCase() + o.colour.slice(1) : ''
-  const shipTo = o ? `${o.address}, ${o.city}, ${o.province} ${o.postalCode}` : ''
-  const head = (title: string) =>
-    '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;"><div style="background:linear-gradient(135deg,#00d4ff,#7c3aed,#ec4899);padding:24px;border-radius:12px 12px 0 0;"><h1 style="color:white;margin:0;font-size:22px;">' + title + '</h1></div><div style="background:#f8f8f8;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e5e5;border-top:none;font-size:14px;line-height:1.55;">'
-  const foot = '<p style="font-size:12px;color:#999;margin-top:24px;text-align:center;">Cardtly (Pty) Ltd · cardtly.com</p></div></div>'
-  const cardLines = o
-    ? '<p><strong>Name on card:</strong> ' + esc(o.nameOnCard) + (o.titleOnCard ? ', ' + esc(o.titleOnCard) : '') + '<br><strong>Design:</strong> ' + esc(tier?.label) + '<br><strong>Colour:</strong> ' + esc(colour) + '<br><strong>Deliver to:</strong> ' + esc(shipTo) + '</p>'
-    : '<p><strong>The card details did not come through.</strong> Raw: ' + esc(JSON.stringify(p.meta?.order ?? null)) + '</p>'
 
+  const toUs = bundleAdminEmail(input)
   await resend.emails.send({
     from: FROM_EMAIL,
     to: ADMIN_EMAIL,
-    subject: `PAID R${BUNDLE_PRICE_RAND} bundle: NFC card for ${p.email}`,
-    html: head('Paid: Pro year + NFC card')
-      + '<p><strong>Customer:</strong> ' + esc(p.email) + '<br><strong>Paystack reference:</strong> ' + esc(p.reference) + '</p>'
-      + cardLines
-      + '<div style="margin-top:16px;padding:14px;background:#dcfce7;border:1px solid #22c55e;border-radius:8px;"><strong>Already paid. No invoice to send.</strong> Proof, print and ship. The order is in Admin under NFC orders as Paid.</div>'
-      + (p.renewal.ok
-        ? '<p style="margin-top:12px;">Renewal set up: yearly R' + bundleRenewalRand() + ' from ' + esc(day(p.renewsOn)) + (p.renewal.code ? ' (' + esc(p.renewal.code) + ')' : '') + '.</p>'
-        : '<p style="margin-top:12px;color:#b91c1c;"><strong>Renewal NOT set up:</strong> ' + esc(p.renewal.error) + '. Pro ends on ' + esc(day(p.renewsOn)) + '. The customer has been told we will contact them about renewing before then, so please do, or create the yearly subscription for them in Paystack.</p>')
-      + foot,
+    // A reply goes straight to the customer, which is where a proof is sent.
+    ...(input.customerEmail ? { replyTo: input.customerEmail } : {}),
+    subject: toUs.subject,
+    html: toUs.html,
+    text: toUs.text,
   })
 
-  if (!p.email) return
+  if (!input.customerEmail) return
+  const toThem = bundleCustomerEmail(input)
   await resend.emails.send({
     from: FROM_EMAIL,
-    to: p.email,
-    subject: 'Your Cardtly Pro year and NFC card',
-    html: head('Thank you. You are on Pro.')
-      + `<p>We received your payment of <strong>R${BUNDLE_PRICE_RAND}</strong> for a year of Cardtly Pro and your NFC card.</p>`
-      + `<p><strong>Pro is active until ${esc(day(p.renewsOn))}.</strong></p>`
-      + cardLines
-      + '<p>We will send you a proof of the card design before anything is printed, then deliver it within 5 to 7 business days of your approval.</p>'
-      + (p.renewal.ok
-        ? `<p style="color:#555;">From ${esc(day(p.renewsOn))} your subscription renews at R${bundleRenewalRand()} a year, charged in South African rand to the card you used today, until you cancel. Cancel any time from Billing in your settings: you are not charged again, and your card stays live until the end of the year you have paid for.</p>`
-        : `<p style="color:#555;">Your year runs until ${esc(day(p.renewsOn))}. We will contact you about renewing before then.</p>`)
-      + foot,
+    to: input.customerEmail,
+    subject: toThem.subject,
+    html: toThem.html,
+    text: toThem.text,
   })
 }

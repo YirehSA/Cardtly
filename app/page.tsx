@@ -13,6 +13,7 @@ import FeaturedCards from '@/components/marketing/FeaturedCards'
 import FaqSection from '@/components/marketing/FaqSection'
 import StructuredData from '@/components/marketing/StructuredData'
 import TeamsSection from '@/components/marketing/TeamsSection'
+import PackageOffer from '@/components/marketing/PackageOffer'
 import {
   Smartphone, Globe, BarChart2, Mail, Monitor, Users, ArrowRight, Wifi, Sparkles, Zap, Check,
   MessageCircle, Wallet, UserPlus, Inbox, Webhook, Building2, Lock, Palette,
@@ -544,6 +545,10 @@ export default function HomePage() {
           </Reveal>
         </div>
       </section>
+
+      {/* The R999 package: a year of Pro and an NFC card, for one person or
+          a small business. The hero's "Just you?" link lands here. */}
+      <PackageOffer />
 
       {/* Three ways to share */}
       <ThreeWaysToShare />

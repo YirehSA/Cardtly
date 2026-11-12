@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { ArrowRight, Check, Inbox, Lock, Mail, MessageCircle } from 'lucide-react'
+import { ArrowRight, Check, Inbox, Lock, Mail, MessageCircle, Sparkles } from 'lucide-react'
 import PriceEstimate from './PriceEstimate'
 import { SEAT_PRICE_RAND } from '@/lib/org-billing'
+import { BUNDLE_PRICE_RAND } from '@/lib/pro-bundle'
 
 // The home page hero since 2026-11-03, when the scroll-driven WebGL scene came
 // out. The page now sells what happens behind the card, so the picture is the
@@ -101,6 +102,18 @@ export default function LeadHero() {
               <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#22c55e' }} aria-hidden />
               <span>From R{SEAT_PRICE_RAND} a card a month<PriceEstimate zar={SEAT_PRICE_RAND} prefix=" (" suffix=")" /></span>
             </span>
+          </div>
+
+          {/* The way in for one person or a small business, without changing
+              the team pitch above: the R999 package, further down the page. */}
+          <div className="lh-rise mt-6 flex justify-center lg:justify-start" style={{ animationDelay: '400ms' }}>
+            <Link href="#package"
+              className="group inline-flex items-center gap-2 px-4 py-2 min-h-11 rounded-2xl text-sm font-semibold text-left transition hover:bg-white/10"
+              style={{ border: '1px solid rgba(167,139,250,0.4)', color: '#c4b5fd', background: 'rgba(124,58,237,0.1)' }}>
+              <Sparkles className="w-4 h-4 flex-shrink-0" aria-hidden />
+              <span>Just you? A year of Pro and your NFC card for R{BUNDLE_PRICE_RAND}</span>
+              <ArrowRight className="w-4 h-4 flex-shrink-0 transition-transform group-hover:translate-x-1" aria-hidden />
+            </Link>
           </div>
         </div>
 

@@ -14,6 +14,10 @@ import { SEAT_PRICE_RAND } from './org-billing'
 /** What the customer pays today, in rand. */
 export const BUNDLE_PRICE_RAND = 999
 
+/** What the package is called, the same wherever it is named: emails, the
+ *  admin list, the customer's billing page. */
+export const BUNDLE_NAME = 'Pro for a year + NFC card'
+
 /** Marks a Paystack transaction as a bundle purchase, in its metadata. */
 export const BUNDLE_ACTION = 'pro_nfc_bundle'
 

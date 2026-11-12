@@ -73,6 +73,7 @@ export default function Footer() {
               { href: '/network', label: 'Business networking' },
               { href: '/how-it-works', label: 'How digital cards work' },
               { href: '/pricing',       label: 'Digital business card pricing' },
+              { href: '/package',       label: 'Pro and NFC card package' },
               { href: '/blog',          label: 'Digital business card blog' },
               { href: '/teams',         label: 'Digital business cards for teams' },
               { href: '/teams/south-africa', label: 'Team cards in South Africa' },

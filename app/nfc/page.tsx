@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 // broken image on the marketing page.
 import { NFC_TIERS, NFC_TIER_LIST, NFC_SHIPPING_RAND } from '@/lib/nfc-pricing'
 import { BUNDLE_PRICE_RAND, bundleRenewalRand } from '@/lib/pro-bundle'
+import PackageOffer from '@/components/marketing/PackageOffer'
 
 const AVAILABLE_SAMPLES = availableSamples()
 
@@ -394,6 +395,11 @@ const NFC_FAQ = [
           </div>
         </div>
       </section>
+
+      {/* Card and Pro together, for less than buying them apart. */}
+
+      <PackageOffer eyebrow="Save on your first card" />
+
 
       {/* CTA */}
       <section className="py-24 px-6 text-center">

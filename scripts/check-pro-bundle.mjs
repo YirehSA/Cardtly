@@ -15,11 +15,11 @@ import { join } from 'node:path'
 import { createRequire } from 'node:module'
 
 const out = mkdtempSync(join(tmpdir(), 'bundle-'))
-let B
+let B, E
 try {
   execFileSync(
     process.execPath,
-    ['node_modules/typescript/bin/tsc', 'lib/pro-bundle.ts', '--outDir', out,
+    ['node_modules/typescript/bin/tsc', 'lib/pro-bundle.ts', 'lib/pro-bundle-email.ts', '--outDir', out,
      '--module', 'commonjs', '--target', 'es2020', '--moduleResolution', 'node', '--skipLibCheck'],
     { stdio: 'pipe' },
   )
@@ -28,7 +28,9 @@ try {
 }
 try {
   writeFileSync(join(out, 'package.json'), '{"type":"commonjs"}')
-  B = createRequire(join(out, 'x.js'))('./pro-bundle.js')
+  const req = createRequire(join(out, 'x.js'))
+  B = req('./pro-bundle.js')
+  E = req('./pro-bundle-email.js')
 } catch (e) {
   console.error('check-pro-bundle: could not compile lib/pro-bundle.ts')
   console.error(String(e.message).slice(0, 600))
@@ -77,9 +79,37 @@ refuse('a 5 digit postal code', { postalCode: '15011' })
 refuse('a postal code with letters', { postalCode: '15a1' })
 if (B.parseBundleOrder({ ...good, nameOnCard: 'x'.repeat(500) }).order?.nameOnCard.length !== 60) bad('name on card must be capped at 60')
 
+// 4. The two emails: Cardtly must see at once that this is the package and
+// that a card has to be made and shipped; the customer must see what they
+// bought. Nothing the customer typed may become markup.
+{
+  const order = { tier: 'custom', colour: 'white', nameOnCard: 'Thandi <b>Nkosi</b>', titleOnCard: 'Agent', address: '1 Main <script>x</script> Rd', city: 'Benoni', province: 'Gauteng', postalCode: '1501' }
+  const input = {
+    customerEmail: 'thandi@example.com', order, rawOrder: order, cardUrl: 'https://www.cardtly.com/card/thandi',
+    reference: 'ref123', orderId: 'ord1', paidOn: new Date('2026-11-12T10:00:00Z'), proUntil: new Date('2027-11-12T10:00:00Z'),
+    renewal: { ok: true, code: 'SUB_abc' },
+  }
+  const a = E.bundleAdminEmail(input)
+  const c = E.bundleCustomerEmail(input)
+  const must = (label, text, bits) => { for (const b of bits) if (!text.includes(b)) bad(`${label} is missing "${b}"`) }
+  must('admin subject', a.subject, ['ACTION NEEDED', `R${B.BUNDLE_PRICE_RAND}`, B.BUNDLE_NAME, 'NFC card'])
+  must('admin email', a.html, ['Do not send an invoice', 'proof', 'Print the card', 'Write the NFC chip', 'https://www.cardtly.com/card/thandi', 'Custom design', 'White', 'Benoni', '1501', 'Shipped', 'SUB_abc', 'thandi@example.com'])
+  must('admin text', a.text, ['do not send an invoice', 'Write the NFC chip', '1501'])
+  must('customer subject', c.subject, ['confirmed', B.BUNDLE_NAME])
+  must('customer email', c.html, [`R${B.BUNDLE_PRICE_RAND}`, '1 year', 'NFC card', 'proof', '5 to 7 business days', `R${B.bundleRenewalRand()} a year`, 'cancel any time', 'Benoni'])
+  for (const [label, html] of [['admin', a.html], ['customer', c.html]]) {
+    if (/<script>|<b>Nkosi<\/b>/.test(html)) bad(`the ${label} email lets customer input become markup`)
+  }
+  if (/[\r\n]/.test(a.subject + c.subject)) bad('an email subject must be one line')
+  const failed = E.bundleAdminEmail({ ...input, renewal: { ok: false, error: 'not reusable' } })
+  must('admin email when the renewal failed', failed.html, ['NOT set up', 'not reusable'])
+  const blank = E.bundleAdminEmail({ ...input, order: null, rawOrder: { x: 1 } })
+  must('admin email without card details', blank.html, ['did not come through'])
+}
+
 rmSync(out, { recursive: true, force: true })
 
-// 4. The wiring, read from the source.
+// 5. The wiring, read from the source.
 const server = read('lib/pro-bundle-server.ts')
 const hook = read('app/api/webhooks/paystack/route.ts')
 const verifyPage = read('app/upgrade/verify/page.tsx')
@@ -109,10 +139,17 @@ if (!/unique index[\s\S]*paystack_reference/.test(mig)) bad('migration 106 must 
 if (!/isIosAppUA\(/.test(route)) bad('the bundle checkout must refuse the iOS app (Guideline 3.1.1)')
 if (!/'\/dashboard\/upgrade'/.test(platform)) bad("'/dashboard/upgrade' must stay blocked in the iOS app; it also covers /dashboard/upgrade/bundle")
 
-// 5. The price on public pages comes from the constant.
-for (const f of ['app/pricing/page.tsx', 'app/nfc/page.tsx', 'components/upgrade/UpgradeView.tsx', 'components/upgrade/BundleCheckout.tsx']) {
-  if (/R999\b/.test(read(f))) bad(`${f} types R999; use BUNDLE_PRICE_RAND so the page cannot drift from the charge`)
+// 6. The price on public pages comes from the constant, and every page that
+// sells the package is closed to the iOS app.
+for (const f of ['app/pricing/page.tsx', 'app/nfc/page.tsx', 'app/page.tsx', 'app/package/page.tsx', 'components/marketing/PackageOffer.tsx', 'components/marketing/LeadHero.tsx', 'app/signup/SignupForm.tsx', 'components/settings/SettingsTabs.tsx', 'components/upgrade/UpgradeView.tsx', 'components/upgrade/BundleCheckout.tsx']) {
+  // Comments may name the package; only what reaches the page is checked.
+  const code = read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
+  if (/R999\b/.test(code)) bad(`${f} types R999; use BUNDLE_PRICE_RAND so the page cannot drift from the charge`)
 }
+if (!/'\/package'/.test(platform)) bad("'/package' must be in IOS_BLOCKED_ROUTES: it quotes a price")
+if (!/'\/package',/.test(read('middleware.ts'))) bad("'/package' must be in the middleware matcher, or the iOS block never sees it")
+if (!/["']\/signup\?package=1["']/.test(read('components/marketing/PackageOffer.tsx'))) bad('the offer button must lead to sign-up with ?package=1')
+if (!/intent === 'package' \? '\/dashboard\/upgrade\/bundle'/.test(read('app/signup/SignupForm.tsx'))) bad('sign-up must send a package sign-up on to the package form')
 const llms = read('public/llms.txt')
 if (!llms.includes(`R${B.BUNDLE_PRICE_RAND} once`) || !llms.includes(`renews at R${B.bundleRenewalRand()} a year`)) {
   bad(`public/llms.txt must state the bundle as R${B.BUNDLE_PRICE_RAND}, renewing at R${B.bundleRenewalRand()} a year`)

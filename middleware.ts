@@ -84,7 +84,13 @@ export async function middleware(request: NextRequest) {
   // Redirect logged-in users away from auth pages
   if ((pathname === '/login' || pathname === '/signup') && user) {
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
+    // Someone already signed in who clicked an offer for the R999 package
+    // goes to the package, not to a dashboard where they have to find it.
+    // Only that one fixed address: nothing from the query string is followed.
+    const wantsPackage = request.nextUrl.searchParams.get('package') === '1'
+      || request.nextUrl.searchParams.get('redirectTo') === '/dashboard/upgrade/bundle'
+    url.pathname = wantsPackage ? '/dashboard/upgrade/bundle' : '/dashboard'
+    url.search = ''
     return NextResponse.redirect(url)
   }
 
@@ -115,6 +121,7 @@ export const config = {
     '/teams/:path*',
     '/network',
     '/promotions',
+    '/package',
     '/resellers',
     '/upgrade/:path*',
     // Refresh the Supabase session on authenticated API routes so

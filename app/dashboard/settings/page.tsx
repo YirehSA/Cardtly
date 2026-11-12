@@ -136,6 +136,8 @@ export default async function SettingsPage() {
         subscription_tier: sub.subscription_tier, status: sub.status, created_at: sub.created_at,
         billing_cycle: sub.billing_cycle, seats: sub.seats,
         comped: sub.billing_cycle === 'comp' || !!sub.metadata?.comped,
+        // The R999 package: when the year it paid for ends. A date only.
+        bundleUntil: sub.metadata?.bundle ? (sub.metadata?.period_end ?? null) : null,
       } : null}
       card={(card as any) || null}
     />

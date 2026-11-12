@@ -20,8 +20,8 @@ import { Check, ArrowRight, Zap, Building2, CreditCard, Sparkles } from 'lucide-
 // quoting two different prices, which on a pricing page is the one mistake
 // that costs money. Every one of them now reads from the constant.
 import { MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND } from '@/lib/org-billing'
-import { BUNDLE_PRICE_RAND, bundleRenewalRand, bundleSavingRand, bundleSeparateRand } from '@/lib/pro-bundle'
-import { formatZAR } from '@/lib/nfc-pricing'
+import { BUNDLE_PRICE_RAND, bundleRenewalRand, bundleSavingRand } from '@/lib/pro-bundle'
+import PackageOffer from '@/components/marketing/PackageOffer'
 
 // Yearly is ten months for twelve. Derived rather than typed so it cannot
 // drift from the monthly price either.
@@ -349,33 +349,10 @@ export default function PricingPage() {
           </Reveal>
         </div>
 
-        {/* The Pro year + NFC card bundle. Figures from lib/pro-bundle. The
-            link goes to its own dashboard address, which a signed-out visitor
-            is brought back to after signing in. */}
-        <div className="max-w-4xl mx-auto mt-4">
-          <Reveal>
-          <div className="p-6 rounded-2xl flex items-start gap-4 lift-card"
-            style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.35)' }}>
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(124,58,237,0.16)', border: '1px solid rgba(124,58,237,0.4)' }}>
-              <Sparkles className="w-5 h-5" style={{ color: LILAC }} aria-hidden="true" />
-            </div>
-            <div>
-              <p className="font-bold text-white mb-1">Pro for a year with your NFC card: R{BUNDLE_PRICE_RAND}</p>
-              <p className="text-sm leading-relaxed mb-3" style={{ color: BODY }}>
-                Twelve months of Pro and one NFC card in either design, printed and delivered anywhere in South
-                Africa. Bought separately that is {formatZAR(bundleSeparateRand('standard'))} or more. After the first
-                year it renews at R{bundleRenewalRand()} a year, and you can cancel whenever you like.
-              </p>
-              <Link href="/dashboard/upgrade/bundle" className="text-sm font-semibold inline-flex items-center gap-1 min-h-11 py-2 transition hover:opacity-80"
-                style={{ color: LILAC }}>
-                Get Pro with a card <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
-              </Link>
-            </div>
-          </div>
-          </Reveal>
-        </div>
       </section>
+
+      {/* The R999 package, as an option of its own next to the plans. */}
+      <PackageOffer eyebrow="Pro + NFC card package" />
 
       {/* FAQs */}
       <section className="py-24 px-6" style={{ background: 'rgba(255,255,255,0.02)' }}>
