@@ -3,6 +3,7 @@ import { isBillablePaystackSub, listActivePaystackSubs } from '@/lib/paystack'
 import { orgMonthlyRand, BILLING_MODE_META, isOrgBillingMode, orgTrialDaysLeft, orgNeedsCollecting, orgBillingStartsInDays, orgPaidUntilDaysLeft, orgEntitlesMembers, type OrgBillingMode } from '@/lib/org-billing'
 import { computeRep, type RepRow, type RepStats } from '@/lib/reps'
 import { contentThatWouldNotCarry, describeColumns } from '@/lib/move-card-to-team'
+import { selectAll } from '@/lib/select-all'
 
 // Everything the admin page needs, assembled in one place so the page stays a
 // thin shell and this stays testable.
@@ -396,10 +397,11 @@ export async function loadAdminData(admin: any) {
   // whatever the table currently has.
   const allMeetings: any[] = await (async () => {
     try {
-      const { data, error } = await admin
+      // Every row, not the first 1000 (lib/select-all).
+      const { data, error } = await selectAll(() => admin
         .from('rep_meetings')
         .select('*')
-        .order('scheduled_at', { ascending: false })
+        .order('scheduled_at', { ascending: false }))
       if (error) return []
       return data || []
     } catch {
@@ -422,10 +424,10 @@ export async function loadAdminData(admin: any) {
   // must not go dark waiting for it.
   const allCalls: any[] = await (async () => {
     try {
-      const { data, error } = await admin
+      const { data, error } = await selectAll(() => admin
         .from('rep_calls')
         .select('*')
-        .order('called_at', { ascending: false })
+        .order('called_at', { ascending: false }))
       if (error) return []
       return data || []
     } catch {
@@ -439,10 +441,10 @@ export async function loadAdminData(admin: any) {
   // go dark waiting for it.
   const allActivities: any[] = await (async () => {
     try {
-      const { data, error } = await admin
+      const { data, error } = await selectAll(() => admin
         .from('rep_activities')
         .select('*')
-        .order('happened_at', { ascending: false })
+        .order('happened_at', { ascending: false }))
       if (error) return []
       return data || []
     } catch {

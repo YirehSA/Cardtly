@@ -12,6 +12,7 @@ import {
   DEFAULT_DURATION_MINUTES,
 } from './rep-meetings'
 import { isMissingColumn } from '@/lib/pg-errors'
+import { selectAll } from '@/lib/select-all'
 
 /** Columns that arrive with migration 048. Applied by hand after the deploy, so
  *  between the two there is a window where the code knows about columns the
@@ -233,9 +234,12 @@ export async function listMeetings(
   opts: { repId?: string } = {},
 ): Promise<{ ok: true; meetings: any[] } | { ok: false; error: string; status: number }> {
   try {
-    let q = admin.from('rep_meetings').select('*').order('scheduled_at', { ascending: false })
-    if (opts.repId) q = q.eq('rep_id', opts.repId)
-    const { data, error } = await q
+    // Every row, not the first 1000 (lib/select-all).
+    const { data, error } = await selectAll(() => {
+      let q = admin.from('rep_meetings').select('*').order('scheduled_at', { ascending: false })
+      if (opts.repId) q = q.eq('rep_id', opts.repId)
+      return q
+    })
     if (error) {
       if (isMissingTable(error)) return { ok: false, error: MIGRATION_047_MISSING, status: 503 }
       return { ok: false, error: error.message, status: 500 }

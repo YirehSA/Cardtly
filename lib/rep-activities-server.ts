@@ -6,6 +6,7 @@
 // editing another's log.
 
 import { isActivityKind, isActivityStatus, statusFitsKind, statusMeta, type ActivityKind } from './rep-activities'
+import { selectAll } from '@/lib/select-all'
 
 export const MIGRATION_075_MISSING =
   'The outreach log is not switched on yet: migration 075 has not been run.'
@@ -158,9 +159,12 @@ export async function listActivities(
   opts: { repId?: string } = {},
 ): Promise<{ ok: true; activities: any[] } | { ok: false; error: string; status: number }> {
   try {
-    let q = admin.from('rep_activities').select('*').order('happened_at', { ascending: false })
-    if (opts.repId) q = q.eq('rep_id', opts.repId)
-    const { data, error } = await q
+    // Every row, not the first 1000: the figures are counted from these.
+    const { data, error } = await selectAll(() => {
+      let q = admin.from('rep_activities').select('*').order('happened_at', { ascending: false })
+      if (opts.repId) q = q.eq('rep_id', opts.repId)
+      return q
+    })
     if (error) {
       if (isMissingTable(error)) return { ok: false, error: MIGRATION_075_MISSING, status: 503 }
       return { ok: false, error: error.message, status: 500 }

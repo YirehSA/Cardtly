@@ -9,6 +9,7 @@
 
 import { isCallOutcome } from './rep-calls'
 import { isMissingColumn } from '@/lib/pg-errors'
+import { selectAll } from '@/lib/select-all'
 
 export const MIGRATION_061_MISSING =
   'The call log is not switched on yet: migration 061 has not been run.'
@@ -177,9 +178,12 @@ export async function listCalls(
   opts: { repId?: string } = {},
 ): Promise<{ ok: true; calls: any[] } | { ok: false; error: string; status: number }> {
   try {
-    let q = admin.from('rep_calls').select('*').order('called_at', { ascending: false })
-    if (opts.repId) q = q.eq('rep_id', opts.repId)
-    const { data, error } = await q
+    // Every row, not the first 1000 (lib/select-all).
+    const { data, error } = await selectAll(() => {
+      let q = admin.from('rep_calls').select('*').order('called_at', { ascending: false })
+      if (opts.repId) q = q.eq('rep_id', opts.repId)
+      return q
+    })
     if (error) {
       if (isMissingTable(error)) return { ok: false, error: MIGRATION_061_MISSING, status: 503 }
       return { ok: false, error: error.message, status: 500 }
