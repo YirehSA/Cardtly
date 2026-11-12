@@ -21,7 +21,6 @@ import { Check, ArrowRight, Zap, Building2, CreditCard, Sparkles } from 'lucide-
 // that costs money. Every one of them now reads from the constant.
 import { MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND } from '@/lib/org-billing'
 import { BUNDLE_PRICE_RAND, bundleRenewalRand, bundleSavingRand } from '@/lib/pro-bundle'
-import PackageOffer from '@/components/marketing/PackageOffer'
 
 // Yearly is ten months for twelve. Derived rather than typed so it cannot
 // drift from the monthly price either.
@@ -190,28 +189,42 @@ export default function PricingPage() {
           </div>
 
           {/* The three things people actually want to know before scrolling. */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
             {/* One tile per plan, in the order they scale. These were two
                 identical R97 rows and a third about cancellation, which told
                 nobody which plan they were on. */}
-            {/* The two priced tiles carry the estimate outside the rand zone:
+            {/* The priced tiles carry the estimate outside the rand zone:
                 "≈ £4.50 a month, charged in rand (ZAR)". Enterprise is quoted,
-                so it has no figure to convert. */}
+                so it has no figure to convert. The starter package is a link
+                to its option under the plans, and stands out from the rest. */}
             {[
-              { k: `From R${SEAT_PRICE_RAND}`, v: 'Individual: per card, per month', per: ' a month, ' },
-              { k: `From R${SEAT_PRICE_RAND} / seat`, v: `Pro Teams: 2 to ${MAX_SELF_SERVE_SEATS} seats, one invoice`, per: ' a seat a month, ' },
-              { k: `${MAX_SELF_SERVE_SEATS + 1}+ seats`, v: 'Enterprise: quoted on your seat count', per: null },
-            ].map(({ k, v, per }) => (
-              <div key={v} className="rounded-2xl p-5"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <p className="text-2xl font-black tracking-tight whitespace-nowrap" style={gradText}>{k}</p>
-                <p className="text-sm mt-1" style={{ color: BODY }}>{v}</p>
-                {per && (
-                  <PriceEstimateLine zar={SEAT_PRICE_RAND} suffix={per}
-                    className="text-xs mt-1.5" style={{ color: DIM }} />
-                )}
-              </div>
-            ))}
+              { k: `From R${SEAT_PRICE_RAND}`, v: 'Individual: per card, per month', zar: SEAT_PRICE_RAND, per: ' a month, ', href: null },
+              { k: `R${BUNDLE_PRICE_RAND} once`, v: 'Starter package: a year of Pro and your NFC card', zar: BUNDLE_PRICE_RAND, per: ' once, ', href: '#starter' },
+              { k: `From R${SEAT_PRICE_RAND} / seat`, v: `Pro Teams: 2 to ${MAX_SELF_SERVE_SEATS} seats, one invoice`, zar: SEAT_PRICE_RAND, per: ' a seat a month, ', href: null },
+              { k: `${MAX_SELF_SERVE_SEATS + 1}+ seats`, v: 'Enterprise: quoted on your seat count', zar: 0, per: null, href: null },
+            ].map(({ k, v, zar, per, href }) => {
+              const body = (
+                <>
+                  <p className="text-2xl font-black tracking-tight whitespace-nowrap" style={gradText}>{k}</p>
+                  <p className="text-sm mt-1" style={{ color: BODY }}>{v}</p>
+                  {per && (
+                    <PriceEstimateLine zar={zar} suffix={per}
+                      className="text-xs mt-1.5" style={{ color: DIM }} />
+                  )}
+                </>
+              )
+              return href ? (
+                <Link key={v} href={href} className="block rounded-2xl p-5 transition hover:bg-white/5"
+                  style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.45)' }}>
+                  {body}
+                </Link>
+              ) : (
+                <div key={v} className="rounded-2xl p-5"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  {body}
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -316,6 +329,63 @@ export default function PricingPage() {
           </Reveal>
         </div>
 
+        {/* THE STARTER PACKAGE, as an option of its own right under the plans,
+            where people choose. The hero's fourth tile lands here. Figures
+            from lib/pro-bundle; /package has the full story. */}
+        <div id="starter" className="max-w-6xl mx-auto mt-6 scroll-mt-24">
+          <Reveal>
+          <div className="rounded-3xl p-8 lg:p-10 grid grid-cols-1 lg:grid-cols-[1fr_1.15fr_auto] gap-8 lg:gap-10 items-center lift-card"
+            style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.07), rgba(124,58,237,0.16), rgba(236,72,153,0.08))', border: '1px solid rgba(124,58,237,0.5)' }}>
+            <div>
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: LILAC }}>Starter package</p>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
+                  style={{ background: 'linear-gradient(135deg, #7c3aed, #ec4899)' }}>New</span>
+              </div>
+              <div className="flex items-end gap-2 mb-1">
+                <span className="text-5xl font-black">R{BUNDLE_PRICE_RAND}</span>
+                <span className="text-base pb-1" style={{ color: DIM }}>once</span>
+              </div>
+              <PriceEstimate zar={BUNDLE_PRICE_RAND} className="block text-sm font-medium mb-1 text-white/70" />
+              <p className="text-sm font-semibold mt-1" style={{ color: MINT }}>
+                Save R{bundleSavingRand()} or more on buying them separately
+              </p>
+              <p className="text-sm mt-1" style={{ color: DIM }}>
+                Then R{bundleRenewalRand()} a year. Cancel whenever you like.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <p className="font-bold text-white">A year of Pro and your NFC card</p>
+              {[
+                '12 months of Pro, every feature included',
+                'Your NFC card, standard or custom design',
+                'Printed and delivered anywhere in South Africa',
+                'For you or your business, add your team later',
+              ].map(f => (
+                <div key={f} className="flex items-start gap-3 text-sm" style={{ color: INK }}>
+                  <Check className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: LILAC }} aria-hidden="true" />
+                  {f}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-2 lg:w-52">
+              <Link href="/signup?package=1"
+                className="block text-center py-3.5 px-6 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
+                style={{ background: grad, boxShadow: '0 6px 30px rgba(124,58,237,0.4)' }}>
+                Get the package <ArrowRight className="w-4 h-4 inline ml-1" aria-hidden="true" />
+              </Link>
+              <Link href="/package"
+                className="block text-center min-h-11 py-3 text-sm font-medium transition hover:text-white"
+                style={{ color: DIM }}>
+                How it works
+              </Link>
+            </div>
+          </div>
+          </Reveal>
+        </div>
+
         {/* Payment note. Was 12px at 0.25 alpha, which measures 2.02:1 and is
             the least readable text on the site: the line that tells somebody
             which currency they are charged in and that they can cancel. */}
@@ -350,9 +420,6 @@ export default function PricingPage() {
         </div>
 
       </section>
-
-      {/* The R999 package, as an option of its own next to the plans. */}
-      <PackageOffer eyebrow="Pro + NFC card package" />
 
       {/* FAQs */}
       <section className="py-24 px-6" style={{ background: 'rgba(255,255,255,0.02)' }}>
