@@ -283,8 +283,8 @@ export default function UpgradeView({ state, trialDaysLeft, graceDaysLeft = 0, c
                   <span className="text-muted-foreground pb-1">today</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-1 max-w-md">
-                  12 months of Pro and a printed NFC card in either design, delivered to you. Then
-                  R{bundleRenewalRand()} a year, cancel whenever.
+                  12 months of Pro and a printed NFC card in either design, delivered to you. The card
+                  and delivery are included. Then R{bundleRenewalRand()} a year, cancel whenever.
                 </p>
               </div>
               {!bundleOpen && (

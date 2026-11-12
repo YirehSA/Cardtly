@@ -42,7 +42,7 @@ export default function PackagePage() {
   ]
 
   const faqs = [
-    { q: `What do I get for R${BUNDLE_PRICE_RAND}?`, a: `Twelve months of Cardtly Pro with every feature, and one NFC business card printed in your design and delivered to you anywhere in South Africa. Bought separately, the same costs R${bundleSavingRand()} or more extra.` },
+    { q: `What do I get for R${BUNDLE_PRICE_RAND}?`, a: `Twelve months of Cardtly Pro with every feature, and one NFC business card printed in your design and delivered to you anywhere in South Africa. The card, the printing and the delivery are all included: there is nothing else to pay. Bought separately, the same costs R${bundleSavingRand()} or more extra.` },
     { q: 'Is it for individuals or for businesses?', a: 'Both. It is one card for one person: a consultant, an agent, a freelancer, or the owner of a business. A business that wants cards for its staff can add a team from the same account later, with each person on their own seat.' },
     { q: 'Which card designs can I choose?', a: `Either one, for the same price. The ${NFC_TIERS.standard.label.toLowerCase()} puts your logo and colours on the Cardtly layout. The ${NFC_TIERS.custom.label.toLowerCase()} is designed around your brand instead. Both are proofed before anything is printed.` },
     { q: 'What happens after the first year?', a: `Your Pro renews at R${renewal} a year, charged to the card you paid with, until you cancel. You can cancel at any time from Billing in your settings: you are not charged again, and your card stays live until the end of the year you have paid for. The renewal does not include another NFC card.` },

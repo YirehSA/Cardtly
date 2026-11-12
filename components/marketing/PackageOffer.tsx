@@ -41,8 +41,8 @@ export default function PackageOffer({
   const renewal = bundleRenewalRand()
   const included = [
     '12 months of Cardtly Pro: every feature, nothing held back',
-    'Your own NFC card, standard or custom design, proofed before printing',
-    'Printed and delivered anywhere in South Africa',
+    'Your own NFC card included: standard or custom design, proofed before printing',
+    'Printing and delivery included, anywhere in South Africa',
     'Lead capture, follow-up and analytics from your first day',
   ]
 
@@ -146,7 +146,10 @@ export default function PackageOffer({
                 <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: DIM }}>Once-off today</p>
                 <p className="text-6xl font-black leading-none" style={gradText}>R{BUNDLE_PRICE_RAND}</p>
                 <PriceEstimate zar={BUNDLE_PRICE_RAND} className="block text-sm font-medium mt-2 text-white/70" />
-                <p className="text-sm mt-3" style={{ color: BODY }}>
+                <p className="text-sm font-semibold mt-3" style={{ color: '#34d399' }}>
+                  Pro, your NFC card and delivery: all included
+                </p>
+                <p className="text-sm mt-2" style={{ color: BODY }}>
                   <span className="line-through" style={{ color: DIM }}>{formatZAR(bundleSeparateRand('standard'))}</span>{' '}
                   bought separately
                 </p>

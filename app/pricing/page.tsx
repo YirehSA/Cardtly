@@ -21,6 +21,7 @@ import { Check, ArrowRight, Zap, Building2, CreditCard, Sparkles } from 'lucide-
 // that costs money. Every one of them now reads from the constant.
 import { MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND } from '@/lib/org-billing'
 import { BUNDLE_PRICE_RAND, bundleRenewalRand, bundleSavingRand } from '@/lib/pro-bundle'
+import BundleBreakdown from '@/components/marketing/BundleBreakdown'
 
 // Yearly is ten months for twelve. Derived rather than typed so it cannot
 // drift from the monthly price either.
@@ -106,7 +107,7 @@ const FAQS = [
   { q: `What does R${SEAT_PRICE_RAND} include?`, a: 'Everything. One card, every Cardtly feature: templates, custom branding, analytics, lead capture, meeting booking, WhatsApp follow-up, the paper card scanner and Excel export. There is no cut-down version.' },
   { q: 'Is there a team plan?', a: `Yes, and you can set it up yourself right now. Teams run from 2 to ${MAX_SELF_SERVE_SEATS} seats from R${SEAT_PRICE_RAND} a seat per month, with locked company branding, email invites, and one admin dashboard. Need more than ${MAX_SELF_SERVE_SEATS} seats? That is Enterprise, and we bill it by debit order.` },
   { q: `What happens above ${MAX_SELF_SERVE_SEATS} seats?`, a: 'You move to Enterprise. Same product, but billed by debit order instead of a card, with invoicing that suits your finance team. Talk to us and we will set it up.' },
-  { q: 'Can I get an NFC card with my subscription?', a: `Yes. R${BUNDLE_PRICE_RAND} buys twelve months of Pro and one NFC card in either design, printed and delivered in South Africa, which is R${bundleSavingRand()} or more less than buying them separately. After the first year it renews at R${bundleRenewalRand()} a year until you cancel.` },
+  { q: 'Can I get an NFC card with my subscription?', a: `Yes. R${BUNDLE_PRICE_RAND} buys twelve months of Pro and one NFC card in either design, printed and delivered in South Africa. The card and its delivery are included, and the whole package is R${bundleSavingRand()} or more less than buying them separately. After the first year it renews at R${bundleRenewalRand()} a year until you cancel.` },
   { q: 'Can I cancel anytime?', a: 'Yes. Cancel whenever you like, no lock-in and no cancellation fee. You keep Pro until the end of the period you have paid for.' },
   // Worded to match the Terms ("We do not refund part periods, except where
   // the law requires it"), so the page and the contract say the same thing.
@@ -199,7 +200,7 @@ export default function PricingPage() {
                 to its option under the plans, and stands out from the rest. */}
             {[
               { k: `From R${SEAT_PRICE_RAND}`, v: 'Individual: per card, per month', zar: SEAT_PRICE_RAND, per: ' a month, ', href: null },
-              { k: `R${BUNDLE_PRICE_RAND} once`, v: 'Starter package: a year of Pro and your NFC card', zar: BUNDLE_PRICE_RAND, per: ' once, ', href: '#starter' },
+              { k: `R${BUNDLE_PRICE_RAND} once`, v: 'Starter package: a year of Pro, your NFC card and delivery included', zar: BUNDLE_PRICE_RAND, per: ' once, ', href: '#starter' },
               { k: `From R${SEAT_PRICE_RAND} / seat`, v: `Pro Teams: 2 to ${MAX_SELF_SERVE_SEATS} seats, one invoice`, zar: SEAT_PRICE_RAND, per: ' a seat a month, ', href: null },
               { k: `${MAX_SELF_SERVE_SEATS + 1}+ seats`, v: 'Enterprise: quoted on your seat count', zar: 0, per: null, href: null },
             ].map(({ k, v, zar, per, href }) => {
@@ -348,26 +349,19 @@ export default function PricingPage() {
               </div>
               <PriceEstimate zar={BUNDLE_PRICE_RAND} className="block text-sm font-medium mb-1 text-white/70" />
               <p className="text-sm font-semibold mt-1" style={{ color: MINT }}>
-                Save R{bundleSavingRand()} or more on buying them separately
+                Pro, your NFC card and delivery: all included
               </p>
               <p className="text-sm mt-1" style={{ color: DIM }}>
                 Then R{bundleRenewalRand()} a year. Cancel whenever you like.
               </p>
+              <p className="text-sm mt-3" style={{ color: BODY }}>
+                For you or your business. Add your team later.
+              </p>
             </div>
 
-            <div className="space-y-3">
-              <p className="font-bold text-white">A year of Pro and your NFC card</p>
-              {[
-                '12 months of Pro, every feature included',
-                'Your NFC card, standard or custom design',
-                'Printed and delivered anywhere in South Africa',
-                'For you or your business, add your team later',
-              ].map(f => (
-                <div key={f} className="flex items-start gap-3 text-sm" style={{ color: INK }}>
-                  <Check className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: LILAC }} aria-hidden="true" />
-                  {f}
-                </div>
-              ))}
+            <div>
+              <p className="font-bold text-white mb-3">Everything in the R{BUNDLE_PRICE_RAND}</p>
+              <BundleBreakdown />
             </div>
 
             <div className="flex flex-col gap-2 lg:w-52">
@@ -393,8 +387,11 @@ export default function PricingPage() {
           Secure payment in ZAR via Paystack. International cards welcome, your bank converts at checkout. Cancel anytime. Enterprise is billed by debit order.
         </p>
 
-        {/* NFC add-on strip */}
-        <div className="max-w-4xl mx-auto mt-10">
+        {/* NFC cards bought on their own. Set well apart from the starter
+            package and worded as the other route: right under it, "Want a
+            physical NFC card too?" read as part of the package, as if the
+            card were extra there. */}
+        <div className="max-w-4xl mx-auto mt-16">
           <Reveal>
           <div className="p-6 rounded-2xl flex items-start gap-4 lift-card"
             style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.2)' }}>
@@ -406,9 +403,11 @@ export default function PricingPage() {
               <CreditCard className="w-5 h-5" style={{ color: '#22d3ee' }} aria-hidden="true" />
             </div>
             <div>
-              <p className="font-bold text-white mb-1">Want a physical NFC card too?</p>
+              <p className="font-bold text-white mb-1">NFC cards on their own</p>
               <p className="text-sm leading-relaxed mb-3" style={{ color: BODY }}>
-                A sleek Cardtly NFC card you tap to any phone. R150 with your logo and colours on our layout, or R200 designed around your brand. Order a set for the whole team.
+                Already on Pro, or ordering for the whole team? Order NFC cards separately: R150 with your logo and
+                colours on our layout, or R200 designed around your brand, plus R100 delivery per order. The starter
+                package above already includes one card and its delivery.
               </p>
               <Link href="/nfc" className="text-sm font-semibold inline-flex items-center gap-1 min-h-11 py-2 transition hover:opacity-80"
                 style={{ color: '#22d3ee' }}>

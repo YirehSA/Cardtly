@@ -33,6 +33,20 @@ export function bundleSeparateRand(tier: NfcTier = 'standard'): number {
   return bundleRenewalRand() + NFC_TIERS[tier].price + NFC_SHIPPING_RAND
 }
 
+/**
+ * What the R999 covers, part by part, with what each costs on its own. For
+ * showing plainly that the card and its delivery are included, not extra.
+ * The card is the standard design's price, marked "from": the custom design
+ * costs more on its own and is included for the same R999.
+ */
+export function bundleParts(): { key: 'pro' | 'card' | 'delivery'; label: string; rand: number; from: boolean }[] {
+  return [
+    { key: 'pro', label: '12 months of Pro, every feature', rand: bundleRenewalRand(), from: false },
+    { key: 'card', label: 'Your NFC card, standard or custom design', rand: NFC_TIERS.standard.price, from: true },
+    { key: 'delivery', label: 'Printing and delivery anywhere in South Africa', rand: NFC_SHIPPING_RAND, from: false },
+  ]
+}
+
 /** What the bundle saves against buying the standard card separately. The
  *  smallest true saving, so the figure advertised is never overstated. */
 export function bundleSavingRand(): number {

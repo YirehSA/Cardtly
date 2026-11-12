@@ -143,7 +143,8 @@ export default function BundleCheckout({ defaultName, defaultTitle, ctaPrefix }:
       <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground space-y-1.5">
         <p>
           You pay <strong className="text-foreground">R{BUNDLE_PRICE_RAND} now</strong> for 12 months of Pro and
-          one NFC card, printed and delivered. In 12 months your subscription renews at R{renewal} a year
+          one NFC card, printed and delivered. The card, printing and delivery are included, so there is nothing
+          else to pay today. In 12 months your subscription renews at R{renewal} a year
           until you cancel, charged in South African rand (ZAR) to the card you pay with today.{' '}
           <RandChargeNote currencyStated />
         </p>
