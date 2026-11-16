@@ -37,7 +37,10 @@ const newestFirst = (rows: any[]) =>
   [...rows].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))
 
 /** The reseller's main login: a member whose email is the reseller's email. */
-async function mainLogin(db: any, reseller: any): Promise<{ id: string; email: string } | null> {
+/** The reseller's main login: the member whose login email is the reseller's
+ *  email. Changing one without the other unlinks it (see change_email in
+ *  app/api/admin/resellers). */
+export async function mainLogin(db: any, reseller: any): Promise<{ id: string; email: string } | null> {
   const want = String(reseller.email || '').trim().toLowerCase()
   if (!want) return null
   const { data: members } = await db.from('reseller_members').select('user_id').eq('reseller_id', reseller.id)

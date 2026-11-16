@@ -86,6 +86,51 @@ export async function sendResellerApproved(email: string, resellerName: string, 
   return error ? { ok: false, reason: 'send', error: 'Could not send the email' } : { ok: true }
 }
 
+/**
+ * After an admin changes a reseller's login email: tell both addresses. The
+ * new one, so they know to sign in with it. The old one, so a change they did
+ * not ask for cannot pass unnoticed: it is the address that would see it.
+ */
+export async function sendLoginEmailChanged(
+  p: { oldEmail: string; newEmail: string; resellerName: string; origin: string },
+): Promise<{ ok: boolean; error?: string }> {
+  const resendKey = process.env.RESEND_API_KEY
+  if (!resendKey) return { ok: false, error: 'Email is not configured' }
+  const resend = new Resend(resendKey)
+  const box = (body: string) => `
+      <div style="font-family:system-ui,-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#111;background:#ffffff">
+        <h1 style="font-size:22px;margin:0 0 8px">Your Cardtly login email has changed</h1>
+        ${body}
+      </div>`
+  const what = `<p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 16px">
+          At your request, the login for <strong>${esc(p.resellerName)}</strong> was changed from
+          <strong>${esc(p.oldEmail)}</strong> to <strong>${esc(p.newEmail)}</strong>. Your password, your card,
+          your clients and your invoices are unchanged.
+        </p>`
+  const results = await Promise.all([
+    resend.emails.send({
+      from: FROM_EMAIL,
+      to: p.newEmail,
+      subject: 'Your Cardtly login email has changed',
+      html: box(what + `
+        <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 20px">From now on, sign in with ${esc(p.newEmail)} and your usual password. Invoices come to this address too.</p>
+        <a href="${p.origin}/login"
+          style="display:inline-block;background:linear-gradient(135deg,#00d4ff,#7c3aed,#ec4899);color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 28px;border-radius:12px">
+          Sign in
+        </a>`),
+    }),
+    resend.emails.send({
+      from: FROM_EMAIL,
+      to: p.oldEmail,
+      subject: 'Your Cardtly login email has changed',
+      html: box(what + `
+        <p style="color:#555;font-size:15px;line-height:1.6;margin:0">This address no longer signs in to Cardtly. If you did not ask for this, reply to this email straight away.</p>`),
+    }),
+  ])
+  const failed = results.find(r => r.error)
+  return failed ? { ok: false, error: 'Could not send one of the emails' } : { ok: true }
+}
+
 function esc(s: any): string {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }

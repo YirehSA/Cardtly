@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server'
 import { requireAdmin, adminDb } from '@/lib/admin-api'
 import { auditLog } from '@/lib/admin-audit'
 import { findUserByEmail } from '@/lib/department-perms'
-import { sendResellerWelcome, sendResellerApproved } from '@/lib/reseller-invite'
+import { sendResellerWelcome, sendResellerApproved, sendLoginEmailChanged } from '@/lib/reseller-invite'
 import { listResellerClients, poolClients } from '@/lib/reseller'
 import { draftResellerMonth, rebuildResellerMonth, estimateResellerMonth, resellerPrices } from '@/lib/reseller-billing'
 import { sastMonth, previousMonth, monthLabel, seatsSold, RESELLER_DEFAULTS } from '@/lib/reseller-pricing'
-import { syncResellerFreeCard, FREE_CARD_TEXT } from '@/lib/reseller-comp'
+import { syncResellerFreeCard, FREE_CARD_TEXT, mainLogin } from '@/lib/reseller-comp'
 import { requireResellerProgramme, managerMay, adminOnly } from '@/lib/reseller-programme'
 import { resellerDeleteBlocker, neverIssued, LIVE_NFC_STATUSES, type ResellerDeleteFacts } from '@/lib/reseller-delete'
 
@@ -276,6 +276,7 @@ export async function PATCH(request: Request) {
   if (gate.role === 'manager' && !managerMay(body.action)) {
     return adminOnly(({
       add_login: "add or remove a reseller's logins", remove_login: "add or remove a reseller's logins",
+      change_email: "change a reseller's login email",
       end: 'end or restart a reseller', restart: 'end or restart a reseller', delete: 'delete a reseller',
       draft_month: 'draft reseller invoices', sync_free_card: "change a reseller's free card",
     } as Record<string, string>)[String(body.action)] || 'do that')
@@ -302,7 +303,13 @@ export async function PATCH(request: Request) {
     if ('email' in body) {
       const email = String(body.email ?? '').trim().toLowerCase()
       if (!isEmail(email)) return NextResponse.json({ error: `"${email}" does not look like an email address.` }, { status: 400 })
-      patch.email = email
+      // The reseller's email is also how its main login is found (mainLogin
+      // in lib/reseller-comp). Changed here alone, it would no longer match
+      // that login, and the next sync would end the reseller's free card.
+      // change_email changes the login and this together.
+      if (email !== String(reseller.email || '').toLowerCase()) {
+        return NextResponse.json({ error: 'Use Change login email: it changes the login and the reseller\'s email together.' }, { status: 400 })
+      }
     }
     if ('status' in body) {
       if (body.status !== 'active' && body.status !== 'suspended') return NextResponse.json({ error: 'Unknown status.' }, { status: 400 })
@@ -366,6 +373,57 @@ export async function PATCH(request: Request) {
     await audit('update_reseller', { ...patch, before, by_role: gate.role })
     const free = await syncResellerFreeCard(db, { ...reseller, ...patch }).catch(() => null)
     return NextResponse.json({ ok: true, ...(free && free.state === 'paying' ? { warning: FREE_CARD_TEXT.paying } : {}) })
+  }
+
+  // Change the email a reseller signs in with, and is invoiced at. One action
+  // for both, because the reseller's email is how its main login is found:
+  // change either alone and the free card ends at the next sync. The login
+  // keeps its id, so the card, the clients and the invoices stay with it.
+  // Admins only (not in MANAGER_RESELLER_ACTIONS): it is account access.
+  if (body.action === 'change_email') {
+    const email = String(body.email ?? '').trim().toLowerCase()
+    const current = String(reseller.email || '').trim().toLowerCase()
+    if (!isEmail(email)) return NextResponse.json({ error: `"${email}" does not look like an email address.` }, { status: 400 })
+    if (email === current) return NextResponse.json({ error: `${reseller.name} already uses ${email}.` }, { status: 400 })
+
+    const main = await mainLogin(db, reseller)
+    if (!main) {
+      return NextResponse.json({ error: `None of ${reseller.name}'s logins signs in as ${current}, so there is no main login to change. Check the logins listed under the reseller.` }, { status: 409 })
+    }
+    const clash = await findUserByEmail(db, email)
+    if (clash && clash.id !== main.id) {
+      return NextResponse.json({ error: `${email} already has its own Cardtly login. Two logins cannot share an address: that one would have to be removed or changed first.` }, { status: 409 })
+    }
+
+    // 1. The login. Confirmed straight away: the change is made by an admin at
+    // the reseller's request, and both addresses are told below.
+    const { error: authErr } = await db.auth.admin.updateUserById(main.id, { email, email_confirm: true })
+    if (authErr) return NextResponse.json({ error: `Could not change the login: ${authErr.message}` }, { status: 500 })
+
+    // 2. The reseller, which must match the login. Put the login back if this
+    // fails, so the two never disagree.
+    const { error: rErr } = await db.from('resellers').update({ email, updated_at: new Date().toISOString() }).eq('id', reseller.id)
+    if (rErr) {
+      await db.auth.admin.updateUserById(main.id, { email: main.email, email_confirm: true })
+      return NextResponse.json({ error: `Could not save the reseller's email, so the login was put back: ${rErr.message}` }, { status: 500 })
+    }
+    // 3. Where invoices go. Issued invoices keep the address they were sent to.
+    if (reseller.billing_client_id) {
+      await db.from('billing_clients').update({ email, updated_at: new Date().toISOString() }).eq('id', reseller.billing_client_id)
+    }
+    // 4. Subscription rows carry the email too (the free card's, and any a
+    // payment matches by email).
+    await db.from('whop_subscriptions').update({ email }).eq('user_id', main.id)
+
+    await audit('reseller_change_email', { from: current, to: email, user_id: main.id })
+    const free = await syncResellerFreeCard(db, { ...reseller, email }).catch(() => null)
+    const told = await sendLoginEmailChanged({ oldEmail: main.email, newEmail: email, resellerName: reseller.name, origin })
+    const notes = [
+      told.ok ? `Both ${main.email} and ${email} were emailed.` : `The change is made, but the emails did not send (${told.error}).`,
+      free && free.state !== 'free' && free.state !== 'off' ? FREE_CARD_TEXT[free.state] : '',
+      'The email shown on their card is their own to change, in their card editor.',
+    ].filter(Boolean)
+    return NextResponse.json({ ok: true, warning: notes.join(' ') })
   }
 
   if (body.action === 'add_login') {

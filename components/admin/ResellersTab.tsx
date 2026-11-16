@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Plus, Save, X, ChevronDown, ChevronUp, Send, RefreshCw, UserPlus, Trash2, FileText, Check, Inbox, Undo2 } from 'lucide-react'
+import { Loader2, Plus, Save, X, ChevronDown, ChevronUp, Send, RefreshCw, UserPlus, Trash2, FileText, Check, Inbox, Undo2, Mail } from 'lucide-react'
 import { Section, Stat, inputClass, inputStyle, grad, fmtDate } from './shared'
 import { money, toCents, toRands, StatusPill as InvoicePill } from './billing/shared'
 import { addressLine } from '@/lib/reseller-application'
@@ -249,6 +249,7 @@ function ResellerCard({ r, isAdmin, open, onToggle, reload }: { r: any; isAdmin:
     address: r.billingClient?.address || '', vat_number: r.billingClient?.vat_number || '',
   }))
   const [loginEmail, setLoginEmail] = useState('')
+  const [newEmail, setNewEmail] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
   const [tracking, setTracking] = useState<Record<string, string>>({})
 
@@ -537,6 +538,28 @@ function ResellerCard({ r, isAdmin, open, onToggle, reload }: { r: any; isAdmin:
                 style={{ background: 'rgba(255,255,255,0.06)', color: '#fff' }}>
                 <UserPlus className="w-3.5 h-3.5" />Add login
               </button>
+            </div>}
+            {/* The main login's email, which is also where invoices go. One
+                action changes both (change_email in the route): changed apart,
+                the reseller loses its free card. */}
+            {isAdmin && !ended && <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <p className="text-[11px] mb-1.5" style={{ color: faint }}>
+                Main login and invoice email: <span className="text-white">{r.email}</span>
+              </p>
+              <div className="flex items-center gap-2">
+                <input placeholder="New email for the main login" value={newEmail} onChange={e => setNewEmail(e.target.value)}
+                  type="email" className={inputClass} style={inputStyle} />
+                <button onClick={async () => {
+                  const to = newEmail.trim()
+                  if (!confirm(`Change ${r.name}'s login from ${r.email} to ${to}?\n\nThey sign in with the new address from now on, with the same password, and invoices go there. Their card, clients and invoices stay the same. Both addresses get an email about it.`)) return
+                  if (await patch('email', { action: 'change_email', email: to }, 'Login email changed.')) setNewEmail('')
+                }}
+                  disabled={!!busy || !newEmail.trim()}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap disabled:opacity-40"
+                  style={{ background: 'rgba(255,255,255,0.06)', color: '#fff' }}>
+                  {busy === 'email' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}Change login email
+                </button>
+              </div>
             </div>}
           </div>
         </div>
