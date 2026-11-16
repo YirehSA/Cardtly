@@ -7,6 +7,7 @@ import { Section, Stat, inputClass, inputStyle, grad, fmtDate } from './shared'
 import { money, toCents, toRands, StatusPill as InvoicePill } from './billing/shared'
 import { addressLine } from '@/lib/reseller-application'
 import NfcWriteButton from '@/components/nfc/NfcWriteButton'
+import { levelProgress } from '@/lib/reseller-levels'
 
 // Resellers: companies that sell Cardtly to their own clients. Cardtly gives
 // each a seat pool, it hands seats to client teams from its own page, and on
@@ -265,6 +266,9 @@ function ResellerCard({ r, isAdmin, open, onToggle, reload }: { r: any; isAdmin:
 
   const suspended = r.status === 'suspended'
   const ended = r.status === 'ended'
+  // Their level (lib/reseller-levels), from every card ever sold. Left out
+  // when the count could not be read.
+  const level = typeof r.cardsEverSold === 'number' ? levelProgress(r.cardsEverSold) : null
 
   return (
     <div className="rounded-xl border" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
@@ -272,11 +276,18 @@ function ResellerCard({ r, isAdmin, open, onToggle, reload }: { r: any; isAdmin:
         <div className="flex-1 min-w-[200px]">
           <p className="font-semibold text-white text-sm flex items-center gap-2">
             {r.name}
+            {level && (
+              <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
+                title={level.next ? `${level.cardsSold} cards ever sold, ${level.toNext} more to ${level.next.name}` : `${level.cardsSold} cards ever sold`}
+                style={{ background: `${level.level.colour}26`, color: level.level.colour }}>
+                {level.level.name}
+              </span>
+            )}
             {suspended && <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>On hold</span>}
             {ended && <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ background: 'rgba(148,163,184,0.15)', color: '#94a3b8' }}>Ended</span>}
           </p>
           <p className="text-xs" style={{ color: muted }}>
-            {r.sold} of {r.seat_pool} seats sold · {r.clients.length} client{r.clients.length === 1 ? '' : 's'} · {money(r.seat_price_cents)}/seat a month · {money(r.yearlyCents ?? r.seat_price_cents * 12)}/seat a year
+            {r.sold} of {r.seat_pool} seats sold · {r.clients.length} client{r.clients.length === 1 ? '' : 's'} · {level ? `${level.cardsSold} ever sold${level.next ? ` (${level.toNext} to ${level.next.name})` : ''} · ` : ''}{money(r.seat_price_cents)}/seat a month · {money(r.yearlyCents ?? r.seat_price_cents * 12)}/seat a year
           </p>
         </div>
         <div className="text-right">

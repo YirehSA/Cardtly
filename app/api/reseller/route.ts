@@ -7,6 +7,7 @@ import { invoiceOutstanding } from '@/lib/billing-docs'
 import { sastMonth, monthLabel, seatsSold } from '@/lib/reseller-pricing'
 import { estimateResellerMonth, resellerPrices } from '@/lib/reseller-billing'
 import { syncResellerFreeCard } from '@/lib/reseller-comp'
+import { cardsEverSold } from '@/lib/reseller-levels-server'
 
 // The reseller's own page: their pool, their clients, their NFC orders and
 // their invoices. Every query is scoped to the reseller this login runs, which
@@ -28,7 +29,7 @@ export async function GET() {
   } catch { /* not shown */ }
 
   const month = sastMonth(new Date())
-  const [clients, estimate, orders, invoices] = await Promise.all([
+  const [clients, estimate, orders, invoices, everSold] = await Promise.all([
     listResellerClients(db, reseller.id),
     // What this month comes to so far, worked out as the invoice will be:
     // monthly clients for the month, yearly ones for their year if it starts now.
@@ -40,6 +41,8 @@ export async function GET() {
           .eq('client_id', reseller.billing_client_id).not('status', 'in', '(draft,cancelled)')
           .order('issued_at', { ascending: false }).limit(100)
       : { data: [] },
+    // Their level (lib/reseller-levels): every card ever sold.
+    cardsEverSold(db, [reseller.id]),
   ])
 
   const sold = seatsSold(poolClients(clients))
@@ -59,6 +62,9 @@ export async function GET() {
       invoicesReady: !!reseller.billing_client_id,
     },
     sold,
+    // Null when it could not be read: the level card is then left out rather
+    // than shown short.
+    cardsEverSold: everSold ? everSold[reseller.id] ?? 0 : null,
     left: Math.max(0, reseller.seat_pool - sold),
     clients,
     thisMonth: { label: monthLabel(month), seats: estimate.seats, cents: estimate.cents },

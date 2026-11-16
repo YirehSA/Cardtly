@@ -9,6 +9,7 @@ import { sastMonth, previousMonth, monthLabel, seatsSold, RESELLER_DEFAULTS } fr
 import { syncResellerFreeCard, FREE_CARD_TEXT, mainLogin } from '@/lib/reseller-comp'
 import { requireResellerProgramme, managerMay, adminOnly } from '@/lib/reseller-programme'
 import { resellerDeleteBlocker, neverIssued, LIVE_NFC_STATUSES, type ResellerDeleteFacts } from '@/lib/reseller-delete'
+import { cardsEverSold } from '@/lib/reseller-levels-server'
 
 // Admin: the resellers, their pools and prices, their clients, and what they
 // are being billed. See migration 094 and lib/reseller-billing.
@@ -110,6 +111,9 @@ export async function GET() {
     ids.length ? db.from('billing_clients').select('id, name, email, address, vat_number').in('id', (resellers || []).map((r: any) => r.billing_client_id).filter(Boolean)) : { data: [] },
   ])
 
+  // Every card ever sold, for each reseller's level (lib/reseller-levels).
+  const everSold = await cardsEverSold(db, ids)
+
   const invoiceIds = [
     ...((claims.data || []).map((c: any) => c.invoice_id)),
     ...((orders.data || []).map((o: any) => o.invoice_id)),
@@ -142,6 +146,7 @@ export async function GET() {
       logins,
       clients,
       sold: seatsSold(poolClients(clients)),
+      cardsEverSold: everSold ? everSold[r.id] ?? 0 : null,
       billingClient: (billingClients.data || []).find((c: any) => c.id === r.billing_client_id) || null,
       thisMonth: { month: thisMonth, label: monthLabel(thisMonth), seats: estimate.seats, cents: estimate.cents },
       lastMonth: { month: lastMonth, label: monthLabel(lastMonth), seats: seatsIn(lastMonth) },

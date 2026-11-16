@@ -9,6 +9,7 @@ import {
   randCents, nfcOrderTotalCents, monthLabel, monthsInclusive, addMonths, YEAR_MONTHS,
   type ResellerClientState, type ResellerNfcKind, type ResellerTerm,
 } from '@/lib/reseller-pricing'
+import ResellerLevelCard from './ResellerLevelCard'
 
 // The reseller's own page. Everything comes from /api/reseller, which scopes
 // every read and write to the reseller this login runs.
@@ -28,6 +29,8 @@ interface Data {
     nfcBlankCents: number; nfcPrintedCents: number; nfcShippingCents: number; invoicesReady: boolean
   }
   sold: number
+  /** Every card ever sold, for the level. Null when it could not be read. */
+  cardsEverSold?: number | null
   left: number
   clients: Client[]
   thisMonth: { label: string; seats: number; cents: number }
@@ -141,6 +144,8 @@ export default function ResellerPanel({ initialTab = 'clients' }: { initialTab?:
             : <>Your reseller account is on hold, so clients and orders cannot be changed right now. Your clients&apos; cards are not affected. Contact Cardtly at hello@cardtly.com.</>}
         </div>
       )}
+
+      {typeof data.cardsEverSold === 'number' && <ResellerLevelCard cardsSold={data.cardsEverSold} />}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat label="Seats in your pool" value={r.seatPool} />
