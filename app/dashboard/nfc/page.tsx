@@ -10,6 +10,8 @@ import ProGate from '@/components/card/ProGate'
 import NFCSamplesSection from '@/components/nfc/NFCSamplesSection'
 import { availableSamples } from '@/lib/nfc-samples'
 import { possessive } from '@/lib/possessive'
+import { resellerPriceScope } from '@/lib/reseller'
+import PricesElsewhere from '@/components/reseller/PricesElsewhere'
 
 export const metadata = { title: 'NFC Cards' }
 
@@ -104,6 +106,12 @@ export default async function NFCPage() {
     ...mine.filter((c: any) => !(teamCards || []).some((t: any) => t.id === c.id)),
   ]
 
+  // A reseller, or anybody in a team a reseller sold, never sees Cardtly's
+  // retail NFC prices or checkout: the reseller orders at its own price from
+  // the Reseller page, and its clients order through the reseller (Andre,
+  // 2026-11-16). Writing tags and the printing samples stay.
+  const priceScope = await resellerPriceScope(admin, user.id)
+
   return (
     <>
       <NFCWriteCard cards={ownCards} memoryKey={`own:${user.id}`}
@@ -128,13 +136,17 @@ export default async function NFCPage() {
           looks like is what makes someone order, so it comes before the form
           rather than after it. */}
       <NFCSamplesSection samples={availableSamples()} />
-      <NFCOrderPage
-        card={card as any}
-        user={{ id: user.id, email: user.email || '' }}
-        previousOrders={orders || []}
-        teamCards={orderable}
-        samples={availableSamples()}
-      />
+      {priceScope ? (
+        <PricesElsewhere scope={priceScope} topic="nfc" />
+      ) : (
+        <NFCOrderPage
+          card={card as any}
+          user={{ id: user.id, email: user.email || '' }}
+          previousOrders={orders || []}
+          teamCards={orderable}
+          samples={availableSamples()}
+        />
+      )}
     </>
   )
 }

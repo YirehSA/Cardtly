@@ -95,10 +95,10 @@ function Stat({ label, value, hint }: { label: string; value: string | number; h
   )
 }
 
-export default function ResellerPanel() {
+export default function ResellerPanel({ initialTab = 'clients' }: { initialTab?: 'clients' | 'nfc' | 'invoices' }) {
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<'clients' | 'nfc' | 'invoices'>('clients')
+  const [tab, setTab] = useState<'clients' | 'nfc' | 'invoices'>(initialTab)
 
   async function load() {
     const res = await fetch('/api/reseller', { cache: 'no-store' })

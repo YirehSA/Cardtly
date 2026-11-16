@@ -7,7 +7,9 @@
 //   3. A month is drafted once per reseller, however often the cron runs, and
 //      a failed draft gives the month back rather than losing it.
 //   4. A reseller's client never sees a Cardtly price or a Paystack checkout,
-//      and cannot pay Cardtly directly while on the reseller's bill.
+//      and cannot pay Cardtly directly while on the reseller's bill. Nor does
+//      the reseller's own login (2026-11-16): Team Cards, NFC Cards and the
+//      upgrade screen send it to its Reseller page instead.
 //   5. The reseller page is out of the iOS app, and every reseller route is
 //      scoped to the reseller the login runs.
 //   6. Monthly or yearly (Andre, 2026-10-27). A yearly client is billed twelve
@@ -354,6 +356,28 @@ if (managedReturn < 0 || setup < 0 || managedReturn > setup) bad('TeamDashboard 
 if (!/\.filter\(\(\[id\]\) => !\(managedBy && id === 'billing'\)\)/.test(td)) bad('TeamDashboard shows a reseller\'s client the Billing tab')
 if ((td.match(/!iosApp && !managedBy/g) || []).length < 3) bad('TeamDashboard\'s Add seats button, seat upgrade and plan summary must all be hidden from a reseller\'s client')
 if (!/managedBy=\{org \? await managedByFor\(/.test(read('app/dashboard/team/page.tsx'))) bad('the team page must tell TeamDashboard who manages the team')
+
+// 4b. No Cardtly price inside a reseller's world (Andre, 2026-11-16: "the
+// reseller can sell the cards at whatever they want"). The reseller's own login
+// and everybody in a client team it sold.
+const lr = read('lib/reseller.ts')
+if (!/export async function resellerPriceScope\(/.test(lr)) bad('lib/reseller must say whose prices a login sees (resellerPriceScope)')
+if (!/reseller && reseller\.status !== 'ended'\) return \{ kind: 'reseller'/.test(lr)) bad('resellerPriceScope must cover an active or on-hold reseller, and not an ended one')
+if (!/o\.reseller_id && o\.billing_period === 'reseller'/.test(lr)) bad('resellerPriceScope must cover a client team still on the reseller\'s bill')
+const teamPage = read('app/dashboard/team/page.tsx')
+const resellerTeam = teamPage.indexOf("if (scope?.kind === 'reseller') return <ResellerTeamCards />")
+const teamDash = teamPage.lastIndexOf('<TeamDashboard')
+if (resellerTeam < 0 || resellerTeam > teamDash) bad('Team Cards must show a reseller\'s login ResellerTeamCards before the Cardtly price list and checkout')
+const nfcPage = read('app/dashboard/nfc/page.tsx')
+if (!/\{priceScope \? \(\s*<PricesElsewhere scope=\{priceScope\} topic="nfc" \/>\s*\) : \(\s*<NFCOrderPage/.test(nfcPage)) bad('NFC Cards must replace the retail order form for a reseller and its clients')
+const upScreen = read('components/upgrade/UpgradeScreen.tsx')
+const upScope = upScreen.indexOf('if (priceScope) {')
+if (upScope < 0 || upScope > upScreen.indexOf('<UpgradeView')) bad('the upgrade screen must stop a reseller and its clients before the Pro prices and checkout')
+for (const f of ['components/team/ResellerTeamCards.tsx', 'components/reseller/PricesElsewhere.tsx']) {
+  const src = read(f).split('\n').filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n')
+  if (!src) { bad(`${f} is missing`); continue }
+  if (/\bR\s?\d|R\{|SEAT_PRICE|PRICE_RAND|formatZAR|PriceEstimate|paystack/i.test(src)) bad(`${f} names a Cardtly price or checkout, and a reseller shows it to clients`)
+}
 
 const team = read('app/api/team/route.ts')
 if (!/existing\?\.reseller_id && existing\?\.billing_period === 'reseller'/.test(team)) bad('/api/team create_org must refuse a Paystack checkout for a reseller\'s client')

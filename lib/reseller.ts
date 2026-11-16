@@ -497,6 +497,56 @@ export async function placeResellerNfcOrder(db: any, reseller: Reseller, input: 
   return { ok: true, orderId: order.id, totalCents: made.totalCents }
 }
 
+/**
+ * Who sets the price for this login, when it is not Cardtly.
+ *
+ * A reseller sells Cardtly at whatever price it agrees with its clients
+ * (Andre, 2026-11-16). So Cardtly's own prices (R97 a card, the Pro checkout,
+ * NFC cards at retail) are never shown to a reseller's login, which it shares
+ * with clients when it demos, or to anybody in a client team it sold. Those
+ * pages send them to the Reseller page, or to the reseller, instead.
+ *
+ * Null for everybody else, and for a reseller that has ended. Tolerant: a
+ * lookup that fails shows the ordinary page, as before this existed.
+ */
+export type PriceScope =
+  | { kind: 'reseller'; name: string }
+  | { kind: 'client'; name: string; email: string | null }
+
+export async function resellerPriceScope(db: any, userId: string): Promise<PriceScope | null> {
+  if (!userId) return null
+  try {
+    const reseller = await getResellerForUser(db, userId)
+    if (reseller && reseller.status !== 'ended') return { kind: 'reseller', name: reseller.name }
+
+    // The teams this login belongs to: as owner, as a card holder, or as the
+    // head of a department.
+    const [{ data: owned }, { data: cards }, { data: heads }] = await Promise.all([
+      db.from('organizations').select('id').eq('admin_user_id', userId),
+      db.from('team_cards').select('organization_id').eq('user_id', userId).eq('is_active', true),
+      db.from('department_managers').select('department_id').eq('user_id', userId),
+    ])
+    const orgIds = new Set<string>(
+      [...(owned || []).map((o: any) => o.id), ...(cards || []).map((c: any) => c.organization_id)].filter(Boolean))
+    const deptIds = (heads || []).map((h: any) => h.department_id).filter(Boolean)
+    if (deptIds.length) {
+      const { data: depts } = await db.from('departments').select('organization_id').in('id', deptIds)
+      for (const d of depts || []) if (d.organization_id) orgIds.add(d.organization_id)
+    }
+    if (!orgIds.size) return null
+
+    // select('*') so a missing reseller_id (before migration 094) reads as
+    // "not a client" rather than failing the query.
+    const { data: orgs } = await db.from('organizations').select('*').in('id', [...orgIds])
+    const client = (orgs || []).find((o: any) => o.reseller_id && o.billing_period === 'reseller')
+    if (!client) return null
+    const by = await managedByFor(db, client)
+    return by ? { kind: 'client', name: by.name, email: by.email } : null
+  } catch {
+    return null
+  }
+}
+
 /** For a client team's own screens: who to talk to about seats and billing. */
 export async function managedByFor(db: any, org: any): Promise<{ name: string; email: string | null } | null> {
   if (!org?.reseller_id || org.billing_period !== 'reseller') return null

@@ -10,11 +10,13 @@ import ResellerPanel from '@/components/reseller/ResellerPanel'
 export const metadata = { title: 'Reseller' }
 export const dynamic = 'force-dynamic'
 
-export default async function ResellerPage() {
+export default async function ResellerPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
   const reseller = await getResellerForUser(serviceDb(), user.id)
   if (!reseller) redirect('/dashboard')
-  return <ResellerPanel />
+  // ?tab=nfc opens on NFC cards, for the NFC Cards page's "Order NFC cards".
+  const { tab } = await searchParams
+  return <ResellerPanel initialTab={tab === 'nfc' || tab === 'invoices' ? tab : 'clients'} />
 }

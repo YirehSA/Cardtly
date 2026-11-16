@@ -6,7 +6,8 @@ import TeamDashboard from '@/components/team/TeamDashboard'
 import HeadTeamView from '@/components/team/HeadTeamView'
 import { companyOf, indexById, type DeptNode } from '@/lib/department-tree'
 import { isIosApp } from '@/lib/app-platform'
-import { managedByFor } from '@/lib/reseller'
+import { managedByFor, resellerPriceScope } from '@/lib/reseller'
+import ResellerTeamCards from '@/components/team/ResellerTeamCards'
 
 export const metadata = { title: 'Team Cards' }
 
@@ -218,6 +219,20 @@ export default async function TeamPage() {
     }
   }
 
+  const iosApp = await isIosApp()
+
+  // A reseller's own login, with no live team of its own. What TeamDashboard
+  // would show it is Cardtly's price list and a Paystack checkout, and a
+  // reseller shows this dashboard to clients and quotes its own price (Andre,
+  // 2026-11-16). Its clients' teams are made on the Reseller page. A team the
+  // reseller sold to itself carries reseller_id and is TeamDashboard's, which
+  // already shows a client no price. Not in the iOS app, which has no Reseller
+  // page and no setup screen.
+  if (!(org as any)?.business_plan_active && !(org as any)?.reseller_id && !iosApp) {
+    const scope = await resellerPriceScope(createServiceClient() as any, user.id)
+    if (scope?.kind === 'reseller') return <ResellerTeamCards />
+  }
+
   // Service role: contacts are RLS-protected and the owner's user-scoped client
   // cannot read rows captured by their members' cards.
   const leadCounts = await leadCountsByCard(
@@ -280,7 +295,7 @@ export default async function TeamPage() {
       importTargets={importTargets}
       companies={companies}
       companyByDept={companyByDept}
-      iosApp={await isIosApp()}
+      iosApp={iosApp}
       managedBy={org ? await managedByFor(createServiceClient() as any, org) : null}
     />
   )

@@ -4,6 +4,8 @@ import { getUserPlan } from '@/lib/plan-server'
 import { getPrimaryCard } from '@/lib/card-server'
 import { isIosApp } from '@/lib/app-platform'
 import UpgradeView from '@/components/upgrade/UpgradeView'
+import PricesElsewhere from '@/components/reseller/PricesElsewhere'
+import { resellerPriceScope, serviceDb } from '@/lib/reseller'
 
 // The upgrade screen, shared by /dashboard/upgrade and /dashboard/upgrade/bundle
 // (which opens on the Pro year + NFC card bundle, for links from the pricing
@@ -26,10 +28,18 @@ export default async function UpgradeScreen({ openBundle = false }: { openBundle
   // offline, and someone who was paying already. Those three people need to
   // read three different things, and the middle one is the whole reason the
   // page exists.
-  const [plan, card] = await Promise.all([
+  const [plan, card, priceScope] = await Promise.all([
     getUserPlan(user.id),
     getPrimaryCard<{ name: string | null; title: string | null }>(user.id, 'name, title'),
+    resellerPriceScope(serviceDb(), user.id),
   ])
+
+  // A reseller, or anybody in a team a reseller sold: no Cardtly price, no
+  // Paystack checkout, no package offer. The reseller sets the price (Andre,
+  // 2026-11-16).
+  if (priceScope) {
+    return <PricesElsewhere scope={priceScope} topic="upgrade" isPro={plan.tier === 'pro' && plan.isActive} />
+  }
   // A fourth person: paying, but the last charge failed. Before this they read
   // "You are already on Pro, nothing to do here" directly under the banner
   // that had sent them to fix a payment.
