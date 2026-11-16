@@ -16,11 +16,12 @@
 // Run: node scripts/check-reseller-levels.mjs
 
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, readFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, readFileSync, renameSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { renameSync } from 'node:fs'
+import { writeFileSync, readdirSync, existsSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 
 let fail = 0
 const bad = (msg) => { console.error(`  FAIL ${msg}`); fail++ }
@@ -28,14 +29,18 @@ const read = (p) => { try { return readFileSync(p, 'utf8').replace(/\r/g, '') } 
 const eq = (got, want, what) => { if (JSON.stringify(got) !== JSON.stringify(want)) bad(`${what}: got ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`) }
 
 const out = mkdtempSync(join(tmpdir(), 'reseller-levels-'))
-let L
+let L, B
 try {
   execFileSync(process.execPath,
-    ['node_modules/typescript/bin/tsc', 'lib/reseller-levels.ts', '--outDir', out,
+    ['node_modules/typescript/bin/tsc', 'lib/reseller-levels.ts', 'lib/reseller-badge.ts', '--outDir', out,
      '--module', 'es2020', '--target', 'es2020', '--moduleResolution', 'node', '--skipLibCheck'],
     { stdio: 'pipe' })
-  renameSync(join(out, 'reseller-levels.js'), join(out, 'reseller-levels.mjs'))
+  for (const f of readdirSync(out).filter(f => f.endsWith('.js'))) {
+    writeFileSync(join(out, f), readFileSync(join(out, f), 'utf8').replace(/from '(\.\/[^']+)'/g, "from '$1.mjs'"))
+    renameSync(join(out, f), join(out, f.replace(/\.js$/, '.mjs')))
+  }
   L = await import(pathToFileURL(join(out, 'reseller-levels.mjs')).href)
+  B = await import(pathToFileURL(join(out, 'reseller-badge.mjs')).href)
 } catch (e) {
   console.error('check-reseller-levels: could not compile lib/reseller-levels.ts')
   console.error(String(e.stdout || e.message).slice(0, 800))
@@ -106,7 +111,31 @@ if (!/cardsEverSold: everSold \? everSold\[r\.id\] \?\? 0 : null/.test(read('app
 if (!/levelProgress\(r\.cardsEverSold\)/.test(read('components/admin/ResellersTab.tsx'))) bad('admin must show each reseller\'s level')
 if (!/check-reseller-levels\.mjs/.test(read('package.json'))) bad('prebuild must run this check')
 
-for (const f of ['lib/reseller-levels.ts', 'lib/reseller-levels-server.ts', 'components/reseller/ResellerLevelCard.tsx', 'supabase/migrations/107_reseller_levels.sql']) {
+// ── 6. The badges (lib/reseller-badge) ──────────────────────────────────────
+eq(L.RESELLER_LEVELS.map(l => B.BADGE_METALS[l.key]?.stars), [0, 1, 2, 3, 4], 'one star per level, Bronze one to Platinum four')
+for (const l of L.RESELLER_LEVELS) {
+  const full = B.badgeSvg(l.key), small = B.badgeSvg(l.key, { compact: true })
+  if (!full.includes(`>${l.name.toUpperCase()}</text>`)) bad(`the ${l.name} badge must carry its name on the ribbon`)
+  if (/textPath/.test(full)) bad('no textPath in the badge: the PNG renderer (librsvg) leaves it blank')
+  if (/<text/.test(small)) bad('a small badge has no lettering')
+  if (!/^<svg [^>]*viewBox="0 0 240 240"/.test(full)) bad('the badge is a 240 by 240 drawing')
+  const a = B.badgeSvg(l.key, { id: 'one' }), b2 = B.badgeSvg(l.key, { id: 'two' })
+  if (a.includes('id="mtwo"') || !b2.includes('id="mtwo"')) bad('two badges on one page must not share gradient ids')
+  if (!existsSync(join('public', B.badgePngPath(l.key)))) bad(`public${B.badgePngPath(l.key)} is missing: run node scripts/make-reseller-badges.mjs`)
+}
+{
+  let manifest = {}
+  try { manifest = JSON.parse(read('public/badges/manifest.json') || '{}') } catch {}
+  for (const l of L.RESELLER_LEVELS) {
+    const hash = createHash('sha256').update(B.badgeSvg(l.key)).digest('hex').slice(0, 16)
+    if (manifest[l.key] !== hash) bad(`the ${l.name} badge changed but its PNG did not: run node scripts/make-reseller-badges.mjs and commit public/badges`)
+  }
+}
+if (!/badgeSvg\(level\.key, \{ id: `\$\{level\.key\}\$\{id\}`, compact: px < 64 \}\)/.test(read('components/reseller/ResellerLevelCard.tsx'))) bad('LevelBadge must draw lib/reseller-badge, compact below 64px')
+if (!/download=\{`cardtly-\$\{p\.level\.key\}-reseller\.png`\}/.test(read('components/reseller/ResellerLevelCard.tsx'))) bad('the Reseller page must offer the badge to download')
+if ((read('lib/reseller-levels-server.ts').match(/\$\{badgeImg\(p\.level, \d+\)\}/g) || []).length < 3) bad('every level email must show the badge')
+
+for (const f of ['lib/reseller-levels.ts', 'lib/reseller-levels-server.ts', 'components/reseller/ResellerLevelCard.tsx', 'supabase/migrations/107_reseller_levels.sql', 'lib/reseller-badge.ts', 'scripts/make-reseller-badges.mjs']) {
   if (read(f).includes('—')) bad(`${f} has an em dash`)
 }
 

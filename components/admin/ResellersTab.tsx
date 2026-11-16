@@ -8,6 +8,7 @@ import { money, toCents, toRands, StatusPill as InvoicePill } from './billing/sh
 import { addressLine } from '@/lib/reseller-application'
 import NfcWriteButton from '@/components/nfc/NfcWriteButton'
 import { levelProgress } from '@/lib/reseller-levels'
+import { LevelBadge } from '@/components/reseller/ResellerLevelCard'
 import { LISTING_PATH, LISTING_STATE_ADMIN, type ListingState } from '@/lib/reseller-listing'
 
 // Resellers: companies that sell Cardtly to their own clients. Cardtly gives
@@ -276,6 +277,7 @@ function ResellerCard({ r, isAdmin, open, onToggle, reload }: { r: any; isAdmin:
       <button onClick={onToggle} className="w-full flex items-center gap-3 px-4 py-3 text-left flex-wrap">
         <div className="flex-1 min-w-[200px]">
           <p className="font-semibold text-white text-sm flex items-center gap-2">
+            {level && <LevelBadge levelKey={level.level.key} size={24} />}
             {r.name}
             {level && (
               <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"

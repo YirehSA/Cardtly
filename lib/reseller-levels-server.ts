@@ -7,6 +7,7 @@ import {
   cardsEverSoldFrom, levelFor, levelProgress, levelRank, progressLine,
   type LevelProgress, type ResellerLevel,
 } from '@/lib/reseller-levels'
+import { badgePngPath } from '@/lib/reseller-badge'
 
 // The server half of reseller levels (rules in lib/reseller-levels): counting
 // cards ever sold, and the two emails. Run from the daily cron.
@@ -65,6 +66,10 @@ function rewardsList(level: ResellerLevel): { html: string; text: string } {
   }
 }
 
+/** The level's badge, as the PNG in public/badges (mail clients drop SVG). */
+const badgeImg = (level: ResellerLevel, px: number) =>
+  `<img src="${SITE}${badgePngPath(level.key)}" width="${px}" height="${px}" alt="${esc(level.name)} reseller badge" style="display:block;margin:0 0 14px;border:0">`
+
 const button = (href: string, label: string) =>
   `<p style="margin:18px 0 0"><a href="${href}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">${esc(label)}</a></p>`
 
@@ -80,6 +85,7 @@ export function levelUpEmail(name: string, p: LevelProgress): { subject: string;
   return {
     subject: `You are now a ${p.level.name} Cardtly reseller`,
     html: wrap(`
+      ${badgeImg(p.level, 140)}
       <h2 style="margin:0 0 12px;font-size:20px">Congratulations, ${esc(name)}: you are now ${p.level.name}</h2>
       <p style="margin:0 0 6px">You have sold <strong>${p.cardsSold} cards</strong> through Cardtly, which makes you a ${p.level.name} reseller.</p>
       <p style="margin:12px 0 0;font-weight:600">What ${p.level.name} gives you</p>
@@ -113,6 +119,7 @@ export function levelUpStaffEmail(name: string, p: LevelProgress): { subject: st
   return {
     subject: `${name} reached ${p.level.name} (${p.cardsSold} cards sold)`,
     html: wrap(`
+      ${badgeImg(p.level, 80)}
       <h2 style="margin:0 0 12px;font-size:20px">${esc(name)} is now a ${p.level.name} reseller</h2>
       <p style="margin:0 0 6px">${p.cardsSold} cards sold in total. They have been emailed.</p>
       <p style="margin:12px 0 0;font-weight:600">What they were told ${p.level.name} gives them</p>
@@ -135,6 +142,7 @@ export function progressEmail(name: string, p: LevelProgress): { subject: string
   return {
     subject,
     html: wrap(`
+      ${badgeImg(p.level, 96)}
       <h2 style="margin:0 0 12px;font-size:20px">${esc(name)}: you are ${p.level.name}</h2>
       <p style="margin:0">${esc(progressLine(p))}</p>
       ${bar(p)}
