@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Plus, Save, X, ChevronDown, ChevronUp, Send, RefreshCw, UserPlus, Trash2, FileText, Check, Inbox, Undo2, Mail } from 'lucide-react'
+import { Loader2, Plus, Save, X, ChevronDown, ChevronUp, Send, RefreshCw, UserPlus, Trash2, FileText, Check, Inbox, Undo2, Mail, Eye } from 'lucide-react'
 import { Section, Stat, inputClass, inputStyle, grad, fmtDate } from './shared'
 import { money, toCents, toRands, StatusPill as InvoicePill } from './billing/shared'
 import { addressLine } from '@/lib/reseller-application'
@@ -302,6 +302,18 @@ function ResellerCard({ r, isAdmin, open, onToggle, reload }: { r: any; isAdmin:
 
       {open && (
         <div className="px-4 pb-4 space-y-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          {/* Their Reseller page as their main login sees it, read-only
+              (app/dashboard/reseller ?as=). Admins only: /api/reseller checks
+              again. */}
+          {isAdmin && (
+            <div className="mt-3">
+              <a href={`/dashboard/reseller?as=${encodeURIComponent(r.id)}`} target="_blank" rel="noopener"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                style={{ background: 'rgba(255,255,255,0.08)', color: '#fff' }}>
+                <Eye className="w-3.5 h-3.5" />View as reseller
+              </a>
+            </div>
+          )}
           {!r.billingClient && (
             <p className="text-xs mt-3" style={{ color: '#f59e0b' }}>No billing client is linked, so nothing can be invoiced. Recreate the reseller or link one under Clients.</p>
           )}

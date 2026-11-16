@@ -373,6 +373,15 @@ if (!/\{priceScope \? \(\s*<PricesElsewhere scope=\{priceScope\} topic="nfc" \/>
 const upScreen = read('components/upgrade/UpgradeScreen.tsx')
 const upScope = upScreen.indexOf('if (priceScope) {')
 if (upScope < 0 || upScope > upScreen.indexOf('<UpgradeView')) bad('the upgrade screen must stop a reseller and its clients before the Pro prices and checkout')
+// 4c. "View as reseller" (Andre, 2026-11-16): admins only, and read-only.
+const previewApi = read('app/api/reseller/route.ts')
+if (!/if \(!as\) \{[\s\S]*?requireReseller\(\)[\s\S]*?\}\s*const admin = await requireAdmin\(\)\s*if \('error' in admin\) return admin/.test(previewApi)) bad('/api/reseller must check the admin before it answers ?as=')
+const apiPost = previewApi.slice(previewApi.indexOf('export async function POST'))
+if (!/const gate = await requireReseller\(\)/.test(apiPost) || /searchParams|viewer\(/.test(apiPost)) bad('POST /api/reseller must stay scoped to the reseller the login runs, never ?as=')
+if (!/if \(as\) \{\s*if \(!\(await isAdminUser\(user\.id\)\)\) redirect\('\/dashboard'\)/.test(read('app/dashboard/reseller/page.tsx'))) bad('the Reseller page must refuse ?as= to anyone but an admin')
+if (!/<fieldset disabled=\{!!previewOf\}/.test(read('components/reseller/ResellerPanel.tsx'))) bad('a reseller preview must switch every control off')
+if (!/\{isAdmin && \(\s*<div className="mt-3">\s*<a href=\{`\/dashboard\/reseller\?as=/.test(read('components/admin/ResellersTab.tsx'))) bad('View as reseller is for admins only')
+
 for (const f of ['components/team/ResellerTeamCards.tsx', 'components/reseller/PricesElsewhere.tsx']) {
   const src = read(f).split('\n').filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n')
   if (!src) { bad(`${f} is missing`); continue }

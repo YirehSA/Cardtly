@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import {
   requireReseller, listResellerClients, poolClients, createResellerClient,
-  setClientSeats, setClientState, setClientTerm, resendClientWelcome, placeResellerNfcOrder, writable,
+  setClientSeats, setClientState, setClientTerm, resendClientWelcome, placeResellerNfcOrder, writable, serviceDb,
 } from '@/lib/reseller'
+import { requireAdmin } from '@/lib/admin-api'
 import { invoiceOutstanding } from '@/lib/billing-docs'
 import { sastMonth, monthLabel, seatsSold } from '@/lib/reseller-pricing'
 import { estimateResellerMonth, resellerPrices } from '@/lib/reseller-billing'
@@ -16,17 +17,42 @@ import { ownListing, saveResellerListing } from '@/lib/reseller-listing-server'
 
 export const runtime = 'nodejs'
 
-export async function GET() {
-  const gate = await requireReseller()
+/**
+ * Who the page is for. A reseller's own login sees its own reseller, as
+ * always. An admin may pass ?as=<reseller id> to see any reseller's page
+ * exactly as its main login does ("View as reseller", Andre 2026-11-16).
+ * Only GET reads ?as=, so a preview can never write: POST stays scoped to the
+ * reseller the login runs, and an admin runs none.
+ */
+async function viewer(request: Request): Promise<
+  { reseller: any; db: any; userId: string | null; preview: boolean } | { error: NextResponse }
+> {
+  const as = new URL(request.url).searchParams.get('as')
+  if (!as) {
+    const gate = await requireReseller()
+    if ('error' in gate) return gate
+    return { reseller: gate.reseller, db: gate.db, userId: gate.user.id, preview: false }
+  }
+  const admin = await requireAdmin()
+  if ('error' in admin) return admin
+  const db = serviceDb()
+  const { data: reseller } = await db.from('resellers').select('*').eq('id', as).maybeSingle()
+  if (!reseller) return { error: NextResponse.json({ error: 'No such reseller.' }, { status: 404 }) }
+  return { reseller, db, userId: null, preview: true }
+}
+
+export async function GET(request: Request) {
+  const gate = await viewer(request)
   if ('error' in gate) return gate.error
-  const { reseller, db, user } = gate
+  const { reseller, db, userId, preview } = gate
 
   // Only the main login's card is free, so only they are told it is. Read
-  // only: the admin side and the daily run make it so.
+  // only: the admin side and the daily run make it so. A preview shows the
+  // main login's view.
   let ownCardFree = false
   try {
     const free = await syncResellerFreeCard(db, reseller, { dryRun: true })
-    ownCardFree = free.userId === user.id && (free.state === 'free' || free.state === 'already_free')
+    ownCardFree = (preview || free.userId === userId) && (free.state === 'free' || free.state === 'already_free')
   } catch { /* not shown */ }
 
   const month = sastMonth(new Date())

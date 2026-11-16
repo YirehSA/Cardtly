@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import {
-  Building2, Plus, Loader2, Wifi, Receipt, Globe, Pause, Play, XCircle, Mail, Download, Check, AlertTriangle, X,
+  Building2, Plus, Loader2, Wifi, Receipt, Globe, Eye, Pause, Play, XCircle, Mail, Download, Check, AlertTriangle, X,
 } from 'lucide-react'
 import {
   randCents, nfcOrderTotalCents, monthLabel, monthsInclusive, addMonths, YEAR_MONTHS,
@@ -103,13 +103,16 @@ function Stat({ label, value, hint }: { label: string; value: string | number; h
   )
 }
 
-export default function ResellerPanel({ initialTab = 'clients' }: { initialTab?: Tab }) {
+/** previewOf: an admin's "View as reseller" (app/dashboard/reseller ?as=). The page
+ *  is loaded as that reseller's main login sees it, and every control below the
+ *  tabs is switched off by one disabled fieldset, so nothing can be changed. */
+export default function ResellerPanel({ initialTab = 'clients', previewOf }: { initialTab?: Tab; previewOf?: { id: string; name: string } }) {
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>(initialTab)
 
   async function load() {
-    const res = await fetch('/api/reseller', { cache: 'no-store' })
+    const res = await fetch(previewOf ? `/api/reseller?as=${encodeURIComponent(previewOf.id)}` : '/api/reseller', { cache: 'no-store' })
     const d = await res.json().catch(() => ({}))
     if (!res.ok || d?.error) { setError(d?.error || 'Could not load your reseller account'); return }
     setError(null)
@@ -127,6 +130,15 @@ export default function ResellerPanel({ initialTab = 'clients' }: { initialTab?:
 
   return (
     <div className="space-y-6">
+      {previewOf && (
+        <div className="rounded-xl px-4 py-3 text-sm flex items-start gap-2 flex-wrap bg-sky-500/10 border border-sky-500/30 text-sky-700 dark:text-sky-300">
+          <Eye className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span className="flex-1 min-w-[200px]">
+            <strong>Preview:</strong> this is {previewOf.name}&apos;s Reseller page as they see it. Nothing can be changed here.
+          </span>
+          <a href="/admin?tab=resellers" className="underline font-medium">Back to admin</a>
+        </div>
+      )}
       <div>
         <p className="section-label">Reseller</p>
         <h1 className="page-title mt-1.5">{r.name}</h1>
@@ -182,12 +194,16 @@ export default function ResellerPanel({ initialTab = 'clients' }: { initialTab?:
         })}
       </div>
 
-      {tab === 'clients' && <ClientsSection data={data} onHold={onHold} reload={load} />}
-      {tab === 'nfc' && <NfcSection data={data} onHold={onHold} reload={load} />}
-      {tab === 'invoices' && <InvoicesSection data={data} />}
-      {tab === 'listing' && (
-        <ResellerListingForm own={data.listing} resellerName={r.name} cardsSold={data.cardsEverSold ?? 0} onHold={onHold} reload={load} />
-      )}
+      {/* In a preview every button, input and select below is disabled by
+          this one fieldset; the tabs above still switch. */}
+      <fieldset disabled={!!previewOf} className="min-w-0 border-0 p-0 m-0">
+        {tab === 'clients' && <ClientsSection data={data} onHold={onHold} reload={load} />}
+        {tab === 'nfc' && <NfcSection data={data} onHold={onHold} reload={load} />}
+        {tab === 'invoices' && <InvoicesSection data={data} adminPdf={!!previewOf} />}
+        {tab === 'listing' && (
+          <ResellerListingForm own={data.listing} resellerName={r.name} cardsSold={data.cardsEverSold ?? 0} onHold={onHold || !!previewOf} reload={load} />
+        )}
+      </fieldset>
     </div>
   )
 }
@@ -614,7 +630,7 @@ function NfcSection({ data, onHold, reload }: { data: Data; onHold: boolean; rel
 
 // ── Invoices ────────────────────────────────────────────────────────────────
 
-function InvoicesSection({ data }: { data: Data }) {
+function InvoicesSection({ data, adminPdf = false }: { data: Data; adminPdf?: boolean }) {
   const owing = data.invoices.reduce((n, i) => n + (i.outstanding_cents || 0), 0)
   if (!data.invoices.length) {
     return (
@@ -646,7 +662,7 @@ function InvoicesSection({ data }: { data: Data }) {
                   <p className="text-xs text-muted-foreground">{randCents(i.outstanding_cents)} still owing</p>
                 )}
               </div>
-              <a href={`/api/reseller/invoices/pdf?id=${i.id}`} target="_blank" rel="noreferrer"
+              <a href={adminPdf ? `/api/admin/billing/invoices/pdf?id=${i.id}` : `/api/reseller/invoices/pdf?id=${i.id}`} target="_blank" rel="noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted transition">
                 <Download className="w-3.5 h-3.5" />PDF
               </a>

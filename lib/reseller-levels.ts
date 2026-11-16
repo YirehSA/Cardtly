@@ -10,10 +10,11 @@
 // reseller_seat_months, which only ever rises. A client that later shrinks,
 // pauses, cancels or moves off the bill keeps counting at its highest.
 //
-// THE REWARDS, as Andre chose them: better prices are "coming soon" (no
-// figures promised yet), a listing on cardtly.com from Bronze, and from Gold
-// the leads Cardtly receives in the reseller's area plus card themes only
-// their clients can use.
+// THE REWARDS, as Andre chose them: a listing on cardtly.com from Bronze, and
+// from Gold the leads Cardtly receives in the reseller's area plus card themes
+// only their clients can use. From Bronze, the badge to download. NO PRICE
+// PROMISE of any kind (Andre, 2026-11-16: "we don't want to say better pricing
+// on seats and nfc cards"); check-reseller-levels holds it.
 //
 // Pure and client-safe: the Reseller page, the admin screen and the emails
 // all read the same table. Guarded by scripts/check-reseller-levels.
@@ -31,27 +32,25 @@ export interface ResellerLevel {
   rewards: string[]
 }
 
-export const PRICES_COMING_SOON = 'Better prices on seats and NFC cards (coming soon)'
-
 export const RESELLER_LEVELS: readonly ResellerLevel[] = [
   {
-    key: 'starter', name: 'Starter', from: 0, colour: '#64748b',
+    key: 'starter', name: 'Starter', from: 0, colour: '#6b9a86',
     rewards: ['Your own Cardtly card, free', 'Your Reseller page, clients and invoices'],
   },
   {
     key: 'bronze', name: 'Bronze', from: 100, colour: '#b4743c',
-    rewards: ['Listed on cardtly.com as a Bronze reseller', PRICES_COMING_SOON],
+    rewards: ['Listed on cardtly.com as a Bronze reseller', 'A Bronze badge for your website and email signature'],
   },
   {
     key: 'silver', name: 'Silver', from: 250, colour: '#8f98a3',
-    rewards: ['Listed above Bronze resellers on cardtly.com', PRICES_COMING_SOON],
+    rewards: ['Listed above Bronze resellers on cardtly.com', 'A Silver badge for your website and email signature'],
   },
   {
     key: 'gold', name: 'Gold', from: 500, colour: '#c9a227',
     rewards: [
       'Leads Cardtly receives in your area',
       'Exclusive card themes only your clients can use',
-      PRICES_COMING_SOON,
+      'A Gold badge for your website and email signature',
     ],
   },
   {
@@ -59,7 +58,7 @@ export const RESELLER_LEVELS: readonly ResellerLevel[] = [
     rewards: [
       'First in line for leads in your area',
       'Top of the reseller listing on cardtly.com',
-      PRICES_COMING_SOON,
+      'A Platinum badge for your website and email signature',
     ],
   },
 ] as const

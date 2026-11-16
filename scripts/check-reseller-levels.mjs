@@ -5,9 +5,8 @@
 //      Platinum at 1000.
 //   2. Every card ever sold counts (Andre's choice): each client at the most
 //      seats it ever had, added up, never another reseller's rows.
-//   3. The rewards Andre chose: better prices "coming soon" and nothing more
-//      specific, a listing from Bronze, leads and exclusive card themes from
-//      Gold.
+//   3. The rewards Andre chose: a listing and the badge from Bronze, leads and
+//      exclusive card themes from Gold, and no promise about prices.
 //   4. A level is announced once (compare-and-set), the progress email goes
 //      once a month to active resellers only, and nothing is sent before
 //      migration 107.
@@ -80,11 +79,17 @@ eq(L.cardsEverSoldFrom([]), {}, 'no rows, no cards')
 
 // ── 3. The rewards ──────────────────────────────────────────────────────────
 const by = Object.fromEntries(L.RESELLER_LEVELS.map(l => [l.key, l.rewards.join(' | ')]))
-for (const k of ['bronze', 'silver', 'gold', 'platinum']) {
-  if (!by[k].includes('(coming soon)')) bad(`${k} must say better prices are coming soon`)
-}
+// No price promise of any kind (Andre, 2026-11-16: "we don't want to say
+// better pricing on seats and nfc cards"). The emails and the Reseller page
+// both read these lines, so this covers them.
 for (const l of L.RESELLER_LEVELS) {
-  if (/\bR\s?\d|%|percent/i.test(l.rewards.join(' '))) bad(`${l.name} promises a price figure, and Andre has said prices are coming soon`)
+  if (/pric|discount|cheaper|\bR\s?\d|%|percent|coming soon|saving/i.test(l.rewards.join(' '))) bad(`${l.name} promises something about prices, and Andre does not want that said`)
+}
+for (const k of ['bronze', 'silver', 'gold', 'platinum']) {
+  if (!/badge/i.test(by[k])) bad(`${k} must offer its badge to download`)
+}
+for (const f of ['components/reseller/ResellerLevelCard.tsx', 'lib/reseller-levels-server.ts']) {
+  if (/coming soon|better pric/i.test(read(f))) bad(`${f} still talks about better prices`)
 }
 if (!/cardtly\.com/i.test(by.bronze)) bad('Bronze must list the reseller on cardtly.com')
 if (!/lead/i.test(by.gold) || !/theme/i.test(by.gold)) bad('Gold must give leads and exclusive card themes')
@@ -140,4 +145,4 @@ for (const f of ['lib/reseller-levels.ts', 'lib/reseller-levels-server.ts', 'com
 }
 
 if (fail) { console.error(`check-reseller-levels: ${fail} problem${fail === 1 ? '' : 's'}`); process.exit(1) }
-console.log('check-reseller-levels: ok (Starter, Bronze 100, Silver 250, Gold 500, Platinum 1000; every card ever sold; prices coming soon; announced once; monthly to active resellers)')
+console.log('check-reseller-levels: ok (Starter, Bronze 100, Silver 250, Gold 500, Platinum 1000; every card ever sold; no price promises; announced once; monthly to active resellers)')
