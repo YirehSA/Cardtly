@@ -16,7 +16,8 @@ export default async function ResellerPage({ searchParams }: { searchParams: Pro
   if (!user) redirect('/login')
   const reseller = await getResellerForUser(serviceDb(), user.id)
   if (!reseller) redirect('/dashboard')
-  // ?tab=nfc opens on NFC cards, for the NFC Cards page's "Order NFC cards".
+  // ?tab=nfc opens on NFC cards, for the NFC Cards page's "Order NFC cards";
+  // ?tab=listing on their listing, for the level-up email.
   const { tab } = await searchParams
-  return <ResellerPanel initialTab={tab === 'nfc' || tab === 'invoices' ? tab : 'clients'} />
+  return <ResellerPanel initialTab={tab === 'nfc' || tab === 'invoices' || tab === 'listing' ? tab : 'clients'} />
 }

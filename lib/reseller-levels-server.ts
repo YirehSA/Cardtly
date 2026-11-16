@@ -72,6 +72,11 @@ const button = (href: string, label: string) =>
 export function levelUpEmail(name: string, p: LevelProgress): { subject: string; html: string; text: string } {
   const r = rewardsList(p.level)
   const next = p.next ? `${p.toNext} more card${p.toNext === 1 ? '' : 's'} to ${p.next.name}.` : 'Platinum is the top level. Thank you.'
+  // Bronze is where the public listing starts, and it only shows once they
+  // fill it in, so the email says where.
+  const listingNote = p.level.key === 'bronze'
+    ? 'You can now be listed on cardtly.com, where companies look for a reseller near them. Fill in your listing on your Reseller page, under Listing, and it goes live straight away.'
+    : ''
   return {
     subject: `You are now a ${p.level.name} Cardtly reseller`,
     html: wrap(`
@@ -79,14 +84,19 @@ export function levelUpEmail(name: string, p: LevelProgress): { subject: string;
       <p style="margin:0 0 6px">You have sold <strong>${p.cardsSold} cards</strong> through Cardtly, which makes you a ${p.level.name} reseller.</p>
       <p style="margin:12px 0 0;font-weight:600">What ${p.level.name} gives you</p>
       ${r.html}
+      ${listingNote ? `<p style="margin:0 0 12px;padding:12px;background:#ecfdf5;border-radius:8px">${esc(listingNote)}</p>` : ''}
       <p style="margin:0">${esc(next)}</p>
       ${p.next ? bar(p) : ''}
-      ${button(`${SITE}/dashboard/reseller`, 'Open your Reseller page')}
+      ${listingNote
+        ? button(`${SITE}/dashboard/reseller?tab=listing`, 'Fill in your listing')
+        : button(`${SITE}/dashboard/reseller`, 'Open your Reseller page')}
       <p style="margin:18px 0 0;font-size:12px;color:#6b7280">Questions? Reply to this email.</p>`),
     text: [
       `Congratulations, ${name}: you are now ${p.level.name}.`,
       `You have sold ${p.cardsSold} cards through Cardtly, which makes you a ${p.level.name} reseller.`,
-      '', `What ${p.level.name} gives you:`, r.text, '', next, '',
+      '', `What ${p.level.name} gives you:`, r.text, '',
+      ...(listingNote ? [listingNote, `Your listing: ${SITE}/dashboard/reseller?tab=listing`, ''] : []),
+      next, '',
       `Your Reseller page: ${SITE}/dashboard/reseller`,
     ].join('\n'),
   }
@@ -94,9 +104,11 @@ export function levelUpEmail(name: string, p: LevelProgress): { subject: string;
 
 /** To Cardtly, so the rewards are actually given. */
 export function levelUpStaffEmail(name: string, p: LevelProgress): { subject: string; html: string; text: string } {
+  // The listing places them by level by itself (lib/reseller-listing), once
+  // they have filled it in and switched it on.
   const todo = p.level.key === 'bronze' || p.level.key === 'silver'
-    ? 'List them (or move them up) on the reseller listing on cardtly.com.'
-    : 'Start passing them the leads Cardtly receives in their area, switch on the exclusive card themes for their clients, and move them up the listing.'
+    ? `They can now appear on ${SITE}/find-a-reseller. If they have not filled in their listing (Reseller page, Listing), remind them.`
+    : 'Start passing them the leads Cardtly receives in their area, and switch on the exclusive card themes for their clients.'
   const r = rewardsList(p.level)
   return {
     subject: `${name} reached ${p.level.name} (${p.cardsSold} cards sold)`,

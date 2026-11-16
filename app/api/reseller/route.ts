@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
 import {
   requireReseller, listResellerClients, poolClients, createResellerClient,
-  setClientSeats, setClientState, setClientTerm, resendClientWelcome, placeResellerNfcOrder,
+  setClientSeats, setClientState, setClientTerm, resendClientWelcome, placeResellerNfcOrder, writable,
 } from '@/lib/reseller'
 import { invoiceOutstanding } from '@/lib/billing-docs'
 import { sastMonth, monthLabel, seatsSold } from '@/lib/reseller-pricing'
 import { estimateResellerMonth, resellerPrices } from '@/lib/reseller-billing'
 import { syncResellerFreeCard } from '@/lib/reseller-comp'
 import { cardsEverSold } from '@/lib/reseller-levels-server'
+import { ownListing, saveResellerListing } from '@/lib/reseller-listing-server'
 
 // The reseller's own page: their pool, their clients, their NFC orders and
 // their invoices. Every query is scoped to the reseller this login runs, which
@@ -65,6 +66,8 @@ export async function GET() {
     // Null when it could not be read: the level card is then left out rather
     // than shown short.
     cardsEverSold: everSold ? everSold[reseller.id] ?? 0 : null,
+    // Their listing on cardtly.com/find-a-reseller. Null before migration 108.
+    listing: ownListing(reseller, everSold ? everSold[reseller.id] ?? 0 : null),
     left: Math.max(0, reseller.seat_pool - sold),
     clients,
     thisMonth: { label: monthLabel(month), seats: estimate.seats, cents: estimate.cents },
@@ -110,6 +113,13 @@ export async function POST(request: Request) {
         kind: body.kind, quantity: body.quantity, organizationId: body.org_id,
         cardIds: body.card_ids, notes: body.notes, shipTo: body.ship_to,
       }, user.id))
+    case 'save_listing': {
+      // Their public listing (lib/reseller-listing). Refused on hold, like
+      // every other change.
+      const blocked = writable(reseller)
+      if (blocked) return reply(blocked)
+      return reply(await saveResellerListing(db, reseller, body))
+    }
     case 'client_cards': {
       // The cards in one of their clients, so a printed order can name them.
       // Name, title and link only.

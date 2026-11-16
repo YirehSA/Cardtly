@@ -8,6 +8,7 @@ import { money, toCents, toRands, StatusPill as InvoicePill } from './billing/sh
 import { addressLine } from '@/lib/reseller-application'
 import NfcWriteButton from '@/components/nfc/NfcWriteButton'
 import { levelProgress } from '@/lib/reseller-levels'
+import { LISTING_PATH, LISTING_STATE_ADMIN, type ListingState } from '@/lib/reseller-listing'
 
 // Resellers: companies that sell Cardtly to their own clients. Cardtly gives
 // each a seat pool, it hands seats to client teams from its own page, and on
@@ -524,6 +525,30 @@ function ResellerCard({ r, isAdmin, open, onToggle, reload }: { r: any; isAdmin:
                   <button onClick={() => patch('free', { action: 'sync_free_card' }, 'Checked')} disabled={!!busy}
                     className="px-2.5 py-1 rounded-lg font-semibold" style={{ background: 'rgba(255,255,255,0.08)', color: '#fff' }}>
                     Check again
+                  </button>
+                )}
+              </div>
+            )}
+            {/* Their public listing on cardtly.com/find-a-reseller. Admins and
+                the programme manager can take it down; the reseller fills it
+                in and switches it on. */}
+            {r.listingInfo && (
+              <div className="flex items-center gap-2 flex-wrap text-xs rounded-lg px-3 py-2 mb-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                <span className="flex-1 min-w-[200px]" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                  <strong className="text-white">Listing on cardtly.com:</strong> {LISTING_STATE_ADMIN[r.listingInfo.state as ListingState]}
+                  {r.listingInfo.state === 'live' && (
+                    <> · <a href={LISTING_PATH} target="_blank" rel="noopener" className="underline hover:text-white">view</a></>
+                  )}
+                </span>
+                {(r.listingInfo.listed || r.listingInfo.blocked) && (
+                  <button disabled={!!busy}
+                    onClick={() => {
+                      const block = !r.listingInfo.blocked
+                      if (block && !confirm(`Take ${r.name}'s listing off cardtly.com? They cannot switch it back on until it is allowed again here.`)) return
+                      patch('listing', { action: 'update', listing_blocked: block }, block ? 'Listing taken down' : 'Listing allowed again')
+                    }}
+                    className="px-2.5 py-1 rounded-lg font-semibold" style={{ background: 'rgba(255,255,255,0.08)', color: '#fff' }}>
+                    {r.listingInfo.blocked ? 'Allow listing again' : 'Take listing down'}
                   </button>
                 )}
               </div>

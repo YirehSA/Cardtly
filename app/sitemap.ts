@@ -2,6 +2,7 @@ import { PROMOS_ENABLED } from '@/lib/promos'
 import type { MetadataRoute } from 'next'
 import { POSTS } from './blog/posts'
 import { SITE_URL } from '@/lib/seo-schema'
+import { publicListings } from '@/lib/reseller-listing-server'
 
 // Sitemap: the marketing pages only.
 //
@@ -44,6 +45,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/about`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/contact`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/resellers`, changeFrequency: 'monthly', priority: 0.6 },
+    // Only once somebody is listed: until then the page is noindex, and an
+    // empty directory is not something to ask Google to crawl.
+    ...((await publicListings()).length
+      ? [{ url: `${BASE}/find-a-reseller`, changeFrequency: 'weekly' as const, priority: 0.6 }]
+      : []),
     { url: `${BASE}/package`, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE}/signup`, changeFrequency: 'monthly', priority: 0.8 },
     // Only advertise /promotions to Google while it actually resolves;

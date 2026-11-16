@@ -3,13 +3,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import {
-  Building2, Plus, Loader2, Wifi, Receipt, Pause, Play, XCircle, Mail, Download, Check, AlertTriangle, X,
+  Building2, Plus, Loader2, Wifi, Receipt, Globe, Pause, Play, XCircle, Mail, Download, Check, AlertTriangle, X,
 } from 'lucide-react'
 import {
   randCents, nfcOrderTotalCents, monthLabel, monthsInclusive, addMonths, YEAR_MONTHS,
   type ResellerClientState, type ResellerNfcKind, type ResellerTerm,
 } from '@/lib/reseller-pricing'
 import ResellerLevelCard from './ResellerLevelCard'
+import ResellerListingForm, { type OwnListing } from './ResellerListingForm'
+
+export type Tab = 'clients' | 'nfc' | 'invoices' | 'listing'
 
 // The reseller's own page. Everything comes from /api/reseller, which scopes
 // every read and write to the reseller this login runs.
@@ -31,6 +34,8 @@ interface Data {
   sold: number
   /** Every card ever sold, for the level. Null when it could not be read. */
   cardsEverSold?: number | null
+  /** Their listing on cardtly.com. Null before migration 108. */
+  listing?: OwnListing | null
   left: number
   clients: Client[]
   thisMonth: { label: string; seats: number; cents: number }
@@ -98,10 +103,10 @@ function Stat({ label, value, hint }: { label: string; value: string | number; h
   )
 }
 
-export default function ResellerPanel({ initialTab = 'clients' }: { initialTab?: 'clients' | 'nfc' | 'invoices' }) {
+export default function ResellerPanel({ initialTab = 'clients' }: { initialTab?: Tab }) {
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<'clients' | 'nfc' | 'invoices'>(initialTab)
+  const [tab, setTab] = useState<Tab>(initialTab)
 
   async function load() {
     const res = await fetch('/api/reseller', { cache: 'no-store' })
@@ -160,6 +165,7 @@ export default function ResellerPanel({ initialTab = 'clients' }: { initialTab?:
           ['clients', 'Clients', Building2, data.clients.length || null],
           ['nfc', 'NFC cards', Wifi, data.nfcOrders.length || null],
           ['invoices', 'Invoices', Receipt, data.invoices.length || null],
+          ['listing', 'Listing', Globe, null],
         ] as const).map(([id, label, Icon, count]) => {
           const active = tab === id
           return (
@@ -179,6 +185,9 @@ export default function ResellerPanel({ initialTab = 'clients' }: { initialTab?:
       {tab === 'clients' && <ClientsSection data={data} onHold={onHold} reload={load} />}
       {tab === 'nfc' && <NfcSection data={data} onHold={onHold} reload={load} />}
       {tab === 'invoices' && <InvoicesSection data={data} />}
+      {tab === 'listing' && (
+        <ResellerListingForm own={data.listing} resellerName={r.name} cardsSold={data.cardsEverSold ?? 0} onHold={onHold} reload={load} />
+      )}
     </div>
   )
 }

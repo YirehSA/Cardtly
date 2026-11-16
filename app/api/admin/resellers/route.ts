@@ -10,6 +10,7 @@ import { syncResellerFreeCard, FREE_CARD_TEXT, mainLogin } from '@/lib/reseller-
 import { requireResellerProgramme, managerMay, adminOnly } from '@/lib/reseller-programme'
 import { resellerDeleteBlocker, neverIssued, LIVE_NFC_STATUSES, type ResellerDeleteFacts } from '@/lib/reseller-delete'
 import { cardsEverSold } from '@/lib/reseller-levels-server'
+import { ownListing } from '@/lib/reseller-listing-server'
 
 // Admin: the resellers, their pools and prices, their clients, and what they
 // are being billed. See migration 094 and lib/reseller-billing.
@@ -147,6 +148,8 @@ export async function GET() {
       clients,
       sold: seatsSold(poolClients(clients)),
       cardsEverSold: everSold ? everSold[r.id] ?? 0 : null,
+      // Their public listing and whether it shows. Null before migration 108.
+      listingInfo: ownListing(r, everSold ? everSold[r.id] ?? 0 : null),
       billingClient: (billingClients.data || []).find((c: any) => c.id === r.billing_client_id) || null,
       thisMonth: { month: thisMonth, label: monthLabel(thisMonth), seats: estimate.seats, cents: estimate.cents },
       lastMonth: { month: lastMonth, label: monthLabel(lastMonth), seats: seatsIn(lastMonth) },
@@ -302,6 +305,9 @@ export async function PATCH(request: Request) {
       if (!name) return NextResponse.json({ error: 'The reseller needs a company name.' }, { status: 400 })
       patch.name = name
     }
+    // Take a public listing down, or allow it again (lib/reseller-listing).
+    // The programme manager may too: it is part of looking after resellers.
+    if ('listing_blocked' in body) patch.listing_blocked = body.listing_blocked === true
     if ('contact_name' in body) patch.contact_name = str(body.contact_name, 120)
     if ('phone' in body) patch.phone = str(body.phone, 40)
     if ('notes' in body) patch.notes = str(body.notes, 1000)
@@ -356,6 +362,9 @@ export async function PATCH(request: Request) {
     if (error) {
       if (/seat_price_year_cents/.test(error.message || '')) {
         return NextResponse.json({ error: 'A yearly price needs migration 097. Run it in Supabase, then save again.' }, { status: 503 })
+      }
+      if (/listing_blocked/.test(error.message || '')) {
+        return NextResponse.json({ error: 'The reseller listing needs migration 108. Run it in Supabase, then try again.' }, { status: 503 })
       }
       return NextResponse.json({ error: error.message || 'Could not save.' }, { status: 500 })
     }
