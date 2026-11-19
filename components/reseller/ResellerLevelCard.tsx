@@ -1,32 +1,31 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useState } from 'react'
 import { Check, ChevronDown, ChevronUp, Download, Lock } from 'lucide-react'
 import { RESELLER_LEVELS, levelByKey, levelProgress, levelRank, progressLine, type LevelKey } from '@/lib/reseller-levels'
-import { badgePngPath, badgeSvg } from '@/lib/reseller-badge'
+import { badgePngPath, badgeWebpPath } from '@/lib/reseller-badge'
 
 // The reseller's level on their own page: their badge, how far to the next
 // level, what every level unlocks, and the badge to download. Rules in
-// lib/reseller-levels, the badge drawing in lib/reseller-badge.
+// lib/reseller-levels, the badge files in lib/reseller-badge.
 
-const SIZES = { sm: 28, md: 52, lg: 128 } as const
+const SIZES = { sm: 28, md: 56, lg: 136 } as const
 
 /**
- * The level badge (lib/reseller-badge). Below 64px it is drawn without the
- * lettering and ribbon, which would only be noise at that size. `locked`
- * greys it out, for a level not reached yet.
+ * The level badge: Andre's artwork (lib/reseller-badge). `locked` greys it
+ * out, for a level not reached yet.
  */
 export function LevelBadge({ levelKey, size = 'md', locked = false }: {
   levelKey: LevelKey; size?: keyof typeof SIZES | number; locked?: boolean
 }) {
   const px = typeof size === 'number' ? size : SIZES[size]
-  const id = useId()
   const level = levelByKey(levelKey)
   return (
-    <span role="img" aria-label={`${level.name} reseller badge${locked ? ', not reached yet' : ''}`}
-      className="inline-block flex-shrink-0 [&>svg]:w-full [&>svg]:h-full"
-      style={{ width: px, height: px, filter: locked ? 'grayscale(1)' : undefined, opacity: locked ? 0.45 : 1 }}
-      dangerouslySetInnerHTML={{ __html: badgeSvg(level.key, { id: `${level.key}${id}`, compact: px < 64 }) }} />
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={badgeWebpPath(level.key)} width={px} height={px} loading="lazy" decoding="async"
+      alt={`${level.name} reseller badge${locked ? ', not reached yet' : ''}`}
+      className="inline-block flex-shrink-0 select-none"
+      style={{ width: px, height: px, filter: locked ? 'grayscale(1)' : undefined, opacity: locked ? 0.45 : 1 }} />
   )
 }
 

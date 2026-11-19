@@ -20,7 +20,6 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { writeFileSync, readdirSync, existsSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 
 let fail = 0
 const bad = (msg) => { console.error(`  FAIL ${msg}`); fail++ }
@@ -117,26 +116,34 @@ if (!/levelProgress\(r\.cardsEverSold\)/.test(read('components/admin/ResellersTa
 if (!/check-reseller-levels\.mjs/.test(read('package.json'))) bad('prebuild must run this check')
 
 // ── 6. The badges (lib/reseller-badge) ──────────────────────────────────────
-eq(L.RESELLER_LEVELS.map(l => B.BADGE_METALS[l.key]?.stars), [0, 1, 2, 3, 4], 'one star per level, Bronze one to Platinum four')
+// Andre's artwork (2026-11-19), made into files by make-reseller-badges. Read
+// from the file headers only, so the check needs no image library.
+const pngSize = (buf) => buf.length > 26 && buf.toString('ascii', 1, 4) === 'PNG'
+  ? { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20), type: buf[25] } : null
+// A PNG with real transparency: RGBA (6), grey-alpha (4), or a palette (3)
+// with a tRNS chunk.
+const pngClear = (buf, t) => t === 6 || t === 4 || (t === 3 && buf.includes(Buffer.from('tRNS')))
+const webpSize = (buf) => {
+  if (buf.length < 30 || buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WEBP') return null
+  const kind = buf.toString('ascii', 12, 16)
+  if (kind === 'VP8X') return { w: 1 + buf.readUIntLE(24, 3), h: 1 + buf.readUIntLE(27, 3), alpha: !!(buf[20] & 0x10) }
+  return { w: 0, h: 0, alpha: false }
+}
 for (const l of L.RESELLER_LEVELS) {
-  const full = B.badgeSvg(l.key), small = B.badgeSvg(l.key, { compact: true })
-  if (!full.includes(`>${l.name.toUpperCase()}</text>`)) bad(`the ${l.name} badge must carry its name on the ribbon`)
-  if (/textPath/.test(full)) bad('no textPath in the badge: the PNG renderer (librsvg) leaves it blank')
-  if (/<text/.test(small)) bad('a small badge has no lettering')
-  if (!/^<svg [^>]*viewBox="0 0 240 240"/.test(full)) bad('the badge is a 240 by 240 drawing')
-  const a = B.badgeSvg(l.key, { id: 'one' }), b2 = B.badgeSvg(l.key, { id: 'two' })
-  if (a.includes('id="mtwo"') || !b2.includes('id="mtwo"')) bad('two badges on one page must not share gradient ids')
-  if (!existsSync(join('public', B.badgePngPath(l.key)))) bad(`public${B.badgePngPath(l.key)} is missing: run node scripts/make-reseller-badges.mjs`)
-}
-{
-  let manifest = {}
-  try { manifest = JSON.parse(read('public/badges/manifest.json') || '{}') } catch {}
-  for (const l of L.RESELLER_LEVELS) {
-    const hash = createHash('sha256').update(B.badgeSvg(l.key)).digest('hex').slice(0, 16)
-    if (manifest[l.key] !== hash) bad(`the ${l.name} badge changed but its PNG did not: run node scripts/make-reseller-badges.mjs and commit public/badges`)
+  if (!existsSync(`design/reseller-badges/${l.key}.webp`)) bad(`design/reseller-badges/${l.key}.webp (the artwork) is missing`)
+  const png = existsSync(join('public', B.badgePngPath(l.key))) ? readFileSync(join('public', B.badgePngPath(l.key))) : null
+  const p = png && pngSize(png)
+  if (!p) bad(`public${B.badgePngPath(l.key)} is missing: run node scripts/make-reseller-badges.mjs`)
+  else {
+    if (p.w !== p.h || p.w < 512) bad(`the ${l.name} PNG must be square and at least 512px, not ${p.w} x ${p.h}`)
+    if (!pngClear(png, p.type)) bad(`the ${l.name} PNG must have a transparent background`)
   }
+  const webp = existsSync(join('public', B.badgeWebpPath(l.key))) ? readFileSync(join('public', B.badgeWebpPath(l.key))) : null
+  const w = webp && webpSize(webp)
+  if (!w) bad(`public${B.badgeWebpPath(l.key)} is missing: run node scripts/make-reseller-badges.mjs`)
+  else if (w.w !== w.h || w.w < 256 || !w.alpha) bad(`the ${l.name} WebP must be square, 256px or more, with transparency`)
 }
-if (!/badgeSvg\(level\.key, \{ id: `\$\{level\.key\}\$\{id\}`, compact: px < 64 \}\)/.test(read('components/reseller/ResellerLevelCard.tsx'))) bad('LevelBadge must draw lib/reseller-badge, compact below 64px')
+if (!/<img src=\{badgeWebpPath\(level\.key\)\}/.test(read('components/reseller/ResellerLevelCard.tsx'))) bad('LevelBadge must show the badge artwork (lib/reseller-badge)')
 if (!/download=\{`cardtly-\$\{p\.level\.key\}-reseller\.png`\}/.test(read('components/reseller/ResellerLevelCard.tsx'))) bad('the Reseller page must offer the badge to download')
 if ((read('lib/reseller-levels-server.ts').match(/\$\{badgeImg\(p\.level, \d+\)\}/g) || []).length < 3) bad('every level email must show the badge')
 

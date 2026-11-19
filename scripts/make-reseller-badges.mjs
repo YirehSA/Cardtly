@@ -1,47 +1,42 @@
-// Makes public/badges/reseller-<level>.png from the drawing in
-// lib/reseller-badge.ts, for the emails (mail clients drop SVG) and for
-// resellers to download. Run it after changing the drawing, and commit the
-// PNGs with public/badges/manifest.json: check-reseller-levels compares the
-// manifest with the drawing and fails the build if they no longer match.
+// Makes the reseller level badges in public/badges from Andre's artwork in
+// design/reseller-badges/<level>.webp (2026-11-19: "please use these
+// badges"). For each level:
+//   public/badges/reseller-<level>.png       600 x 600, for the emails (mail
+//                                             clients want PNG) and for
+//                                             resellers to download
+//   public/badges/reseller-<level>-256.webp  256 x 256, for the screens
+// The artwork is cropped to the medal and centred on a square, transparent
+// canvas. Run it after replacing any artwork, and commit public/badges:
+// check-reseller-levels fails the build if a file is missing or not square.
 //
 // Run: node scripts/make-reseller-badges.mjs
 
-import { execFileSync } from 'node:child_process'
-import { createHash } from 'node:crypto'
-import { mkdtempSync, rmSync, readFileSync, writeFileSync, readdirSync, renameSync, mkdirSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { mkdirSync, existsSync } from 'node:fs'
 import sharp from 'sharp'
 
-const SIZE = 512
-const out = mkdtempSync(join(tmpdir(), 'reseller-badges-'))
-let B, L
-try {
-  execFileSync(process.execPath,
-    ['node_modules/typescript/bin/tsc', 'lib/reseller-badge.ts', '--outDir', out,
-     '--module', 'es2020', '--target', 'es2020', '--moduleResolution', 'node', '--skipLibCheck'],
-    { stdio: 'pipe' })
-  for (const f of readdirSync(out).filter(f => f.endsWith('.js'))) {
-    writeFileSync(join(out, f), readFileSync(join(out, f), 'utf8').replace(/from '(\.\/[^']+)'/g, "from '$1.mjs'"))
-    renameSync(join(out, f), join(out, f.replace(/\.js$/, '.mjs')))
-  }
-  B = await import(pathToFileURL(join(out, 'reseller-badge.mjs')).href)
-  L = await import(pathToFileURL(join(out, 'reseller-levels.mjs')).href)
-} finally {
-  try { rmSync(out, { recursive: true, force: true }) } catch {}
-}
+const LEVELS = ['starter', 'bronze', 'silver', 'gold', 'platinum']
+const CLEAR = { r: 0, g: 0, b: 0, alpha: 0 }
 
 mkdirSync('public/badges', { recursive: true })
-const manifest = {}
-for (const level of L.RESELLER_LEVELS) {
-  const svg = B.badgeSvg(level.key)
-  manifest[level.key] = createHash('sha256').update(svg).digest('hex').slice(0, 16)
-  await sharp(Buffer.from(svg), { density: Math.ceil((72 * SIZE) / 240) })
-    .resize(SIZE, SIZE)
-    .png({ compressionLevel: 9 })
-    .toFile(join('public', B.badgePngPath(level.key)))
-  console.log(`made public${B.badgePngPath(level.key)}`)
+for (const level of LEVELS) {
+  const src = `design/reseller-badges/${level}.webp`
+  if (!existsSync(src)) { console.error(`missing ${src}`); process.exit(1) }
+
+  // Cropped to the medal, then padded to a square so every badge sits the
+  // same way in a square box.
+  const trimmed = await sharp(src).ensureAlpha().trim({ background: CLEAR, threshold: 1 }).png().toBuffer({ resolveWithObject: true })
+  const side = Math.max(trimmed.info.width, trimmed.info.height)
+  const square = await sharp(trimmed.data)
+    .extend({
+      top: Math.floor((side - trimmed.info.height) / 2), bottom: Math.ceil((side - trimmed.info.height) / 2),
+      left: Math.floor((side - trimmed.info.width) / 2), right: Math.ceil((side - trimmed.info.width) / 2),
+      background: CLEAR,
+    })
+    .png().toBuffer()
+
+  await sharp(square).resize(600, 600, { fit: 'contain', background: CLEAR }).png({ palette: true, quality: 95, colours: 256, dither: 1, compressionLevel: 9, effort: 10 })
+    .toFile(`public/badges/reseller-${level}.png`)
+  await sharp(square).resize(256, 256, { fit: 'contain', background: CLEAR }).webp({ quality: 88, alphaQuality: 100 })
+    .toFile(`public/badges/reseller-${level}-256.webp`)
+  console.log(`made public/badges/reseller-${level}.png and -256.webp (medal ${trimmed.info.width} x ${trimmed.info.height})`)
 }
-writeFileSync('public/badges/manifest.json', JSON.stringify(manifest, null, 2) + '\n')
-console.log('wrote public/badges/manifest.json')
