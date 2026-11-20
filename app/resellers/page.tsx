@@ -27,7 +27,7 @@ const gradText: React.CSSProperties = {
 
 const BENEFITS = [
   { icon: Tags, colour: '#00d4ff', title: 'Your price, your clients', body: 'Charge your clients whatever you like. They deal with you, and their dashboard never shows a Cardtly price.' },
-  { icon: LayoutDashboard, colour: '#7c3aed', title: 'Your own reseller panel', body: 'Add a client and their team is live in a minute. Give them seats, pause them or cancel them, all from one page.' },
+  { icon: LayoutDashboard, colour: '#7c3aed', title: 'Your own reseller panel', body: 'Add a company and their team is live in a minute, or give one person their own Cardtly Solo card. Pause or cancel either, all from one page.' },
   { icon: Wifi, colour: '#ec4899', title: 'NFC cards your way', body: 'Buy blank NFC cards and print them yourself, or have us print and programme them for each of your client\'s people.' },
   { icon: Receipt, colour: '#22c55e', title: 'One invoice a month', body: 'On the 1st we invoice you for the seats your clients had the month before. Your invoices are always in your panel.' },
   { icon: Users, colour: '#f59e0b', title: 'Your clients run their own teams', body: 'Each client\'s admin builds their cards, sets their company look and invites their people, so you are not stuck doing it for them.' },

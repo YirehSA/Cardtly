@@ -404,11 +404,15 @@ export async function GET(request: Request) {
     // whose Paystack subscription has since been cancelled, and stop it for
     // any that ended.
     const freeCards = await syncAllResellerFreeCards(admin)
+    // Cardtly Solo cards resellers sold (lib/reseller-solo): on Solo while
+    // live, off when paused, cancelled, deleted or their reseller ended.
+    const { syncAllSoloCards } = await import('@/lib/reseller-solo')
+    const soloCards = await syncAllSoloCards(admin)
     // Levels last, after today's seats are recorded: a new level is announced
     // once, and the monthly progress email goes on the first run of a month.
     const { checkResellerLevels } = await import('@/lib/reseller-levels-server')
     const levels = await checkResellerLevels(admin)
-    resellers = { seats, drafts, freeCards, levels }
+    resellers = { seats, drafts, freeCards, soloCards, levels }
   } catch (e: any) {
     resellers = { error: e?.message || 'reseller pass failed' }
   }

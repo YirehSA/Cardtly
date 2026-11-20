@@ -1,7 +1,7 @@
 import { documentTotals, effectiveVatRateBp, lineTotalCents } from './billing-docs'
 import {
-  sastMonth, previousMonth, monthLabel, clientState, resellerMonthBill, yearlySeatCents, cleanTerm,
-  type InvoiceLine, type MonthBill, type PaidYear,
+  sastMonth, previousMonth, monthLabel, clientState, resellerMonthBill, yearlySeatCents, cleanTerm, cleanProduct, RESELLER_DEFAULTS,
+  type InvoiceLine, type MonthBill, type PaidYear, type ResellerBillPrices,
 } from './reseller-pricing'
 
 // What a reseller is billed, and when.
@@ -99,6 +99,24 @@ export async function recordClientSeats(db: any, org: any, now = new Date()): Pr
   } catch { /* recorded again by the daily pass */ }
 }
 
+/** A Solo client's month (migration 110): one seat, product 'solo', under the
+ *  client's own id. Only while live and while the person still has a login: a
+ *  deleted account has no card to sell. Never throws, like the team version. */
+export async function recordSoloSeats(db: any, solo: any, now = new Date()): Promise<void> {
+  if (!solo?.id || !solo.reseller_id || !solo.user_id || solo.state !== 'live') return
+  try {
+    await db.rpc('reseller_record_seats', {
+      p_reseller: solo.reseller_id,
+      p_org: solo.id,
+      p_month: sastMonth(now),
+      p_seats: 1,
+      p_client_name: solo.name || null,
+      p_term: cleanTerm(solo.term) || 'monthly',
+      p_product: 'solo',
+    })
+  } catch { /* recorded again by the daily pass */ }
+}
+
 /** The daily pass: every live reseller client, recorded against this month. */
 export async function recordAllResellerSeats(db: any, now = new Date()): Promise<{ recorded: number; problems: string[] }> {
   const out = { recorded: 0, problems: [] as string[] }
@@ -112,6 +130,15 @@ export async function recordAllResellerSeats(db: any, now = new Date()): Promise
     if (!org.reseller_id || clientState(org) !== 'live') continue
     await recordClientSeats(db, org, now)
     out.recorded++
+  }
+  // Solo clients. Before migration 110 there is no table and nobody to record.
+  const { data: solos, error: sErr } = await db.from('reseller_solo_clients').select('*').eq('state', 'live')
+  if (!sErr) {
+    for (const s of solos || []) {
+      if (!s.user_id) continue
+      await recordSoloSeats(db, s, now)
+      out.recorded++
+    }
   }
   return out
 }
@@ -148,9 +175,20 @@ function paidBefore(years: YearRow[], extras: ExtraRow[], month: string): PaidYe
     }))
 }
 
-export function resellerPrices(reseller: any): { monthlyCents: number; yearlyCents: number } {
+export function resellerPrices(reseller: any): Required<ResellerBillPrices> {
   const monthlyCents = Number(reseller?.seat_price_cents) || 0
-  return { monthlyCents, yearlyCents: yearlySeatCents(monthlyCents, reseller?.seat_price_year_cents) }
+  // Solo prices arrive with migration 110; until then the defaults stand
+  // (lib/reseller-pricing), and nobody can have been sold Solo anyway.
+  const cents = (v: unknown, fallback: number) => {
+    const n = v === null || v === undefined ? NaN : Number(v)
+    return Number.isFinite(n) && n >= 0 ? Math.round(n) : fallback
+  }
+  return {
+    monthlyCents,
+    yearlyCents: yearlySeatCents(monthlyCents, reseller?.seat_price_year_cents),
+    soloMonthlyCents: cents(reseller?.solo_price_cents, RESELLER_DEFAULTS.soloPriceCents),
+    soloYearlyCents: cents(reseller?.solo_price_year_cents, RESELLER_DEFAULTS.soloPriceYearCents),
+  }
 }
 
 /** One month's bill for one reseller, worked out from the seat counts and the
@@ -168,6 +206,8 @@ async function monthBillFor(db: any, reseller: any, month: string): Promise<{ bi
     (rows || []).map((r: any) => ({
       orgId: r.organization_id, clientName: r.client_name,
       seats: Number(r.peak_seats) || 0, term: cleanTerm(r.term) || 'monthly',
+      // 'pro' when absent: every row from before migration 110 is a team.
+      product: cleanProduct(r.product),
     })),
     paidBefore(paid.years, paid.extras, month),
     resellerPrices(reseller),
@@ -182,6 +222,9 @@ async function saveYears(db: any, reseller: any, bill: MonthBill, years: YearRow
     const { error } = await db.from('reseller_client_years').insert(bill.newYears.map(y => ({
       reseller_id: reseller.id, organization_id: y.orgId, client_name: y.clientName,
       start_month: y.startMonth, end_month: y.endMonth, seats: y.seats, unit_cents: y.unitCents,
+      // Only Solo years name their product, so a team's year still saves
+      // before migration 110 added the column.
+      ...(y.product === 'solo' ? { product: 'solo' } : {}),
     })))
     if (error) return missingTable(error) ? 'Yearly billing needs migration 097. Run it in Supabase, then draft again.' : (error.message || 'could not save the yearly terms')
   }
@@ -220,7 +263,7 @@ export async function estimateResellerMonth(db: any, reseller: any, month: strin
 }
 
 function seatNotes(reseller: any, month: string): string {
-  return `Cardtly seats sold through ${reseller.name}, ${monthLabel(month)}. One line per client. Monthly clients: a seat live at any time in the month is billed for the whole month. Yearly clients: twelve months are billed upfront in the month the year starts, and seats added during a paid year are billed for the months it has left.`
+  return `Cardtly seats sold through ${reseller.name}, ${monthLabel(month)}. One line per client: a team on Cardtly Pro, or one person on Cardtly Solo. Monthly clients: a seat live at any time in the month is billed for the whole month. Yearly clients: twelve months are billed upfront in the month the year starts, and seats added during a paid year are billed for the months it has left.`
 }
 
 /** Draft one reseller's invoice for one month (YYYY-MM-01). */

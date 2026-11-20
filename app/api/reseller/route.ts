@@ -10,6 +10,7 @@ import { estimateResellerMonth, resellerPrices } from '@/lib/reseller-billing'
 import { syncResellerFreeCard } from '@/lib/reseller-comp'
 import { cardsEverSold } from '@/lib/reseller-levels-server'
 import { ownListing, saveResellerListing } from '@/lib/reseller-listing-server'
+import { createSoloClient, setSoloTerm, setSoloState, resendSoloWelcome } from '@/lib/reseller-solo'
 
 // The reseller's own page: their pool, their clients, their NFC orders and
 // their invoices. Every query is scoped to the reseller this login runs, which
@@ -83,6 +84,11 @@ export async function GET(request: Request) {
       seatPool: reseller.seat_pool,
       seatPriceCents: reseller.seat_price_cents,
       seatPriceYearCents: resellerPrices(reseller).yearlyCents,
+      // Cardtly Solo, per card (migration 110; the defaults until then).
+      soloPriceCents: resellerPrices(reseller).soloMonthlyCents,
+      soloPriceYearCents: resellerPrices(reseller).soloYearlyCents,
+      // Whether Solo can be sold yet: the table arrives with migration 110.
+      soloReady: 'solo_price_cents' in reseller,
       nfcBlankCents: reseller.nfc_blank_cents,
       nfcPrintedCents: reseller.nfc_printed_cents,
       nfcShippingCents: reseller.nfc_shipping_cents,
@@ -134,6 +140,15 @@ export async function POST(request: Request) {
       return reply(await setClientState(db, reseller, String(body.org_id || ''), body.to, body.message))
     case 'resend_welcome':
       return reply(await resendClientWelcome(db, reseller, String(body.org_id || ''), origin))
+    // Cardtly Solo, one person's card (lib/reseller-solo).
+    case 'add_solo':
+      return reply(await createSoloClient(db, reseller, { name: body.name, email: body.email, term: body.term }, origin, user.id))
+    case 'solo_term':
+      return reply(await setSoloTerm(db, reseller, String(body.solo_id || ''), body.term))
+    case 'solo_state':
+      return reply(await setSoloState(db, reseller, String(body.solo_id || ''), body.to, user.id))
+    case 'solo_welcome':
+      return reply(await resendSoloWelcome(db, reseller, String(body.solo_id || ''), origin))
     case 'nfc_order':
       return reply(await placeResellerNfcOrder(db, reseller, {
         kind: body.kind, quantity: body.quantity, organizationId: body.org_id,

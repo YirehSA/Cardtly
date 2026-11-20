@@ -53,8 +53,10 @@ export default function PricesElsewhere({ scope, topic, isPro = true }: Props) {
         ) : (
           <>
             <p className="text-sm text-muted-foreground mt-2">
-              Your team&apos;s Cardtly plan comes through {scope.name}, so NFC cards do too. Ask them to order
-              printed cards for your people.
+              {scope.solo
+                ? <>Your Cardtly card comes through {scope.name}, so NFC cards do too. Ask them to order a printed card for you, programmed with your link.</>
+                : <>Your team&apos;s Cardtly plan comes through {scope.name}, so NFC cards do too. Ask them to order
+              printed cards for your people.</>}
             </p>
             <Contact name={scope.name} email={scope.email} />
           </>
@@ -87,7 +89,9 @@ export default function PricesElsewhere({ scope, topic, isPro = true }: Props) {
           <>
             <h2 className="font-semibold text-lg">Your plan is managed by {scope.name}</h2>
             <p className="text-sm text-muted-foreground mt-2">
-              Your Cardtly plan comes through {scope.name}. Speak to them about your plan, your seats or NFC cards.
+              {scope.solo
+                ? `Your Cardtly Solo card comes through ${scope.name}. Speak to them about moving up to Pro, or about NFC cards.`
+                : `Your Cardtly plan comes through ${scope.name}. Speak to them about your plan, your seats or NFC cards.`}
             </p>
             <Contact name={scope.name} email={scope.email} />
           </>

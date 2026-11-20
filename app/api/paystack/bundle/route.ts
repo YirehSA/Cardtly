@@ -4,6 +4,7 @@ import { getPrimaryCard } from '@/lib/card-server'
 import { parseBundleOrder } from '@/lib/pro-bundle'
 import { startBundleCheckout } from '@/lib/pro-bundle-server'
 import { isIosAppUA } from '@/lib/app-platform'
+import { soloResellerFor, serviceDb } from '@/lib/reseller'
 
 // Start paying for the Pro year + NFC card bundle (R999). The browser sends
 // the card and delivery details and which design was chosen, never a price.
@@ -20,6 +21,12 @@ export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user?.email) return NextResponse.json({ error: 'Please sign in again.' }, { status: 401 })
+
+  // Cardtly Solo sold by a reseller (lib/reseller-solo): they pay the reseller.
+  const reseller = await soloResellerFor(serviceDb(), user.id)
+  if (reseller) {
+    return NextResponse.json({ error: `Your card comes through ${reseller.name}. Speak to them about moving up to Pro.` }, { status: 409 })
+  }
 
   const body = await request.json().catch(() => null)
   const parsed = parseBundleOrder(body)

@@ -24,12 +24,29 @@
 //   - A yearly client renews into a new year in the month after its year
 //     ends. Switching it to monthly takes effect once the paid year is over.
 
+//
+// CARDTLY SOLO (Andre, 2026-11-20: "For resellers: We will charge them R35 per
+// month or R350 per year"). A reseller can sell one person a Solo card as well
+// as selling a company a team. A Solo client is billed exactly like a team
+// with one seat, monthly or yearly, at the reseller's Solo price instead of
+// its seat price, and its line on the invoice says Cardtly Solo.
+
 export const RESELLER_DEFAULTS = {
   seatPriceCents: 7000,
   nfcBlankCents: 5000,
   nfcPrintedCents: 12500,
   nfcShippingCents: 10000,
+  // The same as SOLO_RESELLER_RAND in lib/plan-prices (scripts/check-reseller-solo).
+  soloPriceCents: 3500,
+  soloPriceYearCents: 35000,
 } as const
+
+/** What a client was sold: a team on Cardtly Pro, or one person's Solo card. */
+export type ResellerProduct = 'pro' | 'solo'
+
+export function cleanProduct(raw: unknown): ResellerProduct {
+  return raw === 'solo' ? 'solo' : 'pro'
+}
 
 export type ResellerClientState = 'live' | 'paused' | 'cancelled'
 
@@ -146,8 +163,28 @@ export function yearlySeatCents(monthlyCents: number, yearlyCents?: number | nul
   return Number.isFinite(set) && set >= 0 ? Math.round(set) : Math.round((Number(monthlyCents) || 0) * YEAR_MONTHS)
 }
 
-/** One client's seats in the month being billed, and how it was sold then. */
-export interface MonthClientRow { orgId: string; clientName: string | null; seats: number; term: ResellerTerm }
+/** One client's seats in the month being billed, and how it was sold then.
+ *  product is 'pro' (a client team) when absent, as every row was before Solo. */
+export interface MonthClientRow { orgId: string; clientName: string | null; seats: number; term: ResellerTerm; product?: ResellerProduct }
+
+/** The reseller's prices, per product. Solo falls back to the defaults. */
+export interface ResellerBillPrices {
+  monthlyCents: number
+  yearlyCents: number
+  soloMonthlyCents?: number
+  soloYearlyCents?: number
+}
+
+function productPrices(prices: ResellerBillPrices, product: ResellerProduct): { monthly: number; yearly: number } {
+  if (product === 'solo') {
+    const m = Number(prices.soloMonthlyCents), y = Number(prices.soloYearlyCents)
+    return {
+      monthly: Number.isFinite(m) && m >= 0 ? Math.round(m) : RESELLER_DEFAULTS.soloPriceCents,
+      yearly: Number.isFinite(y) && y >= 0 ? Math.round(y) : RESELLER_DEFAULTS.soloPriceYearCents,
+    }
+  }
+  return { monthly: Math.round(prices.monthlyCents), yearly: Math.round(prices.yearlyCents) }
+}
 
 /** A year a client has already been billed for, from an earlier month. */
 export interface PaidYear {
@@ -162,41 +199,47 @@ export interface PaidYear {
 export interface MonthBill {
   lines: InvoiceLine[]
   /** Years this month's invoice begins. */
-  newYears: Array<{ orgId: string; clientName: string | null; startMonth: string; endMonth: string; seats: number; unitCents: number }>
+  newYears: Array<{ orgId: string; clientName: string | null; startMonth: string; endMonth: string; seats: number; unitCents: number; product: ResellerProduct }>
   /** Seats added to a year that was already paid, billed for the months it has left. */
   extras: Array<{ orgId: string; yearStart: string; month: string; seats: number; months: number; unitCents: number }>
 }
 
 const seatWord = (n: number) => `${n} seat${n === 1 ? '' : 's'}`
+const cardWord = (n: number) => `${n} card${n === 1 ? '' : 's'}`
 
 /** Everything one month's invoice carries, client by client, sorted by name.
  *
  *  `years` are the years billed by EARLIER months. A client inside one of them
  *  is not billed for the month; only seats above what that year already
  *  covers are, for the months it has left. A yearly client with no year
- *  covering the month starts one here. Everyone else is billed the month. */
+ *  covering the month starts one here. Everyone else is billed the month.
+ *
+ *  A Solo client (product 'solo') goes through the same rules with one seat,
+ *  at the reseller's Solo prices, and its line says Cardtly Solo. */
 export function resellerMonthBill(
   month: string,
   rows: MonthClientRow[],
   years: PaidYear[],
-  prices: { monthlyCents: number; yearlyCents: number },
+  prices: ResellerBillPrices,
 ): MonthBill {
   const out: MonthBill = { lines: [], newYears: [], extras: [] }
   const label = monthLabel(month)
   const clients = rows
-    .map(r => ({ ...r, name: (r.clientName || '').trim() || 'Client', seats: Math.max(0, Math.floor(Number(r.seats)) || 0) }))
+    .map(r => ({ ...r, product: cleanProduct(r.product), name: (r.clientName || '').trim() || 'Client', seats: Math.max(0, Math.floor(Number(r.seats)) || 0) }))
     .filter(r => r.seats > 0)
     .sort((a, b) => a.name.localeCompare(b.name))
 
   for (const c of clients) {
+    const p = productPrices(prices, c.product)
+    const solo = c.product === 'solo'
     const year = years.find(y => y.orgId === c.orgId && y.startMonth <= month && month <= y.endMonth)
     if (year) {
       const more = c.seats - Math.max(0, Math.floor(year.coveredSeats) || 0)
       if (more <= 0) continue
       const months = monthsInclusive(month, year.endMonth)
-      const unitCents = Math.round(prices.yearlyCents * months / YEAR_MONTHS)
+      const unitCents = Math.round(p.yearly * months / YEAR_MONTHS)
       out.lines.push({
-        description: `${c.name}: ${seatWord(more)} added to the yearly plan, ${label} to ${monthLabel(year.endMonth)} (${months} of ${YEAR_MONTHS} months)`,
+        description: `${c.name}: ${solo ? cardWord(more) : seatWord(more)} added to the yearly ${solo ? 'Solo ' : ''}plan, ${label} to ${monthLabel(year.endMonth)} (${months} of ${YEAR_MONTHS} months)`,
         qty: more, unitPriceCents: unitCents,
       })
       out.extras.push({ orgId: c.orgId, yearStart: year.startMonth, month, seats: more, months, unitCents })
@@ -204,17 +247,21 @@ export function resellerMonthBill(
     }
     if (c.term === 'yearly') {
       const endMonth = addMonths(month, YEAR_MONTHS - 1)
-      const unitCents = Math.round(prices.yearlyCents)
+      const unitCents = Math.round(p.yearly)
       out.lines.push({
-        description: `${c.name}: Cardtly Pro yearly, ${seatWord(c.seats)}, ${label} to ${monthLabel(endMonth)}`,
+        description: solo
+          ? `${c.name}: Cardtly Solo yearly${c.seats === 1 ? '' : `, ${cardWord(c.seats)}`}, ${label} to ${monthLabel(endMonth)}`
+          : `${c.name}: Cardtly Pro yearly, ${seatWord(c.seats)}, ${label} to ${monthLabel(endMonth)}`,
         qty: c.seats, unitPriceCents: unitCents,
       })
-      out.newYears.push({ orgId: c.orgId, clientName: c.clientName, startMonth: month, endMonth, seats: c.seats, unitCents })
+      out.newYears.push({ orgId: c.orgId, clientName: c.clientName, startMonth: month, endMonth, seats: c.seats, unitCents, product: c.product })
       continue
     }
     out.lines.push({
-      description: `${c.name}: Cardtly Pro, ${seatWord(c.seats)}, ${label}`,
-      qty: c.seats, unitPriceCents: Math.round(prices.monthlyCents),
+      description: solo
+        ? `${c.name}: Cardtly Solo${c.seats === 1 ? '' : `, ${cardWord(c.seats)}`}, ${label}`
+        : `${c.name}: Cardtly Pro, ${seatWord(c.seats)}, ${label}`,
+      qty: c.seats, unitPriceCents: p.monthly,
     })
   }
   return out

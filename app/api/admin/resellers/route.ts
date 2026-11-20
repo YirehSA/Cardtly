@@ -340,6 +340,14 @@ export async function PATCH(request: Request) {
       if (v === null) return NextResponse.json({ error: 'Prices must be amounts of R0 or more.' }, { status: 400 })
       patch[key] = v
     }
+    // Cardtly Solo, per card (migration 110). Ignored until it has run, so
+    // saving everything else still works before it.
+    for (const key of ['solo_price_cents', 'solo_price_year_cents'] as const) {
+      if (!(key in body) || !(key in reseller)) continue
+      const v = cents(body[key], reseller[key])
+      if (v === null) return NextResponse.json({ error: 'Prices must be amounts of R0 or more.' }, { status: 400 })
+      patch[key] = v
+    }
     if ('seat_price_year_cents' in body) {
       const v = yearCents(body.seat_price_year_cents)
       if (v === undefined) return NextResponse.json({ error: 'Prices must be amounts of R0 or more.' }, { status: 400 })
@@ -527,8 +535,15 @@ export async function PATCH(request: Request) {
           moneyRecords += await howMany(what, table, 'client_id', reseller.billing_client_id)
         }
       }
+      // Solo cards it sold (migration 110). Before it, there are none.
+      const { count: soloCount, error: soloErr } = await db.from('reseller_solo_clients')
+        .select('*', { count: 'exact', head: true }).eq('reseller_id', reseller.id)
+      // Only a missing table (before 110) reads as none: deleting a reseller
+      // takes its Solo rows with it, and their cards would stay on Solo.
+      if (soloErr && !/reseller_solo_clients/.test(soloErr.message || '')) throw new Error(`Could not check its Solo cards: ${soloErr.message}`)
       facts = {
         teamsWithCards, teamsWithSchedules, moneyRecords,
+        soloClients: soloErr ? 0 : soloCount || 0,
         issuedInvoices: invoices.filter(i => !neverIssued(i)).length,
         liveNfcOrders: nfc.filter(o => (LIVE_NFC_STATUSES as readonly string[]).includes(o.status)).length,
       }

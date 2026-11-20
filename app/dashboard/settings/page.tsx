@@ -5,7 +5,7 @@ import { getUserPlan } from '@/lib/plan-server'
 import { getPrimaryCard } from '@/lib/card-server'
 import SettingsTabs, { type TeamBilling } from '@/components/settings/SettingsTabs'
 import { orgEntitlesMembers, orgPaidUntilDaysLeft, orgTrialDaysLeft, orgBillingStartsInDays } from '@/lib/org-billing'
-import { managedByFor } from '@/lib/reseller'
+import { managedByFor, soloResellerFor } from '@/lib/reseller'
 
 interface CardSummary {
   id: string
@@ -138,6 +138,9 @@ export default async function SettingsPage() {
         comped: sub.billing_cycle === 'comp' || !!sub.metadata?.comped,
         // The R999 package: when the year it paid for ends. A date only.
         bundleUntil: sub.metadata?.bundle ? (sub.metadata?.period_end ?? null) : null,
+        // Cardtly Solo sold by a reseller (lib/reseller-solo): who to talk to.
+        // Only the name and email, never the reseller's price.
+        managedBy: sub.metadata?.reason === 'reseller_solo' ? await soloResellerFor(admin, user.id) : null,
       } : null}
       card={(card as any) || null}
     />

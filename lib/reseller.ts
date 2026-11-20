@@ -41,6 +41,9 @@ export interface Reseller {
   nfc_blank_cents: number
   nfc_printed_cents: number
   nfc_shipping_cents: number
+  /** Cardtly Solo, per card (migration 110). Absent before it has run. */
+  solo_price_cents?: number
+  solo_price_year_cents?: number
   status: 'active' | 'suspended' | 'ended'
   notes: string | null
   created_at: string
@@ -48,6 +51,9 @@ export interface Reseller {
 
 export interface ResellerClient {
   id: string
+  /** 'team': a client team on Pro. 'solo': one person's Cardtly Solo card
+   *  (lib/reseller-solo), always one seat, managed with its own actions. */
+  kind: 'team' | 'solo'
   name: string
   seats: number
   state: ResellerClientState
@@ -63,6 +69,9 @@ export interface ResellerClient {
    *  YYYY-MM-01 for its first and last months. Null when none is. */
   paidFrom: string | null
   paidTo: string | null
+  /** Solo only: the person deleted their Cardtly account, so there is no
+   *  card and nothing is billed. The reseller cancels the client. */
+  noLogin?: boolean
 }
 
 type Fail = { error: string; status: number }
@@ -107,7 +116,51 @@ export function writable(reseller: Reseller): Fail | null {
     : fail('Your reseller account is on hold, so nothing can be changed right now. Contact Cardtly at hello@cardtly.com.', 403)
 }
 
+/** Every client: the teams first, then the Solo cards. */
 export async function listResellerClients(db: any, resellerId: string): Promise<ResellerClient[]> {
+  const [teams, solos] = await Promise.all([listTeamClients(db, resellerId), listSoloClients(db, resellerId)])
+  return [...teams, ...solos]
+}
+
+/** The people a reseller sold Cardtly Solo to (migration 110). Empty before
+ *  it has run. Each is one seat, whether or not they have made their card. */
+export async function listSoloClients(db: any, resellerId: string): Promise<ResellerClient[]> {
+  const { data: rows, error } = await db
+    .from('reseller_solo_clients').select('*').eq('reseller_id', resellerId).order('created_at', { ascending: true })
+  if (error || !rows?.length) return []
+  const userIds = rows.map((r: any) => r.user_id).filter(Boolean)
+  const { data: cards } = userIds.length
+    ? await db.from('cards').select('user_id').in('user_id', userIds)
+    : { data: [] }
+  const withCard = new Set((cards || []).map((c: any) => c.user_id))
+  const paid = await resellerYears(db, resellerId).catch(() => ({ years: [], extras: [] }))
+  const years = 'error' in paid ? [] : paid.years
+  const month = sastMonth(new Date())
+  return rows.map((s: any) => {
+    const year = currentYear(
+      years.filter((y: any) => y.organization_id === s.id).map((y: any) => ({ startMonth: y.start_month, endMonth: y.end_month })),
+      month,
+    )
+    const state: ResellerClientState = s.state === 'paused' || s.state === 'cancelled' ? s.state : 'live'
+    return {
+      id: s.id,
+      kind: 'solo' as const,
+      name: s.name || 'Client',
+      seats: 1,
+      state,
+      cardsMade: s.user_id && withCard.has(s.user_id) ? 1 : 0,
+      ownerEmail: s.email || null,
+      createdAt: s.created_at || null,
+      offBill: false,
+      term: cleanTerm(s.term) || 'monthly',
+      paidFrom: year?.startMonth || null,
+      paidTo: year?.endMonth || null,
+      noLogin: !s.user_id,
+    }
+  })
+}
+
+async function listTeamClients(db: any, resellerId: string): Promise<ResellerClient[]> {
   const { data: orgs } = await db
     .from('organizations').select('*').eq('reseller_id', resellerId).order('created_at', { ascending: true })
   const list = orgs || []
@@ -138,6 +191,7 @@ export async function listResellerClients(db: any, resellerId: string): Promise<
     )
     return {
       id: o.id,
+      kind: 'team' as const,
       name: o.name || 'Client',
       seats: Math.max(0, Number(o.max_seats) || 0),
       state: clientState(o),
@@ -411,7 +465,19 @@ export async function placeResellerNfcOrder(db: any, reseller: Reseller, input: 
   let organizationId: string | null = null
   let cards: Array<{ id: string; name: string; title: string | null; slug: string | null }> | null = null
 
-  if (kind === 'printed') {
+  const soloId = /^solo:/.test(String(input.organizationId ?? '')) ? String(input.organizationId).slice(5) : null
+  if (kind === 'printed' && soloId) {
+    // A Solo client (lib/reseller-solo): printed with their own card's link.
+    const { data: solo } = await db.from('reseller_solo_clients')
+      .select('id, name, user_id, state').eq('id', soloId).eq('reseller_id', reseller.id).maybeSingle()
+    if (!solo) return fail('Choose which client the printed cards are for.')
+    if (solo.state === 'cancelled') return fail(`${solo.name} is cancelled. Switch them back on first.`)
+    clientName = solo.name || null
+    const { data: card } = solo.user_id
+      ? await db.from('cards').select('id, name, title, slug').eq('user_id', solo.user_id).limit(1).maybeSingle()
+      : { data: null }
+    if (card) cards = [{ id: card.id, name: card.name || solo.name || '', title: card.title || null, slug: card.slug || null }]
+  } else if (kind === 'printed') {
     const org = await ownedClient(db, reseller, String(input.organizationId ?? ''))
     if (!org) return fail('Choose which client the printed cards are for.')
     organizationId = org.id
@@ -511,13 +577,20 @@ export async function placeResellerNfcOrder(db: any, reseller: Reseller, input: 
  */
 export type PriceScope =
   | { kind: 'reseller'; name: string }
-  | { kind: 'client'; name: string; email: string | null }
+  /** solo: the person's own Cardtly Solo card came through the reseller
+   *  (lib/reseller-solo), rather than a team they are in. */
+  | { kind: 'client'; name: string; email: string | null; solo?: boolean }
 
 export async function resellerPriceScope(db: any, userId: string): Promise<PriceScope | null> {
   if (!userId) return null
   try {
     const reseller = await getResellerForUser(db, userId)
     if (reseller && reseller.status !== 'ended') return { kind: 'reseller', name: reseller.name }
+
+    // Somebody a reseller sold Cardtly Solo to. Paused counts: the reseller
+    // still manages their card. Errors (before migration 110) read as "not".
+    const soloBy = await soloResellerFor(db, userId)
+    if (soloBy) return { kind: 'client', name: soloBy.name, email: soloBy.email, solo: true }
 
     // The teams this login belongs to: as owner, as a card holder, or as the
     // head of a department.
@@ -542,6 +615,21 @@ export async function resellerPriceScope(db: any, userId: string): Promise<Price
     if (!client) return null
     const by = await managedByFor(db, client)
     return by ? { kind: 'client', name: by.name, email: by.email } : null
+  } catch {
+    return null
+  }
+}
+
+/** The reseller that sold this login its Cardtly Solo card, while it is live
+ *  or paused, or null. Tolerant: null before migration 110. */
+export async function soloResellerFor(db: any, userId: string): Promise<{ name: string; email: string | null; state: string } | null> {
+  if (!userId) return null
+  try {
+    const { data: row, error } = await db.from('reseller_solo_clients')
+      .select('reseller_id, state').eq('user_id', userId).neq('state', 'cancelled').limit(1).maybeSingle()
+    if (error || !row) return null
+    const { data: r } = await db.from('resellers').select('name, email').eq('id', row.reseller_id).maybeSingle()
+    return { name: r?.name || 'your reseller', email: r?.email || null, state: row.state }
   } catch {
     return null
   }

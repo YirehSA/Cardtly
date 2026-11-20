@@ -26,6 +26,9 @@ export interface ResellerDeleteFacts {
   moneyRecords: number
   /** NFC orders paid for, or further along. */
   liveNfcOrders: number
+  /** Cardtly Solo cards it ever sold (lib/reseller-solo, migration 110).
+   *  Each was billed from the day it was added, so they are books. */
+  soloClients?: number
 }
 
 /** NFC order states that mean money came in or cards were made. */
@@ -46,6 +49,9 @@ export function resellerDeleteBlocker(f: ResellerDeleteFacts): string | null {
   }
   if (f.liveNfcOrders > 0) {
     return `It has ${f.liveNfcOrders} NFC order${f.liveNfcOrders === 1 ? '' : 's'} paid for or made. End it instead.`
+  }
+  if ((f.soloClients || 0) > 0) {
+    return `It has sold ${f.soloClients} Cardtly Solo card${f.soloClients === 1 ? '' : 's'}, which were billed. End it instead.`
   }
   if (f.teamsWithCards > 0) {
     return `${f.teamsWithCards} of its client teams still hold cards. Move or delete the cards, or move the team to another billing mode under Teams, first.`

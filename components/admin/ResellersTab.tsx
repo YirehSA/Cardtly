@@ -248,6 +248,8 @@ function ResellerCard({ r, isAdmin, open, onToggle, reload }: { r: any; isAdmin:
     seat_year: r.seat_price_year_cents === null || r.seat_price_year_cents === undefined ? '' : toRands(r.seat_price_year_cents),
     blank: toRands(r.nfc_blank_cents),
     printed: toRands(r.nfc_printed_cents), shipping: toRands(r.nfc_shipping_cents),
+    // Cardtly Solo, per card (migration 110). Shown and saved only once it has run.
+    solo: toRands(r.solo_price_cents ?? 3500), solo_year: toRands(r.solo_price_year_cents ?? 35000),
     contact_name: r.contact_name || '', phone: r.phone || '', notes: r.notes || '',
     address: r.billingClient?.address || '', vat_number: r.billingClient?.vat_number || '',
   }))
@@ -371,7 +373,7 @@ function ResellerCard({ r, isAdmin, open, onToggle, reload }: { r: any; isAdmin:
               <div className="space-y-1">
                 {r.clients.map((c: any) => (
                   <div key={c.id} className="flex items-center gap-3 text-xs rounded-lg px-3 py-2 flex-wrap" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    <span className="text-white flex-1 min-w-[140px]">{c.name}</span>
+                    <span className="text-white flex-1 min-w-[140px]">{c.name}{c.kind === 'solo' && <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-semibold" style={{ background: 'rgba(139,92,246,0.15)', color: '#a78bfa' }}>Solo</span>}{c.noLogin && <span className="ml-2" style={{ color: faint }}>account deleted</span>}</span>
                     <span style={{ color: c.offBill ? '#0ea5e9' : STATE_TONE[c.state] }}>{c.offBill ? 'Billed by Cardtly' : c.state}</span>
                     {!c.offBill && <span style={{ color: c.term === 'yearly' ? '#a78bfa' : muted }}>{TERM_TEXT(c, r.thisMonth.month)}</span>}
                     <span className="tabular-nums" style={{ color: muted }}>{c.cardsMade}/{c.seats} cards</span>
@@ -450,6 +452,10 @@ function ResellerCard({ r, isAdmin, open, onToggle, reload }: { r: any; isAdmin:
               {field('Per seat, year (R)', <input className={inputClass} style={inputStyle} value={edit.seat_year}
                 placeholder={`${yearPlaceholder(edit.seat)} (12 months)`} title="Blank means twelve times the monthly price"
                 onChange={e => setEdit({ ...edit, seat_year: e.target.value })} />)}
+              {'solo_price_cents' in r && field('Solo card, month (R)', <input className={inputClass} style={inputStyle} value={edit.solo}
+                onChange={e => setEdit({ ...edit, solo: e.target.value })} />)}
+              {'solo_price_cents' in r && field('Solo card, year (R)', <input className={inputClass} style={inputStyle} value={edit.solo_year}
+                onChange={e => setEdit({ ...edit, solo_year: e.target.value })} />)}
               {field('Blank card (R)', <input className={inputClass} style={inputStyle} value={edit.blank}
                 onChange={e => setEdit({ ...edit, blank: e.target.value })} />)}
               {field('Printed card (R)', <input className={inputClass} style={inputStyle} value={edit.printed}
@@ -470,6 +476,7 @@ function ResellerCard({ r, isAdmin, open, onToggle, reload }: { r: any; isAdmin:
             <p className="text-[11px] mt-2" style={{ color: faint }}>
               A price change applies to the next invoice drafted. Invoices already issued keep the price they were issued at.
               The yearly price is what a client sold yearly is billed for twelve months upfront; left blank, it is twelve times the monthly price.
+              {'solo_price_cents' in r && ' Solo prices are per Cardtly Solo card, one person each.'}
             </p>
             <div className="flex items-center justify-between gap-2 mt-3 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">
@@ -516,6 +523,7 @@ function ResellerCard({ r, isAdmin, open, onToggle, reload }: { r: any; isAdmin:
                 seat_price_cents: toCents(edit.seat), nfc_blank_cents: toCents(edit.blank),
                 nfc_printed_cents: toCents(edit.printed), nfc_shipping_cents: toCents(edit.shipping),
                 seat_price_year_cents: edit.seat_year.trim() ? toCents(edit.seat_year) : null,
+                ...('solo_price_cents' in r ? { solo_price_cents: toCents(edit.solo), solo_price_year_cents: toCents(edit.solo_year) } : {}),
                 contact_name: edit.contact_name, phone: edit.phone, notes: edit.notes,
                 address: edit.address, vat_number: edit.vat_number,
               }, 'Saved')} disabled={!!busy}

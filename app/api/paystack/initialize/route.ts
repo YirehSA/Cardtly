@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUserPlan } from '@/lib/plan-server'
 import { isIosAppUA } from '@/lib/app-platform'
 import { PLAN_CATALOG, soloOnSale } from '@/lib/paid-plans'
+import { soloResellerFor, serviceDb } from '@/lib/reseller'
 import type { BillingCycle, PaidTier } from '@/lib/solo'
 
 // Starts a personal plan checkout: Pro or Cardtly Solo (lib/solo), monthly or
@@ -18,6 +19,13 @@ export async function POST(request: Request) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    // A reseller sold this person their Cardtly Solo card (lib/reseller-solo)
+    // and bills them at its own price, so Cardtly does not charge them too.
+    const reseller = await soloResellerFor(serviceDb(), user.id)
+    if (reseller) {
+      return NextResponse.json({ error: `Your card comes through ${reseller.name}. Speak to them about moving up to Pro.` }, { status: 409 })
+    }
 
     const body = await request.json().catch(() => ({}))
     const plan = body?.plan as BillingCycle

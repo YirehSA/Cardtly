@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import {
-  Building2, Plus, Loader2, Wifi, Receipt, Globe, Eye, Pause, Play, XCircle, Mail, Download, Check, AlertTriangle, X,
+  Building2, Plus, Loader2, Wifi, Receipt, Globe, Eye, Pause, Play, XCircle, Mail, Download, Check, AlertTriangle, X, User,
 } from 'lucide-react'
 import {
   randCents, nfcOrderTotalCents, monthLabel, monthsInclusive, addMonths, YEAR_MONTHS,
@@ -18,9 +18,13 @@ export type Tab = 'clients' | 'nfc' | 'invoices' | 'listing'
 // every read and write to the reseller this login runs.
 
 interface Client {
-  id: string; name: string; seats: number; state: ResellerClientState
+  id: string
+  /** 'solo': one person's Cardtly Solo card (lib/reseller-solo). */
+  kind: 'team' | 'solo'
+  name: string; seats: number; state: ResellerClientState
   cardsMade: number; ownerEmail: string | null; createdAt: string | null; offBill: boolean
   term: ResellerTerm; paidFrom: string | null; paidTo: string | null
+  noLogin?: boolean
 }
 interface Data {
   ownCardFree?: boolean
@@ -29,6 +33,8 @@ interface Data {
   reseller: {
     name: string; status: 'active' | 'suspended' | 'ended'; seatPool: number; seatPriceCents: number
     seatPriceYearCents: number
+    /** Cardtly Solo, per card. soloReady is false until migration 110 has run. */
+    soloPriceCents: number; soloPriceYearCents: number; soloReady?: boolean
     nfcBlankCents: number; nfcPrintedCents: number; nfcShippingCents: number; invoicesReady: boolean
   }
   sold: number
@@ -145,6 +151,7 @@ export default function ResellerPanel({ initialTab = 'clients', previewOf }: { i
         <p className="page-subtitle mt-1.5">
           Give seats to your clients and charge them what you like. Sell each client monthly or yearly: Cardtly invoices
           you {randCents(r.seatPriceCents)} a seat a month, or {randCents(r.seatPriceYearCents)} a seat for a year paid upfront.
+          {r.soloReady && <> One person on their own? Sell them Cardtly Solo: {randCents(r.soloPriceCents)} a card a month, or {randCents(r.soloPriceYearCents)} for a year.</>}
         </p>
         {data.ownCardFree && (
           <p className="text-sm mt-2 inline-flex items-center gap-1.5 text-emerald-500">
@@ -227,6 +234,65 @@ function ClientsSection({ data, onHold, reload }: { data: Data; onHold: boolean;
   const [form, setForm] = useState<{ company: string; owner_email: string; seats: string; term: ResellerTerm }>({ company: '', owner_email: '', seats: '5', term: 'monthly' })
   const [busy, setBusy] = useState<string | null>(null)
   const [seatEdits, setSeatEdits] = useState<Record<string, string>>({})
+  const [addingSolo, setAddingSolo] = useState(false)
+  const [solo, setSolo] = useState<{ name: string; email: string; term: ResellerTerm }>({ name: '', email: '', term: 'monthly' })
+
+  async function addSolo() {
+    setBusy('add-solo')
+    const { ok, data: d } = await post({ action: 'add_solo', ...solo })
+    setBusy(null)
+    if (!ok) { toast.error(d?.error || 'That did not save'); return }
+    toast.success(`${solo.name}'s Solo card is live. ${(d.notes || []).join(' ')}`)
+    setSolo({ name: '', email: '', term: 'monthly' })
+    setAddingSolo(false)
+    await reload()
+  }
+
+  async function setSoloTerm(c: Client, term: ResellerTerm) {
+    const end = c.paidTo && c.paidTo >= data.month ? c.paidTo : null
+    const question = term === 'yearly'
+      ? end
+        ? `Sell ${c.name} yearly again?\n\nThey are paid up to ${monthLabel(end)}, and renew for a year at ${randCents(r.soloPriceYearCents)} from ${monthLabel(addMonths(end, 1))}.`
+        : `Sell ${c.name} yearly?\n\nYour next Cardtly invoice bills their Solo card at ${randCents(r.soloPriceYearCents)} for ${monthLabel(data.month)} to ${monthLabel(addMonths(data.month, YEAR_MONTHS - 1))}, in place of this month.`
+      : end
+        ? `Sell ${c.name} monthly?\n\nTheir year is paid, so nothing changes until it ends. From ${monthLabel(addMonths(end, 1))} they are billed ${randCents(r.soloPriceCents)} a month.`
+        : `Sell ${c.name} monthly?\n\nFrom ${monthLabel(data.month)} they are billed ${randCents(r.soloPriceCents)} a month.`
+    if (!confirm(question)) return
+    setBusy(`term-${c.id}`)
+    const { ok, data: d } = await post({ action: 'solo_term', solo_id: c.id, term })
+    setBusy(null)
+    if (!ok) { toast.error(d?.error || 'That did not save'); return }
+    toast.success(d.note || 'Saved')
+    await reload()
+  }
+
+  async function setSoloState(c: Client, to: ResellerClientState) {
+    const yearEnd = c.paidTo && c.paidTo >= data.month ? c.paidTo : null
+    const question = to === 'paused'
+      ? `Pause ${c.name}?\n\nTheir card goes offline until you switch it back on. Nothing is deleted, and they keep their seat. ${yearEnd ? `Their year is paid to ${monthLabel(yearEnd)} and is not extended by the pause.` : 'A paused month is not billed.'}`
+      : to === 'cancelled'
+      ? `Cancel ${c.name}?\n\nTheir card goes offline and the seat goes back to your pool. Nothing is deleted. ${yearEnd ? `Their year was paid to ${monthLabel(yearEnd)}; nothing is refunded, and it is not renewed.` : 'If they were live at any time this month, this month is still billed.'}`
+      : yearEnd
+      ? `Switch ${c.name} back on? Their card is live again straight away. Their year is paid to ${monthLabel(yearEnd)}, so nothing more is billed until then.`
+      : c.term === 'yearly'
+      ? `Switch ${c.name} back on? Their card is live again straight away, and a new year starts this month on your next Cardtly invoice.`
+      : `Switch ${c.name} back on? Their card is live again straight away, and this month is billed.`
+    if (!confirm(question)) return
+    setBusy(`state-${c.id}`)
+    const { ok, data: d } = await post({ action: 'solo_state', solo_id: c.id, to })
+    setBusy(null)
+    if (!ok) { toast.error(d?.error || 'That did not save'); return }
+    toast.success(to === 'paused' ? `${c.name} paused` : to === 'cancelled' ? `${c.name} cancelled` : `${c.name} is live again`)
+    await reload()
+  }
+
+  async function resendSolo(c: Client) {
+    setBusy(`mail-${c.id}`)
+    const { ok, data: d } = await post({ action: 'solo_welcome', solo_id: c.id })
+    setBusy(null)
+    if (!ok) { toast.error(d?.error || 'The email did not send'); return }
+    toast.success(`Sign-in email sent to ${d.email}`)
+  }
 
   async function add() {
     setBusy('add')
@@ -315,23 +381,91 @@ function ClientsSection({ data, onHold, reload }: { data: Data; onHold: boolean;
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-sm text-muted-foreground">
-          Each client gets its own Cardtly team. Their admin builds the cards; you decide how many seats they have.
+        <p className="text-sm text-muted-foreground max-w-xl">
+          A company gets its own Cardtly team: their admin builds the cards, and you decide how many seats they have.
+          {r.soloReady && ' One person on their own gets a Cardtly Solo card, which takes one seat.'}
         </p>
-        {!onHold && !adding && (
-          <button onClick={() => setAdding(true)} disabled={data.left === 0}
-            title={data.left === 0 ? 'Your pool is fully used. Ask Cardtly for more seats.' : undefined}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-40"
-            style={{ background: accent }}>
-            <Plus className="w-4 h-4" />Add client
-          </button>
+        {!onHold && !adding && !addingSolo && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {r.soloReady && (
+              <button onClick={() => setAddingSolo(true)} disabled={data.left === 0}
+                title={data.left === 0 ? 'Your pool is fully used. Ask Cardtly for more seats.' : undefined}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-border transition hover:bg-muted disabled:opacity-40">
+                <User className="w-4 h-4" />Add Solo card
+              </button>
+            )}
+            <button onClick={() => setAdding(true)} disabled={data.left === 0}
+              title={data.left === 0 ? 'Your pool is fully used. Ask Cardtly for more seats.' : undefined}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-40"
+              style={{ background: accent }}>
+              <Plus className="w-4 h-4" />Add team client
+            </button>
+          </div>
         )}
       </div>
+
+      {addingSolo && (
+        <div className="bg-card border border-border rounded-lg p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="font-semibold text-sm">New Cardtly Solo card</p>
+            <button onClick={() => setAddingSolo(false)} aria-label="Close"><X className="w-4 h-4 text-muted-foreground" /></button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            One person&apos;s own card: 5 templates, up to 4 links and 2 photos, their QR code, contacts and NFC.
+            Never for a team. Takes 1 seat from your pool ({data.left} free).
+          </p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-xs font-medium text-muted-foreground">Their name</span>
+              <input className={`${inputClass} mt-1.5`} value={solo.name} placeholder="Thandi Mokoena"
+                onChange={e => setSolo(f => ({ ...f, name: e.target.value }))} />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium text-muted-foreground">Their email</span>
+              <input className={`${inputClass} mt-1.5`} type="email" value={solo.email} placeholder="thandi@example.co.za"
+                onChange={e => setSolo(f => ({ ...f, email: e.target.value }))} />
+            </label>
+          </div>
+          <div>
+            <span className="text-xs font-medium text-muted-foreground">How you sell it</span>
+            <div className="grid sm:grid-cols-2 gap-2 mt-1.5" role="radiogroup" aria-label="How you sell it">
+              {([
+                ['monthly', 'Monthly', `${randCents(r.soloPriceCents)} a month, invoiced on the 1st`],
+                ['yearly', 'Yearly', `${randCents(r.soloPriceYearCents)} for 12 months, invoiced upfront`],
+              ] as const).map(([t, label, hint]) => {
+                const on = solo.term === t
+                return (
+                  <button key={t} type="button" role="radio" aria-checked={on} onClick={() => setSolo(f => ({ ...f, term: t }))}
+                    className={`text-left px-4 py-3 rounded-xl border transition ${on ? 'border-transparent' : 'border-border hover:bg-muted'}`}
+                    style={on ? { background: 'hsl(var(--accent) / 0.12)', boxShadow: `inset 0 0 0 1.5px ${accent}` } : undefined}>
+                    <span className="block text-sm font-semibold">{label}</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">{hint}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Their card is live straight away and they get an email to choose a password. If they already have a Cardtly
+            login, their card moves onto Solo and they sign in as usual.
+            {solo.term === 'yearly'
+              ? ` Adds ${randCents(r.soloPriceYearCents)} to your next Cardtly invoice, for ${monthLabel(data.month)} to ${yearEnd}.`
+              : ` Adds ${randCents(r.soloPriceCents)} a month to your Cardtly invoice.`}
+          </p>
+          <div className="flex justify-end">
+            <button onClick={addSolo} disabled={busy === 'add-solo' || !solo.name.trim() || !solo.email.trim()}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-40"
+              style={{ background: accent }}>
+              {busy === 'add-solo' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}Create Solo card
+            </button>
+          </div>
+        </div>
+      )}
 
       {adding && (
         <div className="bg-card border border-border rounded-lg p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <p className="font-semibold text-sm">New client</p>
+            <p className="font-semibold text-sm">New team client</p>
             <button onClick={() => setAdding(false)} aria-label="Close"><X className="w-4 h-4 text-muted-foreground" /></button>
           </div>
           <div className="grid sm:grid-cols-3 gap-3">
@@ -388,12 +522,71 @@ function ClientsSection({ data, onHold, reload }: { data: Data; onHold: boolean;
 
       {data.clients.length === 0 ? (
         <div className="bg-card border border-border rounded-lg p-8 text-center text-sm text-muted-foreground">
-          No clients yet. Add your first one and their team is live in a minute.
+          No clients yet. Add a team or a Solo card, and it is live in a minute.
         </div>
       ) : (
         <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
           {data.clients.map(c => {
             const meta = STATE_META[c.state]
+            if (c.kind === 'solo') {
+              return (
+                <div key={c.id} className="p-4 bg-card flex items-center gap-4 flex-wrap">
+                  <div className="flex-1 min-w-[200px]">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold text-sm">{c.name}</p>
+                      <Pill label="Solo" tone="#8b5cf6" />
+                      <Pill label={c.noLogin ? 'Account deleted' : meta.label} tone={c.noLogin ? '#94a3b8' : meta.tone} />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {c.noLogin ? 'They deleted their Cardtly account, so nothing is billed. Cancel them to free the seat.'
+                        : c.cardsMade ? 'Card made' : 'Card not made yet'}{c.ownerEmail ? ` · ${c.ownerEmail}` : ''}
+                    </p>
+                    <p className="text-xs mt-0.5">{termLine(c, data.month)}</p>
+                  </div>
+
+                  {c.state !== 'cancelled' && (
+                    <label className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Billing</span>
+                      <select value={c.term} disabled={onHold || busy === `term-${c.id}`}
+                        onChange={e => setSoloTerm(c, e.target.value as ResellerTerm)}
+                        className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm">
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                      </select>
+                    </label>
+                  )}
+
+                  {!onHold && (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {c.state === 'live' && (
+                        <button onClick={() => setSoloState(c, 'paused')} disabled={!!busy}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted transition">
+                          <Pause className="w-3.5 h-3.5" />Pause
+                        </button>
+                      )}
+                      {c.state !== 'live' && !c.noLogin && (
+                        <button onClick={() => setSoloState(c, 'live')} disabled={!!busy}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted transition">
+                          <Play className="w-3.5 h-3.5" />Switch on
+                        </button>
+                      )}
+                      {c.state !== 'cancelled' && (
+                        <button onClick={() => setSoloState(c, 'cancelled')} disabled={!!busy}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted transition text-red-500">
+                          <XCircle className="w-3.5 h-3.5" />Cancel
+                        </button>
+                      )}
+                      {!c.noLogin && c.state !== 'cancelled' && (
+                        <button onClick={() => resendSolo(c)} disabled={!!busy} title="Send them a link to choose a password"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted transition">
+                          {busy === `mail-${c.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}Sign-in email
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            }
             const edit = seatEdits[c.id]
             const changed = edit !== undefined && Number(edit) !== c.seats
             return (
@@ -494,7 +687,8 @@ function NfcSection({ data, onHold, reload }: { data: Data; onHold: boolean; rel
     setOrgId(id)
     setCards(null)
     setPicked(new Set())
-    if (!id) return
+    // A Solo client's card is printed with their own link; nobody to pick.
+    if (!id || id.startsWith('solo:')) return
     const { ok, data: d } = await post({ action: 'client_cards', org_id: id })
     if (ok) setCards(d.cards || [])
   }
@@ -541,9 +735,14 @@ function NfcSection({ data, onHold, reload }: { data: Data; onHold: boolean; rel
                 <span className="text-xs font-medium text-muted-foreground">For which client</span>
                 <select className={`${inputClass} mt-1.5`} value={orgId} onChange={e => pickClient(e.target.value)}>
                   <option value="">Choose a client</option>
-                  {liveClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {liveClients.map(c => (
+                    <option key={c.id} value={c.kind === 'solo' ? `solo:${c.id}` : c.id}>{c.kind === 'solo' ? `${c.name} (Solo)` : c.name}</option>
+                  ))}
                 </select>
               </label>
+              {orgId.startsWith('solo:') && (
+                <p className="text-xs text-muted-foreground">Printed and programmed with their own Solo card&apos;s link. Type how many below.</p>
+              )}
               {cards && cards.length > 0 && (
                 <div className="rounded-lg border border-border p-3 space-y-2 max-h-64 overflow-y-auto">
                   <div className="flex items-center justify-between">

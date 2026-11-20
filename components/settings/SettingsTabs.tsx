@@ -30,6 +30,8 @@ interface Props {
     comped?: boolean
     /** Bought as the Pro year + NFC card package: when the paid year ends. */
     bundleUntil?: string | null
+    /** Cardtly Solo sold by a reseller: who to talk to about it. */
+    managedBy?: { name: string; email: string | null; state?: string } | null
   } | null
   /** Every card this person holds, for the primary-card picker. */
   myCards?: PickerCard[]
@@ -644,6 +646,10 @@ function formatDay(iso: string) {
 // the same thing, and an expired account was called a "Free plan" rather than
 // what it is: a card that has stopped serving.
 function billingState(plan: UserPlan, subscription: Props['subscription']) {
+  // Cardtly Solo a reseller sold them (lib/reseller-solo), live or paused.
+  // First, because a paused one reads as expired or "no plan yet" below, and
+  // those name Cardtly's prices: they pay the reseller, at its price.
+  if (subscription?.managedBy) return 'reseller' as const
   // A new account that has not chosen a plan or taken the trial (migration
   // 109): nothing has ended, it has not started.
   if (plan.needsPlan) return 'choose' as const
@@ -708,6 +714,11 @@ function BillingTab({ plan, subscription, team = null }: { plan: UserPlan; subsc
           sub: `Live until ${formatDay(cancelledUntil)}, then your card goes offline` }
       : { badge: planName, title: `${planName} plan`, tone: '#22c55e',
           sub: subscription?.created_at ? `Paying since ${formatDay(subscription.created_at)}` : 'Active' },
+    reseller: subscription?.managedBy?.state === 'paused'
+      ? { badge: 'Solo', title: `Solo, paused by ${subscription.managedBy.name}`, tone: '#f59e0b',
+          sub: 'Your card is offline until they switch it back on. Nothing is deleted.' }
+      : { badge: 'Solo', title: `Solo, through ${subscription?.managedBy?.name || 'your reseller'}`, tone: '#22c55e',
+          sub: subscription?.created_at ? `Active since ${formatDay(subscription.created_at)}` : 'Active' },
     comped: { badge: planName, title: `${planName}, on the house`, tone: '#22c55e',
               sub: subscription?.created_at ? `Active since ${formatDay(subscription.created_at)}` : 'Active' },
     // HOW LONG THE TEAM'S COVER RUNS, which this said nothing about: the owner
@@ -777,6 +788,13 @@ function BillingTab({ plan, subscription, team = null }: { plan: UserPlan; subsc
           </p>
         )}
         {state === 'team' && team && <TeamCover team={team} />}
+        {state === 'reseller' && (
+          <p className="text-sm text-muted-foreground mt-4">
+            Your card comes through <strong className="text-foreground">{subscription?.managedBy?.name || 'your reseller'}</strong>.
+            Speak to them about your plan, moving up to Pro, or NFC cards.
+            {subscription?.managedBy?.email && <> <a href={`mailto:${subscription.managedBy.email}`} className="underline hover:text-foreground">Email them</a>.</>}
+          </p>
+        )}
         {state === 'comped' && (
           <p className="text-sm text-muted-foreground mt-4">
             This account is on Cardtly at no charge. There is no subscription and no card on file, so nothing will ever be billed.
@@ -798,7 +816,7 @@ function BillingTab({ plan, subscription, team = null }: { plan: UserPlan; subsc
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           {state === 'expired' ? 'What you get back' : "What's included"}
         </p>
-        {(plan.tier === 'solo' ? SOLO_FEATURES : PRO_FEATURES).map(f => (
+        {(plan.tier === 'solo' || state === 'reseller' ? SOLO_FEATURES : PRO_FEATURES).map(f => (
           <div key={f} className="flex items-center gap-2 text-sm">
             <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
             {f}

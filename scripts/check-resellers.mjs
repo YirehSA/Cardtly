@@ -152,6 +152,8 @@ function fakeDb() {
     organizations: [], resellers: [], reseller_seat_months: [], reseller_invoices: [],
     invoices: [], invoice_lines: [], document_events: [],
     reseller_client_years: [], reseller_year_extras: [],
+    // Cardtly Solo clients (migration 110), tested in check-reseller-solo.
+    reseller_solo_clients: [],
   }
   const failNext = { invoices: false }
   let seq = 0
@@ -203,8 +205,9 @@ function fakeDb() {
       if (name !== 'reseller_record_seats') return { error: { message: 'unknown rpc' } }
       const row = t.reseller_seat_months.find(r => r.reseller_id === a.p_reseller && r.organization_id === a.p_org && r.month === a.p_month)
       const term = a.p_term === 'yearly' ? 'yearly' : 'monthly'
-      if (row) { row.peak_seats = Math.max(row.peak_seats, a.p_seats); row.client_name = a.p_client_name ?? row.client_name; row.term = term }
-      else t.reseller_seat_months.push({ reseller_id: a.p_reseller, organization_id: a.p_org, month: a.p_month, peak_seats: Math.max(0, a.p_seats), client_name: a.p_client_name, term })
+      const product = a.p_product === 'solo' ? 'solo' : 'pro'
+      if (row) { row.peak_seats = Math.max(row.peak_seats, a.p_seats); row.client_name = a.p_client_name ?? row.client_name; row.term = term; row.product = product }
+      else t.reseller_seat_months.push({ reseller_id: a.p_reseller, organization_id: a.p_org, month: a.p_month, peak_seats: Math.max(0, a.p_seats), client_name: a.p_client_name, term, product })
       return { error: null }
     },
   }
