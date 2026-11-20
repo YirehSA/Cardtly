@@ -9,6 +9,7 @@ import {
   Layers, Network, CalendarClock, FileSignature, Handshake, HeartHandshake, PlayCircle, Store,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { soloShows } from '@/lib/solo'
 
 // Each nav item gets its own brand-pillar colour. Icons render
 // inside a small chip. Every item used to carry its own hue - blue, purple,
@@ -61,20 +62,25 @@ interface SidebarProps {
   isRep?: boolean
   isReseller?: boolean
   isResellerManager?: boolean
+  /** Cardtly Solo: only the pages lib/solo lists are in the menu. */
+  solo?: boolean
   userName: string
   userEmail: string
 }
 
 const grad = 'hsl(var(--accent))'
 
-export default function Sidebar({ isPro, isAdmin = false, managesDepartments = false, showTeamCards = true, isRep = false, isReseller = false, isResellerManager = false, teamTabLabel, userName, userEmail }: SidebarProps) {
+export default function Sidebar({ isPro, solo = false, isAdmin = false, managesDepartments = false, showTeamCards = true, isRep = false, isReseller = false, isResellerManager = false, teamTabLabel, userName, userEmail }: SidebarProps) {
   const pathname = usePathname()
   const { theme, toggle } = useTheme()
   // Lead capture (contact popup + questionnaire) is standard on Pro. The
   // user switches each one on inside; the link is always there so nobody has
   // to know it exists before they can find it.
+  // Solo sees only its own pages (lib/solo soloShows); the phone nav filters
+  // the same way.
+  const base = solo ? NAV.filter(n => soloShows(n.href)) : NAV
   const nav = [
-    ...(isPro ? [...NAV, { href: '/dashboard/questionnaire', label: 'Lead capture', icon: ClipboardList }] : NAV),
+    ...(isPro ? [...base, { href: '/dashboard/questionnaire', label: 'Lead capture', icon: ClipboardList }] : base),
     // Hidden from anyone who is in a team they do not own. Team Cards is the
     // payer's console - seats, billing, every card in the company - so for a
     // department head or a member it is somebody else's page, and clicking it
@@ -137,6 +143,11 @@ export default function Sidebar({ isPro, isAdmin = false, managesDepartments = f
             style={{ background: grad }}
           >
             <Sparkles className="w-2.5 h-2.5" />Pro
+          </span>
+        )}
+        {solo && (
+          <span className="ml-auto text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-border text-muted-foreground">
+            Solo
           </span>
         )}
       </div>

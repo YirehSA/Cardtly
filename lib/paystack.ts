@@ -37,6 +37,8 @@ export interface PaystackSub {
   amount: number
   email: string
   next_payment_date: string | null
+  /** Which plan it bills, so a Solo subscription can be told from Pro. */
+  plan_code?: string | null
 }
 
 export interface DisableResult {
@@ -83,6 +85,7 @@ function toSub(s: any): PaystackSub {
     amount: s.amount,
     email: s.customer?.email,
     next_payment_date: s.next_payment_date ?? null,
+    plan_code: s.plan?.plan_code ?? null,
   }
 }
 

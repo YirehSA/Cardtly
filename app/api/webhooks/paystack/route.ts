@@ -6,6 +6,7 @@ import { logSubscriptionChange } from '@/lib/subscription-audit'
 import { disableSubscriptionCodes, findActivePaystackSubs } from '@/lib/paystack'
 import { paystackCancellation } from '@/lib/subscription-cancel'
 import { completeBundlePayment, isBundleTransaction, txMetadata } from '@/lib/pro-bundle-server'
+import { isSoloPlanCode, planForActivation, planIdFor } from '@/lib/paid-plans'
 
 export async function POST(request: Request) {
   try {
@@ -54,8 +55,15 @@ export async function POST(request: Request) {
     else if (event.event === 'charge.success') {
       const { customer, metadata, subscription_code, amount, paid_at } = event.data
       const userId = metadata?.user_id
+      // Pro or Cardtly Solo, read from the payment (lib/paid-plans). Payments
+      // from before Solo, and team payments, read as Pro exactly as before.
+      // A payment marked Solo that does not add up switches nothing on.
+      const bought = planForActivation(event.data)
+      if (userId && !bought) {
+        console.error('charge.success: a payment marked as Solo did not match a Solo plan', event.data.reference)
+      }
 
-      if (userId) {
+      if (userId && bought) {
         // Read before the delete, so the log can say what was replaced rather
         // than only what it became.
         const { data: prior } = await admin
@@ -76,8 +84,12 @@ export async function POST(request: Request) {
         try {
           const live = await findActivePaystackSubs(customer.email)
           if (live.ok) {
+            // Also UPGRADING SOLO TO PRO: Pro was just paid for, so a Solo
+            // subscription still billing would charge them for both.
             replacedCodes = live.subs
-              .filter(s => s.status === 'attention' && s.subscription_code !== subscription_code)
+              .filter(s => s.subscription_code !== subscription_code && (
+                s.status === 'attention'
+                || (bought.tier === 'pro' && s.status === 'active' && isSoloPlanCode(s.plan_code))))
               .map(s => s.subscription_code)
           } else {
             console.error('charge.success: could not list subscriptions to replace:', live.error)
@@ -90,9 +102,9 @@ export async function POST(request: Request) {
         await admin.from('whop_subscriptions').insert({
           user_id: userId,
           email: customer.email,
-          plan_id: `paystack_${metadata?.plan || 'monthly'}`,
-          subscription_tier: 'pro',
-          billing_cycle: metadata?.plan || 'monthly',
+          plan_id: planIdFor(bought.tier, bought.cycle),
+          subscription_tier: bought.tier,
+          billing_cycle: bought.cycle,
           status: 'active',
           membership_id: subscription_code || event.data.reference,
           receipt_id: event.data.reference,
@@ -111,8 +123,8 @@ export async function POST(request: Request) {
             change: 'updated', userId, email: customer.email,
             source: 'paystack_webhook',
             reason: off.ok
-              ? `Paid again after a failed charge: disabled the failing subscription(s) ${off.cancelled.join(', ') || replacedCodes.join(', ')} so the customer is not charged twice.`
-              : `Paid again after a failed charge, but disabling ${replacedCodes.join(', ')} FAILED (${off.error}). Disable it in Paystack by hand or the customer is charged twice.`,
+              ? `Paid again after a failed charge, or moved from Solo to Pro: disabled the replaced subscription(s) ${off.cancelled.join(', ') || replacedCodes.join(', ')} so the customer is not charged twice.`
+              : `Paid again after a failed charge, or moved from Solo to Pro, but disabling ${replacedCodes.join(', ')} FAILED (${off.error}). Disable it in Paystack by hand or the customer is charged twice.`,
           }).catch(() => {})
         }
 
@@ -123,8 +135,8 @@ export async function POST(request: Request) {
           change: 'activated', userId, email: customer.email,
           source: 'paystack_webhook', reason: 'charge.success',
           before: prior,
-          after: { plan_id: `paystack_${metadata?.plan || 'monthly'}`, status: 'active',
-                   subscription_tier: 'pro', billing_cycle: metadata?.plan || 'monthly', seats: 1 },
+          after: { plan_id: planIdFor(bought.tier, bought.cycle), status: 'active',
+                   subscription_tier: bought.tier, billing_cycle: bought.cycle, seats: 1 },
         })
 
         // Promotions: grant a 'paid' draw entry. Idempotent via the

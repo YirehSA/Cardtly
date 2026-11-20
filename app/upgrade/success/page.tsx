@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { CheckCircle, ArrowRight, Sparkles } from 'lucide-react'
 import { bundleRenewalRand } from '@/lib/pro-bundle'
+import { SOLO_MAX_IMAGES, SOLO_MAX_LINKS, SOLO_TEMPLATES } from '@/lib/solo'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 const gradText: React.CSSProperties = {
@@ -13,9 +14,12 @@ const gradText: React.CSSProperties = {
 export default async function UpgradeSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ plan?: string; bundle?: string }>
+  searchParams: Promise<{ plan?: string; bundle?: string; tier?: string }>
 }) {
-  const { plan, bundle } = await searchParams
+  const { plan, bundle, tier } = await searchParams
+  // Cardtly Solo (lib/solo). Only a message: the plan itself was switched on
+  // from the payment, never from this address.
+  const isSolo = tier === 'solo' && bundle !== '1'
   const isYearly = plan === 'yearly'
   const isBundle = bundle === '1'
 
@@ -32,13 +36,13 @@ export default async function UpgradeSuccessPage({
             <CheckCircle className="w-10 h-10" style={{ color: '#7c3aed' }} />
           </div>
           <h1 className="text-4xl font-black tracking-tight mb-3 text-white">
-            You are now <span style={gradText}>Pro!</span>
+            You are now <span style={gradText}>{isSolo ? 'Solo!' : 'Pro!'}</span>
           </h1>
-          <p className="text-lg mb-2" style={{ color: 'rgba(255,255,255,0.6)' }}>Welcome to the full Cardtly experience.</p>
+          <p className="text-lg mb-2" style={{ color: 'rgba(255,255,255,0.6)' }}>{isSolo ? 'Your Cardtly card is live.' : 'Welcome to the full Cardtly experience.'}</p>
           <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.6)' }}>
             {isBundle
               ? `Pro is active for the next 12 months, then renews at R${bundleRenewalRand()} a year until you cancel. Your NFC card is next: we email you a proof of the design before anything is printed.`
-              : isYearly ? 'Your Pro plan is active for the next 12 months.' : 'Your Pro plan renews monthly. Cancel anytime from Settings.'}
+              : isYearly ? `Your ${isSolo ? 'Solo' : 'Pro'} plan is active for the next 12 months.` : `Your ${isSolo ? 'Solo' : 'Pro'} plan renews monthly. Cancel anytime from Settings.`}
           </p>
           <div className="rounded-2xl p-6 mb-8 text-left"
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -48,14 +52,19 @@ export default async function UpgradeSuccessPage({
               What is now unlocked
             </p>
             <div className="space-y-2.5">
-              {[
+              {(isSolo ? [
+                `${SOLO_TEMPLATES.length} card templates: go to My Card to switch`,
+                `Up to ${SOLO_MAX_LINKS} link buttons and ${SOLO_MAX_IMAGES} gallery photos`,
+                'Your QR code, ready to share or print',
+                'Contacts: people who share their details back',
+              ] : [
                 '16 card templates: go to My Card to switch',
                 'Analytics: see who viewed your card',
                 'Email signature: generate yours now',
                 'Virtual background: for Zoom & Teams',
                 'Contact form: capture leads from your card',
                 'QR code with your own logo',
-              ].map(item => (
+              ]).map(item => (
                 <p key={item} className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>✓ {item}</p>
               ))}
             </div>

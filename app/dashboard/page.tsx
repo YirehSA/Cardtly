@@ -24,6 +24,7 @@ import {
   CreditCard, BarChart2, Eye, Users, ArrowUpRight, QrCode, Mail, Monitor,
   ChevronRight, Check, Circle, TrendingUp,
 } from 'lucide-react'
+import { isSolo, soloShows } from '@/lib/solo'
 
 interface CardSummary {
   id: string
@@ -91,6 +92,8 @@ export default async function DashboardPage() {
   const iosApp = await isIosApp()
 
   const isPro = plan.tier === 'pro' && plan.isActive
+  // Cardtly Solo (lib/solo): a paid card with its own short list of tools.
+  const solo = isSolo(plan)
   // A claimed team member's card is served by their organization and is never
   // gated on their personal trial (see app/card/[slug]/page.tsx, where team
   // cards render isPro unconditionally). Telling them their trial is ending,
@@ -101,7 +104,7 @@ export default async function DashboardPage() {
   // separate "paying" from "on the clock" so we can warn before the card goes
   // offline instead of surprising someone on day 61.
   const isTrial = !isTeamMember && !!plan.isTrial
-  const isPaid = isTeamMember || (isPro && !plan.isTrial)
+  const isPaid = isTeamMember || ((isPro || solo) && !plan.isTrial)
   const isExpired = !isTeamMember && plan.tier === 'expired'
   const trialDaysLeft = plan.trialDaysLeft ?? 0
 
@@ -479,8 +482,9 @@ export default async function DashboardPage() {
       <div>
         <p className={`${LABEL} mb-2.5 px-0.5`}>Tools</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {QUICK_ACTIONS.map(({ href, label, icon: Icon, desc, pro }) => {
-            const locked = pro && !isPro
+          {/* Solo sees only its own tools (lib/solo soloShows), all open. */}
+          {(solo ? QUICK_ACTIONS.filter(a => a.href === editCardHref || soloShows(a.href)) : QUICK_ACTIONS).map(({ href, label, icon: Icon, desc, pro }) => {
+            const locked = pro && !isPro && !solo
             return (
               // A locked tile normally sells the upgrade. In the iOS app it
               // goes to the feature instead, where the gate explains what Pro
@@ -529,8 +533,9 @@ export default async function DashboardPage() {
           <div className="min-w-0">
             <p className={LABEL}>Cardtly Pro</p>
             <p className="text-sm text-muted-foreground mt-1.5 max-w-md leading-relaxed">
-              16 templates, analytics, email signature, virtual background, contact form,
-              custom design and more.
+              {solo
+                ? 'You are on Solo. Pro adds all 16 templates, up to 10 links and photos, lead capture, booking, analytics, an email signature and a virtual background.'
+                : '16 templates, analytics, email signature, virtual background, contact form, custom design and more.'}
             </p>
           </div>
           <Link href="/dashboard/upgrade"

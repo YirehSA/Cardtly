@@ -146,7 +146,8 @@ export default async function PublicCardPage({ params }: Props) {
         .maybeSingle(),
     ])
 
-    const hasSubscription = subscriptionState(sub as any).serves
+    const subState = subscriptionState(sub as any)
+    const hasSubscription = subState.serves
 
     // No subscription: the card only serves while the trial is still running.
     // planFromTrial fails open on a missing/unreadable date, so a data gap can
@@ -158,12 +159,15 @@ export default async function PublicCardPage({ params }: Props) {
 
     // The trial is the full product, so it unlocks the same fields as Pro.
     const isPro = hasSubscription || trialPlan.isActive
+    // Cardtly Solo (lib/solo): the same card, with Solo's limits applied by
+    // the renderer. From a Solo subscription, or a trial that is Solo.
+    const tier: 'pro' | 'solo' = (hasSubscription ? subState.tier : trialPlan.tier) === 'solo' ? 'solo' : 'pro'
     const lastActiveAt = (profile as any)?.last_active_at || null
     const founderNumber = (profile as any)?.is_founder ? (profile as any)?.founder_number ?? null : null
 
     return (
       <CardTracker cardId={(card as any).id}>
-        <PublicCardView card={card as any} isPro={isPro} lastActiveAt={lastActiveAt} founderNumber={founderNumber} />
+        <PublicCardView card={card as any} isPro={isPro} tier={tier} lastActiveAt={lastActiveAt} founderNumber={founderNumber} />
         <ReportCardLink cardId={(card as any).id} cardName={(card as any).name} />
       </CardTracker>
     )

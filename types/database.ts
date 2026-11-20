@@ -235,7 +235,8 @@ export type DesignVariant = Database['public']['Tables']['design_variants']['Row
 // 'free' is legacy: nothing returns it any more. A new account is on a
 // 60-day trial that behaves exactly like Pro, and once that runs out with
 // no subscription the account is 'expired' and the card stops serving.
-export type PlanTier = 'free' | 'pro' | 'expired'
+// 'solo' is Cardtly Solo (lib/solo): one person's card with limits, R49 a month.
+export type PlanTier = 'free' | 'pro' | 'solo' | 'expired'
 
 export interface UserPlan {
   tier: PlanTier

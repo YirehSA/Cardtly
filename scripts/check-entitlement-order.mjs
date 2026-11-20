@@ -106,6 +106,20 @@ function body(src, decl) {
       if (iSub >= 0 && iSub > ret) {
         bad('getUserPlan returns for a subscription it has not read yet')
       }
+
+      // CARDTLY SOLO (lib/solo, 2026-11-20). A paid Solo plan is returned
+      // AFTER the team checks, so a team seat still gives Pro, and BEFORE the
+      // trial, so a Solo payer is never read as a trialist either.
+      // The person's own trial is read from profiles; the trial_ends_at the
+      // team checks select is the organisation's, not theirs.
+      const iSolo = fn.indexOf('if (solo) return solo')
+      const iOwner = fn.indexOf("eq('admin_user_id', userId)")
+      const iProfileTrial = fn.indexOf("from('profiles')")
+      if (iSolo < 0) bad('getUserPlan never returns a paid Solo plan (`if (solo) return solo`)')
+      else {
+        if (iOwner >= 0 && iSolo < iOwner) bad('getUserPlan returns Solo before checking the teams the person is in, so a team seat would be held to Solo')
+        if (iProfileTrial >= 0 && iProfileTrial < iSolo) bad('getUserPlan reads the trial before returning a paid Solo plan, so a Solo payer could be read as a trialist')
+      }
     }
   }
 }

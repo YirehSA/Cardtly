@@ -155,7 +155,9 @@ const personal = read('components/card/CardEditor.tsx')
 if (!/for \(const k of VIDEO_KEYS\) if \(payload\[k\] === storedVideo\.current\[k\]\) delete payload\[k\]/.test(personal)) bad('the card editor writes the video on every save, so a problem with it stops every save')
 if (!/if \(error && isPermissionDenied\(error\) && VIDEO_KEYS\.some\(k => k in payload\)\) \{\s*for \(const k of VIDEO_KEYS\) delete payload\[k\]/.test(personal)) bad('a refused video still stops the rest of the card saving')
 if (!/grant update \(video_url, video_title, show_video\) on public\.cards to authenticated;/.test(read('supabase/migrations/100_card_video_grant.sql'))) bad('migration 100 does not grant the card editor the video columns')
-if (!/<VideoField disabled=\{!pro\}/.test(personal) || !/show_video:\s+\(card as any\)\?\.show_video !== false/.test(personal)) bad('the personal editor has no video section, or offers it to a free plan')
+// A paid plan: Pro, or Cardtly Solo (lib/solo), whose card has the video too.
+if (!/const full = pro \|\| solo/.test(personal)) bad('the personal editor must open card fields only to a paid plan (Pro or Solo)')
+if (!/<VideoField disabled=\{!full\}/.test(personal) || !/show_video:\s+\(card as any\)\?\.show_video !== false/.test(personal)) bad('the personal editor has no video section, or offers it to a free plan')
 const team = read('components/team/TeamCardEditor.tsx')
 if (!/<VideoField /.test(team) || !/show_video:\s+\(card as any\)\.show_video !== false/.test(team)) bad('the team card editor has no video section')
 // Not in the design: touching a team card's design takes it off the look.

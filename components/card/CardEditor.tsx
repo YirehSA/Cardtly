@@ -5,6 +5,8 @@ import { isMissingColumn, isPermissionDenied } from '@/lib/pg-errors'
 import { createClient } from '@/lib/supabase/client'
 import { Card, UserPlan } from '@/types/database'
 import { isPro } from '@/lib/plan'
+import { isSolo, SOLO_MAX_IMAGES, SOLO_MAX_LINKS } from '@/lib/solo'
+import { useIosApp } from '@/components/dashboard/PlatformProvider'
 import { CardDesign, DEFAULT_DESIGN, parseDesign, serializeDesign, getAccentHex, MAX_CUSTOM_LINKS, MAX_GALLERY_IMAGES, LINK_SLOTS, IMAGE_SLOTS, linkFieldsFrom, imageFieldsFrom, HERO_ASPECT, GALLERY_ASPECT } from '@/types/design'
 import ImageFocusPicker from './ImageFocusPicker'
 import { composeCardSlug, slugifyPart } from '@/lib/card-slug'
@@ -105,6 +107,14 @@ function Section({ title, hint, colour, icon, children }: {
 export default function CardEditor({ card, plan, userId, slugPrefix = null }: Props) {
   const supabase = createClient()
   const pro = isPro(plan)
+  // Cardtly Solo (lib/solo) has the normal card: every field, the Links,
+  // Photos and Design tabs, with at most 4 links, 2 photos and 5 templates.
+  // `full` is "has the card's own features"; `pro` stays for what only Pro
+  // adds (AI writing, background removal, every template).
+  const solo = isSolo(plan)
+  const full = pro || solo
+  const maxLinks = solo ? SOLO_MAX_LINKS : MAX_CUSTOM_LINKS
+  const maxPhotos = solo ? SOLO_MAX_IMAGES : MAX_GALLERY_IMAGES
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('basic')
   const [aiBioOpen, setAiBioOpen] = useState(false)
@@ -321,9 +331,9 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
   // Five empty link boxes and six empty photo boxes is a wall. Show what is
   // filled plus one waiting slot, and let people ask for more.
   const [linkSlots, setLinkSlots] = useState(() =>
-    Math.max(1, Array.from({ length: MAX_CUSTOM_LINKS }, (_, i) => i + 1).filter(i => (card as any)?.[`link_${i}_url`] || (card as any)?.[`link_${i}_title`]).length + 0))
+    Math.min(maxLinks, Math.max(1, Array.from({ length: MAX_CUSTOM_LINKS }, (_, i) => i + 1).filter(i => (card as any)?.[`link_${i}_url`] || (card as any)?.[`link_${i}_title`]).length + 0)))
   const [photoSlots, setPhotoSlots] = useState(() =>
-    Math.max(1, Array.from({ length: MAX_GALLERY_IMAGES }, (_, i) => i + 1).filter(i => (card as any)?.[`image_${i}_url`]).length + 0))
+    Math.min(maxPhotos, Math.max(1, Array.from({ length: MAX_GALLERY_IMAGES }, (_, i) => i + 1).filter(i => (card as any)?.[`image_${i}_url`]).length + 0)))
 
   // When this person belongs to a company, their link carries its name and
   // they only fill in their own half. An individual has no company, so
@@ -438,9 +448,11 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mb-5">
           {TABS.map(tab => {
-            const locked = tab.proOnly && !pro
+            const locked = tab.proOnly && !full
             const on = activeTab === tab.id
-            const fields = TAB_FIELDS[tab.id]
+            // On Solo only the slots it shows count towards "how full".
+            const fields = tab.id === 'links' ? TAB_FIELDS.links.slice(0, maxLinks)
+              : tab.id === 'media' ? TAB_FIELDS.media.slice(0, 1 + maxPhotos) : TAB_FIELDS[tab.id]
             const done = fields.filter(f => String((form as any)[f] || '').trim()).length
             const complete = fields.length > 0 && done === fields.length
             return (
@@ -500,8 +512,8 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
               <Field label="Your name" required>
                 <Input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Andre Nel" />
               </Field>
-              <ProField label="What you do" pro={pro} hint="Your job title, like Founder or Electrician.">
-                <Input value={form.title} onChange={e => update('title', e.target.value)} placeholder="Founder & CEO" disabled={!pro} />
+              <ProField label="What you do" pro={full} hint="Your job title, like Founder or Electrician.">
+                <Input value={form.title} onChange={e => update('title', e.target.value)} placeholder="Founder & CEO" disabled={!full} />
               </ProField>
               <Field label="Where you work">
                 <Input value={form.company} onChange={e => update('company', e.target.value)} placeholder="Yireh Business Solutions" />
@@ -510,9 +522,9 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
 
             <Section title="A bit about you" colour={TAB_COLOUR.basic} icon={<Sparkles className="w-4 h-4" />}
               hint="A line or two so people remember why they met you. Stuck? Let the AI write it.">
-              <ProField label="Your intro" pro={pro}>
+              <ProField label="Your intro" pro={full}>
                 <div className="relative">
-                  <textarea value={form.bio} onChange={e => update('bio', e.target.value)} placeholder="Tell people about yourself..." disabled={!pro} rows={4}
+                  <textarea value={form.bio} onChange={e => update('bio', e.target.value)} placeholder="Tell people about yourself..." disabled={!full} rows={4}
                     className="w-full px-4 py-2.5 pr-32 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition resize-none disabled:opacity-50 disabled:cursor-not-allowed" />
                   {pro && (
                     <button type="button" onClick={() => setAiBioOpen(true)}
@@ -524,16 +536,16 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                   )}
                 </div>
               </ProField>
-              <ProField label="What you are good at" pro={pro} hint="Separate with commas. These show as little tags on your card.">
-                <Input value={form.certifications} onChange={e => update('certifications', e.target.value)} placeholder="Web Design, SEO, Digital Marketing" disabled={!pro} />
+              <ProField label="What you are good at" pro={full} hint="Separate with commas. These show as little tags on your card.">
+                <Input value={form.certifications} onChange={e => update('certifications', e.target.value)} placeholder="Web Design, SEO, Digital Marketing" disabled={!full} />
               </ProField>
             </Section>
 
             {/* Its own section on the card, straight under the bio. */}
             <Section title="A video" colour={TAB_COLOUR.basic} icon={<PlayCircle className="w-4 h-4" />}
               hint="Paste a link to one video. It plays right on your card, under your intro.">
-              <ProField label="Your video" pro={pro}>
-                <VideoField disabled={!pro} accentHex={getAccentHex(design)}
+              <ProField label="Your video" pro={full}>
+                <VideoField disabled={!full} accentHex={getAccentHex(design)}
                   value={{ video_url: form.video_url, video_title: form.video_title, show_video: form.show_video }}
                   onChange={v => setForm(prev => ({ ...prev, ...v }))} />
               </ProField>
@@ -549,11 +561,11 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
               <Field label="Phone number">
                 <Input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="+27 82 000 0000" />
               </Field>
-              <ProField label="WhatsApp number" pro={pro} hint="Usually the same as your phone. Gives people a one-tap chat.">
-                <Input type="tel" value={form.whatsapp} onChange={e => update('whatsapp', e.target.value)} placeholder="+27 82 000 0000" disabled={!pro} />
+              <ProField label="WhatsApp number" pro={full} hint="Usually the same as your phone. Gives people a one-tap chat.">
+                <Input type="tel" value={form.whatsapp} onChange={e => update('whatsapp', e.target.value)} placeholder="+27 82 000 0000" disabled={!full} />
               </ProField>
-              <ProField label="Office phone" pro={pro}>
-                <Input type="tel" value={form.work_phone} onChange={e => update('work_phone', e.target.value)} placeholder="+27 11 000 0000" disabled={!pro} />
+              <ProField label="Office phone" pro={full}>
+                <Input type="tel" value={form.work_phone} onChange={e => update('work_phone', e.target.value)} placeholder="+27 11 000 0000" disabled={!full} />
               </ProField>
             </Section>
 
@@ -562,15 +574,15 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
               <Field label="Website">
                 <Input type="url" value={form.website} onChange={e => update('website', e.target.value)} placeholder="https://yoursite.com" />
               </Field>
-              <ProField label="Address" pro={pro}>
-                <Input value={form.address} onChange={e => update('address', e.target.value)} placeholder="Johannesburg, South Africa" disabled={!pro} />
+              <ProField label="Address" pro={full}>
+                <Input value={form.address} onChange={e => update('address', e.target.value)} placeholder="Johannesburg, South Africa" disabled={!full} />
               </ProField>
             </Section>
 
             <Section title="Your social profiles" colour={TAB_COLOUR.contact} icon={<Link2 className="w-4 h-4" />}
               hint="Paste the full link to each one. Leave blank any you do not use.">
               {SOCIALS.map(({ key, label, placeholder, colour, icon }) => (
-                <ProField key={key} pro={pro} label={
+                <ProField key={key} pro={full} label={
                   <span className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded-md grid place-items-center shrink-0"
                       style={{ background: colour + '22', color: colour }}>{icon}</span>
@@ -578,17 +590,17 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                   </span>
                 }>
                   <Input type="url" value={(form as any)[key]} onChange={e => update(key, e.target.value)}
-                    placeholder={placeholder} disabled={!pro} />
+                    placeholder={placeholder} disabled={!full} />
                 </ProField>
               ))}
             </Section>
           </>)}
 
           {activeTab === 'links' && (
-            pro ? (
+            full ? (
               <Section title="Buttons that send people somewhere" colour={TAB_COLOUR.links} icon={<Link2 className="w-4 h-4" />}
-                hint={`A menu, a booking page, a price list, your Google reviews. Up to ${MAX_CUSTOM_LINKS}.`}>
-                {Array.from({ length: MAX_CUSTOM_LINKS }, (_, i) => i + 1).slice(0, linkSlots).map(i => (
+                hint={`A menu, a booking page, a price list, your Google reviews. Up to ${maxLinks}.`}>
+                {Array.from({ length: maxLinks }, (_, i) => i + 1).slice(0, linkSlots).map(i => (
                   <div key={i} className="rounded-lg border border-border p-4 space-y-3 bg-card">
                     <div className="flex items-center gap-2">
                       <span className="w-6 h-6 rounded-lg grid place-items-center text-[11px] font-bold shrink-0"
@@ -605,18 +617,19 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                     </div>
                   </div>
                 ))}
-                {linkSlots < MAX_CUSTOM_LINKS && (
-                  <button type="button" onClick={() => setLinkSlots(n => Math.min(MAX_CUSTOM_LINKS, n + 1))}
+                {linkSlots < maxLinks && (
+                  <button type="button" onClick={() => setLinkSlots(n => Math.min(maxLinks, n + 1))}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed border-border text-sm font-semibold text-muted-foreground hover:border-foreground/30 hover:text-foreground transition">
                     <Plus className="w-4 h-4" />Add another button
                   </button>
                 )}
+                {solo && <SoloLimitNote what="links" shown={SOLO_MAX_LINKS} pro={MAX_CUSTOM_LINKS} />}
               </Section>
             ) : <ProGate feature="Custom links" />
           )}
 
           {activeTab === 'media' && (
-            pro ? (<>
+            full ? (<>
               <Section title="Your company logo" colour={TAB_COLOUR.media} icon={<Building2 className="w-4 h-4" />}
                 hint="Shown on your card and in the middle of your QR code. Resize it in Design.">
                 <ImageUploader value={form.company_logo_url} onChange={url => update('company_logo_url', url)} bucket="company-logos" userId={userId} shape="square" />
@@ -678,8 +691,8 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
               )}
 
               <Section title="Photos of your work" colour={TAB_COLOUR.media} icon={<Image className="w-4 h-4" />}
-                hint={`Up to ${MAX_GALLERY_IMAGES}. Finished jobs, your shop, your products - whatever proves you are good at it.`}>
-                {Array.from({ length: MAX_GALLERY_IMAGES }, (_, i) => i + 1).slice(0, photoSlots).map(i => (
+                hint={`Up to ${maxPhotos}. Finished jobs, your shop, your products - whatever proves you are good at it.`}>
+                {Array.from({ length: maxPhotos }, (_, i) => i + 1).slice(0, photoSlots).map(i => (
                   <div key={i} className="rounded-lg border border-border p-4 space-y-3 bg-card">
                     <div className="flex items-center gap-2">
                       <span className="w-6 h-6 rounded-lg grid place-items-center text-[11px] font-bold shrink-0"
@@ -722,19 +735,20 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
                     </div>
                   </div>
                 ))}
-                {photoSlots < MAX_GALLERY_IMAGES && (
-                  <button type="button" onClick={() => setPhotoSlots(n => Math.min(MAX_GALLERY_IMAGES, n + 1))}
+                {photoSlots < maxPhotos && (
+                  <button type="button" onClick={() => setPhotoSlots(n => Math.min(maxPhotos, n + 1))}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed border-border text-sm font-semibold text-muted-foreground hover:border-foreground/30 hover:text-foreground transition">
                     <Plus className="w-4 h-4" />Add another photo
                   </button>
                 )}
+                {solo && <SoloLimitNote what="photos" shown={SOLO_MAX_IMAGES} pro={MAX_GALLERY_IMAGES} />}
               </Section>
             </>) : <ProGate feature="Gallery and media" />
           )}
 
           {activeTab === 'design' && (
-            pro
-              ? <DesignPanel design={design} onChange={setDesign} isPro={pro} />
+            full
+              ? <DesignPanel design={design} onChange={setDesign} isPro={pro} solo={solo} />
               : <ProGate feature="Card design customisation" />
           )}
         </div>
@@ -760,7 +774,7 @@ export default function CardEditor({ card, plan, userId, slugPrefix = null }: Pr
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Live Preview</p>
             <p className="text-xs text-muted-foreground italic">Tap the arrow to flip</p>
           </div>
-          <FlippableCardPreview form={form} isPro={pro} design={design} cardUrl={cardUrl} />
+          <FlippableCardPreview form={form} isPro={full} tier={solo ? 'solo' : undefined} design={design} cardUrl={cardUrl} />
           <AIBioModal
             open={aiBioOpen}
             onClose={() => setAiBioOpen(false)}
@@ -790,6 +804,18 @@ function Field({ label, children, required, hint }: { label: string; children: R
       {hint && <p className="text-xs text-muted-foreground mb-1.5">{hint}</p>}
       {children}
     </div>
+  )
+}
+
+/** Under Links and Photos on Solo: the limit, and that more is kept, not lost. */
+function SoloLimitNote({ what, shown, pro }: { what: string; shown: number; pro: number }) {
+  // No way to buy in the iOS app (Guideline 3.1.1), so no link there.
+  const iosApp = useIosApp()
+  return (
+    <p className="text-xs text-muted-foreground">
+      Solo shows up to {shown} {what}. Pro shows up to {pro}{iosApp ? '.' : <>: <a href="/dashboard/upgrade" className="underline hover:text-foreground">upgrade</a>.</>}
+      {' '}Anything you had beyond {shown} is kept, and shows again on Pro.
+    </p>
   )
 }
 

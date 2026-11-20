@@ -685,15 +685,17 @@ function BillingTab({ plan, subscription, team = null }: { plan: UserPlan; subsc
     }
   }
 
+  // Cardtly Solo (lib/solo) or Pro: the same states, named for the plan.
+  const planName = plan.tier === 'solo' ? 'Solo' : 'Pro'
   const HEADER = {
     trial:  { badge: 'Trial', title: 'Free trial', tone: daysLeft <= 7 ? '#f59e0b' : '#8b5cf6',
               sub: plan.trialEndsAt ? `Ends ${formatDay(plan.trialEndsAt)}` : 'Every Pro feature included' },
     paid:   cancelledUntil
-      ? { badge: 'Pro', title: 'Pro plan, cancelled', tone: '#f59e0b',
+      ? { badge: planName, title: `${planName} plan, cancelled`, tone: '#f59e0b',
           sub: `Live until ${formatDay(cancelledUntil)}, then your card goes offline` }
-      : { badge: 'Pro', title: 'Pro plan', tone: '#22c55e',
+      : { badge: planName, title: `${planName} plan`, tone: '#22c55e',
           sub: subscription?.created_at ? `Paying since ${formatDay(subscription.created_at)}` : 'Active' },
-    comped: { badge: 'Pro', title: 'Pro, on the house', tone: '#22c55e',
+    comped: { badge: planName, title: `${planName}, on the house`, tone: '#22c55e',
               sub: subscription?.created_at ? `Active since ${formatDay(subscription.created_at)}` : 'Active' },
     // HOW LONG THE TEAM'S COVER RUNS, which this said nothing about: the owner
     // of a team prepaid for a year could not find the year anywhere in their
@@ -803,6 +805,14 @@ function BillingTab({ plan, subscription, team = null }: { plan: UserPlan; subsc
 
       {state === 'paid' && !cancelledUntil && (
         <div className="pt-2 border-t border-border">
+          {/* On Solo: the way up. Paying for Pro stops the Solo subscription,
+              so they are never charged for both (the Paystack webhook). */}
+          {plan.tier === 'solo' && !iosApp && (
+            <p className="text-sm mb-2">
+              On Solo. <a href="/dashboard/upgrade" className="underline font-medium">Upgrade to Pro</a> for all 16 templates,
+              up to 10 links and photos, lead capture, booking and analytics.
+            </p>
+          )}
           {/* The R999 package says what it is and what the year covers, rather
               than reading like any yearly plan. Not in the iOS app, which
               names no prices (Guideline 3.1.1). */}

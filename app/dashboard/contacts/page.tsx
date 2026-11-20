@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getUserPlan } from '@/lib/plan-server'
 import { getPrimaryCard, getMemberTeamCard } from '@/lib/card-server'
 import { getManagedDepartments } from '@/lib/department-perms'
+import { hasCard } from '@/lib/solo'
 import ProGate from '@/components/card/ProGate'
 import ContactsList from '@/components/dashboard/ContactsList'
 import { Users } from 'lucide-react'
@@ -61,7 +62,8 @@ export default async function ContactsPage() {
 
   // Pro gate applies to personal cards. Team cards are always Pro
   // (the org pays), so team members skip the gate.
-  const isPro = (plan.tier === 'pro' && plan.isActive) || isTeam
+  // Cardtly Solo includes Contacts (lib/solo), so any live card plan counts.
+  const isPro = hasCard(plan) || isTeam
 
   if (!isPro) {
     return (

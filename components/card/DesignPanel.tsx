@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { templateAllowed } from '@/lib/solo'
 import {
   TEMPLATES, ACCENT_COLORS, FONTS, CardDesign, TEXT_POSITION_TEMPLATES,
   AccentColor, FontId, LogoPosition, CardStyle, BgMode, getAccentHex,
@@ -16,6 +17,9 @@ interface Props {
   design: CardDesign
   onChange: (design: CardDesign) => void
   isPro: boolean
+  /** Cardtly Solo (lib/solo): its 5 templates open, the rest locked, and no
+   *  booking button to switch on. */
+  solo?: boolean
 }
 
 // Background colours that read well behind a whole card. Deliberately not the
@@ -107,7 +111,7 @@ const DESIGN_TABS: { id: DesignTabId; label: string; colour: string }[] = [
   { id: 'button',   label: 'Button',  colour: '#8b5cf6' },
 ]
 
-export default function DesignPanel({ design, onChange, isPro }: Props) {
+export default function DesignPanel({ design, onChange, isPro, solo = false }: Props) {
   const iosApp = useIosApp()
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [showBgPicker, setShowBgPicker] = useState(false)
@@ -208,7 +212,7 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
         {(templatePickerOpen || !activeTemplate) && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {TEMPLATES.map(t => {
-              const locked = t.proOnly && !isPro
+              const locked = solo ? !templateAllowed('solo', t.id) : (t.proOnly && !isPro)
               const active = design.templateId === t.id
               const previewDesign: CardDesign = {
                 ...DEFAULT_DESIGN,
@@ -430,8 +434,8 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
       {/* Book a meeting on or off (2026-10-15). Not every client takes
           meetings through the card, and the button was on every Pro card with
           no way to remove it. Off also removes Circuit's "Book a slot" and a
-          Context recommendation to book. */}
-      <div>
+          Context recommendation to book. Not on Solo, which has no booking. */}
+      {!solo && <div>
         <label className="block text-sm font-semibold mb-1">Book a meeting button</label>
         <p className="text-xs text-muted-foreground mb-3">
           Lets people ask for a meeting straight from your card. Turn it off if you do not take bookings this way.
@@ -450,7 +454,7 @@ export default function DesignPanel({ design, onChange, isPro }: Props) {
             Off
           </button>
         </div>
-      </div>
+      </div>}
 
       {/* Save Contact button colours */}
       <div>

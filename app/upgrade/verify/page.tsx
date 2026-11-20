@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { logSubscriptionChange } from '@/lib/subscription-audit'
-import { completeBundlePayment, isBundleTransaction } from '@/lib/pro-bundle-server'
+import { completeBundlePayment, isBundleTransaction, txMetadata } from '@/lib/pro-bundle-server'
+import { planForActivation, planIdFor } from '@/lib/paid-plans'
 
 export default async function VerifyPage({
   searchParams,
@@ -24,6 +25,9 @@ export default async function VerifyPage({
   // catch the actual fetch/db errors.
   let verified = false
   let bundle = false
+  // What was bought, read from the payment (lib/paid-plans): Pro or Solo.
+  let boughtTier: 'pro' | 'solo' = 'pro'
+  let boughtCycle: 'monthly' | 'yearly' = billingPlan === 'yearly' ? 'yearly' : 'monthly'
   try {
     const response = await fetch(`https://api.paystack.co/transaction/verify/${ref}`, {
       headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
@@ -56,10 +60,20 @@ export default async function VerifyPage({
       if (!done.ok) console.error('bundle completion on return from Paystack failed; the webhook will retry:', done.error)
       verified = true
     } else {
+      // The plan and the account come from the payment, which our own server
+      // labelled at checkout. The return address can be edited; this cannot.
+      const bought = planForActivation(transaction, boughtCycle)
+      if (!bought) {
+        console.error('verify: a payment marked as Solo did not match a Solo plan', ref)
+        redirect('/upgrade/cancel?reason=payment_failed')
+      }
+      boughtTier = bought.tier
+      boughtCycle = bought.cycle
+      const owner = String(txMetadata(transaction).user_id || user_id)
       const now = new Date()
       const periodEnd = new Date(now)
 
-      if (billingPlan === 'yearly') {
+      if (boughtCycle === 'yearly') {
         periodEnd.setFullYear(periodEnd.getFullYear() + 1)
       } else {
         periodEnd.setMonth(periodEnd.getMonth() + 1)
@@ -70,15 +84,15 @@ export default async function VerifyPage({
       // 'user_id' }) throws "no unique constraint matching the ON
       // CONFLICT specification" and silently leaves the user on Free.
       const { data: prior } = await admin
-        .from('whop_subscriptions').select('*').eq('user_id', user_id).maybeSingle()
+        .from('whop_subscriptions').select('*').eq('user_id', owner).maybeSingle()
 
-      await admin.from('whop_subscriptions').delete().eq('user_id', user_id)
+      await admin.from('whop_subscriptions').delete().eq('user_id', owner)
       await admin.from('whop_subscriptions').insert({
-        user_id,
+        user_id: owner,
         email: transaction.customer.email,
-        plan_id: `paystack_${billingPlan}`,
-        subscription_tier: 'pro',
-        billing_cycle: billingPlan,
+        plan_id: planIdFor(boughtTier, boughtCycle),
+        subscription_tier: boughtTier,
+        billing_cycle: boughtCycle,
         status: 'active',
         receipt_id: ref,
         membership_id: transaction.subscription_code || ref,
@@ -94,11 +108,11 @@ export default async function VerifyPage({
       })
 
       await logSubscriptionChange(admin, {
-        change: 'activated', userId: user_id, email: transaction.customer.email,
+        change: 'activated', userId: owner, email: transaction.customer.email,
         source: 'paystack_verify', reason: 'returned from Paystack checkout',
         before: prior,
-        after: { plan_id: `paystack_${billingPlan}`, status: 'active',
-                 subscription_tier: 'pro', billing_cycle: billingPlan, seats: 1 },
+        after: { plan_id: planIdFor(boughtTier, boughtCycle), status: 'active',
+                 subscription_tier: boughtTier, billing_cycle: boughtCycle, seats: 1 },
       })
 
       verified = true
@@ -115,7 +129,7 @@ export default async function VerifyPage({
   }
 
   if (verified) {
-    redirect(bundle ? '/upgrade/success?plan=yearly&bundle=1' : `/upgrade/success?plan=${billingPlan}`)
+    redirect(bundle ? '/upgrade/success?plan=yearly&bundle=1' : `/upgrade/success?plan=${boughtCycle}${boughtTier === 'solo' ? '&tier=solo' : ''}`)
   }
   redirect('/upgrade/cancel?reason=server_error')
 }

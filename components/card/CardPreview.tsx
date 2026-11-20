@@ -43,6 +43,8 @@ interface Props {
    *  old miniature never had. */
   form: Record<string, any>
   isPro: boolean
+  /** Cardtly Solo: rendered with Solo's limits (lib/solo). */
+  tier?: 'pro' | 'solo'
   design: CardDesign
   /** Crop height, before scaling. Given, the preview is a tile showing the top
    *  of the card - which is where a template's identity lives. Omitted, the
@@ -51,7 +53,7 @@ interface Props {
   frameHeight?: number
 }
 
-export default function CardPreview({ form, isPro, design, frameHeight }: Props) {
+export default function CardPreview({ form, isPro, tier, design, frameHeight }: Props) {
   const box = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(0)
 
@@ -92,7 +94,7 @@ export default function CardPreview({ form, isPro, design, frameHeight }: Props)
     return (
       <PreviewFrame>
         <div aria-hidden className="cardtly-card-preview" style={{ pointerEvents: 'none' }}>
-          <PublicCardView card={card} isPro={isPro} />
+          <PublicCardView card={card} isPro={isPro} tier={tier} />
         </div>
       </PreviewFrame>
     )
@@ -135,7 +137,7 @@ export default function CardPreview({ form, isPro, design, frameHeight }: Props)
           // so they are outside this subtree and unaffected.
           className="cardtly-card-preview"
         >
-          <PublicCardView card={card} isPro={isPro} />
+          <PublicCardView card={card} isPro={isPro} tier={tier} />
         </div>
       )}
     </div>

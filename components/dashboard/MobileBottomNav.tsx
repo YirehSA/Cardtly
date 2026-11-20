@@ -10,6 +10,7 @@ import {
   Users, Mail, Monitor, Wifi, Building2, Settings as SettingsIcon,
   Sun, Moon, LogOut, Shield, ScanLine, ClipboardList,
   ChevronUp, X, Network, Layers, CalendarClock, FileSignature, Handshake, HeartHandshake, PlayCircle, Store } from 'lucide-react'
+import { soloShows } from '@/lib/solo'
 
 // Mobile-only bottom tab bar. Replaces the hamburger + slide-out
 // sidebar pattern on small screens. 4 most-used destinations sit in
@@ -95,9 +96,11 @@ interface Props {
   isRep?: boolean
   isReseller?: boolean
   isResellerManager?: boolean
+  /** Cardtly Solo: only the pages lib/solo lists, the same as the sidebar. */
+  solo?: boolean
 }
 
-export default function MobileBottomNav({ isAdmin = false, isPro = false, managesDepartments = false, showTeamCards = true, isRep = false, isReseller = false, isResellerManager = false, teamTabLabel }: Props) {
+export default function MobileBottomNav({ isAdmin = false, isPro = false, solo = false, managesDepartments = false, showTeamCards = true, isRep = false, isReseller = false, isResellerManager = false, teamTabLabel }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const { theme, toggle } = useTheme()
@@ -107,8 +110,13 @@ export default function MobileBottomNav({ isAdmin = false, isPro = false, manage
   useEffect(() => { setMoreOpen(false) }, [pathname])
 
   // Visible More items = base + Lead capture (Pro) + Admin (if granted)
+  // Solo (lib/solo soloShows): Contacts takes Stats' place in the bar, and the
+  // More sheet keeps only Solo's own pages.
+  const primaryTabs: Tab[] = solo
+    ? PRIMARY_TABS.map(t => soloShows(t.href) ? t : MORE_TABS.find(m => m.href === '/dashboard/contacts')!)
+    : PRIMARY_TABS
   const moreTabs: Tab[] = [
-    ...MORE_TABS,
+    ...(solo ? MORE_TABS.filter(t => soloShows(t.href) && !primaryTabs.some(p => p.href === t.href)) : MORE_TABS),
     ...(isPro ? [{ href: '/dashboard/questionnaire', label: 'Lead capture', icon: ClipboardList }] : []),
     // Same gate as the sidebar: hidden from anyone in a team they do not own.
     ...(showTeamCards ? [{ ...TEAM_TAB, label: teamTabLabel || TEAM_TAB.label }] : []),
@@ -241,7 +249,7 @@ export default function MobileBottomNav({ isAdmin = false, isPro = false, manage
         aria-label="Main"
       >
         <div className="grid grid-cols-5 px-1 pt-1.5 pb-1.5">
-          {PRIMARY_TABS.map(({ href, label, icon: Icon }) => {
+          {primaryTabs.map(({ href, label, icon: Icon }) => {
             const active = isActive(pathname, href)
             return (
               <Link

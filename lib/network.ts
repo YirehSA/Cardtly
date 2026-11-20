@@ -1,5 +1,6 @@
 import { companyKey, industryLabel } from './industries'
 import { withResolvedBrand } from './resolve-card-brand'
+import { selectAll } from './select-all'
 
 // Building the Network directory from the two card tables.
 //
@@ -71,10 +72,11 @@ export interface NetworkData {
 }
 
 export async function fetchNetworkCards(admin: any): Promise<NetworkData> {
-  const [personal, team, orgs, depts] = await Promise.all([
+  const [personal, team, orgs, depts, solo] = await Promise.all([
     admin
       .from('cards')
-      .select(CARD_FIELDS)
+      // user_id only to leave Solo cards out below; map never lists it.
+      .select(`${CARD_FIELDS}, user_id`)
       .not('slug', 'is', null)
       .eq('hide_from_network', false),
     admin
@@ -100,7 +102,13 @@ export async function fetchNetworkCards(admin: any): Promise<NetworkData> {
     // because a missing column returns an empty result instead of an error,
     // which would quietly leave every card unfiled rather than saying so.
     admin.from('departments').select('*'),
+    // CARDTLY SOLO HAS NO NETWORK (lib/solo): the people on it, so their
+    // cards are left out. Paged, so it cannot quietly stop at 1000. If it
+    // cannot be read, nobody is taken out: the directory is as it was.
+    selectAll(() => admin.from('whop_subscriptions').select('id, user_id')
+      .eq('subscription_tier', 'solo').in('status', ['active', 'past_due'])),
   ])
+  const soloUsers = new Set<string>(solo.error ? [] : solo.data.map((r: any) => r.user_id))
 
   // Departments are a nicety here, not a dependency: if the table cannot be
   // read the directory still lists everyone, just without the unit filter.
@@ -170,7 +178,7 @@ export async function fetchNetworkCards(admin: any): Promise<NetworkData> {
   }
 
   return {
-    cards: [...map(personal.data, false), ...map(brandedTeam, true)],
+    cards: [...map((personal.data || []).filter((r: any) => !soloUsers.has(r.user_id)), false), ...map(brandedTeam, true)],
     brandLogos,
     ready: true,
   }

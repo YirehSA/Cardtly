@@ -30,6 +30,8 @@ interface PreviewData {
 interface Props {
   form: PreviewData
   isPro: boolean
+  /** Cardtly Solo: preview with Solo's limits, as the public sees it. */
+  tier?: 'pro' | 'solo'
   design: CardDesign
   cardUrl?: string | null
 }
@@ -39,7 +41,7 @@ interface Props {
 // hand. The front is the real card scaled down by CardPreview, the back is a
 // large QR code with the card's URL plus a hint to tap to flip back.
 
-export default function FlippableCardPreview({ form, isPro, design, cardUrl }: Props) {
+export default function FlippableCardPreview({ form, isPro, tier, design, cardUrl }: Props) {
   const [flipped, setFlipped] = useState(false)
   const [qrSvg, setQrSvg] = useState<string>('')
   const [spinning, setSpinning] = useState(false)
@@ -75,7 +77,7 @@ export default function FlippableCardPreview({ form, isPro, design, cardUrl }: P
         {/* Front */}
         <div className="flip-card-face rounded-lg overflow-hidden shadow-2xl border border-gray-800 scrollbar-thin"
           style={{ maxHeight: '82vh', overflowY: flipped ? 'hidden' : 'auto' }}>
-          <CardPreview form={form} isPro={isPro} design={design} />
+          <CardPreview form={form} isPro={isPro} tier={tier} design={design} />
         </div>
         {/* Back */}
         <div className="flip-card-face flip-card-back rounded-lg overflow-hidden shadow-2xl border flex flex-col items-center justify-center p-8 gap-6"

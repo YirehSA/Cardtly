@@ -6,6 +6,7 @@ import { isIosApp } from '@/lib/app-platform'
 import UpgradeView from '@/components/upgrade/UpgradeView'
 import PricesElsewhere from '@/components/reseller/PricesElsewhere'
 import { resellerPriceScope, serviceDb } from '@/lib/reseller'
+import { soloOnSale } from '@/lib/paid-plans'
 
 // The upgrade screen, shared by /dashboard/upgrade and /dashboard/upgrade/bundle
 // (which opens on the Pro year + NFC card bundle, for links from the pricing
@@ -54,6 +55,10 @@ export default async function UpgradeScreen({ openBundle = false }: { openBundle
       trialDaysLeft={plan.trialDaysLeft ?? 0}
       graceDaysLeft={plan.graceDaysLeft ?? 0}
       card={card ? { name: card.name ?? null, title: card.title ?? null } : null}
-      openBundle={openBundle} />
+      openBundle={openBundle}
+      // Which plan they pay for now, so the page offers a Solo customer Pro
+      // (the way up) and never Solo on top of Pro. Null on a trial or expired.
+      currentTier={plan.isActive && !plan.isTrial && (plan.tier === 'pro' || plan.tier === 'solo') ? plan.tier : null}
+      soloAvailable={soloOnSale()} />
   )
 }

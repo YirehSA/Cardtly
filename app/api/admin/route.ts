@@ -46,8 +46,11 @@ export async function POST(request: Request) {
   // keeps the billing history, and refuse outright if the user has a LIVE
   // Paystack subscription, since comping someone we are still charging is
   // almost certainly a mistake. `force` exists for the rare case it isn't.
-  if (action === 'activate_pro') {
+  // activate_solo is the same comp for Cardtly Solo (lib/solo), so an account
+  // can be put on Solo by hand, for testing or a goodwill gesture.
+  if (action === 'activate_pro' || action === 'activate_solo') {
     const { user_id, email, force } = body
+    const solo = action === 'activate_solo'
     if (!user_id) {
       return NextResponse.json({ error: 'user_id required' }, { status: 400 })
     }
@@ -76,22 +79,22 @@ export async function POST(request: Request) {
       .insert({
         user_id,
         email,
-        plan_id: 'pro_admin',
-        subscription_tier: 'pro',
+        plan_id: solo ? 'solo_admin' : 'pro_admin',
+        subscription_tier: solo ? 'solo' : 'pro',
         status: 'active',
         billing_cycle: 'monthly',
         seats: 1,
-        metadata: { comped: true, reason: 'admin_activated' },
+        metadata: { comped: true, reason: solo ? 'admin_activated_solo' : 'admin_activated' },
       })
     if (insertError) {
-      console.error('activate_pro insert error:', insertError)
-      await auditLog(admin, { actorUserId: user?.id, actorEmail: user?.email, action: 'activate_pro', targetUserId: user_id, targetEmail: email, ok: false, detail: { error: insertError.message } })
+      console.error(`${action} insert error:`, insertError)
+      await auditLog(admin, { actorUserId: user?.id, actorEmail: user?.email, action, targetUserId: user_id, targetEmail: email, ok: false, detail: { error: insertError.message } })
       return NextResponse.json({ error: insertError.message }, { status: 500 })
     }
 
     await auditLog(admin, {
       actorUserId: user?.id, actorEmail: user?.email,
-      action: 'activate_pro', targetUserId: user_id, targetEmail: email,
+      action, targetUserId: user_id, targetEmail: email,
       detail: { superseded: (existing || []).length, forced: !!force },
     })
     return NextResponse.json({ success: true })

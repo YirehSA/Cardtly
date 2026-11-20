@@ -16,6 +16,7 @@ import { TikTokGlyph } from '@/components/card/SocialIcons'
 import { isNativeApp, shareNative, saveContactNative } from '@/lib/capacitor'
 import { isInAppBrowser, detectInAppBrowser, isAndroid, chromeIntentUrl } from '@/lib/in-app-browser'
 import { waShareLink } from '@/lib/whatsapp'
+import { soloCardView } from '@/lib/solo'
 import SuspendedBanner from '@/components/card/SuspendedBanner'
 // useTrack RATHER THAN track, ON PURPOSE. The raw tracker is deliberately not
 // imported into this file: every event here must go through the hook, which
@@ -45,6 +46,9 @@ import CardVideo from './CardVideo'
 interface Props {
   card: Card & { _team_card_id?: string }
   isPro: boolean
+  /** Cardtly Solo (lib/solo): the card is shown through soloCardView, so its
+   *  limits hold on every template. Pro, a trial or a team card: unset. */
+  tier?: 'pro' | 'solo'
   isTeamCard?: boolean
   lastActiveAt?: string | null
   // Tier 1 founder status - if set, render the gold founder ribbon
@@ -643,6 +647,9 @@ function AllContacts({ card, isPro, accentHex, bg, cardEffect, design, socialLin
 interface BottomProps {
   card: Card & { _team_card_id?: string }
   isPro: boolean
+  /** False on Solo: the "share your details" form is lead capture, a Pro
+   *  feature. Every other lead route is an add-on soloCardView switches off. */
+  leadCapture?: boolean
   isTeamCard?: boolean
   links: { index: number; title: string; url: string }[]
   certifications: string[]
@@ -750,7 +757,7 @@ function BookingTrigger({ card, accentHex, accentText, buttonBg, buttonText, but
   )
 }
 
-function BottomSection({ card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context = null, contextControls = null, buttonBg, buttonText, buttonBorder, buttonFontSize, bodyFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false, omitCertifications = false, primaryLinkCount = 0, headingColor, captionColor }: BottomProps) {
+function BottomSection({ card, isPro, leadCapture = true, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context = null, contextControls = null, buttonBg, buttonText, buttonBorder, buttonFontSize, bodyFontSize, bg, cardEffect, handleShare, founderNumber, omitAboveGallery = false, omitBooking = false, omitCertifications = false, primaryLinkCount = 0, headingColor, captionColor }: BottomProps) {
   // Shadows the module import on purpose, so the three track() calls below
   // (contact_save, context_cta_clicked, share) are preview-aware without three
   // separate reminders to check a flag.
@@ -1305,7 +1312,7 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
         />
       )}
 
-      {isPro && (
+      {isPro && leadCapture && (
         <div className="mt-8">
           {!showContactForm && !submitted ? (
             <button onClick={() => setShowContactForm(true)}
@@ -1491,7 +1498,10 @@ function BottomSection({ card, isPro, isTeamCard, links, certifications, gallery
 const CARD_FRAME_WIDTH = 430
 
 export default function PublicCardView(props: Props) {
-  const design = parseDesign(props.card.color_theme)
+  // Solo's limits, applied once here, before the design or anything else
+  // reads the card, so no template can show past them.
+  const card = props.tier === 'solo' ? soloCardView(props.card) : props.card
+  const design = parseDesign(card.color_theme)
   const bg = getBgColors(design.bgMode, design.templateId, design.customBgColor)
   const surround = isLightBg(design.customBgColor || bg.page) ? '#e8ecf1' : '#05070b'
 
@@ -1512,14 +1522,14 @@ export default function PublicCardView(props: Props) {
             transform: 'translateZ(0)',
           }}
         >
-          <CardBody {...props} />
+          <CardBody {...props} card={card} />
         </div>
       </div>
     </>
   )
 }
 
-function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previewContext }: Props) {
+function CardBody({ card, isPro, tier, isTeamCard, lastActiveAt, founderNumber, previewContext }: Props) {
   // Same shadowing as BottomSection: the context_viewed event below goes
   // through the hook so a preview never logs one.
   const track = useTrack()
@@ -1810,7 +1820,7 @@ function CardBody({ card, isPro, isTeamCard, lastActiveAt, founderNumber, previe
 
   // Shared prop bundles
   const shared: Shared = { card, isPro, accentHex, bg, font, cardEffect, design }
-  const bottomProps: BottomProps = { card, isPro, isTeamCard, links, certifications, galleryImages, accentHex, accentText, context: showFullProfile ? null : activeContext,
+  const bottomProps: BottomProps = { card, isPro, leadCapture: tier !== 'solo', isTeamCard, links, certifications, galleryImages, accentHex, accentText, context: showFullProfile ? null : activeContext,
     // Book a meeting switched off in Design. omitBooking also drops a Context
     // recommendation to book, so the card offers no way into the form at all.
     omitBooking: design.showBooking === false,

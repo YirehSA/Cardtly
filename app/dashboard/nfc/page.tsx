@@ -7,6 +7,7 @@ import { getManagedDepartments } from '@/lib/department-perms'
 import NFCOrderPage from '@/components/nfc/NFCOrderPage'
 import NFCWriteCard from '@/components/nfc/NFCWriteCard'
 import ProGate from '@/components/card/ProGate'
+import { hasCard } from '@/lib/solo'
 import NFCSamplesSection from '@/components/nfc/NFCSamplesSection'
 import { availableSamples } from '@/lib/nfc-samples'
 import { possessive } from '@/lib/possessive'
@@ -40,7 +41,8 @@ export default async function NFCPage() {
       .order('created_at', { ascending: false }),
   ])
 
-  const isPro = plan.tier === 'pro' && plan.isActive
+  // Cardtly Solo keeps NFC card ordering (lib/solo), so any live card plan.
+  const isPro = hasCard(plan)
 
   if (!isPro) {
     return (

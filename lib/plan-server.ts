@@ -57,8 +57,11 @@ export function subscriptionState(sub: {
   status?: string | null
   past_due_since?: string | null
   cancel_at?: string | null
-} | null): { serves: boolean; isPastDue: boolean; graceEndsAt: string | null; graceDaysLeft: number; cancelAt: string | null } {
-  const base = baseSubscriptionState(sub)
+} | null): { serves: boolean; tier: 'pro' | 'solo' | null; isPastDue: boolean; graceEndsAt: string | null; graceDaysLeft: number; cancelAt: string | null } {
+  // Which plan the row is for. 'solo' (Cardtly Solo, lib/solo) serves a card
+  // exactly as 'pro' does, with Solo's limits; anything else serves nothing.
+  const tier: 'pro' | 'solo' | null = sub?.subscription_tier === 'solo' ? 'solo' : sub?.subscription_tier === 'pro' ? 'pro' : null
+  const base = { ...baseSubscriptionState(sub), tier }
 
   // A CANCELLED SUBSCRIPTION SERVES UNTIL THE END OF WHAT WAS PAID FOR, then
   // stops. The row stays 'active' in the meantime (see migration 090), so this
@@ -78,7 +81,7 @@ function baseSubscriptionState(sub: {
   past_due_since?: string | null
 } | null): { serves: boolean; isPastDue: boolean; graceEndsAt: string | null; graceDaysLeft: number } {
   const none = { serves: false, isPastDue: false, graceEndsAt: null, graceDaysLeft: 0 }
-  if (!sub || sub.subscription_tier !== 'pro') return none
+  if (!sub || (sub.subscription_tier !== 'pro' && sub.subscription_tier !== 'solo')) return none
 
   if (sub.status === 'active') {
     return { serves: true, isPastDue: false, graceEndsAt: null, graceDaysLeft: 0 }
@@ -157,9 +160,12 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
   const sub = await latestSubscriptionFor(admin, userId, 'billing_cycle')
 
   const state = subscriptionState(sub as any)
+  // A SOLO SUBSCRIBER WHO IS ALSO IN A TEAM gets Pro from the team: Solo is
+  // kept back until the team checks below have run, so a company seat is never
+  // held to Solo's limits by a personal plan the person also pays for.
+  let solo: UserPlan | null = null
   if (state.serves) {
-    return {
-      tier: 'pro',
+    const paidFields = {
       isActive: true,
       billingCycle: (sub as any).billing_cycle,
       isTrial: false,
@@ -168,6 +174,8 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
       graceDaysLeft: state.graceDaysLeft,
       cancelAt: state.cancelAt,
     }
+    if (state.tier !== 'solo') return { tier: 'pro', ...paidFields }
+    solo = { tier: 'solo', ...paidFields }
   }
 
   // Covered by an organisation.
@@ -244,6 +252,9 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
   if ((ownedOrgs || []).some((o: any) => orgEntitlesMembers(o))) {
     return { tier: 'pro', isActive: true, isTrial: false, viaTeam: true }
   }
+
+  // Paying for Solo, and no team covering them.
+  if (solo) return solo
 
   const { data: profile } = await admin
     .from('profiles')

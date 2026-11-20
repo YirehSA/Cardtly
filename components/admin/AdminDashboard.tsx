@@ -859,6 +859,16 @@ function UserRow({ u, expanded, onToggle, run, loading, reps }: {
                 {loading === `pro-${u.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Sparkles className="w-3 h-3 inline mr-1" />Comp to Pro</>}
               </button>
             )}
+            {/* Cardtly Solo by hand (lib/solo): for testing what a Solo
+                customer sees, or a goodwill gesture. */}
+            {u.status !== 'paying' && u.status !== 'comped' && (
+              <button disabled={loading === `solo-${u.id}`}
+                onClick={() => run(`solo-${u.id}`, { action: 'activate_solo', user_id: u.id, email: u.email }, `${u.email} comped to Solo`)}
+                className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition hover:bg-white/10 disabled:opacity-40"
+                style={{ border: '1px solid rgba(20,184,166,0.45)', color: '#14b8a6' }}>
+                {loading === `solo-${u.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Comp to Solo'}
+              </button>
+            )}
 
             {/* A failed Paystack subscription on an account that no longer
                 reads as paying. Paystack can still retry the charge, so it

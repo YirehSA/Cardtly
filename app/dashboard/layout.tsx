@@ -118,12 +118,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // holds only the cards they manage - no seats, no billing, no other
   // department - and labelled for what it is to them.
   const isDeptHead = ownedOrgsList.length === 0 && managedDeptsList.length > 0
-  const showTeamCards = !inSomeoneElsesTeam || isDeptHead
+  const showTeamCardsAll = !inSomeoneElsesTeam || isDeptHead
   const teamTabLabel = isDeptHead ? 'My Team' : undefined
 
   const isRep = !!rep
 
   const isPro = plan.tier === 'pro' && plan.isActive
+  // Cardtly Solo (lib/solo): its own short menu, and no Team Cards, because a
+  // Solo card is one person's and never a team.
+  const solo = plan.tier === 'solo' && plan.isActive
+  const showTeamCards = showTeamCardsAll && !solo
   // Lead capture is standard on Pro and switched on by the user, so the nav
   // item just follows the plan. This used to resolve the add-on target on
   // every dashboard request with a service-role client purely to decide
@@ -224,6 +228,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div aria-hidden className="app-ambient" />
         <Sidebar
           isPro={isPro}
+          solo={solo}
           isAdmin={isAdmin}
           managesDepartments={managesDepartments}
           showTeamCards={showTeamCards}
@@ -263,7 +268,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <HeartbeatPing />
         <FreshOnReturn />
         <AnnouncementModal />
-        <MobileBottomNav isAdmin={isAdmin} isPro={isPro} managesDepartments={managesDepartments} showTeamCards={showTeamCards} isRep={isRep} isReseller={isReseller} isResellerManager={isResellerManager} teamTabLabel={teamTabLabel} />
+        <MobileBottomNav isAdmin={isAdmin} isPro={isPro} solo={solo} managesDepartments={managesDepartments} showTeamCards={showTeamCards} isRep={isRep} isReseller={isReseller} isResellerManager={isResellerManager} teamTabLabel={teamTabLabel} />
       </div>
       </PlatformProvider>
     </ThemeProvider>
