@@ -60,7 +60,8 @@ const percentOff = (tier: PaidTier) => Math.round((yearlySavingRand(tier) / (PLA
 const BEST_PERCENT = Math.max(percentOff('solo'), percentOff('pro'))
 
 interface Props {
-  state: 'trial' | 'expired' | 'paid' | 'past_due'
+  /** 'choose': a new account with no plan and no trial yet (migration 109). */
+  state: 'choose' | 'trial' | 'expired' | 'paid' | 'past_due'
   trialDaysLeft: number
   /** past_due only: days of the payment grace window left. */
   graceDaysLeft?: number
@@ -77,6 +78,7 @@ interface Props {
 export default function UpgradeView({ state, trialDaysLeft, graceDaysLeft = 0, card = null, openBundle = false, currentTier = null, soloAvailable = false }: Props) {
   const [billing, setBilling] = useState<BillingCycle>('monthly')
   const [loading, setLoading] = useState<PaidTier | null>(null)
+  const [startingTrial, setStartingTrial] = useState(false)
   const [bundleOpen, setBundleOpen] = useState(openBundle)
   // Never in the iOS app, which sells nothing (Guideline 3.1.1). UpgradeScreen
   // already sends the app away; this is the second lock.
@@ -85,6 +87,22 @@ export default function UpgradeView({ state, trialDaysLeft, graceDaysLeft = 0, c
   const onPro = state === 'paid' && currentTier === 'pro'
   if (iosApp) return null
   const onSolo = state === 'paid' && currentTier === 'solo'
+
+  // The quiet fallback (lib/signup-trial): 7 days of Solo for somebody who
+  // will not choose. Never advertised; offered here, under the plans.
+  async function startTrial() {
+    setStartingTrial(true)
+    try {
+      const res = await fetch('/api/trial/start', { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { toast.error(data.error || 'Could not start your trial. Please try again.'); setStartingTrial(false); return }
+      toast.success('Your 7-day free trial has started. Your card is live.')
+      window.location.href = '/dashboard/card'
+    } catch {
+      toast.error('Could not start your trial. Please try again.')
+      setStartingTrial(false)
+    }
+  }
 
   async function handleCheckout(tier: PaidTier) {
     setLoading(tier)
@@ -110,6 +128,18 @@ export default function UpgradeView({ state, trialDaysLeft, graceDaysLeft = 0, c
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-16">
       {/* Where this person actually stands. */}
+      {state === 'choose' && (
+        <div className="rounded-lg border p-4 flex items-start gap-3"
+          style={{ borderColor: 'hsl(var(--accent) / 0.35)', background: 'hsl(var(--accent) / 0.08)' }}>
+          <Check className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'hsl(var(--accent))' }} />
+          <div>
+            <p className="font-semibold text-sm">Your account is ready</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Choose a plan to put your card live. You can build your card while you decide, and it keeps its link whichever you choose.
+            </p>
+          </div>
+        </div>
+      )}
       {state === 'expired' && (
         <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 flex items-start gap-3">
           <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
@@ -290,6 +320,20 @@ export default function UpgradeView({ state, trialDaysLeft, graceDaysLeft = 0, c
           )
         })}
       </div>
+
+      {/* THE TRIAL, ONLY AS A FALLBACK (Andre: not promoted). A quiet line
+          under the plans for somebody who will not choose yet. Solo, 7 days. */}
+      {state === 'choose' && (
+        <p className="text-center text-sm text-muted-foreground">
+          Not ready to choose?{' '}
+          <button type="button" onClick={startTrial} disabled={startingTrial}
+            className="underline underline-offset-4 hover:text-foreground disabled:opacity-60">
+            {startingTrial ? 'Starting your trial...' : 'Try Solo free for 7 days'}
+          </button>
+          . No card needed.
+        </p>
+      )}
+      {state === 'choose' && <TrialCodeBox />}
 
       <div className="flex items-center justify-center gap-5 text-xs text-muted-foreground flex-wrap">
         <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5" />Paid securely through Paystack</span>

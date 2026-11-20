@@ -24,7 +24,7 @@ import {
   CreditCard, BarChart2, Eye, Users, ArrowUpRight, QrCode, Mail, Monitor,
   ChevronRight, Check, Circle, TrendingUp,
 } from 'lucide-react'
-import { isSolo, soloShows } from '@/lib/solo'
+import { isSolo, soloShows, PRO_PRICE_RAND, SOLO_PRICE_RAND } from '@/lib/solo'
 
 interface CardSummary {
   id: string
@@ -90,6 +90,11 @@ export default async function DashboardPage() {
   // See lib/app-platform for why this is read from the request rather than
   // decided in the browser.
   const iosApp = await isIosApp()
+
+  // A new account that has not chosen a plan or taken the trial (migration
+  // 109) is taken to the plan page: choosing is the next step (Andre,
+  // 2026-11-20). Not in the iOS app, which admits no individual accounts.
+  if (plan.needsPlan && !iosApp) redirect('/dashboard/upgrade')
 
   const isPro = plan.tier === 'pro' && plan.isActive
   // Cardtly Solo (lib/solo): a paid card with its own short list of tools.
@@ -274,7 +279,7 @@ export default async function DashboardPage() {
             <Link href="/dashboard/upgrade"
               className="btn-sheen flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold shrink-0"
               style={{ backgroundColor: 'hsl(var(--accent))', color: 'var(--on-accent)' }}>
-              {isExpired ? 'Reactivate card' : 'Subscribe'}
+              {isExpired ? 'Reactivate card' : 'Choose a plan'}
               <ArrowUpRight className="w-4 h-4" />
             </Link>
           )}
@@ -303,7 +308,7 @@ export default async function DashboardPage() {
                   Your trial has ended, so {card?.slug ? `cardtly.com/card/${card.slug}` : 'your card link'} no longer opens.
                   {iosApp
                     ? ' Nothing has been deleted - your design, your details and every contact are exactly where you left them.'
-                    : ' Subscribe for R97 a month and it goes straight back live, same link, nothing lost.'}
+                    : ` Choose Solo (R${SOLO_PRICE_RAND.monthly} a month) or Pro (R${PRO_PRICE_RAND.monthly} a month) and it goes straight back live, same link, nothing lost.`}
                 </span>
               </>
             ) : (
@@ -312,8 +317,8 @@ export default async function DashboardPage() {
                   {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'} left on your trial.
                 </span>{' '}
                 <span className="text-muted-foreground">
-                  You have every Pro feature until then.
-                  {iosApp ? '' : ' Subscribe for R97 a month to keep your card live after that.'}
+                  You have {plan.tier === 'solo' ? 'everything in Solo' : 'every Pro feature'} until then.
+                  {iosApp ? '' : ` Choose Solo (R${SOLO_PRICE_RAND.monthly} a month) or Pro (R${PRO_PRICE_RAND.monthly} a month) to keep your card live after that.`}
                 </span>
               </>
             )}

@@ -114,7 +114,9 @@ function body(src, decl) {
       // team checks select is the organisation's, not theirs.
       const iSolo = fn.indexOf('if (solo) return solo')
       const iOwner = fn.indexOf("eq('admin_user_id', userId)")
-      const iProfileTrial = fn.indexOf("from('profiles')")
+      // Through profileTrialFor since migration 109 (trial_tier), or inline.
+      const iProfileTrial = [fn.indexOf('profileTrialFor('), fn.indexOf("from('profiles')")].filter(i => i >= 0).sort((x, y) => x - y)[0] ?? -1
+      if (iProfileTrial < 0) bad('getUserPlan never reads the trial of the person (profileTrialFor or profiles)')
       if (iSolo < 0) bad('getUserPlan never returns a paid Solo plan (`if (solo) return solo`)')
       else {
         if (iOwner >= 0 && iSolo < iOwner) bad('getUserPlan returns Solo before checking the teams the person is in, so a team seat would be held to Solo')

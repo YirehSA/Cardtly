@@ -4,6 +4,14 @@ import { orgMonthlyRand, BILLING_MODE_META, isOrgBillingMode, orgTrialDaysLeft, 
 import { computeRep, type RepRow, type RepStats } from '@/lib/reps'
 import { contentThatWouldNotCarry, describeColumns } from '@/lib/move-card-to-team'
 import { selectAll } from '@/lib/select-all'
+import { isMissingColumn } from './pg-errors'
+
+/** A read that falls back to an older column list when a newer column is
+ *  missing (a migration not run yet), instead of failing the admin screen. */
+async function selectWithFallback(first: () => any, older: () => any): Promise<any> {
+  const res = await first()
+  return res.error && isMissingColumn(res.error) ? older() : res
+}
 
 // Everything the admin page needs, assembled in one place so the page stays a
 // thin shell and this stays testable.
@@ -174,7 +182,10 @@ export async function loadAdminData(admin: any) {
     admin.from('nfc_orders').select('*').order('created_at', { ascending: false }),
     // Was: fetch every contact row to call .length on it.
     admin.from('contacts').select('id', { count: 'exact', head: true }),
-    admin.from('profiles').select('user_id, signup_country, signup_country_code, signup_city, is_admin, trial_ends_at, rep_id'),
+    // trial_tier (migration 109) with a fallback, so admin still loads before it has run.
+    selectWithFallback(
+      () => admin.from('profiles').select('user_id, signup_country, signup_country_code, signup_city, is_admin, trial_ends_at, rep_id, trial_tier'),
+      () => admin.from('profiles').select('user_id, signup_country, signup_country_code, signup_city, is_admin, trial_ends_at, rep_id')),
     admin.from('trial_emails').select('user_id, kind'),
     admin.from('admin_audit_log').select('*').order('created_at', { ascending: false }).limit(50),
     pageRows(admin, 'card_events', 'card_id', (q: any) => q.eq('event_type', 'view').gte('created_at', since)),
@@ -262,6 +273,8 @@ export async function loadAdminData(admin: any) {
     if (sub) status = isBillablePaystackSub(sub) ? 'paying' : 'comped'
     else if (memberOrg) status = 'member'
     else if (org && orgEntitlesMembers(org)) status = 'member'
+    // Signed up, has not chosen a plan or taken the trial (migration 109).
+    else if (p.trial_tier === 'none') status = 'none'
     else if (daysLeft === null) status = 'trial'      // no date: fails open, still live
     else if (daysLeft <= 0) status = 'expired'
     else if (daysLeft <= 7) status = 'expiring'

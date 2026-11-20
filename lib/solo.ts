@@ -25,10 +25,9 @@ import { IMAGE_SLOTS, parseDesign, serializeDesign, type CardDesign } from '../t
 export const SOLO_NAME = 'Solo'
 export const SOLO_FULL_NAME = 'Cardtly Solo'
 
-export const SOLO_PRICE_RAND = { monthly: 49, yearly: 450 } as const
-export const PRO_PRICE_RAND = { monthly: 97, yearly: 970 } as const
-/** What Cardtly charges a reseller for one Solo card. */
-export const SOLO_RESELLER_RAND = { monthly: 35, yearly: 350 } as const
+// The prices live in lib/plan-prices (no imports, so the emails can use them).
+import { PRO_PRICE_RAND, SOLO_PRICE_RAND } from './plan-prices'
+export { PRO_PRICE_RAND, SOLO_PRICE_RAND, SOLO_RESELLER_RAND } from './plan-prices'
 
 export const SOLO_TEMPLATES = ['classic', 'modern', 'wave', 'split', 'neon'] as const
 export const SOLO_MAX_LINKS = 4

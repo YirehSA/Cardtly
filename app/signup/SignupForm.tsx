@@ -11,8 +11,8 @@ import { toast } from 'sonner'
 import { Mail, ArrowLeft, Check, Sparkles, QrCode, Loader2, ArrowRight } from 'lucide-react'
 import { getStoredReferralCode, clearReferralCode } from '@/lib/referral'
 import { getStoredTrialCode, clearTrialCode } from '@/lib/trial-code-link'
-import PriceEstimate, { RandChargeNote } from '@/components/marketing/PriceEstimate'
-import { SEAT_PRICE_RAND } from '@/lib/org-billing'
+import { RandChargeNote } from '@/components/marketing/PriceEstimate'
+import { PRO_PRICE_RAND, SOLO_PRICE_RAND } from '@/lib/solo'
 import { BUNDLE_NAME, BUNDLE_PRICE_RAND } from '@/lib/pro-bundle'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
@@ -80,11 +80,14 @@ async function getUniqueSlug(supabase: any, base: string): Promise<string> {
  * button are never rendered, and signup behaves exactly as it did before.
  */
 export default function SignupForm({ iosApp }: { iosApp: boolean }) {
-  // Which button was pressed. Both submit the same form and create the same
-  // account - the only difference is where the person lands afterwards, so
-  // somebody who already wants to buy is not made to walk through a trial
-  // first. Never 'pay' on iOS, where that button does not exist.
-  const [intent, setIntent] = useState<'trial' | 'pay' | 'team' | 'package'>('trial')
+  // Which button was pressed. They submit the same form and create the same
+  // account; the only difference is where the person lands afterwards.
+  //   choose  (the main button, Andre 2026-11-20): the plan page, where they
+  //           choose Cardtly Solo or Pro and pay. The 7-day trial is not
+  //           offered here; it is a quiet fallback on that page only.
+  //   package the R999 package form; team the team page.
+  //   trial   iOS only, where nothing is sold.
+  const [intent, setIntent] = useState<'trial' | 'choose' | 'team' | 'package'>('choose')
   // Arrived from an offer for the R999 package (/signup?package=1): the main
   // button leads to the package form instead. Never on iOS, where nothing is
   // sold.
@@ -146,7 +149,10 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
       name: data.name,
     })
 
-    // Redeem the trial code, if they entered one.
+    // A trial code from a rep's link starts a Pro trial (as it always has), so
+  // they go to the dashboard rather than the plan page.
+  let codeTrialStarted = false
+  // Redeem the trial code, if they entered one.
     //
     // Server-side: the profile row above is written from the browser, so the
     // trial length cannot be decided here or a user could set their own. The
@@ -163,6 +169,7 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
         const trial = await res.json().catch(() => ({}))
         if (res.ok && trial?.success) {
           clearTrialCode()
+          codeTrialStarted = true
           toast.success(`Your ${trial.days}-day free trial has started`)
         } else {
           // The visitor never typed this code - it came from the link they
@@ -242,10 +249,10 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
       // Guideline 3.1.1 problem, and the team page does it per seat.
       const destination =
         iosApp ? '/dashboard'
-        : intent === 'pay' ? '/dashboard/upgrade'
         : intent === 'package' ? '/dashboard/upgrade/bundle'
         : intent === 'team' ? '/dashboard/team'
-        : '/dashboard'
+        : codeTrialStarted ? '/dashboard'
+        : '/dashboard/upgrade'
       router.push(destination)
       router.refresh()
     } else {
@@ -338,7 +345,7 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
             © {new Date().getFullYear()} Cardtly · Made in South Africa 🇿🇦
           </p>
           <div className="flex gap-3">
-            {['Free trial with a code', 'QR included', 'NFC ready'].map(perk => (
+            {['From R' + SOLO_PRICE_RAND.monthly + ' a month', 'QR included', 'NFC ready'].map(perk => (
               <span key={perk} className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.45)' }}>
                 {perk}
@@ -504,7 +511,7 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
                 iOS is exactly the button that was here before. */}
             <button
               type="submit"
-              onClick={() => setIntent(iosApp ? 'trial' : packageMode ? 'package' : 'pay')}
+              onClick={() => setIntent(iosApp ? 'trial' : packageMode ? 'package' : 'choose')}
               disabled={loading}
               className="group w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold text-white transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               style={{ background: grad, boxShadow: '0 8px 30px rgba(124,58,237,0.4)' }}
@@ -518,28 +525,27 @@ export default function SignupForm({ iosApp }: { iosApp: boolean }) {
                 <>Continue to the R{BUNDLE_PRICE_RAND} package
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" /></>
               ) : (
-                // Outside the rand zone the button carries the estimate too,
-                // "(≈ £4.50)", with the rand notice right under these buttons.
-                <><span>Get started &mdash; R{SEAT_PRICE_RAND}/month<PriceEstimate zar={SEAT_PRICE_RAND} prefix=" (" suffix=")" className="font-semibold opacity-85" /></span>
+                // Next they choose Cardtly Solo or Pro (the line under this
+                // button says what each costs), and pay.
+                <>Create my card
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" /></>
               )}
             </button>
 
             {!iosApp && (
               <>
-                <button
-                  type="submit"
-                  onClick={() => setIntent('trial')}
-                  disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-semibold transition-all hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ color: 'rgba(255,255,255,0.75)', border: '1px solid rgba(255,255,255,0.15)' }}
-                >
-                  Start 7 days free &mdash; no card needed
-                </button>
+                {/* NO TRIAL BUTTON (Andre, 2026-11-20): people choose a plan.
+                    The 7-day trial is offered only, and quietly, on the plan
+                    page to somebody who will not choose. */}
+                {!packageMode && (
+                  <p className="text-center text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                    Next, choose your plan: Solo at R{SOLO_PRICE_RAND.monthly} a month or Pro at R{PRO_PRICE_RAND.monthly} a month.
+                  </p>
+                )}
                 <p className="text-center text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
                   {liveSlug
-                    ? `Either way you get cardtly.com/card/${liveSlug.slice(0, 24)}${liveSlug.length > 24 ? '…' : ''}`
-                    : 'Either way your card is live in minutes. Cancel any time.'}
+                    ? `Your card will be at cardtly.com/card/${liveSlug.slice(0, 24)}${liveSlug.length > 24 ? '…' : ''}`
+                    : 'Your card is live in minutes. Cancel any time.'}
                   {/* Outside the rand zone only: the paid button above shows the
                       price in their own currency, and this says the charge
                       itself stays in rand. */}

@@ -256,32 +256,51 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
   // Paying for Solo, and no team covering them.
   if (solo) return solo
 
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('trial_ends_at')
-    .eq('user_id', userId)
-    .maybeSingle()
+  const profile = await profileTrialFor(admin, userId)
+  return planFromTrial(profile?.trial_ends_at ?? null, profile?.trial_tier ?? null)
+}
 
-  const trialEndsAt = (profile as any)?.trial_ends_at ?? null
-  return planFromTrial(trialEndsAt)
+/**
+ * The trial columns of a profile, shared by the dashboard and the public card
+ * page. trial_tier arrives with migration 109; until it has run the read falls
+ * back to trial_ends_at alone, which is exactly the rule from before. Never
+ * fails the whole read over the new column: a failed read here means "no
+ * profile", which fails OPEN, and that would put expired cards back online.
+ */
+export async function profileTrialFor(admin: any, userId: string, extraColumns = ''): Promise<any | null> {
+  const run = (cols: string) => admin.from('profiles').select(cols).eq('user_id', userId).maybeSingle()
+  const base = ['trial_ends_at', extraColumns].filter(Boolean).join(', ')
+  let { data, error } = await run(`${base}, trial_tier`)
+  if (error && isMissingColumn(error)) ({ data, error } = await run(base))
+  return error ? null : data
 }
 
 // Shared so the public card page and the dashboard agree on the same rule.
-export function planFromTrial(trialEndsAt: string | null): UserPlan {
+//
+// trialTier (migration 109, sign-up chooses a plan, Andre 2026-11-20):
+//   'none'  a new account that has not chosen a plan or taken the trial:
+//           nothing is live yet, and the dashboard asks them to choose
+//   'solo'  the 7-day trial, which is Cardtly Solo, not Pro
+//   'pro' or null (every account from before): a Pro trial, as before
+export function planFromTrial(trialEndsAt: string | null, trialTier: string | null = null): UserPlan {
+  if (trialTier === 'none') {
+    return { tier: 'expired', isActive: false, isTrial: false, needsPlan: true, trialEndsAt: null, trialDaysLeft: 0 }
+  }
+  const tier = trialTier === 'solo' ? 'solo' : 'pro'
   if (!trialEndsAt) {
     // No date recorded. Fail open rather than take a card offline.
-    return { tier: 'pro', isActive: true, isTrial: true, trialEndsAt: null }
+    return { tier, isActive: true, isTrial: true, trialEndsAt: null }
   }
 
   const endsMs = new Date(trialEndsAt).getTime()
   if (!Number.isFinite(endsMs)) {
-    return { tier: 'pro', isActive: true, isTrial: true, trialEndsAt }
+    return { tier, isActive: true, isTrial: true, trialEndsAt }
   }
 
   const msLeft = endsMs - Date.now()
   if (msLeft > 0) {
     return {
-      tier: 'pro',
+      tier,
       isActive: true,
       isTrial: true,
       trialEndsAt,

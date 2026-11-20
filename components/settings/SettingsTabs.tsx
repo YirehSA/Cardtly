@@ -13,6 +13,7 @@ import PrimaryCardPicker, { type PickerCard } from '@/components/settings/Primar
 import { useRouter } from 'next/navigation'
 import { useIosApp } from '@/components/dashboard/PlatformProvider'
 import { BUNDLE_NAME, bundleRenewalRand } from '@/lib/pro-bundle'
+import { PRO_PRICE_RAND, SOLO_MAX_IMAGES, SOLO_MAX_LINKS, SOLO_PRICE_RAND, SOLO_TEMPLATES } from '@/lib/solo'
 
 interface Props {
   user: { id: string; email: string }
@@ -586,6 +587,13 @@ const PRO_FEATURES = [
   'Gallery and media', 'Analytics dashboard', 'Email signature generator',
   'Virtual background generator', 'Contact form and leads', 'QR code with your logo',
 ]
+// Cardtly Solo's own list (lib/solo), for a Solo plan or Solo trial.
+const SOLO_FEATURES = [
+  `${SOLO_TEMPLATES.length} card templates`, 'Custom accent colour', `Up to ${SOLO_MAX_LINKS} links and your social profiles`,
+  `Up to ${SOLO_MAX_IMAGES} gallery photos`, 'Your QR code', 'Contacts', 'Cardtly NFC cards',
+]
+// What keeps a card live, in the dashboard's exact prices (the website says "from").
+const CHOOSE_LINE = `choose Solo (R${SOLO_PRICE_RAND.monthly} a month) or Pro (R${PRO_PRICE_RAND.monthly} a month)`
 
 const days = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`
 
@@ -636,6 +644,9 @@ function formatDay(iso: string) {
 // the same thing, and an expired account was called a "Free plan" rather than
 // what it is: a card that has stopped serving.
 function billingState(plan: UserPlan, subscription: Props['subscription']) {
+  // A new account that has not chosen a plan or taken the trial (migration
+  // 109): nothing has ended, it has not started.
+  if (plan.needsPlan) return 'choose' as const
   if (plan.tier === 'expired') return 'expired' as const
   if (plan.isTrial) return 'trial' as const
   // Checked before 'paid'. A team member is Pro because their organisation
@@ -688,8 +699,10 @@ function BillingTab({ plan, subscription, team = null }: { plan: UserPlan; subsc
   // Cardtly Solo (lib/solo) or Pro: the same states, named for the plan.
   const planName = plan.tier === 'solo' ? 'Solo' : 'Pro'
   const HEADER = {
-    trial:  { badge: 'Trial', title: 'Free trial', tone: daysLeft <= 7 ? '#f59e0b' : '#8b5cf6',
-              sub: plan.trialEndsAt ? `Ends ${formatDay(plan.trialEndsAt)}` : 'Every Pro feature included' },
+    choose: { badge: 'New', title: 'No plan yet', tone: '#8b5cf6',
+              sub: 'Your card goes live once you choose Solo or Pro' },
+    trial:  { badge: 'Trial', title: plan.tier === 'solo' ? 'Free Solo trial' : 'Free trial', tone: daysLeft <= 7 ? '#f59e0b' : '#8b5cf6',
+              sub: plan.trialEndsAt ? `Ends ${formatDay(plan.trialEndsAt)}` : plan.tier === 'solo' ? 'Everything in Solo included' : 'Every Pro feature included' },
     paid:   cancelledUntil
       ? { badge: planName, title: `${planName} plan, cancelled`, tone: '#f59e0b',
           sub: `Live until ${formatDay(cancelledUntil)}, then your card goes offline` }
@@ -744,17 +757,23 @@ function BillingTab({ plan, subscription, team = null }: { plan: UserPlan; subsc
         {/* No price and no instruction to go and buy inside the iOS app. Apple
             3.1.1 covers calls to action, not just the checkout, and "subscribe
             for R97 a month" is one however politely it is phrased. */}
+        {state === 'choose' && (
+          <p className="text-sm text-muted-foreground mt-4">
+            Your account is ready and you can build your card now.
+            {iosApp ? '' : ` To put it live, ${CHOOSE_LINE}.`}
+          </p>
+        )}
         {state === 'trial' && (
           <p className="text-sm text-muted-foreground mt-4">
-            You have every Pro feature until then, and you have not been charged anything.
-            {iosApp ? '' : ' To keep your card live after your trial, subscribe for R97 a month.'}
+            You have {plan.tier === 'solo' ? 'everything in Solo' : 'every Pro feature'} until then, and you have not been charged anything.
+            {iosApp ? '' : ` To keep your card live after your trial, ${CHOOSE_LINE}.`}
           </p>
         )}
         {state === 'expired' && (
           <p className="text-sm text-muted-foreground mt-4">
             {iosApp
               ? 'Nothing has been deleted. Your design, your details and every contact you captured are exactly where you left them.'
-              : 'Subscribe for R97 a month and your card goes straight back live on the same link, with nothing lost.'}
+              : `To bring it back, ${CHOOSE_LINE}. It goes straight back live on the same link, with nothing lost.`}
           </p>
         )}
         {state === 'team' && team && <TeamCover team={team} />}
@@ -764,27 +783,28 @@ function BillingTab({ plan, subscription, team = null }: { plan: UserPlan; subsc
           </p>
         )}
 
-        {(state === 'trial' || state === 'expired') && !iosApp && (
+        {(state === 'trial' || state === 'expired' || state === 'choose') && !iosApp && (
           <a href="/dashboard/upgrade"
             className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
             style={{ background: HEADER.tone }}>
-            {state === 'expired' ? 'Bring my card back' : 'Subscribe now'}
+            {state === 'expired' ? 'Bring my card back' : 'Choose a plan'}
           </a>
         )}
       </div>
 
-      {/* What is included */}
-      <div className="space-y-2">
+      {/* What is included: Solo's list on a Solo plan or Solo trial. Nothing
+          before a plan is chosen; the plan page compares both. */}
+      {state !== 'choose' && <div className="space-y-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           {state === 'expired' ? 'What you get back' : "What's included"}
         </p>
-        {PRO_FEATURES.map(f => (
+        {(plan.tier === 'solo' ? SOLO_FEATURES : PRO_FEATURES).map(f => (
           <div key={f} className="flex items-center gap-2 text-sm">
             <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
             {f}
           </div>
         ))}
-      </div>
+      </div>}
 
       {/* Only a real payer is told they are being billed. */}
       {state === 'paid' && cancelledUntil && (

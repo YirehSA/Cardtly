@@ -76,8 +76,16 @@ export async function POST(request: Request) {
   // One code per account. Without this the same code could be replayed to stack
   // trials indefinitely - the account is already signed in, so the request is
   // trivially repeatable.
-  const { data: profile } = await admin
-    .from('profiles').select('trial_code, trial_ends_at').eq('user_id', user.id).maybeSingle()
+  // trial_tier arrives with migration 109 (sign-up chooses a plan). Read with
+  // a fallback so a code still works before it has run.
+  let { data: profile, error: profileErr } = await admin
+    .from('profiles').select('trial_code, trial_ends_at, trial_tier').eq('user_id', user.id).maybeSingle()
+  const tierKnown = !profileErr
+  if (profileErr) ({ data: profile } = await admin
+    .from('profiles').select('trial_code, trial_ends_at').eq('user_id', user.id).maybeSingle())
+  // A new account that has not chosen a plan yet (trial_tier 'none') has no
+  // trial running, but has not HAD one either: a code may start it.
+  const neverTrialled = (profile as any)?.trial_tier === 'none'
   if ((profile as any)?.trial_code) {
     // A dead end for the customer unless it says what to do next: they cannot
     // clear this themselves, and a second trial is a decision for us to make in
@@ -108,7 +116,7 @@ export async function POST(request: Request) {
     console.error('trial-code claim: subscription check failed:', subErr)
     return NextResponse.json({ error: 'Could not check that code. Please try again.' }, { status: 500 })
   }
-  if ((Number.isFinite(trialEndsMs) && trialEndsMs <= Date.now()) || (subCount ?? 0) > 0) {
+  if ((!neverTrialled && Number.isFinite(trialEndsMs) && trialEndsMs <= Date.now()) || (subCount ?? 0) > 0) {
     return NextResponse.json({
       error: 'This account has already had its free trial, so a trial code cannot be used on it. Subscribe to keep your card live, or contact us if you need more time.',
     }, { status: 409 })
@@ -118,7 +126,8 @@ export async function POST(request: Request) {
 
   const { error: grantError } = await admin
     .from('profiles')
-    .update({ trial_ends_at: endsAt, trial_code: code })
+    // A code's trial is Pro, as it always was (lib/signup-trial is the Solo one).
+    .update({ trial_ends_at: endsAt, trial_code: code, ...(tierKnown ? { trial_tier: 'pro' } : {}) })
     .eq('user_id', user.id)
 
   if (grantError) {

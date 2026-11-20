@@ -1,5 +1,8 @@
 import Link from 'next/link'
 import { XCircle, ArrowLeft, ArrowRight } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
+import { getUserPlan } from '@/lib/plan-server'
+import TrialFallback from '@/components/upgrade/TrialFallback'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
@@ -17,6 +20,16 @@ export default async function UpgradeCancelPage({
 }) {
   const { reason } = await searchParams
   const message = reason ? REASONS[reason] : 'You cancelled the payment. No charge was made.'
+
+  // Somebody who backed out of paying and has no plan yet is offered the
+  // 7-day Solo trial, quietly (lib/signup-trial). Only them: a lapsed customer
+  // or a running trial has already had theirs.
+  let offerTrial = false
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) offerTrial = !!(await getUserPlan(user.id)).needsPlan
+  } catch { /* no offer, the page still works */ }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6" style={{ background: '#000' }}>
@@ -41,6 +54,7 @@ export default async function UpgradeCancelPage({
             <ArrowLeft className="w-4 h-4" />Back to dashboard
           </Link>
         </div>
+        {offerTrial && <TrialFallback />}
         {reason === 'db_error' && (
           <p className="mt-6 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
             If you were charged, please contact{' '}

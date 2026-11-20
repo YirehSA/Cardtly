@@ -9,7 +9,7 @@ import TeamCardPublic from '@/components/card/TeamCardPublic'
 import { publicTeamCard } from '@/lib/team-card-public'
 import { CARD_ROBOTS } from '@/lib/card-robots'
 import { mergeBrand, resolveTeamBrand } from '@/lib/team-brand'
-import { planFromTrial, subscriptionState, latestSubscriptionFor } from '@/lib/plan-server'
+import { planFromTrial, subscriptionState, latestSubscriptionFor, profileTrialFor } from '@/lib/plan-server'
 import { liveMirror } from '@/lib/questionnaire'
 
 interface Props {
@@ -134,16 +134,15 @@ export default async function PublicCardPage({ params }: Props) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     ) as any
 
-    const [sub, { data: profile }] = await Promise.all([
+    const [sub, profile] = await Promise.all([
       // The same select the dashboard uses, from the same function, so the
       // public card cannot disagree with its owner's dashboard about whether
       // it is paid for - including after a cancellation (migration 090).
       latestSubscriptionFor(admin, (card as any).user_id),
-      admin
-        .from('profiles')
-        .select('last_active_at, is_founder, founder_number, trial_ends_at')
-        .eq('user_id', (card as any).user_id)
-        .maybeSingle(),
+      // The trial columns through the same reader as the dashboard, so a new
+      // account that has not chosen a plan (migration 109) is offline here too,
+      // and a Solo trial is shown with Solo's limits.
+      profileTrialFor(admin, (card as any).user_id, 'last_active_at, is_founder, founder_number'),
     ])
 
     const subState = subscriptionState(sub as any)
@@ -152,7 +151,7 @@ export default async function PublicCardPage({ params }: Props) {
     // No subscription: the card only serves while the trial is still running.
     // planFromTrial fails open on a missing/unreadable date, so a data gap can
     // never take a live card down.
-    const trialPlan = planFromTrial((profile as any)?.trial_ends_at ?? null)
+    const trialPlan = planFromTrial((profile as any)?.trial_ends_at ?? null, (profile as any)?.trial_tier ?? null)
     if (!hasSubscription && trialPlan.tier === 'expired') {
       notFound()
     }

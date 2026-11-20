@@ -49,7 +49,9 @@ const view = read('components/upgrade/UpgradeView.tsx')
 const boxAt = [...view.matchAll(/<TrialCodeBox\b/g)].map(m => m.index)
 if (boxAt.length === 0) {
   // Not offered at all is also fine; nothing to check.
-} else if (boxAt.some(i => !/state === 'trial' &&\s*$/.test(view.slice(Math.max(0, i - 40), i)))) {
+// Or before any plan or trial at all (state 'choose', migration 109): a new
+// account has not had its trial, and the claim route lets a code start one.
+} else if (boxAt.some(i => !/state === '(trial|choose)' &&\s*$/.test(view.slice(Math.max(0, i - 40), i)))) {
   bad('the upgrade page offers the trial code box outside a running trial. Once the trial has ended a code cannot be used, and offering one is how a second trial got handed out.')
 }
 

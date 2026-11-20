@@ -255,6 +255,9 @@ export interface UserPlan {
   // The subscription has been cancelled and keeps serving until this moment,
   // the end of the period already paid for. Null while it renews normally.
   cancelAt?: string | null
+  // A new account that has not chosen a plan or taken the trial yet (migration
+  // 109): nothing is live, and the dashboard asks them to choose Solo or Pro.
+  needsPlan?: boolean
   // Entitled because an organisation pays for this person's seat, not because
   // they subscribe themselves. Lets the UI say "covered by your team" rather
   // than showing billing controls that are not theirs to change.

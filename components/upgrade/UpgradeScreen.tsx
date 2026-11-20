@@ -44,8 +44,11 @@ export default async function UpgradeScreen({ openBundle = false }: { openBundle
   // A fourth person: paying, but the last charge failed. Before this they read
   // "You are already on Pro, nothing to do here" directly under the banner
   // that had sent them to fix a payment.
-  const state: 'trial' | 'expired' | 'paid' | 'past_due' =
-    plan.tier === 'expired' ? 'expired'
+  // 'choose': a new account that has not chosen a plan or taken the trial
+  // (migration 109), told so rather than that a trial has ended.
+  const state: 'choose' | 'trial' | 'expired' | 'paid' | 'past_due' =
+    plan.needsPlan ? 'choose'
+      : plan.tier === 'expired' ? 'expired'
       : plan.isPastDue ? 'past_due'
       : plan.isTrial ? 'trial' : 'paid'
 

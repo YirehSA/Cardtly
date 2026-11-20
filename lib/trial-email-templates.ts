@@ -4,6 +4,8 @@
 // export HTTP handlers, which would make these impossible to render or test
 // without actually sending mail.
 
+import { PRO_PRICE_RAND, SOLO_PRICE_RAND } from './plan-prices'
+
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com'
 
 // No email here names a trial LENGTH any more. It used to say "your 60-day
@@ -12,7 +14,14 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://cardtly.com'
 // 60. Telling somebody on day 5 of 7 that their 60-day trial is nearly up is
 // the kind of small lie that costs trust for no gain - daysLeft already says
 // everything they need.
-export type TrialEmailKind = 'trial_7d' | 'trial_1d' | 'trial_expired' | 'card_live'
+// 'choose_plan' (migration 109): a new account made its card but has not chosen
+// Solo or Pro, or taken the trial. Sent once.
+export type TrialEmailKind = 'trial_7d' | 'trial_1d' | 'trial_expired' | 'card_live' | 'choose_plan'
+
+// Both plans, in the exact prices the dashboard uses (lib/solo). These emails
+// used to say "R97 a month" alone; since Cardtly Solo there are two ways to
+// keep a card live.
+const PLANS_LINE = `Solo at R${SOLO_PRICE_RAND.monthly} a month or Pro at R${PRO_PRICE_RAND.monthly} a month`
 
 export interface TrialEmailInput {
   kind: TrialEmailKind
@@ -43,6 +52,25 @@ export function renderTrialEmail({ kind, firstName, slug, daysLeft, endedBecause
   const name = escapeHtml(firstName)
   const cardUrl = escapeHtml(slug ? `cardtly.com/card/${slug}` : 'your card link')
 
+  // Built, not live: choosing a plan is the next step (Andre, 2026-11-20). The
+  // only email that mentions the trial, and only as the fallback.
+  if (kind === 'choose_plan') {
+    return {
+      subject: 'Your Cardtly card is ready. Choose a plan to put it live',
+      html: wrap(`
+        <h1 style="font-size:22px;margin:0 0 4px">Your card is ready, ${name}</h1>
+        <p style="color:#666;font-size:14px;margin:0 0 20px">
+          <strong>${cardUrl}</strong> is built and waiting. It goes live the moment you choose a plan.
+        </p>
+        <ul style="color:#666;font-size:14px;margin:0 0 24px;padding-left:20px;line-height:1.7">
+          <li><strong>Solo, R${SOLO_PRICE_RAND.monthly} a month:</strong> your card, your QR code and the contacts who share their details back.</li>
+          <li><strong>Pro, R${PRO_PRICE_RAND.monthly} a month:</strong> every template, lead capture, booking, analytics, an email signature and more.</li>
+        </ul>
+        <a href="${APP_URL}/dashboard/upgrade" style="${BTN}">Choose my plan</a>
+        <p style="color:#999;font-size:13px;margin:20px 0 0">Not ready to choose? You can try Solo free for 7 days from the same page.</p>`, unsubscribeHtml),
+    }
+  }
+
   // The card is live and they may not have taken it anywhere yet. Sent once,
   // shortly after the card is created, because a digital card that never leaves
   // the dashboard is worth nothing to them and converts nobody for us.
@@ -61,7 +89,7 @@ export function renderTrialEmail({ kind, firstName, slug, daysLeft, endedBecause
           <li>Hand it to the next person you meet and watch them tap Save Contact.</li>
         </ul>
         <p style="color:#666;font-size:14px;margin:0 0 24px">
-          You have ${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} to try everything. R97 a month keeps it live after that, on the same link.
+          You have ${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} to try it. ${PLANS_LINE} keeps it live after that, on the same link.
         </p>
         <a href="${APP_URL}/card/${escapeHtml(slug || '')}" style="${BTN}">See my card</a>`, unsubscribeHtml),
     }
@@ -76,9 +104,9 @@ export function renderTrialEmail({ kind, firstName, slug, daysLeft, endedBecause
           ${endedBecause === 'subscription' ? 'Your subscription has ended' : 'Your trial has ended'}, so <strong>${cardUrl}</strong> no longer opens for anyone you have shared it with.
         </p>
         <p style="color:#666;font-size:14px;margin:0 0 24px">
-          Nothing has been deleted. Your design, your details and every contact you captured are exactly where you left them. Subscribe and your card goes back live on the same link.
+          Nothing has been deleted. Your design, your details and every contact you captured are exactly where you left them. Choose ${PLANS_LINE} and your card goes back live on the same link.
         </p>
-        <a href="${APP_URL}/dashboard/upgrade" style="${BTN}">Put my card back online, R97/month</a>`, unsubscribeHtml),
+        <a href="${APP_URL}/dashboard/upgrade" style="${BTN}">Put my card back online</a>`, unsubscribeHtml),
     }
   }
 
@@ -91,7 +119,7 @@ export function renderTrialEmail({ kind, firstName, slug, daysLeft, endedBecause
           Your trial ends tomorrow. After that <strong>${cardUrl}</strong> stops opening, so anyone you have handed it to, or tapped an NFC card at, will hit a dead link.
         </p>
         <p style="color:#666;font-size:14px;margin:0 0 24px">
-          R97 a month keeps it live, on the same link, with everything you have built.
+          ${PLANS_LINE} keeps it live, on the same link, with everything you have built.
         </p>
         <a href="${APP_URL}/dashboard/upgrade" style="${BTN}">Keep my card live</a>`, unsubscribeHtml),
     }
@@ -105,9 +133,9 @@ export function renderTrialEmail({ kind, firstName, slug, daysLeft, endedBecause
         Your trial is nearly up. When it ends, <strong>${cardUrl}</strong> stops opening for the people you have shared it with.
       </p>
       <p style="color:#666;font-size:14px;margin:0 0 24px">
-        R97 a month keeps everything exactly as it is: the same link, your design, your contacts, every feature. Nothing to redo.
+        ${PLANS_LINE} keeps it live: the same link, your design, your contacts. Nothing to redo.
       </p>
-      <a href="${APP_URL}/dashboard/upgrade" style="${BTN}">Subscribe for R97/month</a>`, unsubscribeHtml),
+      <a href="${APP_URL}/dashboard/upgrade" style="${BTN}">Choose my plan</a>`, unsubscribeHtml),
   }
 }
 

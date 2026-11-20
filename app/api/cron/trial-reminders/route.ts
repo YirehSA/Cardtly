@@ -10,6 +10,7 @@ import { sendPaymentFailedEmails } from '@/lib/payment-reminders'
 import { expireCancelledSubscriptions } from '@/lib/subscription-expiry'
 import { subscriptionState } from '@/lib/plan-server'
 import { orgEntitlesMembers } from '@/lib/org-billing'
+import { isMissingColumn } from '@/lib/pg-errors'
 
 // Trial reminder emails. Triggered daily by Vercel Cron (see vercel.json).
 //
@@ -52,6 +53,21 @@ const DAY_MS = 24 * 60 * 60 * 1000
 // that has lost track of you.
 const WELCOME_WINDOW_DAYS = 7
 
+/** Profiles with a trial date, and trial_tier once migration 109 has run. A
+ *  missing column falls back to the read from before, so the reminders keep
+ *  running in the meantime. */
+async function readTrialProfiles(admin: any): Promise<{ data: any[] | null; error: any }> {
+  const run = (cols: string) => admin.from('profiles').select(cols).not('trial_ends_at', 'is', null)
+  let res = await run('user_id, name, trial_ends_at, trial_tier')
+  if (res.error && isMissingColumn(res.error)) res = await run('user_id, name, trial_ends_at')
+  return res
+}
+
+// "Choose a plan" (migration 109): from a day after the card was made, and not
+// for an account that has sat there for more than a month.
+const CHOOSE_FROM_DAYS = 1
+const CHOOSE_UNTIL_DAYS = 30
+
 function cardAgeDays(createdAt: string | null, now: number): number {
   if (!createdAt) return Infinity // unknown age: treat as old, never welcome
   const ms = new Date(createdAt).getTime()
@@ -80,7 +96,9 @@ export async function GET(request: Request) {
 
   const [{ data: profiles, error: profErr }, { data: subs, error: subErr }, { data: teamCards }, { data: cards }, { data: alreadySent }, { data: orgs }] =
     await Promise.all([
-      admin.from('profiles').select('user_id, name, trial_ends_at').not('trial_ends_at', 'is', null),
+      // With trial_tier (migration 109) when it exists, so new accounts that
+      // have not chosen a plan are told to choose, not that a trial ended.
+      readTrialProfiles(admin),
       // Every row, not just status = 'active': whether a subscription still
       // serves is subscriptionState's call (see below), and it needs the
       // past_due and cancelled rows to make it.
@@ -152,6 +170,9 @@ export async function GET(request: Request) {
     if (paid.has(userId)) continue        // paying or comped: nothing is ending
     if (teamMembers.has(userId)) continue // covered by their organization
     if (unsubscribed(userId)) continue    // switched trial reminders off
+    // Has not chosen a plan or taken the trial (migration 109): nothing is
+    // ending. It gets the "choose a plan" email below instead.
+    if (p.trial_tier === 'none') continue
 
     // No personal card means nothing goes offline, so there is nothing to warn
     // about. Emailing here would be spam.
@@ -216,6 +237,7 @@ export async function GET(request: Request) {
     if (teamMembers.has(userId)) continue
     if (unsubscribed(userId)) continue
 
+    if (p.trial_tier === 'none') continue // not live until a plan is chosen
     const card = cardByUser[userId]
     if (!card) continue
     if (cardAgeDays(card.createdAt, now) > WELCOME_WINDOW_DAYS) continue
@@ -236,6 +258,33 @@ export async function GET(request: Request) {
       firstName: (card.name || p.name || '').split(' ')[0] || 'there',
       slug: card.slug,
       daysLeft: Math.max(1, Math.ceil(msLeft / DAY_MS)),
+    })
+  }
+
+  // "Your card is ready: choose a plan" (Andre, 2026-11-20). Once, to a new
+  // account that made its card but has not chosen Solo or Pro or taken the
+  // trial (trial_tier 'none'). Same queue, so the claim-send-release handling
+  // below covers it; its kind is allowed by migration 109.
+  for (const p of (profiles || []) as any[]) {
+    const userId = p.user_id
+    if (!userId || p.trial_tier !== 'none') continue
+    if (paid.has(userId)) continue
+    if (teamMembers.has(userId)) continue
+    if (unsubscribed(userId)) continue
+    const card = cardByUser[userId]
+    if (!card) continue
+    const age = cardAgeDays(card.createdAt, now)
+    if (age < CHOOSE_FROM_DAYS || age > CHOOSE_UNTIL_DAYS) continue
+    const to = emailByUser[userId]
+    if (!to) continue
+    if (sent.has(`${userId}:choose_plan`)) continue
+    queue.push({
+      userId,
+      to,
+      kind: 'choose_plan',
+      firstName: (card.name || p.name || '').split(' ')[0] || 'there',
+      slug: card.slug,
+      daysLeft: 0,
     })
   }
 

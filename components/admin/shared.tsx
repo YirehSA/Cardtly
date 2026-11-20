@@ -20,7 +20,9 @@ export const STATUS_META: Record<UserStatus, { label: string; colour: string; hi
   trial:    { label: 'Trial',    colour: '#a855f7', hint: 'On the 60-day trial' },
   expiring: { label: 'Expiring', colour: '#f59e0b', hint: 'Trial ends within 7 days' },
   expired:  { label: 'Expired',  colour: '#ef4444', hint: 'Their public card is OFFLINE right now' },
-  none:     { label: 'Unknown',  colour: '#6b7280', hint: 'No plan and no trial date' },
+  // A new account that has not chosen Solo or Pro or taken the trial yet
+  // (migration 109). Its card is not live until it does.
+  none:     { label: 'No plan yet', colour: '#6b7280', hint: 'Signed up, has not chosen Solo or Pro or taken the trial' },
 }
 
 export function StatusPill({ status, daysLeft }: { status: UserStatus; daysLeft?: number | null }) {
