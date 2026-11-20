@@ -12,9 +12,11 @@ import type { BillingCycle, PaidTier } from './solo'
 // address it returns to. A return URL can be edited; the plan code, the amount
 // and the metadata our own server set at checkout cannot.
 
+// Read from Paystack 2026-11-20: monthly bills R49 (4900) monthly, yearly R450
+// (45000) annually, both ZAR, on the live account.
 export const SOLO_PLAN_CODES: Record<BillingCycle, string> = {
-  monthly: '',
-  yearly: '',
+  monthly: 'PLN_1u5pk5f8h37xr8n',
+  yearly: 'PLN_06rg37pg6kicdtb',
 }
 
 export const PLAN_CATALOG: Record<PaidTier, Record<BillingCycle, { cents: number; code: string }>> = {

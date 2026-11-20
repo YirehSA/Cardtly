@@ -81,6 +81,10 @@ eq(P.planForActivation(tx({ amount: 29100, metadata: { action: 'team_subscriptio
 eq(P.paidPlanOf(tx({ amount: 6500, plan: 'PLN_lkf7hy3v4mp8w3u', metadata: {} })), { tier: 'pro', cycle: 'monthly' }, 'the Pro plan code decides, whatever the amount')
 eq(P.paidPlanOf(tx({ amount: 100, metadata: { plan: 'monthly' } })), null, 'never Pro for less than Pro costs, from the metadata alone')
 eq(P.isSoloPlanCode(''), false, 'an empty plan code is not Solo')
+eq(P.soloOnSale(), true, 'Solo is on sale: both Paystack plans are set')
+eq(P.paidPlanOf(tx({ amount: 4900, plan: 'PLN_1u5pk5f8h37xr8n' })), { tier: 'solo', cycle: 'monthly' }, 'the Solo monthly plan code')
+eq(P.paidPlanOf(tx({ amount: 45000, plan_object: { plan_code: 'PLN_06rg37pg6kicdtb' } })), { tier: 'solo', cycle: 'yearly' }, 'the Solo yearly plan code')
+eq(P.isSoloPlanCode('PLN_lkf7hy3v4mp8w3u'), false, 'the Pro plan is not Solo')
 
 // ── 3. The public card on Solo ──────────────────────────────────────────────
 const card = { id: 'c', color_theme: JSON.stringify({ templateId: 'showroom', showBooking: true, accentColor: 'blue' }),
