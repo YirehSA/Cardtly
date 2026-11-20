@@ -73,6 +73,7 @@ export default function Footer() {
               { href: '/network', label: 'Business networking' },
               { href: '/how-it-works', label: 'How digital cards work' },
               { href: '/pricing',       label: 'Digital business card pricing' },
+              { href: '/solo',          label: 'Cardtly Solo, your own card' },
               { href: '/package',       label: 'Pro and NFC card package' },
               { href: '/blog',          label: 'Digital business card blog' },
               { href: '/teams',         label: 'Digital business cards for teams' },

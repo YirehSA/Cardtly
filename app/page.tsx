@@ -18,6 +18,7 @@ import {
   Smartphone, Globe, BarChart2, Mail, Monitor, Users, ArrowRight, Wifi, Sparkles, Zap, Check,
   MessageCircle, Wallet, UserPlus, Inbox, Webhook, Building2, Lock, Palette,
 } from 'lucide-react'
+import { SOLO_PRICE_RAND } from '@/lib/plan-prices'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 const gradText: React.CSSProperties = {
@@ -195,12 +196,12 @@ export const metadata = {
   // Kept under ~155 characters so Google shows the whole line rather than
   // cutting it mid-sentence.
   description:
-    'Branded digital business cards with the back office behind them: every lead captured, sent to the rep and reported per person. From R97 a card a month.',
+    'Branded digital business cards with the back office behind them: every lead captured, sent to the rep and reported per person. Teams from R97 a card a month, and Cardtly Solo from R49 a month for one person.',
   alternates: { canonical: '/' },
   openGraph: {
     title: 'Digital Business Cards for Teams | Cardtly',
     description:
-      'The card is the face. Behind it, every lead is captured, emailed to the rep and their manager, followed up and reported. From R97 a card a month.',
+      'The card is the face. Behind it, every lead is captured, emailed to the rep and their manager, followed up and reported. Teams from R97 a card a month.',
   },
 }
 
@@ -726,7 +727,7 @@ export default function HomePage() {
                 </Link>
               </div>
               <p className="text-xs mt-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                Free trial on request · Cancel anytime · From R{SEAT_PRICE_RAND} a card a month
+                Free trial on request · Cancel anytime · Teams from R{SEAT_PRICE_RAND} a card · Solo from R{SOLO_PRICE_RAND.monthly} a month
                 <PriceEstimate zar={SEAT_PRICE_RAND} suffix=" a month." className="block mt-1.5" />
                 <RandChargeNote className="block" />
               </p>

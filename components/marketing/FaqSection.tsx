@@ -35,7 +35,7 @@ const FAQS: Array<{ q: string; a: string }> = [
   },
   {
     q: 'How much does a digital business card cost in South Africa?',
-    a: 'Cardtly is from R97 per card per month, or R970 a year, and that includes every feature. Teams start from the same R97 a seat, from 2 to 20 seats, with locked company branding and one admin dashboard. Above 20 seats we bill Enterprise by debit order. A physical NFC card is a once-off R150 plus R100 shipping anywhere in South Africa.',
+    a: 'For one person, Cardtly Solo is from R49 a month (R450 a year) for your card, QR code and contacts, and Pro is R97 a month (R970 a year) with every feature. Teams start from R97 a seat, from 2 to 20 seats, with locked company branding and one admin dashboard. Above 20 seats we bill Enterprise by debit order. A physical NFC card is a once-off R150 plus R100 shipping anywhere in South Africa.',
   },
   {
     q: 'Do I need an NFC card to use Cardtly?',

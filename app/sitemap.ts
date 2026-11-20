@@ -51,6 +51,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ? [{ url: `${BASE}/find-a-reseller`, changeFrequency: 'weekly' as const, priority: 0.6 }]
       : []),
     { url: `${BASE}/package`, changeFrequency: 'monthly', priority: 0.7 },
+    // Cardtly Solo, one person's card from R49 a month (2026-11-20).
+    { url: `${BASE}/solo`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${BASE}/signup`, changeFrequency: 'monthly', priority: 0.8 },
     // Only advertise /promotions to Google while it actually resolves;
     // it 404s when the programme is paused.

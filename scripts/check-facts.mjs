@@ -22,6 +22,15 @@ const billing = read('lib/org-billing.ts')
 const seatPrice = Number(billing.match(/SEAT_PRICE_RAND\s*=\s*(\d+)/)?.[1])
 const maxSeats = Number(billing.match(/MAX_SELF_SERVE_SEATS\s*=\s*(\d+)/)?.[1])
 
+// Cardtly Solo (2026-11-20) and Pro for one person, from lib/plan-prices.
+const planPrices = read('lib/plan-prices.ts')
+const soloMonthly = Number(planPrices.match(/SOLO_PRICE_RAND\s*=\s*\{\s*monthly:\s*(\d+)/)?.[1])
+const soloYearly = Number(planPrices.match(/SOLO_PRICE_RAND\s*=\s*\{[^}]*yearly:\s*(\d+)/)?.[1])
+if (!Number.isFinite(soloMonthly) || !Number.isFinite(soloYearly)) {
+  console.error('check-facts: could not read SOLO_PRICE_RAND from lib/plan-prices.ts')
+  process.exit(1)
+}
+
 if (!Number.isFinite(seatPrice) || !Number.isFinite(maxSeats)) {
   console.error('check-facts: could not read SEAT_PRICE_RAND / MAX_SELF_SERVE_SEATS from lib/org-billing.ts')
   process.exit(1)
@@ -100,6 +109,21 @@ if (!Number.isFinite(maxLinks) || !Number.isFinite(maxImages) || templateCount =
   process.exit(1)
 }
 
+// Cardtly Solo (2026-11-20) has smaller limits of its own, and copy about Solo
+// quotes them: "5 templates, up to 4 links and 2 photos". Those counts are
+// right only when the sentence is about Solo, so they are accepted only with
+// "Solo" a short way before them. Anywhere else a 4 or a 5 is still the stale
+// number this rule was written to catch.
+const soloLib = read('lib/solo.ts')
+const soloLinks = Number(soloLib.match(/SOLO_MAX_LINKS\s*=\s*(\d+)/)?.[1])
+const soloImages = Number(soloLib.match(/SOLO_MAX_IMAGES\s*=\s*(\d+)/)?.[1])
+const soloTemplates = (soloLib.match(/SOLO_TEMPLATES\s*=\s*\[([^\]]*)\]/)?.[1].match(/'[a-z]+'/g) || []).length
+if (!Number.isFinite(soloLinks) || !Number.isFinite(soloImages) || soloTemplates === 0) {
+  console.error('check-facts: could not read SOLO_MAX_LINKS / SOLO_MAX_IMAGES / SOLO_TEMPLATES from lib/solo.ts')
+  process.exit(1)
+}
+const SOLO_NEARBY = /Solo\b[^\n]{0,160}$/
+
 // app/promotions/terms is competition T&Cs, where "Free Account" is a defined
 // term meaning an account created without payment. That is accurate, and it is
 // legal text that gets reviewed on its own rather than swept with marketing
@@ -127,13 +151,13 @@ const MARKETING = [
 ]
 
 const COUNT_CLAIMS = [
-  { what: 'custom links', actual: maxLinks,
+  { what: 'custom links', actual: maxLinks, solo: soloLinks,
     re: /(\d+)\s+(?:custom\s+)?link(?:\s+button)?s/gi },
-  { what: 'gallery images', actual: maxImages,
+  { what: 'gallery images', actual: maxImages, solo: soloImages,
     re: /(?:gallery of up to|up to)\s+(\d+)\s+(?:gallery\s+)?(?:images|photos)/gi },
   // "card templates" too: "12 card templates" sat on the pricing page, the
   // upgrade page and Settings, Billing while the rule only knew "designed".
-  { what: 'templates', actual: templateCount,
+  { what: 'templates', actual: templateCount, solo: soloTemplates,
     re: /(\d+)\s+(?:designed\s+|card\s+)?templates/gi },
   // The stats bar on the home page splits the number away from the word, so
   // the prose rule above cannot see it. That is exactly where "12 designed
@@ -156,13 +180,14 @@ for (const file of [...MARKETING, ...PLAN_LISTS]) {
   let text
   // Comments out of the product files: they record what the copy used to say.
   try { text = PLAN_LISTS.includes(file) ? read(file).replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ') : read(file) } catch { continue }
-  for (const { what, actual, re } of COUNT_CLAIMS) {
+  for (const { what, actual, solo, re } of COUNT_CLAIMS) {
     re.lastIndex = 0
     let m
     while ((m = re.exec(text))) {
       const n = Number(m[1])
       // Ignore counts that are plainly about something else (a year, a price).
       if (n === actual || n > 100) continue
+      if (solo && n === solo && SOLO_NEARBY.test(text.slice(Math.max(0, m.index - 160), m.index))) continue
       note(`${file} claims "${m[0].trim()}" but a card supports ${actual} ${what}.`)
     }
   }
@@ -173,11 +198,28 @@ for (const file of [...MARKETING, ...PLAN_LISTS]) {
 // claim. This guard exists because that copy was true for months, and it is the
 // kind of line that gets pasted back from an older page without anyone noticing
 // it has become a promise the product does not keep.
+//
+// SINCE MIGRATION 109 (Andre, 2026-11-20) a signup gets no trial at all: people
+// choose Solo or Pro, and the 7-day Solo trial is offered only, quietly, inside
+// the product to somebody who will not choose. So the website does not
+// advertise a 7-day trial either. "Free trial on request" is fine: it is true
+// and it promotes nothing.
 const TRIAL_CLAIMS = [
   /60\s*days?\s*free/i,
   /free\s+for\s+60/i,
   /60[-\s]day\s+(?:free\s+)?trial/i,
   /start\s+(?:your\s+)?free\s+trial/i,
+  /\b7\s*days?\s*free/i,
+  /free\s+for\s+(?:7|seven)\s+days/i,
+  /\b(?:7|seven)[-\s]day\s+free\s+trial/i,
+  /\$\{TRIAL_DAYS\}\s*days?\s*free/i,
+  // The blog said all of these until the Solo sweep (2026-11-20).
+  /signup\s+gets\s+(?:7|seven)\s+days/i,
+  /(?:7|seven)\s+days\s+(?:of|with)\s+(?:the\s+full\s+product|everything)/i,
+  /first\s+(?:7|seven)\s+days/i,
+  /try\s+everything\s+for\s+(?:7|seven)\s+days/i,
+  /your\s+(?:7|seven)\s+days/i,
+  /after\s+the\s+(?:7|seven)\s+days/i,
 ]
 
 for (const file of MARKETING) {
@@ -185,7 +227,7 @@ for (const file of MARKETING) {
   try { text = read(file) } catch { continue }
   for (const re of TRIAL_CLAIMS) {
     const m = text.match(re)
-    if (m) note(`${file} promises a free trial ("${m[0].trim()}"). A signup gets 7 days (migration 049); 30 and 60 only come from a code, so a 60-day promise is not true for everyone.`)
+    if (m) note(`${file} promises a free trial ("${m[0].trim()}"). Since migration 109 a signup gets no trial: people choose Solo or Pro, and the trial is only a quiet fallback in the product. 30 and 60 days come only from a code.`)
   }
 }
 
@@ -205,7 +247,10 @@ for (const file of MARKETING) {
 // total; a stale unit price (R65) is not a multiple of the current one, which
 // is what makes this worth checking at all.
 const annualMonthly = Math.round((seatPrice * 10) / 12)
-const priceIsPlausible = n => n % seatPrice === 0 || n === annualMonthly
+// Solo is its own price, not a multiple of the seat: R49 a month, and about
+// R38 a month on the yearly plan.
+const soloAnnualMonthly = Math.round(soloYearly / 12)
+const priceIsPlausible = n => n % seatPrice === 0 || n === annualMonthly || n === soloMonthly || n === soloAnnualMonthly
 
 // A figure counts as recurring only when the words nearby say so. "per card"
 // on its own is ambiguous and always was: the subscription is R97 per card
@@ -280,9 +325,21 @@ for (const file of MARKETING) {
     // The website says "from R97" (Andre, 2026-10-28): resellers and
     // Enterprise sell at their own prices, so R97 is where it starts, not
     // what everybody pays. A sum worked from it ("at the starting price of
-    // R97") and "the same R97" are fine.
-    if (n === seatPrice && !/(?:from|starting price of|same)\s*(?:<[^>]+>)?\s*$/i.test(text.slice(Math.max(0, m.index - 40), m.index))) {
-      note(`${file} states the card price as plain "R${seatPrice}" ("${text.slice(Math.max(0, m.index - 30), m.index + 25).replace(/\s+/g, ' ').trim()}"). The website says "from R${seatPrice}".`)
+    // R97") and "the same R97" are fine, and since Cardtly Solo so is Pro's
+    // own price said as Pro's ("Pro at R97 a month").
+    const before = text.slice(Math.max(0, m.index - 40), m.index)
+    const quote = text.slice(Math.max(0, m.index - 30), m.index + 25).replace(/\s+/g, ' ').trim()
+    if (n === seatPrice && !/(?:from|starting price of|same|Pro(?:\s*(?:<[^>]+>\s*)*[,:]?\s*(?:at|is|costs|plan|for))?(?:\s*<[^>]+>)*\s*[,:]?)\s*(?:<[^>]+>\s*)*$/i.test(before)) {
+      note(`${file} states the card price as plain "R${seatPrice}" ("${quote}"). The website says "from R${seatPrice}" for teams, or names it as Pro's price.`)
+    }
+    // ONE PERSON'S CARD STARTS AT R49 since Cardtly Solo (2026-11-20). "From
+    // R97 a month" for a personal card is now wrong; "from R97 per card" or
+    // "a seat" for teams is still right.
+    if (n === seatPrice && /from\s*(?:<[^>]+>\s*)*$/i.test(before) && !/^[^.!?\n]{0,40}?(?:card|seat|member|person on|each)/i.test(text.slice(m.index + m[0].length, m.index + m[0].length + 45))) {
+      note(`${file} says "from R${seatPrice}" for one person's card ("${quote}"). Since Cardtly Solo a personal card is from R${soloMonthly} a month; R${seatPrice} is Pro, or per card for a team.`)
+    }
+    if (n === soloMonthly && !/(?:from|same|Solo(?:\s*(?:<[^>]+>\s*)*[,:]?\s*(?:at|is|costs|plan|for))?(?:\s*<[^>]+>)*\s*[,:]?)\s*(?:<[^>]+>\s*)*$/i.test(before)) {
+      note(`${file} states R${soloMonthly} plainly ("${quote}"). Say "from R${soloMonthly}", or name it as Cardtly Solo's price.`)
     }
   }
 

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Check, Wand2 } from 'lucide-react'
+import { SOLO_PRICE_RAND } from '@/lib/plan-prices'
 
 // Two columns: the pitch on the left, the cards on the right.
 //
@@ -113,7 +114,7 @@ export default function HeroSection() {
 
           <div className="flex flex-wrap items-center justify-center xl:justify-start gap-x-5 gap-y-2 text-sm mb-8"
             style={{ color: 'rgba(255,255,255,0.45)' }}>
-            {['Free trial on request', 'From R97 a card a month', 'Live in 2 minutes'].map(t => (
+            {['Free trial on request', `From R${SOLO_PRICE_RAND.monthly} a month`, 'Live in 2 minutes'].map(t => (
               <span key={t} className="flex items-center gap-1.5 whitespace-nowrap">
                 <Check className="w-3.5 h-3.5" style={{ color: '#22c55e' }} />{t}
               </span>

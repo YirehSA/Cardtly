@@ -24,6 +24,7 @@ export const metadata: Metadata = {
 import { NFC_TIERS, NFC_TIER_LIST, NFC_SHIPPING_RAND } from '@/lib/nfc-pricing'
 import { BUNDLE_PRICE_RAND, bundleRenewalRand } from '@/lib/pro-bundle'
 import PackageOffer from '@/components/marketing/PackageOffer'
+import { SOLO_PRICE_RAND } from '@/lib/plan-prices'
 
 const AVAILABLE_SAMPLES = availableSamples()
 
@@ -416,7 +417,7 @@ const NFC_FAQ = [
             Sign up <ArrowRight className="w-4 h-4" />
           </Link>
           <p className="text-xs mt-4" style={{ color: 'rgba(255,255,255,0.25)' }}>
-            From R97 a card a month · Order your NFC card
+            Cards from R{SOLO_PRICE_RAND.monthly} a month · Order your NFC card
           </p>
         </div>
       </section>

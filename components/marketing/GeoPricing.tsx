@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Check, ArrowRight } from 'lucide-react'
 import PriceEstimate, { RandChargeNote } from '@/components/marketing/PriceEstimate'
+import { PRO_PRICE_RAND, SOLO_PRICE_RAND } from '@/lib/plan-prices'
 
 const grad = 'linear-gradient(135deg, #00d4ff, #7c3aed, #ec4899)'
 
@@ -8,9 +9,9 @@ interface GeoPricingProps {
   plan: string[]
 }
 
-// One plan, one price. This used to be a Free (R0 / forever) vs Pro
-// comparison, which stopped being true when the free tier was dropped
-// at R97 a card a month.
+// Pro, with Cardtly Solo named under it (2026-11-20). This used to be a Free
+// (R0 / forever) vs Pro comparison, which stopped being true when the free tier
+// was dropped. Prices from lib/plan-prices.
 //
 // Everyone is billed in ZAR via Paystack (international cards welcome,
 // the bank converts at checkout). No region detection needed, the price
@@ -29,17 +30,19 @@ export default function GeoPricing({ plan }: GeoPricingProps) {
           <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#7c3aed' }}>Pro</p>
 
           <div className="flex items-end gap-2 mb-1">
-            <span className="text-base pb-1.5" style={{ color: 'rgba(255,255,255,0.45)' }}>From</span>
             <span className="text-5xl font-black" style={{ background: grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              R97
+              R{PRO_PRICE_RAND.monthly}
             </span>
             <span className="text-base pb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>/ month</span>
           </div>
-          <PriceEstimate zar={97} suffix="/mo" className="block text-sm font-medium mb-1 text-white/70" />
+          <PriceEstimate zar={PRO_PRICE_RAND.monthly} suffix="/mo" className="block text-sm font-medium mb-1 text-white/70" />
           <RandChargeNote className="block text-xs mb-1 text-white/60" />
           <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>ZAR · Billed monthly via Paystack. Cancel anytime.</p>
           <p className="text-sm mb-8 mt-3" style={{ color: 'rgba(255,255,255,0.45)' }}>
             Free trial on request. Cancel anytime.
+          </p>
+          <p className="text-sm -mt-6 mb-8" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            Just need your card? <Link href="/solo" className="underline hover:text-white">Cardtly Solo</Link> is from R{SOLO_PRICE_RAND.monthly} a month.
           </p>
         </div>
 

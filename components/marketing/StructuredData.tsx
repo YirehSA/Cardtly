@@ -1,4 +1,5 @@
 import { graph, localBusiness, SITE_URL } from '@/lib/seo-schema'
+import { SOLO_PRICE_RAND } from '@/lib/plan-prices'
 
 // The home page's SoftwareApplication and LocalBusiness nodes.
 //
@@ -34,6 +35,13 @@ const APP = {
     'Email signature and virtual background generators',
   ],
   offers: [
+    {
+      '@type': 'Offer',
+      name: 'Cardtly Solo',
+      price: String(SOLO_PRICE_RAND.monthly),
+      priceCurrency: 'ZAR',
+      description: `One person's digital business card with a QR code and contacts. Billed monthly, or R${SOLO_PRICE_RAND.yearly} a year.`,
+    },
     {
       '@type': 'Offer',
       name: 'Pro',

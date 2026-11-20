@@ -65,7 +65,7 @@ export const POSTS: BlogPost[] = [
 <tr><td>Saved to phone</td><td>Typed in by hand, if at all</td><td>One tap to save as a contact</td></tr>
 <tr><td>Extra content</td><td>Name and number only</td><td>Links, gallery, socials, WhatsApp, more</td></tr>
 <tr><td>See who viewed it</td><td>No way to tell</td><td>Views, clicks, and saves tracked</td></tr>
-<tr><td>Running cost</td><td>Pay per print run</td><td>From R97 a month, no reprints ever</td></tr>
+<tr><td>Running cost</td><td>Pay per print run</td><td>From R49 a month, no reprints ever</td></tr>
 </tbody>
 </table>
 
@@ -78,21 +78,22 @@ export const POSTS: BlogPost[] = [
 <p>Cardtly is a South African digital business card platform, so pricing is in rand and local payment works out of the box. You can build a card in minutes:</p>
 
 <ol>
-<li><a href="/signup">Sign up</a> and get 7 days of everything, no credit card required.</li>
+<li><a href="/signup">Sign up</a> and start your card, no credit card needed. It goes live when you choose Cardtly Solo or Pro.</li>
 <li>Pick one of 12 customisable templates and set your colours, fonts, logo, and light or dark mode.</li>
 <li>Add your details, links, socials, and an AI-written bio if you want a hand with the wording.</li>
 <li>Share your card by NFC, QR, or link, and start saving the contacts you meet.</li>
 </ol>
 
-<p>Every signup gets 7 days with the full product, no card required: a built-in contacts CRM, lead capture, a paper card scanner, an email signature generator, and a weekly performance digest. After that it is from R97 a month to keep the card live. Here is what you get:</p>
+<p>You start your card free, with no credit card. Cardtly Solo keeps it live from R49 a month, and Pro at R97 a month adds the full product: a built-in contacts CRM, lead capture, a paper card scanner, an email signature generator, and a weekly performance digest. Here is what you get:</p>
 
 <table>
 <thead>
 <tr><th>Plan</th><th>Price</th><th>Best for</th></tr>
 </thead>
 <tbody>
-<tr><td>First 7 days</td><td>R0, no card required</td><td>The whole product, so you can judge it before you pay</td></tr>
-<tr><td>Pro</td><td>From R97/month</td><td>Analytics, CRM, lead capture, card scanner, and more</td></tr>
+<tr><td>Starting your card</td><td>R0, no card required</td><td>Add your details and pick a design before you choose a plan</td></tr>
+<tr><td>Cardtly Solo</td><td>From R49/month</td><td>Your card, QR code, contacts and NFC</td></tr>
+<tr><td>Pro</td><td>R97/month</td><td>Analytics, CRM, lead capture, card scanner, and more</td></tr>
 <tr><td>Teams</td><td>From R97/card/month</td><td>Locked company branding and an admin dashboard</td></tr>
 </tbody>
 </table>
@@ -104,7 +105,7 @@ export const POSTS: BlogPost[] = [
       { q: 'What is a digital business card?', a: 'A digital business card is an online version of a paper business card that lives as a web page holding your contact details, links, and social profiles. You share it by NFC tap, QR code, or a link, and the recipient can save your details straight to their phone with no app needed.' },
       { q: 'Do I need an NFC card to use a digital business card?', a: 'No. You can share your card by QR code or link without any hardware. An NFC card is an optional add-on from Cardtly, R150 once-off with your logo on our layout or R200 designed around your brand, plus R100 shipping in South Africa.' },
       { q: 'Does the person receiving my card need an app?', a: 'No. Your card opens as a normal web page in their browser, whether you share it by NFC, QR code, or link. They can also save your details to their phone contacts with one tap.' },
-      { q: 'Is Cardtly free to try?', a: 'Yes. Every signup gets 7 days of the full product with no credit card required, including a customisable card, all three sharing methods, analytics, a contacts CRM and lead capture. After the 7 days it is from R97 a month, billed in rand through Paystack.' },
+      { q: 'Is Cardtly free to try?', a: 'You can sign up and start your card free, with no credit card, and a free trial is available on request. To put your card live you choose a plan: Cardtly Solo from R49 a month, or Pro at R97 a month with every feature, billed in rand through Paystack.' },
     ],
   },
 
@@ -117,7 +118,7 @@ export const POSTS: BlogPost[] = [
       'Everything South African professionals need to know about digital and NFC business cards in 2026, with ZAR pricing and local delivery.',
     date: '2026-07-02',
     readMins: 7,
-    body: `<p>A digital business card is a shareable online version of your contact details that lives on your phone and opens in any web browser, so the person you meet can save your info instantly without an app or a paper card. <strong>Cardtly</strong> is a South African digital business card platform, built in South Africa, that lets you share your card by NFC tap, QR code, or a link over WhatsApp, and bills in rand through Paystack. You can start with no credit card, try everything for 7 days, and then keep it live from R97 a month.</p>
+    body: `<p>A digital business card is a shareable online version of your contact details that lives on your phone and opens in any web browser, so the person you meet can save your info instantly without an app or a paper card. <strong>Cardtly</strong> is a South African digital business card platform, built in South Africa, that lets you share your card by NFC tap, QR code, or a link over WhatsApp, and bills in rand through Paystack. You can start your card with no credit card, and keep it live from R49 a month with Cardtly Solo.</p>
 
 <h2>Why South African professionals are switching</h2>
 <p>Paper business cards get lost, run out at the worst moment, and cost money to reprint every time a number or title changes. A digital business card fixes all three problems at once. You update your details in one place and everyone who opens your card sees the latest version, so a reprint is never needed again.</p>
@@ -139,8 +140,9 @@ export const POSTS: BlogPost[] = [
 <tr><th>Plan or add-on</th><th>Price (ZAR)</th><th>What you get</th></tr>
 </thead>
 <tbody>
-<tr><td>First 7 days</td><td>R0, no credit card</td><td>Everything below, so you can try it before you pay</td></tr>
-<tr><td>Pro</td><td>From R97 / month</td><td>Analytics, lead capture and CRM, AI card scanner, Excel export, weekly digest</td></tr>
+<tr><td>Starting your card</td><td>R0, no credit card</td><td>Add your details and pick a design before you choose a plan</td></tr>
+<tr><td>Cardtly Solo</td><td>From R49 / month</td><td>Your card, QR code, contacts and NFC</td></tr>
+<tr><td>Pro</td><td>R97 / month</td><td>Analytics, lead capture and CRM, AI card scanner, Excel export, weekly digest</td></tr>
 <tr><td>Physical NFC card</td><td>R150 standard or R200 custom, + R100 shipping per order in SA</td><td>A tap-to-share card linked to your profile</td></tr>
 <tr><td>Teams</td><td>From R97 / card / month</td><td>Locked company branding, per-card billing, admin dashboard</td></tr>
 </tbody>
@@ -174,16 +176,16 @@ export const POSTS: BlogPost[] = [
 </table>
 
 <h2>How to get started</h2>
-<p>Getting a card live takes a few minutes and costs nothing to try.</p>
+<p>Getting a card ready takes a few minutes and costs nothing to start.</p>
 <ol>
-<li>Create your account. No credit card is needed for the first 7 days.</li>
+<li>Create your account. No credit card is needed to start your card.</li>
 <li>Pick one of the 16 templates and add your details, links, and logo.</li>
 <li>Share your card by link, QR, or NFC, and start saving contacts.</li>
 </ol>
-<p>Analytics, lead capture and the AI card scanner are all in the 7 days, and keeping them is from R97 a month. If you run a team, the Teams plan keeps everyone on-brand from R97 per card. There is also an Android app on Google Play, and an iPhone and iPad app on the App Store for company teams. Ready to begin? <a href="/signup">Create your card</a> and share it today.</p>`,
+<p>Analytics, lead capture and the AI card scanner come with Pro at R97 a month, and Cardtly Solo is from R49 a month for the card on its own. If you run a team, the Teams plan keeps everyone on-brand from R97 per card. There is also an Android app on Google Play, and an iPhone and iPad app on the App Store for company teams. Ready to begin? <a href="/signup">Create your card</a> and share it today.</p>`,
     faq: [
       { q: 'What is a digital business card?', a: 'A digital business card is an online version of your contact details that opens in any web browser when you share it by tap, QR code, or link. The person receiving it can save your details to their phone without downloading an app.' },
-      { q: 'How much does a digital business card cost in South Africa?', a: 'Cardtly is from R97 a month, billed in rand through Paystack. Every signup gets 7 days first with no credit card required. An optional physical NFC card is R150 once-off, or R200 designed around your brand, plus R100 shipping within South Africa.' },
+      { q: 'How much does a digital business card cost in South Africa?', a: 'Cardtly is from R49 a month with Cardtly Solo, or Pro at R97 a month, billed in rand through Paystack. An optional physical NFC card is R150 once-off, or R200 designed around your brand, plus R100 shipping within South Africa.' },
       { q: 'Do I need an NFC card to use Cardtly?', a: 'No. You can share your card by QR code or a link over WhatsApp, email, or SMS without any physical card. The NFC card is an optional add-on for tap-to-share convenience.' },
       { q: 'Does the person receiving my card need an app?', a: 'No. Your card opens in any standard web browser, and they can save your details straight to their phone contacts as a vCard with one tap.' },
       { q: 'Can I use Cardtly for my whole team?', a: 'Yes. Teams are from R97 per card per month and include locked company branding, per-card billing, and an admin dashboard so everyone stays on-brand.' },
@@ -221,7 +223,7 @@ export const POSTS: BlogPost[] = [
 </table>
 
 <h2>Cost over time</h2>
-<p>A paper card looks cheap per unit, but the real cost is repetition. Every time your number, title, or branding changes, the old box becomes scrap and you order another. A digital card removes that cycle. Cardtly gives you <strong>7 days free</strong> with no credit card required, and is from R97 a month after that. If you want the physical tap, an optional <a href="/nfc">NFC card</a> is R150 once-off, or R200 designed around your brand, plus R100 shipping in South Africa, and you keep using it for years without reprinting.</p>
+<p>A paper card looks cheap per unit, but the real cost is repetition. Every time your number, title, or branding changes, the old box becomes scrap and you order another. A digital card removes that cycle. Cardtly is <strong>from R49 a month</strong> with Cardtly Solo, billed in rand, and you can start your card before you pay anything. If you want the physical tap, an optional <a href="/nfc">NFC card</a> is R150 once-off, or R200 designed around your brand, plus R100 shipping in South Africa, and you keep using it for years without reprinting.</p>
 
 <h2>Staying up to date</h2>
 <p>This is where paper struggles most. A printed card is a snapshot frozen on the day it left the printer. A digital card is a live web page, so when you change a phone number, add a new role, or swap your booking link, it updates everywhere instantly. Everyone who taps, scans, or clicks always sees the current version, and you never hand out wrong details again.</p>
@@ -245,7 +247,7 @@ export const POSTS: BlogPost[] = [
 <p>On cost, updates, sustainability, analytics, and reach, the <strong>NFC vs paper business cards</strong> comparison lands firmly on the digital side, with paper holding a small niche. The good news is you do not have to choose blind. You can <a href="/signup">create your digital card</a> in minutes, run it free for a week before you decide anything, and add an NFC card only if you want the tap. In 2026, that is the smarter way to share who you are.</p>`,
     faq: [
       { q: 'How does an NFC business card actually work?', a: 'An NFC business card has a small chip inside. When you tap it against the back of a modern phone, the phone reads the chip and opens your digital profile in the browser instantly. No app is needed on either phone.' },
-      { q: 'Is an NFC card more expensive than printing paper cards?', a: 'Not over time. A paper card seems cheap per unit but you reprint every time details change. A Cardtly NFC card is R150 once-off, or R200 designed around your brand, plus R100 shipping in South Africa, and you reuse it for years, while the digital card behind it is from R97 a month however many times your details change.' },
+      { q: 'Is an NFC card more expensive than printing paper cards?', a: 'Not over time. A paper card seems cheap per unit but you reprint every time details change. A Cardtly NFC card is R150 once-off, or R200 designed around your brand, plus R100 shipping in South Africa, and you reuse it for years, while the digital card behind it is from R49 a month however many times your details change.' },
       { q: 'Do people need an app to receive my digital or NFC card?', a: 'No. The recipient just taps, scans a QR code, or opens a link, and your profile opens in their normal browser. They can then save your details straight to their phone contacts with no app required.' },
       { q: 'Should I still keep paper business cards in 2026?', a: 'You can, and some settings still expect them since paper needs no phone or signal. Many professionals use a digital card as the everyday default and keep a small run of paper for the rare occasions that call for it.' },
     ],
@@ -255,19 +257,19 @@ export const POSTS: BlogPost[] = [
     slug: 'how-to-make-a-free-digital-business-card',
     title: 'How to Make a Free Digital Business Card',
     description:
-      'Create a digital business card in South Africa, free for 7 days. Step by step: sign up, pick a template, add your details, share by link, QR or NFC.',
+      'Create a digital business card in South Africa, from R49 a month. Step by step: sign up, pick a template, add your details, share by link, QR or NFC.',
     excerpt:
-      'A beginner-friendly, step-by-step guide to making a digital business card, free for 7 days, that you can share by link, QR code or NFC tap.',
+      'A beginner-friendly, step-by-step guide to making a digital business card, from R49 a month, that you can share by link, QR code or NFC tap.',
     date: '2026-07-03',
     readMins: 7,
-    body: `<p>To make a digital business card free of charge, sign up on <a href="/signup">Cardtly</a>, pick one of the 16 templates, then add your name, role, contact details, socials and links. Customise the colours, fonts and logo, and you instantly get a public card URL like cardtly.com/card/yourname plus a downloadable QR code. Share it by link, QR code or an NFC tap, add it to Google Wallet, and track your views from your dashboard. It costs nothing to build and nothing for the first 7 days, with no credit card needed. Keeping it live after that is from R97 a month.</p>
+    body: `<p>To make a digital business card free of charge, sign up on <a href="/signup">Cardtly</a>, pick one of the 16 templates, then add your name, role, contact details, socials and links. Customise the colours, fonts and logo, and you instantly get a public card URL like cardtly.com/card/yourname plus a downloadable QR code. Share it by link, QR code or an NFC tap, add it to Google Wallet, and track your views from your dashboard. It costs nothing to start, with no credit card needed. Keeping it live is from R49 a month with Cardtly Solo.</p>
 
 <p>A paper business card gets lost, goes out of date the moment your number changes, and there is no way to know if anyone ever looked at it. A digital business card fixes all of that. It is a live web page, so you edit it once and everyone who already has your link sees the update. Below is the full walkthrough for South African professionals who are starting from scratch.</p>
 
 <h2>Step by step: create your digital business card</h2>
 
 <h3>1. Sign up</h3>
-<p>Head to the <a href="/signup">sign up page</a> and create your account. No credit card is required, and you get 7 days with everything switched on, so you can build your whole card and share it before deciding anything. That is the part beginners worry about, and there is no catch to getting started: after the 7 days it is from R97 a month to keep your card live.</p>
+<p>Head to the <a href="/signup">sign up page</a> and create your account. No credit card is required, so you can start your card and see how it looks before deciding anything. That is the part beginners worry about, and there is no catch to getting started: when you are happy, Cardtly Solo keeps your card live from R49 a month, or Pro at R97 a month adds analytics, lead capture and the card scanner.</p>
 
 <h3>2. Pick a template</h3>
 <p>Choose from 12 customisable templates. Each one sets the overall look of your card, and you can switch templates later without losing your details. Pick something that suits your profession: clean and minimal for a consultant, bold and colourful for a creative. Do not overthink this step, because you can change it in seconds.</p>
@@ -303,7 +305,7 @@ export const POSTS: BlogPost[] = [
 
 <h2>What you get</h2>
 
-<p>There is no cut-down version. Your 7 days are the complete product, and nothing is added or taken away when you start paying, so what you try is what you keep:</p>
+<p>There are two plans for one person. <strong>Cardtly Solo</strong>, from R49 a month, is the card itself: your card and QR code, 5 templates, up to 4 links and 2 photos, and the contacts who share their details back. <strong>Pro</strong>, at R97 a month, is the complete product:</p>
 
 <ul>
 <li>Your public card URL and downloadable QR code</li>
@@ -314,7 +316,7 @@ export const POSTS: BlogPost[] = [
 <li>The AI paper card scanner, Excel export and the weekly digest email</li>
 </ul>
 
-<p>After the 7 days it is from R97 a month. If you decide not to continue, your card stops being served rather than dropping to a lesser version of itself, so it is worth deciding before the week is up.</p>
+<p>Your card goes live when you choose a plan, and you can move up from Solo to Pro whenever you like. If you stop paying, your card stops being served: there is no free version.</p>
 
 <p>See the full breakdown on the <a href="/pricing">pricing page</a> and the complete list on the <a href="/features">features page</a>.</p>
 
@@ -333,7 +335,7 @@ export const POSTS: BlogPost[] = [
 
 <p>Making a digital business card takes about ten minutes and costs nothing to start. You end up with a professional, shareable card that works from any phone, keeps itself up to date, and shows you exactly who is engaging. <a href="/signup">Create your digital business card now</a> and share it today.</p>`,
     faq: [
-      { q: 'Is a digital business card really free to start?', a: 'Yes to start. Cardtly asks for no credit card and gives you 7 days with everything included, so you can build your card, get your public link and QR code, and share it before paying anything. Keeping it live after that is from R97 a month.' },
+      { q: 'Is a digital business card really free to start?', a: 'Yes, to start. Cardtly asks for no credit card, so you can start your card and see how it looks before paying anything. Keeping it live is from R49 a month with Cardtly Solo, and a free trial is available on request.' },
       { q: 'Does the person I share my card with need an app?', a: 'No. Your card is just a web page, so anyone can open it by link, QR scan or NFC tap on any phone. They can save your details straight to their contacts without downloading anything.' },
       { q: 'How do I share my digital business card?', a: 'Three ways: send the link over WhatsApp, email or SMS; let people scan your QR code; or tap an optional NFC card on a phone. You can also add your card to Google Wallet for quick access.' },
       { q: 'Do I need the physical NFC card to get started?', a: 'No. The NFC card is optional and costs R150 once-off, or R200 designed around your brand, plus R100 shipping in South Africa. Your link and QR code work on their own, so you can share your card straight away without any hardware.' },
@@ -1052,7 +1054,7 @@ export const POSTS: BlogPost[] = [
 
 <p>Every card reports its views, its taps and its saves, and every contact captured lands in a shared list the dealership owns. When a salesperson resigns, you do not lose the pipeline and you do not spend a fortnight reconstructing it from a phone nobody can unlock.</p>
 
-<p>If you want to see it before committing, every signup gets 7 days of the full product with no credit card. Build one card for one salesperson, load ten vehicles into it, and hand it to a buyer on Saturday.</p>`,
+<p>If you want to see it before committing, a free trial is available on request. Build one card for one salesperson, load ten vehicles into it, and hand it to a buyer on Saturday.</p>`,
     faq: [
       {
         q: 'What makes a digital business card different for a car dealership?',
@@ -1072,7 +1074,7 @@ export const POSTS: BlogPost[] = [
       },
       {
         q: 'How much does it cost for a dealership?',
-        a: 'From R97 per card a month, billed in rand through Paystack, with 7 days of the full product first and no credit card required. A physical NFC card is optional at R150 once-off with your logo on our layout, or R200 designed around your brand, plus R100 shipping per order in South Africa.',
+        a: 'From R97 per card a month, billed in rand through Paystack, with a free trial on request. A physical NFC card is optional at R150 once-off with your logo on our layout, or R200 designed around your brand, plus R100 shipping per order in South Africa.',
       },
       {
         q: 'Do buyers need an app to open the card?',
@@ -1174,7 +1176,7 @@ export const POSTS: BlogPost[] = [
 <li><strong>Decide about NFC.</strong> The QR code and the link need no hardware. Physical <a href="/nfc">NFC cards</a> are optional at R150 once-off with your logo on our layout, or R200 designed around your brand, plus R100 shipping per order in South Africa.</li>
 </ol>
 
-<p>Every signup gets 7 days of the full product with no credit card required, which is enough to run the pilot before anybody signs a purchase order. See <a href="/teams">how team accounts work</a> or read the comparison of <a href="/blog/business-card-costs-for-sales-teams">what business cards cost a sales team</a>.</p>`,
+<p>A free trial is available on request, which is enough to run the pilot before anybody signs a purchase order. See <a href="/teams">how team accounts work</a> or read the comparison of <a href="/blog/business-card-costs-for-sales-teams">what business cards cost a sales team</a>.</p>`,
     faq: [
       {
         q: 'How do digital business cards keep a large company on-brand?',
@@ -1562,7 +1564,7 @@ export const POSTS: BlogPost[] = [
 <li><strong>Print the QR codes.</strong> Boards, show-house stands, window cards and brochures. An <a href="/nfc">NFC card</a> for the tap is optional, at R150 once-off with your logo on our layout or R200 designed around your brand, plus R100 shipping per order in South Africa.</li>
 </ol>
 
-<p>Every signup gets 7 days of the full product with no credit card, so an agent can build a card, load this weekend's listings and use it at Sunday's show day before anyone commits. Agencies setting up more than one agent can read how <a href="/teams">Cardtly works for teams</a>.</p>`,
+<p>A free trial is available on request, so an agent can build a card, load this weekend's listings and use it at Sunday's show day before anyone commits. Agencies setting up more than one agent can read how <a href="/teams">Cardtly works for teams</a>.</p>`,
     faq: [
       {
         q: 'What should an estate agent put on a digital business card?',
@@ -1586,7 +1588,7 @@ export const POSTS: BlogPost[] = [
       },
       {
         q: 'How much does it cost?',
-        a: 'From R97 per card a month, billed in rand, with 7 days of the full product first and no credit card required. An NFC card is optional at R150 once-off with your logo, or R200 designed around your brand, plus R100 shipping per order in South Africa.',
+        a: 'From R97 per card a month, billed in rand, with a free trial on request. An NFC card is optional at R150 once-off with your logo, or R200 designed around your brand, plus R100 shipping per order in South Africa.',
       },
     ],
   },
@@ -1671,7 +1673,7 @@ export const POSTS: BlogPost[] = [
 <li><strong>Share it everywhere.</strong> Link, QR code, email signature and virtual background are included. An <a href="/nfc">NFC card</a> for the tap is optional, at R150 once-off or R200 designed around your brand, plus R100 shipping per order in South Africa.</li>
 </ol>
 
-<p>Every signup gets 7 days of the full product with no credit card, so a practice can build the firm's card and one adviser's card and see them side by side before rolling out. Read how <a href="/teams">Cardtly works for teams</a> for the full company setup, or our <a href="/blog/best-digital-business-card">checklist for choosing a digital business card</a> if you are comparing options.</p>`,
+<p>A free trial is available on request, so a practice can build the firm's card and one adviser's card and see them side by side before rolling out. Read how <a href="/teams">Cardtly works for teams</a> for the full company setup, or our <a href="/blog/best-digital-business-card">checklist for choosing a digital business card</a> if you are comparing options.</p>`,
     faq: [
       {
         q: 'Can every adviser\'s card show the same approved firm wording?',
@@ -1695,7 +1697,7 @@ export const POSTS: BlogPost[] = [
       },
       {
         q: 'How much does it cost?',
-        a: 'From R97 per card a month, billed in rand, with 7 days of the full product first and no credit card required. Teams of 2 to 20 cards are self-serve, and larger firms are set up directly.',
+        a: 'From R97 per card a month, billed in rand, with a free trial on request. Teams of 2 to 20 cards are self-serve, and larger firms are set up directly.',
       },
     ],
   },
@@ -1779,7 +1781,7 @@ export const POSTS: BlogPost[] = [
 <li><strong>Print the QR codes.</strong> Vehicles, reception, rooms, brochures and itineraries. An <a href="/nfc">NFC card</a> for the tap is optional, at R150 once-off with your logo or R200 designed around your brand, plus R100 shipping per order in South Africa.</li>
 </ol>
 
-<p>Every signup gets 7 days of the full product with no credit card, so you can build a card, load your tours and hand it to your next guests before deciding. For more than one guide, read how <a href="/teams">Cardtly works for teams</a>.</p>`,
+<p>A free trial is available on request, so you can build a card, load your tours and hand it to your next guests before deciding. For more than one guide, read how <a href="/teams">Cardtly works for teams</a>.</p>`,
     faq: [
       {
         q: 'Can overseas guests open a South African digital business card?',
@@ -1803,7 +1805,7 @@ export const POSTS: BlogPost[] = [
       },
       {
         q: 'How much does it cost?',
-        a: 'From R97 per card a month, billed in rand, with 7 days of the full product first and no credit card required. An NFC card is optional at R150 once-off with your logo, or R200 designed around your brand, plus R100 shipping per order in South Africa.',
+        a: 'From R97 per card a month, billed in rand, with a free trial on request. An NFC card is optional at R150 once-off with your logo, or R200 designed around your brand, plus R100 shipping per order in South Africa.',
       },
     ],
   },
@@ -1875,7 +1877,7 @@ export const POSTS: BlogPost[] = [
 <li><strong>Give them a way to share.</strong> The link and QR code work immediately. An <a href="/nfc">NFC card</a> for the tap is optional, at R150 once-off with your logo or R200 designed around your brand, plus R100 shipping per order in South Africa.</li>
 </ol>
 
-<p>Every signup gets 7 days of the full product with no credit card. Teams of 2 to 20 cards are self-serve, and larger distributors are set up directly. Read how <a href="/teams">Cardtly works for teams</a> for the full company setup.</p>`,
+<p>A free trial is available on request. Teams of 2 to 20 cards are self-serve, and larger distributors are set up directly. Read how <a href="/teams">Cardtly works for teams</a> for the full company setup.</p>`,
     faq: [
       {
         q: 'Can each rep\'s card show our product ranges?',
@@ -1899,7 +1901,7 @@ export const POSTS: BlogPost[] = [
       },
       {
         q: 'How much does it cost?',
-        a: 'From R97 per card a month, billed in rand, with 7 days of the full product first and no credit card required. Teams of 2 to 20 cards are self-serve, and larger distributors are set up directly.',
+        a: 'From R97 per card a month, billed in rand, with a free trial on request. Teams of 2 to 20 cards are self-serve, and larger distributors are set up directly.',
       },
     ],
   },

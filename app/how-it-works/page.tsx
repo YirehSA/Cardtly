@@ -6,6 +6,7 @@ import FaqSection from '@/components/marketing/FaqSection'
 import Footer from '@/components/marketing/Footer'
 import GeoPricing from '@/components/marketing/GeoPricing'
 import { ArrowRight } from 'lucide-react'
+import { SOLO_PRICE_RAND } from '@/lib/plan-prices'
 
 export const metadata: Metadata = {
   title: { absolute: 'How Digital Business Cards Work | Set Up in 2 Minutes' },
@@ -78,7 +79,7 @@ const STEPS = [
 
 // Kept deliberately in step with the Pro list on /pricing, which is
 // the canonical page. There is no longer a free tier to compare
-// against: every card is Pro, at R97 a card a month.
+// against: Cardtly Solo from R49 a month, or Pro at R97 a month.
 const PLAN_FEATURES = [
   'Your own card URL at cardtly.com/card/you',
   '16 card templates',
@@ -204,7 +205,7 @@ export default function HowItWorksPage() {
             <h2 className="text-4xl font-black tracking-tight mb-3">
               One plan. <span style={gradText}>Everything included.</span>
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.45)' }}>Every feature on one card, from R97 a month.</p>
+            <p style={{ color: 'rgba(255,255,255,0.45)' }}>Every feature on one card with Pro, or your card on its own with Solo from R{SOLO_PRICE_RAND.monthly} a month.</p>
           </div>
           <GeoPricing plan={PLAN_FEATURES} />
         </div>

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
 import { graph, faqPage, breadcrumb, softwareApplication } from '@/lib/seo-schema'
 import Footer from '@/components/marketing/Footer'
-import ProPlanPrice from '@/components/marketing/ProPlanPrice'
+import PlanPrice from '@/components/marketing/PlanPrice'
 import Reveal from '@/components/marketing/Reveal'
 import { WatchHow } from '@/components/howto/HowTo'
 import PriceEstimate, { PriceEstimateLine, RandChargeNote } from '@/components/marketing/PriceEstimate'
@@ -22,16 +22,17 @@ import { Check, ArrowRight, Zap, Building2, CreditCard, Sparkles } from 'lucide-
 import { MAX_SELF_SERVE_SEATS, SEAT_PRICE_RAND } from '@/lib/org-billing'
 import { BUNDLE_PRICE_RAND, bundleRenewalRand, bundleSavingRand } from '@/lib/pro-bundle'
 import BundleBreakdown from '@/components/marketing/BundleBreakdown'
+import { PRO_PRICE_RAND, SOLO_PRICE_RAND } from '@/lib/plan-prices'
+import { SOLO_MAX_IMAGES, SOLO_MAX_LINKS, SOLO_TEMPLATES } from '@/lib/solo'
 
-// Yearly is ten months for twelve. Derived rather than typed so it cannot
-// drift from the monthly price either.
-const YEAR_PRICE_RAND = SEAT_PRICE_RAND * 10
-const TRIAL_DAYS = 7
-
+// TWO PLANS FOR ONE PERSON since Cardtly Solo (Andre, 2026-11-20): Solo from
+// lib/plan-prices, Pro and team seats from the billing constants. The trial is
+// not advertised here (Andre: people choose a plan; the trial is a quiet
+// fallback inside the product).
 export const metadata: Metadata = {
-  title: `Digital Business Card Pricing, from R${SEAT_PRICE_RAND} a Month`,
+  title: `Digital Business Card Pricing, from R${SOLO_PRICE_RAND.monthly} a Month`,
   description:
-    `Free for ${TRIAL_DAYS} days, no credit card. Then from R${SEAT_PRICE_RAND} per card a month or R${YEAR_PRICE_RAND} a year. Teams of 2 to ${MAX_SELF_SERVE_SEATS} seats from R${SEAT_PRICE_RAND} each. NFC cards from R150.`,
+    `Cardtly Solo from R${SOLO_PRICE_RAND.monthly} a month or R${SOLO_PRICE_RAND.yearly} a year. Pro at R${PRO_PRICE_RAND.monthly} a month or R${PRO_PRICE_RAND.yearly} a year. Teams of 2 to ${MAX_SELF_SERVE_SEATS} seats from R${SEAT_PRICE_RAND} each. NFC cards from R150.`,
   alternates: { canonical: '/pricing' },
 }
 
@@ -57,6 +58,20 @@ const BODY = 'rgba(255,255,255,0.68)'  // normal body, about 9:1
 const DIM = 'rgba(255,255,255,0.6)'    // suffixes and captions, about 5.9:1
 const LILAC = '#a78bfa'                // brand purple that passes as text
 const MINT = '#34d399'
+
+// Only what Solo can do (lib/solo).
+const SOLO = [
+  `${SOLO_TEMPLATES.length} card templates`,
+  'Custom accent colour and fonts',
+  'Photo, logo, job title, bio, address, WhatsApp',
+  'Social media profiles',
+  `Up to ${SOLO_MAX_LINKS} link buttons`,
+  `Up to ${SOLO_MAX_IMAGES} gallery photos`,
+  'Your QR code, ready to share or print',
+  'Contacts who share their details back',
+  'Works with Cardtly NFC cards',
+  'Your own cardtly.com link, for good',
+]
 
 const PRO = [
   '16 card templates',
@@ -101,14 +116,12 @@ const ENTERPRISE = [
 ]
 
 const FAQS = [
-  // The trial answer is new. Everything it says is already true and already
-  // stated on the blog; it simply was not on the page where people decide.
-  { q: `Is there a free trial?`, a: `Yes. Every signup gets ${TRIAL_DAYS} days of the full product with no credit card required: a customisable card, all three sharing methods, analytics, a contacts CRM and lead capture. Nothing is held back during the trial and nothing is charged if you walk away. After the ${TRIAL_DAYS} days it is from R${SEAT_PRICE_RAND} a month to keep the card live.` },
-  { q: `What does R${SEAT_PRICE_RAND} include?`, a: 'Everything. One card, every Cardtly feature: templates, custom branding, analytics, lead capture, meeting booking, WhatsApp follow-up, the paper card scanner and Excel export. There is no cut-down version.' },
+  { q: 'What is the difference between Solo and Pro?', a: `Solo is R${SOLO_PRICE_RAND.monthly} a month for your own card: ${SOLO_TEMPLATES.length} templates, up to ${SOLO_MAX_LINKS} links and ${SOLO_MAX_IMAGES} gallery photos, your QR code, and the contacts who share their details back. Pro is R${PRO_PRICE_RAND.monthly} a month and adds everything else: all 16 templates, up to 10 links and photos, lead capture, meeting booking, analytics, the email signature, virtual backgrounds and the paper card scanner.` },
+  { q: 'Can I start on Solo and move to Pro later?', a: 'Yes, any time, from your dashboard. Your card keeps its link, and your Solo subscription stops when Pro starts, so you are never charged for both. Anything you added on Pro is kept if you ever move back to Solo.' },
   { q: 'Is there a team plan?', a: `Yes, and you can set it up yourself right now. Teams run from 2 to ${MAX_SELF_SERVE_SEATS} seats from R${SEAT_PRICE_RAND} a seat per month, with locked company branding, email invites, and one admin dashboard. Need more than ${MAX_SELF_SERVE_SEATS} seats? That is Enterprise, and we bill it by debit order.` },
   { q: `What happens above ${MAX_SELF_SERVE_SEATS} seats?`, a: 'You move to Enterprise. Same product, but billed by debit order instead of a card, with invoicing that suits your finance team. Talk to us and we will set it up.' },
   { q: 'Can I get an NFC card with my subscription?', a: `Yes. R${BUNDLE_PRICE_RAND} buys twelve months of Pro and one NFC card in either design, printed and delivered in South Africa. The card and its delivery are included, and the whole package is R${bundleSavingRand()} or more less than buying them separately. After the first year it renews at R${bundleRenewalRand()} a year until you cancel.` },
-  { q: 'Can I cancel anytime?', a: 'Yes. Cancel whenever you like, no lock-in and no cancellation fee. You keep Pro until the end of the period you have paid for.' },
+  { q: 'Can I cancel anytime?', a: 'Yes. Cancel whenever you like, no lock-in and no cancellation fee. You keep your plan until the end of the period you have paid for.' },
   // Worded to match the Terms ("We do not refund part periods, except where
   // the law requires it"), so the page and the contract say the same thing.
   { q: 'If I pay upfront and cancel early, do I get a refund?', a: `Once you cancel, nothing renews and you won't be charged again, and your cards stay live until the end of the period you've already paid for, so you keep what you paid for. We don't refund part of a period that's been paid upfront, except where the law requires it. If you'd rather not commit for the year, you're welcome to pay monthly instead and cancel whenever you like.` },
@@ -126,10 +139,10 @@ export default function PricingPage() {
       name: 'Cardtly',
       path: '/pricing',
       description:
-        'Digital business card platform for individuals, teams and companies. One price per card with the full feature set, billed monthly or annually.',
-      price: SEAT_PRICE_RAND,
+        'Digital business card platform for individuals, teams and companies. Cardtly Solo and Pro for one person, and team plans per seat, billed monthly or annually.',
+      price: SOLO_PRICE_RAND.monthly,
       priceCurrency: 'ZAR',
-      priceNote: 'per card per month',
+      priceNote: 'per month, from (Cardtly Solo)',
     }),
   )
 
@@ -152,7 +165,7 @@ export default function PricingPage() {
             <p className="animate-fade-up text-sm font-bold uppercase tracking-widest mb-4" style={{ color: '#ec4899' }}>Pricing</p>
             <h1 className="animate-fade-up font-black tracking-[-0.02em] leading-[1.04] mb-6"
               style={{ fontSize: 'clamp(2.5rem, 4.4vw, 4.25rem)' }}>
-              One price.<br /><span style={gradText}>Everything included.</span>
+              Two plans for you.<br /><span style={gradText}>One for your team.</span>
             </h1>
 
             {/* THE TRIAL, ON THE PAGE WHERE PEOPLE DECIDE. The comment that
@@ -161,16 +174,18 @@ export default function PricingPage() {
                 decide" - and then it was never added. It is on the blog four
                 times and was on this page nowhere. No credit card is the part
                 that matters, so it is in the badge rather than a footnote. */}
+            {/* The value, where the trial badge used to be (Andre, 2026-11-20:
+                the trial is not promoted). Solo is under R2 a day. */}
             <div className="animate-fade-up inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-6"
               style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.4)', color: MINT }}>
               <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
-              Free for {TRIAL_DAYS} days, no credit card
+              Solo is under R2 a day, billed in rand
             </div>
 
             <p className="animate-fade-up-delayed text-lg xl:text-xl leading-relaxed max-w-xl mx-auto lg:mx-0 mb-8"
               style={{ color: BODY }}>
-              Then from R{SEAT_PRICE_RAND} a card per month, whether it is just you or your whole team. No feature tiers,
-              no surprises, with every feature included.
+              Cardtly Solo from R{SOLO_PRICE_RAND.monthly} a month for your own card. Pro at R{PRO_PRICE_RAND.monthly} a month for every
+              feature. Teams from R{SEAT_PRICE_RAND} a seat. Cancel any time, and your link is yours for good.
             </p>
             {/* Web-only (RULES.md 1): /pricing is a page the iPhone app never opens. */}
             <WatchHow videos={['21']} pathname="/pricing" variant="site" className="text-center lg:text-left mb-6" />
@@ -178,7 +193,7 @@ export default function PricingPage() {
               <Link href="/signup"
                 className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:scale-[1.03]"
                 style={{ background: grad, boxShadow: '0 10px 44px rgba(124,58,237,0.5)' }}>
-                Sign up
+                Choose your plan
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link href="/features"
@@ -199,7 +214,8 @@ export default function PricingPage() {
                 so it has no figure to convert. The starter package is a link
                 to its option under the plans, and stands out from the rest. */}
             {[
-              { k: `From R${SEAT_PRICE_RAND}`, v: 'Individual: per card, per month', zar: SEAT_PRICE_RAND, per: ' a month, ', href: null },
+              { k: `From R${SOLO_PRICE_RAND.monthly}`, v: 'Solo: your own card, per month', zar: SOLO_PRICE_RAND.monthly, per: ' a month, ', href: '#solo' },
+              { k: `R${PRO_PRICE_RAND.monthly}`, v: 'Pro: every feature, for one person, per month', zar: PRO_PRICE_RAND.monthly, per: ' a month, ', href: null },
               { k: `R${BUNDLE_PRICE_RAND} once`, v: 'Starter package: a year of Pro, your NFC card and delivery included', zar: BUNDLE_PRICE_RAND, per: ' once, ', href: '#starter' },
               { k: `From R${SEAT_PRICE_RAND} / seat`, v: `Pro Teams: 2 to ${MAX_SELF_SERVE_SEATS} seats, one invoice`, zar: SEAT_PRICE_RAND, per: ' a seat a month, ', href: null },
               { k: `${MAX_SELF_SERVE_SEATS + 1}+ seats`, v: 'Enterprise: quoted on your seat count', zar: 0, per: null, href: null },
@@ -232,13 +248,38 @@ export default function PricingPage() {
 
       {/* Plans */}
       <section className="py-16 px-6">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
+
+          {/* Cardtly Solo, for one person (lib/solo) */}
+          <Reveal className="h-full">
+          <div id="solo" className="h-full p-8 rounded-3xl flex flex-col lift-card scroll-mt-24"
+            style={{ background: 'rgba(52,211,153,0.04)', border: '1px solid rgba(52,211,153,0.3)' }}>
+            <PlanPrice tier="solo" />
+            <div className="space-y-3 flex-1">
+              {SOLO.map(f => (
+                <div key={f} className="flex items-start gap-3 text-sm" style={{ color: BODY }}>
+                  <Check className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: MINT }} />
+                  {f}
+                </div>
+              ))}
+            </div>
+            <Link href="/signup?plan=solo"
+              className="mt-8 block text-center py-3.5 rounded-xl text-sm font-semibold transition hover:bg-white/10"
+              style={{ border: '1px solid rgba(52,211,153,0.5)', color: INK }}>
+              Choose Solo
+            </Link>
+            <Link href="/solo" className="mt-2 block text-center min-h-11 py-3 text-sm font-medium transition hover:text-white" style={{ color: DIM }}>
+              More about Solo
+            </Link>
+          </div>
+          </Reveal>
 
           {/* Pro, for one person */}
-          <Reveal className="h-full">
+          <Reveal delay={80} className="h-full">
           <div className="h-full p-8 rounded-3xl flex flex-col lift-card"
             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <ProPlanPrice />
+            <PlanPrice tier="pro" />
+            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: DIM }}>Everything in Solo, plus</p>
             <div className="space-y-3 flex-1">
               {PRO.map(f => (
                 <div key={f} className="flex items-start gap-3 text-sm" style={{ color: BODY }}>
@@ -247,16 +288,16 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <Link href="/signup"
+            <Link href="/signup?plan=pro"
               className="mt-8 block text-center py-3.5 rounded-xl text-sm font-semibold transition hover:bg-white/10"
               style={{ border: '1px solid rgba(255,255,255,0.2)', color: INK }}>
-              Start {TRIAL_DAYS} days free
+              Choose Pro
             </Link>
           </div>
           </Reveal>
 
           {/* Teams, the main event */}
-          <Reveal delay={120} className="h-full">
+          <Reveal delay={160} className="h-full">
           <div className="h-full p-8 rounded-3xl flex flex-col relative overflow-hidden lift-card"
             style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.08), rgba(124,58,237,0.14), rgba(236,72,153,0.08))', border: '1px solid rgba(124,58,237,0.35)' }}>
             <div className="absolute top-6 right-6 px-3 py-1 rounded-full text-xs font-bold text-white flex items-center gap-1"
@@ -405,7 +446,7 @@ export default function PricingPage() {
             <div>
               <p className="font-bold text-white mb-1">NFC cards on their own</p>
               <p className="text-sm leading-relaxed mb-3" style={{ color: BODY }}>
-                Already on Pro, or ordering for the whole team? Order NFC cards separately: R150 with your logo and
+                On Solo or Pro, or ordering for the whole team? Order NFC cards separately: R150 with your logo and
                 colours on our layout, or R200 designed around your brand, plus R100 delivery per order. The starter
                 package above already includes one card and its delivery.
               </p>
@@ -449,16 +490,15 @@ export default function PricingPage() {
             Arm your team with <span style={gradText}>Cardtly.</span>
           </h2>
           <p className="mb-8" style={{ color: BODY }}>
-            Free for {TRIAL_DAYS} days, then from R{SEAT_PRICE_RAND} a card. Set up in minutes, cancel any time.
-            <PriceEstimate zar={SEAT_PRICE_RAND} suffix=" a card a month." className="block mt-2 text-sm" />
+            From R{SOLO_PRICE_RAND.monthly} a month for your own card, or R{SEAT_PRICE_RAND} a seat for your team. Set up in minutes, cancel any time.
+            <PriceEstimate zar={SOLO_PRICE_RAND.monthly} suffix=" a month." className="block mt-2 text-sm" />
             <RandChargeNote className="block text-xs" />
           </p>
           <Link href="/signup"
             className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-bold text-white transition hover:opacity-90"
             style={{ background: grad, boxShadow: '0 8px 40px rgba(124,58,237,0.35)' }}>
-            Start {TRIAL_DAYS} days free <ArrowRight className="w-4 h-4" aria-hidden="true" />
+            Choose your plan <ArrowRight className="w-4 h-4" aria-hidden="true" />
           </Link>
-          <p className="mt-4 text-sm" style={{ color: DIM }}>No credit card required.</p>
         </Reveal>
       </section>
 

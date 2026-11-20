@@ -501,7 +501,7 @@ const GROUPS: Group[] = [
 const FAQS = [
   {
     q: 'Is Cardtly free?',
-    a: 'Cardtly is from R97 per card per month, or R970 a year, and every feature is included. No credit card is needed to create your card and set it up. Teams are from R97 a seat, for 2 to 20 seats, and Enterprise above that is billed by debit order.',
+    a: 'For one person there are two plans: Cardtly Solo from R49 a month (R450 a year) for your card, your QR code and your contacts, and Pro at R97 a month (R970 a year) with every feature. No credit card is needed to create your card and set it up. Teams are from R97 a seat, for 2 to 20 seats, and Enterprise above that is billed by debit order.',
   },
   {
     q: 'What is a digital business card?',
@@ -528,7 +528,7 @@ const FAQS = [
     a: 'Yes. Cardtly for Teams gives every member an on-brand card with locked company branding, member-managed details, and one admin dashboard showing every card’s views and leads. It is priced per seat.',
   },
   {
-    q: 'What do I get for R97?',
+    q: 'What do I get on Pro?',
     a: 'Every feature on this page, on one card. There are no tiers to choose between and nothing is held back for a higher plan. Your card keeps its URL, its design and every contact you capture for as long as you subscribe.',
   },
 ]

@@ -22,6 +22,7 @@ const PRIMARY = [
 ]
 
 const MORE = [
+  { href: '/solo',         label: 'Cardtly Solo' },
   { href: '/how-it-works', label: 'How it works' },
   { href: '/network',      label: 'Network' },
   { href: '/blog',         label: 'Blog' },

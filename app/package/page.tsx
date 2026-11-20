@@ -46,7 +46,6 @@ export default function PackagePage() {
     { q: 'Is it for individuals or for businesses?', a: 'Both. It is one card for one person: a consultant, an agent, a freelancer, or the owner of a business. A business that wants cards for its staff can add a team from the same account later, with each person on their own seat.' },
     { q: 'Which card designs can I choose?', a: `Either one, for the same price. The ${NFC_TIERS.standard.label.toLowerCase()} puts your logo and colours on the Cardtly layout. The ${NFC_TIERS.custom.label.toLowerCase()} is designed around your brand instead. Both are proofed before anything is printed.` },
     { q: 'What happens after the first year?', a: `Your Pro renews at R${renewal} a year, charged to the card you paid with, until you cancel. You can cancel at any time from Billing in your settings: you are not charged again, and your card stays live until the end of the year you have paid for. The renewal does not include another NFC card.` },
-    { q: 'Can I start with the free trial first?', a: 'Yes. Every new account gets 7 days of the full product with no card needed, and you can choose the package at any point during the trial.' },
     { q: 'Can I order more cards later?', a: `Yes. Extra NFC cards are available from R${NFC_TIERS.standard.price} each, and team seats from R${SEAT_PRICE_RAND} a seat a month.` },
   ]
 

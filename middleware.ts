@@ -122,6 +122,7 @@ export const config = {
     '/network',
     '/promotions',
     '/package',
+    '/solo',
     '/resellers',
     '/find-a-reseller',
     '/upgrade/:path*',
