@@ -3,11 +3,11 @@ import Link from 'next/link'
 import Navbar from '@/components/marketing/Navbar'
 import { graph, faqPage, breadcrumb, softwareApplication } from '@/lib/seo-schema'
 import Footer from '@/components/marketing/Footer'
-import PlanPrice from '@/components/marketing/PlanPrice'
+import PricingPlans, { type PricingPlansProps } from '@/components/marketing/PricingPlans'
 import Reveal from '@/components/marketing/Reveal'
 import { WatchHow } from '@/components/howto/HowTo'
 import PriceEstimate, { PriceEstimateLine, RandChargeNote } from '@/components/marketing/PriceEstimate'
-import { Check, ArrowRight, Zap, Building2, CreditCard, Sparkles } from 'lucide-react'
+import { ArrowRight, CreditCard, Sparkles } from 'lucide-react'
 // Read from the billing code rather than typed in. The seat ceiling appears in
 // four places on this page, and the Enterprise tile had drifted to "20+" while
 // self-serve Teams already included the twentieth seat - so a team of exactly
@@ -53,45 +53,35 @@ const gradText: React.CSSProperties = {
 // #7c3aed is the deep brand purple. It measures 3.5:1 on this background and
 // is used on borders and fills only; anything that is text uses the light
 // variant, same rule as /teams.
-const INK = 'rgba(255,255,255,0.92)'   // strong body
 const BODY = 'rgba(255,255,255,0.68)'  // normal body, about 9:1
 const DIM = 'rgba(255,255,255,0.6)'    // suffixes and captions, about 5.9:1
 const LILAC = '#a78bfa'                // brand purple that passes as text
 const MINT = '#34d399'
 
-// Only what Solo can do (lib/solo).
+// Only what Solo can do (lib/solo). Certifications and the contacts export are
+// Solo's too: the editor and the Contacts page give them to any live card.
 const SOLO = [
   `${SOLO_TEMPLATES.length} card templates`,
   'Custom accent colour and fonts',
   'Photo, logo, job title, bio, address, WhatsApp',
-  'Social media profiles',
+  'Social profiles, certifications and awards',
   `Up to ${SOLO_MAX_LINKS} link buttons`,
   `Up to ${SOLO_MAX_IMAGES} gallery photos`,
   'Your QR code, ready to share or print',
   'Contacts who share their details back',
+  'Your contacts in one list, with Excel export',
   'Works with Cardtly NFC cards',
   'Your own cardtly.com link, for good',
 ]
 
-const PRO = [
-  '16 card templates',
-  'Custom accent colour and fonts',
-  'Job title, bio, address, WhatsApp',
-  'Up to 10 custom link buttons',
-  'Social media profiles',
-  'Gallery of up to 10 images',
-  'Certifications and awards',
-  'Analytics dashboard',
-  'Email signature generator',
-  'Virtual background for Zoom & Teams',
-  'Contact capture form',
-  'Book meetings from your card',
-  'WhatsApp follow-up on every lead',
-  'Paper business card scanner',
-  'Manage contacts & save to phone',
-  'One-click Excel contact export',
-  'Weekly performance digest email',
-  'QR code with your logo',
+// What Pro adds to Solo, grouped by what it does for you. Only what Solo does
+// not have: the card limits, lead capture, booking, analytics and the rest
+// lib/solo keeps for Pro.
+const PRO_GROUPS: PricingPlansProps['pro']['groups'] = [
+  { icon: 'card', title: 'Your card, unlocked', items: ['All 16 card templates', 'Up to 10 link buttons', 'Gallery of up to 10 images', 'QR code with your own logo'] },
+  { icon: 'leads', title: 'Win more work', items: ['Contact capture form, with your own questions', 'Book meetings from your card', 'WhatsApp follow-up on every lead', 'Paper business card scanner'] },
+  { icon: 'insight', title: 'See what works', items: ['Analytics dashboard', 'Weekly performance digest email', 'Listed in the Cardtly Network'] },
+  { icon: 'brand', title: 'Look the part', items: ['Email signature generator', 'Virtual background for Zoom & Teams', 'No Cardtly badge on your card'] },
 ]
 
 const TEAMS = [
@@ -246,131 +236,17 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Plans */}
-      <section className="py-16 px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
+      {/* The plans: two rows of two, one Monthly / Yearly switch
+          (components/marketing/PricingPlans, Andre 2026-11-20). */}
+      <PricingPlans
+        solo={{ monthly: SOLO_PRICE_RAND.monthly, yearly: SOLO_PRICE_RAND.yearly, features: SOLO }}
+        pro={{ monthly: PRO_PRICE_RAND.monthly, yearly: PRO_PRICE_RAND.yearly, groups: PRO_GROUPS }}
+        // A team seat for a year is ten months' price (orgMonthlyRand in lib/org-billing).
+        teams={{ seatMonthly: SEAT_PRICE_RAND, seatYearly: SEAT_PRICE_RAND * 10, maxSeats: MAX_SELF_SERVE_SEATS, features: TEAMS }}
+        enterprise={{ fromSeats: MAX_SELF_SERVE_SEATS + 1, features: ENTERPRISE }}
+      />
 
-          {/* Cardtly Solo, for one person (lib/solo) */}
-          <Reveal className="h-full">
-          <div id="solo" className="h-full p-8 rounded-3xl flex flex-col lift-card scroll-mt-24"
-            style={{ background: 'rgba(52,211,153,0.04)', border: '1px solid rgba(52,211,153,0.3)' }}>
-            <PlanPrice tier="solo" />
-            <div className="space-y-3 flex-1">
-              {SOLO.map(f => (
-                <div key={f} className="flex items-start gap-3 text-sm" style={{ color: BODY }}>
-                  <Check className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: MINT }} />
-                  {f}
-                </div>
-              ))}
-            </div>
-            <Link href="/signup?plan=solo"
-              className="mt-8 block text-center py-3.5 rounded-xl text-sm font-semibold transition hover:bg-white/10"
-              style={{ border: '1px solid rgba(52,211,153,0.5)', color: INK }}>
-              Choose Solo
-            </Link>
-            <Link href="/solo" className="mt-2 block text-center min-h-11 py-3 text-sm font-medium transition hover:text-white" style={{ color: DIM }}>
-              More about Solo
-            </Link>
-          </div>
-          </Reveal>
-
-          {/* Pro, for one person */}
-          <Reveal delay={80} className="h-full">
-          <div className="h-full p-8 rounded-3xl flex flex-col lift-card"
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <PlanPrice tier="pro" />
-            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: DIM }}>Everything in Solo, plus</p>
-            <div className="space-y-3 flex-1">
-              {PRO.map(f => (
-                <div key={f} className="flex items-start gap-3 text-sm" style={{ color: BODY }}>
-                  <Check className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }} />
-                  {f}
-                </div>
-              ))}
-            </div>
-            <Link href="/signup?plan=pro"
-              className="mt-8 block text-center py-3.5 rounded-xl text-sm font-semibold transition hover:bg-white/10"
-              style={{ border: '1px solid rgba(255,255,255,0.2)', color: INK }}>
-              Choose Pro
-            </Link>
-          </div>
-          </Reveal>
-
-          {/* Teams, the main event */}
-          <Reveal delay={160} className="h-full">
-          <div className="h-full p-8 rounded-3xl flex flex-col relative overflow-hidden lift-card"
-            style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.08), rgba(124,58,237,0.14), rgba(236,72,153,0.08))', border: '1px solid rgba(124,58,237,0.35)' }}>
-            <div className="absolute top-6 right-6 px-3 py-1 rounded-full text-xs font-bold text-white flex items-center gap-1"
-              style={{ background: 'linear-gradient(135deg, #7c3aed, #ec4899)' }}>
-              <Zap className="w-3 h-3" />Most popular
-            </div>
-            <div className="absolute top-0 right-0 w-48 h-48 rounded-full blur-3xl pointer-events-none"
-              style={{ background: 'rgba(124,58,237,0.2)', transform: 'translate(20%, -20%)' }} />
-
-            <div className="relative">
-              <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: LILAC }}>Teams</p>
-              <div className="flex items-end gap-2 mb-1">
-                <span className="text-base pb-1.5" style={{ color: DIM }}>From</span>
-                <span className="text-5xl font-black">R{SEAT_PRICE_RAND}</span>
-                <span className="text-base pb-1" style={{ color: DIM }}>/ seat / month</span>
-              </div>
-              <PriceEstimate zar={SEAT_PRICE_RAND} suffix="/seat/mo" className="block text-sm font-medium mb-1 text-white/70" />
-              <RandChargeNote className="block text-xs mb-1 text-white/60" />
-              <p className="text-sm mb-8 mt-1" style={{ color: BODY }}>
-                2 to {MAX_SELF_SERVE_SEATS} seats. Set it up yourself in minutes.
-              </p>
-            </div>
-
-            <div className="relative space-y-3 flex-1">
-              {TEAMS.map(f => (
-                <div key={f} className="flex items-start gap-3 text-sm" style={{ color: INK }}>
-                  <Check className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: LILAC }} />
-                  {f}
-                </div>
-              ))}
-            </div>
-
-            <Link href="/dashboard/team"
-              className="relative mt-8 block text-center py-3.5 rounded-xl text-sm font-bold text-white transition hover:opacity-90"
-              style={{ background: grad, boxShadow: '0 6px 30px rgba(124,58,237,0.4)' }}>
-              Set up your team <ArrowRight className="w-4 h-4 inline ml-1" />
-            </Link>
-          </div>
-          </Reveal>
-
-          {/* Enterprise */}
-          <Reveal delay={240} className="h-full">
-          <div className="h-full p-8 rounded-3xl flex flex-col lift-card"
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest mb-3 flex items-center gap-1.5" style={{ color: DIM }}>
-                <Building2 className="w-3.5 h-3.5" />Enterprise
-              </p>
-              <div className="flex items-end gap-2 mb-1">
-                <span className="text-5xl font-black">{MAX_SELF_SERVE_SEATS + 1}+</span>
-                <span className="text-base pb-1" style={{ color: DIM }}>seats</span>
-              </div>
-              <p className="text-sm mb-8 mt-1" style={{ color: BODY }}>
-                Quoted on the number of seats you need, and billed by debit order.
-              </p>
-            </div>
-            <div className="space-y-3 flex-1">
-              {ENTERPRISE.map(f => (
-                <div key={f} className="flex items-start gap-3 text-sm" style={{ color: BODY }}>
-                  <Check className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }} />
-                  {f}
-                </div>
-              ))}
-            </div>
-            <Link href="/contact"
-              className="mt-8 block text-center py-3.5 rounded-xl text-sm font-semibold transition hover:bg-white/10"
-              style={{ border: '1px solid rgba(255,255,255,0.2)', color: INK }}>
-              Talk to us
-            </Link>
-          </div>
-          </Reveal>
-        </div>
-
+      <section className="pb-16 px-6">
         {/* THE STARTER PACKAGE, as an option of its own right under the plans,
             where people choose. The hero's fourth tile lands here. Figures
             from lib/pro-bundle; /package has the full story. */}
