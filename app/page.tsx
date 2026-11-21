@@ -247,7 +247,10 @@ export default function HomePage() {
             {[
               // "From" smaller than the figure: at full size it overran its quarter
               // of the row at 1024 and on a phone.
-              { n: `R${SEAT_PRICE_RAND}`, pre: 'From', label: 'Per card, per month', estimate: true },
+              // The lowest price a card is live at: Cardtly Solo since 2026-11-20.
+              // R97 a card is the team price, and stood here as "from" after
+              // one person's card started at R49.
+              { n: `R${SOLO_PRICE_RAND.monthly}`, pre: 'From', label: 'Per month, your own card', estimate: SOLO_PRICE_RAND.monthly },
               { n: '16',       label: 'Designed templates' },
               // Not "20 seats per team". Twenty is the ceiling on self-serve
               // Paystack billing, not a limit on the product: above it a team
@@ -256,7 +259,7 @@ export default function HomePage() {
               // team could ever be, which undersells it badly.
               { n: 'Unlimited', label: 'Seats with Enterprise' },
               { n: '5–7 days', label: 'NFC card delivery, SA' },
-            ].map(({ n, pre, label, estimate }: { n: string; pre?: string; label: string; estimate?: boolean }, i) => (
+            ].map(({ n, pre, label, estimate }: { n: string; pre?: string; label: string; estimate?: number }, i) => (
               <Reveal key={label} delay={i * 90}>
                 <div className="text-center">
                   {/* nowrap: "5-7 days" was breaking after the number and
@@ -278,7 +281,7 @@ export default function HomePage() {
                       currency, and that the charge stays in rand. Renders
                       nothing in South Africa, so the band is unchanged there. */}
                   {estimate && (
-                    <PriceEstimateLine zar={SEAT_PRICE_RAND} suffix=" a month, "
+                    <PriceEstimateLine zar={estimate} suffix=" a month, "
                       className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.6)' }} />
                   )}
                 </div>
