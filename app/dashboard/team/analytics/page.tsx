@@ -91,6 +91,22 @@ export default async function TeamAnalyticsPage() {
     .limit(1)
     .maybeSingle()
 
+  // One card reset on its own (Andre, 2026-11-23): its own "counting since",
+  // shown on its row when it is later than the last whole-team reset.
+  const { data: cardResets } = await admin
+    .from('admin_audit_log')
+    .select('created_at, detail')
+    .in('action', ['team_reset_analytics', 'admin_reset_team_analytics'])
+    .eq('detail->>org_id', org.id)
+    .not('detail->>card_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(500)
+  const cardResetAt: Record<string, string> = {}
+  for (const r of (cardResets as any[]) || []) {
+    const id = r.detail?.card_id
+    if (id && !cardResetAt[id] && (!lastReset?.created_at || r.created_at > lastReset.created_at)) cardResetAt[id] = r.created_at
+  }
+
   const sum = (k: string) => rows.reduce((s: number, r: any) => s + r[k], 0)
   const quiet = rows.filter((r: any) => r.allTime === 0).length
 
@@ -157,6 +173,11 @@ export default async function TeamAnalyticsPage() {
                 <div className="min-w-0">
                   <p className="font-semibold text-sm truncate">{r.name || 'Unnamed'}</p>
                   {r.title && <p className="text-xs text-muted-foreground truncate">{r.title}</p>}
+                  {cardResetAt[r.id] && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Counting since {new Date(cardResetAt[r.id]).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   {r.slug && (

@@ -217,3 +217,27 @@ export async function resetTeamAnalytics(db: Db, orgId: string, cardId?: string 
   }
   return { cards: ids.length, eventsDeleted: count || 0 }
 }
+
+/**
+ * One PERSONAL card's numbers back to zero (Andre, 2026-11-23: "reset only one
+ * card to check the end of the month"). The same as a team card above: its
+ * card_events go and cards.view_count is zeroed. Contacts are not touched.
+ *
+ * The caller has already proved the card is theirs (app/api/analytics/reset
+ * matches it on user_id); this only does the clearing.
+ */
+export async function resetCardAnalytics(db: Db, cardId: string): Promise<{ cards: number; eventsDeleted: number }> {
+  if (!cardId) return { cards: 0, eventsDeleted: 0 }
+  const { count } = await db.from('card_events').select('id', { count: 'exact', head: true }).eq('card_id', cardId)
+  const { error: delErr } = await db.from('card_events').delete().eq('card_id', cardId)
+  if (delErr) throw new Error(`Could not clear the analytics: ${delErr.message}`)
+  const { error: upErr } = await db.from('cards').update({ view_count: 0 }).eq('id', cardId)
+  if (upErr) throw new Error(`Cleared the analytics, but could not reset the view count: ${upErr.message}`)
+  return { cards: 1, eventsDeleted: count || 0 }
+}
+
+/** The actions an analytics reset is written to the audit log under. */
+export const RESET_ACTIONS = {
+  team: ['team_reset_analytics', 'admin_reset_team_analytics'],
+  card: ['card_reset_analytics'],
+} as const

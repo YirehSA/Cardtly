@@ -189,6 +189,36 @@ if (!/auditLog\(admin, \{[\s\S]{0,120}action: 'team_reset_analytics'/.test(route
 const adminRoute = read('app/api/admin/route.ts')
 if (!/action === 'reset_team_analytics'[\s\S]{0,400}resetTeamAnalytics\(admin, org_id, card_id \|\| null\)[\s\S]{0,200}action: 'admin_reset_team_analytics'/.test(adminRoute)) bad('the admin reset must call resetTeamAnalytics and write an audit entry')
 
+// ── 3. One personal card (Andre, 2026-11-23) ────────────────────────────────
+{
+  const db = makeDb({
+    cards: [{ id: 'p1', user_id: 'u1', view_count: 42 }, { id: 'p2', user_id: 'u2', view_count: 7 }],
+    card_events: [
+      { id: 'k1', card_id: 'p1', event_type: 'view' }, { id: 'k2', card_id: 'p1', event_type: 'link_click' },
+      { id: 'k3', card_id: 'p2', event_type: 'view' },
+    ],
+    contacts: [{ id: 'q1', card_id: 'p1' }],
+  })
+  const res = await A.resetCardAnalytics(db, 'p1')
+  const t = db.tables()
+  if (res.cards !== 1 || res.eventsDeleted !== 2) bad(`a personal reset reports ${JSON.stringify(res)}, expected 1 card and 2 events`)
+  if (t.card_events.some(e => e.card_id === 'p1')) bad('a personal reset left that card\'s events')
+  if (!t.card_events.some(e => e.card_id === 'p2')) bad('a personal reset cleared somebody else\'s card')
+  if (t.cards.find(c => c.id === 'p1').view_count !== 0) bad('a personal reset left the view count above zero')
+  if (t.cards.find(c => c.id === 'p2').view_count !== 7) bad('a personal reset changed another card\'s view count')
+  if (t.contacts.length !== 1) bad('a personal reset deleted contacts')
+}
+const personal = read('app/api/analytics/reset/route.ts')
+if (!/\.from\('cards'\)\.select\([^)]*\)\s*\.eq\('id', cardId\)\.eq\('user_id', user\.id\)/.test(personal)) bad('the personal reset must only find a card the signed-in login owns (user_id)')
+if (!/if \(!card\) return NextResponse\.json\([^)]*\{ status: 404 \}\)/.test(personal)) bad('the personal reset must refuse a card that is not theirs')
+if (/team_card/.test(personal.replace(/\/\/.*$/gm, ''))) bad('the personal reset must never touch a team card: those are the company\'s numbers')
+if (!/auditLog\(admin, \{[\s\S]{0,120}action: 'card_reset_analytics'/.test(personal)) bad('a personal reset must be written to the audit log')
+const page = read('app/dashboard/analytics/page.tsx')
+if (!/canReset=\{!isTeam\}/.test(page)) bad('the Analytics page must offer the reset only on a personal card')
+// The team owner's one-card reset is a visible button, and the admin can pick one card.
+if (!/Reset this card/.test(read('components/team/TeamAnalyticsActions.tsx'))) bad('Team analytics must show a "Reset this card" button on each card')
+if (!/card_id: cardId \} : \{ org_id: o\.id \}/.test(read('components/admin/TeamsTab.tsx'))) bad('Admin, Teams must be able to reset one card, not only the whole team')
+
 if (fail) {
   console.error(`check-team-analytics: ${fail} problem(s)`)
   process.exit(1)

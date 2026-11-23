@@ -3,10 +3,12 @@
 import { CARD_SOURCES } from '@/lib/card-sources'
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { parseDesign, getAccentHex } from '@/types/design'
 import {
   Eye, Users, TrendingUp, TrendingDown, Minus, Smartphone, Monitor,
-  Tablet, Globe, QrCode, ArrowUpRight, BarChart3, MousePointerClick, UserPlus,
+  Tablet, Globe, QrCode, ArrowUpRight, BarChart3, MousePointerClick, UserPlus, RotateCcw, Loader2,
 } from 'lucide-react'
 import PageHeader from '@/components/dashboard/PageHeader'
 import { LABEL } from '@/components/dashboard/ui'
@@ -23,10 +25,46 @@ interface EventRow {
 }
 
 interface Props {
-  card: { name: string; slug: string; colorTheme: string | null; totalViews: number }
+  card: { id?: string; name: string; slug: string; colorTheme: string | null; totalViews: number }
   isTeam: boolean
   events: EventRow[]
   contactDates: string[]
+  /** The owner of a personal card may reset its numbers to zero. */
+  canReset?: boolean
+  /** When the numbers last started again, if they ever did. */
+  resetAt?: string | null
+}
+
+const longDate = (iso: string) => new Date(iso).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })
+
+/** Start this card's numbers again (app/api/analytics/reset). Contacts stay. */
+function ResetButton({ cardId, name }: { cardId: string; name: string }) {
+  const router = useRouter()
+  const [busy, setBusy] = useState(false)
+  async function onReset() {
+    if (!window.confirm(`Reset the analytics for ${name}?\n\nEvery open, tap and scan recorded so far is deleted and the numbers start again from zero. Your contacts are kept.\n\nWant to keep this month's numbers? Use Export first. This cannot be undone.`)) return
+    setBusy(true)
+    try {
+      const res = await fetch('/api/analytics/reset', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ card_id: cardId }),
+      })
+      const out = await res.json().catch(() => ({}))
+      if (!res.ok || out?.error) throw new Error(out?.error || 'Could not reset the analytics')
+      toast.success('Analytics reset. Your card is counting from zero.')
+      router.refresh()
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not reset the analytics')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <button onClick={onReset} disabled={busy}
+      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition disabled:opacity-50">
+      {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+      Reset
+    </button>
+  )
 }
 
 type Period = 7 | 30 | 90
@@ -137,7 +175,7 @@ function Bars({ rows, total, colour, limit = 5 }: { rows: { key: string; count: 
   )
 }
 
-export default function AnalyticsDashboard({ card, isTeam, events, contactDates }: Props) {
+export default function AnalyticsDashboard({ card, isTeam, events, contactDates, canReset = false, resetAt = null }: Props) {
   const [period, setPeriod] = useState<Period>(30)
   const accent = useMemo(() => getAccentHex(parseDesign(card.colorTheme)), [card.colorTheme])
 
@@ -256,9 +294,16 @@ export default function AnalyticsDashboard({ card, isTeam, events, contactDates 
                 period={period}
                 totalViews={card.totalViews}
               />
+              {canReset && card.id && <ResetButton cardId={card.id} name={card.name} />}
           </div>
         }
       />
+
+      {resetAt && (
+        <p className="text-xs text-muted-foreground -mt-2">
+          Counting since {longDate(resetAt)}, when {isTeam ? 'your company reset' : 'you reset'} the analytics. Contacts from before then are kept.
+        </p>
+      )}
 
       {/* Headline numbers */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

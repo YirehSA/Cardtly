@@ -5,6 +5,7 @@ import { getPrimaryCard, getMemberTeamCard } from '@/lib/card-server'
 import { redirect } from 'next/navigation'
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard'
 import ProGate from '@/components/card/ProGate'
+import { RESET_ACTIONS } from '@/lib/team-analytics'
 
 export const metadata = { title: 'Analytics' }
 
@@ -14,6 +15,7 @@ interface CardRef {
   slug: string | null
   view_count: number | null
   color_theme: string | null
+  organization_id?: string | null
 }
 
 // Two periods' worth of history, so the page can compare the selected window
@@ -36,7 +38,7 @@ export default async function AnalyticsPage() {
   // time. Fall back to their claimed team card, as the dashboard does.
   const teamCard = personalCard
     ? null
-    : await getMemberTeamCard<CardRef>(user.id, 'id, name, slug, view_count, color_theme')
+    : await getMemberTeamCard<CardRef>(user.id, 'id, name, slug, view_count, color_theme, organization_id')
 
   const card = personalCard || teamCard
   const isTeam = !personalCard && !!teamCard
@@ -83,15 +85,33 @@ export default async function AnalyticsPage() {
       : db.from('contacts').select('created_at').eq('card_id', card.id).gte('created_at', since),
   ])
 
+  // When this card's numbers last started again, from the audit log every
+  // reset writes to (lib/team-analytics). A personal card: its own resets. A
+  // team card: the owner's resets of this card or of the whole team.
+  const resets = isTeam
+    ? await admin.from('admin_audit_log').select('created_at, detail')
+        .in('action', [...RESET_ACTIONS.team]).eq('detail->>org_id', card.organization_id || '')
+        .order('created_at', { ascending: false }).limit(50)
+    : await admin.from('admin_audit_log').select('created_at, detail')
+        .in('action', [...RESET_ACTIONS.card]).eq('detail->>card_id', card.id)
+        .order('created_at', { ascending: false }).limit(1)
+  const lastReset = ((resets.data || []) as any[])
+    .find(r => !isTeam || !r.detail?.card_id || r.detail.card_id === card.id)?.created_at || null
+
   return (
     <AnalyticsDashboard
       card={{
+        id: card.id,
         name: card.name || 'Your card',
         slug: card.slug || '',
         colorTheme: card.color_theme,
         totalViews: card.view_count ?? 0,
       }}
       isTeam={isTeam}
+      // Only the owner of a personal card resets it here. A team card is the
+      // company's numbers: its owner resets it on Team analytics.
+      canReset={!isTeam}
+      resetAt={lastReset}
       events={(events || []) as any}
       contactDates={((contacts || []) as any[]).map(c => c.created_at)}
     />

@@ -101,6 +101,8 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
   const [editing, setEditing] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [sort, setSort] = useState<OrgSortId>('seats')
+  // Which card an analytics reset is for, per team: '' is the whole team.
+  const [resetCard, setResetCard] = useState<Record<string, string>>({})
   const [form, setForm] = useState<Form>({ userId: '', name: '', seats: '5', mode: 'monthly', notes: '', trialEndsAt: '', billingStartsOn: '', paidUntil: '', ownerEmail: '', sendWelcome: true })
 
   function openEdit(o: AdminOrgRow) {
@@ -486,14 +488,28 @@ export default function TeamsTab({ orgs, users, teamCards, reps, onSave, onAssig
                       {o.cardsCreated > 0 && (
                         <div className="mb-3 flex items-center justify-between gap-3 flex-wrap rounded-lg px-3 py-2"
                           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                            Done setting up and testing? Reset the analytics so {o.name} starts from zero. Contacts are kept.
+                          <p className="text-xs flex-1 min-w-[200px]" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                            Done setting up and testing, or starting a month again? Reset the whole team or one card. Contacts are kept.
                           </p>
+                          {/* One card or all of them (Andre, 2026-11-23). */}
+                          <select value={resetCard[o.id] || ''} aria-label={`Which of ${o.name}'s cards to reset`}
+                            onChange={e => setResetCard(r => ({ ...r, [o.id]: e.target.value }))}
+                            className="px-2 py-1.5 rounded-lg text-xs max-w-[220px]"
+                            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff' }}>
+                            <option value="" style={{ color: '#000' }}>Whole team ({o.cardsCreated} card{o.cardsCreated === 1 ? '' : 's'})</option>
+                            {(cardsByOrg[o.id] || []).map(c => (
+                              <option key={c.id} value={c.id} style={{ color: '#000' }}>{c.name || c.slug || 'Unnamed card'}</option>
+                            ))}
+                          </select>
                           <button
                             disabled={loading === `reset-${o.id}`}
                             onClick={() => {
-                              if (!confirm(`Reset the analytics for all ${o.cardsCreated} card${o.cardsCreated === 1 ? '' : 's'} in ${o.name}?\n\nEvery open, tap and scan recorded so far is deleted and the counts start from zero. Contacts are kept. This cannot be undone.`)) return
-                              onDept('reset_team_analytics', { org_id: o.id }, `reset-${o.id}`, `${o.name}: analytics reset to zero`)
+                              const cardId = resetCard[o.id] || ''
+                              const card = cardId ? (cardsByOrg[o.id] || []).find(c => c.id === cardId) : null
+                              const who = card ? `${card.name || card.slug || 'this card'}'s card in ${o.name}` : `all ${o.cardsCreated} card${o.cardsCreated === 1 ? '' : 's'} in ${o.name}`
+                              if (!confirm(`Reset the analytics for ${who}?\n\nEvery open, tap and scan recorded so far is deleted and the counts start from zero. Contacts are kept. This cannot be undone.`)) return
+                              onDept('reset_team_analytics', cardId ? { org_id: o.id, card_id: cardId } : { org_id: o.id }, `reset-${o.id}`,
+                                card ? `${card.name || card.slug}: analytics reset to zero` : `${o.name}: analytics reset to zero`)
                             }}
                             className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40"
                             style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.85)' }}>

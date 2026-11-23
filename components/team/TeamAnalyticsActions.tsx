@@ -230,7 +230,7 @@ export function TeamCardResetButton({ cardId, name }: { cardId: string; name: st
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   async function onReset() {
-    if (!window.confirm(`Reset the analytics for ${name}'s card?\n\nEvery open, tap and scan recorded on it so far is deleted and its counts start from zero. Contacts are kept. This cannot be undone.`)) return
+    if (!window.confirm(`Reset the analytics for ${name}'s card only?\n\nEvery open, tap and scan recorded on it so far is deleted and its counts start from zero. The other cards are not touched, and contacts are kept.\n\nWant to keep this month's numbers? Download the report first. This cannot be undone.`)) return
     setBusy(true)
     try {
       await reset(cardId)
@@ -243,10 +243,12 @@ export function TeamCardResetButton({ cardId, name }: { cardId: string; name: st
     }
   }
   return (
-    <button onClick={onReset} disabled={busy}
-      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition disabled:opacity-50">
-      {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
-      Reset
+    // A real button, not a grey word: it is how one card is started again at
+    // the end of a month (Andre, 2026-11-23).
+    <button onClick={onReset} disabled={busy} title={`Reset ${name}'s analytics to zero`}
+      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition disabled:opacity-50">
+      {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+      Reset this card
     </button>
   )
 }
